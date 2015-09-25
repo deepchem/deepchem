@@ -1,25 +1,25 @@
 """
-Implements multitask-RF learning on Google-vs datasets.
+Convenience script to train basic models on supported datasets.
 """
 import numpy as np
-from dataset_arxiv import dataset_to_numpy
-from dataset_arxiv import get_target_names
-from dataset_arxiv import load_datasets
-from dataset_arxiv import load_and_transform_dataset
-from dataset_arxiv import train_test_random_split
-from dataset_arxiv import train_test_scaffold_split
-from dataset_arxiv import scaffold_separate
-from dataset_arxiv import eval_model
-from dataset_arxiv import compute_roc_auc_scores
-from dataset_arxiv import compute_r2_scores
-from dataset_arxiv import compute_rms_scores
-from dataset_arxiv import multitask_to_singletask
-from dataset_arxiv import compare_datasets
-from keras_mlp import fit_singletask_mlp
-from keras_mlp import fit_multitask_mlp
-from keras_mlp import train_multitask_model
-from sklearn_models import fit_singletask_models
-from sklearn_models import fit_multitask_rf
+from deep_chem.models.keras import fit_singletask_mlp
+from deep_chem.models.keras import fit_multitask_mlp
+from deep_chem.models.keras import train_multitask_model
+from deep_chem.models.sklearn import fit_singletask_models
+from deep_chem.models.sklearn import fit_multitask_rf
+from deep_chem.utils.analysis import compare_datasets
+from deep_chem.utils.evaluate import eval_model
+from deep_chem.utils.evaluate import compute_roc_auc_scores
+from deep_chem.utils.evaluate import compute_r2_scores
+from deep_chem.utils.evaluate import compute_rms_scores
+from deep_chem.utils.load import get_target_names
+from deep_chem.utils.load import load_datasets
+from deep_chem.utils.load import load_and_transform_dataset
+from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.preprocess import train_test_random_split
+from deep_chem.utils.preprocess import train_test_scaffold_split
+from deep_chem.utils.preprocess import scaffold_separate
+from deep_chem.utils.preprocess import multitask_to_singletask
 
 def filter_outliers(X, y):
   """Removes outlier values from dataset.
