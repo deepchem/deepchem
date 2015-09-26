@@ -61,29 +61,29 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
       raise ValueError("Improper splittype. Must be random/scaffold.")
     X_train, y_train, W_train = dataset_to_numpy(train)
     X_test, y_test, W_test = dataset_to_numpy(test)
-    if modeltype == "RandomForestRegressor":
+    if modeltype == "random_forest_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")
-    elif modeltype == "RandomForestClassifier":
+    elif modeltype == "random_forest_classifier":
       model = RandomForestClassifier(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")
-    elif modeltype == "LogisticRegression":
+    elif modeltype == "logistic_regression":
       model = LogisticRegression(class_weight="auto")
-    elif modeltype == "LinearRegression":
+    elif modeltype == "linear_regression":
       model = LinearRegression(normalize=True)
-    elif modeltype == "RidgeRegression":
+    elif modeltype == "ridge_regression":
       model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0], normalize=True) 
-    elif modeltype == "Lasso":
+    elif modeltype == "lasso":
       model = LassoCV(max_iter=2000, n_jobs=-1) 
-    elif modeltype == "LassoLars":
+    elif modeltype == "lasso_lars":
       model = LassoLarsCV(max_iter=2000, n_jobs=-1) 
-    elif modeltype == "ElasticNet":
+    elif modeltype == "elastic_net":
       model = ElasticNetCV(max_iter=2000, n_jobs=-1) 
-    elif modeltype == "SVR-rbf":
+    elif modeltype == "svr_rbf":
       model = SVR(kernel="rbf") 
-    elif modeltype == "SVR-poly":
+    elif modeltype == "svr_poly":
       model = SVR(kernel="poly") 
-    elif modeltype == "SVR-linear":
+    elif modeltype == "svr_linear":
       model = SVR(kernel="linear") 
     else:
       raise ValueError("Invalid model type provided.")
