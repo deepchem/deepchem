@@ -5,6 +5,11 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+import numpy as np
+from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.preprocess import labels_to_weights
+from sklearn.metrics import roc_auc_score
+
 def model_predictions(test_set, model, n_targets, n_descriptors=0,
     add_descriptors=False, modeltype="sklearn"):
   """Obtains predictions of provided model on test_set.

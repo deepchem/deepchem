@@ -6,7 +6,7 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
-from deep_chem.utils.load import get_target_names
+from deep_chem.utils.analysis import summarize_distribution
 
 def get_default_descriptor_transforms():
   """Provides default descriptor transforms for rdkit descriptors."""
@@ -16,29 +16,6 @@ def get_default_descriptor_transforms():
   for desc in range(n_descriptors):
     desc_transforms[desc] = ["normalize"]
   return desc_transforms
-
-def get_default_task_types_and_transforms(dataset_specs):
-  """Provides default task transforms for provided datasets.
-  
-  Parameters
-  ----------
-  dataset_specs: dict
-    Maps name of datasets to filepath.
-  """
-  task_types, task_transforms = {}, {}
-  for name, path in dataset_specs.iteritems():
-    targets = get_target_names([path])
-    if name == "muv" or name == "dude" or name == "pcba":
-      for target in targets:
-        task_types[target] = "classification"
-        task_transforms[target] = []
-    elif name == "pfizer":
-      for target in targets:
-        task_types[target] = "regression"
-        task_transforms[target] = ["log", "normalize"]
-    elif name == "pdbbind":
-      raise ValueError("pdbbind not yet supported!")
-  return task_types, task_transforms
 
 def transform_outputs(dataset, task_transforms, desc_transforms={},
     add_descriptors=False):

@@ -11,6 +11,29 @@ import os
 import cPickle as pickle
 from deep_chem.utils.preprocess import transform_outputs
 
+def get_default_task_types_and_transforms(dataset_specs):
+  """Provides default task transforms for provided datasets.
+  
+  Parameters
+  ----------
+  dataset_specs: dict
+    Maps name of datasets to filepath.
+  """
+  task_types, task_transforms = {}, {}
+  for name, path in dataset_specs.iteritems():
+    targets = get_target_names([path])
+    if name == "muv" or name == "dude" or name == "pcba":
+      for target in targets:
+        task_types[target] = "classification"
+        task_transforms[target] = []
+    elif name == "pfizer":
+      for target in targets:
+        task_types[target] = "regression"
+        task_transforms[target] = ["log", "normalize"]
+    elif name == "pdbbind":
+      raise ValueError("pdbbind not yet supported!")
+  return task_types, task_transforms
+
 def load_descriptors(paths, descriptor_dir_name="descriptors"):
   """Load dataset descriptors and return.
 

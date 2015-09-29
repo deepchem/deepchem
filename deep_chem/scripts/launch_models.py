@@ -21,7 +21,7 @@ from deep_chem.utils.preprocess import train_test_random_split
 from deep_chem.utils.preprocess import train_test_scaffold_split
 from deep_chem.utils.preprocess import scaffold_separate
 from deep_chem.utils.preprocess import multitask_to_singletask
-from deep_chem.utils.preprocess import get_default_task_types_and_transforms
+from deep_chem.utils.load import get_default_task_types_and_transforms
 from deep_chem.utils.preprocess import get_default_descriptor_transforms
 
 def parse_args(input_args=None):

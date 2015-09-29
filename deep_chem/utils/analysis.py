@@ -5,6 +5,8 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+import numpy as np
+
 def summarize_distribution(y):
   """Analyzes regression dataset.
 
