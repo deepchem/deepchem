@@ -1,12 +1,13 @@
 """
 Convenience script to train basic models on supported datasets.
 """
+import argparse
 import numpy as np
-from deep_chem.models.keras import fit_singletask_mlp
-from deep_chem.models.keras import fit_multitask_mlp
-from deep_chem.models.keras import train_multitask_model
-from deep_chem.models.sklearn import fit_singletask_models
-from deep_chem.models.sklearn import fit_multitask_rf
+from deep_chem.models.deep import fit_singletask_mlp
+from deep_chem.models.deep import fit_multitask_mlp
+from deep_chem.models.deep import train_multitask_model
+from deep_chem.models.standard import fit_singletask_models
+from deep_chem.models.standard import fit_multitask_rf
 from deep_chem.utils.analysis import compare_datasets
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_roc_auc_scores
@@ -20,6 +21,8 @@ from deep_chem.utils.preprocess import train_test_random_split
 from deep_chem.utils.preprocess import train_test_scaffold_split
 from deep_chem.utils.preprocess import scaffold_separate
 from deep_chem.utils.preprocess import multitask_to_singletask
+from deep_chem.utils.preprocess import get_default_task_types_and_transforms
+from deep_chem.utils.preprocess import get_default_descriptor_transforms
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -29,11 +32,10 @@ def parse_args(input_args=None):
   parser.add_argument('--dataset', required=1, choices=['muv', 'pcba', 'dude', 'pfizer'],
                       help='Name of dataset to process.')
   parser.add_argument('--model', required=1, nargs="+",
-                      choices=["logistic_regression", "random_forest", "single_task_deep_network"])
+                      choices=["logistic", "rf_classifier", "single_task_deep_network"])
   return parser.parse_args(input_args)
 
-
-if __name__ == "__main__":
+def main():
   args = parse_args()
   if args.dataset == "muv":
     path = "/home/rbharath/vs-datasets/muv"
@@ -52,12 +54,8 @@ if __name__ == "__main__":
 
   if len(args.model) == 1:
     model = args.model[0]
-    if model == "logistic_regression":
-      fit_singletask_models([path], "logistic_regression", task_types,
-          task_transforms, splittype="scaffold")
-    elif model == "random_forest":
-      fit_singletask_models([path], "random_forest", task_types,
-          task_transforms, splittype="scaffold")
+    fit_singletask_models([path], model, task_types,
+        task_transforms, splittype="scaffold")
 
   #fit_multitask_mlp([muv_path, pfizer_path], task_types, task_transforms,
   #  desc_transforms, splittype="scaffold", add_descriptors=False,
@@ -76,3 +74,7 @@ if __name__ == "__main__":
   #fit_singletask_mlp([muv_path], task_types, task_transforms, desc_transforms,
   #  splittype="scaffold", add_descriptors=False, n_hidden=500,
   #  learning_rate=.01, dropout=.5, nb_epoch=30, decay=1e-4)
+
+
+if __name__ == "__main__":
+  main()

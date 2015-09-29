@@ -2,21 +2,23 @@
 Code for processing the Google vs-datasets using keras.
 """
 import numpy as np
+import sys
+import keras
 from keras.models import Graph
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import SGD
-from dataset_arxiv import load_datasets
-from dataset_arxiv import multitask_to_singletask
-from dataset_arxiv import train_test_random_split
-from dataset_arxiv import train_test_scaffold_split
-from dataset_arxiv import dataset_to_numpy
-from dataset_arxiv import to_one_hot
-from dataset_arxiv import eval_model
-from dataset_arxiv import compute_r2_scores
-from dataset_arxiv import compute_rms_scores
-from dataset_arxiv import compute_roc_auc_scores
-from dataset_arxiv import load_and_transform_dataset
+from deep_chem.utils.load import load_datasets
+from deep_chem.utils.preprocess import multitask_to_singletask
+from deep_chem.utils.preprocess import train_test_random_split
+from deep_chem.utils.preprocess import train_test_scaffold_split
+from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.preprocess import to_one_hot
+from deep_chem.utils.evaluate import eval_model
+from deep_chem.utils.evaluate import compute_r2_scores
+from deep_chem.utils.evaluate import compute_rms_scores
+from deep_chem.utils.evaluate import compute_roc_auc_scores
+from deep_chem.utils.load import load_and_transform_dataset
 
 def process_multitask(paths, task_transforms, desc_transforms, splittype="random",
     seed=None, add_descriptors=False, desc_weight=0.5):

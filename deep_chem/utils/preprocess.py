@@ -5,9 +5,13 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+import numpy as np
+from deep_chem.utils.load import get_target_names
+
 def get_default_descriptor_transforms():
   """Provides default descriptor transforms for rdkit descriptors."""
   # TODO(rbharath): Remove these magic numbers 
+  desc_transforms = {}
   n_descriptors = 196 - 39
   for desc in range(n_descriptors):
     desc_transforms[desc] = ["normalize"]
@@ -22,7 +26,7 @@ def get_default_task_types_and_transforms(dataset_specs):
     Maps name of datasets to filepath.
   """
   task_types, task_transforms = {}, {}
-  for name, path in dataset_specs.itervalues():
+  for name, path in dataset_specs.iteritems():
     targets = get_target_names([path])
     if name == "muv" or name == "dude" or name == "pcba":
       for target in targets:
@@ -33,7 +37,7 @@ def get_default_task_types_and_transforms(dataset_specs):
         task_types[target] = "regression"
         task_transforms[target] = ["log", "normalize"]
     elif name == "pdbbind":
-
+      raise ValueError("pdbbind not yet supported!")
   return task_types, task_transforms
 
 def transform_outputs(dataset, task_transforms, desc_transforms={},

@@ -2,15 +2,15 @@
 Code for processing the Google vs-datasets using scikit-learn.
 """
 import numpy as np
-from dataset_arxiv import load_and_transform_dataset
-from dataset_arxiv import multitask_to_singletask
-from dataset_arxiv import train_test_random_split
-from dataset_arxiv import train_test_scaffold_split
-from dataset_arxiv import dataset_to_numpy
-from dataset_arxiv import eval_model
-from dataset_arxiv import compute_r2_scores
-from dataset_arxiv import compute_rms_scores
-from dataset_arxiv import compute_roc_auc_scores
+from deep_chem.utils.load import load_and_transform_dataset
+from deep_chem.utils.preprocess import multitask_to_singletask
+from deep_chem.utils.preprocess import train_test_random_split
+from deep_chem.utils.preprocess import train_test_scaffold_split
+from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.evaluate import eval_model
+from deep_chem.utils.evaluate import compute_r2_scores
+from deep_chem.utils.evaluate import compute_rms_scores
+from deep_chem.utils.evaluate import compute_roc_auc_scores
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import MultiTaskLasso 
@@ -61,17 +61,17 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
       raise ValueError("Improper splittype. Must be random/scaffold.")
     X_train, y_train, W_train = dataset_to_numpy(train)
     X_test, y_test, W_test = dataset_to_numpy(test)
-    if modeltype == "random_forest_regressor":
+    if modeltype == "rf_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")
-    elif modeltype == "random_forest_classifier":
+    elif modeltype == "rf_classifier":
       model = RandomForestClassifier(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")
-    elif modeltype == "logistic_regression":
+    elif modeltype == "logistic":
       model = LogisticRegression(class_weight="auto")
-    elif modeltype == "linear_regression":
+    elif modeltype == "linear":
       model = LinearRegression(normalize=True)
-    elif modeltype == "ridge_regression":
+    elif modeltype == "ridge":
       model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0], normalize=True) 
     elif modeltype == "lasso":
       model = LassoCV(max_iter=2000, n_jobs=-1) 

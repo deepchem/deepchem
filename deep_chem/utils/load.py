@@ -5,6 +5,12 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+import gzip
+import numpy as np
+import os
+import cPickle as pickle
+from deep_chem.utils.preprocess import transform_outputs
+
 def load_descriptors(paths, descriptor_dir_name="descriptors"):
   """Load dataset descriptors and return.
 
