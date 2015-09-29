@@ -27,54 +27,63 @@ from deep_chem.utils.preprocess import get_default_descriptor_transforms
 def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
-  parser.add_argument('--assay', required=1,
-                      help='Assay ID.')
-  parser.add_argument('--dataset', required=1, choices=['muv', 'pcba', 'dude', 'pfizer'],
+  parser.add_argument('--dataset', required=1, nargs="+",
+                      choices=['muv', 'pcba', 'dude', 'pfizer'],
                       help='Name of dataset to process.')
-  parser.add_argument('--model', required=1, nargs="+",
-                      choices=["logistic", "rf_classifier", "single_task_deep_network"])
+  parser.add_argument('--model', required=1,
+                      choices=["logistic", "rf_classifier", "rf_regressor",
+                      "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
+                      "singletask_deep_network", "multitask_deep_network"])
+  parser.add_argument("--splittype", type=str, default="scaffold",
+                       choices=["scaffold", "random"],
+                       help="Type of cross-validation data-splitting.")
+  parser.add_argument("--n-hidden", type=int, default=500,
+                      help="Number of hidden neurons for NN models.")
+  parser.add_argument("--learning-rate", type=float, default=0.01,
+                  help="Learning rate for NN models.")
+  parser.add_argument("--dropout", type=float, default=0.5,
+                  help="Learning rate for NN models.")
+  parser.add_argument("--n-epochs", type=int, default=50,
+                  help="Number of epochs for NN models.")
+  parser.add_argument("--batchsize", type=int, default=32,
+                  help="Number of examples per minibatch for NN models.")
+  parser.add_argument("--decay", type=float, default=1e-4,
+                  help="Learning rate decay for NN models.")
+  parser.add_argument("--validation-split", type=float, default=0.0,
+                  help="Percent of training data to use for validation.")
   return parser.parse_args(input_args)
 
 def main():
   args = parse_args()
-  if args.dataset == "muv":
-    path = "/home/rbharath/vs-datasets/muv"
-  elif args.dataset == "pcba":
-    path = "/home/rbharath/vs-datasets/pcba"
-  elif args.dataset == "dude":
-    path = "/home/rbharath/vs-datasets/dude"
-  # TODO(rbharath): The pfizer dataset is private. Remove this before the
-  # public release of the code.
-  elif args.dataset == "pfizer":
-    path = "/home/rbharath/private-datasets/pfizer"
+  paths = {}
+  if "muv" in args.dataset:
+    paths["muv"] = "/home/rbharath/vs-datasets/muv"
+  elif "pcba" in args.dataset:
+    paths["pcba"] = "/home/rbharath/vs-datasets/pcba"
+  elif "dude" in args.dataset:
+    paths["dude"]= "/home/rbharath/vs-datasets/dude"
+  # TODO(rbharath): The pfizer dataset is currently private. Remove this before
+  # the public release of the code.
+  elif "pfizer" in args.dataset:
+    paths["pfizer"] = "/home/rbharath/private-datasets/pfizer"
 
-  task_types, task_transforms = get_default_task_types_and_transforms(
-    {args.dataset: path})
+  task_types, task_transforms = get_default_task_types_and_transforms(paths)
   desc_transforms = get_default_descriptor_transforms()
 
-  if len(args.model) == 1:
-    model = args.model[0]
-    fit_singletask_models([path], model, task_types,
+  if args.model == "singletask_deep_network":
+    fit_singletask_mlp(paths.values(), task_types, task_transforms,
+      desc_transforms, splittype=args.splittype, add_descriptors=False,
+      n_hidden=args.n_hidden, learning_rate=args.learning_rate,
+      dropout=args.dropout, nb_epoch=args.n_epochs, decay=args.decay,
+      validation_split=args.validation_split)
+  elif args.model == "multitask_deep_network":
+    fit_multitask_mlp(paths.values(), task_types, task_transforms,
+      desc_transforms, splittype=args.splittype, add_descriptors=False,
+      n_hidden=args.n_hidden, learning_rate = args.learning_rate, dropout = args.dropout,
+      nb_epoch=args.n_epochs, decay=args.decay, validation_split=args.validation_split)
+  else:
+    fit_singletask_models(paths.values(), args.model, task_types,
         task_transforms, splittype="scaffold")
-
-  #fit_multitask_mlp([muv_path, pfizer_path], task_types, task_transforms,
-  #  desc_transforms, splittype="scaffold", add_descriptors=False,
-  #  desc_weight=0.1, n_hidden=500, learning_rate = .01, dropout = .5,
-  #  nb_epoch=50, decay=1e-4, validation_split=0.01)
-
-  #fit_multitask_mlp([muv_path, pfizer_path], task_types, task_transforms,
-  #  desc_transforms, splittype="scaffold", add_descriptors=False, n_hidden=500,
-  #  nb_epoch=40, learning_rate=0.01, decay=1e-4, dropout = .5)
-  #fit_multitask_mlp([dude_path], task_types, task_transforms,
-  #  desc_transforms, splittype="scaffold", add_descriptors=False, n_hidden=500,
-  #  nb_epoch=40, learning_rate=0.01, decay=1e-4, dropout = .5)
-  #fit_multitask_mlp([muv_path], task_types, task_transforms, desc_transforms,
-  #  splittype="scaffold", add_descriptors=False, n_hidden=500,
-  #  learning_rate=.01, dropout=.5, nb_epoch=30, decay=1e-4)
-  #fit_singletask_mlp([muv_path], task_types, task_transforms, desc_transforms,
-  #  splittype="scaffold", add_descriptors=False, n_hidden=500,
-  #  learning_rate=.01, dropout=.5, nb_epoch=30, decay=1e-4)
-
 
 if __name__ == "__main__":
   main()

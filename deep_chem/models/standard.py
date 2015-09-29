@@ -1,5 +1,5 @@
 """
-Code for processing the Google vs-datasets using scikit-learn.
+Code for processing datasets using scikit-learn.
 """
 import numpy as np
 from deep_chem.utils.load import load_and_transform_dataset
@@ -30,7 +30,7 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
   Parameters
   ----------
   paths: list 
-    List of paths to Google vs datasets. 
+    List of paths to datasets. 
   modeltype: String
     A string describing the model to be trained. Options are RandomForest,
   splittype: string
@@ -79,12 +79,6 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
       model = LassoLarsCV(max_iter=2000, n_jobs=-1) 
     elif modeltype == "elastic_net":
       model = ElasticNetCV(max_iter=2000, n_jobs=-1) 
-    elif modeltype == "svr_rbf":
-      model = SVR(kernel="rbf") 
-    elif modeltype == "svr_poly":
-      model = SVR(kernel="poly") 
-    elif modeltype == "svr_linear":
-      model = SVR(kernel="linear") 
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
