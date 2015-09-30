@@ -8,7 +8,9 @@ __license__ = "LGPL"
 import numpy as np
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
+from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import r2_score
 
 def model_predictions(test_set, model, n_targets, n_descriptors=0,
     add_descriptors=False, modeltype="sklearn"):

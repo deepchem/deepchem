@@ -82,6 +82,7 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
+    # TODO(rbharath): This breaks on regression datasets
     results = eval_model(test, model, {target: task_types[target]},
         desc_transforms, modeltype="sklearn", add_descriptors=add_descriptors)
 

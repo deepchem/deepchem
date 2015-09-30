@@ -27,9 +27,11 @@ from deep_chem.utils.preprocess import get_default_descriptor_transforms
 def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
-  parser.add_argument('--dataset', required=1, nargs="+",
+  parser.add_argument('--datasets', required=1, nargs="+",
                       choices=['muv', 'pcba', 'dude', 'pfizer'],
                       help='Name of dataset to process.')
+  parser.add_argument("--paths", required=1, nargs="+",
+                      help = "Paths to input datasets.")
   parser.add_argument('--model', required=1,
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
@@ -45,7 +47,7 @@ def parse_args(input_args=None):
                   help="Learning rate for NN models.")
   parser.add_argument("--n-epochs", type=int, default=50,
                   help="Number of epochs for NN models.")
-  parser.add_argument("--batchsize", type=int, default=32,
+  parser.add_argument("--batch-size", type=int, default=32,
                   help="Number of examples per minibatch for NN models.")
   parser.add_argument("--decay", type=float, default=1e-4,
                   help="Learning rate decay for NN models.")
@@ -56,16 +58,8 @@ def parse_args(input_args=None):
 def main():
   args = parse_args()
   paths = {}
-  if "muv" in args.dataset:
-    paths["muv"] = "/home/rbharath/vs-datasets/muv"
-  elif "pcba" in args.dataset:
-    paths["pcba"] = "/home/rbharath/vs-datasets/pcba"
-  elif "dude" in args.dataset:
-    paths["dude"]= "/home/rbharath/vs-datasets/dude"
-  # TODO(rbharath): The pfizer dataset is currently private. Remove this before
-  # the public release of the code.
-  elif "pfizer" in args.dataset:
-    paths["pfizer"] = "/home/rbharath/private-datasets/pfizer"
+  for dataset, path in zip(args.datasets, args.paths):
+    paths[dataset] = path
 
   task_types, task_transforms = get_default_task_types_and_transforms(paths)
   desc_transforms = get_default_descriptor_transforms()
@@ -75,11 +69,13 @@ def main():
       desc_transforms, splittype=args.splittype, add_descriptors=False,
       n_hidden=args.n_hidden, learning_rate=args.learning_rate,
       dropout=args.dropout, nb_epoch=args.n_epochs, decay=args.decay,
+      batch_size=args.batch_size,
       validation_split=args.validation_split)
   elif args.model == "multitask_deep_network":
     fit_multitask_mlp(paths.values(), task_types, task_transforms,
       desc_transforms, splittype=args.splittype, add_descriptors=False,
       n_hidden=args.n_hidden, learning_rate = args.learning_rate, dropout = args.dropout,
+      batch_size=args.batch_size,
       nb_epoch=args.n_epochs, decay=args.decay, validation_split=args.validation_split)
   else:
     fit_singletask_models(paths.values(), args.model, task_types,
