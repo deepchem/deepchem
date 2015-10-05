@@ -1,5 +1,5 @@
 """
-Train a variety of machine learning models on biochem datasets.
+Process an input dataset into a format suitable for machine learning.
 """
 import os
 import cPickle as pickle
@@ -9,6 +9,8 @@ import openpyxl as px
 import numpy as np
 import argparse
 from rdkit import Chem
+import subprocess
+from vs_utils.utils import SmilesGenerator
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -54,16 +56,31 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def process_globavir(xlsx_file, out_pkl, out_sdf):
+def generate_fingerprints(name, out):
+  dataset_dir = os.path.join(out, name)
+  fingerprint_dir = os.path.join(dataset_dir, "circular-scaffold-smiles")
+  shards_dir = os.path.join(dataset_dir, "shards")
+  sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
+  fingerprints = os.path.join(fingerprint_dir,
+      "%s-circular-scaffolds-smiles.pkl.gz" % name)
+  subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
+                   "--scaffolds", "--smiles",
+                   sdf, fingerprints,
+                   "circular", "--size", "1024"])
+
+
+def generate_targets(xlsx_file, out_pkl, out_sdf):
   """Process Globavir xlsx file."""
   rows, mols = [], []
   W = px.load_workbook(xlsx_file, use_iterators=True)
   p = W.get_sheet_by_name(name="Sheet1")
+  smiles = SmilesGenerator()
   for row_index, row in enumerate(p.iter_rows()):
     # Skip row labels.
     if row_index == 0:
       continue
     row_data = [cell.internal_value for cell in row]
+    # TODO(rbharath): Generalize this code to work for non-Globavir data. 
     row = {
       "compound_name": row_data[0],
       "isomeric_smiles": row_data[1],
@@ -76,7 +93,9 @@ def process_globavir(xlsx_file, out_pkl, out_sdf):
       "ido_percent_activity_10_um": parse_float_input(row_data[11]),
       "ido_percent_activity_1_um": parse_float_input(row_data[12])
     }
-    mols.append(Chem.MolFromSmiles(row["isomeric_smiles"]))
+    mol = Chem.MolFromSmiles(row["isomeric_smiles"])
+    row["smiles"] = smiles.get_smiles(mol)
+    mols.append(mol)
     rows.append(row)
   df = pd.DataFrame(rows)
   # Write pkl.gz file
@@ -92,7 +111,8 @@ def process_globavir(xlsx_file, out_pkl, out_sdf):
 def main():
   args = parse_args()
   out_pkl, out_sdf = generate_directories(args.name, args.out)
-  process_globavir(args.xlsx, out_pkl, out_sdf)
+  generate_targets(args.xlsx, out_pkl, out_sdf)
+  generate_fingerprints(args.name, args.out)
 
 
 if __name__ == "__main__":

@@ -48,12 +48,6 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
     transforms.update(desc_transforms)
   for task, target in enumerate(endpoints):
     task_transforms = transforms[target]
-    print "Task %d has NaNs?" % task
-    print np.any(np.isnan(y[:, task]))
-    print "Task %d data" % task
-    print y[:, task]
-    print "Task %d distribution" % task
-    summarize_distribution(y[:, task])
     for task_transform in task_transforms:
       if task_transform == "log":
         y[:, task] = np.log(y[:, task])
@@ -78,8 +72,6 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
         task_data[nonzero] = task_data[nonzero] / std
       else:
         raise ValueError("Task tranform must be 1+max-val, log, or normalize")
-    print "Post-transform task %d distribution" % task
-    summarize_distribution(y[:, task])
   return X, y, W
 
 def to_one_hot(y):

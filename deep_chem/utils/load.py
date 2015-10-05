@@ -30,6 +30,10 @@ def get_default_task_types_and_transforms(dataset_specs):
       for target in targets:
         task_types[target] = "regression"
         task_transforms[target] = ["log", "normalize"]
+    elif name == "globavir":
+      for target in targets:
+        task_types[target] = "regression"
+        task_transforms[target] = ["normalize"]
     elif name == "pdbbind":
       raise ValueError("pdbbind not yet supported!")
   return task_types, task_transforms
@@ -77,7 +81,10 @@ def load_molecules(paths, dir_name="circular-scaffold-smiles"):
   molecules = {}
   for dataset_path in paths:
     pickle_dir = os.path.join(dataset_path, dir_name)
-    for pickle_file in os.listdir(pickle_dir):
+    pickle_files = os.listdir(pickle_dir)
+    if len(pickle_files) == 0:
+      raise ValueError("No Pickle Files found to load molecules")
+    for pickle_file in pickle_files:
       with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
         contents = pickle.load(f)
         smiles, fingerprints, scaffolds, mol_ids = (
@@ -134,25 +141,28 @@ def load_assays(paths, target_dir_name="targets"):
           items = zip(contents["smiles"], contents["potency"])
         elif "targets" in contents:
           items = zip(contents["smiles"], contents["targets"])
+        # TODO(rbharath): Remove this horrible special purpose code.
+        elif "tdo_percent_activity_10_um" in contents:
+          items = zip(contents["smiles"], contents["tdo_percent_activity_10_um"])
         else:
-          raise ValueError("Must contain either potency or targets field.")
-        for mol, potency in items:
+          raise ValueError("Must contain recognized measurement.")
+        for smiles, measurement in items:
           # TODO(rbharath): Get a less kludgey answer
           # TODO(rbharath): There is some amount of duplicate collisions
           # due to choice of smiles generation. Look into this more
           # carefully and see if the underlying issues are fundamental..
           try:
-            if potency is None or np.isnan(potency):
+            if measurement is None or np.isnan(measurement):
               continue
           except TypeError:
             continue
-          if mol not in datapoints:
-            datapoints[mol] = {}
+          if smiles not in datapoints:
+            datapoints[smiles] = {}
             # Ensure that each target has some entry in dict.
             for name in target_names:
               # Set all targets to invalid for now.
-              datapoints[mol][name] = -1
-          datapoints[mol][target_name] = potency 
+              datapoints[smiles][name] = -1
+          datapoints[smiles][target_name] = measurement 
   return datapoints
 
 def load_datasets(paths, datatype="vs", **load_args):
@@ -184,7 +194,6 @@ def load_pdbbind_datasets(pdbbind_paths):
           "features": row[1],
         })
   df = pd.DataFrame(data)
-  print df.shape
   return df
 
 def load_vs_datasets(paths, target_dir_name="targets",
