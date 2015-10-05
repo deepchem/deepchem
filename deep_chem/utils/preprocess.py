@@ -72,8 +72,6 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
         task_data[nonzero] = task_data[nonzero] / std
       else:
         raise ValueError("Task tranform must be 1+max-val, log, or normalize")
-    print "Post-transform task %d distribution" % task
-    summarize_distribution(y[:, task])
   return X, y, W
 
 def to_one_hot(y):
