@@ -2,6 +2,7 @@
 Code for processing datasets using scikit-learn.
 """
 import numpy as np
+from deep_chem.utils.analysis import results_to_csv
 from deep_chem.utils.load import load_and_transform_dataset
 from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import train_test_random_split
@@ -51,7 +52,8 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
       add_descriptors=add_descriptors)
   singletask = multitask_to_singletask(dataset)
   aucs, r2s, rms = {}, {}, {}
-  for target in singletask:
+  for index, target in enumerate(sorted(singletask.keys())):
+    print "Building model %d" % index
     data = singletask[target]
     if splittype == "random":
       train, test = train_test_random_split(data, seed=seed)
@@ -94,10 +96,13 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     r2s.update(target_r2s)
     rms.update(target_rms)
   if aucs:
+    print results_to_csv(aucs)
     print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
   if r2s:
+    print results_to_csv(r2s)
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
   if rms:
+    print results_to_csv(rms)
     print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 

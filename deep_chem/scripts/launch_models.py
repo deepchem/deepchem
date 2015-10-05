@@ -79,7 +79,7 @@ def main():
       nb_epoch=args.n_epochs, decay=args.decay, validation_split=args.validation_split)
   else:
     fit_singletask_models(paths.values(), args.model, task_types,
-        task_transforms, splittype="scaffold")
+        task_transforms, splittype=args.splittype)
 
 if __name__ == "__main__":
   main()

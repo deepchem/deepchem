@@ -7,6 +7,12 @@ __license__ = "LGPL"
 
 import numpy as np
 
+def results_to_csv(results_dict):
+  """Pretty prints results as CSV line."""
+  targets = sorted(results_dict.keys())
+  print ",".join(targets)
+  print ",".join([str(results_dict[target]) for target in targets])
+
 def summarize_distribution(y):
   """Analyzes regression dataset.
 

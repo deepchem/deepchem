@@ -48,12 +48,6 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
     transforms.update(desc_transforms)
   for task, target in enumerate(endpoints):
     task_transforms = transforms[target]
-    print "Task %d has NaNs?" % task
-    print np.any(np.isnan(y[:, task]))
-    print "Task %d data" % task
-    print y[:, task]
-    print "Task %d distribution" % task
-    summarize_distribution(y[:, task])
     for task_transform in task_transforms:
       if task_transform == "log":
         y[:, task] = np.log(y[:, task])
@@ -170,6 +164,7 @@ def multitask_to_singletask(dataset):
   # Generate single-task data structures
   labels = dataset.itervalues().next()["labels"]
   sorted_targets = sorted(labels.keys())
+  # TODO(rbharath): Replace this with a dictionary comprehension
   singletask = {}
   for target in sorted_targets:
     singletask[target] = {} 
@@ -197,6 +192,8 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   ----------
   dataset: dict 
     A dictionary of type produced by load_datasets. 
+  frac_train: float
+    Proportion of data in train set.
   seed: int (optional)
     Seed to initialize np.random.
   """
@@ -210,6 +207,23 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   for key in test_keys:
     test[key] = dataset[key]
   return train, test
+
+def train_test_random_split_simple(dataset, frac_train=.8, seed=None):
+  """Splits provided data in train/test splits without separating datasets.
+
+  As opposed to train_test_random_split, this function does not ensure that the
+  same compound cannot appear in both train and test (for different targets).
+
+  Parameters
+  ----------
+  dataset: dict 
+    A dictionary of type produced by load_datasets. 
+  frac_train: float
+    Proportion of data in train set.
+  seed: int (optional)
+    Seed to initialize np.random.
+  """
+  pass
 
 def train_test_scaffold_split(dataset, frac_train=.8):
   """Splits provided data into train/test splits by scaffold.

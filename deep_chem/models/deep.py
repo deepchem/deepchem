@@ -146,10 +146,6 @@ def fit_multitask_mlp(paths, task_types, task_transforms, desc_transforms,
   r2s = compute_r2_scores(results, local_task_types)
   if r2s:
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  #rms = compute_rms_scores(results, local_task_types)
-  #if rms:
-  #  print "Mean RMS: %f" % np.mean(np.array(rms.values()))
-  #return (aucs, r2s, rms)
 
 def fit_singletask_mlp(paths, task_types, task_transforms,
                        desc_transforms, splittype="random",
@@ -177,7 +173,9 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
     desc_weight=desc_weight)
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
-  for index, target in enumerate(singletasks):
+  sorted_targets = sorted(singletasks.keys())
+  for index, target in enumerate(sorted_targets):
+    print "Training model %d" % index
     (train, X_train, y_train, W_train, test, X_test, y_test, W_test) = (
         singletasks[target])
     model = train_multitask_model(X_train, y_train, W_train,
@@ -198,10 +196,13 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
     r2s.update(target_r2s)
     rms.update(target_rms)
   if aucs:
+    print aucs
     print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
   if r2s:
+    print r2s
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
   if rms:
+    print rms
     print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 def train_multitask_model(X, y, W, task_types, desc_transforms, add_descriptors=False,
