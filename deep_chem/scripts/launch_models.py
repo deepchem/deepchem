@@ -7,7 +7,6 @@ from deep_chem.models.deep import fit_singletask_mlp
 from deep_chem.models.deep import fit_multitask_mlp
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_default_task_types_and_transforms
-from deep_chem.utils.preprocess import get_default_descriptor_transforms
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -52,22 +51,21 @@ def main():
     paths[dataset] = path
 
   task_types, task_transforms = get_default_task_types_and_transforms(paths)
-  desc_transforms = get_default_descriptor_transforms()
 
   if args.model == "singletask_deep_network":
     fit_singletask_mlp(paths.values(), task_types, task_transforms,
-      desc_transforms, splittype=args.splittype, add_descriptors=False,
-      n_hidden=args.n_hidden, learning_rate=args.learning_rate,
-      dropout=args.dropout, nb_epoch=args.n_epochs, decay=args.decay,
-      batch_size=args.batch_size,
+      splittype=args.splittype, n_hidden=args.n_hidden,
+      learning_rate=args.learning_rate, dropout=args.dropout,
+      nb_epoch=args.n_epochs, decay=args.decay, batch_size=args.batch_size,
       validation_split=args.validation_split,
       weight_positives=args.weight_positives, num_to_train=args.num_to_train)
   elif args.model == "multitask_deep_network":
     fit_multitask_mlp(paths.values(), task_types, task_transforms,
-      desc_transforms, splittype=args.splittype, add_descriptors=False,
-      n_hidden=args.n_hidden, learning_rate = args.learning_rate, dropout = args.dropout,
-      batch_size=args.batch_size, nb_epoch=args.n_epochs, decay=args.decay,
-      validation_split=args.validation_split, weight_positives=args.weight_positives)
+      splittype=args.splittype, n_hidden=args.n_hidden, learning_rate =
+      args.learning_rate, dropout = args.dropout, batch_size=args.batch_size,
+      nb_epoch=args.n_epochs, decay=args.decay,
+      validation_split=args.validation_split,
+      weight_positives=args.weight_positives)
   else:
     fit_singletask_models(paths.values(), args.model, task_types,
         task_transforms, splittype=args.splittype, num_to_train=args.num_to_train)

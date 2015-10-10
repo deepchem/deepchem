@@ -197,9 +197,7 @@ def load_pdbbind_datasets(pdbbind_paths):
   return df
 
 def load_vs_datasets(paths, target_dir_name="targets",
-    fingerprint_dir_name="circular-scaffold-smiles",
-    descriptor_dir_name="descriptors",
-    add_descriptors=False):
+    fingerprint_dir_name="circular-scaffold-smiles"):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps smiles to pairs of (fingerprint, labels)
@@ -213,23 +211,15 @@ def load_vs_datasets(paths, target_dir_name="targets",
   data = {}
   molecules = load_molecules(paths, fingerprint_dir_name)
   labels = load_assays(paths, target_dir_name)
-  if add_descriptors:
-    descriptors = load_descriptors(paths, descriptor_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
   # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
-    if smiles not in labels or (add_descriptors and smiles not in descriptors):
+    if smiles not in labels:
       continue
     mol = molecules[smiles]
-    if add_descriptors:
-      data[smiles] = {"fingerprint": mol["fingerprint"],
-                      "scaffold": mol["scaffold"],
-                      "labels": labels[smiles],
-                      "descriptors": descriptors[smiles]}
-    else:
-      data[smiles] = {"fingerprint": mol["fingerprint"],
-                      "scaffold": mol["scaffold"],
-                      "labels": labels[smiles]}
+    data[smiles] = {"fingerprint": mol["fingerprint"],
+                    "scaffold": mol["scaffold"],
+                    "labels": labels[smiles]}
   return data
 
 def ensure_balanced(y, W):
@@ -243,11 +233,9 @@ def ensure_balanced(y, W):
       elif y[sample_ind, target_ind] == 1:
         pos_weight += W[sample_ind, target_ind]
     assert np.isclose(pos_weight, neg_weight)
-  print "WEIGHTS ARE BALANCED"
 
-def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
-    labels_endpoint="labels", descriptors_endpoint="descriptors",
-    add_descriptors=False, weight_positives=True):
+def load_and_transform_dataset(paths, task_transforms,
+    labels_endpoint="labels", weight_positives=True):
   """Transform data labels as specified
 
   Parameters
@@ -255,19 +243,13 @@ def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
   paths: list 
     List of paths to Google vs datasets. 
   task_transforms: dict 
-    dict mapping target names to list of label transforms. Each list
-    element must be "max-val", "log", "normalize". The transformations are
-    performed in the order specified. An empty list
-    corresponds to no transformations. Only for regression outputs.
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
+    dict mapping target names to list of label transforms. Each list element
+    must be None, "log", "normalize", or "log-normalize". The transformations
+    are performed in the order specified. An empty list corresponds to no
+    transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, add_descriptors=add_descriptors)
+  dataset = load_datasets(paths)
   X, y, W = transform_outputs(dataset, task_transforms,
-      desc_transforms=desc_transforms, add_descriptors=add_descriptors,
       weight_positives=weight_positives)
   # TODO(rbharath): Take this out once test passes
   if weight_positives:
@@ -284,8 +266,5 @@ def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
       else:
         labels[target] = y[s_index][t_index]
     datapoint[labels_endpoint] = labels
-    if add_descriptors:
-      # All non-target endpoints are descriptors
-      datapoint[descriptors_endpoint] = y[s_index][len(sorted_targets):]
     trans_data[smiles] = datapoint 
   return trans_data

@@ -24,8 +24,7 @@ from sklearn.linear_model import LassoLarsCV
 from sklearn.svm import SVR
 
 def fit_singletask_models(paths, modeltype, task_types, task_transforms,
-    add_descriptors=False, desc_transforms={}, splittype="random",
-    seed=None, num_to_train=None):
+    splittype="random", seed=None, num_to_train=None):
   """Fits singletask linear regression models to potency.
 
   Parameters
@@ -44,12 +43,8 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
   task_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
   """
-  dataset = load_and_transform_dataset(paths, task_transforms, desc_transforms,
-      add_descriptors=add_descriptors)
+  dataset = load_and_transform_dataset(paths, task_transforms)
   singletask = multitask_to_singletask(dataset)
   aucs, r2s, rms = {}, {}, {}
   sorted_targets = sorted(singletask.keys())
@@ -87,9 +82,8 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
-    # TODO(rbharath): This breaks on regression datasets
     results = eval_model(test, model, {target: task_types[target]},
-        desc_transforms, modeltype="sklearn", add_descriptors=add_descriptors)
+        modeltype="sklearn")
 
     target_aucs = compute_roc_auc_scores(results, task_types)
     target_r2s = compute_r2_scores(results, task_types)
