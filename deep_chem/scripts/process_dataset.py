@@ -15,8 +15,8 @@ from vs_utils.utils import SmilesGenerator
 def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
-  parser.add_argument('--xlsx', required=1,
-                      help='Excel file with Globavir data.')
+  parser.add_argument('--data', required=1,
+                      help='Input file with data.')
   parser.add_argument("--name", required=1,
                       help="Name of the dataset.")
   parser.add_argument("--out", required=1,
@@ -28,7 +28,7 @@ def generate_directories(name, out):
   dataset_dir = os.path.join(out, name)
   if not os.path.exists(dataset_dir):
     os.makedirs(dataset_dir)
-  fingerprint_dir = os.path.join(dataset_dir, "circular-scaffold-smiles")
+  fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   if not os.path.exists(fingerprint_dir):
     os.makedirs(fingerprint_dir)
   target_dir = os.path.join(dataset_dir, "targets")
@@ -58,19 +58,25 @@ def parse_float_input(val):
 
 def generate_fingerprints(name, out):
   dataset_dir = os.path.join(out, name)
-  fingerprint_dir = os.path.join(dataset_dir, "circular-scaffold-smiles")
+  fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   shards_dir = os.path.join(dataset_dir, "shards")
   sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
   fingerprints = os.path.join(fingerprint_dir,
-      "%s-circular-scaffolds-smiles.pkl.gz" % name)
+      "%s-fingerprints.pkl.gz" % name)
   subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
                    "--scaffolds", "--smiles",
                    sdf, fingerprints,
                    "circular", "--size", "1024"])
 
+def globavir_specs():
+  columns = ["compound_name", "isomeric_smiles", "tdo_ic50_nm", "tdo_Ki_nm",
+    "tdo_percent_activity_10_um", "tdo_percent_activity_1_um", "ido_ic50_nm",
+    "ido_Ki_nm", "ido_percent_activity_10_um", "ido_percent_activity_1_um"]
+  column_types = ["string", "string", "float", "float", "float", "float",
+      "float", "float", "float", "float"]
 
-def generate_targets(xlsx_file, out_pkl, out_sdf):
-  """Process Globavir xlsx file."""
+def generate_targets(xlsx_file, columns, column_types, out_pkl, out_sdf):
+  """Process input data file."""
   rows, mols = [], []
   W = px.load_workbook(xlsx_file, use_iterators=True)
   p = W.get_sheet_by_name(name="Sheet1")
@@ -80,20 +86,16 @@ def generate_targets(xlsx_file, out_pkl, out_sdf):
     if row_index == 0:
       continue
     row_data = [cell.internal_value for cell in row]
-    # TODO(rbharath): Generalize this code to work for non-Globavir data. 
-    row = {
-      "compound_name": row_data[0],
-      "isomeric_smiles": row_data[1],
-      "tdo_ic50_nm": parse_float_input(row_data[5]),
-      "tdo_Ki_nm": parse_float_input(row_data[6]),
-      "tdo_percent_activity_10_um": parse_float_input(row_data[7]),
-      "tdo_percent_activity_1_um": parse_float_input(row_data[8]),
-      "ido_ic50_nm": parse_float_input(row_data[9]),
-      "ido_Ki_nm": parse_float_input(row_data[10]),
-      "ido_percent_activity_10_um": parse_float_input(row_data[11]),
-      "ido_percent_activity_1_um": parse_float_input(row_data[12])
-    }
-    mol = Chem.MolFromSmiles(row["isomeric_smiles"])
+    row = {}
+    for ind, (column, column_type) in enumerate(zip(columns, column_types)):
+      if column_type == "string":
+        row[column] = row_data[ind]
+      elif column_type == "float":
+        row[column] = parse_float_input(row_data[ind])
+      elif column_type == "float-array" and ind = len(columns) - 1:
+        row[column] = np.array(row_data[ind:])
+
+    mol = Chem.MolFromSmiles(row["smiles"])
     row["smiles"] = smiles.get_smiles(mol)
     mols.append(mol)
     rows.append(row)
@@ -111,7 +113,7 @@ def generate_targets(xlsx_file, out_pkl, out_sdf):
 def main():
   args = parse_args()
   out_pkl, out_sdf = generate_directories(args.name, args.out)
-  generate_targets(args.xlsx, out_pkl, out_sdf)
+  generate_targets(args.data, out_pkl, out_sdf)
   generate_fingerprints(args.name, args.out)
 
 

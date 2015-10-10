@@ -47,6 +47,7 @@ def process_multitask(paths, task_transforms, desc_transforms, splittype="random
   """
   dataset = load_and_transform_dataset(paths, task_transforms, desc_transforms,
       add_descriptors=add_descriptors, weight_positives=weight_positives)
+  sorted_targets = sorted(dataset.keys())
   if splittype == "random":
     train, test = train_test_random_split(dataset, seed=seed)
   elif splittype == "scaffold":

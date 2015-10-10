@@ -6,6 +6,7 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
+import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
 def get_default_descriptor_transforms():
@@ -97,6 +98,7 @@ def balance_positives(y, W):
   n_samples, n_targets = np.shape(y)
   for target_ind in range(n_targets):
     positive_inds, negative_inds = [], []
+    to_next_target = False
     for sample_ind in range(n_samples):
       label = y[sample_ind, target_ind]
       if label == 1:
@@ -106,8 +108,15 @@ def balance_positives(y, W):
       elif label == -1:  # Case of missing label
         continue
       else:
-        raise ValueError("Labels must be 0/1 or -1 (missing data) for balance_positives.")
+        warnings.warn("Labels must be 0/1 or -1 " +
+                      "(missing data) for balance_positives target %d. " % target_ind +
+                      "Continuing without balancing.")
+        to_next_target = True
+        break 
+    if to_next_target:
+      continue
     n_positives, n_negatives = len(positive_inds), len(negative_inds)
+    print "For target %d, n_positives: %d, n_negatives: %d" % (target_ind, n_positives, n_negatives)
     pos_weight = float(n_negatives)/float(n_positives)
     W[positive_inds, target_ind] = pos_weight
     W[negative_inds, target_ind] = 1
