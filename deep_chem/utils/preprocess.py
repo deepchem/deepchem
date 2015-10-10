@@ -18,7 +18,7 @@ def get_default_descriptor_transforms():
   return desc_transforms
 
 def transform_outputs(dataset, task_transforms, desc_transforms={},
-    add_descriptors=False):
+    add_descriptors=False, weight_positives=True):
   """Tranform the provided outputs
 
   Parameters
@@ -36,7 +36,8 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
   add_descriptors: bool
     Add descriptor prediction as extra task.
   """
-  X, y, W = dataset_to_numpy(dataset, add_descriptors=add_descriptors)
+  X, y, W = dataset_to_numpy(dataset, add_descriptors=add_descriptors,
+      weight_positives=weight_positives)
   sorted_targets = sorted(task_transforms.keys())
   if add_descriptors:
     sorted_descriptors = sorted(desc_transforms.keys())
@@ -91,9 +92,30 @@ def to_one_hot(y):
       y_hot[index] = np.array([0, 1])
   return y_hot
 
+def balance_positives(y, W):
+  """Ensure that positive and negative examples have equal weight."""
+  n_samples, n_targets = np.shape(y)
+  for target_ind in range(n_targets):
+    positive_inds, negative_inds = [], []
+    for sample_ind in range(n_samples):
+      label = y[sample_ind, target_ind]
+      if label == 1:
+        positive_inds.append(sample_ind)
+      elif label == 0:
+        negative_inds.append(sample_ind)
+      elif label == -1:  # Case of missing label
+        continue
+      else:
+        raise ValueError("Labels must be 0/1 or -1 (missing data) for balance_positives.")
+    n_positives, n_negatives = len(positive_inds), len(negative_inds)
+    pos_weight = float(n_negatives)/float(n_positives)
+    W[positive_inds, target_ind] = pos_weight
+    W[negative_inds, target_ind] = 1
+  return W
+
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     labels_endpoint="labels", descriptors_endpoint="descriptors",
-    desc_weight=.5, add_descriptors=False):
+    desc_weight=.5, add_descriptors=False, weight_positives=True):
   """Transforms a loaded dataset into numpy arrays (X, y).
 
   Transforms provided dict into feature matrix X (of dimensions [n_samples,
@@ -105,6 +127,8 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   Note that this function transforms missing data into negative examples
   (this is relatively safe since the ratio of positive to negative examples
   is on the order 1/100)
+
+  TODO(rbharath): Clean this up and remove some of the extra arguments.
   
   Parameters
   ----------
@@ -137,7 +161,7 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     # Set labels from measurements
     for t_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
-        y[index][t_ind] = 0
+        y[index][t_ind] = -1
         W[index][t_ind] = 0
       else:
         y[index][t_ind] = labels[target]
@@ -145,6 +169,8 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
       # Set labels from descriptors
       y[index][n_targets:] = descriptors
       W[index][n_targets:] = desc_weight
+  if weight_positives:
+    W = balance_positives(y, W)
   return X, y, W
 
 def multitask_to_singletask(dataset):
@@ -162,15 +188,14 @@ def multitask_to_singletask(dataset):
   # Generate single-task data structures
   labels = dataset.itervalues().next()["labels"]
   sorted_targets = sorted(labels.keys())
-  # TODO(rbharath): Replace this with a dictionary comprehension
-  singletask = {}
-  for target in sorted_targets:
-    singletask[target] = {} 
+  singletask = {target: {} for target in sorted_targets}
   # Populate the singletask datastructures
   sorted_smiles = sorted(dataset.keys())
   for index, smiles in enumerate(sorted_smiles):
     datapoint = dataset[smiles]
     labels = datapoint["labels"]
+    if index < 10:
+      print labels
     for t_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
         continue

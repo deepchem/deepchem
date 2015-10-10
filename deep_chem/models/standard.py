@@ -25,7 +25,7 @@ from sklearn.svm import SVR
 
 def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     add_descriptors=False, desc_transforms={}, splittype="random",
-    seed=None):
+    seed=None, num_to_train=None):
   """Fits singletask linear regression models to potency.
 
   Parameters
@@ -52,7 +52,10 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
       add_descriptors=add_descriptors)
   singletask = multitask_to_singletask(dataset)
   aucs, r2s, rms = {}, {}, {}
-  for index, target in enumerate(sorted(singletask.keys())):
+  sorted_targets = sorted(singletask.keys())
+  if num_to_train:
+    sorted_targets = sorted_targets[:num_to_train]
+  for index, target in enumerate(sorted_targets):
     print "Building model %d" % index
     data = singletask[target]
     if splittype == "random":

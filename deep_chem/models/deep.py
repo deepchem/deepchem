@@ -9,6 +9,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import SGD
 from deep_chem.utils.load import load_datasets
+from deep_chem.utils.load import ensure_balanced
 from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import train_test_random_split
 from deep_chem.utils.preprocess import train_test_scaffold_split
@@ -21,7 +22,7 @@ from deep_chem.utils.evaluate import compute_roc_auc_scores
 from deep_chem.utils.load import load_and_transform_dataset
 
 def process_multitask(paths, task_transforms, desc_transforms, splittype="random",
-    seed=None, add_descriptors=False, desc_weight=0.5):
+    seed=None, add_descriptors=False, weight_positives=False, desc_weight=0.5):
   """Extracts multitask datasets and splits into train/test.
 
   Returns a tuple of test/train datasets, fingerprints, and labels.
@@ -45,7 +46,7 @@ def process_multitask(paths, task_transforms, desc_transforms, splittype="random
     Seed used for random splits.
   """
   dataset = load_and_transform_dataset(paths, task_transforms, desc_transforms,
-      add_descriptors=add_descriptors)
+      add_descriptors=add_descriptors, weight_positives=weight_positives)
   if splittype == "random":
     train, test = train_test_random_split(dataset, seed=seed)
   elif splittype == "scaffold":
@@ -54,12 +55,18 @@ def process_multitask(paths, task_transforms, desc_transforms, splittype="random
     raise ValueError("Improper splittype. Must be random/scaffold.")
   X_train, y_train, W_train = dataset_to_numpy(train,
       add_descriptors=add_descriptors, desc_weight=desc_weight)
+  if weight_positives:
+    print "Train set balance"
+    ensure_balanced(y_train, W_train)
   X_test, y_test, W_test = dataset_to_numpy(test,
       add_descriptors=add_descriptors, desc_weight=desc_weight)
+  if weight_positives:
+    print "Test set balance"
+    ensure_balanced(y_test, W_test)
   return (train, X_train, y_train, W_train, test, X_test, y_test, W_test)
 
 def process_singletask(paths, task_transforms, desc_transforms, splittype="random", seed=None,
-    add_descriptors=False, desc_weight=0.5):
+    add_descriptors=False, desc_weight=0.5, weight_positives=True):
   """Extracts singletask datasets and splits into train/test.
 
   Returns a dict that maps target names to tuples.
@@ -77,11 +84,14 @@ def process_singletask(paths, task_transforms, desc_transforms, splittype="rando
     Seed used for random splits.
   """
   dataset = load_and_transform_dataset(paths, task_transforms, desc_transforms,
-      add_descriptors=add_descriptors)
+      add_descriptors=add_descriptors, weight_positives=weight_positives)
   singletask = multitask_to_singletask(dataset)
   arrays = {}
   for target in singletask:
+    print target
     data = singletask[target]
+    print "len(data)"
+    print len(data)
     # TODO(rbharath): Remove limitation after debugging.
     if len(data) == 0:
       continue
@@ -102,7 +112,7 @@ def process_singletask(paths, task_transforms, desc_transforms, splittype="rando
 
 def fit_multitask_mlp(paths, task_types, task_transforms, desc_transforms,
                       splittype="random", add_descriptors=False, desc_weight=0.5,
-                      **training_params):
+                      weight_positives=False, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
   Returns AUCs, R^2 scores, and RMS values.
@@ -127,7 +137,8 @@ def fit_multitask_mlp(paths, task_types, task_transforms, desc_transforms,
   """
   (train, X_train, y_train, W_train, test, X_test, y_test, W_test) = (
       process_multitask(paths, task_transforms, desc_transforms,
-      splittype=splittype, add_descriptors=add_descriptors, desc_weight=desc_weight))
+      splittype=splittype, add_descriptors=add_descriptors, desc_weight=desc_weight,
+      weight_positives=weight_positives))
   print np.shape(y_train)
   model = train_multitask_model(X_train, y_train, W_train, task_types,
                                 desc_transforms, add_descriptors=add_descriptors,
@@ -150,7 +161,7 @@ def fit_multitask_mlp(paths, task_types, task_transforms, desc_transforms,
 def fit_singletask_mlp(paths, task_types, task_transforms,
                        desc_transforms, splittype="random",
                        add_descriptors=False, desc_weight=0.5,
-                       **training_params):
+                       weight_positives=True, num_to_train=None, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras MLP.
 
@@ -170,10 +181,12 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
   """
   singletasks = process_singletask(paths, task_transforms, desc_transforms,
     splittype=splittype, add_descriptors=add_descriptors,
-    desc_weight=desc_weight)
+    desc_weight=desc_weight, weight_positives=weight_positives)
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
   sorted_targets = sorted(singletasks.keys())
+  if num_to_train:
+    sorted_targets = sorted_targets[:num_to_train]
   for index, target in enumerate(sorted_targets):
     print "Training model %d" % index
     (train, X_train, y_train, W_train, test, X_test, y_test, W_test) = (

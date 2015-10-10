@@ -232,9 +232,22 @@ def load_vs_datasets(paths, target_dir_name="targets",
                       "labels": labels[smiles]}
   return data
 
+def ensure_balanced(y, W):
+  """Helper function that ensures postives and negatives are balanced."""
+  n_samples, n_targets = np.shape(y)
+  for target_ind in range(n_targets):
+    pos_weight, neg_weight = 0, 0
+    for sample_ind in range(n_samples):
+      if y[sample_ind, target_ind] == 0:
+        neg_weight += W[sample_ind, target_ind]
+      elif y[sample_ind, target_ind] == 1:
+        pos_weight += W[sample_ind, target_ind]
+    assert np.isclose(pos_weight, neg_weight)
+  print "WEIGHTS ARE BALANCED"
+
 def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
     labels_endpoint="labels", descriptors_endpoint="descriptors",
-    add_descriptors=False):
+    add_descriptors=False, weight_positives=True):
   """Transform data labels as specified
 
   Parameters
@@ -254,7 +267,11 @@ def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
   """
   dataset = load_datasets(paths, add_descriptors=add_descriptors)
   X, y, W = transform_outputs(dataset, task_transforms,
-      desc_transforms=desc_transforms, add_descriptors=add_descriptors)
+      desc_transforms=desc_transforms, add_descriptors=add_descriptors,
+      weight_positives=weight_positives)
+  # TODO(rbharath): Take this out once test passes
+  if weight_positives:
+    ensure_balanced(y, W)
   trans_data = {}
   sorted_smiles = sorted(dataset.keys())
   sorted_targets = sorted(task_transforms.keys())
