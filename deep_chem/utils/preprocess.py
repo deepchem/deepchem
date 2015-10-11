@@ -94,8 +94,15 @@ def balance_positives(y, W):
     if to_next_target:
       continue
     n_positives, n_negatives = len(positive_inds), len(negative_inds)
-    print "For target %d, n_positives: %d, n_negatives: %d" % (target_ind, n_positives, n_negatives)
-    pos_weight = float(n_negatives)/float(n_positives)
+    print "For target %d, n_positives: %d, n_negatives: %d" % (
+        target_ind, n_positives, n_negatives)
+    # TODO(rbharath): This results since the coarse train/test split doesn't
+    # guarantee that the test set actually has any positives for targets. FIX
+    # THIS BEFORE RELEASE!
+    if n_positives == 0:
+      pos_weight = 0
+    else:
+      pos_weight = float(n_negatives)/float(n_positives)
     W[positive_inds, target_ind] = pos_weight
     W[negative_inds, target_ind] = 1
   return W

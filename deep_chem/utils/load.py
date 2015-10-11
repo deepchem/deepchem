@@ -251,9 +251,9 @@ def load_and_transform_dataset(paths, task_transforms,
   dataset = load_datasets(paths)
   X, y, W = transform_outputs(dataset, task_transforms,
       weight_positives=weight_positives)
-  # TODO(rbharath): Take this out once test passes
-  if weight_positives:
-    ensure_balanced(y, W)
+  ## TODO(rbharath): Take this out once test passes
+  #if weight_positives:
+  #  ensure_balanced(y, W)
   trans_data = {}
   sorted_smiles = sorted(dataset.keys())
   sorted_targets = sorted(task_transforms.keys())

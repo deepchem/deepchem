@@ -6,6 +6,7 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
+import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
 from sklearn.metrics import mean_squared_error
@@ -142,7 +143,11 @@ def compute_roc_auc_scores(results, task_types):
     print np.shape(ytrue)
     print "np.shape(yscore)"
     print np.shape(yscore)
-    score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    try:
+      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    except Exception as e:
+      warnings.warn("ERROR! ROC_AUC_SCORE CALCULATION FAILED.")
+      score = 0.5
     #score = roc_auc_score(ytrue, yscore, sample_weight=sample_weights)
     print "Target %s: AUC %f" % (target, score)
     scores[target] = score

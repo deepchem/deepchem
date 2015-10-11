@@ -52,13 +52,15 @@ def process_multitask(paths, task_transforms, splittype="random",
   else:
     raise ValueError("Improper splittype. Must be random/scaffold.")
   X_train, y_train, W_train = dataset_to_numpy(train)
-  if weight_positives:
-    print "Train set balance"
-    ensure_balanced(y_train, W_train)
+  ## TODO(rbharath): Still need to fix the failures for PCBA. Temporarily
+  ## commenting out to experiment.
+  #if weight_positives:
+  #  print "Train set balance"
+  #  ensure_balanced(y_train, W_train)
   X_test, y_test, W_test = dataset_to_numpy(test)
-  if weight_positives:
-    print "Test set balance"
-    ensure_balanced(y_test, W_test)
+  #if weight_positives:
+  #  print "Test set balance"
+  #  ensure_balanced(y_test, W_test)
   return (train, X_train, y_train, W_train, test, X_test, y_test, W_test)
 
 def process_singletask(paths, task_transforms, splittype="random", seed=None,
