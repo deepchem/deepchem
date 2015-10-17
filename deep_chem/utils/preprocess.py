@@ -6,19 +6,10 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
+import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def get_default_descriptor_transforms():
-  """Provides default descriptor transforms for rdkit descriptors."""
-  # TODO(rbharath): Remove these magic numbers 
-  desc_transforms = {}
-  n_descriptors = 196 - 39
-  for desc in range(n_descriptors):
-    desc_transforms[desc] = ["normalize"]
-  return desc_transforms
-
-def transform_outputs(dataset, task_transforms, desc_transforms={},
-    add_descriptors=False):
+def transform_outputs(dataset, task_transforms, weight_positives=True):
   """Tranform the provided outputs
 
   Parameters
@@ -30,22 +21,11 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
     element must be "1+max-val", "log", "normalize". The transformations are
     performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
   """
-  X, y, W = dataset_to_numpy(dataset, add_descriptors=add_descriptors)
+  X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
   sorted_targets = sorted(task_transforms.keys())
-  if add_descriptors:
-    sorted_descriptors = sorted(desc_transforms.keys())
-    endpoints = sorted_targets + sorted_descriptors
-  else:
-    endpoints = sorted_targets
+  endpoints = sorted_targets
   transforms = task_transforms.copy()
-  if add_descriptors:
-    transforms.update(desc_transforms)
   for task, target in enumerate(endpoints):
     task_transforms = transforms[target]
     for task_transform in task_transforms:
@@ -65,6 +45,8 @@ def transform_outputs(dataset, task_transforms, desc_transforms={},
         mean = np.mean(task_data[nonzero])
         std = np.std(task_data[nonzero])
         task_data[nonzero] = task_data[nonzero] - mean
+        print "Old mean: " + str(mean)
+        print "Old std: " + str(std)
         # Set standard deviation to one
         if std == 0.:
           print "Variance normalization skipped for task %d due to 0 stdev" % task
@@ -91,9 +73,44 @@ def to_one_hot(y):
       y_hot[index] = np.array([0, 1])
   return y_hot
 
+def balance_positives(y, W):
+  """Ensure that positive and negative examples have equal weight."""
+  n_samples, n_targets = np.shape(y)
+  for target_ind in range(n_targets):
+    positive_inds, negative_inds = [], []
+    to_next_target = False
+    for sample_ind in range(n_samples):
+      label = y[sample_ind, target_ind]
+      if label == 1:
+        positive_inds.append(sample_ind)
+      elif label == 0:
+        negative_inds.append(sample_ind)
+      elif label == -1:  # Case of missing label
+        continue
+      else:
+        warnings.warn("Labels must be 0/1 or -1 " +
+                      "(missing data) for balance_positives target %d. " % target_ind +
+                      "Continuing without balancing.")
+        to_next_target = True
+        break 
+    if to_next_target:
+      continue
+    n_positives, n_negatives = len(positive_inds), len(negative_inds)
+    print "For target %d, n_positives: %d, n_negatives: %d" % (
+        target_ind, n_positives, n_negatives)
+    # TODO(rbharath): This results since the coarse train/test split doesn't
+    # guarantee that the test set actually has any positives for targets. FIX
+    # THIS BEFORE RELEASE!
+    if n_positives == 0:
+      pos_weight = 0
+    else:
+      pos_weight = float(n_negatives)/float(n_positives)
+    W[positive_inds, target_ind] = pos_weight
+    W[negative_inds, target_ind] = 1
+  return W
+
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels", descriptors_endpoint="descriptors",
-    desc_weight=.5, add_descriptors=False):
+    labels_endpoint="labels", weight_positives=True):
   """Transforms a loaded dataset into numpy arrays (X, y).
 
   Transforms provided dict into feature matrix X (of dimensions [n_samples,
@@ -105,46 +122,35 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   Note that this function transforms missing data into negative examples
   (this is relatively safe since the ratio of positive to negative examples
   is on the order 1/100)
-  
+
   Parameters
   ----------
   dataset: dict 
     A dictionary of type produced by load_datasets. 
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
   """
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   n_features = len(sample_datapoint[feature_endpoint])
   n_targets = len(sample_datapoint[labels_endpoint])
   X = np.zeros((n_samples, n_features))
-  if add_descriptors:
-    n_desc = len(sample_datapoint[descriptors_endpoint])
-    y = np.zeros((n_samples, n_targets + n_desc))
-    W = np.ones((n_samples, n_targets + n_desc))
-  else:
-    y = np.zeros((n_samples, n_targets))
-    W = np.ones((n_samples, n_targets))
+  y = np.zeros((n_samples, n_targets))
+  W = np.ones((n_samples, n_targets))
   sorted_smiles = sorted(dataset.keys())
   for index, smiles in enumerate(sorted_smiles):
     datapoint = dataset[smiles] 
     fingerprint, labels  = (datapoint[feature_endpoint],
         datapoint[labels_endpoint])
-    if add_descriptors:
-      descriptors = datapoint[descriptors_endpoint]
     X[index] = np.array(fingerprint)
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
     for t_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
-        y[index][t_ind] = 0
+        y[index][t_ind] = -1
         W[index][t_ind] = 0
       else:
         y[index][t_ind] = labels[target]
-    if add_descriptors:
-      # Set labels from descriptors
-      y[index][n_targets:] = descriptors
-      W[index][n_targets:] = desc_weight
+  if weight_positives:
+    W = balance_positives(y, W)
   return X, y, W
 
 def multitask_to_singletask(dataset):
@@ -162,9 +168,7 @@ def multitask_to_singletask(dataset):
   # Generate single-task data structures
   labels = dataset.itervalues().next()["labels"]
   sorted_targets = sorted(labels.keys())
-  singletask = {}
-  for target in sorted_targets:
-    singletask[target] = {} 
+  singletask = {target: {} for target in sorted_targets}
   # Populate the singletask datastructures
   sorted_smiles = sorted(dataset.keys())
   for index, smiles in enumerate(sorted_smiles):
@@ -189,6 +193,8 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   ----------
   dataset: dict 
     A dictionary of type produced by load_datasets. 
+  frac_train: float
+    Proportion of data in train set.
   seed: int (optional)
     Seed to initialize np.random.
   """
@@ -202,6 +208,23 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   for key in test_keys:
     test[key] = dataset[key]
   return train, test
+
+def train_test_random_split_simple(dataset, frac_train=.8, seed=None):
+  """Splits provided data in train/test splits without separating datasets.
+
+  As opposed to train_test_random_split, this function does not ensure that the
+  same compound cannot appear in both train and test (for different targets).
+
+  Parameters
+  ----------
+  dataset: dict 
+    A dictionary of type produced by load_datasets. 
+  frac_train: float
+    Proportion of data in train set.
+  seed: int (optional)
+    Seed to initialize np.random.
+  """
+  pass
 
 def train_test_scaffold_split(dataset, frac_train=.8):
   """Splits provided data into train/test splits by scaffold.

@@ -35,7 +35,11 @@ def get_default_task_types_and_transforms(dataset_specs):
         task_types[target] = "regression"
         task_transforms[target] = ["normalize"]
     elif name == "pdbbind":
-      raise ValueError("pdbbind not yet supported!")
+      for target in targets:
+        task_types[target] = "regression"
+        task_transforms[target] = ["normalize"]
+        #task_transforms[target] = []
+  
   return task_types, task_transforms
 
 def load_descriptors(paths, descriptor_dir_name="descriptors"):
@@ -67,7 +71,7 @@ def load_descriptors(paths, descriptor_dir_name="descriptors"):
                   index not in bad_sets])
   return descriptor_dict
 
-def load_molecules(paths, dir_name="circular-scaffold-smiles"):
+def load_molecules(paths, dir_name="fingerprints"):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
@@ -137,15 +141,18 @@ def load_assays(paths, target_dir_name="targets"):
       target_name = target_pickle.split(".")[0]
       with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
         contents = pickle.load(f)
+        # TODO(rbharath): Make endpoint a flag that can be passed in.
         if "potency" in contents:
-          items = zip(contents["smiles"], contents["potency"])
+          endpoint = "potency" 
         elif "targets" in contents:
-          items = zip(contents["smiles"], contents["targets"])
-        # TODO(rbharath): Remove this horrible special purpose code.
+          endpoint = "targets"  
+        elif "label" in contents:
+          endpoint = "label"
         elif "tdo_percent_activity_10_um" in contents:
-          items = zip(contents["smiles"], contents["tdo_percent_activity_10_um"])
+          endpoint = "tdo_percent_activity_10_um"
         else:
           raise ValueError("Must contain recognized measurement.")
+        items = zip(contents["smiles"], contents[endpoint])
         for smiles, measurement in items:
           # TODO(rbharath): Get a less kludgey answer
           # TODO(rbharath): There is some amount of duplicate collisions
@@ -197,9 +204,7 @@ def load_pdbbind_datasets(pdbbind_paths):
   return df
 
 def load_vs_datasets(paths, target_dir_name="targets",
-    fingerprint_dir_name="circular-scaffold-smiles",
-    descriptor_dir_name="descriptors",
-    add_descriptors=False):
+    fingerprint_dir_name="fingerprints"):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps smiles to pairs of (fingerprint, labels)
@@ -213,28 +218,31 @@ def load_vs_datasets(paths, target_dir_name="targets",
   data = {}
   molecules = load_molecules(paths, fingerprint_dir_name)
   labels = load_assays(paths, target_dir_name)
-  if add_descriptors:
-    descriptors = load_descriptors(paths, descriptor_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
   # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
-    if smiles not in labels or (add_descriptors and smiles not in descriptors):
+    if smiles not in labels:
       continue
     mol = molecules[smiles]
-    if add_descriptors:
-      data[smiles] = {"fingerprint": mol["fingerprint"],
-                      "scaffold": mol["scaffold"],
-                      "labels": labels[smiles],
-                      "descriptors": descriptors[smiles]}
-    else:
-      data[smiles] = {"fingerprint": mol["fingerprint"],
-                      "scaffold": mol["scaffold"],
-                      "labels": labels[smiles]}
+    data[smiles] = {"fingerprint": mol["fingerprint"],
+                    "scaffold": mol["scaffold"],
+                    "labels": labels[smiles]}
   return data
 
-def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
-    labels_endpoint="labels", descriptors_endpoint="descriptors",
-    add_descriptors=False):
+def ensure_balanced(y, W):
+  """Helper function that ensures postives and negatives are balanced."""
+  n_samples, n_targets = np.shape(y)
+  for target_ind in range(n_targets):
+    pos_weight, neg_weight = 0, 0
+    for sample_ind in range(n_samples):
+      if y[sample_ind, target_ind] == 0:
+        neg_weight += W[sample_ind, target_ind]
+      elif y[sample_ind, target_ind] == 1:
+        pos_weight += W[sample_ind, target_ind]
+    assert np.isclose(pos_weight, neg_weight)
+
+def load_and_transform_dataset(paths, task_transforms,
+    labels_endpoint="labels", weight_positives=True):
   """Transform data labels as specified
 
   Parameters
@@ -242,19 +250,17 @@ def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
   paths: list 
     List of paths to Google vs datasets. 
   task_transforms: dict 
-    dict mapping target names to list of label transforms. Each list
-    element must be "max-val", "log", "normalize". The transformations are
-    performed in the order specified. An empty list
-    corresponds to no transformations. Only for regression outputs.
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
+    dict mapping target names to list of label transforms. Each list element
+    must be None, "log", "normalize", or "log-normalize". The transformations
+    are performed in the order specified. An empty list corresponds to no
+    transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, add_descriptors=add_descriptors)
+  dataset = load_datasets(paths)
   X, y, W = transform_outputs(dataset, task_transforms,
-      desc_transforms=desc_transforms, add_descriptors=add_descriptors)
+      weight_positives=weight_positives)
+  ## TODO(rbharath): Take this out once test passes
+  #if weight_positives:
+  #  ensure_balanced(y, W)
   trans_data = {}
   sorted_smiles = sorted(dataset.keys())
   sorted_targets = sorted(task_transforms.keys())
@@ -267,8 +273,5 @@ def load_and_transform_dataset(paths, task_transforms, desc_transforms={},
       else:
         labels[target] = y[s_index][t_index]
     datapoint[labels_endpoint] = labels
-    if add_descriptors:
-      # All non-target endpoints are descriptors
-      datapoint[descriptors_endpoint] = y[s_index][len(sorted_targets):]
     trans_data[smiles] = datapoint 
   return trans_data

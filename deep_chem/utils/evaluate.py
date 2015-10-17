@@ -6,20 +6,23 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
+import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
+from rdkit import Chem
+from rdkit.Chem.Descriptors import ExactMolWt
 
-def model_predictions(test_set, model, n_targets, task_types, n_descriptors=0,
-    add_descriptors=False, modeltype="sklearn"):
+def model_predictions(test_set, model, n_targets, task_types,
+    modeltype="sklearn"):
   """Obtains predictions of provided model on test_set.
 
   Returns a list of per-task predictions.
 
-  TODO(rbharath): This function uses n_descriptors, n_targets instead of
-  task_transforms, desc_transforms like everything else.
+  TODO(rbharath): This function uses n_targets instead of
+  task_transforms like everything else.
 
   Parameters
   ----------
@@ -32,23 +35,15 @@ def model_predictions(test_set, model, n_targets, task_types, n_descriptors=0,
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".
-  n_descriptors: int
-    Number of output descriptors
   modeltype: string
     Either sklearn, keras, or keras_multitask
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
   """
   # Extract features for test set and make preds
   X, _, _ = dataset_to_numpy(test_set)
-  if add_descriptors:
-    n_outputs = n_targets + n_descriptors
-  else:
-    n_outputs = n_targets
   if modeltype == "keras_multitask":
     predictions = model.predict({"input": X})
     ypreds = []
-    for index in range(n_outputs):
+    for index in range(n_targets):
       ypreds.append(predictions["task%d" % index])
   elif modeltype == "sklearn":
     # Must be single-task (breaking multitask RFs here)
@@ -65,17 +60,76 @@ def model_predictions(test_set, model, n_targets, task_types, n_descriptors=0,
   if type(ypreds) != list:
     ypreds = [ypreds]
   return ypreds
+
+def size_eval_model(test_set, model, task_types, modeltype="sklearn"):
+  """Split test set based on size of molecule."""
+  weights = {}
+  for smiles in test_set:
+    weights[smiles] = ExactMolWt(Chem.MolFromSmiles(smiles))
+  #print weights
+  weight_arr = np.array(weights.values())
+  print "mean: " + str(np.mean(weight_arr))
+  print "std: " + str(np.std(weight_arr))
+  print "max: " + str(np.amax(weight_arr))
+  print "min: " + str(np.amin(weight_arr))
+  buckets = {250: {}, 500: {}, 750: {}, 1000: {}, 1250: {}, 1500: {}, 1750: {}, 2000: {}, 2250: {}, 2500: {}, 2750: {}}
+  buckets_to_labels = {250: "0-250", 500: "250-500", 750: "500-750", 1000: "750-1000", 1250: "1000-1250", 1500: "1250-1500", 1750: "1500-1750", 2000: "1750-2000", 2250: "2000-2250", 2500: "2250-2500", 2750: "2500-2750"}
+  for smiles in test_set:
+    weight = weights[smiles]
+    if weight < 250:
+      buckets[250][smiles] = test_set[smiles]
+    elif weight < 500:
+      buckets[500][smiles] = test_set[smiles]
+    elif weight < 750:
+      buckets[750][smiles] = test_set[smiles]
+    elif weight < 1000:
+      buckets[1000][smiles] = test_set[smiles]
+    elif weight < 1250:
+      buckets[1250][smiles] = test_set[smiles]
+    elif weight < 1500:
+      buckets[1500][smiles] = test_set[smiles]
+    elif weight < 1750:
+      buckets[1750][smiles] = test_set[smiles]
+    elif weight < 2000:
+      buckets[2000][smiles] = test_set[smiles]
+    elif weight < 2250:
+      buckets[2250][smiles] = test_set[smiles]
+    elif weight < 2500:
+      buckets[2500][smiles] = test_set[smiles]
+    elif weight < 2750:
+      buckets[2750][smiles] = test_set[smiles]
+    else:
+      raise ValueError("High Weight: " + str(weight))
+  for weight_class in sorted(buckets.keys()):
+    test_bucket = buckets[weight_class]
+    if len(test_bucket) == 0:
+      continue
+    print "Evaluating model for %s dalton molecules" % buckets_to_labels[weight_class]
+    print "%d compounds in bucket" % len(test_bucket)
+    results = eval_model(test_bucket, model, task_types, modeltype=modeltype)
+
+    target_r2s = compute_r2_scores(results, task_types)
+    target_rms = compute_rms_scores(results, task_types)
+    print "R^2: " + str(target_r2s)
+    print "RMS: " + str(target_rms)
   
-def eval_model(test_set, model, task_types, desc_transforms={}, modeltype="sklearn",
-    add_descriptors=False):
+  print "Performing Global Evaluation"
+  results = eval_model(test_set, model, task_types, modeltype=modeltype)
+  target_r2s = compute_r2_scores(results, task_types)
+  target_rms = compute_rms_scores(results, task_types)
+  print "R^2: " + str(target_r2s)
+  print "RMS: " + str(target_rms)
+    
+  
+
+  
+def eval_model(test_set, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
   yscore) of true labels vs. predict
 
   TODO(rbharath): This function is too complex. Refactor and simplify.
-  TODO(rbharath): The handling of add_descriptors for semi-supervised learning
-  is horrible. Refactor.
 
   Parameters
   ----------
@@ -86,27 +140,14 @@ def eval_model(test_set, model, task_types, desc_transforms={}, modeltype="sklea
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
   modeltype: string
     Either sklearn, keras, or keras_multitask
-  add_descriptors: bool
-    Add descriptor prediction as extra task.
   """
   sorted_targets = sorted(task_types.keys())
-  if add_descriptors:
-    sorted_descriptors = sorted(desc_transforms.keys())
-    endpoints = sorted_targets + sorted_descriptors
-    local_task_types = task_types.copy()
-    for desc in desc_transforms:
-      local_task_types[desc] = "regression"
-  else:
-    local_task_types = task_types.copy()
-    endpoints = sorted_targets
+  local_task_types = task_types.copy()
+  endpoints = sorted_targets
   ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, n_descriptors=len(desc_transforms),
-      modeltype=modeltype, add_descriptors=add_descriptors)
+      local_task_types, modeltype=modeltype)
   results = {}
   for target in endpoints:
     results[target] = ([], [])  # (ytrue, yscore)
@@ -166,7 +207,11 @@ def compute_roc_auc_scores(results, task_types):
     print np.shape(ytrue)
     print "np.shape(yscore)"
     print np.shape(yscore)
-    score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    try:
+      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    except Exception as e:
+      warnings.warn("ERROR! ROC_AUC_SCORE CALCULATION FAILED.")
+      score = 0.5
     #score = roc_auc_score(ytrue, yscore, sample_weight=sample_weights)
     print "Target %s: AUC %f" % (target, score)
     scores[target] = score

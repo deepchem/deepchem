@@ -2,6 +2,7 @@
 Code for processing datasets using scikit-learn.
 """
 import numpy as np
+from deep_chem.utils.analysis import results_to_csv
 from deep_chem.utils.load import load_and_transform_dataset
 from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import train_test_random_split
@@ -23,8 +24,7 @@ from sklearn.linear_model import LassoLarsCV
 from sklearn.svm import SVR
 
 def fit_singletask_models(paths, modeltype, task_types, task_transforms,
-    add_descriptors=False, desc_transforms={}, splittype="random",
-    seed=None):
+    splittype="random", seed=None, num_to_train=None):
   """Fits singletask linear regression models to potency.
 
   Parameters
@@ -43,15 +43,15 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
   task_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
-  desc_transforms: dict
-    dict mapping descriptor number to transform. Each transform must be
-    either None, "log", "normalize", or "log-normalize"
   """
-  dataset = load_and_transform_dataset(paths, task_transforms, desc_transforms,
-      add_descriptors=add_descriptors)
+  dataset = load_and_transform_dataset(paths, task_transforms)
   singletask = multitask_to_singletask(dataset)
   aucs, r2s, rms = {}, {}, {}
-  for target in singletask:
+  sorted_targets = sorted(singletask.keys())
+  if num_to_train:
+    sorted_targets = sorted_targets[:num_to_train]
+  for index, target in enumerate(sorted_targets):
+    print "Building model %d" % index
     data = singletask[target]
     if splittype == "random":
       train, test = train_test_random_split(data, seed=seed)
@@ -82,9 +82,8 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
-    # TODO(rbharath): This breaks on regression datasets
     results = eval_model(test, model, {target: task_types[target]},
-        desc_transforms, modeltype="sklearn", add_descriptors=add_descriptors)
+        modeltype="sklearn")
 
     target_aucs = compute_roc_auc_scores(results, task_types)
     target_r2s = compute_r2_scores(results, task_types)
@@ -94,10 +93,13 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     r2s.update(target_r2s)
     rms.update(target_rms)
   if aucs:
+    print results_to_csv(aucs)
     print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
   if r2s:
+    print results_to_csv(r2s)
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
   if rms:
+    print results_to_csv(rms)
     print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 
