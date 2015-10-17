@@ -16,6 +16,7 @@ from deep_chem.utils.preprocess import train_test_scaffold_split
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import to_one_hot
 from deep_chem.utils.evaluate import eval_model
+from deep_chem.utils.evaluate import size_eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 from deep_chem.utils.evaluate import compute_rms_scores
 from deep_chem.utils.evaluate import compute_roc_auc_scores
@@ -168,26 +169,28 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
         singletasks[target])
     model = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)
-    results = eval_model(test, model, {target: task_types[target]}, 
-                         # We run singletask models as special cases of
-                         # multitask.
-                         modeltype="keras_multitask")
-    target_aucs = compute_roc_auc_scores(results, task_types)
-    target_r2s = compute_r2_scores(results, task_types)
-    target_rms = compute_rms_scores(results, task_types)
+    #results = eval_model(test, model, {target: task_types[target]}, 
+    #                     # We run singletask models as special cases of
+    #                     # multitask.
+    #                     modeltype="keras_multitask")
+    results = size_eval_model(test, model, {target: task_types[target]},
+        modeltype="keras_multitask")
+  #  target_aucs = compute_roc_auc_scores(results, task_types)
+  #  target_r2s = compute_r2_scores(results, task_types)
+  #  target_rms = compute_rms_scores(results, task_types)
 
-    aucs.update(target_aucs)
-    r2s.update(target_r2s)
-    rms.update(target_rms)
-  if aucs:
-    print aucs
-    print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
-  if r2s:
-    print r2s
-    print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  if rms:
-    print rms
-    print "Mean RMS: %f" % np.mean(np.array(rms.values()))
+  #  aucs.update(target_aucs)
+  #  r2s.update(target_r2s)
+  #  rms.update(target_rms)
+  #if aucs:
+  #  print aucs
+  #  print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
+  #if r2s:
+  #  print r2s
+  #  print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
+  #if rms:
+  #  print rms
+  #  print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 def train_multitask_model(X, y, W, task_types,
   learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True, activation="relu",

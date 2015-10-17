@@ -12,6 +12,8 @@ from deep_chem.utils.preprocess import labels_to_weights
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
+from rdkit import Chem
+from rdkit.Chem.Descriptors import ExactMolWt
 
 def model_predictions(test_set, model, n_targets, task_types,
     modeltype="sklearn"):
@@ -58,6 +60,68 @@ def model_predictions(test_set, model, n_targets, task_types,
   if type(ypreds) != list:
     ypreds = [ypreds]
   return ypreds
+
+def size_eval_model(test_set, model, task_types, modeltype="sklearn"):
+  """Split test set based on size of molecule."""
+  weights = {}
+  for smiles in test_set:
+    weights[smiles] = ExactMolWt(Chem.MolFromSmiles(smiles))
+  #print weights
+  weight_arr = np.array(weights.values())
+  print "mean: " + str(np.mean(weight_arr))
+  print "std: " + str(np.std(weight_arr))
+  print "max: " + str(np.amax(weight_arr))
+  print "min: " + str(np.amin(weight_arr))
+  buckets = {250: {}, 500: {}, 750: {}, 1000: {}, 1250: {}, 1500: {}, 1750: {}, 2000: {}, 2250: {}, 2500: {}, 2750: {}}
+  buckets_to_labels = {250: "0-250", 500: "250-500", 750: "500-750", 1000: "750-1000", 1250: "1000-1250", 1500: "1250-1500", 1750: "1500-1750", 2000: "1750-2000", 2250: "2000-2250", 2500: "2250-2500", 2750: "2500-2750"}
+  for smiles in test_set:
+    weight = weights[smiles]
+    if weight < 250:
+      buckets[250][smiles] = test_set[smiles]
+    elif weight < 500:
+      buckets[500][smiles] = test_set[smiles]
+    elif weight < 750:
+      buckets[750][smiles] = test_set[smiles]
+    elif weight < 1000:
+      buckets[1000][smiles] = test_set[smiles]
+    elif weight < 1250:
+      buckets[1250][smiles] = test_set[smiles]
+    elif weight < 1500:
+      buckets[1500][smiles] = test_set[smiles]
+    elif weight < 1750:
+      buckets[1750][smiles] = test_set[smiles]
+    elif weight < 2000:
+      buckets[2000][smiles] = test_set[smiles]
+    elif weight < 2250:
+      buckets[2250][smiles] = test_set[smiles]
+    elif weight < 2500:
+      buckets[2500][smiles] = test_set[smiles]
+    elif weight < 2750:
+      buckets[2750][smiles] = test_set[smiles]
+    else:
+      raise ValueError("High Weight: " + str(weight))
+  for weight_class in sorted(buckets.keys()):
+    test_bucket = buckets[weight_class]
+    if len(test_bucket) == 0:
+      continue
+    print "Evaluating model for %s dalton molecules" % buckets_to_labels[weight_class]
+    print "%d compounds in bucket" % len(test_bucket)
+    results = eval_model(test_bucket, model, task_types, modeltype=modeltype)
+
+    target_r2s = compute_r2_scores(results, task_types)
+    target_rms = compute_rms_scores(results, task_types)
+    print "R^2: " + str(target_r2s)
+    print "RMS: " + str(target_rms)
+  
+  print "Performing Global Evaluation"
+  results = eval_model(test_set, model, task_types, modeltype=modeltype)
+  target_r2s = compute_r2_scores(results, task_types)
+  target_rms = compute_rms_scores(results, task_types)
+  print "R^2: " + str(target_r2s)
+  print "RMS: " + str(target_rms)
+    
+  
+
   
 def eval_model(test_set, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.

@@ -35,7 +35,11 @@ def get_default_task_types_and_transforms(dataset_specs):
         task_types[target] = "regression"
         task_transforms[target] = ["normalize"]
     elif name == "pdbbind":
-      raise ValueError("pdbbind not yet supported!")
+      for target in targets:
+        task_types[target] = "regression"
+        task_transforms[target] = ["normalize"]
+        #task_transforms[target] = []
+  
   return task_types, task_transforms
 
 def load_descriptors(paths, descriptor_dir_name="descriptors"):
@@ -67,7 +71,7 @@ def load_descriptors(paths, descriptor_dir_name="descriptors"):
                   index not in bad_sets])
   return descriptor_dict
 
-def load_molecules(paths, dir_name="circular-scaffold-smiles"):
+def load_molecules(paths, dir_name="fingerprints"):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
@@ -137,15 +141,18 @@ def load_assays(paths, target_dir_name="targets"):
       target_name = target_pickle.split(".")[0]
       with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
         contents = pickle.load(f)
+        # TODO(rbharath): Make endpoint a flag that can be passed in.
         if "potency" in contents:
-          items = zip(contents["smiles"], contents["potency"])
+          endpoint = "potency" 
         elif "targets" in contents:
-          items = zip(contents["smiles"], contents["targets"])
-        # TODO(rbharath): Remove this horrible special purpose code.
+          endpoint = "targets"  
+        elif "label" in contents:
+          endpoint = "label"
         elif "tdo_percent_activity_10_um" in contents:
-          items = zip(contents["smiles"], contents["tdo_percent_activity_10_um"])
+          endpoint = "tdo_percent_activity_10_um"
         else:
           raise ValueError("Must contain recognized measurement.")
+        items = zip(contents["smiles"], contents[endpoint])
         for smiles, measurement in items:
           # TODO(rbharath): Get a less kludgey answer
           # TODO(rbharath): There is some amount of duplicate collisions
@@ -197,7 +204,7 @@ def load_pdbbind_datasets(pdbbind_paths):
   return df
 
 def load_vs_datasets(paths, target_dir_name="targets",
-    fingerprint_dir_name="circular-scaffold-smiles"):
+    fingerprint_dir_name="fingerprints"):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps smiles to pairs of (fingerprint, labels)

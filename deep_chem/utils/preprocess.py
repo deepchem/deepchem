@@ -45,6 +45,8 @@ def transform_outputs(dataset, task_transforms, weight_positives=True):
         mean = np.mean(task_data[nonzero])
         std = np.std(task_data[nonzero])
         task_data[nonzero] = task_data[nonzero] - mean
+        print "Old mean: " + str(mean)
+        print "Old std: " + str(std)
         # Set standard deviation to one
         if std == 0.:
           print "Variance normalization skipped for task %d due to 0 stdev" % task

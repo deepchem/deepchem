@@ -12,7 +12,7 @@ def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
   parser.add_argument('--datasets', required=1, nargs="+",
-                      choices=['muv', 'pcba', 'dude', 'pfizer', 'globavir'],
+                      choices=['muv', 'pcba', 'dude', 'pfizer', 'globavir', 'pdbbind'],
                       help='Name of dataset to process.')
   parser.add_argument("--paths", required=1, nargs="+",
                       help = "Paths to input datasets.")
