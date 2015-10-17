@@ -9,7 +9,6 @@ from deep_chem.utils.preprocess import train_test_random_split
 from deep_chem.utils.preprocess import train_test_scaffold_split
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
-from deep_chem.utils.evaluate import size_eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 from deep_chem.utils.evaluate import compute_rms_scores
 from deep_chem.utils.evaluate import compute_roc_auc_scores
@@ -83,27 +82,25 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
-    #results = eval_model(test, model, {target: task_types[target]},
-    #    modeltype="sklearn")
-    results = size_eval_model(test, model, {target: task_types[target]},
+    results = eval_model(test, model, {target: task_types[target]},
         modeltype="sklearn")
 
-  #  target_aucs = compute_roc_auc_scores(results, task_types)
-  #  target_r2s = compute_r2_scores(results, task_types)
-  #  target_rms = compute_rms_scores(results, task_types)
-  #  
-  #  aucs.update(target_aucs)
-  #  r2s.update(target_r2s)
-  #  rms.update(target_rms)
-  #if aucs:
-  #  print results_to_csv(aucs)
-  #  print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
-  #if r2s:
-  #  print results_to_csv(r2s)
-  #  print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  #if rms:
-  #  print results_to_csv(rms)
-  #  print "Mean RMS: %f" % np.mean(np.array(rms.values()))
+    target_aucs = compute_roc_auc_scores(results, task_types)
+    target_r2s = compute_r2_scores(results, task_types)
+    target_rms = compute_rms_scores(results, task_types)
+    
+    aucs.update(target_aucs)
+    r2s.update(target_r2s)
+    rms.update(target_rms)
+  if aucs:
+    print results_to_csv(aucs)
+    print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
+  if r2s:
+    print results_to_csv(r2s)
+    print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
+  if rms:
+    print results_to_csv(rms)
+    print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 
 def fit_multitask_rf(dataset, splittype="random"):
