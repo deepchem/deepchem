@@ -5,21 +5,23 @@ import argparse
 import numpy as np
 from deep_chem.models.deep import fit_singletask_mlp
 from deep_chem.models.deep import fit_multitask_mlp
+from deep_chem.models.deep3d import fit_3D_convolution
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_default_task_types_and_transforms
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
-  parser.add_argument('--datasets', required=1, nargs="+",
+  parser.add_argument('--datasets', nargs="+", required=1,
                       choices=['muv', 'pcba', 'dude', 'pfizer', 'globavir', 'pdbbind'],
                       help='Name of dataset to process.')
-  parser.add_argument("--paths", required=1, nargs="+",
+  parser.add_argument("--paths", nargs="+", required=1,
                       help = "Paths to input datasets.")
   parser.add_argument('--model', required=1,
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
-                      "singletask_deep_network", "multitask_deep_network"])
+                      "singletask_deep_network", "multitask_deep_network",
+                      "3D_cnn"])
   parser.add_argument("--splittype", type=str, default="scaffold",
                        choices=["scaffold", "random"],
                        help="Type of cross-validation data-splitting.")
@@ -42,11 +44,16 @@ def parse_args(input_args=None):
   # TODO(rbharath): Remove this once debugging is complete.
   parser.add_argument("--num-to-train", type=int, default=None,
                   help="Number of datasets to train on. Only for debug.")
+  parser.add_argument("--axis-length", type=int, default=32,
+                  help="Size of a grid axis for 3D CNN input.")
+      
   return parser.parse_args(input_args)
 
 def main():
   args = parse_args()
   paths = {}
+
+
   for dataset, path in zip(args.datasets, args.paths):
     paths[dataset] = path
 
@@ -66,6 +73,10 @@ def main():
       nb_epoch=args.n_epochs, decay=args.decay,
       validation_split=args.validation_split,
       weight_positives=args.weight_positives)
+  elif args.model == "3D_cnn":
+    fit_3D_convolution(paths.values(), task_types, task_transforms,
+        axis_length=args.axis_length, nb_epoch=args.n_epochs,
+        batch_size=args.batch_size)
   else:
     fit_singletask_models(paths.values(), args.model, task_types,
         task_transforms, splittype=args.splittype, num_to_train=args.num_to_train)

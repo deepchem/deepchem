@@ -33,7 +33,7 @@ def process_multitask(paths, task_transforms, splittype="random",
   Parameters
   ----------
   paths: list 
-    List of paths to Google vs datasets. 
+    List of paths to datasets. 
   task_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None, "log", "normalize" or "log-normalize". Only for regression outputs.
@@ -216,7 +216,7 @@ def train_multitask_model(X, y, W, task_types,
     Momentum used in SGD.
   nesterov: bool
     Use Nesterov acceleration
-  n_epochs: int
+  nb_epoch: int
     maximal number of epochs to run the optimizer
   """
   eps = .001
