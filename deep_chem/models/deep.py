@@ -97,8 +97,7 @@ def process_singletask(paths, task_transforms, splittype="random", seed=None,
       raise ValueError("Improper splittype. Must be random/scaffold.")
     X_train, y_train, W_train = dataset_to_numpy(train)
     X_test, y_test, W_test = dataset_to_numpy(test)
-    arrays[target] = (train, X_train, y_train, W_train, test, X_test, y_test,
-        W_test)
+    arrays[target] = (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
   return arrays
 
 
@@ -121,7 +120,7 @@ def fit_multitask_mlp(paths, task_types, task_transforms,
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
-  (train, X_train, y_train, W_train, test, X_test, y_test, W_test) = (
+  (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
       process_multitask(paths, task_transforms, splittype=splittype,
       weight_positives=weight_positives))
   print np.shape(y_train)

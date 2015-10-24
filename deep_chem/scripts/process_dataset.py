@@ -146,7 +146,8 @@ def generate_targets(input_file, input_type, columns, column_types, out_pkl,
     # TODO(rbharath): This patch is only in place until the smiles/sequence
     # support is fixed.
     if row["smiles"] is None:
-      mol = Chem.MolFromSmiles("C")
+      # This multiplication kludge guarantees unique smiles.
+      mol = Chem.MolFromSmiles("C"*row_index)
     else:
       mol = Chem.MolFromSmiles(row["smiles"])
     row["smiles"] = smiles.get_smiles(mol)
