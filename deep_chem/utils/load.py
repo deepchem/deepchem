@@ -77,6 +77,10 @@ def load_molecules(paths, dir_name="fingerprints"):
   Returns a dictionary that maps smiles strings to dicts that contain
   fingerprints, smiles strings, scaffolds, mol_ids.
 
+  TODO(rbharath): This function assumes that all datapoints are uniquely keyed
+  by smiles strings. This doesn't hold true for the pdbbind dataset. Need to find
+  a more general indexing mechanism.
+
   Parameters
   ----------
   paths: list
@@ -100,6 +104,29 @@ def load_molecules(paths, dir_name="fingerprints"):
                                     "mol_id": mol_ids[mol]}
   return molecules 
 
+def load_pdbbind_molecules(paths, dir_name="fingerprints"):
+  """Load dataset fingerprints and return fingerprints.
+  """
+  # TODO(rbharath): This is a total kludge. Clean up later.
+  dir_name = "targets"
+  molecules = {}
+  for dataset_path in paths:
+    pickle_dir = os.path.join(dataset_path, dir_name)
+    pickle_files = os.listdir(pickle_dir)
+    if len(pickle_files) == 0:
+      raise ValueError("No Pickle Files found to load molecules")
+    for pickle_file in pickle_files:
+      with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
+        contents = pickle.load(f)
+        smiles, fingerprints, scaffolds, mol_ids = (
+            contents["smiles"], contents["features"],
+            None, None)
+        for mol in range(len(contents["smiles"])):
+          molecules[smiles[mol]] = {"fingerprint": fingerprints[mol],
+                                    "scaffold": None,
+                                    "mol_id": None}
+  return molecules 
+
 def get_target_names(paths, target_dir_name="targets"):
   """Get names of targets in provided collections.
 
@@ -121,7 +148,7 @@ def load_assays(paths, target_dir_name="targets"):
 
   Returns a dictionary that maps smiles strings to label vectors.
 
-  TODO(rbharath): Simplify this function to only support the new pickle format.
+  TODO(rbharath): Remove the use of smiles as unique identifier
 
   Parameters
   ----------
@@ -181,27 +208,30 @@ def load_datasets(paths, datatype="vs", **load_args):
   else:
     raise ValueError("Unsupported datatype.")
 
-def load_pdbbind_datasets(pdbbind_paths):
+def load_pdbbind_datasets(paths, target_dir_name="targets",
+    fingerprint_dir_name="fingerprints"):
   """Load pdbbind datasets.
+
+  TODO(rbharath): This uses smiles as unique identifier. FIX BEFORE RELEASE!
 
   Parameters
   ----------
   pdbbind_path: list 
     List of Pdbbind data files.
   """
-  data = []
-  for pdbbind_path in pdbbind_paths:
-    with open(pdbbind_path, "rb") as csvfile:
-      reader = csv.reader(csvfile)
-      for row_ind, row in enumerate(reader):
-        if row_ind == 0:
-          continue
-        data.append({
-          "label": row[0],
-          "features": row[1],
-        })
-  df = pd.DataFrame(data)
-  return df
+  data = {}
+  molecules = load_pdbbind_molecules(paths)
+  labels = load_assays(paths, target_dir_name)
+  # TODO(rbharath): Why are there fewer descriptors than labels at times?
+  # What accounts for the descrepency. Please investigate.
+  for ind, smiles in enumerate(molecules):
+    if smiles not in labels:
+      continue
+    mol = molecules[smiles]
+    data[ind] = {"fingerprint": mol["fingerprint"],
+                 "scaffold": mol["scaffold"],
+                 "labels": labels[smiles]}
+  return data
 
 def load_vs_datasets(paths, target_dir_name="targets",
     fingerprint_dir_name="fingerprints"):
@@ -242,7 +272,8 @@ def ensure_balanced(y, W):
     assert np.isclose(pos_weight, neg_weight)
 
 def load_and_transform_dataset(paths, task_transforms,
-    labels_endpoint="labels", weight_positives=True):
+    labels_endpoint="labels", weight_positives=True,
+    datatype="vs"):
   """Transform data labels as specified
 
   Parameters
@@ -255,9 +286,9 @@ def load_and_transform_dataset(paths, task_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths)
+  dataset = load_datasets(paths, datatype=datatype)
   X, y, W = transform_outputs(dataset, task_transforms,
-      weight_positives=weight_positives)
+      weight_positives=weight_positives, datatype=datatype)
   ## TODO(rbharath): Take this out once test passes
   #if weight_positives:
   #  ensure_balanced(y, W)

@@ -9,7 +9,8 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def transform_outputs(dataset, task_transforms, weight_positives=True):
+def transform_outputs(dataset, task_transforms, weight_positives=True,
+    datatype="pdbbind"):
   """Tranform the provided outputs
 
   Parameters
@@ -22,7 +23,10 @@ def transform_outputs(dataset, task_transforms, weight_positives=True):
     performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
   """
-  X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
+  if datatype == "vs":
+    X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
+  elif datatype == "pdbbind":
+    X, y, W = tensor_dataset_to_numpy(dataset)
   sorted_targets = sorted(task_transforms.keys())
   endpoints = sorted_targets
   transforms = task_transforms.copy()
@@ -108,6 +112,30 @@ def balance_positives(y, W):
     W[positive_inds, target_ind] = pos_weight
     W[negative_inds, target_ind] = 1
   return W
+
+def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
+    labels_endpoint="labels"):
+  """Transforms a set of tensor data into numpy arrays (X, y)"""
+  print "Entering tensor_dataset_to_numpy"
+  n_samples = len(dataset.keys())
+  sample_datapoint = dataset.itervalues().next()
+  feature_shape = np.shape(sample_datapoint[feature_endpoint])
+  n_targets = 1 # TODO(rbharath): Generalize this later
+  X = np.zeros((n_samples,) + feature_shape)
+  y = np.zeros((n_samples, n_targets))
+  W = np.ones((n_samples, n_targets))
+  print "np.shape(X), np.shape(y), np.shape(W)"
+  print np.shape(X), np.shape(y), np.shape(W)
+  sorted_ids = sorted(dataset.keys())
+  for index, smiles in enumerate(dataset.keys()):
+    datapoint = dataset[smiles]
+    fingerprint, labels = (datapoint[feature_endpoint],
+      datapoint[labels_endpoint])
+    X[index] = fingerprint
+    # TODO(rbharath): The label is a dict for some reason?!? Figure this out
+    # and fix it.
+    y[index] = labels["3d_core_pdbbind"]
+  return (X, y, W)
 
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     labels_endpoint="labels", weight_positives=True):
