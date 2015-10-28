@@ -10,7 +10,6 @@ from keras.utils import np_utils
 from deep_chem.utils.preprocess import train_test_random_split
 from deep_chem.utils.load import load_and_transform_dataset
 from deep_chem.utils.preprocess import tensor_dataset_to_numpy
-from deep_chem.datasets.shapes_3d import load_data
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 
