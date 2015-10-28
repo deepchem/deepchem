@@ -8,6 +8,7 @@ __license__ = "LGPL"
 import numpy as np
 import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
@@ -16,7 +17,7 @@ from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
 def model_predictions(test_set, model, n_targets, task_types,
-    modeltype="sklearn"):
+    modeltype="sklearn", mode="regular"):
   """Obtains predictions of provided model on test_set.
 
   Returns a list of per-task predictions.
@@ -39,7 +40,15 @@ def model_predictions(test_set, model, n_targets, task_types,
     Either sklearn, keras, or keras_multitask
   """
   # Extract features for test set and make preds
-  X, _, _ = dataset_to_numpy(test_set)
+  if mode == "regular":
+    X, _, _ = dataset_to_numpy(test_set)
+  elif mode == "tensor":
+    X, _, _ = tensor_dataset_to_numpy(test_set)
+    (n_samples, axis_length, _, _, n_channels) = np.shape(X)
+    # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
+    X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
+  else:
+    raise ValueError("Improper mode: " + str(mode))
   if modeltype == "keras_multitask":
     predictions = model.predict({"input": X})
     ypreds = []
@@ -119,11 +128,9 @@ def size_eval_model(test_set, model, task_types, modeltype="sklearn"):
   target_rms = compute_rms_scores(results, task_types)
   print "R^2: " + str(target_r2s)
   print "RMS: " + str(target_rms)
-    
-  
 
   
-def eval_model(test_set, model, task_types, modeltype="sklearn"):
+def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
@@ -147,7 +154,7 @@ def eval_model(test_set, model, task_types, modeltype="sklearn"):
   local_task_types = task_types.copy()
   endpoints = sorted_targets
   ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, modeltype=modeltype)
+      local_task_types, modeltype=modeltype, mode=mode)
   results = {}
   for target in endpoints:
     results[target] = ([], [])  # (ytrue, yscore)
