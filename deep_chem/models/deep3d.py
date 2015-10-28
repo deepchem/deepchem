@@ -38,14 +38,13 @@ def fit_3D_convolution(paths, task_types, task_transforms, axis_length=32, **tra
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
-  # TODO(rbharath): task_types is not yet used below.
   (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = process_3D_convolutions(
     paths, task_transforms)
-  nb_classes = 2
-  print "np.shape(y_train)"
-  print np.shape(y_train)
+
   print "np.shape(X_train): " + str(np.shape(X_train))
   print "np.shape(y_train): " + str(np.shape(y_train))
+
+  nb_classes = 2
   model = train_3D_convolution(X_train, y_train, axis_length, **training_params)
   results = eval_model(test, model, task_types,
       modeltype="keras", mode="tensor")
@@ -63,21 +62,18 @@ def train_3D_convolution(X, y, axis_length=32, batch_size=50, nb_epoch=1):
   nb_epoch: int
     maximal number of epochs to run the optimizer
   """
-  print "train_3D_convolution"
-  print "axis_length: " + str(axis_length)
-  print "np.shape(X): " + str(np.shape(X))
-  print "Shuffling X dimensions"
+  print "Training 3D model"
+  print "Original shape of X: " + str(np.shape(X))
+  print "Shuffling X dimensions to match convnet"
   # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
   (n_samples, axis_length, _, _, n_channels) = np.shape(X)
-  # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
   X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
-  print "np.shape(X): " + str(np.shape(X))
+  print "Final shape of X: " + str(np.shape(X))
   # Number of classes for classification
   nb_classes = 2
 
   # number of convolutional filters to use at each layer
   nb_filters = [axis_length/2, axis_length, axis_length]
-  print "nb_filters: " + str(nb_filters)
 
   # level of pooling to perform at each layer (POOL x POOL)
   nb_pool = [2, 2, 2]
@@ -103,6 +99,8 @@ def train_3D_convolution(X, y, axis_length=32, batch_size=50, nb_epoch=1):
   model.add(Activation('relu'))
   model.add(MaxPooling3D(poolsize=(nb_pool[2], nb_pool[2], nb_pool[2])))
   model.add(Flatten())
+  # TODO(rbharath): If we change away from axis-size 32, this code will break.
+  # Eventually figure out a more general rule that works for all axis sizes.
   model.add(Dense(32, 32/2, init='normal'))
   model.add(Activation('relu'))
   model.add(Dropout(0.5))
