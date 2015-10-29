@@ -89,6 +89,9 @@ def globavir_specs():
 
 def get_rows(input_file, input_type):
   """Returns an iterator over all rows in input_file"""
+  # TODO(rbharath): This function loads into memory, which can be painful. The
+  # right option here might be to create a class which internally handles data
+  # loading.
   if input_type == "xlsx":
     W = px.load_workbook(xlsx_file, use_iterators=True)
     p = W.get_sheet_by_name(name="Sheet1")
@@ -96,9 +99,6 @@ def get_rows(input_file, input_type):
   elif input_type == "csv":
     with open(csv_file, "rb") as f:
       reader = csv.reader(f, delimiter="\t")
-    # TODO(rbharath): This loads into memory, which is painful. The right
-    # option here might be to create a class which internally handles data
-    # loading.
     return [row for row in reader]
   elif input_type == "pandas":
     with gzip.open(input_file) as f:
@@ -106,18 +106,14 @@ def get_rows(input_file, input_type):
     return df.iterrows()
   elif input_type == "sdf":
     if ".gz" in input_file:
-      print "gzipped"
       with gzip.open(input_file) as f:
         supp = Chem.ForwardSDMolSupplier(f)
         mols = [mol for mol in supp if mol is not None]
-      print "len(mols): " + str(len(mols))
       return mols
     else:
-      print "non-gzipped"
       with open(input_file) as f:
         supp  = Chem.ForwardSDMolSupplier(f)
         mols = [mol for mol in supp if mol is not None]
-      print "len(mols): " + str(len(mols))
       return mols
 
 def get_row_data(row, input_type, fields, field_types):
@@ -137,7 +133,8 @@ def get_row_data(row, input_type, fields, field_types):
   elif input_type == "sdf":
     row_data, mol = {}, row
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
-      # TODO(rbharath): This is kludgey...
+      # TODO(rbharath): SDF files typically don't have smiles, so we manually
+      # generate smiles in this case. This is a kludgey solution...
       if field == "smiles":
         row_data[ind] = Chem.MolToSmiles(mol)
         continue
