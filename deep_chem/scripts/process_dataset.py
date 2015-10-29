@@ -105,8 +105,20 @@ def get_rows(input_file, input_type):
       df = pickle.load(f)
     return df.iterrows()
   elif input_type == "sdf":
-    with gzip.open(input_file) as f:
-      return Chem.ForwardSDMolSupplier(f)
+    if ".gz" in input_file:
+      print "gzipped"
+      with gzip.open(input_file) as f:
+        supp = Chem.ForwardSDMolSupplier(f)
+        mols = [mol for mol in supp if mol is not None]
+      print "len(mols): " + str(len(mols))
+      return mols
+    else:
+      print "non-gzipped"
+      with open(input_file) as f:
+        supp  = Chem.ForwardSDMolSupplier(f)
+        mols = [mol for mol in supp if mol is not None]
+      print "len(mols): " + str(len(mols))
+      return mols
 
 def get_row_data(row, input_type, fields, field_types):
   """Extract information from row data."""
@@ -133,6 +145,7 @@ def get_row_data(row, input_type, fields, field_types):
         row_data[ind] = None
       else:
         row_data[ind] = mol.GetProp(field)
+    return row_data
 
 def process_field(data, field_type):
   """Parse data in a field."""
@@ -141,7 +154,11 @@ def process_field(data, field_type):
   elif field_type == "float":
     return parse_float_input(data)
   elif field_type == "concentration":
-    return parse_float_input(data) / 1e-6
+    fl = parse_float_input(data)
+    if fl is not None:
+      return parse_float_input(data) / 1e-7
+    else:
+      return None
   elif field_type == "list-string":
     return data.split(",")
   elif field_type == "list-float":
@@ -155,6 +172,7 @@ def generate_targets(input_file, input_type, fields, field_types, out_pkl,
   rows, mols, smiles = [], [], SmilesGenerator()
   for row_index, raw_row in enumerate(get_rows(input_file, input_type)):
     print row_index
+    print raw_row
     # Skip row labels.
     if row_index == 0 or raw_row is None:
       continue
