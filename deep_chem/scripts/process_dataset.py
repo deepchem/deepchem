@@ -22,7 +22,7 @@ def parse_args(input_args=None):
                       choices=["csv", "pandas", "sdf"],
                       help="Type of input file. If pandas, input must be a pkl.gz\n"
                            "containing a pandas dataframe. If sdf, should be in\n"
-                           "gzipped sdf.gz file.")
+                           "(perhaps gzipped) sdf file.")
   parser.add_argument("--fields", required=1, nargs="+",
                       help = "Names of fields.")
   parser.add_argument("--field-types", required=1, nargs="+",

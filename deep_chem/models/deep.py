@@ -43,7 +43,7 @@ def process_multitask(paths, task_transforms, splittype="random",
     Seed used for random splits.
   """
   dataset = load_and_transform_dataset(paths, task_transforms,
-			prediction_endpoint,
+      prediction_endpoint,
       weight_positives=weight_positives)
   sorted_targets = sorted(dataset.keys())
   if splittype == "random":
@@ -65,8 +65,8 @@ def process_multitask(paths, task_transforms, splittype="random",
   return (train, X_train, y_train, W_train, test, X_test, y_test, W_test)
 
 def process_singletask(paths, task_transforms,
-		prediction_endpoint,
-		splittype="random", seed=None,
+    prediction_endpoint,
+    splittype="random", seed=None,
     weight_positives=True):
   """Extracts singletask datasets and splits into train/test.
 
@@ -85,7 +85,7 @@ def process_singletask(paths, task_transforms,
     Seed used for random splits.
   """
   dataset = load_and_transform_dataset(paths, task_transforms,
-			prediction_endpoint,
+      prediction_endpoint,
       weight_positives=weight_positives)
   singletask = multitask_to_singletask(dataset)
   arrays = {}
@@ -141,7 +141,7 @@ def fit_multitask_mlp(paths, task_types, task_transforms, prediction_endpoint,
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
 
 def fit_singletask_mlp(paths, task_types, task_transforms,
-											 prediction_endpoint,
+                       prediction_endpoint,
                        splittype="random", weight_positives=True,
                        num_to_train=None, **training_params):
   """
@@ -159,7 +159,7 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
     Aggregates keyword parameters to pass to train_multitask_model
   """
   singletasks = process_singletask(paths, task_transforms,
-		prediction_endpoint,
+    prediction_endpoint,
     splittype=splittype, weight_positives=weight_positives)
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
