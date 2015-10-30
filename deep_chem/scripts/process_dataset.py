@@ -69,6 +69,7 @@ def parse_float_input(val):
       return np.nan
 
 def generate_fingerprints(name, out):
+  """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
   fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   shards_dir = os.path.join(dataset_dir, "shards")
@@ -79,6 +80,19 @@ def generate_fingerprints(name, out):
                    "--scaffolds", "--smiles",
                    sdf, fingerprints,
                    "circular", "--size", "1024"])
+
+def generate_descriptors(name, out):
+  """Generates molecular descriptors for dataset."""
+  dataset_dir = os.path.join(out, name)
+  fingerprint_dir = os.path.join(dataset_dir, "descriptors")
+  shards_dir = os.path.join(dataset_dir, "shards")
+  sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
+  fingerprints = os.path.join(fingerprint_dir,
+      "%s-fingerprints.pkl.gz" % name)
+  subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
+                   "--scaffolds", "--smiles",
+                   sdf, fingerprints,
+                   "descriptors"])
 
 def globavir_specs():
   fields = ["compound_name", "isomeric_smiles", "tdo_ic50_nm", "tdo_Ki_nm",
