@@ -10,68 +10,11 @@ import numpy as np
 import os
 import cPickle as pickle
 from deep_chem.utils.preprocess import transform_outputs
+from deep_chem.utils.preprocess import transform_inputs
+from deep_chem.utils.preprocess import dataset_to_numpy
+from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 
-def get_default_task_types_and_transforms(dataset_specs):
-  """Provides default task transforms for provided datasets.
-  
-  Parameters
-  ----------
-  dataset_specs: dict
-    Maps name of datasets to filepath.
-  """
-  task_types, task_transforms = {}, {}
-  for name, path in dataset_specs.iteritems():
-    targets = get_target_names([path])
-    if name == "muv" or name == "dude" or name == "pcba":
-      for target in targets:
-        task_types[target] = "classification"
-        task_transforms[target] = []
-    elif name == "pfizer":
-      for target in targets:
-        task_types[target] = "regression"
-        task_transforms[target] = ["log", "normalize"]
-    elif name == "globavir":
-      for target in targets:
-        task_types[target] = "regression"
-        task_transforms[target] = ["normalize"]
-    elif name == "pdbbind":
-      for target in targets:
-        task_types[target] = "regression"
-        task_transforms[target] = ["normalize"]
-        #task_transforms[target] = []
-  
-  return task_types, task_transforms
-
-def load_descriptors(paths, descriptor_dir_name="descriptors"):
-  """Load dataset descriptors and return.
-
-  Returns a dictionary that maps mol_id to descriptors. (Descriptors are
-  taken from rdkit.Chem and consist of basic physiochemical property
-  values.
-
-  Parameters
-  ----------
-  paths: list
-    List of strings.
-  """
-  descriptor_dict = {}
-  for dataset_path in paths:
-    pickle_dir = os.path.join(dataset_path, descriptor_dir_name)
-    for pickle_file in os.listdir(pickle_dir):
-      with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
-        contents = pickle.load(f)
-        all_smiles, descriptors = (contents["smiles"], contents["features"])
-        for mol in range(len(all_smiles)):
-          n_descriptors = len(descriptors[mol])
-          bad_sets = [1, 28, 55, 68, 71, 72, 81, 83, 84, 85, 86, 87, 88,
-          123, 124, 129, 137, 142, 143, 144, 146, 148, 149, 150, 156, 157,
-          159, 160, 161, 164, 169, 170, 171, 173, 178, 179, 183, 190, 192]
-          descriptor_dict[all_smiles[mol]] = np.array(
-              [descriptors[mol][index] for index in range(n_descriptors) if
-                  index not in bad_sets])
-  return descriptor_dict
-
-def load_molecules(paths, dir_name="fingerprints"):
+def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
@@ -88,20 +31,31 @@ def load_molecules(paths, dir_name="fingerprints"):
   """
   molecules = {}
   for dataset_path in paths:
-    pickle_dir = os.path.join(dataset_path, dir_name)
-    pickle_files = os.listdir(pickle_dir)
-    if len(pickle_files) == 0:
-      raise ValueError("No Pickle Files found to load molecules")
-    for pickle_file in pickle_files:
-      with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
-        contents = pickle.load(f)
-        smiles, fingerprints, scaffolds, mol_ids = (
-            contents["smiles"], contents["features"],
-            contents["scaffolds"], contents["mol_id"])
-        for mol in range(len(contents["smiles"])):
-          molecules[smiles[mol]] = {"fingerprint": fingerprints[mol],
-                                    "scaffold": scaffolds[mol],
-                                    "mol_id": mol_ids[mol]}
+    for feature_type in feature_types:
+      pickle_dir = os.path.join(dataset_path, feature_type)
+      pickle_files = os.listdir(pickle_dir)
+      if len(pickle_files) == 0:
+        raise ValueError("No Pickle Files found to load molecules")
+      for pickle_file in pickle_files:
+        with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
+          contents = pickle.load(f)
+          smiles, features, scaffolds, mol_ids = (
+              contents["smiles"], contents["features"],
+              contents["scaffolds"], contents["mol_id"])
+          for mol in range(len(contents["smiles"])):
+            if smiles[mol] not in molecules:
+              molecules[smiles[mol]] = {"fingerprint": features[mol],
+                                        "scaffold": scaffolds[mol],
+                                        "mol_id": mol_ids[mol],
+                                        "feature_types": [feature_type]}
+            # TODO(rbharath): Our processing pipeline sometimes makes different
+            # molecules look the same (due to bugs in how we hydrogenate for
+            # example). Fix these bugs in our processing pipeline.
+            elif feature_type not in molecules[smiles[mol]]["feature_types"]:
+              entry = molecules[smiles[mol]]
+              entry["fingerprint"] = np.append(
+                  molecules[smiles[mol]]["fingerprint"], features[mol])
+              entry["feature_types"].append(feature_type)
   return molecules 
 
 def load_pdbbind_molecules(paths, dir_name="fingerprints"):
@@ -200,7 +154,7 @@ def load_datasets(paths, prediction_endpoint, datatype="vs", **load_args):
     raise ValueError("Unsupported datatype.")
 
 def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
-    fingerprint_dir_name="fingerprints"):
+    feature_types=["grid"]):
   """Load pdbbind datasets.
 
   TODO(rbharath): This uses smiles as unique identifier. FIX BEFORE RELEASE!
@@ -211,6 +165,8 @@ def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
     List of Pdbbind data files.
   """
   data = {}
+  if feature_types != ["grid"]:
+    raise ValueError("Only grid features are supported for PDB-Bind data.")
   molecules = load_pdbbind_molecules(paths)
   labels = load_assays(paths, prediction_endpoint, target_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
@@ -225,7 +181,7 @@ def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
   return data
 
 def load_vs_datasets(paths, prediction_endpoint, target_dir_name="targets",
-    fingerprint_dir_name="fingerprints"):
+    feature_types=["fingerprints"]):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps smiles to pairs of (fingerprint, labels)
@@ -237,10 +193,8 @@ def load_vs_datasets(paths, prediction_endpoint, target_dir_name="targets",
     Paths to base directory.
   """
   data = {}
-  molecules = load_molecules(paths, fingerprint_dir_name)
+  molecules = load_molecules(paths, feature_types)
   labels = load_assays(paths, prediction_endpoint, target_dir_name)
-  # TODO(rbharath): Why are there fewer descriptors than labels at times?
-  # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
     if smiles not in labels:
       continue
@@ -262,31 +216,36 @@ def ensure_balanced(y, W):
         pos_weight += W[sample_ind, target_ind]
     assert np.isclose(pos_weight, neg_weight)
 
-def load_and_transform_dataset(paths, task_transforms,
-    prediction_endpoint,
-    labels_endpoint="labels", weight_positives=True,
-    datatype="vs"):
+def load_and_transform_dataset(paths, input_transforms, output_transforms,
+    prediction_endpoint, labels_endpoint="labels", weight_positives=True,
+    datatype="vs", feature_types=["fingerprints"]):
   """Transform data labels as specified
 
   Parameters
   ----------
   paths: list 
     List of paths to Google vs datasets. 
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to list of label transforms. Each list element
     must be None, "log", "normalize", or "log-normalize". The transformations
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, prediction_endpoint, datatype=datatype)
-  X, y, W = transform_outputs(dataset, task_transforms,
-      weight_positives=weight_positives, datatype=datatype)
+  dataset = load_datasets(paths, prediction_endpoint, datatype=datatype,
+      feature_types=feature_types)
+  if datatype == "vs":
+    X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
+  elif datatype == "pdbbind":
+    X, y, W = tensor_dataset_to_numpy(dataset)
+  y = transform_outputs(y, W, output_transforms,
+      weight_positives=weight_positives)
+  X = transform_inputs(X, input_transforms)
   ## TODO(rbharath): Take this out once test passes
   #if weight_positives:
   #  ensure_balanced(y, W)
   trans_data = {}
   sorted_smiles = sorted(dataset.keys())
-  sorted_targets = sorted(task_transforms.keys())
+  sorted_targets = sorted(output_transforms.keys())
   for s_index, smiles in enumerate(sorted_smiles):
     datapoint = dataset[smiles]
     labels = {}

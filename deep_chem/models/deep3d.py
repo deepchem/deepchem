@@ -17,7 +17,8 @@ from deep_chem.utils.evaluate import compute_r2_scores
 # code in deep.py
 # TODO(rbharath): paths is to handle sharded input pickle files. Might be
 # better to use hdf5 datasets like in MSMBuilder
-def process_3D_convolutions(paths, task_transforms, prediction_endpoint, seed=None, splittype="random"):
+def process_3D_convolutions(paths, input_transforms, output_transforms, prediction_endpoint,
+                            feature_types, seed=None, splittype="random"):
   """Loads 3D Convolution datasets.
 
   Parameters
@@ -25,8 +26,8 @@ def process_3D_convolutions(paths, task_transforms, prediction_endpoint, seed=No
   paths: list
     List of paths to convolution datasets.
   """
-  dataset = load_and_transform_dataset(paths, task_transforms,
-    prediction_endpoint, datatype="pdbbind")
+  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
+    prediction_endpoint, feature_types=feature_types, datatype="pdbbind")
   # TODO(rbharath): Factor this code splitting out into a util function.
   if splittype == "random":
     train, test = train_test_random_split(dataset, seed=seed)
@@ -36,13 +37,14 @@ def process_3D_convolutions(paths, task_transforms, prediction_endpoint, seed=No
   X_test, y_test, W_test = tensor_dataset_to_numpy(test)
   return (X_train, y_train, W_train, train), (X_test, y_test, W_test, test)
 
-def fit_3D_convolution(paths, task_types, task_transforms, prediction_endpoint,
-    axis_length=32, **training_params):
+def fit_3D_convolution(paths, task_types, input_transforms, output_transforms, prediction_endpoint,
+    feature_types, axis_length=32, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
-  (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = process_3D_convolutions(
-    paths, task_transforms, prediction_endpoint)
+  (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = (
+      process_3D_convolutions(paths, input_transforms, output_transforms, prediction_endpoint,
+                              feature_types))
 
   print "np.shape(X_train): " + str(np.shape(X_train))
   print "np.shape(y_train): " + str(np.shape(y_train))

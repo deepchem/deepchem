@@ -21,8 +21,8 @@ from deep_chem.utils.evaluate import compute_rms_scores
 from deep_chem.utils.evaluate import compute_roc_auc_scores
 from deep_chem.utils.load import load_and_transform_dataset
 
-def process_multitask(paths, task_transforms, splittype="random",
-    seed=None, weight_positives=False):
+def process_multitask(paths, input_transforms, output_transforms, feature_types,
+    splittype="random", seed=None, weight_positives=False):
   """Extracts multitask datasets and splits into train/test.
 
   Returns a tuple of test/train datasets, fingerprints, and labels.
@@ -34,7 +34,7 @@ def process_multitask(paths, task_transforms, splittype="random",
   ----------
   paths: list 
     List of paths to datasets. 
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None, "log", "normalize" or "log-normalize". Only for regression outputs.
   splittype: string
@@ -42,8 +42,8 @@ def process_multitask(paths, task_transforms, splittype="random",
   seed: int
     Seed used for random splits.
   """
-  dataset = load_and_transform_dataset(paths, task_transforms,
-			prediction_endpoint,
+  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
+			prediction_endpoint, feature_types=feature_types,
       weight_positives=weight_positives)
   sorted_targets = sorted(dataset.keys())
   if splittype == "random":
@@ -64,8 +64,8 @@ def process_multitask(paths, task_transforms, splittype="random",
   #  ensure_balanced(y_test, W_test)
   return (train, X_train, y_train, W_train, test, X_test, y_test, W_test)
 
-def process_singletask(paths, task_transforms,
-		prediction_endpoint,
+def process_singletask(paths, input_transforms, output_transforms,
+		prediction_endpoint, feature_types,
 		splittype="random", seed=None,
     weight_positives=True):
   """Extracts singletask datasets and splits into train/test.
@@ -76,7 +76,7 @@ def process_singletask(paths, task_transforms,
   ----------
   paths: list 
     List of paths to Google vs datasets. 
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   splittype: string
@@ -84,8 +84,8 @@ def process_singletask(paths, task_transforms,
   seed: int
     Seed used for random splits.
   """
-  dataset = load_and_transform_dataset(paths, task_transforms,
-			prediction_endpoint,
+  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
+			prediction_endpoint, feature_types=feature_types,
       weight_positives=weight_positives)
   singletask = multitask_to_singletask(dataset)
   arrays = {}
@@ -105,8 +105,9 @@ def process_singletask(paths, task_transforms,
   return arrays
 
 
-def fit_multitask_mlp(paths, task_types, task_transforms, prediction_endpoint,
-                      splittype="random", weight_positives=False, **training_params):
+def fit_multitask_mlp(paths, task_types, input_transforms, output_transforms,
+                      prediction_endpoint, feature_types, splittype="random",
+                      weight_positives=False, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
   Returns AUCs, R^2 scores, and RMS values.
@@ -118,15 +119,15 @@ def fit_multitask_mlp(paths, task_types, task_transforms, prediction_endpoint,
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None, "log", "normalize", or "log-normalize". Only for regression outputs.
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
   (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-      process_multitask(paths, task_transforms, splittype=splittype,
-      weight_positives=weight_positives))
+      process_multitask(paths, input_transforms, output_transforms, feature_types, splittype=splittype,
+                        weight_positives=weight_positives))
   print np.shape(y_train)
   model = train_multitask_model(X_train, y_train, W_train, task_types,
                                 **training_params)
@@ -140,8 +141,9 @@ def fit_multitask_mlp(paths, task_types, task_transforms, prediction_endpoint,
   if r2s:
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
 
-def fit_singletask_mlp(paths, task_types, task_transforms,
+def fit_singletask_mlp(paths, task_types, input_transforms, output_transforms,
 											 prediction_endpoint,
+                       feature_types,
                        splittype="random", weight_positives=True,
                        num_to_train=None, **training_params):
   """
@@ -152,14 +154,14 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
-  singletasks = process_singletask(paths, task_transforms,
-		prediction_endpoint,
+  singletasks = process_singletask(paths, input_transforms, output_transforms,
+		prediction_endpoint, feature_types,
     splittype=splittype, weight_positives=weight_positives)
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
@@ -196,7 +198,7 @@ def fit_singletask_mlp(paths, task_types, task_transforms,
 
 def train_multitask_model(X, y, W, task_types,
   learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True, activation="relu",
-  dropout=0.5, nb_epoch=20, batch_size=50, n_hidden=500, n_input=1024,
+  dropout=0.5, nb_epoch=20, batch_size=50, n_hidden=500, n_inputs=1024,
   validation_split=0.1):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
@@ -232,9 +234,9 @@ def train_multitask_model(X, y, W, task_types,
   # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
   W = W + eps * np.ones(np.shape(W))
   model = Graph()
-  model.add_input(name="input", ndim=n_input)
+  model.add_input(name="input", ndim=n_inputs)
   model.add_node(
-      Dense(n_input, n_hidden, init='uniform', activation=activation),
+      Dense(n_inputs, n_hidden, init='uniform', activation=activation),
       name="dense", input="input")
   model.add_node(Dropout(dropout), name="dropout", input="dense")
   top_layer = "dropout"

@@ -43,6 +43,9 @@ def generate_directories(name, out):
   fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   if not os.path.exists(fingerprint_dir):
     os.makedirs(fingerprint_dir)
+  descriptor_dir = os.path.join(dataset_dir, "descriptors")
+  if not os.path.exists(descriptor_dir):
+    os.makedirs(descriptor_dir)
   target_dir = os.path.join(dataset_dir, "targets")
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
@@ -87,19 +90,12 @@ def generate_descriptors(name, out):
   fingerprint_dir = os.path.join(dataset_dir, "descriptors")
   shards_dir = os.path.join(dataset_dir, "shards")
   sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
-  fingerprints = os.path.join(fingerprint_dir,
-      "%s-fingerprints.pkl.gz" % name)
+  descriptors = os.path.join(fingerprint_dir,
+      "%s-descriptors.pkl.gz" % name)
   subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
                    "--scaffolds", "--smiles",
-                   sdf, fingerprints,
+                   sdf, descriptors,
                    "descriptors"])
-
-def globavir_specs():
-  fields = ["compound_name", "isomeric_smiles", "tdo_ic50_nm", "tdo_Ki_nm",
-    "tdo_percent_activity_10_um", "tdo_percent_activity_1_um", "ido_ic50_nm",
-    "ido_Ki_nm", "ido_percent_activity_10_um", "ido_percent_activity_1_um"]
-  field_types = ["string", "string", "float", "float", "float", "float",
-      "float", "float", "float", "float"]
 
 def get_rows(input_file, input_type):
   """Returns an iterator over all rows in input_file"""
@@ -217,6 +213,7 @@ def main():
   generate_targets(args.input_file, args.input_type, args.fields,
       args.field_types, out_pkl, out_sdf)
   generate_fingerprints(args.name, args.out)
+  generate_descriptors(args.name, args.out)
 
 
 if __name__ == "__main__":

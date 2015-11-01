@@ -9,36 +9,68 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def transform_outputs(dataset, task_transforms, weight_positives=True,
-    datatype="pdbbind"):
+def transform_inputs(X, input_transforms):
+  """Transform the input feature data."""
+  (n_samples, n_features) = np.shape(X)
+  print "X Before transform"
+  print np.shape(X)
+  print np.amax(X)
+  print np.amin(X)
+  Z = np.zeros(np.shape(X))
+  for feature in range(n_features):
+    for input_transform in input_transforms:
+      #if input_transform == "normalize":
+      if input_transform == "truncate-outliers":
+        feature_data = X[:, feature]
+        mean, std = np.mean(feature_data), np.std(feature_data)
+        feature_data = feature_data - mean 
+        if std == 0.:
+          print "Variance normalization skipped for feature %d due to 0 stdev" % feature 
+          continue
+        feature_data = feature_data / std
+        # Meant to be done after normalize
+        large_indices = feature_data > 5
+        small_indices = feature_data < -5
+        feature_data[large_indices] = 5
+        feature_data[small_indices] = -5
+        if np.amax(feature_data) > 5 or np.amin(feature_data) < -5:
+          raise ValueError("Truncation failed on feature %d" % feature)
+      else:
+        raise ValueError("Unsupported Input Transform")
+    Z[:, feature] = feature_data
+  print "Z After transform"
+  print np.shape(Z)
+  print np.amax(Z)
+  print np.amin(Z)
+  return Z
+
+def transform_outputs(y, W, output_transforms, weight_positives=True):
   """Tranform the provided outputs
 
   Parameters
   ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  task_transforms: dict 
+  y: ndarray 
+    Labels
+  W: ndarray
+    Weights 
+  output_transforms: dict 
     dict mapping target names to list of label transforms. Each list
     element must be "1+max-val", "log", "normalize". The transformations are
     performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
   """
-  if datatype == "vs":
-    X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
-  elif datatype == "pdbbind":
-    X, y, W = tensor_dataset_to_numpy(dataset)
-  sorted_targets = sorted(task_transforms.keys())
+  sorted_targets = sorted(output_transforms.keys())
   endpoints = sorted_targets
-  transforms = task_transforms.copy()
+  transforms = output_transforms.copy()
   for task, target in enumerate(endpoints):
-    task_transforms = transforms[target]
-    for task_transform in task_transforms:
-      if task_transform == "log":
+    output_transforms = transforms[target]
+    for output_transform in output_transforms:
+      if output_transform == "log":
         y[:, task] = np.log(y[:, task])
-      elif task_transform == "1+max-val":
+      elif output_transform == "1+max-val":
         maxval = np.amax(y[:, task])
         y[:, task] = 1 + maxval - y[:, task]
-      elif task_transform == "normalize":
+      elif output_transform == "normalize":
         task_data = y[:, task]
         if task < len(sorted_targets):
           # Only elements of y with nonzero weight in W are true labels.
@@ -49,16 +81,14 @@ def transform_outputs(dataset, task_transforms, weight_positives=True,
         mean = np.mean(task_data[nonzero])
         std = np.std(task_data[nonzero])
         task_data[nonzero] = task_data[nonzero] - mean
-        print "Old mean: " + str(mean)
-        print "Old std: " + str(std)
         # Set standard deviation to one
         if std == 0.:
           print "Variance normalization skipped for task %d due to 0 stdev" % task
           continue
         task_data[nonzero] = task_data[nonzero] / std
       else:
-        raise ValueError("Task tranform must be 1+max-val, log, or normalize")
-  return X, y, W
+        raise ValueError("Unsupported Output transform")
+  return y
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
