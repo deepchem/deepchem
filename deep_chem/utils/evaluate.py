@@ -202,8 +202,8 @@ def results_to_csv(results, out, task_type="classification"):
     if task_type == "classification":
       yscores = np.around(yscores[:,1]).astype(int)
     elif task_type == "regression":
-      print yscores
-      yscores = yscores[:,0]
+      if type(yscores[0]) == np.ndarray:
+        yscores = yscores[:,0]
     with open(out_file, "wb") as csvfile:
       csvwriter = csv.writer(csvfile, delimiter="\t")
       csvwriter.writerow(["Smiles", "True", "Model-Prediction"])
