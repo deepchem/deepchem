@@ -7,47 +7,18 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
 from keras.utils import np_utils
-from deep_chem.utils.preprocess import train_test_random_split
+from deep_chem.utils.preprocess import split_dataset
 from deep_chem.utils.load import load_and_transform_dataset
 from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 
-# TODO(rbharath): Factor this out into a separate function in utils. Duplicates
-# code in deep.py
-# TODO(rbharath): paths is to handle sharded input pickle files. Might be
-# better to use hdf5 datasets like in MSMBuilder
-def process_3D_convolutions(paths, input_transforms, output_transforms, prediction_endpoint,
-                            feature_types, seed=None, splittype="random"):
-  """Loads 3D Convolution datasets.
-
-  Parameters
-  ----------
-  paths: list
-    List of paths to convolution datasets.
-  """
-  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
-    prediction_endpoint, feature_types=feature_types, datatype="pdbbind")
-  # TODO(rbharath): Factor this code splitting out into a util function.
-  if splittype == "random":
-    train, test = train_test_random_split(dataset, seed=seed)
-  elif splittype == "scaffold":
-    train, test = train_test_scaffold_split(dataset)
-  X_train, y_train, W_train = tensor_dataset_to_numpy(train)
-  X_test, y_test, W_test = tensor_dataset_to_numpy(test)
-  return (X_train, y_train, W_train, train), (X_test, y_test, W_test, test)
-
-def fit_3D_convolution(paths, task_types, input_transforms, output_transforms, prediction_endpoint,
-    feature_types, axis_length=32, **training_params):
+def fit_3D_convolution(train_data, test_data, task_types, axis_length=32, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
   (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = (
-      process_3D_convolutions(paths, input_transforms, output_transforms, prediction_endpoint,
-                              feature_types))
-
-  print "np.shape(X_train): " + str(np.shape(X_train))
-  print "np.shape(y_train): " + str(np.shape(y_train))
+      train_data, test_data)
 
   nb_classes = 2
   model = train_3D_convolution(X_train, y_train, axis_length, **training_params)

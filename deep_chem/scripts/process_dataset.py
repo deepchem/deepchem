@@ -215,6 +215,5 @@ def main():
   generate_fingerprints(args.name, args.out)
   generate_descriptors(args.name, args.out)
 
-
 if __name__ == "__main__":
   main()

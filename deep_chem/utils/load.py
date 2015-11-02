@@ -42,12 +42,15 @@ def load_molecules(paths, feature_types=["fingerprints"]):
           smiles, features, scaffolds, mol_ids = (
               contents["smiles"], contents["features"],
               contents["scaffolds"], contents["mol_id"])
+          splits = contents["split"] if "split" in contents else None
           for mol in range(len(contents["smiles"])):
             if smiles[mol] not in molecules:
               molecules[smiles[mol]] = {"fingerprint": features[mol],
                                         "scaffold": scaffolds[mol],
                                         "mol_id": mol_ids[mol],
                                         "feature_types": [feature_type]}
+            if splits is not None:
+              molecules[smiles[mol]]["split"] = splits[mol]
             # TODO(rbharath): Our processing pipeline sometimes makes different
             # molecules look the same (due to bugs in how we hydrogenate for
             # example). Fix these bugs in our processing pipeline.
@@ -97,7 +100,7 @@ def get_target_names(paths, target_dir_name="targets"):
         if "pkl.gz" in target_pickle]
   return target_names
 
-def load_assays(paths, prediction_endpoint, target_dir_name="targets"):
+def load_assays(paths, prediction_endpoint, split_endpoint=None, target_dir_name="targets"):
   """Load regression dataset labels from assays.
 
   Returns a dictionary that maps smiles strings to label vectors.
@@ -111,7 +114,7 @@ def load_assays(paths, prediction_endpoint, target_dir_name="targets"):
   target_dir_name: string
     Name of subdirectory containing assay data.
   """
-  datapoints = {}
+  labels, splits = {}, {}
   # Compute target names
   target_names = get_target_names(paths, target_dir_name)
   for dataset_path in paths:
@@ -123,10 +126,13 @@ def load_assays(paths, prediction_endpoint, target_dir_name="targets"):
       with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
         contents = pickle.load(f)
         if prediction_endpoint not in contents:
-          raise ValueError("Must contain recognized measurement.")
-        items = zip(contents["smiles"], contents[prediction_endpoint])
-        for smiles, measurement in items:
-          # TODO(rbharath): Get a less kludgey answer
+          raise ValueError("Prediction Endpoint Missing.")
+        for ind, smiles in enumerate(contents["smiles"]):
+          measurement = contents[prediction_endpoint][ind]
+          if split_endpoint is not None:
+            splits[smiles] = contents[split_endpoint][ind]
+          else:
+            splits[smiles] = None
           # TODO(rbharath): There is some amount of duplicate collisions
           # due to choice of smiles generation. Look into this more
           # carefully and see if the underlying issues are fundamental..
@@ -135,19 +141,21 @@ def load_assays(paths, prediction_endpoint, target_dir_name="targets"):
               continue
           except TypeError:
             continue
-          if smiles not in datapoints:
-            datapoints[smiles] = {}
+          if smiles not in labels:
+            labels[smiles] = {}
             # Ensure that each target has some entry in dict.
             for name in target_names:
               # Set all targets to invalid for now.
-              datapoints[smiles][name] = -1
-          datapoints[smiles][target_name] = measurement 
-  return datapoints
+              labels[smiles][name] = -1
+          labels[smiles][target_name] = measurement 
+  return labels, splits
 
-def load_datasets(paths, prediction_endpoint, datatype="vs", **load_args):
+def load_datasets(paths, prediction_endpoint, split_endpoint, datatype="vs",
+    **load_args):
   """Dispatches to correct loader depending on type of data."""
   if datatype == "vs":
-    return load_vs_datasets(paths, prediction_endpoint, **load_args)
+    return load_vs_datasets(paths, prediction_endpoint,
+                            split_endpoint, **load_args)
   elif datatype == "pdbbind":
     return load_pdbbind_datasets(paths, prediction_endpoint, **load_args)
   else:
@@ -168,7 +176,7 @@ def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
   if feature_types != ["grid"]:
     raise ValueError("Only grid features are supported for PDB-Bind data.")
   molecules = load_pdbbind_molecules(paths)
-  labels = load_assays(paths, prediction_endpoint, target_dir_name)
+  labels, _ = load_assays(paths, prediction_endpoint, target_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
   # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
@@ -180,7 +188,7 @@ def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
                  "labels": labels[smiles]}
   return data
 
-def load_vs_datasets(paths, prediction_endpoint, target_dir_name="targets",
+def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
     feature_types=["fingerprints"]):
   """Load both labels and fingerprints.
 
@@ -194,14 +202,15 @@ def load_vs_datasets(paths, prediction_endpoint, target_dir_name="targets",
   """
   data = {}
   molecules = load_molecules(paths, feature_types)
-  labels = load_assays(paths, prediction_endpoint, target_dir_name)
+  labels, splits = load_assays(paths, prediction_endpoint, split_endpoint, target_dir_name)
   for ind, smiles in enumerate(molecules):
     if smiles not in labels:
       continue
     mol = molecules[smiles]
     data[smiles] = {"fingerprint": mol["fingerprint"],
                     "scaffold": mol["scaffold"],
-                    "labels": labels[smiles]}
+                    "labels": labels[smiles],
+                    "splits": splits[smiles]}
   return data
 
 def ensure_balanced(y, W):
@@ -217,7 +226,7 @@ def ensure_balanced(y, W):
     assert np.isclose(pos_weight, neg_weight)
 
 def load_and_transform_dataset(paths, input_transforms, output_transforms,
-    prediction_endpoint, labels_endpoint="labels", weight_positives=True,
+    prediction_endpoint, split_endpoint=None, labels_endpoint="labels", weight_positives=True,
     datatype="vs", feature_types=["fingerprints"]):
   """Transform data labels as specified
 
@@ -231,7 +240,7 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, prediction_endpoint, datatype=datatype,
+  dataset = load_datasets(paths, prediction_endpoint, split_endpoint, datatype=datatype,
       feature_types=feature_types)
   if datatype == "vs":
     X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
@@ -240,14 +249,12 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
   y = transform_outputs(y, W, output_transforms,
       weight_positives=weight_positives)
   X = transform_inputs(X, input_transforms)
-  ## TODO(rbharath): Take this out once test passes
-  #if weight_positives:
-  #  ensure_balanced(y, W)
   trans_data = {}
   sorted_smiles = sorted(dataset.keys())
   sorted_targets = sorted(output_transforms.keys())
   for s_index, smiles in enumerate(sorted_smiles):
     datapoint = dataset[smiles]
+    #print datapoint
     labels = {}
     for t_index, target in enumerate(sorted_targets):
       if W[s_index][t_index] == 0:
@@ -255,5 +262,7 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
       else:
         labels[target] = y[s_index][t_index]
     datapoint[labels_endpoint] = labels
+    datapoint["fingerprint"] = X[s_index]
+
     trans_data[smiles] = datapoint 
   return trans_data

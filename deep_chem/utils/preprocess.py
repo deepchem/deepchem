@@ -9,6 +9,60 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
+def to_arrays(train, test, datatype):
+  """Turns train/test into numpy array."""
+  if datatype == "vector":
+    X_train, y_train, W_train = dataset_to_numpy(train)
+    X_test, y_test, W_test = dataset_to_numpy(test)
+  elif datatype == "tensor":
+    X_train, y_train, W_train = tensor_dataset_to_numpy(train)
+    X_test, y_test, W_test = tensor_dataset_to_numpy(test)
+  else:
+    raise ValueError("Improper datatype.")
+  return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
+
+def process_datasets(paths, input_transforms, output_transforms,
+    prediction_endpoint=None, split_endpoint=None, feature_types=["fingerprints"],
+    split_endpoint=None, mode="multitask", splittype="random", seed=None,
+    weight_positives=True):
+  """Extracts singletask datasets and splits into train/test.
+
+  Returns a dict that maps target names to tuples.
+
+  Parameters
+  ----------
+  paths: list 
+    List of paths to Google vs datasets. 
+  output_transforms: dict 
+    dict mapping target names to label transform. Each output type must be either
+    None or "log". Only for regression outputs.
+  splittype: string
+    Must be "random" or "scaffold"
+  seed: int
+    Seed used for random splits.
+  """
+  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
+      prediction_endpoint, split_endpoint=split_endpoint,
+      feature_types=feature_types, weight_positives=weight_positives)
+  if mode == "singletask":
+    singletask = multitask_to_singletask(dataset)
+    arrays = {}
+    for target in singletask:
+      data = singletask[target]
+      if len(data) == 0:
+        continue
+      train, test = split_dataset(dataset, splittype)
+      train_data, test_data = to_arrays(train, test, datatype)
+      arrays[target] = train_data, test_data 
+    return arrays
+  elif mode == "multitask":
+    sorted_targets = sorted(dataset.keys())
+    train, test = split_dataset(dataset, splittype)
+    train_data, test_data = to_arrays(train, test, datatype)
+    return train_data, test_data
+  else:
+    raise ValueError("Unsupported mode for process_datasets.")
+
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
   (n_samples, n_features) = np.shape(X)
@@ -17,24 +71,21 @@ def transform_inputs(X, input_transforms):
   print np.amax(X)
   print np.amin(X)
   Z = np.zeros(np.shape(X))
+  # Meant to be done after normalize
+  trunc = 10
   for feature in range(n_features):
+    feature_data = X[:, feature]
     for input_transform in input_transforms:
-      #if input_transform == "normalize":
-      if input_transform == "truncate-outliers":
-        feature_data = X[:, feature]
-        mean, std = np.mean(feature_data), np.std(feature_data)
-        feature_data = feature_data - mean 
-        if std == 0.:
-          print "Variance normalization skipped for feature %d due to 0 stdev" % feature 
-          continue
-        feature_data = feature_data / std
-        # Meant to be done after normalize
-        large_indices = feature_data > 5
-        small_indices = feature_data < -5
-        feature_data[large_indices] = 5
-        feature_data[small_indices] = -5
-        if np.amax(feature_data) > 5 or np.amin(feature_data) < -5:
-          raise ValueError("Truncation failed on feature %d" % feature)
+      if input_transform == "normalize":
+        if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
+          mean, std = np.mean(feature_data), np.std(feature_data)
+          feature_data = feature_data - mean 
+          if std != 0.:
+            feature_data = feature_data / std
+          feature_data[feature_data > trunc] = trunc 
+          feature_data[feature_data < -trunc] = -trunc
+          if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
+            raise ValueError("Truncation failed on feature %d" % feature)
       else:
         raise ValueError("Unsupported Input Transform")
     Z[:, feature] = feature_data
@@ -42,6 +93,7 @@ def transform_inputs(X, input_transforms):
   print np.shape(Z)
   print np.amax(Z)
   print np.amin(Z)
+  print Z
   return Z
 
 def transform_outputs(y, W, output_transforms, weight_positives=True):
@@ -241,6 +293,31 @@ def multitask_to_singletask(dataset):
         singletask[target][smiles] = datapoint_copy 
   return singletask
 
+def split_dataset(dataset, splittype):
+  """Split provided data using specified method."""
+  if splittype == "random":
+    train, test = train_test_random_split(dataset, seed=seed)
+  elif splittype == "scaffold":
+    train, test = train_test_scaffold_split(dataset)
+  elif splittype == "specified":
+    train, test = train_test_specified_split(dataset)
+  else:
+    raise ValueError("Improper splittype.")
+
+def train_test_specified_split(dataset):
+  """Split provided data due to splits in origin data."""
+  train, test = {}, {}
+  for smiles, datapoint in dataset.iteritems():
+    if "split" not in datapoint:
+      raise ValueError("Missing required split information.")
+    if datapoint["split"] == "train":
+      train[smiles] = datapoint
+    elif datapoint["split"] == "test":
+      test[smiles] = datapoint
+    else:
+      raise ValueError("Improper split specified.")
+  return train, test
+
 def train_test_random_split(dataset, frac_train=.8, seed=None):
   """Splits provided data into train/test splits randomly.
 
@@ -266,23 +343,6 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   for key in test_keys:
     test[key] = dataset[key]
   return train, test
-
-def train_test_random_split_simple(dataset, frac_train=.8, seed=None):
-  """Splits provided data in train/test splits without separating datasets.
-
-  As opposed to train_test_random_split, this function does not ensure that the
-  same compound cannot appear in both train and test (for different targets).
-
-  Parameters
-  ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  frac_train: float
-    Proportion of data in train set.
-  seed: int (optional)
-    Seed to initialize np.random.
-  """
-  pass
 
 def train_test_scaffold_split(dataset, frac_train=.8):
   """Splits provided data into train/test splits by scaffold.

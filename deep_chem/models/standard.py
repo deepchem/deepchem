@@ -4,9 +4,7 @@ Code for processing datasets using scikit-learn.
 import numpy as np
 from deep_chem.utils.analysis import results_to_csv
 from deep_chem.utils.load import load_and_transform_dataset
-from deep_chem.utils.preprocess import multitask_to_singletask
-from deep_chem.utils.preprocess import train_test_random_split
-from deep_chem.utils.preprocess import train_test_scaffold_split
+from deep_chem.utils.preprocess import split_dataset
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
@@ -23,8 +21,8 @@ from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
 from sklearn.svm import SVR
 
-def fit_singletask_models(paths, modeltype, task_types, task_transforms,
-    splittype="random", seed=None, num_to_train=None):
+def fit_singletask_models(per_task_data, modeltype, task_types,
+    num_to_train=None):
   """Fits singletask linear regression models to potency.
 
   Parameters
@@ -40,27 +38,18 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".
-  task_transforms: dict 
+  output_transforms: dict 
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   """
-  dataset = load_and_transform_dataset(paths, task_transforms)
-  singletask = multitask_to_singletask(dataset)
   aucs, r2s, rms = {}, {}, {}
-  sorted_targets = sorted(singletask.keys())
+  sorted_targets = sorted(per_task_data.keys())
   if num_to_train:
     sorted_targets = sorted_targets[:num_to_train]
   for index, target in enumerate(sorted_targets):
     print "Building model %d" % index
-    data = singletask[target]
-    if splittype == "random":
-      train, test = train_test_random_split(data, seed=seed)
-    elif splittype == "scaffold":
-      train, test = train_test_scaffold_split(data)
-    else:
-      raise ValueError("Improper splittype. Must be random/scaffold.")
-    X_train, y_train, W_train = dataset_to_numpy(train)
-    X_test, y_test, W_test = dataset_to_numpy(test)
+    (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
+        per_task_data[target])
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")
@@ -102,29 +91,14 @@ def fit_singletask_models(paths, modeltype, task_types, task_transforms,
     print results_to_csv(rms)
     print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
-
-def fit_multitask_rf(dataset, splittype="random"):
+def fit_multitask_rf(train_data, test_data, task_types):
   """Fits a multitask RF model to provided dataset.
-
-  Performs a random 80-20 train/test split.
-
-  Parameters
-  ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  splittype: string
-    Type of split for train/test. Either random or scaffold.
   """
-  if splittype == "random":
-    train, test = train_test_random_split(data, seed=0)
-  elif splittype == "scaffold":
-    train, test = train_test_scaffold_split(data)
-  else:
-    raise ValueError("Improper splittype. Must be random/scaffold.")
-  X_train, y_train, W_train = dataset_to_numpy(train)
-  classifier = RandomForestClassifier(n_estimators=100, n_jobs=-1,
+  (train, X_train, y_train, W_train), (test, X_train, y_train, W_train) = (
+      train_data, test_data) 
+  model = RandomForestClassifier(n_estimators=100, n_jobs=-1,
       class_weight="auto")
-  classifier.fit(X_train, y_train)
-  results = eval_model(test, classifier)
+  model.fit(X_train, y_train)
+  results = eval_model(test, model, task_types)
   scores = compute_roc_auc_scores(results)
   print "Mean AUC: %f" % np.mean(np.array(scores.values()))
