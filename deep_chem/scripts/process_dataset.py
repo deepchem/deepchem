@@ -174,8 +174,8 @@ def generate_targets(input_file, input_type, fields, field_types, out_pkl,
     print row_index
     print raw_row
     # Skip row labels.
-    #if row_index == 0 or raw_row is None:  #but if data has no rows, then this will skip 1st compound 
-      #continue
+    if row_index == 0 or raw_row is None:  
+      continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
       row[field] = process_field(row_data[ind], field_type)
