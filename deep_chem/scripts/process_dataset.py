@@ -19,7 +19,7 @@ def parse_args(input_args=None):
   parser.add_argument("--input-file", required=1,
                       help="Input file with data.")
   parser.add_argument("--input-type", default="csv",
-                      choices=["csv", "pandas", "sdf"],
+                      choices=["xlsx", "csv", "pandas", "sdf"],
                       help="Type of input file. If pandas, input must be a pkl.gz\n"
                            "containing a pandas dataframe. If sdf, should be in\n"
                            "(perhaps gzipped) sdf file.")
@@ -93,13 +93,14 @@ def get_rows(input_file, input_type):
   # right option here might be to create a class which internally handles data
   # loading.
   if input_type == "xlsx":
-    W = px.load_workbook(xlsx_file, use_iterators=True)
-    p = W.get_sheet_by_name(name="Sheet1")
+    W = px.load_workbook(input_file, use_iterators=True)
+    sheet_names = W.get_sheet_names()
+    p = W.get_sheet_by_name(name=sheet_names[0])    # Take first sheet as the active sheet
     return p.iter_rows()
   elif input_type == "csv":
-    with open(csv_file, "rb") as f:
-      reader = csv.reader(f, delimiter="\t")
-    return [row for row in reader]
+    with open(input_file, "rb") as f:
+      reader = csv.reader(f, delimiter=",")
+      return [row for row in reader]
   elif input_type == "pandas":
     with gzip.open(input_file) as f:
       df = pickle.load(f)
@@ -171,8 +172,8 @@ def generate_targets(input_file, input_type, fields, field_types, out_pkl,
     print row_index
     print raw_row
     # Skip row labels.
-    if row_index == 0 or raw_row is None:
-      continue
+    #if row_index == 0 or raw_row is None:  #but if data has no rows, then this will skip 1st compound 
+      #continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
       row[field] = process_field(row_data[ind], field_type)
