@@ -14,7 +14,6 @@ from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import split_dataset
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import to_one_hot
-from deep_chem.utils.preprocess import process_multitask_dataset
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 from deep_chem.utils.evaluate import compute_rms_scores
@@ -62,6 +61,7 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
+  print "ENTERING FIT_SINGLETASK_MLP"
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
   sorted_targets = sorted(per_task_data.keys())
@@ -72,6 +72,10 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
     print "Target %s" % target
     (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
         per_task_data[target])
+    print "len(train)"
+    print len(train)
+    print "len(test)"
+    print len(test)
     model = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)
     results = eval_model(test, model, {target: task_types[target]}, 
@@ -91,9 +95,6 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
   if r2s:
     print r2s
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  if rms:
-    print rms
-    print "Mean RMS: %f" % np.mean(np.array(rms.values()))
 
 def train_multitask_model(X, y, W, task_types,
   learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True, activation="relu",

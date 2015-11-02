@@ -13,6 +13,52 @@ from deep_chem.utils.preprocess import transform_outputs
 from deep_chem.utils.preprocess import transform_inputs
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import tensor_dataset_to_numpy
+from deep_chem.utils.preprocess import multitask_to_singletask
+from deep_chem.utils.preprocess import split_dataset
+from deep_chem.utils.preprocess import to_arrays
+
+def process_datasets(paths, input_transforms, output_transforms,
+    prediction_endpoint=None, split_endpoint=None, datatype="vector",
+    feature_types=["fingerprints"], mode="multitask", splittype="random",
+    seed=None, weight_positives=True):
+  """Extracts datasets and split into train/test.
+
+  Returns a dict that maps target names to tuples.
+
+  Parameters
+  ----------
+  paths: list 
+    List of paths to Google vs datasets. 
+  output_transforms: dict 
+    dict mapping target names to label transform. Each output type must be either
+    None or "log". Only for regression outputs.
+  splittype: string
+    Must be "random" or "scaffold"
+  seed: int
+    Seed used for random splits.
+  """
+  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
+      prediction_endpoint, split_endpoint=split_endpoint,
+      feature_types=feature_types, weight_positives=weight_positives)
+  if mode == "singletask":
+    singletask = multitask_to_singletask(dataset)
+    arrays = {}
+    for target in singletask:
+      data = singletask[target]
+      if len(data) == 0:
+        continue
+      train, test = split_dataset(dataset, splittype)
+      train_data, test_data = to_arrays(train, test, datatype)
+      arrays[target] = train_data, test_data 
+    return arrays
+  elif mode == "multitask":
+    sorted_targets = sorted(dataset.keys())
+    train, test = split_dataset(dataset, splittype)
+    train_data, test_data = to_arrays(train, test, datatype)
+    return train_data, test_data
+  else:
+    raise ValueError("Unsupported mode for process_datasets.")
+
 
 def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
@@ -210,7 +256,7 @@ def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name
     data[smiles] = {"fingerprint": mol["fingerprint"],
                     "scaffold": mol["scaffold"],
                     "labels": labels[smiles],
-                    "splits": splits[smiles]}
+                    "split": splits[smiles]}
   return data
 
 def ensure_balanced(y, W):
@@ -254,7 +300,6 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
   sorted_targets = sorted(output_transforms.keys())
   for s_index, smiles in enumerate(sorted_smiles):
     datapoint = dataset[smiles]
-    #print datapoint
     labels = {}
     for t_index, target in enumerate(sorted_targets):
       if W[s_index][t_index] == 0:

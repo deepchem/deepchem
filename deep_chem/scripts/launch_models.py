@@ -8,6 +8,7 @@ from deep_chem.models.deep import fit_multitask_mlp
 from deep_chem.models.deep3d import fit_3D_convolution
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
+from deep_chem.utils.load import process_datasets
 
 # TODO(rbharath): Factor this into subcommands. The interface is too
 # complicated now to effectively use.
@@ -27,10 +28,10 @@ def parse_args(input_args=None):
                       choices=["fingerprints", "descriptors", "grid"],
                       help="Types of featurizations to use.")
   parser.add_argument("--paths", nargs="+", required=1,
-                      help = "Paths to input datasets.")
+                      help="Paths to input datasets.")
   parser.add_argument("--mode", default="singletask",
                       choices=["singletask", "multitask"],
-                      "Type of model being built.")
+                      help="Type of model being built.")
   parser.add_argument("--model", required=1,
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
@@ -41,6 +42,8 @@ def parse_args(input_args=None):
                        help="Type of train/test data-splitting.\n"
                             "scaffold uses Bemis-Murcko scaffolds.\n"
                             "specified requires that split be in original data.")
+  #TODO(rbharath): These two arguments (prediction/split-endpoint) should be
+  #moved to process_datataset to simplify the invocation here.
   parser.add_argument("--prediction-endpoint", type=str, required=1,
                        help="Name of measured endpoint to predict.")
   parser.add_argument("--split-endpoint", type=str, default=None,
@@ -82,11 +85,11 @@ def main():
 
   datatype = "tensor" if args.model == "3D_cnn" else "vector"
   processed = process_datasets(paths,
-      input_transforms, output_transforms, feature_types, 
-      prediction_endpoint=prediction_endpoint,
-      split_endpoint=split_endpoint,
-      splittype=splittype, weight_positives=weight_positives,
-      datatype=datatype)
+      input_transforms, output_transforms, feature_types=args.feature_types, 
+      prediction_endpoint=args.prediction_endpoint,
+      split_endpoint=args.split_endpoint,
+      splittype=args.splittype, weight_positives=args.weight_positives,
+      datatype=datatype, mode=args.mode)
   if args.mode == "multitask":
     train_data, test_data = processed
   else:
@@ -98,20 +101,19 @@ def main():
       learning_rate=args.learning_rate, dropout=args.dropout,
       nb_epoch=args.n_epochs, decay=args.decay, batch_size=args.batch_size,
       validation_split=args.validation_split,
-      weight_positives=args.weight_positives, num_to_train=args.num_to_train)
+      num_to_train=args.num_to_train)
   elif args.model == "multitask_deep_network":
     fit_multitask_mlp(train_data, test_data, task_types,
       n_hidden=args.n_hidden, learning_rate = args.learning_rate,
       dropout = args.dropout, batch_size=args.batch_size,
       nb_epoch=args.n_epochs, decay=args.decay,
-      validation_split=args.validation_split,
-      weight_positives=args.weight_positives)
+      validation_split=args.validation_split)
   elif args.model == "3D_cnn":
     fit_3D_convolution(train_data, test_data, task_types,
         axis_length=args.axis_length, nb_epoch=args.n_epochs,
         batch_size=args.batch_size)
   else:
-    fit_singletask_models(per_task_data,  args.model, task_types, num_to_train=args.num_to_train)
+    fit_singletask_models(per_task_data, args.model, task_types, num_to_train=args.num_to_train)
 
 if __name__ == "__main__":
   main()

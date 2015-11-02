@@ -26,13 +26,16 @@ def parse_args(input_args=None):
   parser.add_argument("--fields", required=1, nargs="+",
                       help = "Names of fields.")
   parser.add_argument("--field-types", required=1, nargs="+",
-                      choices=["string", "float", "list-string", "list-float",
-                               "ndarray", "concentration"],
-                      help="Type of data in fields. Concentration is for molar concentrations.")
+                      choices=["string", "float", "list-string", "list-float", "ndarray"],
+                      help="Type of data in fields.")
   parser.add_argument("--name", required=1,
                       help="Name of the dataset.")
   parser.add_argument("--out", required=1,
                       help="Folder to generate processed dataset in.")
+  parser.add_argument("--prediction-endpoint", type=str, required=1,
+                      help="Name of measured endpoint to predict.")
+  parser.add_argument("--threshold", type=float, default=None,
+                      help="Used to turn real-valued data into binary.")
   return parser.parse_args(input_args)
 
 def generate_directories(name, out):
@@ -160,12 +163,6 @@ def process_field(data, field_type):
     return data 
   elif field_type == "float":
     return parse_float_input(data)
-  elif field_type == "concentration":
-    fl = parse_float_input(data)
-    if fl is not None:
-      return parse_float_input(data) / 1e-7
-    else:
-      return None
   elif field_type == "list-string":
     return data.split(",")
   elif field_type == "list-float":
@@ -174,18 +171,21 @@ def process_field(data, field_type):
     return data 
 
 def generate_targets(input_file, input_type, fields, field_types, out_pkl,
-    out_sdf):
+    out_sdf, prediction_endpoint, threshold):
   """Process input data file."""
   rows, mols, smiles = [], [], SmilesGenerator()
   for row_index, raw_row in enumerate(get_rows(input_file, input_type)):
     print row_index
-    print raw_row
     # Skip row labels.
     if row_index == 0 or raw_row is None:
       continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
-      row[field] = process_field(row_data[ind], field_type)
+      if field == prediction_endpoint and threshold is not None:
+        raw_val = process_field(row_data[ind], field_type)
+        row[field] = 1 if raw_val > threshold else 0 
+      else:
+        row[field] = process_field(row_data[ind], field_type)
     # TODO(rbharath): This patch is only in place until the smiles/sequence
     # support is fixed.
     if row["smiles"] is None:
@@ -211,7 +211,7 @@ def main():
   args = parse_args()
   out_pkl, out_sdf = generate_directories(args.name, args.out)
   generate_targets(args.input_file, args.input_type, args.fields,
-      args.field_types, out_pkl, out_sdf)
+      args.field_types, out_pkl, out_sdf, args.prediction_endpoint, args.threshold)
   generate_fingerprints(args.name, args.out)
   generate_descriptors(args.name, args.out)
 

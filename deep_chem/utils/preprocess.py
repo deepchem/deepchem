@@ -21,61 +21,19 @@ def to_arrays(train, test, datatype):
     raise ValueError("Improper datatype.")
   return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
 
-def process_datasets(paths, input_transforms, output_transforms,
-    prediction_endpoint=None, split_endpoint=None, feature_types=["fingerprints"],
-    split_endpoint=None, mode="multitask", splittype="random", seed=None,
-    weight_positives=True):
-  """Extracts singletask datasets and splits into train/test.
-
-  Returns a dict that maps target names to tuples.
-
-  Parameters
-  ----------
-  paths: list 
-    List of paths to Google vs datasets. 
-  output_transforms: dict 
-    dict mapping target names to label transform. Each output type must be either
-    None or "log". Only for regression outputs.
-  splittype: string
-    Must be "random" or "scaffold"
-  seed: int
-    Seed used for random splits.
-  """
-  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
-      prediction_endpoint, split_endpoint=split_endpoint,
-      feature_types=feature_types, weight_positives=weight_positives)
-  if mode == "singletask":
-    singletask = multitask_to_singletask(dataset)
-    arrays = {}
-    for target in singletask:
-      data = singletask[target]
-      if len(data) == 0:
-        continue
-      train, test = split_dataset(dataset, splittype)
-      train_data, test_data = to_arrays(train, test, datatype)
-      arrays[target] = train_data, test_data 
-    return arrays
-  elif mode == "multitask":
-    sorted_targets = sorted(dataset.keys())
-    train, test = split_dataset(dataset, splittype)
-    train_data, test_data = to_arrays(train, test, datatype)
-    return train_data, test_data
-  else:
-    raise ValueError("Unsupported mode for process_datasets.")
-
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
   (n_samples, n_features) = np.shape(X)
-  print "X Before transform"
-  print np.shape(X)
-  print np.amax(X)
-  print np.amin(X)
   Z = np.zeros(np.shape(X))
   # Meant to be done after normalize
   trunc = 10
   for feature in range(n_features):
     feature_data = X[:, feature]
     for input_transform in input_transforms:
+      # TODO(rbharath): This code isn't really normalizing. It's doing
+      # something trickier to ensure that the binary fingerprints aren't
+      # normalized while real-valued descriptors are. Refactor/Rename this to
+      # make this distinction clearer.
       if input_transform == "normalize":
         if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
           mean, std = np.mean(feature_data), np.std(feature_data)
@@ -89,11 +47,6 @@ def transform_inputs(X, input_transforms):
       else:
         raise ValueError("Unsupported Input Transform")
     Z[:, feature] = feature_data
-  print "Z After transform"
-  print np.shape(Z)
-  print np.amax(Z)
-  print np.amin(Z)
-  print Z
   return Z
 
 def transform_outputs(y, W, output_transforms, weight_positives=True):
@@ -198,7 +151,6 @@ def balance_positives(y, W):
 def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     labels_endpoint="labels"):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
-  print "Entering tensor_dataset_to_numpy"
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint[feature_endpoint])
@@ -206,8 +158,6 @@ def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   X = np.zeros((n_samples,) + feature_shape)
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
-  print "np.shape(X), np.shape(y), np.shape(W)"
-  print np.shape(X), np.shape(y), np.shape(W)
   sorted_ids = sorted(dataset.keys())
   for index, smiles in enumerate(dataset.keys()):
     datapoint = dataset[smiles]
@@ -303,6 +253,7 @@ def split_dataset(dataset, splittype):
     train, test = train_test_specified_split(dataset)
   else:
     raise ValueError("Improper splittype.")
+  return train, test
 
 def train_test_specified_split(dataset):
   """Split provided data due to splits in origin data."""
@@ -310,9 +261,10 @@ def train_test_specified_split(dataset):
   for smiles, datapoint in dataset.iteritems():
     if "split" not in datapoint:
       raise ValueError("Missing required split information.")
-    if datapoint["split"] == "train":
+    if datapoint["split"].lower() == "train" or datapoint["split"].lower() == "valid":
       train[smiles] = datapoint
-    elif datapoint["split"] == "test":
+    # TODO(rbharath): Add support for validation sets.
+    elif datapoint["split"].lower() == "test":
       test[smiles] = datapoint
     else:
       raise ValueError("Improper split specified.")
