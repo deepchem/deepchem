@@ -9,6 +9,7 @@ from deep_chem.models.deep3d import fit_3D_convolution
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
 from deep_chem.utils.load import process_datasets
+from deep_chem.utils.evaluate import results_to_csv
 
 # TODO(rbharath): Factor this into subcommands. The interface is too
 # complicated now to effectively use.
@@ -42,6 +43,8 @@ def parse_args(input_args=None):
                        help="Type of train/test data-splitting.\n"
                             "scaffold uses Bemis-Murcko scaffolds.\n"
                             "specified requires that split be in original data.")
+  parser.add_argument("--csv-out", type=str, default=None,
+                  help="Outputted predictions on the test set.")
   #TODO(rbharath): These two arguments (prediction/split-endpoint) should be
   #moved to process_datataset to simplify the invocation here.
   parser.add_argument("--prediction-endpoint", type=str, required=1,
@@ -69,7 +72,6 @@ def parse_args(input_args=None):
                   help="Number of datasets to train on. Only for debug.")
   parser.add_argument("--axis-length", type=int, default=32,
                   help="Size of a grid axis for 3D CNN input.")
-      
   return parser.parse_args(input_args)
 
 def main():
@@ -97,23 +99,27 @@ def main():
   # TODO(rbharath): Bundle training params into a training_param dict that's passed
   # down to these functions.
   if args.model == "singletask_deep_network":
-    fit_singletask_mlp(per_task_data, task_types, n_hidden=args.n_hidden,
+    results = fit_singletask_mlp(per_task_data, task_types, n_hidden=args.n_hidden,
       learning_rate=args.learning_rate, dropout=args.dropout,
       nb_epoch=args.n_epochs, decay=args.decay, batch_size=args.batch_size,
       validation_split=args.validation_split,
       num_to_train=args.num_to_train)
   elif args.model == "multitask_deep_network":
-    fit_multitask_mlp(train_data, test_data, task_types,
+    results = fit_multitask_mlp(train_data, test_data, task_types,
       n_hidden=args.n_hidden, learning_rate = args.learning_rate,
       dropout = args.dropout, batch_size=args.batch_size,
       nb_epoch=args.n_epochs, decay=args.decay,
       validation_split=args.validation_split)
   elif args.model == "3D_cnn":
-    fit_3D_convolution(train_data, test_data, task_types,
+    results = fit_3D_convolution(train_data, test_data, task_types,
         axis_length=args.axis_length, nb_epoch=args.n_epochs,
         batch_size=args.batch_size)
   else:
-    fit_singletask_models(per_task_data, args.model, task_types, num_to_train=args.num_to_train)
+    results = fit_singletask_models(per_task_data, args.model, task_types,
+                                    num_to_train=args.num_to_train)
+  
+  if args.csv_out is not None:
+    results_to_csv(results, args.csv_out, task_type=args.task_type)
 
 if __name__ == "__main__":
   main()

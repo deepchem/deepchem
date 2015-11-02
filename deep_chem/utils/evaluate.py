@@ -5,6 +5,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+import csv
 import numpy as np
 import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
@@ -157,7 +158,7 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular")
       local_task_types, modeltype=modeltype, mode=mode)
   results = {}
   for target in endpoints:
-    results[target] = ([], [])  # (ytrue, yscore)
+    results[target] = ([], [], [])  # (smiles, ytrue, yscore)
   # Iterate through test set data points.
   for index, smiles in enumerate(sorted(test_set.keys())):
     datapoint = test_set[smiles]
@@ -169,7 +170,8 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular")
         and labels[target] == -1):
         continue
       else:
-        ytrue, yscore = results[target]
+        mol_smiles, ytrue, yscore = results[target]
+        mol_smiles.append(smiles)
         if task_type == "classification":
           if labels[target] == 0:
             ytrue.append(0)
@@ -188,9 +190,27 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular")
           raise ValueError("task_type must be classification or regression.")
         yscore.append(ypreds[t_ind][index])
   for target in endpoints:
-    ytrue, yscore = results[target]
-    results[target] = (np.array(ytrue), np.array(yscore))
+    mol_smiles, ytrue, yscore = results[target]
+    results[target] = (mol_smiles, np.array(ytrue), np.array(yscore))
   return results
+
+def results_to_csv(results, out, task_type="classification"):
+  """Writes results as CSV to out."""
+  for target in results:
+    out_file = "%s-%s.csv" % (out, target)
+    mol_smiles, ytrues, yscores= results[target]
+    if task_type == "classification":
+      yscores = np.around(yscores[:,1]).astype(int)
+    elif task_type == "regression":
+      print yscores
+      yscores = yscores[:,0]
+    with open(out_file, "wb") as csvfile:
+      csvwriter = csv.writer(csvfile, delimiter="\t")
+      csvwriter.writerow(["Smiles", "True", "Model-Prediction"])
+      for smiles, ytrue, yscore in zip(mol_smiles, ytrues, yscores):
+        csvwriter.writerow([smiles, ytrue, yscore])
+    print "Writing results on test set for target %s to %s" % (target, out_file)
+    
 
 def compute_roc_auc_scores(results, task_types):
   """Transforms the results dict into roc-auc-scores and prints scores.
@@ -208,18 +228,13 @@ def compute_roc_auc_scores(results, task_types):
   for target in results:
     if task_types[target] != "classification":
       continue
-    ytrue, yscore = results[target]
+    _, ytrue, yscore = results[target]
     sample_weights = labels_to_weights(ytrue)
-    print "np.shape(ytrue)"
-    print np.shape(ytrue)
-    print "np.shape(yscore)"
-    print np.shape(yscore)
     try:
       score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
     except Exception as e:
-      warnings.warn("ERROR! ROC_AUC_SCORE CALCULATION FAILED.")
+      warnings.warn("ROC AUC score calculation failed.")
       score = 0.5
-    #score = roc_auc_score(ytrue, yscore, sample_weight=sample_weights)
     print "Target %s: AUC %f" % (target, score)
     scores[target] = score
   return scores
@@ -240,7 +255,7 @@ def compute_r2_scores(results, task_types):
   for target in results:
     if task_types[target] != "regression":
       continue
-    ytrue, yscore = results[target]
+    _, ytrue, yscore = results[target]
     score = r2_score(ytrue, yscore)
     print "Target %s: R^2 %f" % (target, score)
     scores[target] = score
@@ -262,7 +277,7 @@ def compute_rms_scores(results, task_types):
   for target in results:
     if task_types[target] != "regression":
       continue
-    ytrue, yscore = results[target]
+    _, ytrue, yscore = results[target]
     rms = np.sqrt(mean_squared_error(ytrue, yscore))
     print "Target %s: RMS %f" % (target, rms)
     scores[target] = rms 

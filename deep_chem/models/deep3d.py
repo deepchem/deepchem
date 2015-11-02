@@ -27,6 +27,7 @@ def fit_3D_convolution(train_data, test_data, task_types, axis_length=32, **trai
   local_task_types = task_types.copy()
   r2s = compute_r2_scores(results, local_task_types)
   print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
+  return results
 
 def train_3D_convolution(X, y, axis_length=32, batch_size=50, nb_epoch=1):
   """

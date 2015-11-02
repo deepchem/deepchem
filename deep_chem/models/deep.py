@@ -47,6 +47,7 @@ def fit_multitask_mlp(train_data, test_data, task_types, **training_params):
   r2s = compute_r2_scores(results, local_task_types)
   if r2s:
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
+  return results
 
 def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_params):
   """
@@ -61,12 +62,12 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
-  print "ENTERING FIT_SINGLETASK_MLP"
   ret_vals = {}
   aucs, r2s, rms = {}, {}, {}
   sorted_targets = sorted(per_task_data.keys())
   if num_to_train:
     sorted_targets = sorted_targets[:num_to_train]
+  all_results = {}
   for index, target in enumerate(sorted_targets):
     print "Training model %d" % index
     print "Target %s" % target
@@ -82,6 +83,7 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
                          # We run singletask models as special cases of
                          # multitask.
                          modeltype="keras_multitask")
+    all_results[target] = results[target]
     target_aucs = compute_roc_auc_scores(results, task_types)
     target_r2s = compute_r2_scores(results, task_types)
     target_rms = compute_rms_scores(results, task_types)
@@ -95,6 +97,7 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
   if r2s:
     print r2s
     print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
+  return all_results
 
 def train_multitask_model(X, y, W, task_types,
   learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True, activation="relu",

@@ -42,6 +42,7 @@ def fit_singletask_models(per_task_data, modeltype, task_types,
     dict mapping target names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   """
+  all_results = {}
   aucs, r2s, rms = {}, {}, {}
   sorted_targets = sorted(per_task_data.keys())
   if num_to_train:
@@ -73,6 +74,7 @@ def fit_singletask_models(per_task_data, modeltype, task_types,
     model.fit(X_train, y_train.ravel())
     results = eval_model(test, model, {target: task_types[target]},
         modeltype="sklearn")
+    all_results[target] = results[target]
 
     target_aucs = compute_roc_auc_scores(results, task_types)
     target_r2s = compute_r2_scores(results, task_types)
@@ -90,6 +92,7 @@ def fit_singletask_models(per_task_data, modeltype, task_types,
   if rms:
     print results_to_csv(rms)
     print "Mean RMS: %f" % np.mean(np.array(rms.values()))
+  return all_results
 
 def fit_multitask_rf(train_data, test_data, task_types):
   """Fits a multitask RF model to provided dataset.
