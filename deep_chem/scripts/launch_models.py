@@ -25,6 +25,8 @@ def parse_args(input_args=None):
   parser.add_argument("--splittype", type=str, default="scaffold",
                        choices=["scaffold", "random"],
                        help="Type of cross-validation data-splitting.")
+  parser.add_argument("--prediction-endpoint", type=str, default="IC50",
+                       help="Name of measured endpoint to predict.")
   parser.add_argument("--n-hidden", type=int, default=500,
                       help="Number of hidden neurons for NN models.")
   parser.add_argument("--learning-rate", type=float, default=0.01,
@@ -53,7 +55,6 @@ def main():
   args = parse_args()
   paths = {}
 
-
   for dataset, path in zip(args.datasets, args.paths):
     paths[dataset] = path
 
@@ -61,20 +62,25 @@ def main():
 
   if args.model == "singletask_deep_network":
     fit_singletask_mlp(paths.values(), task_types, task_transforms,
-      splittype=args.splittype, n_hidden=args.n_hidden,
+      prediction_endpoint=args.prediction_endpoint,
+      splittype=args.splittype, 
+      n_hidden=args.n_hidden,
       learning_rate=args.learning_rate, dropout=args.dropout,
       nb_epoch=args.n_epochs, decay=args.decay, batch_size=args.batch_size,
       validation_split=args.validation_split,
       weight_positives=args.weight_positives, num_to_train=args.num_to_train)
   elif args.model == "multitask_deep_network":
     fit_multitask_mlp(paths.values(), task_types, task_transforms,
-      splittype=args.splittype, n_hidden=args.n_hidden, learning_rate =
+      prediction_endpoint=args.prediction_endpoint,
+      splittype=args.splittype,
+      n_hidden=args.n_hidden, learning_rate =
       args.learning_rate, dropout = args.dropout, batch_size=args.batch_size,
       nb_epoch=args.n_epochs, decay=args.decay,
       validation_split=args.validation_split,
       weight_positives=args.weight_positives)
   elif args.model == "3D_cnn":
     fit_3D_convolution(paths.values(), task_types, task_transforms,
+        prediction_endpoint=args.prediction_endpoint,
         axis_length=args.axis_length, nb_epoch=args.n_epochs,
         batch_size=args.batch_size)
   else:

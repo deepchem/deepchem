@@ -143,7 +143,7 @@ def get_target_names(paths, target_dir_name="targets"):
         if "pkl.gz" in target_pickle]
   return target_names
 
-def load_assays(paths, target_dir_name="targets"):
+def load_assays(paths, prediction_endpoint, target_dir_name="targets"):
   """Load regression dataset labels from assays.
 
   Returns a dictionary that maps smiles strings to label vectors.
@@ -168,18 +168,9 @@ def load_assays(paths, target_dir_name="targets"):
       target_name = target_pickle.split(".")[0]
       with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
         contents = pickle.load(f)
-        # TODO(rbharath): Make endpoint a flag that can be passed in.
-        if "potency" in contents:
-          endpoint = "potency" 
-        elif "targets" in contents:
-          endpoint = "targets"  
-        elif "label" in contents:
-          endpoint = "label"
-        elif "tdo_percent_activity_10_um" in contents:
-          endpoint = "tdo_percent_activity_10_um"
-        else:
+        if prediction_endpoint not in contents:
           raise ValueError("Must contain recognized measurement.")
-        items = zip(contents["smiles"], contents[endpoint])
+        items = zip(contents["smiles"], contents[prediction_endpoint])
         for smiles, measurement in items:
           # TODO(rbharath): Get a less kludgey answer
           # TODO(rbharath): There is some amount of duplicate collisions
@@ -199,16 +190,16 @@ def load_assays(paths, target_dir_name="targets"):
           datapoints[smiles][target_name] = measurement 
   return datapoints
 
-def load_datasets(paths, datatype="vs", **load_args):
+def load_datasets(paths, prediction_endpoint, datatype="vs", **load_args):
   """Dispatches to correct loader depending on type of data."""
   if datatype == "vs":
-    return load_vs_datasets(paths, **load_args)
+    return load_vs_datasets(paths, prediction_endpoint, **load_args)
   elif datatype == "pdbbind":
-    return load_pdbbind_datasets(paths, **load_args)
+    return load_pdbbind_datasets(paths, prediction_endpoint, **load_args)
   else:
     raise ValueError("Unsupported datatype.")
 
-def load_pdbbind_datasets(paths, target_dir_name="targets",
+def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
     fingerprint_dir_name="fingerprints"):
   """Load pdbbind datasets.
 
@@ -221,7 +212,7 @@ def load_pdbbind_datasets(paths, target_dir_name="targets",
   """
   data = {}
   molecules = load_pdbbind_molecules(paths)
-  labels = load_assays(paths, target_dir_name)
+  labels = load_assays(paths, prediction_endpoint, target_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
   # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
@@ -233,7 +224,7 @@ def load_pdbbind_datasets(paths, target_dir_name="targets",
                  "labels": labels[smiles]}
   return data
 
-def load_vs_datasets(paths, target_dir_name="targets",
+def load_vs_datasets(paths, prediction_endpoint, target_dir_name="targets",
     fingerprint_dir_name="fingerprints"):
   """Load both labels and fingerprints.
 
@@ -247,7 +238,7 @@ def load_vs_datasets(paths, target_dir_name="targets",
   """
   data = {}
   molecules = load_molecules(paths, fingerprint_dir_name)
-  labels = load_assays(paths, target_dir_name)
+  labels = load_assays(paths, prediction_endpoint, target_dir_name)
   # TODO(rbharath): Why are there fewer descriptors than labels at times?
   # What accounts for the descrepency. Please investigate.
   for ind, smiles in enumerate(molecules):
@@ -272,6 +263,7 @@ def ensure_balanced(y, W):
     assert np.isclose(pos_weight, neg_weight)
 
 def load_and_transform_dataset(paths, task_transforms,
+    prediction_endpoint,
     labels_endpoint="labels", weight_positives=True,
     datatype="vs"):
   """Transform data labels as specified
@@ -286,7 +278,7 @@ def load_and_transform_dataset(paths, task_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, datatype=datatype)
+  dataset = load_datasets(paths, prediction_endpoint, datatype=datatype)
   X, y, W = transform_outputs(dataset, task_transforms,
       weight_positives=weight_positives, datatype=datatype)
   ## TODO(rbharath): Take this out once test passes
