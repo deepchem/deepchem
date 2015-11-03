@@ -120,12 +120,18 @@ def get_row_data(row, input_type, columns):
 
 def process_field(data, column_type):
   """Parse data in a field."""
+
+  print(data)
+  print(column_type)
   if column_type == "string":
     return data 
   elif column_type == "float":
     return parse_float_input(data)
   elif column_type == "list-string":
-    return data.split(",")
+    if type(data) == list:
+      return data
+    else:
+      return data.split(",")
   elif column_type == "list-float":
     return np.array(data.split(","))
   elif column_type == "ndarray":
@@ -141,6 +147,8 @@ def generate_targets(input_file, input_type, columns, column_types, out_pkl,
     if row_index == 0:
       continue
     row, row_data = {}, get_row_data(raw_row, input_type, columns)
+    print row
+    print row_data
     for ind, (column, column_type) in enumerate(zip(columns, column_types)):
       row[column] = process_field(row_data[ind], column_type)
     # TODO(rbharath): This patch is only in place until the smiles/sequence

@@ -132,9 +132,9 @@ def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     fingerprint, labels = (datapoint[feature_endpoint],
       datapoint[labels_endpoint])
     X[index] = fingerprint
-    # TODO(rbharath): The label is a dict for some reason?!? Figure this out
-    # and fix it.
-    y[index] = labels["3d_core_pdbbind"]
+    # TODO(rbharath): This is only specialized to single task.
+    # need to generalize to handle multi-task
+    y[index] = labels[labels.keys()[0]]
   return (X, y, W)
 
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
