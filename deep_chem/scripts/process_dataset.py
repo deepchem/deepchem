@@ -26,13 +26,16 @@ def parse_args(input_args=None):
   parser.add_argument("--fields", required=1, nargs="+",
                       help = "Names of fields.")
   parser.add_argument("--field-types", required=1, nargs="+",
-                      choices=["string", "float", "list-string", "list-float",
-                               "ndarray", "concentration"],
-                      help="Type of data in fields. Concentration is for molar concentrations.")
+                      choices=["string", "float", "list-string", "list-float", "ndarray"],
+                      help="Type of data in fields.")
   parser.add_argument("--name", required=1,
                       help="Name of the dataset.")
   parser.add_argument("--out", required=1,
                       help="Folder to generate processed dataset in.")
+  parser.add_argument("--prediction-endpoint", type=str, required=1,
+                      help="Name of measured endpoint to predict.")
+  parser.add_argument("--threshold", type=float, default=None,
+                      help="Used to turn real-valued data into binary.")
   parser.add_argument("--delimiter", default="\t",
                       help="Delimiter in csv file")
   return parser.parse_args(input_args)
@@ -45,6 +48,9 @@ def generate_directories(name, out):
   fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   if not os.path.exists(fingerprint_dir):
     os.makedirs(fingerprint_dir)
+  descriptor_dir = os.path.join(dataset_dir, "descriptors")
+  if not os.path.exists(descriptor_dir):
+    os.makedirs(descriptor_dir)
   target_dir = os.path.join(dataset_dir, "targets")
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
@@ -71,6 +77,7 @@ def parse_float_input(val):
       return np.nan
 
 def generate_fingerprints(name, out):
+  """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
   fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   shards_dir = os.path.join(dataset_dir, "shards")
@@ -82,12 +89,18 @@ def generate_fingerprints(name, out):
                    sdf, fingerprints,
                    "circular", "--size", "1024"])
 
-def globavir_specs():
-  fields = ["compound_name", "isomeric_smiles", "tdo_ic50_nm", "tdo_Ki_nm",
-    "tdo_percent_activity_10_um", "tdo_percent_activity_1_um", "ido_ic50_nm",
-    "ido_Ki_nm", "ido_percent_activity_10_um", "ido_percent_activity_1_um"]
-  field_types = ["string", "string", "float", "float", "float", "float",
-      "float", "float", "float", "float"]
+def generate_descriptors(name, out):
+  """Generates molecular descriptors for dataset."""
+  dataset_dir = os.path.join(out, name)
+  fingerprint_dir = os.path.join(dataset_dir, "descriptors")
+  shards_dir = os.path.join(dataset_dir, "shards")
+  sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
+  descriptors = os.path.join(fingerprint_dir,
+      "%s-descriptors.pkl.gz" % name)
+  subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
+                   "--scaffolds", "--smiles",
+                   sdf, descriptors,
+                   "descriptors"])
 
 def get_rows(input_file, input_type, delimiter):
   """Returns an iterator over all rows in input_file"""
@@ -164,18 +177,21 @@ def process_field(data, field_type):
     return data 
 
 def generate_targets(input_file, input_type, fields, field_types, out_pkl,
-    out_sdf, delimiter):
+    out_sdf, prediction_endpoint, threshold, delimiter):
   """Process input data file."""
   rows, mols, smiles = [], [], SmilesGenerator()
   for row_index, raw_row in enumerate(get_rows(input_file, input_type, delimiter)):
     print row_index
-    print raw_row
     # Skip row labels.
     if row_index == 0 or raw_row is None:  
       continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
-      row[field] = process_field(row_data[ind], field_type)
+      if field == prediction_endpoint and threshold is not None:
+        raw_val = process_field(row_data[ind], field_type)
+        row[field] = 1 if raw_val > threshold else 0 
+      else:
+        row[field] = process_field(row_data[ind], field_type)
     # TODO(rbharath): This patch is only in place until the smiles/sequence
     # support is fixed.
     if row["smiles"] is None:
@@ -203,9 +219,10 @@ def main():
     raise ValueError("number of fields does not equal number of field types")
   out_pkl, out_sdf = generate_directories(args.name, args.out)
   generate_targets(args.input_file, args.input_type, args.fields,
-      args.field_types, out_pkl, out_sdf, args.delimiter)
+      args.field_types, out_pkl, out_sdf, args.prediction_endpoint,
+      args.threshold, args.delimiter)
   generate_fingerprints(args.name, args.out)
-
+  generate_descriptors(args.name, args.out)
 
 if __name__ == "__main__":
   main()

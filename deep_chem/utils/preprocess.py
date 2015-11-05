@@ -9,36 +9,73 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def transform_outputs(dataset, task_transforms, weight_positives=True,
-    datatype="pdbbind"):
+def to_arrays(train, test, datatype):
+  """Turns train/test into numpy array."""
+  if datatype == "vector":
+    X_train, y_train, W_train = dataset_to_numpy(train)
+    X_test, y_test, W_test = dataset_to_numpy(test)
+  elif datatype == "tensor":
+    X_train, y_train, W_train = tensor_dataset_to_numpy(train)
+    X_test, y_test, W_test = tensor_dataset_to_numpy(test)
+  else:
+    raise ValueError("Improper datatype.")
+  return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
+
+def transform_inputs(X, input_transforms):
+  """Transform the input feature data."""
+  (n_samples, n_features) = np.shape(X)
+  Z = np.zeros(np.shape(X))
+  # Meant to be done after normalize
+  trunc = 10
+  for feature in range(n_features):
+    feature_data = X[:, feature]
+    for input_transform in input_transforms:
+      # TODO(rbharath): This code isn't really normalizing. It's doing
+      # something trickier to ensure that the binary fingerprints aren't
+      # normalized while real-valued descriptors are. Refactor/Rename this to
+      # make this distinction clearer.
+      if input_transform == "normalize":
+        if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
+          mean, std = np.mean(feature_data), np.std(feature_data)
+          feature_data = feature_data - mean 
+          if std != 0.:
+            feature_data = feature_data / std
+          feature_data[feature_data > trunc] = trunc 
+          feature_data[feature_data < -trunc] = -trunc
+          if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
+            raise ValueError("Truncation failed on feature %d" % feature)
+      else:
+        raise ValueError("Unsupported Input Transform")
+    Z[:, feature] = feature_data
+  return Z
+
+def transform_outputs(y, W, output_transforms, weight_positives=True):
   """Tranform the provided outputs
 
   Parameters
   ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  task_transforms: dict 
+  y: ndarray 
+    Labels
+  W: ndarray
+    Weights 
+  output_transforms: dict 
     dict mapping target names to list of label transforms. Each list
     element must be "1+max-val", "log", "normalize". The transformations are
     performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
   """
-  if datatype == "vs":
-    X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
-  elif datatype == "pdbbind":
-    X, y, W = tensor_dataset_to_numpy(dataset)
-  sorted_targets = sorted(task_transforms.keys())
+  sorted_targets = sorted(output_transforms.keys())
   endpoints = sorted_targets
-  transforms = task_transforms.copy()
+  transforms = output_transforms.copy()
   for task, target in enumerate(endpoints):
-    task_transforms = transforms[target]
-    for task_transform in task_transforms:
-      if task_transform == "log":
+    output_transforms = transforms[target]
+    for output_transform in output_transforms:
+      if output_transform == "log":
         y[:, task] = np.log(y[:, task])
-      elif task_transform == "1+max-val":
+      elif output_transform == "1+max-val":
         maxval = np.amax(y[:, task])
         y[:, task] = 1 + maxval - y[:, task]
-      elif task_transform == "normalize":
+      elif output_transform == "normalize":
         task_data = y[:, task]
         if task < len(sorted_targets):
           # Only elements of y with nonzero weight in W are true labels.
@@ -49,16 +86,14 @@ def transform_outputs(dataset, task_transforms, weight_positives=True,
         mean = np.mean(task_data[nonzero])
         std = np.std(task_data[nonzero])
         task_data[nonzero] = task_data[nonzero] - mean
-        print "Old mean: " + str(mean)
-        print "Old std: " + str(std)
         # Set standard deviation to one
         if std == 0.:
           print "Variance normalization skipped for task %d due to 0 stdev" % task
           continue
         task_data[nonzero] = task_data[nonzero] / std
       else:
-        raise ValueError("Task tranform must be 1+max-val, log, or normalize")
-  return X, y, W
+        raise ValueError("Unsupported Output transform")
+  return y
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
@@ -116,7 +151,6 @@ def balance_positives(y, W):
 def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     labels_endpoint="labels"):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
-  print "Entering tensor_dataset_to_numpy"
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint[feature_endpoint])
@@ -124,8 +158,6 @@ def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   X = np.zeros((n_samples,) + feature_shape)
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
-  print "np.shape(X), np.shape(y), np.shape(W)"
-  print np.shape(X), np.shape(y), np.shape(W)
   sorted_ids = sorted(dataset.keys())
   for index, smiles in enumerate(dataset.keys()):
     datapoint = dataset[smiles]
@@ -211,6 +243,33 @@ def multitask_to_singletask(dataset):
         singletask[target][smiles] = datapoint_copy 
   return singletask
 
+def split_dataset(dataset, splittype):
+  """Split provided data using specified method."""
+  if splittype == "random":
+    train, test = train_test_random_split(dataset, seed=seed)
+  elif splittype == "scaffold":
+    train, test = train_test_scaffold_split(dataset)
+  elif splittype == "specified":
+    train, test = train_test_specified_split(dataset)
+  else:
+    raise ValueError("Improper splittype.")
+  return train, test
+
+def train_test_specified_split(dataset):
+  """Split provided data due to splits in origin data."""
+  train, test = {}, {}
+  for smiles, datapoint in dataset.iteritems():
+    if "split" not in datapoint:
+      raise ValueError("Missing required split information.")
+    if datapoint["split"].lower() == "train" or datapoint["split"].lower() == "valid":
+      train[smiles] = datapoint
+    # TODO(rbharath): Add support for validation sets.
+    elif datapoint["split"].lower() == "test":
+      test[smiles] = datapoint
+    else:
+      raise ValueError("Improper split specified.")
+  return train, test
+
 def train_test_random_split(dataset, frac_train=.8, seed=None):
   """Splits provided data into train/test splits randomly.
 
@@ -236,23 +295,6 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
   for key in test_keys:
     test[key] = dataset[key]
   return train, test
-
-def train_test_random_split_simple(dataset, frac_train=.8, seed=None):
-  """Splits provided data in train/test splits without separating datasets.
-
-  As opposed to train_test_random_split, this function does not ensure that the
-  same compound cannot appear in both train and test (for different targets).
-
-  Parameters
-  ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  frac_train: float
-    Proportion of data in train set.
-  seed: int (optional)
-    Seed to initialize np.random.
-  """
-  pass
 
 def train_test_scaffold_split(dataset, frac_train=.8):
   """Splits provided data into train/test splits by scaffold.
