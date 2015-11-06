@@ -164,9 +164,9 @@ def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     fingerprint, labels = (datapoint[feature_endpoint],
       datapoint[labels_endpoint])
     X[index] = fingerprint
-    # TODO(rbharath): The label is a dict for some reason?!? Figure this out
-    # and fix it.
-    y[index] = labels["3d_core_pdbbind"]
+    # TODO(rbharath): This is only specialized to single task.
+    # need to generalize to handle multi-task
+    y[index] = labels[labels.keys()[0]]
   return (X, y, W)
 
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
@@ -190,7 +190,7 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   """
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
-  n_features = len(sample_datapoint[feature_endpoint])
+  n_features = np.size(sample_datapoint[feature_endpoint])
   n_targets = len(sample_datapoint[labels_endpoint])
   X = np.zeros((n_samples, n_features))
   y = np.zeros((n_samples, n_targets))
@@ -200,7 +200,7 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     datapoint = dataset[smiles] 
     fingerprint, labels  = (datapoint[feature_endpoint],
         datapoint[labels_endpoint])
-    X[index] = np.array(fingerprint)
+    X[index] = np.array(fingerprint).flatten()
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
     for t_ind, target in enumerate(sorted_targets):
@@ -243,7 +243,7 @@ def multitask_to_singletask(dataset):
         singletask[target][smiles] = datapoint_copy 
   return singletask
 
-def split_dataset(dataset, splittype):
+def split_dataset(dataset, splittype, seed=None):
   """Split provided data using specified method."""
   if splittype == "random":
     train, test = train_test_random_split(dataset, seed=seed)
