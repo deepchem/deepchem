@@ -108,31 +108,6 @@ def load_molecules(paths, feature_types=["fingerprints"]):
               entry["feature_types"].append(feature_type)
   return molecules 
 
-'''
-def load_pdbbind_molecules(paths, dir_name="fingerprints"):
-  """Load dataset fingerprints and return fingerprints.
-  """
-  # TODO(rbharath): This is a total kludge. Clean up later.
-  dir_name = "targets"
-  molecules = {}
-  for dataset_path in paths:
-    pickle_dir = os.path.join(dataset_path, dir_name)
-    pickle_files = os.listdir(pickle_dir)
-    if len(pickle_files) == 0:
-      raise ValueError("No Pickle Files found to load molecules")
-    for pickle_file in pickle_files:
-      with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
-        contents = pickle.load(f)
-        smiles, fingerprints, scaffolds, mol_ids = (
-            contents["smiles"], contents["features"],
-            None, None)
-        for mol in range(len(contents["smiles"])):
-          molecules[smiles[mol]] = {"fingerprint": fingerprints[mol],
-                                    "scaffold": None,
-                                    "mol_id": None}
-  return molecules 
-'''
-
 def get_target_names(paths, target_dir_name="targets"):
   """Get names of targets in provided collections.
 
@@ -210,34 +185,6 @@ def load_datasets(paths, prediction_endpoint, split_endpoint, datatype="vs",
   else:
     raise ValueError("Unsupported datatype.")
 
-'''
-def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
-    feature_types=["grid"]):
-  """Load pdbbind datasets.
-
-  TODO(rbharath): This uses smiles as unique identifier. FIX BEFORE RELEASE!
-
-  Parameters
-  ----------
-  pdbbind_path: list 
-    List of Pdbbind data files.
-  """
-  data = {}
-  if feature_types != ["grid"]:
-    raise ValueError("Only grid features are supported for PDB-Bind data.")
-  molecules = load_pdbbind_molecules(paths)
-  labels, _ = load_assays(paths, prediction_endpoint, target_dir_name)
-  # TODO(rbharath): Why are there fewer descriptors than labels at times?
-  # What accounts for the descrepency. Please investigate.
-  for ind, smiles in enumerate(molecules):
-    if smiles not in labels:
-      continue
-    mol = molecules[smiles]
-    data[ind] = {"fingerprint": mol["fingerprint"],
-                 "scaffold": mol["scaffold"],
-                 "labels": labels[smiles]}
-  return data
-'''
 
 def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
     feature_types=["fingerprints"]):

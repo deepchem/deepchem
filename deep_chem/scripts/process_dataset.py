@@ -128,7 +128,6 @@ def get_rows(input_file, input_type, delimiter):
       reader = csv.reader(f, delimiter=delimiter)
       return [row for row in reader]
   elif input_type == "pandas":
-    print input_file
     with gzip.open(input_file) as f:
       df = pickle.load(f)
     return df.iterrows()
