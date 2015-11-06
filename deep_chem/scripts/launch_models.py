@@ -26,7 +26,6 @@ def parse_args(input_args=None):
                       choices=["log", "normalize"],
                       help="Transforms to apply to output data.")
   parser.add_argument("--feature-types", nargs="+", required=1,
-                      choices=["fingerprints", "descriptors", "grid"],
                       help="Types of featurizations to use.")
   parser.add_argument("--paths", nargs="+", required=1,
                       help="Paths to input datasets.")

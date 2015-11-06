@@ -16,6 +16,7 @@ from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import split_dataset
 from deep_chem.utils.preprocess import to_arrays
+from vs_utils.utils import ScaffoldGenerator
 
 def process_datasets(paths, input_transforms, output_transforms,
     prediction_endpoint=None, split_endpoint=None, datatype="vector",
@@ -107,6 +108,7 @@ def load_molecules(paths, feature_types=["fingerprints"]):
               entry["feature_types"].append(feature_type)
   return molecules 
 
+'''
 def load_pdbbind_molecules(paths, dir_name="fingerprints"):
   """Load dataset fingerprints and return fingerprints.
   """
@@ -129,6 +131,7 @@ def load_pdbbind_molecules(paths, dir_name="fingerprints"):
                                     "scaffold": None,
                                     "mol_id": None}
   return molecules 
+'''
 
 def get_target_names(paths, target_dir_name="targets"):
   """Get names of targets in provided collections.
@@ -207,6 +210,7 @@ def load_datasets(paths, prediction_endpoint, split_endpoint, datatype="vs",
   else:
     raise ValueError("Unsupported datatype.")
 
+'''
 def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
     feature_types=["grid"]):
   """Load pdbbind datasets.
@@ -233,6 +237,7 @@ def load_pdbbind_datasets(paths, prediction_endpoint, target_dir_name="targets",
                  "scaffold": mol["scaffold"],
                  "labels": labels[smiles]}
   return data
+'''
 
 def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
     feature_types=["fingerprints"]):

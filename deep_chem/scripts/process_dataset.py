@@ -11,7 +11,7 @@ import argparse
 import csv
 from rdkit import Chem
 import subprocess
-from vs_utils.utils import SmilesGenerator
+from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -32,15 +32,21 @@ def parse_args(input_args=None):
                       help="Name of the dataset.")
   parser.add_argument("--out", required=1,
                       help="Folder to generate processed dataset in.")
+  parser.add_argument("--feature-endpoint", type=str,
+                      help="Optional endpoint that holds pre-computed feature vector")
   parser.add_argument("--prediction-endpoint", type=str, required=1,
                       help="Name of measured endpoint to predict.")
   parser.add_argument("--threshold", type=float, default=None,
                       help="Used to turn real-valued data into binary.")
   parser.add_argument("--delimiter", default="\t",
                       help="Delimiter in csv file")
+  parser.add_argument("--has-colnames", type=bool, default=False,
+                      help="Input has column names.")
+  parser.add_argument("--split-endpoint", type=str, default=None,
+                      help="User-specified train-test split.")
   return parser.parse_args(input_args)
 
-def generate_directories(name, out):
+def generate_directories(name, out, feature_endpoint):
   """Generate processed dataset."""
   dataset_dir = os.path.join(out, name)
   if not os.path.exists(dataset_dir):
@@ -57,11 +63,16 @@ def generate_directories(name, out):
   shards_dir = os.path.join(dataset_dir, "shards")
   if not os.path.exists(shards_dir):
     os.makedirs(shards_dir)
+  if feature_endpoint is not None:
+    feature_endpoint_dir = os.path.join(dataset_dir, feature_endpoint)
+    if not os.path.exists(feature_endpoint_dir):
+      os.makedirs(feature_endpoint_dir)
 
   # Return names of files to be generated
-  out_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
+  out_y_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
   out_sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
-  return out_pkl, out_sdf
+  out_x_pkl = os.path.join(feature_endpoint_dir, "%s.pkl.gz" %name) if feature_endpoint is not None else None
+  return out_x_pkl, out_y_pkl, out_sdf
 
 def parse_float_input(val):
   """Safely parses a float input."""
@@ -117,6 +128,7 @@ def get_rows(input_file, input_type, delimiter):
       reader = csv.reader(f, delimiter=delimiter)
       return [row for row in reader]
   elif input_type == "pandas":
+    print input_file
     with gzip.open(input_file) as f:
       df = pickle.load(f)
     return df.iterrows()
@@ -176,14 +188,54 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data 
 
-def generate_targets(input_file, input_type, fields, field_types, out_pkl,
-    out_sdf, prediction_endpoint, threshold, delimiter):
-  """Process input data file."""
+def generate_targets(df, mols, prediction_endpoint, split_endpoint, out_pkl, out_sdf):
+  """Process input data file, generate labels, i.e. y"""
+  #TODO(enf, rbharath): Modify package unique identifier to take user-specified 
+    #unique identifier instead of assuming smiles string
+  if split_endpoint is not None:
+    labels_df = df[["smiles", prediction_endpoint, split_endpoint]]
+  else:
+    labels_df = df[["smiles", prediction_endpoint]]
+
+  # Write pkl.gz file
+  with gzip.open(out_pkl, "wb") as f:
+    pickle.dump(labels_df, f, pickle.HIGHEST_PROTOCOL)
+  # Write sdf.gz file
+  with gzip.open(out_sdf, "wb") as gz:
+    w = Chem.SDWriter(gz)
+    for mol in mols:
+      w.write(mol)
+    w.close()
+
+def generate_scaffold(smiles_elt, include_chirality=False):
+  smiles_string = smiles_elt["smiles"]
+  mol = Chem.MolFromSmiles(smiles_string)
+  engine = ScaffoldGenerator(include_chirality=include_chirality)
+  scaffold = engine.get_scaffold(mol)
+  return(scaffold)
+
+def generate_features(df, feature_endpoint, out_pkl):
+  if feature_endpoint is None:
+    print("No feature endpoint specified by user.")
+    return
+
+  features_df = df[["smiles"]]
+  features_df["features"] = df[[feature_endpoint]]
+  features_df["scaffolds"] = df[["smiles"]].apply(generate_scaffold, axis=1)
+  features_df["mol_id"] = df[["smiles"]].apply(lambda s : "", axis=1)
+
+  with gzip.open(out_pkl, "wb") as f:
+    pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
+
+def extract_data(input_file, input_type, fields, field_types, 
+      prediction_endpoint, threshold, delimiter, has_colnames):
+  """Extracts data from input as Pandas data frame"""
+
   rows, mols, smiles = [], [], SmilesGenerator()
   for row_index, raw_row in enumerate(get_rows(input_file, input_type, delimiter)):
     print row_index
-    # Skip row labels.
-    if row_index == 0 or raw_row is None:  
+    # Skip row labels if necessary.
+    if has_colnames and (row_index == 0 or raw_row is None):  
       continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
@@ -192,35 +244,26 @@ def generate_targets(input_file, input_type, fields, field_types, out_pkl,
         row[field] = 1 if raw_val > threshold else 0 
       else:
         row[field] = process_field(row_data[ind], field_type)
-    # TODO(rbharath): This patch is only in place until the smiles/sequence
-    # support is fixed.
-    if row["smiles"] is None:
-      # This multiplication kludge guarantees unique smiles.
-      mol = Chem.MolFromSmiles("C"*row_index)
-    else:
-      mol = Chem.MolFromSmiles(row["smiles"])
+    
+    mol = Chem.MolFromSmiles(row["smiles"])
     row["smiles"] = smiles.get_smiles(mol)
     mols.append(mol)
     rows.append(row)
   df = pd.DataFrame(rows)
-  # Write pkl.gz file
-  with gzip.open(out_pkl, "wb") as f:
-    pickle.dump(df, f, pickle.HIGHEST_PROTOCOL)
-  # Write sdf.gz file
-  with gzip.open(out_sdf, "wb") as gz:
-    w = Chem.SDWriter(gz)
-    for mol in mols:
-      w.write(mol)
-    w.close()
+  return(df, mols)
+
 
 def main():
   args = parse_args()
   if len(args.fields) != len(args.field_types):
     raise ValueError("number of fields does not equal number of field types")
-  out_pkl, out_sdf = generate_directories(args.name, args.out)
-  generate_targets(args.input_file, args.input_type, args.fields,
-      args.field_types, out_pkl, out_sdf, args.prediction_endpoint,
-      args.threshold, args.delimiter)
+  out_x_pkl, out_y_pkl, out_sdf = generate_directories(args.name, args.out, 
+      args.feature_endpoint)
+  df, mols = extract_data(args.input_file, args.input_type, args.fields,
+      args.field_types, args.prediction_endpoint,
+      args.threshold, args.delimiter, args.has_colnames)
+  generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint, out_y_pkl, out_sdf)
+  generate_features(df, args.feature_endpoint, out_x_pkl)
   generate_fingerprints(args.name, args.out)
   generate_descriptors(args.name, args.out)
 
