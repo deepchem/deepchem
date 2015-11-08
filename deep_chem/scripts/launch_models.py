@@ -50,6 +50,8 @@ def parse_args(input_args=None):
                        help="Name of measured endpoint to predict.")
   parser.add_argument("--split-endpoint", type=str, default=None,
                        help="Name of endpoint specifying train/test split.")
+
+  # SUBCOMMAND Training params
   parser.add_argument("--n-hidden", type=int, default=500,
                       help="Number of hidden neurons for NN models.")
   parser.add_argument("--learning-rate", type=float, default=0.01,
@@ -66,11 +68,16 @@ def parse_args(input_args=None):
                   help="Percent of training data to use for validation.")
   parser.add_argument("--weight-positives", type=bool, default=False,
                   help="Weight positive examples to have same total weight as negatives.")
-  # TODO(rbharath): Remove this once debugging is complete.
-  parser.add_argument("--num-to-train", type=int, default=None,
-                  help="Number of datasets to train on. Only for debug.")
   parser.add_argument("--axis-length", type=int, default=32,
                   help="Size of a grid axis for 3D CNN input.")
+
+  # SUBCOMMAND Evaluation types
+  parser.add_argument("--compute-aucs", type=bool, default=False,
+                      help="Compute AUC for trained models on test set.")
+  parser.add_argument("--compute-r2s", type=bool, default=False,
+                      help="Compute R^2 for trained models on test set.")
+  parser.add_argument("--compute-rms", type=bool, default=False,
+                      help="Compute RMS for trained models on test set.")
   return parser.parse_args(input_args)
 
 def main():
@@ -84,39 +91,39 @@ def main():
   input_transforms = args.input_transforms 
   output_transforms = {target: args.output_transforms for target in targets}
 
+  # TODO(rbharath): The datatype (vector vs. tensor) should be automatically
+  # detected in dataset_to_numpy
   datatype = "tensor" if args.model == "3D_cnn" else "vector"
-  processed = process_datasets(paths,
+  per_task_data = process_datasets(paths,
       input_transforms, output_transforms, feature_types=args.feature_types, 
       prediction_endpoint=args.prediction_endpoint,
       split_endpoint=args.split_endpoint,
       splittype=args.splittype, weight_positives=args.weight_positives,
       datatype=datatype, mode=args.mode)
-  if args.mode == "multitask":
-    train_data, test_data = processed
-  else:
-    per_task_data = processed
   # TODO(rbharath): Bundle training params into a training_param dict that's passed
   # down to these functions.
   if args.model == "singletask_deep_network":
-    results = fit_singletask_mlp(per_task_data, task_types, n_hidden=args.n_hidden,
+    models = fit_singletask_mlp(per_task_data, task_types, n_hidden=args.n_hidden,
       learning_rate=args.learning_rate, dropout=args.dropout,
       nb_epoch=args.n_epochs, decay=args.decay, batch_size=args.batch_size,
       validation_split=args.validation_split,
       num_to_train=args.num_to_train)
   elif args.model == "multitask_deep_network":
-    results = fit_multitask_mlp(train_data, test_data, task_types,
+    models = fit_multitask_mlp(per_task_data, task_types,
       n_hidden=args.n_hidden, learning_rate = args.learning_rate,
       dropout = args.dropout, batch_size=args.batch_size,
       nb_epoch=args.n_epochs, decay=args.decay,
       validation_split=args.validation_split)
   elif args.model == "3D_cnn":
-    results = fit_3D_convolution(train_data, test_data, task_types,
+    models = fit_3D_convolution(train_data, test_data, task_types,
         axis_length=args.axis_length, nb_epoch=args.n_epochs,
         batch_size=args.batch_size)
   else:
-    results = fit_singletask_models(per_task_data, args.model, task_types,
+    models = fit_singletask_models(per_task_data, args.model, task_types,
                                     num_to_train=args.num_to_train)
-  
+
+  results, aucs, r2s, rms = compute_model_performance(per_task_data, models,
+    args.compute_aucs, args.compute_r2s, args.compute_rms) 
   if args.csv_out is not None:
     results_to_csv(results, args.csv_out, task_type=args.task_type)
 

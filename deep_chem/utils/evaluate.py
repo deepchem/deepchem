@@ -17,8 +17,36 @@ from sklearn.metrics import r2_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
+def compute_model_performance(per_task_data, models, aucs=True, r2s=False, rms=False):
+  """Computes statistics for model performance on test set."""
+  all_results, auc_vals, r2s, rms = {}, {}, {}, {}
+  for index, target in enumerate(sorted(per_task_data.keys())):
+    print "Evaluating model %d" % index
+    print "Target %s" % target
+    (train, _, _, _), (test, _, _, _) = per_task_data[target]
+    model = models[target]
+    results = eval_model(test, model, {target: task_types[target]}, 
+                         # We run singletask models as special cases of
+                         # multitask.
+                         modeltype="keras_multitask")
+    all_results[target] = results[target]
+    if aucs:
+      auc_vals.update(compute_roc_auc_scores(results, task_types))
+    if r2s: 
+      r2_vals.update(compute_r2_scores(results, task_types))
+    if rms:
+      rms_vals.update(compute_rms_scores(results, task_types))
+
+  if aucs:
+    print "Mean AUC: %f" % np.mean(np.array(auc_vals.values()))
+  if r2s:
+    print "Mean R^2: %f" % np.mean(np.array(r2_vals.values()))
+  if rms:
+    print "Mean RMS: %f" % np.mean(np.array(rms_vals.values()))
+  return all_results, aucs, r2s, rms
+
 def model_predictions(test_set, model, n_targets, task_types,
-    modeltype="sklearn", mode="regular"):
+    modeltype="sklearn", datatype="vector"):
   """Obtains predictions of provided model on test_set.
 
   Returns a list of per-task predictions.
@@ -41,15 +69,15 @@ def model_predictions(test_set, model, n_targets, task_types,
     Either sklearn, keras, or keras_multitask
   """
   # Extract features for test set and make preds
-  if mode == "regular":
+  if datatype == "vector":
     X, _, _ = dataset_to_numpy(test_set)
-  elif mode == "tensor":
+  elif datatype == "tensor":
     X, _, _ = tensor_dataset_to_numpy(test_set)
     (n_samples, axis_length, _, _, n_channels) = np.shape(X)
     # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
     X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
   else:
-    raise ValueError("Improper mode: " + str(mode))
+    raise ValueError("Datatype must be vector or tensor.")
   if modeltype == "keras_multitask":
     predictions = model.predict({"input": X})
     ypreds = []
@@ -71,67 +99,8 @@ def model_predictions(test_set, model, n_targets, task_types,
     ypreds = [ypreds]
   return ypreds
 
-def size_eval_model(test_set, model, task_types, modeltype="sklearn"):
-  """Split test set based on size of molecule."""
-  weights = {}
-  for smiles in test_set:
-    weights[smiles] = ExactMolWt(Chem.MolFromSmiles(smiles))
-  #print weights
-  weight_arr = np.array(weights.values())
-  print "mean: " + str(np.mean(weight_arr))
-  print "std: " + str(np.std(weight_arr))
-  print "max: " + str(np.amax(weight_arr))
-  print "min: " + str(np.amin(weight_arr))
-  buckets = {250: {}, 500: {}, 750: {}, 1000: {}, 1250: {}, 1500: {}, 1750: {}, 2000: {}, 2250: {}, 2500: {}, 2750: {}}
-  buckets_to_labels = {250: "0-250", 500: "250-500", 750: "500-750", 1000: "750-1000", 1250: "1000-1250", 1500: "1250-1500", 1750: "1500-1750", 2000: "1750-2000", 2250: "2000-2250", 2500: "2250-2500", 2750: "2500-2750"}
-  for smiles in test_set:
-    weight = weights[smiles]
-    if weight < 250:
-      buckets[250][smiles] = test_set[smiles]
-    elif weight < 500:
-      buckets[500][smiles] = test_set[smiles]
-    elif weight < 750:
-      buckets[750][smiles] = test_set[smiles]
-    elif weight < 1000:
-      buckets[1000][smiles] = test_set[smiles]
-    elif weight < 1250:
-      buckets[1250][smiles] = test_set[smiles]
-    elif weight < 1500:
-      buckets[1500][smiles] = test_set[smiles]
-    elif weight < 1750:
-      buckets[1750][smiles] = test_set[smiles]
-    elif weight < 2000:
-      buckets[2000][smiles] = test_set[smiles]
-    elif weight < 2250:
-      buckets[2250][smiles] = test_set[smiles]
-    elif weight < 2500:
-      buckets[2500][smiles] = test_set[smiles]
-    elif weight < 2750:
-      buckets[2750][smiles] = test_set[smiles]
-    else:
-      raise ValueError("High Weight: " + str(weight))
-  for weight_class in sorted(buckets.keys()):
-    test_bucket = buckets[weight_class]
-    if len(test_bucket) == 0:
-      continue
-    print "Evaluating model for %s dalton molecules" % buckets_to_labels[weight_class]
-    print "%d compounds in bucket" % len(test_bucket)
-    results = eval_model(test_bucket, model, task_types, modeltype=modeltype)
-
-    target_r2s = compute_r2_scores(results, task_types)
-    target_rms = compute_rms_scores(results, task_types)
-    print "R^2: " + str(target_r2s)
-    print "RMS: " + str(target_rms)
   
-  print "Performing Global Evaluation"
-  results = eval_model(test_set, model, task_types, modeltype=modeltype)
-  target_r2s = compute_r2_scores(results, task_types)
-  target_rms = compute_rms_scores(results, task_types)
-  print "R^2: " + str(target_r2s)
-  print "RMS: " + str(target_rms)
-
-  
-def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular"):
+def eval_model(test_set, model, task_types, modeltype="sklearn", datatype="vector"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
@@ -155,7 +124,7 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular")
   local_task_types = task_types.copy()
   endpoints = sorted_targets
   ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, modeltype=modeltype, mode=mode)
+      local_task_types, modeltype=modeltype, datatype=datatype)
   results = {}
   for target in endpoints:
     results[target] = ([], [], [])  # (smiles, ytrue, yscore)

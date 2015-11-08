@@ -8,26 +8,20 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
 from keras.utils import np_utils
 from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.load import load_and_transform_dataset
 from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 
-def fit_3D_convolution(train_data, test_data, task_types, axis_length=32, **training_params):
+def fit_3D_convolution(per_task_data, task_types, axis_length=32, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
+  models = {}
   (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = (
-      train_data, test_data)
-
+      per_task_data["all"] 
   nb_classes = 2
-  model = train_3D_convolution(X_train, y_train, axis_length, **training_params)
-  results = eval_model(test, model, task_types,
-      modeltype="keras", mode="tensor")
-  local_task_types = task_types.copy()
-  r2s = compute_r2_scores(results, local_task_types)
-  print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  return results
+  models["all"] = train_3D_convolution(X_train, y_train, axis_length, **training_params)
+  return models
 
 def train_3D_convolution(X, y, axis_length=32, batch_size=50, nb_epoch=1):
   """

@@ -41,24 +41,23 @@ def process_datasets(paths, input_transforms, output_transforms,
   dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
       prediction_endpoint, split_endpoint=split_endpoint,
       feature_types=feature_types, weight_positives=weight_positives)
+  arrays = {}
   if mode == "singletask":
     singletask = multitask_to_singletask(dataset)
-    arrays = {}
     for target in singletask:
       data = singletask[target]
       if len(data) == 0:
         continue
       train, test = split_dataset(dataset, splittype)
       train_data, test_data = to_arrays(train, test, datatype)
-      arrays[target] = train_data, test_data 
-    return arrays
+      arrays[target] = (train_data, test_data)
   elif mode == "multitask":
-    sorted_targets = sorted(dataset.keys())
     train, test = split_dataset(dataset, splittype)
     train_data, test_data = to_arrays(train, test, datatype)
-    return train_data, test_data
+    arrays["all"] = (train_data, test_data)
   else:
     raise ValueError("Unsupported mode for process_datasets.")
+  return arrays
 
 
 def load_molecules(paths, feature_types=["fingerprints"]):
@@ -174,19 +173,7 @@ def load_assays(paths, prediction_endpoint, split_endpoint=None, target_dir_name
           labels[smiles][target_name] = measurement 
   return labels, splits
 
-def load_datasets(paths, prediction_endpoint, split_endpoint, datatype="vs",
-    **load_args):
-  """Dispatches to correct loader depending on type of data."""
-  if datatype == "vs":
-    return load_vs_datasets(paths, prediction_endpoint,
-                            split_endpoint, **load_args)
-  elif datatype == "pdbbind":
-    return load_pdbbind_datasets(paths, prediction_endpoint, **load_args)
-  else:
-    raise ValueError("Unsupported datatype.")
-
-
-def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
+def load_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
     feature_types=["fingerprints"]):
   """Load both labels and fingerprints.
 
@@ -225,7 +212,7 @@ def ensure_balanced(y, W):
 
 def load_and_transform_dataset(paths, input_transforms, output_transforms,
     prediction_endpoint, split_endpoint=None, labels_endpoint="labels", weight_positives=True,
-    datatype="vs", feature_types=["fingerprints"]):
+    datatype="tensor", feature_types=["fingerprints"]):
   """Transform data labels as specified
 
   Parameters
@@ -238,11 +225,11 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, prediction_endpoint, split_endpoint, datatype=datatype,
+  dataset = load_datasets(paths, prediction_endpoint, split_endpoint,
       feature_types=feature_types)
-  if datatype == "vs":
+  if datatype == "vector":
     X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
-  elif datatype == "pdbbind":
+  elif datatype == "tensor":
     X, y, W = tensor_dataset_to_numpy(dataset)
   y = transform_outputs(y, W, output_transforms,
       weight_positives=weight_positives)
