@@ -9,4 +9,4 @@ Requirements
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
 * [keras](keras.io)
-
+* [vs_utils] (https://github.com/pandegroup/vs-utils.git)
