@@ -12,18 +12,17 @@ from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 
-def fit_3D_convolution(per_task_data, task_types, axis_length=32, **training_params):
+def fit_3D_convolution(per_task_data, task_types, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
   models = {}
-  (X_train, y_train, W_train, train), (X_test, y_test, W_test, test) = (
-      per_task_data["all"] 
+  (train, X_train, y_train, _), _ = per_task_data["all"]
   nb_classes = 2
-  models["all"] = train_3D_convolution(X_train, y_train, axis_length, **training_params)
+  models["all"] = train_3D_convolution(X_train, y_train, **training_params)
   return models
 
-def train_3D_convolution(X, y, axis_length=32, batch_size=50, nb_epoch=1):
+def train_3D_convolution(X, y, batch_size=50, nb_epoch=1):
   """
   Fit a keras 3D CNN to datat.
 

@@ -16,34 +16,6 @@ from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
 def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
-  parser.add_argument("--input-file", required=1,
-                      help="Input file with data.")
-  parser.add_argument("--input-type", default="csv",
-                      choices=["xlsx", "csv", "pandas", "sdf"],
-                      help="Type of input file. If pandas, input must be a pkl.gz\n"
-                           "containing a pandas dataframe. If sdf, should be in\n"
-                           "(perhaps gzipped) sdf file.")
-  parser.add_argument("--fields", required=1, nargs="+",
-                      help = "Names of fields.")
-  parser.add_argument("--field-types", required=1, nargs="+",
-                      choices=["string", "float", "list-string", "list-float", "ndarray"],
-                      help="Type of data in fields.")
-  parser.add_argument("--name", required=1,
-                      help="Name of the dataset.")
-  parser.add_argument("--out", required=1,
-                      help="Folder to generate processed dataset in.")
-  parser.add_argument("--feature-endpoint", type=str,
-                      help="Optional endpoint that holds pre-computed feature vector")
-  parser.add_argument("--prediction-endpoint", type=str, required=1,
-                      help="Name of measured endpoint to predict.")
-  parser.add_argument("--threshold", type=float, default=None,
-                      help="Used to turn real-valued data into binary.")
-  parser.add_argument("--delimiter", default="\t",
-                      help="Delimiter in csv file")
-  parser.add_argument("--has-colnames", type=bool, default=False,
-                      help="Input has column names.")
-  parser.add_argument("--split-endpoint", type=str, default=None,
-                      help="User-specified train-test split.")
   return parser.parse_args(input_args)
 
 def generate_directories(name, out, feature_endpoint):
@@ -250,21 +222,3 @@ def extract_data(input_file, input_type, fields, field_types,
     rows.append(row)
   df = pd.DataFrame(rows)
   return(df, mols)
-
-
-def main():
-  args = parse_args()
-  if len(args.fields) != len(args.field_types):
-    raise ValueError("number of fields does not equal number of field types")
-  out_x_pkl, out_y_pkl, out_sdf = generate_directories(args.name, args.out, 
-      args.feature_endpoint)
-  df, mols = extract_data(args.input_file, args.input_type, args.fields,
-      args.field_types, args.prediction_endpoint,
-      args.threshold, args.delimiter, args.has_colnames)
-  generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint, out_y_pkl, out_sdf)
-  generate_features(df, args.feature_endpoint, out_x_pkl)
-  generate_fingerprints(args.name, args.out)
-  generate_descriptors(args.name, args.out)
-
-if __name__ == "__main__":
-  main()
