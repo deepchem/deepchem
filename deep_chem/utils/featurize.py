@@ -90,33 +90,6 @@ def generate_vs_util_features(df, name, out, smiles_endpoint, id_endpoint, featu
   with gzip.open(features, "wb") as f:
     pickle.dump(feature_df, f, pickle.HIGHEST_PROTOCOL)
 
-'''
-def generate_descriptors(df, name, out, smiles_endpoint, id_endpoint):
-  """Generates molecular descriptors for dataset."""
-  dataset_dir = os.path.join(out, name)
-  descriptors_dir = os.path.join(dataset_dir, "descriptors")
-  shards_dir = os.path.join(dataset_dir, "shards")
-  descriptors = os.path.join(descriptors_dir,
-      "%s-descriptors.pkl.gz" % name)
-
-  descriptors_df = pd.DataFrame([]) 
-  descriptors_df["smiles"] = df[[smiles_endpoint]]
-  descriptors_df["scaffolds"] = df[[smiles_endpoint]].apply(
-    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
-    axis=1)
-  descriptors_df["mol_id"] = df[[id_endpoint]]
-  mols = []
-  for row in df.iterrows():
-    # pandas rows are tuples (row_num, row_data)
-    smiles = row[1][smiles_endpoint]
-    mols.append(Chem.MolFromSmiles(smiles))
-  featurizer = SimpleDescriptors()
-  descriptors_df["features"] = pd.DataFrame([ {"features": feature} for feature in featurizer.featurize(mols)])
-
-  with gzip.open(descriptors, "wb") as f:
-    pickle.dump(descriptors_df, f, pickle.HIGHEST_PROTOCOL)
-'''
-
 def get_rows(input_file, input_type, delimiter):
   """Returns an iterator over all rows in input_file"""
   # TODO(rbharath): This function loads into memory, which can be painful. The

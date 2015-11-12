@@ -151,7 +151,6 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint[feature_endpoint])
-  print np.shape(feature_shape)
   
   #n_targets = 1 # TODO(rbharath): Generalize this later
   n_targets = len(sample_datapoint[labels_endpoint])
@@ -173,58 +172,9 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
         W[index][t_ind] = 0
       else:
         y[index][t_ind] = labels[target]
-  print "DATASET_TO_NUMPY"
-  print "np.shape(X)"
-  print np.shape(X)
   if weight_positives:
     W = balance_positives(y, W)
   return (X, y, W)
-
-"""
-def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels", weight_positives=True):
-  '''Transforms a loaded dataset into numpy arrays (X, y).
-
-  Transforms provided dict into feature matrix X (of dimensions [n_samples,
-  n_features]) and label matrix y (of dimensions [n_samples,
-  n_targets+n_desc]), where n_targets is the number of assays in the
-  provided datset and n_desc is the number of computed descriptors we'd
-  like to predict.
-
-  Note that this function transforms missing data into negative examples
-  (this is relatively safe since the ratio of positive to negative examples
-  is on the order 1/100)
-
-  Parameters
-  ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  '''
-  n_samples = len(dataset.keys())
-  sample_datapoint = dataset.itervalues().next()
-  n_features = np.size(sample_datapoint[feature_endpoint])
-  n_targets = len(sample_datapoint[labels_endpoint])
-  X = np.zeros((n_samples, n_features))
-  y = np.zeros((n_samples, n_targets))
-  W = np.ones((n_samples, n_targets))
-  sorted_smiles = sorted(dataset.keys())
-  for index, smiles in enumerate(sorted_smiles):
-    datapoint = dataset[smiles] 
-    fingerprint, labels  = (datapoint[feature_endpoint],
-        datapoint[labels_endpoint])
-    X[index] = np.array(fingerprint).flatten()
-    sorted_targets = sorted(labels.keys())
-    # Set labels from measurements
-    for t_ind, target in enumerate(sorted_targets):
-      if labels[target] == -1:
-        y[index][t_ind] = -1
-        W[index][t_ind] = 0
-      else:
-        y[index][t_ind] = labels[target]
-  if weight_positives:
-    W = balance_positives(y, W)
-  return X, y, W
-"""
 
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.
