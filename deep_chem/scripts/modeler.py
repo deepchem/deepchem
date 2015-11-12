@@ -16,6 +16,9 @@ from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
 from deep_chem.utils.load import process_datasets
 from deep_chem.utils.evaluate import results_to_csv
+from deep_chem.utils.save import save_model
+from deep_chem.utils.save import load_model
+from deep_chem.utils.evaluate import compute_model_performance
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -47,6 +50,9 @@ def parse_args(input_args=None):
                       help="Name of endpoint specifying train/test split.")
   featurize_cmd.add_argument("--smiles-endpoint", type=str, default="smiles",
                       help="Name of endpoint specifying SMILES for molecule.")
+  featurize_cmd.add_argument("--id-endpoint", type=str, default=None,
+                      help="Name of endpoint specifying unique identifier for molecule.\n"
+                           "If none is specified, then smiles-endpoint is used as identifier.")
   featurize_cmd.add_argument("--threshold", type=float, default=None,
                       help="If specified, will be used to binarize real-valued prediction-endpoint.")
   featurize_cmd.add_argument("--name", required=1,
@@ -63,13 +69,15 @@ def parse_args(input_args=None):
                       choices=["classification", "regression"],
                       help="Type of learning task.")
   group.add_argument("--input-transforms", nargs="+", default=[],
-                      choices=["normalize", "truncate-outliers"],
+                      choices=["normalize-and-truncate"],
                       help="Transforms to apply to input data.")
   group.add_argument("--output-transforms", nargs="+", default=[],
                       choices=["log", "normalize"],
                       help="Transforms to apply to output data.")
   group.add_argument("--feature-types", nargs="+", required=1,
-                      help="Types of featurizations to use.")
+                      help="Types of featurizations to use.\n"
+                           "Each featurization must correspond to subdirectory in\n"
+                           "generated data directory.")
   group.add_argument("--paths", nargs="+", required=1,
                       help="Paths to input datasets.")
   group.add_argument("--splittype", type=str, default="scaffold",
@@ -86,7 +94,11 @@ def parse_args(input_args=None):
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
                       "singletask_deep_network", "multitask_deep_network",
-                      "3D_cnn"])
+                      "3D_cnn"],
+                      help="Type of model to build. Some models may allow for\n"
+                           "further specification of hyperparameters. See flags below.")
+
+  group = train_cmd.add_argument_group("Neural Net Parameters")
   group.add_argument("--n-hidden", type=int, default=500,
                       help="Number of hidden neurons for NN models.")
   group.add_argument("--learning-rate", type=float, default=0.01,
@@ -107,24 +119,64 @@ def parse_args(input_args=None):
   group = train_cmd.add_argument_group("save")
   group.add_argument("--saved-out", type=str, required=1,
                   help="Location to save trained model.")
+  train_cmd.set_defaults(func=train_model)
 
   eval_cmd = subparsers.add_parser("eval",
                 help="Evaluate trained model on specified data.")
-  eval_cmd.add_argument("--paths", nargs="+", required=1,
-                      help="Paths to input datasets.")
-  eval_cmd.add_argument("--splittype", type=str, default="scaffold",
+  group = eval_cmd.add_argument_group("load model/data")
+  group.add_argument("--saved-in", type=str, required=1,
+                  help="Location from which to load saved model.")
+  group.add_argument("--modeltype", required=1,
+                      choices=["sklearn", "keras"],
+                      help="Type of model to load.")
+  # TODO(rbharath): Is there a way to get rid of this guy?
+  group.add_argument("--mode", default="singletask",
+                      choices=["singletask", "multitask"],
+                      help="Type of model being built.")
+
+  # TODO(rbharath): EXTREMELY AWKWARD!!! Both the train and evaluation have to
+  # specify the set of input/output transforms desired. This seems like a major
+  # API smell with many, many potentials for buginess. I think the right step
+  # here is to add a new global sub-command "transform" which performs
+  # data-transforms upon the input data to generate train/test splits.
+  group = eval_cmd.add_argument_group("load-and-transform")
+  group.add_argument("--task-type", default="classification",
+                      choices=["classification", "regression"],
+                      help="Type of learning task.")
+  group.add_argument("--input-transforms", nargs="+", default=[],
+                      choices=["normalize-and-truncate"],
+                      help="Transforms to apply to input data.")
+  group.add_argument("--output-transforms", nargs="+", default=[],
+                      choices=["log", "normalize"],
+                      help="Transforms to apply to output data.")
+  group.add_argument("--feature-types", nargs="+", required=1,
+                      help="Types of featurizations to use.\n"
+                           "Each featurization must correspond to subdirectory in\n"
+                           "generated data directory.")
+  group.add_argument("--paths", nargs="+", required=1,
+                      help="Paths to evaluation datasets.")
+  # TODO(rbharath): There is something awkward here in that we shouldn't have
+  # to specify a split to obtain the test-set right? But I'm not sure what the
+  # better method is here sicne often the test-set isn't actually stratified
+  # out. When we are doing featurization, should we actually do a hard split
+  # and write train/test to separate locations? That might actually the more
+  # elegant path. 
+  group.add_argument("--splittype", type=str, default="scaffold",
                        choices=["scaffold", "random", "specified"],
                        help="Type of train/test data-splitting.\n"
                             "scaffold uses Bemis-Murcko scaffolds.\n"
-                            "specified requires that split be in original data.")
-  eval_cmd.add_argument("--compute-aucs", type=bool, default=False,
+                            "specified requires that split be in original data.\n"
+                            "Evaluation performed upon this split of specified data.")
+  group = eval_cmd.add_argument_group("metrics")
+  group.add_argument("--compute-aucs", action="store_true", default=False,
                       help="Compute AUC for trained models on test set.")
-  eval_cmd.add_argument("--compute-r2s", type=bool, default=False,
-                      help="Compute R^2 for trained models on test set.")
-  eval_cmd.add_argument("--compute-rms", type=bool, default=False,
-                      help="Compute RMS for trained models on test set.")
-  eval_cmd.add_argument("--csv-out", type=str, default=None,
-                  help="Outputted predictions on the test set.")
+  group.add_argument("--compute-r2s", action="store_true", default=False,
+                     help="Compute R^2 for trained models on test set.")
+  group.add_argument("--compute-rms", action="store_true", default=False,
+                     help="Compute RMS for trained models on test set.")
+  group.add_argument("--csv-out", type=str, default=None,
+                     help="Outputted predictions on the test set.")
+  eval_cmd.set_defaults(func=eval_trained_model)
 
   return parser.parse_args(input_args)
 
@@ -138,30 +190,22 @@ def featurize_input(args):
       args.field_types, args.prediction_endpoint, args.smiles_endpoint,
       args.threshold, args.delimiter)
   generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint,
-      args.smiles_endpoint, out_y_pkl, out_sdf)
-  generate_features(df, args.feature_endpoints, args.smiles_endpoint, out_x_pkl)
+      args.smiles_endpoint, args.id_endpoint, out_y_pkl, out_sdf)
+  generate_features(df, args.feature_endpoints, args.smiles_endpoint,
+                    args.id_endpoint, out_x_pkl)
   generate_fingerprints(args.name, args.out)
   generate_descriptors(args.name, args.out)
 
 def train_model(args):
   """Builds model from featurized data."""
-  paths = args.paths
-  targets = get_target_names(paths)
+  targets = get_target_names(args.paths)
   task_types = {target: args.task_type for target in targets}
-  input_transforms = args.input_transforms 
   output_transforms = {target: args.output_transforms for target in targets}
 
-  # TODO(rbharath): The datatype (vector vs. tensor) should be automatically
-  # detected in dataset_to_numpy
-  datatype = "tensor" if args.model == "3D_cnn" else "vector"
-  per_task_data = process_datasets(paths,
-      input_transforms, output_transforms, feature_types=args.feature_types, 
-      prediction_endpoint=args.prediction_endpoint,
-      split_endpoint=args.split_endpoint,
+  per_task_data = process_datasets(args.paths,
+      args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
-      datatype=datatype, mode=args.mode)
-  # TODO(rbharath): Bundle training params into a training_param dict that's passed
-  # down to these functions.
+      mode=args.mode)
   if args.model == "singletask_deep_network":
     models = fit_singletask_mlp(per_task_data, task_types, n_hidden=args.n_hidden,
       learning_rate=args.learning_rate, dropout=args.dropout,
@@ -175,14 +219,25 @@ def train_model(args):
       validation_split=args.validation_split)
   elif args.model == "3D_cnn":
     models = fit_3D_convolution(train_data, test_data, task_types,
-        axis_length=args.axis_length, nb_epoch=args.n_epochs,
-        batch_size=args.batch_size)
+        nb_epoch=args.n_epochs, batch_size=args.batch_size)
   else:
     models = fit_singletask_models(per_task_data, args.model, task_types)
-  # TODO(rbharath): Save trained model.
+  if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
+    modeltype = "keras"
+  else:
+    modeltype = "sklearn"
+  save_model(models, modeltype, args.saved_out)
 
 def eval_trained_model(args):
-  results, aucs, r2s, rms = compute_model_performance(per_task_data, models,
+  model = load_model(args.modeltype, args.saved_in)
+  targets = get_target_names(args.paths)
+  task_types = {target: args.task_type for target in targets}
+  output_transforms = {target: args.output_transforms for target in targets}
+  per_task_data = process_datasets(args.paths,
+      args.input_transforms, output_transforms, feature_types=args.feature_types, 
+      splittype=args.splittype, weight_positives=False,
+      mode=args.mode)
+  results, aucs, r2s, rms = compute_model_performance(per_task_data, task_types, model, args.modeltype,
     args.compute_aucs, args.compute_r2s, args.compute_rms) 
   if args.csv_out is not None:
     results_to_csv(results, args.csv_out, task_type=args.task_type)

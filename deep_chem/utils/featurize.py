@@ -65,6 +65,11 @@ def generate_fingerprints(name, out):
   sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
   fingerprints = os.path.join(fingerprint_dir,
       "%s-fingerprints.pkl.gz" % name)
+  # TODO(rbharath): There's a bit of ugliness here. featurize modifies the
+  # smiles strings internally, which I suspect leads to some non-matching
+  # smiles strings, hence dropping some compounds. featurize needs to be
+  # modified so that it can take in lists of smiles rather than just sdf file.
+  # FIXME: Make this directly call the CircularFingerprint featurizer in vs_utils.
   subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
                    "--scaffolds", "--smiles",
                    sdf, fingerprints,
@@ -163,14 +168,17 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data 
 
-def generate_targets(df, mols, prediction_endpoint, split_endpoint, smiles_endpoint, out_pkl, out_sdf):
+def generate_targets(df, mols, prediction_endpoint, split_endpoint,
+    smiles_endpoint, id_endpoint, out_pkl, out_sdf):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified 
     #unique identifier instead of assuming smiles string
+  labels_df = pd.DataFrame([])
+  labels_df["mol_id"] = df[[id_endpoint]]
+  labels_df["smiles"] = df[[smiles_endpoint]]
+  labels_df["prediction"] = df[[prediction_endpoint]]
   if split_endpoint is not None:
-    labels_df = df[[smiles_endpoint, prediction_endpoint, split_endpoint]]
-  else:
-    labels_df = df[[smiles_endpoint, prediction_endpoint]]
+    labels_df["split"] = df[[split_endpoint]]
 
   # Write pkl.gz file
   with gzip.open(out_pkl, "wb") as f:
@@ -189,7 +197,7 @@ def generate_scaffold(smiles_elt, include_chirality=False, smiles_endpoint="smil
   scaffold = engine.get_scaffold(mol)
   return(scaffold)
 
-def generate_features(df, feature_endpoints, smiles_endpoint, out_pkl):
+def generate_features(df, feature_endpoints, smiles_endpoint, id_endpoint, out_pkl):
   if feature_endpoints is None:
     print("No feature endpoint specified by user.")
     return
@@ -209,7 +217,8 @@ def generate_features(df, feature_endpoints, smiles_endpoint, out_pkl):
   features_df["scaffolds"] = df[[smiles_endpoint]].apply(
     functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
     axis=1)
-  features_df["mol_id"] = df[[smiles_endpoint]].apply(lambda s : "", axis=1)
+  features_df["smiles"] = df[[smiles_endpoint]]
+  features_df["mol_id"] = df[[id_endpoint]]
 
   with gzip.open(out_pkl, "wb") as f:
     pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)

@@ -8,7 +8,6 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
 from keras.utils import np_utils
 from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.evaluate import eval_model
 from deep_chem.utils.evaluate import compute_r2_scores
 

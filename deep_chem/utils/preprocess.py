@@ -9,24 +9,21 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def to_arrays(train, test, datatype):
+def to_arrays(train, test):
   """Turns train/test into numpy array."""
-  if datatype == "vector":
-    X_train, y_train, W_train = dataset_to_numpy(train)
-    X_test, y_test, W_test = dataset_to_numpy(test)
-  elif datatype == "tensor":
-    X_train, y_train, W_train = tensor_dataset_to_numpy(train)
-    X_test, y_test, W_test = tensor_dataset_to_numpy(test)
-  else:
-    raise ValueError("Improper datatype.")
+  X_train, y_train, W_train = dataset_to_numpy(train)
+  X_test, y_test, W_test = dataset_to_numpy(test)
   return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
-  (n_samples, n_features) = np.shape(X)
+  if len(np.shape(X)) == 2:
+    (n_samples, n_features) = np.shape(X)
+  else:
+    raise ValueError("Only know how to transform vectorial data.")
   Z = np.zeros(np.shape(X))
   # Meant to be done after normalize
-  trunc = 10
+  trunc = 5
   for feature in range(n_features):
     feature_data = X[:, feature]
     for input_transform in input_transforms:
@@ -34,7 +31,7 @@ def transform_inputs(X, input_transforms):
       # something trickier to ensure that the binary fingerprints aren't
       # normalized while real-valued descriptors are. Refactor/Rename this to
       # make this distinction clearer.
-      if input_transform == "normalize":
+      if input_transform == "normalize-and-truncate":
         if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
           mean, std = np.mean(feature_data), np.std(feature_data)
           feature_data = feature_data - mean 
@@ -148,30 +145,42 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
-def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels"):
+def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
+    labels_endpoint="labels", weight_positives=True):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint[feature_endpoint])
-  n_targets = 1 # TODO(rbharath): Generalize this later
-  X = np.zeros((n_samples,) + feature_shape)
+  print np.shape(feature_shape)
+  
+  #n_targets = 1 # TODO(rbharath): Generalize this later
+  n_targets = len(sample_datapoint[labels_endpoint])
+  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
-  for index, smiles in enumerate(dataset.keys()):
-    datapoint = dataset[smiles]
+  for index, id in enumerate(dataset.keys()):
+    datapoint = dataset[id]
     fingerprint, labels = (datapoint[feature_endpoint],
       datapoint[labels_endpoint])
-    X[index] = fingerprint
-    # TODO(rbharath): This is only specialized to single task.
-    # need to generalize to handle multi-task
-    y[index] = labels[labels.keys()[0]]
+    # TODO(rbharath): Verify that this isn't dangerous.
+    X[index] = np.reshape(fingerprint, np.shape(X[index]))
+    sorted_targets = sorted(labels.keys())
+    # Set labels from measurements
+    for t_ind, target in enumerate(sorted_targets):
+      if labels[target] == -1:
+        y[index][t_ind] = -1
+        W[index][t_ind] = 0
+      else:
+        y[index][t_ind] = labels[target]
+  if weight_positives:
+    W = balance_positives(y, W)
   return (X, y, W)
 
+"""
 def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
     labels_endpoint="labels", weight_positives=True):
-  """Transforms a loaded dataset into numpy arrays (X, y).
+  '''Transforms a loaded dataset into numpy arrays (X, y).
 
   Transforms provided dict into feature matrix X (of dimensions [n_samples,
   n_features]) and label matrix y (of dimensions [n_samples,
@@ -187,7 +196,7 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   ----------
   dataset: dict 
     A dictionary of type produced by load_datasets. 
-  """
+  '''
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   n_features = np.size(sample_datapoint[feature_endpoint])
@@ -212,6 +221,7 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
   if weight_positives:
     W = balance_positives(y, W)
   return X, y, W
+"""
 
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.

@@ -9,7 +9,6 @@ import csv
 import numpy as np
 import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
-from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
@@ -17,18 +16,17 @@ from sklearn.metrics import r2_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
-def compute_model_performance(per_task_data, models, aucs=True, r2s=False, rms=False):
+def compute_model_performance(per_task_data, task_types, models, modeltype,
+    aucs=True, r2s=False, rms=False):
   """Computes statistics for model performance on test set."""
-  all_results, auc_vals, r2s, rms = {}, {}, {}, {}
+  all_results, auc_vals, r2_vals, rms_vals = {}, {}, {}, {}
   for index, target in enumerate(sorted(per_task_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
     (train, _, _, _), (test, _, _, _) = per_task_data[target]
     model = models[target]
     results = eval_model(test, model, {target: task_types[target]}, 
-                         # We run singletask models as special cases of
-                         # multitask.
-                         modeltype="keras_multitask")
+                         modeltype=modeltype)
     all_results[target] = results[target]
     if aucs:
       auc_vals.update(compute_roc_auc_scores(results, task_types))
@@ -37,6 +35,8 @@ def compute_model_performance(per_task_data, models, aucs=True, r2s=False, rms=F
     if rms:
       rms_vals.update(compute_rms_scores(results, task_types))
 
+  print "(aucs, r2s, rms)"
+  print (aucs, r2s, rms)
   if aucs:
     print "Mean AUC: %f" % np.mean(np.array(auc_vals.values()))
   if r2s:
@@ -69,15 +69,13 @@ def model_predictions(test_set, model, n_targets, task_types,
     Either sklearn, keras, or keras_multitask
   """
   # Extract features for test set and make preds
-  if datatype == "vector":
-    X, _, _ = dataset_to_numpy(test_set)
-  elif datatype == "tensor":
-    X, _, _ = tensor_dataset_to_numpy(test_set)
+  X, _, _ = dataset_to_numpy(test_set)
+  if len(np.shape(X)) > 2:  # Dealing with 3D data
+    if len(np.shape(X)) != 5:
+      raise ValueError("Tensorial datatype must be of shape (n_samples, N, N, N, n_channels).")
     (n_samples, axis_length, _, _, n_channels) = np.shape(X)
     # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
     X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
-  else:
-    raise ValueError("Datatype must be vector or tensor.")
   if modeltype == "keras_multitask":
     predictions = model.predict({"input": X})
     ypreds = []
