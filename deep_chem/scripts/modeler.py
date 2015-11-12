@@ -193,8 +193,8 @@ def featurize_input(args):
       args.smiles_endpoint, args.id_endpoint, out_y_pkl, out_sdf)
   generate_features(df, args.feature_endpoints, args.smiles_endpoint,
                     args.id_endpoint, out_x_pkl)
-  generate_fingerprints(args.name, args.out)
-  generate_descriptors(args.name, args.out)
+  generate_fingerprints(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
+  generate_descriptors(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
 
 def train_model(args):
   """Builds model from featurized data."""

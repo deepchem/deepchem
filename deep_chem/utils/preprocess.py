@@ -173,6 +173,9 @@ def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
         W[index][t_ind] = 0
       else:
         y[index][t_ind] = labels[target]
+  print "DATASET_TO_NUMPY"
+  print "np.shape(X)"
+  print np.shape(X)
   if weight_positives:
     W = balance_positives(y, W)
   return (X, y, W)

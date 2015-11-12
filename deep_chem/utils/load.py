@@ -73,34 +73,37 @@ def load_molecules(paths, feature_types=["fingerprints"]):
     List of strings.
   """
   molecules = {}
+  print "load_molecules()"
   for dataset_path in paths:
     for feature_type in feature_types:
+      print "feature_type: %s" % feature_type
       pickle_dir = os.path.join(dataset_path, feature_type)
+      print "pickle_dir: %s" % pickle_dir
       pickle_files = os.listdir(pickle_dir)
       if len(pickle_files) == 0:
         raise ValueError("No Pickle Files found to load molecules")
       for pickle_file in pickle_files:
+        print "loading pickle_file: %s" % pickle_file
         with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
           contents = pickle.load(f)
+          print "contents.keys()"
+          print contents.keys()
           smiles, features, scaffolds, mol_ids = (
               contents["smiles"], contents["features"],
               contents["scaffolds"], contents["mol_id"])
           splits = contents["split"] if "split" in contents else None
-          for mol in range(len(contents["smiles"])):
-            if smiles[mol] not in molecules:
-              molecules[smiles[mol]] = {"fingerprint": features[mol],
-                                        "scaffold": scaffolds[mol],
-                                        "mol_id": mol_ids[mol],
-                                        "feature_types": [feature_type]}
+          for mol in range(len(contents["mol_id"])):
+            if mol_ids[mol] not in molecules:
+              molecules[mol_ids[mol]] = {"fingerprint": features[mol],
+                                         "scaffold": scaffolds[mol],
+                                         "mol_id": mol_ids[mol],
+                                         "feature_types": [feature_type]}
             if splits is not None:
-              molecules[smiles[mol]]["split"] = splits[mol]
-            # TODO(rbharath): Our processing pipeline sometimes makes different
-            # molecules look the same (due to bugs in how we hydrogenate for
-            # example). Fix these bugs in our processing pipeline.
-            elif feature_type not in molecules[smiles[mol]]["feature_types"]:
-              entry = molecules[smiles[mol]]
+              molecules[mol_ids[mol]]["split"] = splits[mol]
+            elif feature_type not in molecules[mol_ids[mol]]["feature_types"]:
+              entry = molecules[mol_ids[mol]]
               entry["fingerprint"] = np.append(
-                  molecules[smiles[mol]]["fingerprint"], features[mol])
+                  molecules[mol_ids[mol]]["fingerprint"], features[mol])
               entry["feature_types"].append(feature_type)
   return molecules 
 
