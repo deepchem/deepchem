@@ -4,6 +4,8 @@ Process an input dataset into a format suitable for machine learning.
 import os
 import cPickle as pickle
 import gzip
+import functools
+import itertools
 import pandas as pd
 import openpyxl as px
 import numpy as np
@@ -13,13 +15,8 @@ from rdkit import Chem
 import subprocess
 from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
 
-def parse_args(input_args=None):
-  """Parse command-line arguments."""
-  parser = argparse.ArgumentParser()
-  return parser.parse_args(input_args)
-
-def generate_directories(name, out, feature_endpoint):
-  """Generate processed dataset."""
+def generate_directories(name, out, feature_endpoints):
+  """Generate directory structure for featurized dataset."""
   dataset_dir = os.path.join(out, name)
   if not os.path.exists(dataset_dir):
     os.makedirs(dataset_dir)
@@ -35,15 +32,16 @@ def generate_directories(name, out, feature_endpoint):
   shards_dir = os.path.join(dataset_dir, "shards")
   if not os.path.exists(shards_dir):
     os.makedirs(shards_dir)
-  if feature_endpoint is not None:
-    feature_endpoint_dir = os.path.join(dataset_dir, feature_endpoint)
+  if feature_endpoints is not None:
+    feature_endpoint_dir = os.path.join(dataset_dir, "features")
     if not os.path.exists(feature_endpoint_dir):
       os.makedirs(feature_endpoint_dir)
 
   # Return names of files to be generated
   out_y_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
   out_sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
-  out_x_pkl = os.path.join(feature_endpoint_dir, "%s.pkl.gz" %name) if feature_endpoint is not None else None
+  out_x_pkl = (os.path.join(feature_endpoint_dir, "%s.pkl.gz" %name)
+      if feature_endpoints is not None else None)
   return out_x_pkl, out_y_pkl, out_sdf
 
 def parse_float_input(val):
@@ -115,33 +113,39 @@ def get_rows(input_file, input_type, delimiter):
         mols = [mol for mol in supp if mol is not None]
       return mols
 
-def get_row_data(row, input_type, fields, field_types):
-  """Extract information from row data."""
+def get_colnames(row, input_type):
+  """Get names of all columns."""
   if input_type == "xlsx":
     return [cell.internal_value for cell in row]
   elif input_type == "csv":
-    return row 
+    return row
+
+def get_row_data(row, input_type, fields, smiles_endpoint, colnames=None):
+  """Extract information from row data."""
+  row_data = {}
+  if input_type == "xlsx":
+    for ind, colname in enumerate(colnames):
+      if colname in fields:
+        row_data[colname] = row[ind].internal_value
+  elif input_type == "csv":
+    for ind, colname in enumerate(colnames):
+      if colname in fields:
+        row_data[colname] = row[ind]
   elif input_type == "pandas":
-    # pandas rows are tuples (row_num, row_info)
-    row, row_data = row[1], {}
-    # pandas rows are keyed by field-name. Change to key by index to match
-    # csv/xlsx handling
-    for ind, field in enumerate(fields):
-      row_data[ind] = row[field]
-    return row_data
+    # pandas rows are tuples (row_num, row_data)
+    row = row[1]
+    for field in fields:
+      row_data[field] = row[field]
   elif input_type == "sdf":
-    row_data, mol = {}, row
-    for ind, (field, field_type) in enumerate(zip(fields, field_types)):
-      # TODO(rbharath): SDF files typically don't have smiles, so we manually
-      # generate smiles in this case. This is a kludgey solution...
-      if field == "smiles":
-        row_data[ind] = Chem.MolToSmiles(mol)
-        continue
-      if not mol.HasProp(field):
-        row_data[ind] = None
+    mol = {}
+    for field in fields:
+      if field == smiles_endpoint:
+        row_data[field] = Chem.MolToSmiles(mol)
+      elif not mol.HasProp(field):
+        row_data[field] = None
       else:
-        row_data[ind] = mol.GetProp(field)
-    return row_data
+        row_data[field] = mol.GetProp(field)
+  return row_data
 
 def process_field(data, field_type):
   """Parse data in a field."""
@@ -159,14 +163,14 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data 
 
-def generate_targets(df, mols, prediction_endpoint, split_endpoint, out_pkl, out_sdf):
+def generate_targets(df, mols, prediction_endpoint, split_endpoint, smiles_endpoint, out_pkl, out_sdf):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified 
     #unique identifier instead of assuming smiles string
   if split_endpoint is not None:
-    labels_df = df[["smiles", prediction_endpoint, split_endpoint]]
+    labels_df = df[[smiles_endpoint, prediction_endpoint, split_endpoint]]
   else:
-    labels_df = df[["smiles", prediction_endpoint]]
+    labels_df = df[[smiles_endpoint, prediction_endpoint]]
 
   # Write pkl.gz file
   with gzip.open(out_pkl, "wb") as f:
@@ -178,45 +182,62 @@ def generate_targets(df, mols, prediction_endpoint, split_endpoint, out_pkl, out
       w.write(mol)
     w.close()
 
-def generate_scaffold(smiles_elt, include_chirality=False):
-  smiles_string = smiles_elt["smiles"]
+def generate_scaffold(smiles_elt, include_chirality=False, smiles_endpoint="smiles"):
+  smiles_string = smiles_elt[smiles_endpoint]
   mol = Chem.MolFromSmiles(smiles_string)
   engine = ScaffoldGenerator(include_chirality=include_chirality)
   scaffold = engine.get_scaffold(mol)
   return(scaffold)
 
-def generate_features(df, feature_endpoint, out_pkl):
-  if feature_endpoint is None:
+def generate_features(df, feature_endpoints, smiles_endpoint, out_pkl):
+  if feature_endpoints is None:
     print("No feature endpoint specified by user.")
     return
 
-  features_df = df[["smiles"]]
-  features_df["features"] = df[[feature_endpoint]]
-  features_df["scaffolds"] = df[["smiles"]].apply(generate_scaffold, axis=1)
-  features_df["mol_id"] = df[["smiles"]].apply(lambda s : "", axis=1)
+  features_df = df[[smiles_endpoint]]
+  #features_df["features"] = df[[feature_endpoint]]
+  features_data = []
+  for row in df.iterrows():
+    # pandas rows are tuples (row_num, row_data)
+    row, feature_list = row[1], []
+    for feature in feature_endpoints:
+      feature_list.append(row[feature])
+    features_data.append({"row": np.array(feature_list)})
+  features_df["features"] = pd.DataFrame(features_data)
+  
+    
+  features_df["scaffolds"] = df[[smiles_endpoint]].apply(
+    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
+    axis=1)
+  features_df["mol_id"] = df[[smiles_endpoint]].apply(lambda s : "", axis=1)
 
   with gzip.open(out_pkl, "wb") as f:
     pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
 
 def extract_data(input_file, input_type, fields, field_types, 
-      prediction_endpoint, threshold, delimiter, has_colnames):
+      prediction_endpoint, smiles_endpoint, threshold, delimiter):
   """Extracts data from input as Pandas data frame"""
-
   rows, mols, smiles = [], [], SmilesGenerator()
+  colnames = [] 
   for row_index, raw_row in enumerate(get_rows(input_file, input_type, delimiter)):
     print row_index
-    # Skip row labels if necessary.
-    if has_colnames and (row_index == 0 or raw_row is None):  
+    # Skip empty rows
+    if raw_row is None:
       continue
-    row, row_data = {}, get_row_data(raw_row, input_type, fields, field_types)
+    # TODO(rbharath): The script expects that all columns in xlsx/csv files
+    # have column names attached. Check that this holds true somewhere
+    # Get column names if xlsx/csv and continue
+    if (input_type == "xlsx" or input_type == "csv") and row_index == 0:  
+      colnames = get_colnames(raw_row, input_type)
+      continue
+    row, row_data = {}, get_row_data(raw_row, input_type, fields, smiles_endpoint, colnames)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
       if field == prediction_endpoint and threshold is not None:
-        raw_val = process_field(row_data[ind], field_type)
+        raw_val = process_field(row_data[field], field_type)
         row[field] = 1 if raw_val > threshold else 0 
       else:
-        row[field] = process_field(row_data[ind], field_type)
-    
-    mol = Chem.MolFromSmiles(row["smiles"])
+        row[field] = process_field(row_data[field], field_type)
+    mol = Chem.MolFromSmiles(row[smiles_endpoint])
     row["smiles"] = smiles.get_smiles(mol)
     mols.append(mol)
     rows.append(row)

@@ -3,6 +3,12 @@ Top level script to featurize input, train models, and evaluate them.
 """
 import argparse
 import numpy as np
+from deep_chem.utils.featurize import generate_directories
+from deep_chem.utils.featurize import extract_data
+from deep_chem.utils.featurize import generate_targets
+from deep_chem.utils.featurize import generate_features
+from deep_chem.utils.featurize import generate_fingerprints
+from deep_chem.utils.featurize import generate_descriptors
 from deep_chem.models.deep import fit_singletask_mlp
 from deep_chem.models.deep import fit_multitask_mlp
 from deep_chem.models.deep3d import fit_3D_convolution
@@ -15,9 +21,8 @@ def parse_args(input_args=None):
   """Parse command-line arguments."""
   parser = argparse.ArgumentParser()
   subparsers = parser.add_subparsers(title='Modes')
-
-  # TODO(rbharath): This function should invoke process_dataset under the hood
-  # to avoid having to invoke two scripts.
+ 
+  # FEATURIZE FLAGS
   featurize_cmd = subparsers.add_parser("featurize",
                       help="Featurize raw input data.")
   featurize_cmd.add_argument("--input-file", required=1,
@@ -27,29 +32,30 @@ def parse_args(input_args=None):
                       help="Type of input file. If pandas, input must be a pkl.gz\n"
                            "containing a pandas dataframe. If sdf, should be in\n"
                            "(perhaps gzipped) sdf file.")
-  featurize_cmd.add_argument("--delimiter", default="\t",
+  featurize_cmd.add_argument("--delimiter", default=",",
                       help="If csv input, delimiter to use for read csv file")
   featurize_cmd.add_argument("--fields", required=1, nargs="+",
                       help = "Names of fields.")
   featurize_cmd.add_argument("--field-types", required=1, nargs="+",
                       choices=["string", "float", "list-string", "list-float", "ndarray"],
                       help="Type of data in fields.")
-  featurize_cmd.add_argument("--feature-endpoint", type=str,
+  featurize_cmd.add_argument("--feature-endpoints", type=str, nargs="+",
                       help="Optional endpoint that holds pre-computed feature vector")
   featurize_cmd.add_argument("--prediction-endpoint", type=str, required=1,
-                       help="Name of measured endpoint to predict.")
+                      help="Name of measured endpoint to predict.")
   featurize_cmd.add_argument("--split-endpoint", type=str, default=None,
-                       help="Name of endpoint specifying train/test split.")
+                      help="Name of endpoint specifying train/test split.")
+  featurize_cmd.add_argument("--smiles-endpoint", type=str, default="smiles",
+                      help="Name of endpoint specifying SMILES for molecule.")
   featurize_cmd.add_argument("--threshold", type=float, default=None,
                       help="If specified, will be used to binarize real-valued prediction-endpoint.")
-  featurize_cmd.add_argument("--has-colnames", type=bool, default=False,
-                      help="Input has column labels which should be skipped (only for csv/xlsx).")
   featurize_cmd.add_argument("--name", required=1,
                       help="Name of the dataset.")
   featurize_cmd.add_argument("--out", required=1,
                       help="Folder to generate processed dataset in.")
   featurize_cmd.set_defaults(func=featurize_input)
 
+  # TRAIN FLAGS
   train_cmd = subparsers.add_parser("train",
                   help="Train a model on specified data.")
   group = train_cmd.add_argument_group("load-and-transform")
@@ -104,6 +110,8 @@ def parse_args(input_args=None):
 
   eval_cmd = subparsers.add_parser("eval",
                 help="Evaluate trained model on specified data.")
+  eval_cmd.add_argument("--paths", nargs="+", required=1,
+                      help="Paths to input datasets.")
   eval_cmd.add_argument("--splittype", type=str, default="scaffold",
                        choices=["scaffold", "random", "specified"],
                        help="Type of train/test data-splitting.\n"
@@ -125,21 +133,19 @@ def featurize_input(args):
   if len(args.fields) != len(args.field_types):
     raise ValueError("number of fields does not equal number of field types")
   out_x_pkl, out_y_pkl, out_sdf = generate_directories(args.name, args.out, 
-      args.feature_endpoint)
+      args.feature_endpoints)
   df, mols = extract_data(args.input_file, args.input_type, args.fields,
-      args.field_types, args.prediction_endpoint,
-      args.threshold, args.delimiter, args.has_colnames)
-  generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint, out_y_pkl, out_sdf)
-  generate_features(df, args.feature_endpoint, out_x_pkl)
+      args.field_types, args.prediction_endpoint, args.smiles_endpoint,
+      args.threshold, args.delimiter)
+  generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint,
+      args.smiles_endpoint, out_y_pkl, out_sdf)
+  generate_features(df, args.feature_endpoints, args.smiles_endpoint, out_x_pkl)
   generate_fingerprints(args.name, args.out)
   generate_descriptors(args.name, args.out)
 
-def main():
-  args = parse_args()
-  paths = {}
-
+def train_model(args):
+  """Builds model from featurized data."""
   paths = args.paths
-
   targets = get_target_names(paths)
   task_types = {target: args.task_type for target in targets}
   input_transforms = args.input_transforms 
@@ -173,11 +179,19 @@ def main():
         batch_size=args.batch_size)
   else:
     models = fit_singletask_models(per_task_data, args.model, task_types)
+  # TODO(rbharath): Save trained model.
 
+def eval_trained_model(args):
   results, aucs, r2s, rms = compute_model_performance(per_task_data, models,
     args.compute_aucs, args.compute_r2s, args.compute_rms) 
   if args.csv_out is not None:
     results_to_csv(results, args.csv_out, task_type=args.task_type)
+
+def main():
+  args = parse_args()
+  args.func(args)
+
+
 
 if __name__ == "__main__":
   main()
