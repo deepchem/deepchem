@@ -193,7 +193,10 @@ def featurize_input(args):
       args.smiles_endpoint, args.id_endpoint, out_y_pkl, out_sdf)
   generate_features(df, args.feature_endpoints, args.smiles_endpoint,
                     args.id_endpoint, out_x_pkl)
-  generate_fingerprints(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
+  generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
+      args.id_endpoint, "fingerprints")
+  generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
+      args.id_endpoint, "descriptors")
   generate_descriptors(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
 
 def train_model(args):

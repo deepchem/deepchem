@@ -46,7 +46,7 @@ def compute_model_performance(per_task_data, task_types, models, modeltype,
   return all_results, aucs, r2s, rms
 
 def model_predictions(test_set, model, n_targets, task_types,
-    modeltype="sklearn", datatype="vector"):
+    modeltype="sklearn"):
   """Obtains predictions of provided model on test_set.
 
   Returns a list of per-task predictions.
@@ -98,7 +98,7 @@ def model_predictions(test_set, model, n_targets, task_types,
   return ypreds
 
   
-def eval_model(test_set, model, task_types, modeltype="sklearn", datatype="vector"):
+def eval_model(test_set, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
@@ -122,7 +122,7 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", datatype="vecto
   local_task_types = task_types.copy()
   endpoints = sorted_targets
   ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, modeltype=modeltype, datatype=datatype)
+      local_task_types, modeltype=modeltype)
   results = {}
   for target in endpoints:
     results[target] = ([], [], [])  # (smiles, ytrue, yscore)

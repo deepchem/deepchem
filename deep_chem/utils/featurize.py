@@ -59,47 +59,38 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def generate_fingerprints(df, name, out, smiles_endpoint, id_endpoint):
+def generate_vs_util_features(df, name, out, smiles_endpoint, id_endpoint, featuretype):
   """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
-  fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
-  fingerprints = os.path.join(fingerprint_dir,
-      "%s-fingerprints.pkl.gz" % name)
+  feature_dir = os.path.join(dataset_dir, "fingerprints")
+  features = os.path.join(feature_dir,
+      "%s-%s.pkl.gz" % (name, featuretype)
 
-  fingerprint_df = pd.DataFrame([]) 
-  fingerprint_df["smiles"] = df[[smiles_endpoint]]
-  fingerprint_df["scaffolds"] = df[[smiles_endpoint]].apply(
+  feature_df = pd.DataFrame([]) 
+  feature_df["smiles"] = df[[smiles_endpoint]]
+  feature_df["scaffolds"] = df[[smiles_endpoint]].apply(
     functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
     axis=1)
-  fingerprint_df["mol_id"] = df[[id_endpoint]]
+  feature_df["mol_id"] = df[[id_endpoint]]
 
   mols = []
   for row in df.iterrows():
     # pandas rows are tuples (row_num, row_data)
     smiles = row[1][smiles_endpoint]
     mols.append(Chem.MolFromSmiles(smiles))
-  featurizer = CircularFingerprint(size=1024)
-  fingerprint_df["features"] = pd.DataFrame([ {"features": feature} for feature in featurizer.featurize(mols)])
+  if featuretype == "fingerprints":
+    featurizer = CircularFingerprint(size=1024)
+  elif featurizer == "descriptors":
+    featurizer = SimpleDescriptors()
+  else:
+    raise ValueError("Unsupported featuretype requested.")
+  feature_df["features"] = pd.DataFrame(
+      [{"features": feature} for feature in featurizer.featurize(mols)])
 
-  with gzip.open(fingerprints, "wb") as f:
-    pickle.dump(fingerprint_df, f, pickle.HIGHEST_PROTOCOL)
-  #dataset_dir = os.path.join(out, name)
-  #fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
-  #shards_dir = os.path.join(dataset_dir, "shards")
-  #sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
-  #fingerprints = os.path.join(fingerprint_dir,
-  #    "%s-fingerprints.pkl.gz" % name)
-  ## TODO(rbharath): There's a bit of ugliness here. featurize modifies the
-  ## smiles strings internally, which I suspect leads to some non-matching
-  ## smiles strings, hence dropping some compounds. featurize needs to be
-  ## modified so that it can take in lists of smiles rather than just sdf file.
-  ## FIXME: Make this directly call the CircularFingerprint featurizer in vs_utils.
-  #subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
-  #                 "--scaffolds", "--smiles",
-  #                 sdf, fingerprints,
-  #                 "circular", "--size", "1024"])
+  with gzip.open(features, "wb") as f:
+    pickle.dump(feature_df, f, pickle.HIGHEST_PROTOCOL)
 
-# TODO(rbharath): CODE SMELL! This and generate_fingerprints look almost identical. Factor out into a geneate_standard_featurization function.
+'''
 def generate_descriptors(df, name, out, smiles_endpoint, id_endpoint):
   """Generates molecular descriptors for dataset."""
   dataset_dir = os.path.join(out, name)
@@ -124,10 +115,7 @@ def generate_descriptors(df, name, out, smiles_endpoint, id_endpoint):
 
   with gzip.open(descriptors, "wb") as f:
     pickle.dump(descriptors_df, f, pickle.HIGHEST_PROTOCOL)
-  #subprocess.call(["python", "-m", "vs_utils.scripts.featurize",
-  #                 "--scaffolds", "--smiles",
-  #                 sdf, descriptors,
-  #                 "descriptors"])
+'''
 
 def get_rows(input_file, input_type, delimiter):
   """Returns an iterator over all rows in input_file"""

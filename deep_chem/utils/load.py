@@ -162,9 +162,6 @@ def load_assays(paths, target_dir_name="targets"):
               # Set all targets to invalid for now.
               labels[id][name] = -1
           labels[id][target_name] = measurement 
-  print "load_assays()"
-  print "labels"
-  print labels
   return labels, splits
 
 def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints"]):
@@ -180,12 +177,7 @@ def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints
   """
   data = {}
   molecules = load_molecules(paths, feature_types)
-  print "load_datasets()"
-  print "len(molecules)"
-  print len(molecules)
   labels, splits = load_assays(paths, target_dir_name)
-  print "len(labels)"
-  print len(labels)
   for ind, id in enumerate(molecules):
     if id not in labels:
       continue
@@ -194,8 +186,6 @@ def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints
                 "scaffold": mol["scaffold"],
                 "labels": labels[id],
                 "split": splits[id]}
-  print "len(data)"
-  print len(data)
   return data
 
 def ensure_balanced(y, W):
