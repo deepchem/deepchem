@@ -97,7 +97,6 @@ def model_predictions(test_set, model, n_targets, task_types,
     ypreds = [ypreds]
   return ypreds
 
-  
 def eval_model(test_set, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 

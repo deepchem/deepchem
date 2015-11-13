@@ -31,20 +31,18 @@ def generate_directories(name, out, feature_endpoints):
   target_dir = os.path.join(dataset_dir, "targets")
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
-  shards_dir = os.path.join(dataset_dir, "shards")
-  if not os.path.exists(shards_dir):
-    os.makedirs(shards_dir)
   if feature_endpoints is not None:
     feature_endpoint_dir = os.path.join(dataset_dir, "features")
     if not os.path.exists(feature_endpoint_dir):
       os.makedirs(feature_endpoint_dir)
 
   # Return names of files to be generated
+  # TODO(rbharath): Explicitly passing around out_*_pkl is an encapsulation
+  # failure. Remove this.
   out_y_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
-  out_sdf = os.path.join(shards_dir, "%s-0.sdf.gz" % name)
-  out_x_pkl = (os.path.join(feature_endpoint_dir, "%s.pkl.gz" %name)
+  out_x_pkl = (os.path.join(feature_endpoint_dir, "%s-features.pkl.gz" %name)
       if feature_endpoints is not None else None)
-  return out_x_pkl, out_y_pkl, out_sdf
+  return out_x_pkl, out_y_pkl
 
 def parse_float_input(val):
   """Safely parses a float input."""
@@ -59,12 +57,12 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def generate_vs_util_features(df, name, out, smiles_endpoint, id_endpoint, featuretype):
+def generate_vs_utils_features(df, name, out, smiles_endpoint, id_endpoint, featuretype):
   """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
-  feature_dir = os.path.join(dataset_dir, "fingerprints")
+  feature_dir = os.path.join(dataset_dir, featuretype)
   features = os.path.join(feature_dir,
-      "%s-%s.pkl.gz" % (name, featuretype)
+      "%s-%s.pkl.gz" % (name, featuretype))
 
   feature_df = pd.DataFrame([]) 
   feature_df["smiles"] = df[[smiles_endpoint]]
@@ -80,7 +78,7 @@ def generate_vs_util_features(df, name, out, smiles_endpoint, id_endpoint, featu
     mols.append(Chem.MolFromSmiles(smiles))
   if featuretype == "fingerprints":
     featurizer = CircularFingerprint(size=1024)
-  elif featurizer == "descriptors":
+  elif featuretype == "descriptors":
     featurizer = SimpleDescriptors()
   else:
     raise ValueError("Unsupported featuretype requested.")
@@ -171,7 +169,7 @@ def process_field(data, field_type):
     return data 
 
 def generate_targets(df, mols, prediction_endpoint, split_endpoint,
-    smiles_endpoint, id_endpoint, out_pkl, out_sdf):
+    smiles_endpoint, id_endpoint, out_pkl):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified 
     #unique identifier instead of assuming smiles string
@@ -185,12 +183,6 @@ def generate_targets(df, mols, prediction_endpoint, split_endpoint,
   # Write pkl.gz file
   with gzip.open(out_pkl, "wb") as f:
     pickle.dump(labels_df, f, pickle.HIGHEST_PROTOCOL)
-  # Write sdf.gz file
-  with gzip.open(out_sdf, "wb") as gz:
-    w = Chem.SDWriter(gz)
-    for mol in mols:
-      w.write(mol)
-    w.close()
 
 def generate_scaffold(smiles_elt, include_chirality=False, smiles_endpoint="smiles"):
   smiles_string = smiles_elt[smiles_endpoint]

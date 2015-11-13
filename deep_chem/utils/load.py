@@ -36,6 +36,7 @@ def process_datasets(paths, input_transforms, output_transforms,
   seed: int
     Seed used for random splits.
   """
+  print "process_datasets()"
   dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
       feature_types=feature_types, weight_positives=weight_positives)
   arrays = {}
@@ -54,6 +55,8 @@ def process_datasets(paths, input_transforms, output_transforms,
     arrays["all"] = (train_data, test_data)
   else:
     raise ValueError("Unsupported mode for process_datasets.")
+  print "np.shape(arrays['CANVAS-BACE'][0][1])"
+  print np.shape(arrays['CANVAS-BACE'][0][1])
   return arrays
 
 
@@ -69,21 +72,15 @@ def load_molecules(paths, feature_types=["fingerprints"]):
     List of strings.
   """
   molecules = {}
-  print "load_molecules()"
   for dataset_path in paths:
     for feature_type in feature_types:
-      print "feature_type: %s" % feature_type
       pickle_dir = os.path.join(dataset_path, feature_type)
-      print "pickle_dir: %s" % pickle_dir
       pickle_files = os.listdir(pickle_dir)
       if len(pickle_files) == 0:
         raise ValueError("No Pickle Files found to load molecules")
       for pickle_file in pickle_files:
-        print "loading pickle_file: %s" % pickle_file
         with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
           contents = pickle.load(f)
-          print "contents.keys()"
-          print contents.keys()
           smiles, features, scaffolds, mol_ids = (
               contents["smiles"], contents["features"],
               contents["scaffolds"], contents["mol_id"])

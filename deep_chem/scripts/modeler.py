@@ -2,13 +2,14 @@
 Top level script to featurize input, train models, and evaluate them.
 """
 import argparse
+import gzip
 import numpy as np
+import cPickle as pickle
 from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
 from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
-from deep_chem.utils.featurize import generate_fingerprints
-from deep_chem.utils.featurize import generate_descriptors
+from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.deep import fit_singletask_mlp
 from deep_chem.models.deep import fit_multitask_mlp
 from deep_chem.models.deep3d import fit_3D_convolution
@@ -84,24 +85,27 @@ def parse_args(input_args=None):
                             "specified requires that split be in original data.")
   transform_cmd.add_argument("--weight-positives", type=bool, default=False,
                   help="Weight positive examples to have same total weight as negatives.")
+  transform_cmd.add_argument("--mode", default="singletask",
+                      choices=["singletask", "multitask"],
+                      help="Type of model being built.")
   transform_cmd.add_argument("--out", type=str, required=1,
                      help="Location to save transformed mode.")
   transform_cmd.set_defaults(func=transform_input)
 
   # TRAIN FLAGS
   train_cmd = subparsers.add_parser("train",
-                  help="Train a model on specified data.")
+                  help="Train a model on train data processed by transform.")
   group = train_cmd.add_argument_group("load-and-transform")
   group.add_argument("--task-type", default="classification",
                       choices=["classification", "regression"],
                       help="Type of learning task.")
-  group.add_argument("--in", required=1,
+  group.add_argument("--saved-data", required=1,
                      help="Location of saved transformed data.")
+  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
+  group.add_argument("--paths", nargs="+", required=1,
+                      help="Paths to input datasets.")
 
   group = train_cmd.add_argument_group("model")
-  group.add_argument("--mode", default="singletask",
-                      choices=["singletask", "multitask"],
-                      help="Type of model being built.")
   group.add_argument("--model", required=1,
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
@@ -132,19 +136,18 @@ def parse_args(input_args=None):
   train_cmd.set_defaults(func=train_model)
 
   eval_cmd = subparsers.add_parser("eval",
-                help="Evaluate trained model on specified data.")
+                help="Evaluate trained model on test data processed by transform.")
   group = eval_cmd.add_argument_group("load model/data")
   group.add_argument("--saved-model", type=str, required=1,
                   help="Location from which to load saved model.")
-  group.add_argument("--in", required=1,
+  group.add_argument("--saved-data", required=1,
                      help="Location of saved transformed data.")
+  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
+  group.add_argument("--paths", nargs="+", required=1,
+                      help="Paths to input datasets.")
   group.add_argument("--modeltype", required=1,
                       choices=["sklearn", "keras"],
                       help="Type of model to load.")
-  # TODO(rbharath): Is there a way to get rid of this guy?
-  group.add_argument("--mode", default="singletask",
-                      choices=["singletask", "multitask"],
-                      help="Type of model being built.")
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
   group.add_argument("--task-type", default="classification",
@@ -167,37 +170,41 @@ def featurize_input(args):
   """Featurizes raw input data."""
   if len(args.fields) != len(args.field_types):
     raise ValueError("number of fields does not equal number of field types")
-  out_x_pkl, out_y_pkl, out_sdf = generate_directories(args.name, args.out, 
+  out_x_pkl, out_y_pkl = generate_directories(args.name, args.out, 
       args.feature_endpoints)
   df, mols = extract_data(args.input_file, args.input_type, args.fields,
       args.field_types, args.prediction_endpoint, args.smiles_endpoint,
       args.threshold, args.delimiter)
+  print "Generating targets"
   generate_targets(df, mols, args.prediction_endpoint, args.split_endpoint,
-      args.smiles_endpoint, args.id_endpoint, out_y_pkl, out_sdf)
+      args.smiles_endpoint, args.id_endpoint, out_y_pkl)
+  print "Generating user-specified features"
   generate_features(df, args.feature_endpoints, args.smiles_endpoint,
                     args.id_endpoint, out_x_pkl)
+  print "Generating circular fingerprints"
   generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
       args.id_endpoint, "fingerprints")
+  print "Generating rdkit descriptors"
   generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
       args.id_endpoint, "descriptors")
-  generate_descriptors(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
 
 def transform_input(args):
   """Saves transformed model."""
+  targets = get_target_names(args.paths)
+  output_transforms = {target: args.output_transforms for target in targets}
   per_task_data = process_datasets(args.paths,
       args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
       mode=args.mode)
-  with gzip.open(args.out) as f:
+  with gzip.open(args.out, "wb") as f:
     pickle.dump(per_task_data, f)
 
 def train_model(args):
   """Builds model from featurized data."""
   targets = get_target_names(args.paths)
   task_types = {target: args.task_type for target in targets}
-  output_transforms = {target: args.output_transforms for target in targets}
 
-  with gzip.open(args.in) as f:
+  with gzip.open(args.saved_data) as f:
     per_task_data = pickle.load(f)
 
   if args.model == "singletask_deep_network":
@@ -227,10 +234,9 @@ def eval_trained_model(args):
   targets = get_target_names(args.paths)
   task_types = {target: args.task_type for target in targets}
 
-  with gzip.open(args.in) as f:
+  with gzip.open(args.saved_data) as f:
     per_task_data = pickle.load(f)
 
-  output_transforms = {target: args.output_transforms for target in targets}
   results, aucs, r2s, rms = compute_model_performance(per_task_data, task_types, model, args.modeltype,
     args.compute_aucs, args.compute_r2s, args.compute_rms) 
   if args.csv_out is not None:
