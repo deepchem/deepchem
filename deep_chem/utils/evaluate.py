@@ -23,10 +23,11 @@ def compute_model_performance(per_task_data, task_types, models, modeltype,
   for index, target in enumerate(sorted(per_task_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
-    (train, _, _, _), (test, _, _, _) = per_task_data[target]
+    (_, Xtrain, ytrain, wtrain), (_, Xtest, ytest, wtest) = per_task_data[target]
     model = models[target]
-    results = eval_model(test, model, {target: task_types[target]}, 
+    results = eval_model(Xtest, ytest, wtest, model, {target: task_types[target]}, 
                          modeltype=modeltype)
+    #print results
     all_results[target] = results[target]
     if aucs:
       auc_vals.update(compute_roc_auc_scores(results, task_types))
@@ -35,8 +36,6 @@ def compute_model_performance(per_task_data, task_types, models, modeltype,
     if rms:
       rms_vals.update(compute_rms_scores(results, task_types))
 
-  print "(aucs, r2s, rms)"
-  print (aucs, r2s, rms)
   if aucs:
     print "Mean AUC: %f" % np.mean(np.array(auc_vals.values()))
   if r2s:
@@ -45,19 +44,18 @@ def compute_model_performance(per_task_data, task_types, models, modeltype,
     print "Mean RMS: %f" % np.mean(np.array(rms_vals.values()))
   return all_results, aucs, r2s, rms
 
-def model_predictions(test_set, model, n_targets, task_types,
-    modeltype="sklearn"):
+def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   """Obtains predictions of provided model on test_set.
 
-  Returns a list of per-task predictions.
+  Returns an ndarray of shape (n_samples, n_targets) 
 
   TODO(rbharath): This function uses n_targets instead of
   task_transforms like everything else.
 
   Parameters
   ----------
-  test_set: dict 
-    A dictionary of type produced by load_datasets. Contains the test-set.
+  X: numpy.ndarray 
+    Test set data. 
   model: model.
     A trained scikit-learn or keras model.
   n_targets: int
@@ -69,12 +67,12 @@ def model_predictions(test_set, model, n_targets, task_types,
     Either sklearn, keras, or keras_multitask
   """
   # Extract features for test set and make preds
-  X, _, _ = dataset_to_numpy(test_set)
+  # TODO(rbharath): This change in shape should not(!) be handled here. Make
+  # an upstream change so the evaluator doesn't have to worry about this.
   if len(np.shape(X)) > 2:  # Dealing with 3D data
     if len(np.shape(X)) != 5:
       raise ValueError("Tensorial datatype must be of shape (n_samples, N, N, N, n_channels).")
     (n_samples, axis_length, _, _, n_channels) = np.shape(X)
-    # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
     X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
   if modeltype == "keras_multitask":
     predictions = model.predict({"input": X})
@@ -92,18 +90,17 @@ def model_predictions(test_set, model, n_targets, task_types,
     ypreds = model.predict(X)
   else:
     raise ValueError("Improper modeltype.")
-  # Handle the edge case for singletask. 
-  if type(ypreds) != list:
-    ypreds = [ypreds]
+  ypreds = np.reshape(ypreds, (len(ypreds), n_targets))
   return ypreds
 
-def eval_model(test_set, model, task_types, modeltype="sklearn"):
+def eval_model(X, Ytrue, W, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
   yscore) of true labels vs. predict
 
-  TODO(rbharath): This function is too complex. Refactor and simplify.
+  # TODO(rbharath): Multitask support is now broken. Need to use weight matrix
+  # W to get rid of missing data entries for multitask data.
 
   Parameters
   ----------
@@ -118,64 +115,30 @@ def eval_model(test_set, model, task_types, modeltype="sklearn"):
     Either sklearn, keras, or keras_multitask
   """
   sorted_targets = sorted(task_types.keys())
-  local_task_types = task_types.copy()
-  endpoints = sorted_targets
-  ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, modeltype=modeltype)
+  ypreds = model_predictions(X, model, len(task_types),
+      task_types, modeltype=modeltype)
   results = {}
-  for target in endpoints:
-    results[target] = ([], [], [])  # (smiles, ytrue, yscore)
-  # Iterate through test set data points.
-  for index, smiles in enumerate(sorted(test_set.keys())):
-    datapoint = test_set[smiles]
-    labels = datapoint["labels"]
-    for t_ind, target in enumerate(endpoints):
-      task_type = local_task_types[target]
-      if (task_type == "classification"
-        and target in sorted_targets
-        and labels[target] == -1):
-        continue
-      else:
-        mol_smiles, ytrue, yscore = results[target]
-        mol_smiles.append(smiles)
-        if task_type == "classification":
-          if labels[target] == 0:
-            ytrue.append(0)
-          elif labels[target] == 1:
-            ytrue.append(1)
-          else:
-            raise ValueError("Labels must be 0/1.")
-        elif target in sorted_targets and task_type == "regression":
-          ytrue.append(labels[target])
-        elif target not in sorted_targets and task_type == "regression":
-          descriptors = datapoint["descriptors"]
-          # The "target" for descriptors is simply the index in the
-          # descriptor vector.
-          ytrue.append(descriptors[int(target)])
-        else:
-          raise ValueError("task_type must be classification or regression.")
-        yscore.append(ypreds[t_ind][index])
-  for target in endpoints:
-    mol_smiles, ytrue, yscore = results[target]
-    results[target] = (mol_smiles, np.array(ytrue), np.array(yscore))
+  for target_ind, target in enumerate(sorted_targets):
+    ytrue, ypred = Ytrue[:, target_ind], ypreds[:, target_ind]
+    # TODO(rbharath): Add in compound IDs here!
+    results[target] = (ytrue, np.squeeze(ytrue), np.squeeze(ypred))
   return results
 
 def results_to_csv(results, out, task_type="classification"):
   """Writes results as CSV to out."""
   for target in results:
-    out_file = "%s-%s.csv" % (out, target)
-    mol_smiles, ytrues, yscores= results[target]
+    mol_ids, ytrues, yscores= results[target]
     if task_type == "classification":
       yscores = np.around(yscores[:,1]).astype(int)
     elif task_type == "regression":
       if type(yscores[0]) == np.ndarray:
         yscores = yscores[:,0]
-    with open(out_file, "wb") as csvfile:
+    with open(out, "wb") as csvfile:
       csvwriter = csv.writer(csvfile, delimiter="\t")
-      csvwriter.writerow(["Smiles", "True", "Model-Prediction"])
-      for smiles, ytrue, yscore in zip(mol_smiles, ytrues, yscores):
-        csvwriter.writerow([smiles, ytrue, yscore])
-    print "Writing results on test set for target %s to %s" % (target, out_file)
+      csvwriter.writerow(["Ids", "True", "Model-Prediction"])
+      for id, ytrue, yscore in zip(mol_ids, ytrues, yscores):
+        csvwriter.writerow([id, ytrue, yscore])
+    print "Writing results on test set for target %s to %s" % (target, out)
     
 
 def compute_roc_auc_scores(results, task_types):
