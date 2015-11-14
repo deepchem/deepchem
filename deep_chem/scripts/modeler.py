@@ -93,8 +93,8 @@ def parse_args(input_args=None):
   train_test_cmd.set_defaults(func=train_test_input)
 
   # TRAIN FLAGS
-  train_cmd = subparsers.add_parser("train",
-                  help="Train a model on train data processed by transform.")
+  train_cmd = subparsers.add_parser("fit",
+                  help="Fit a model to training data.")
   group = train_cmd.add_argument_group("load-and-transform")
   group.add_argument("--task-type", default="classification",
                       choices=["classification", "regression"],
