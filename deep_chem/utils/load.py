@@ -36,7 +36,6 @@ def process_datasets(paths, input_transforms, output_transforms,
   seed: int
     Seed used for random splits.
   """
-  print "process_datasets()"
   dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
       feature_types=feature_types, weight_positives=weight_positives)
   arrays = {}
@@ -55,7 +54,7 @@ def process_datasets(paths, input_transforms, output_transforms,
     arrays["all"] = (train_data, test_data)
   else:
     raise ValueError("Unsupported mode for process_datasets.")
-  print "np.shape(arrays['CANVAS-BACE'][0][1])"
+  print "Shape of Xtest"
   print np.shape(arrays['CANVAS-BACE'][0][1])
   return arrays
 
@@ -212,23 +211,22 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
     transformations. Only for regression outputs.
   """
   dataset = load_datasets(paths, feature_types=feature_types)
-  X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
+  _, X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
   y = transform_outputs(y, W, output_transforms,
       weight_positives=weight_positives)
   X = transform_inputs(X, input_transforms)
   trans_data = {}
   sorted_ids = sorted(dataset.keys())
   sorted_targets = sorted(output_transforms.keys())
-  for s_index, id in enumerate(sorted_ids):
+  for id_index, id in enumerate(sorted_ids):
     datapoint = dataset[id]
     labels = {}
-    for t_index, target in enumerate(sorted_targets):
-      if W[s_index][t_index] == 0:
+    for target_index, target in enumerate(sorted_targets):
+      if W[id_index][target_index] == 0:
         labels[target] = -1
       else:
-        labels[target] = y[s_index][t_index]
+        labels[target] = y[id_index][target_index]
     datapoint["labels"] = labels
-    datapoint["fingerprint"] = X[s_index]
-
+    datapoint["fingerprint"] = X[id_index]
     trans_data[id] = datapoint 
   return trans_data

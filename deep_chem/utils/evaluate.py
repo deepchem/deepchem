@@ -23,9 +23,9 @@ def compute_model_performance(per_task_data, task_types, models, modeltype,
   for index, target in enumerate(sorted(per_task_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
-    (_, Xtrain, ytrain, wtrain), (_, Xtest, ytest, wtest) = per_task_data[target]
+    (train_ids, Xtrain, ytrain, wtrain), (test_ids, Xtest, ytest, wtest) = per_task_data[target]
     model = models[target]
-    results = eval_model(Xtest, ytest, wtest, model, {target: task_types[target]}, 
+    results = eval_model(test_ids, Xtest, ytest, wtest, model, {target: task_types[target]}, 
                          modeltype=modeltype)
     #print results
     all_results[target] = results[target]
@@ -93,7 +93,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   ypreds = np.reshape(ypreds, (len(ypreds), n_targets))
   return ypreds
 
-def eval_model(X, Ytrue, W, model, task_types, modeltype="sklearn"):
+def eval_model(ids, X, Ytrue, W, model, task_types, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
@@ -120,8 +120,7 @@ def eval_model(X, Ytrue, W, model, task_types, modeltype="sklearn"):
   results = {}
   for target_ind, target in enumerate(sorted_targets):
     ytrue, ypred = Ytrue[:, target_ind], ypreds[:, target_ind]
-    # TODO(rbharath): Add in compound IDs here!
-    results[target] = (ytrue, np.squeeze(ytrue), np.squeeze(ypred))
+    results[target] = (ids, np.squeeze(ytrue), np.squeeze(ypred))
   return results
 
 def results_to_csv(results, out, task_type="classification"):

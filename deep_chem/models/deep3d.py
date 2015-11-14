@@ -6,17 +6,13 @@ from keras.optimizers import RMSprop
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
-from keras.utils import np_utils
-from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.evaluate import eval_model
-from deep_chem.utils.evaluate import compute_r2_scores
 
 def fit_3D_convolution(per_task_data, task_types, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
   models = {}
-  (train, X_train, y_train, _), _ = per_task_data["all"]
+  (_, X_train, y_train, _), _ = per_task_data["all"]
   nb_classes = 2
   models["all"] = train_3D_convolution(X_train, y_train, **training_params)
   return models

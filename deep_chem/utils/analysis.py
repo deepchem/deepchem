@@ -54,7 +54,7 @@ def analyze_data(dataset, splittype="random"):
       train, test = train_test_scaffold_split(data)
     else:
       raise ValueError("Improper splittype. Must be random/scaffold.")
-    Xtrain, ytrain = dataset_to_numpy(train)
+    _, Xtrain, ytrain, _ = dataset_to_numpy(train)
     # TODO(rbharath): Take this out once debugging is completed
     ytrain = np.log(ytrain)
     mean = np.mean(ytrain)

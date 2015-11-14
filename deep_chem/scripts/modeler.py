@@ -133,7 +133,7 @@ def parse_args(input_args=None):
   group = train_cmd.add_argument_group("save")
   group.add_argument("--saved-out", type=str, required=1,
                   help="Location to save trained model.")
-  train_cmd.set_defaults(func=train_model)
+  train_cmd.set_defaults(func=fit_model)
 
   eval_cmd = subparsers.add_parser("eval",
                 help="Evaluate trained model on test data processed by transform.")
@@ -199,7 +199,7 @@ def train_test_input(args):
   with gzip.open(args.out, "wb") as f:
     pickle.dump(per_task_data, f)
 
-def train_model(args):
+def fit_model(args):
   """Builds model from featurized data."""
   targets = get_target_names(args.paths)
   task_types = {target: args.task_type for target in targets}

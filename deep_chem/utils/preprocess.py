@@ -11,9 +11,9 @@ from deep_chem.utils.analysis import summarize_distribution
 
 def to_arrays(train, test):
   """Turns train/test into numpy array."""
-  X_train, y_train, W_train = dataset_to_numpy(train)
-  X_test, y_test, W_test = dataset_to_numpy(test)
-  return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
+  train_ids, X_train, y_train, W_train = dataset_to_numpy(train)
+  test_ids, X_test, y_test, W_test = dataset_to_numpy(test)
+  return (train_ids, X_train, y_train, W_train), (test_ids, X_test, y_test, W_test)
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
@@ -27,10 +27,6 @@ def transform_inputs(X, input_transforms):
   for feature in range(n_features):
     feature_data = X[:, feature]
     for input_transform in input_transforms:
-      # TODO(rbharath): This code isn't really normalizing. It's doing
-      # something trickier to ensure that the binary fingerprints aren't
-      # normalized while real-valued descriptors are. Refactor/Rename this to
-      # make this distinction clearer.
       if input_transform == "normalize-and-truncate":
         if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
           mean, std = np.mean(feature_data), np.std(feature_data)
@@ -145,36 +141,32 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
-def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels", weight_positives=True):
+def dataset_to_numpy(dataset, weight_positives=True):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
-  feature_shape = np.shape(sample_datapoint[feature_endpoint])
-  
-  #n_targets = 1 # TODO(rbharath): Generalize this later
-  n_targets = len(sample_datapoint[labels_endpoint])
+  feature_shape = np.shape(sample_datapoint["fingerprint"])
+  n_targets = len(sample_datapoint["labels"])
   X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
-  for index, id in enumerate(dataset.keys()):
+  for id_ind, id in enumerate(sorted_ids):
     datapoint = dataset[id]
-    fingerprint, labels = (datapoint[feature_endpoint],
-      datapoint[labels_endpoint])
-    # TODO(rbharath): Verify that this isn't dangerous.
-    X[index] = np.reshape(fingerprint, np.shape(X[index]))
+    fingerprint, labels = (datapoint["fingerprint"],
+      datapoint["labels"])
+    X[id_ind] = np.reshape(fingerprint, np.shape(X[id_ind]))
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
-    for t_ind, target in enumerate(sorted_targets):
+    for target_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
-        y[index][t_ind] = -1
-        W[index][t_ind] = 0
+        y[id_ind][target_ind] = -1
+        W[id_ind][target_ind] = 0
       else:
-        y[index][t_ind] = labels[target]
+        y[id_ind][target_ind] = labels[target]
   if weight_positives:
     W = balance_positives(y, W)
-  return (X, y, W)
+  return (sorted_ids, X, y, W)
 
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.

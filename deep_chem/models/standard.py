@@ -2,13 +2,6 @@
 Code for processing datasets using scikit-learn.
 """
 import numpy as np
-from deep_chem.utils.analysis import results_to_csv
-from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.preprocess import dataset_to_numpy
-from deep_chem.utils.evaluate import eval_model
-from deep_chem.utils.evaluate import compute_r2_scores
-from deep_chem.utils.evaluate import compute_rms_scores
-from deep_chem.utils.evaluate import compute_roc_auc_scores
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import MultiTaskLasso 
@@ -43,7 +36,7 @@ def fit_singletask_models(per_task_data, modeltype, task_types):
   models = {}
   for index, target in enumerate(sorted(per_task_data.keys())):
     print "Building model %d" % index
-    (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
+    (_, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
         per_task_data[target])
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
@@ -74,11 +67,9 @@ def fit_singletask_models(per_task_data, modeltype, task_types):
 def fit_multitask_rf(train_data, test_data, task_types):
   """Fits a multitask RF model to provided dataset.
   """
-  (train, X_train, y_train, W_train), (test, X_train, y_train, W_train) = (
+  (_, X_train, y_train, W_train), (test, X_train, y_train, W_train) = (
       train_data, test_data) 
   model = RandomForestClassifier(n_estimators=100, n_jobs=-1,
       class_weight="auto")
   model.fit(X_train, y_train)
-  results = eval_model(test, model, task_types)
-  scores = compute_roc_auc_scores(results)
-  print "Mean AUC: %f" % np.mean(np.array(scores.values()))
+  return model

@@ -2,22 +2,12 @@
 Code for processing the Google vs-datasets using keras.
 """
 import numpy as np
-import sys
 import keras
 from keras.models import Graph
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import SGD
-from deep_chem.utils.load import load_datasets
-from deep_chem.utils.load import ensure_balanced
-from deep_chem.utils.preprocess import multitask_to_singletask
-from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import to_one_hot
-from deep_chem.utils.evaluate import eval_model
-from deep_chem.utils.evaluate import compute_r2_scores
-from deep_chem.utils.evaluate import compute_rms_scores
-from deep_chem.utils.evaluate import compute_roc_auc_scores
 
 
 def fit_multitask_mlp(per_task_data, task_types, **training_params):
@@ -36,7 +26,7 @@ def fit_multitask_mlp(per_task_data, task_types, **training_params):
   models = {}
   # Follows convention from process_datasets that the data for multitask models
   # is grouped under key "all"
-  (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
+  (_, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
       per_task_data["all"])
   models["all"] = train_multitask_model(X_train, y_train, W_train, task_types,
                                 **training_params)
@@ -59,9 +49,9 @@ def fit_singletask_mlp(per_task_data, task_types, **training_params):
   for index, target in enumerate(sorted(per_task_data.keys())):
     print "Training model %d" % index
     print "Target %s" % target
-    (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
+    (train_ids, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
         per_task_data[target])
-    print "%d compounds in Train" % len(train)
+    print "%d compounds in Train" % len(train_ids)
     print "%d compounds in Test" % len(test)
     models[target] = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)
