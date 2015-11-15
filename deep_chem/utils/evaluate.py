@@ -16,14 +16,14 @@ from sklearn.metrics import r2_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
-def compute_model_performance(per_task_data, task_types, models, modeltype,
+def compute_model_performance(test_data, task_types, models, modeltype,
     aucs=True, r2s=False, rms=False):
   """Computes statistics for model performance on test set."""
   all_results, auc_vals, r2_vals, rms_vals = {}, {}, {}, {}
-  for index, target in enumerate(sorted(per_task_data.keys())):
+  for index, target in enumerate(sorted(test_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
-    (train_ids, Xtrain, ytrain, wtrain), (test_ids, Xtest, ytest, wtest) = per_task_data[target]
+    (test_ids, Xtest, ytest, wtest) = test_data[target]
     model = models[target]
     results = eval_model(test_ids, Xtest, ytest, wtest, model, {target: task_types[target]}, 
                          modeltype=modeltype)

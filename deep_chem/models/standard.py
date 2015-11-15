@@ -13,7 +13,7 @@ from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
 from sklearn.svm import SVR
 
-def fit_singletask_models(per_task_data, modeltype, task_types):
+def fit_singletask_models(train_data, modeltype, task_types):
   """Fits singletask linear regression models to potency.
 
   Parameters
@@ -34,10 +34,9 @@ def fit_singletask_models(per_task_data, modeltype, task_types):
     None or "log". Only for regression outputs.
   """
   models = {}
-  for index, target in enumerate(sorted(per_task_data.keys())):
+  for index, target in enumerate(sorted(train_data.keys())):
     print "Building model %d" % index
-    (_, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-        per_task_data[target])
+    (_, X_train, y_train, W_train) = train_data[target]
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
           warm_start=True, max_features="sqrt")

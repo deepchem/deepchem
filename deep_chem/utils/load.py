@@ -38,7 +38,7 @@ def process_datasets(paths, input_transforms, output_transforms,
   """
   dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
       feature_types=feature_types, weight_positives=weight_positives)
-  arrays = {}
+  train_dict, test_dict = {}, {}
   if mode == "singletask":
     singletask = multitask_to_singletask(dataset)
     for target in singletask:
@@ -46,17 +46,16 @@ def process_datasets(paths, input_transforms, output_transforms,
       if len(data) == 0:
         continue
       train, test = split_dataset(dataset, splittype)
-      train_data, test_data = to_arrays(train, test)
-      arrays[target] = (train_data, test_data)
+      train_dict[target], test_dict[target] = to_arrays(train, test)
   elif mode == "multitask":
     train, test = split_dataset(dataset, splittype)
     train_data, test_data = to_arrays(train, test)
-    arrays["all"] = (train_data, test_data)
+    train_dict["all"], test_dict["all"] = train_data, test_data
   else:
     raise ValueError("Unsupported mode for process_datasets.")
-  print "Shape of Xtest"
-  print np.shape(arrays['CANVAS-BACE'][0][1])
-  return arrays
+  print "Shape of Xtrain"
+  print np.shape(train_dict['CANVAS-BACE'][1])
+  return train_dict, test_dict 
 
 
 def load_molecules(paths, feature_types=["fingerprints"]):

@@ -10,7 +10,7 @@ from keras.optimizers import SGD
 from deep_chem.utils.preprocess import to_one_hot
 
 
-def fit_multitask_mlp(per_task_data, task_types, **training_params):
+def fit_multitask_mlp(train_data, task_types, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
   Returns AUCs, R^2 scores, and RMS values.
@@ -26,13 +26,12 @@ def fit_multitask_mlp(per_task_data, task_types, **training_params):
   models = {}
   # Follows convention from process_datasets that the data for multitask models
   # is grouped under key "all"
-  (_, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-      per_task_data["all"])
+  (_, X_train, y_train, W_train) = train_data["all"]
   models["all"] = train_multitask_model(X_train, y_train, W_train, task_types,
                                 **training_params)
   return models
 
-def fit_singletask_mlp(per_task_data, task_types, **training_params):
+def fit_singletask_mlp(train_data, task_types, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras MLP.
 
@@ -46,11 +45,10 @@ def fit_singletask_mlp(per_task_data, task_types, **training_params):
     Aggregates keyword parameters to pass to train_multitask_model
   """
   models = {}
-  for index, target in enumerate(sorted(per_task_data.keys())):
+  for index, target in enumerate(sorted(train_data.keys())):
     print "Training model %d" % index
     print "Target %s" % target
-    (train_ids, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-        per_task_data[target])
+    (train_ids, X_train, y_train, W_train) = train_data[target]
     print "%d compounds in Train" % len(train_ids)
     print "%d compounds in Test" % len(test)
     models[target] = train_multitask_model(X_train, y_train, W_train,
