@@ -42,7 +42,7 @@ def transform_inputs(X, input_transforms):
     Z[:, feature] = feature_data
   return Z
 
-def transform_outputs(y, W, output_transforms, weight_positives=True):
+def transform_outputs(y, W, output_transforms):
   """Tranform the provided outputs
 
   Parameters

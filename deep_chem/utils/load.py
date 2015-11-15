@@ -36,8 +36,7 @@ def process_datasets(paths, input_transforms, output_transforms,
   seed: int
     Seed used for random splits.
   """
-  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
-      feature_types=feature_types, weight_positives=weight_positives)
+  dataset = load_datasets(paths, feature_types=feature_types)
   train_dict, test_dict = {}, {}
   if mode == "singletask":
     singletask = multitask_to_singletask(dataset)
@@ -57,6 +56,14 @@ def process_datasets(paths, input_transforms, output_transforms,
   print np.shape(train_dict['CANVAS-BACE'][1])
   return train_dict, test_dict 
 
+def transform_data(data_dict, input_transforms, output_transforms):
+  """Transforms data using specified transforms"""
+  trans_dict = {}
+  for target in data_dict:
+    data = data_dict[target]
+    trans_data = transform_data(data, input_transforms, output_transforms)
+    trans_dict[target] = trans_data
+  return trans_dict
 
 def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
@@ -195,8 +202,7 @@ def ensure_balanced(y, W):
         pos_weight += W[sample_ind, target_ind]
     assert np.isclose(pos_weight, neg_weight)
 
-def load_and_transform_dataset(paths, input_transforms, output_transforms,
-    weight_positives=True, feature_types=["fingerprints"]):
+def transform_data(data, input_transforms, output_transforms):
   """Transform data labels as specified
 
   Parameters
@@ -209,23 +215,7 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, feature_types=feature_types)
-  _, X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
-  y = transform_outputs(y, W, output_transforms,
-      weight_positives=weight_positives)
+  ids, X, y, W = data 
+  y = transform_outputs(y, W, output_transforms)
   X = transform_inputs(X, input_transforms)
-  trans_data = {}
-  sorted_ids = sorted(dataset.keys())
-  sorted_targets = sorted(output_transforms.keys())
-  for id_index, id in enumerate(sorted_ids):
-    datapoint = dataset[id]
-    labels = {}
-    for target_index, target in enumerate(sorted_targets):
-      if W[id_index][target_index] == 0:
-        labels[target] = -1
-      else:
-        labels[target] = y[id_index][target_index]
-    datapoint["labels"] = labels
-    datapoint["fingerprint"] = X[id_index]
-    trans_data[id] = datapoint 
-  return trans_data
+  return (ids, X, y, W)

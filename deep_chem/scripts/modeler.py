@@ -195,10 +195,16 @@ def train_test_input(args):
       args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
       mode=args.mode)
+  trans_train_dict = transform_data(train_dict, input_transforms, output_transforms)
+  trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
+  transforms = {"input_transforms": input_transforms,
+                "output_transform": output_transforms}
+  stored_train = {"raw": train_dict, "transformed": trans_train_dict, "transforms": transforms}
+  stored_test = {"raw": test_dict, "transformed": trans_test_dict, "transforms": transforms}
   with gzip.open(args.train_out, "wb") as f:
-    pickle.dump(train_dict, f)
+    pickle.dump(stored_train, f)
   with gzip.open(args.test_out, "wb") as f:
-    pickle.dump(test_dict, f)
+    pickle.dump(stored_test, f)
 
 def fit_model(args):
   """Builds model from featurized data."""
@@ -206,7 +212,8 @@ def fit_model(args):
   task_types = {target: args.task_type for target in targets}
 
   with gzip.open(args.saved_data) as f:
-    train_dict = pickle.load(f)
+    stored_train = pickle.load(f)
+  train_dict = stored_train["transformed"]
 
   if args.model == "singletask_deep_network":
     from deep_chem.models.deep import fit_singletask_mlp
@@ -239,7 +246,8 @@ def eval_trained_model(args):
   task_types = {target: args.task_type for target in targets}
 
   with gzip.open(args.saved_data) as f:
-    test_dict = pickle.load(f)
+    stored_test = pickle.load(f)
+  test_dict = stored_test["transformed"]
 
   results, aucs, r2s, rms = compute_model_performance(test_dict, task_types, model, args.modeltype,
     args.compute_aucs, args.compute_r2s, args.compute_rms) 
