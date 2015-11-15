@@ -74,7 +74,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
       raise ValueError("Tensorial datatype must be of shape (n_samples, N, N, N, n_channels).")
     (n_samples, axis_length, _, _, n_channels) = np.shape(X)
     X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
-  if modeltype == "keras_multitask":
+  if modeltype == "keras-graph":
     predictions = model.predict({"input": X})
     ypreds = []
     for index in range(n_targets):
@@ -86,10 +86,11 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
       ypreds = model.predict_proba(X)
     elif task_type == "regression":
       ypreds = model.predict(X)
-  elif modeltype == "keras":
+  elif modeltype == "keras-sequential":
     ypreds = model.predict(X)
   else:
     raise ValueError("Improper modeltype.")
+  ypreds = np.squeeze(ypreds)
   ypreds = np.reshape(ypreds, (len(ypreds), n_targets))
   return ypreds
 

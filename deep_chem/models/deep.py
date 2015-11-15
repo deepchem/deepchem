@@ -50,7 +50,6 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
     print "Target %s" % target
     (train_ids, X_train, y_train, W_train) = train_data[target]
     print "%d compounds in Train" % len(train_ids)
-    print "%d compounds in Test" % len(test)
     models[target] = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)
   return models

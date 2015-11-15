@@ -145,7 +145,7 @@ def parse_args(input_args=None):
   group.add_argument("--paths", nargs="+", required=1,
                       help="Paths to input datasets.")
   group.add_argument("--modeltype", required=1,
-                      choices=["sklearn", "keras"],
+                      choices=["sklearn", "keras-graph", "keras-sequential"],
                       help="Type of model to load.")
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
