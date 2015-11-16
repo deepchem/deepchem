@@ -56,15 +56,6 @@ def process_datasets(paths, input_transforms, output_transforms,
   print np.shape(train_dict['CANVAS-BACE'][1])
   return train_dict, test_dict 
 
-#def transform_data(data_dict, input_transforms, output_transforms):
-#  """Transforms data using specified transforms"""
-#  trans_dict = {}
-#  for target in data_dict:
-#    data = data_dict[target]
-#    trans_data = transform_data(data, input_transforms, output_transforms)
-#    trans_dict[target] = trans_data
-#  return trans_dict
-
 def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
 

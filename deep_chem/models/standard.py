@@ -63,11 +63,10 @@ def fit_singletask_models(train_data, modeltype, task_types):
 
 # TODO(rbharath): I believe this is broken. Update it to work with the rest of
 # the package.
-def fit_multitask_rf(train_data, test_data, task_types):
+def fit_multitask_rf(train_data, task_types):
   """Fits a multitask RF model to provided dataset.
   """
-  (_, X_train, y_train, W_train), (test, X_train, y_train, W_train) = (
-      train_data, test_data) 
+  (_, X_train, y_train, _) = train_data
   model = RandomForestClassifier(n_estimators=100, n_jobs=-1,
       class_weight="auto")
   model.fit(X_train, y_train)

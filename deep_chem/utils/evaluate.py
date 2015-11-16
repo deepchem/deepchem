@@ -26,14 +26,9 @@ def compute_model_performance(raw_test_data, test_data, task_types, models, mode
     print "Target %s" % target
     (test_ids, Xtest, ytest, wtest) = test_data[target]
     (_, _, ytest_raw, _) = raw_test_data[target]
-    print "ytest"
-    print ytest
-    print "ytest_raw"
-    print ytest_raw
     model = models[target]
     results = eval_model(test_ids, Xtest, ytest, ytest_raw, wtest, model, {target: task_types[target]}, 
                          modeltype=modeltype, output_transforms=output_transforms)
-    #print results
     all_results[target] = results[target]
     if aucs:
       auc_vals.update(compute_roc_auc_scores(results, task_types))
@@ -125,20 +120,9 @@ def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms
   ypreds = model_predictions(X, model, len(task_types),
       task_types, modeltype=modeltype)
   results = {}
-  print "eval_model()"
-  print "Ytrue"
-  print Ytrue
-  print "Ytrue_raw"
-  print Ytrue_raw
   for target_ind, target in enumerate(sorted_targets):
     ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[:, target_ind]
     ypred = undo_transform_outputs(ytrue_raw, ypred, output_transforms)
-    #ytrue_trans = undo_transform_outputs(ytrue_raw, ytrue, output_transforms)
-    print "ytrue_raw"
-    print ytrue_raw
-    #print "ytrue_trans"
-    #print ytrue_trans
-    #results[target] = (ids, np.squeeze(ytrue), np.squeeze(ypred))
     results[target] = (ids, np.squeeze(ytrue_raw), np.squeeze(ypred))
   return results
 
