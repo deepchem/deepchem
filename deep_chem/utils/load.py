@@ -53,7 +53,8 @@ def process_datasets(paths, input_transforms, output_transforms,
   else:
     raise ValueError("Unsupported mode for process_datasets.")
   print "Shape of Xtrain"
-  print np.shape(train_dict['CANVAS-BACE'][1])
+  target = train_dict.itervalues().next()
+  print np.shape(target[1])
   return train_dict, test_dict 
 
 def load_molecules(paths, feature_types=["fingerprints"]):

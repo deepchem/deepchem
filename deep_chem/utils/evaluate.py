@@ -14,13 +14,16 @@ from deep_chem.utils.preprocess import undo_transform_outputs
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
+from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import recall_score
+from sklearn.metrics import accuracy_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
 def compute_model_performance(raw_test_data, test_data, task_types, models, modeltype,
-    output_transforms, aucs=True, r2s=False, rms=False):
+    output_transforms, aucs=True, r2s=False, rms=False, recall=False, accuracy=False, mcc=False):
   """Computes statistics for model performance on test set."""
-  all_results, auc_vals, r2_vals, rms_vals = {}, {}, {}, {}
+  all_results, auc_vals, r2_vals, rms_vals, mcc_vals, recall_vals, accuracy_vals = {}, {}, {}, {}, {}, {}, {}
   for index, target in enumerate(sorted(test_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
@@ -36,6 +39,12 @@ def compute_model_performance(raw_test_data, test_data, task_types, models, mode
       r2_vals.update(compute_r2_scores(results, task_types))
     if rms:
       rms_vals.update(compute_rms_scores(results, task_types))
+    if mcc:
+      mcc_vals.update(compute_matthews_corr(results, task_types))
+    if recall:
+      recall_vals.update(compute_recall_score(results, task_types))
+    if accuracy:
+      recall_vals.update(compute_accuracy_score(results, task_types))
 
   if aucs:
     print "Mean AUC: %f" % np.mean(np.array(auc_vals.values()))
@@ -43,6 +52,13 @@ def compute_model_performance(raw_test_data, test_data, task_types, models, mode
     print "Mean R^2: %f" % np.mean(np.array(r2_vals.values()))
   if rms:
     print "Mean RMS: %f" % np.mean(np.array(rms_vals.values()))
+  if mcc:
+    print "Mean MCC: %f" % np.mean(np.array(mcc_vals.values()))
+  if recall:
+    print "Mean Recall: %f" % np.mean(np.array(recall_vals.values()))
+  if accuracy:
+    print "Mean Accuracy: %f" % np.mean(np.array(accuracy_vals.values()))
+    
   return all_results, aucs, r2s, rms
 
 def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
@@ -91,8 +107,10 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     ypreds = model.predict(X)
   else:
     raise ValueError("Improper modeltype.")
-  ypreds = np.squeeze(ypreds)
-  ypreds = np.reshape(ypreds, (len(ypreds), n_targets))
+  if type(ypreds) == np.ndarray:
+    ypreds = np.squeeze(ypreds)
+  if type(ypreds) != list:
+    ypreds = [ypreds]
   return ypreds
 
 def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms, modeltype="sklearn"):
@@ -121,7 +139,7 @@ def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms
       task_types, modeltype=modeltype)
   results = {}
   for target_ind, target in enumerate(sorted_targets):
-    ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[:, target_ind]
+    ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[target_ind]
     ypred = undo_transform_outputs(ytrue_raw, ypred, output_transforms)
     results[target] = (ids, np.squeeze(ytrue_raw), np.squeeze(ypred))
   return results
@@ -142,31 +160,6 @@ def results_to_csv(results, out, task_type="classification"):
         csvwriter.writerow([id, ytrue, yscore])
     print "Writing results on test set for target %s to %s" % (target, out)
     
-
-def compute_roc_auc_scores(results, task_types):
-  """Transforms the results dict into roc-auc-scores and prints scores.
-
-  Parameters
-  ----------
-  results: dict
-  task_types: dict 
-    dict mapping target names to output type. Each output type must be either
-    "classification" or "regression".
-  """
-  scores = {}
-  for target in results:
-    if task_types[target] != "classification":
-      continue
-    _, ytrue, yscore = results[target]
-    sample_weights = labels_to_weights(ytrue)
-    try:
-      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
-    except Exception as e:
-      warnings.warn("ROC AUC score calculation failed.")
-      score = 0.5
-    print "Target %s: AUC %f" % (target, score)
-    scores[target] = score
-  return scores
 
 def compute_r2_scores(results, task_types):
   """Transforms the results dict into R^2 values and prints them.
@@ -210,4 +203,65 @@ def compute_rms_scores(results, task_types):
     rms = np.sqrt(mean_squared_error(ytrue, yscore))
     print "Target %s: RMS %f" % (target, rms)
     scores[target] = rms 
+  return scores
+
+def compute_roc_auc_scores(results, task_types):
+  """Transforms the results dict into roc-auc-scores and prints scores.
+
+  Parameters
+  ----------
+  results: dict
+  task_types: dict 
+    dict mapping target names to output type. Each output type must be either
+    "classification" or "regression".
+  """
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, yscore = results[target]
+    sample_weights = labels_to_weights(ytrue)
+    try:
+      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    except Exception as e:
+      warnings.warn("ROC AUC score calculation failed.")
+      score = 0.5
+    print "Target %s: AUC %f" % (target, score)
+    scores[target] = score
+  return scores
+
+def compute_matthews_corr(results, task_types):
+  """Computes Matthews Correlation Coefficients."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    mcc = matthews_corrcoef(ytrue, np.around(ypred[:,1]))
+    print "Target %s: MCC %f" % (target, mcc)
+    scores[target] = mcc
+  return scores
+
+def compute_recall_score(results, task_types):
+  """Computes recall score."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    recall = recall_score(ytrue, np.around(ypred[:, 1]))
+    print "Target %s: Recall %f" % (target, recall)
+    scores[target] = recall 
+  return scores
+
+def compute_accuracy_score(results, task_types):
+  """Computes accuracy score."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    accuracy = accuracy_score(ytrue, np.around(ypred[:, 1]))
+    print "Target %s: Accuracy %f" % (target, accuracy)
+    scores[target] = accuracy 
   return scores

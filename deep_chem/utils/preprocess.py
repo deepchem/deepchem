@@ -44,7 +44,6 @@ def transform_inputs(X, input_transforms):
     Z[:, feature] = feature_data
   return Z
 
-
 def undo_normalization(y_orig, y_pred):
   """Undo the applied normalization transform."""
   old_mean = np.mean(y_orig)
@@ -53,7 +52,9 @@ def undo_normalization(y_orig, y_pred):
 
 def undo_transform_outputs(y_raw, y_pred, output_transforms):
   """Undo transforms on y_pred, W_pred."""
-  if output_transforms == ["log"]:
+  if output_transforms == []:
+    return y_pred
+  elif output_transforms == ["log"]:
     return np.exp(y_pred)
   elif output_transforms == ["normalize"]:
     return undo_normalization(y_raw, y_pred)

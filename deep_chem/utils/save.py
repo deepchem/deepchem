@@ -65,8 +65,8 @@ def load_keras_model(filename):
     targets = pickle.load(f)
   models = {}
   for target in targets:
-    json_filename = filename + ".json"
-    h5_filename = filename + ".h5"
+    json_filename = "%s-%s.%s" % (filename, target, "json")
+    h5_filename = "%s-%s.%s" % (filename, target, "h5")
   
     with open(json_filename) as f:
       model = model_from_json(f.read())
