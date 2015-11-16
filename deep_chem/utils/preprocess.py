@@ -49,15 +49,10 @@ def undo_normalization(y_orig, y_pred):
   """Undo the applied normalization transform."""
   old_mean = np.mean(y_orig)
   old_std = np.std(y_orig)
-  return y_orig * old_std + old_mean
+  return y_pred * old_std + old_mean
 
 def undo_transform_outputs(y_raw, y_pred, output_transforms):
   """Undo transforms on y_pred, W_pred."""
-  print "undo_transform_outputs()"
-  print "output_transforms"
-  print output_transforms
-  print "y_raw"
-  print y_raw
   if output_transforms == ["log"]:
     return np.exp(y_pred)
   elif output_transforms == ["normalize"]:
