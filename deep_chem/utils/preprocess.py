@@ -17,6 +17,8 @@ def to_arrays(train, test):
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
+  # Copy X up front to have non-destructive updates.
+  X = np.copy(X)
   if len(np.shape(X)) == 2:
     (n_samples, n_features) = np.shape(X)
   else:
@@ -42,6 +44,29 @@ def transform_inputs(X, input_transforms):
     Z[:, feature] = feature_data
   return Z
 
+
+def undo_normalization(y_orig, y_pred):
+  """Undo the applied normalization transform."""
+  old_mean = np.mean(y_orig)
+  old_std = np.std(y_orig)
+  return y_orig * old_std + old_mean
+
+def undo_transform_outputs(y_raw, y_pred, output_transforms):
+  """Undo transforms on y_pred, W_pred."""
+  print "undo_transform_outputs()"
+  print "output_transforms"
+  print output_transforms
+  print "y_raw"
+  print y_raw
+  if output_transforms == ["log"]:
+    return np.exp(y_pred)
+  elif output_transforms == ["normalize"]:
+    return undo_normalization(y_raw, y_pred)
+  elif output_transforms == ["log", "normalize"]:
+    return np.exp(undo_normalization(np.log(y_raw), y_pred))
+  else:
+    raise ValueError("Unsupported output transforms.")
+
 def transform_outputs(y, W, output_transforms):
   """Tranform the provided outputs
 
@@ -51,26 +76,21 @@ def transform_outputs(y, W, output_transforms):
     Labels
   W: ndarray
     Weights 
-  output_transforms: dict 
-    dict mapping target names to list of label transforms. Each list
-    element must be "1+max-val", "log", "normalize". The transformations are
-    performed in the order specified. An empty list
+  output_transforms: list 
+    List of specified transforms (must be "log", "normalize"). The
+    transformations are performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
   """
-  sorted_targets = sorted(output_transforms.keys())
-  endpoints = sorted_targets
-  transforms = output_transforms.copy()
-  for task, target in enumerate(endpoints):
-    output_transforms = transforms[target]
+  # Copy y up front so we have non-destructive updates
+  y = np.copy(y)
+  (_, n_targets) = np.shape(y)
+  for task in range(n_targets):
     for output_transform in output_transforms:
       if output_transform == "log":
         y[:, task] = np.log(y[:, task])
-      elif output_transform == "1+max-val":
-        maxval = np.amax(y[:, task])
-        y[:, task] = 1 + maxval - y[:, task]
       elif output_transform == "normalize":
         task_data = y[:, task]
-        if task < len(sorted_targets):
+        if task < n_targets:
           # Only elements of y with nonzero weight in W are true labels.
           nonzero = (W[:, task] != 0)
         else:

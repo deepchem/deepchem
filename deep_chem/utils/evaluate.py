@@ -10,23 +10,29 @@ import numpy as np
 import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
+from deep_chem.utils.preprocess import undo_transform_outputs
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
-def compute_model_performance(test_data, task_types, models, modeltype,
-    aucs=True, r2s=False, rms=False):
+def compute_model_performance(raw_test_data, test_data, task_types, models, modeltype,
+    output_transforms, aucs=True, r2s=False, rms=False):
   """Computes statistics for model performance on test set."""
   all_results, auc_vals, r2_vals, rms_vals = {}, {}, {}, {}
   for index, target in enumerate(sorted(test_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
     (test_ids, Xtest, ytest, wtest) = test_data[target]
+    (_, _, ytest_raw, _) = raw_test_data[target]
+    print "ytest"
+    print ytest
+    print "ytest_raw"
+    print ytest_raw
     model = models[target]
-    results = eval_model(test_ids, Xtest, ytest, wtest, model, {target: task_types[target]}, 
-                         modeltype=modeltype)
+    results = eval_model(test_ids, Xtest, ytest, ytest_raw, wtest, model, {target: task_types[target]}, 
+                         modeltype=modeltype, output_transforms=output_transforms)
     #print results
     all_results[target] = results[target]
     if aucs:
@@ -94,7 +100,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   ypreds = np.reshape(ypreds, (len(ypreds), n_targets))
   return ypreds
 
-def eval_model(ids, X, Ytrue, W, model, task_types, modeltype="sklearn"):
+def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
@@ -119,8 +125,19 @@ def eval_model(ids, X, Ytrue, W, model, task_types, modeltype="sklearn"):
   ypreds = model_predictions(X, model, len(task_types),
       task_types, modeltype=modeltype)
   results = {}
+  print "eval_model()"
+  print "Ytrue"
+  print Ytrue
+  print "Ytrue_raw"
+  print Ytrue_raw
   for target_ind, target in enumerate(sorted_targets):
-    ytrue, ypred = Ytrue[:, target_ind], ypreds[:, target_ind]
+    ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[:, target_ind]
+    #ypred = undo_transform_outputs(ytrue, ypred, output_transforms)
+    ytrue_trans = undo_transform_outputs(ytrue_raw, ytrue, output_transforms)
+    print "ytrue_raw"
+    print ytrue_raw
+    print "ytrue_trans"
+    print ytrue_trans
     results[target] = (ids, np.squeeze(ytrue), np.squeeze(ypred))
   return results
 
@@ -147,8 +164,6 @@ def compute_roc_auc_scores(results, task_types):
   Parameters
   ----------
   results: dict
-    A dictionary of type produced by eval_model which maps target-names to
-    pairs of lists (ytrue, yscore).
   task_types: dict 
     dict mapping target names to output type. Each output type must be either
     "classification" or "regression".

@@ -56,14 +56,14 @@ def process_datasets(paths, input_transforms, output_transforms,
   print np.shape(train_dict['CANVAS-BACE'][1])
   return train_dict, test_dict 
 
-def transform_data(data_dict, input_transforms, output_transforms):
-  """Transforms data using specified transforms"""
-  trans_dict = {}
-  for target in data_dict:
-    data = data_dict[target]
-    trans_data = transform_data(data, input_transforms, output_transforms)
-    trans_dict[target] = trans_data
-  return trans_dict
+#def transform_data(data_dict, input_transforms, output_transforms):
+#  """Transforms data using specified transforms"""
+#  trans_dict = {}
+#  for target in data_dict:
+#    data = data_dict[target]
+#    trans_data = transform_data(data, input_transforms, output_transforms)
+#    trans_dict[target] = trans_data
+#  return trans_dict
 
 def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
@@ -215,7 +215,10 @@ def transform_data(data, input_transforms, output_transforms):
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  ids, X, y, W = data 
-  y = transform_outputs(y, W, output_transforms)
-  X = transform_inputs(X, input_transforms)
-  return (ids, X, y, W)
+  trans_dict = {}
+  for target in data:
+    ids, X, y, W = data[target]
+    y = transform_outputs(y, W, output_transforms)
+    X = transform_inputs(X, input_transforms)
+    trans_dict[target] = (ids, X, y, W)
+  return trans_dict

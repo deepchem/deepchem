@@ -51,7 +51,7 @@ def save_keras_model(models, filename):
     json_string = model.to_json()
     with open(json_filename, "wb") as f:
       f.write(json_string)
-    model.save_weights(h5_filename)
+    model.save_weights(h5_filename, overwrite=True)
 
 def load_keras_model(filename):
   """Loads keras model from disk.
