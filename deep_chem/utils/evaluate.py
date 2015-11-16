@@ -132,13 +132,14 @@ def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms
   print Ytrue_raw
   for target_ind, target in enumerate(sorted_targets):
     ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[:, target_ind]
-    #ypred = undo_transform_outputs(ytrue, ypred, output_transforms)
-    ytrue_trans = undo_transform_outputs(ytrue_raw, ytrue, output_transforms)
+    ypred = undo_transform_outputs(ytrue_raw, ypred, output_transforms)
+    #ytrue_trans = undo_transform_outputs(ytrue_raw, ytrue, output_transforms)
     print "ytrue_raw"
     print ytrue_raw
-    print "ytrue_trans"
-    print ytrue_trans
-    results[target] = (ids, np.squeeze(ytrue), np.squeeze(ypred))
+    #print "ytrue_trans"
+    #print ytrue_trans
+    #results[target] = (ids, np.squeeze(ytrue), np.squeeze(ypred))
+    results[target] = (ids, np.squeeze(ytrue_raw), np.squeeze(ypred))
   return results
 
 def results_to_csv(results, out, task_type="classification"):
