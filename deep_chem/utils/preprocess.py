@@ -9,32 +9,27 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def to_arrays(train, test, datatype):
+def to_arrays(train, test):
   """Turns train/test into numpy array."""
-  if datatype == "vector":
-    X_train, y_train, W_train = dataset_to_numpy(train)
-    X_test, y_test, W_test = dataset_to_numpy(test)
-  elif datatype == "tensor":
-    X_train, y_train, W_train = tensor_dataset_to_numpy(train)
-    X_test, y_test, W_test = tensor_dataset_to_numpy(test)
-  else:
-    raise ValueError("Improper datatype.")
-  return (train, X_train, y_train, W_train), (test, X_test, y_test, W_test)
+  train_ids, X_train, y_train, W_train = dataset_to_numpy(train)
+  test_ids, X_test, y_test, W_test = dataset_to_numpy(test)
+  return (train_ids, X_train, y_train, W_train), (test_ids, X_test, y_test, W_test)
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
-  (n_samples, n_features) = np.shape(X)
+  # Copy X up front to have non-destructive updates.
+  X = np.copy(X)
+  if len(np.shape(X)) == 2:
+    (n_samples, n_features) = np.shape(X)
+  else:
+    raise ValueError("Only know how to transform vectorial data.")
   Z = np.zeros(np.shape(X))
   # Meant to be done after normalize
-  trunc = 10
+  trunc = 5
   for feature in range(n_features):
     feature_data = X[:, feature]
     for input_transform in input_transforms:
-      # TODO(rbharath): This code isn't really normalizing. It's doing
-      # something trickier to ensure that the binary fingerprints aren't
-      # normalized while real-valued descriptors are. Refactor/Rename this to
-      # make this distinction clearer.
-      if input_transform == "normalize":
+      if input_transform == "normalize-and-truncate":
         if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
           mean, std = np.mean(feature_data), np.std(feature_data)
           feature_data = feature_data - mean 
@@ -49,7 +44,26 @@ def transform_inputs(X, input_transforms):
     Z[:, feature] = feature_data
   return Z
 
-def transform_outputs(y, W, output_transforms, weight_positives=True):
+def undo_normalization(y_orig, y_pred):
+  """Undo the applied normalization transform."""
+  old_mean = np.mean(y_orig)
+  old_std = np.std(y_orig)
+  return y_pred * old_std + old_mean
+
+def undo_transform_outputs(y_raw, y_pred, output_transforms):
+  """Undo transforms on y_pred, W_pred."""
+  if output_transforms == []:
+    return y_pred
+  elif output_transforms == ["log"]:
+    return np.exp(y_pred)
+  elif output_transforms == ["normalize"]:
+    return undo_normalization(y_raw, y_pred)
+  elif output_transforms == ["log", "normalize"]:
+    return np.exp(undo_normalization(np.log(y_raw), y_pred))
+  else:
+    raise ValueError("Unsupported output transforms.")
+
+def transform_outputs(y, W, output_transforms):
   """Tranform the provided outputs
 
   Parameters
@@ -58,26 +72,21 @@ def transform_outputs(y, W, output_transforms, weight_positives=True):
     Labels
   W: ndarray
     Weights 
-  output_transforms: dict 
-    dict mapping target names to list of label transforms. Each list
-    element must be "1+max-val", "log", "normalize". The transformations are
-    performed in the order specified. An empty list
+  output_transforms: list 
+    List of specified transforms (must be "log", "normalize"). The
+    transformations are performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
   """
-  sorted_targets = sorted(output_transforms.keys())
-  endpoints = sorted_targets
-  transforms = output_transforms.copy()
-  for task, target in enumerate(endpoints):
-    output_transforms = transforms[target]
+  # Copy y up front so we have non-destructive updates
+  y = np.copy(y)
+  (_, n_targets) = np.shape(y)
+  for task in range(n_targets):
     for output_transform in output_transforms:
       if output_transform == "log":
         y[:, task] = np.log(y[:, task])
-      elif output_transform == "1+max-val":
-        maxval = np.amax(y[:, task])
-        y[:, task] = 1 + maxval - y[:, task]
       elif output_transform == "normalize":
         task_data = y[:, task]
-        if task < len(sorted_targets):
+        if task < n_targets:
           # Only elements of y with nonzero weight in W are true labels.
           nonzero = (W[:, task] != 0)
         else:
@@ -148,70 +157,32 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
-def tensor_dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels"):
+def dataset_to_numpy(dataset, weight_positives=True):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
-  feature_shape = np.shape(sample_datapoint[feature_endpoint])
-  n_targets = 1 # TODO(rbharath): Generalize this later
-  X = np.zeros((n_samples,) + feature_shape)
+  feature_shape = np.shape(sample_datapoint["fingerprint"])
+  n_targets = len(sample_datapoint["labels"])
+  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
-  for index, smiles in enumerate(dataset.keys()):
-    datapoint = dataset[smiles]
-    fingerprint, labels = (datapoint[feature_endpoint],
-      datapoint[labels_endpoint])
-    X[index] = fingerprint
-    # TODO(rbharath): This is only specialized to single task.
-    # need to generalize to handle multi-task
-    y[index] = labels[labels.keys()[0]]
-  return (X, y, W)
-
-def dataset_to_numpy(dataset, feature_endpoint="fingerprint",
-    labels_endpoint="labels", weight_positives=True):
-  """Transforms a loaded dataset into numpy arrays (X, y).
-
-  Transforms provided dict into feature matrix X (of dimensions [n_samples,
-  n_features]) and label matrix y (of dimensions [n_samples,
-  n_targets+n_desc]), where n_targets is the number of assays in the
-  provided datset and n_desc is the number of computed descriptors we'd
-  like to predict.
-
-  Note that this function transforms missing data into negative examples
-  (this is relatively safe since the ratio of positive to negative examples
-  is on the order 1/100)
-
-  Parameters
-  ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
-  """
-  n_samples = len(dataset.keys())
-  sample_datapoint = dataset.itervalues().next()
-  n_features = np.size(sample_datapoint[feature_endpoint])
-  n_targets = len(sample_datapoint[labels_endpoint])
-  X = np.zeros((n_samples, n_features))
-  y = np.zeros((n_samples, n_targets))
-  W = np.ones((n_samples, n_targets))
-  sorted_smiles = sorted(dataset.keys())
-  for index, smiles in enumerate(sorted_smiles):
-    datapoint = dataset[smiles] 
-    fingerprint, labels  = (datapoint[feature_endpoint],
-        datapoint[labels_endpoint])
-    X[index] = np.array(fingerprint).flatten()
+  for id_ind, id in enumerate(sorted_ids):
+    datapoint = dataset[id]
+    fingerprint, labels = (datapoint["fingerprint"],
+      datapoint["labels"])
+    X[id_ind] = np.reshape(fingerprint, np.shape(X[id_ind]))
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
-    for t_ind, target in enumerate(sorted_targets):
+    for target_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
-        y[index][t_ind] = -1
-        W[index][t_ind] = 0
+        y[id_ind][target_ind] = -1
+        W[id_ind][target_ind] = 0
       else:
-        y[index][t_ind] = labels[target]
+        y[id_ind][target_ind] = labels[target]
   if weight_positives:
     W = balance_positives(y, W)
-  return X, y, W
+  return (sorted_ids, X, y, W)
 
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.
@@ -230,9 +201,9 @@ def multitask_to_singletask(dataset):
   sorted_targets = sorted(labels.keys())
   singletask = {target: {} for target in sorted_targets}
   # Populate the singletask datastructures
-  sorted_smiles = sorted(dataset.keys())
-  for index, smiles in enumerate(sorted_smiles):
-    datapoint = dataset[smiles]
+  sorted_ids = sorted(dataset.keys())
+  for index, id in enumerate(sorted_ids):
+    datapoint = dataset[id]
     labels = datapoint["labels"]
     for t_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
@@ -240,7 +211,7 @@ def multitask_to_singletask(dataset):
       else:
         datapoint_copy = datapoint.copy()
         datapoint_copy["labels"] = {target: labels[target]}
-        singletask[target][smiles] = datapoint_copy 
+        singletask[target][id] = datapoint_copy 
   return singletask
 
 def split_dataset(dataset, splittype, seed=None):
@@ -258,16 +229,13 @@ def split_dataset(dataset, splittype, seed=None):
 def train_test_specified_split(dataset):
   """Split provided data due to splits in origin data."""
   train, test = {}, {}
-  for smiles, datapoint in dataset.iteritems():
+  for id, datapoint in dataset.iteritems():
     if "split" not in datapoint:
       raise ValueError("Missing required split information.")
-    if datapoint["split"].lower() == "train" or datapoint["split"].lower() == "valid":
-      train[smiles] = datapoint
-    # TODO(rbharath): Add support for validation sets.
+    if datapoint["split"].lower() == "train":
+      train[id] = datapoint
     elif datapoint["split"].lower() == "test":
-      test[smiles] = datapoint
-    else:
-      raise ValueError("Improper split specified.")
+      test[id] = datapoint
   return train, test
 
 def train_test_random_split(dataset, frac_train=.8, seed=None):
@@ -339,13 +307,13 @@ def scaffold_separate(dataset):
     A dictionary of type produced by load_datasets. 
   """
   scaffolds = {}
-  for smiles in dataset:
-    datapoint = dataset[smiles]
+  for id in dataset:
+    datapoint = dataset[id]
     scaffold = datapoint["scaffold"]
     if scaffold not in scaffolds:
-      scaffolds[scaffold] = [smiles]
+      scaffolds[scaffold] = [id]
     else:
-      scaffolds[scaffold].append(smiles)
+      scaffolds[scaffold].append(id)
   # Sort from largest to smallest scaffold sets 
   return sorted(scaffolds.items(), key=lambda x: -len(x[1]))
 

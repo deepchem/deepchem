@@ -2,26 +2,15 @@
 Code for processing the Google vs-datasets using keras.
 """
 import numpy as np
-import sys
 import keras
 from keras.models import Graph
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation
 from keras.optimizers import SGD
-from deep_chem.utils.load import load_datasets
-from deep_chem.utils.load import ensure_balanced
-from deep_chem.utils.preprocess import multitask_to_singletask
-from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.preprocess import dataset_to_numpy
 from deep_chem.utils.preprocess import to_one_hot
-from deep_chem.utils.evaluate import eval_model
-from deep_chem.utils.evaluate import compute_r2_scores
-from deep_chem.utils.evaluate import compute_rms_scores
-from deep_chem.utils.evaluate import compute_roc_auc_scores
-from deep_chem.utils.load import load_and_transform_dataset
 
 
-def fit_multitask_mlp(train_data, test_data, task_types, **training_params):
+def fit_multitask_mlp(train_data, task_types, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
   Returns AUCs, R^2 scores, and RMS values.
@@ -34,22 +23,15 @@ def fit_multitask_mlp(train_data, test_data, task_types, **training_params):
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
-  (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-      train_data, test_data)
-  model = train_multitask_model(X_train, y_train, W_train, task_types,
+  models = {}
+  # Follows convention from process_datasets that the data for multitask models
+  # is grouped under key "all"
+  (_, X_train, y_train, W_train) = train_data["all"]
+  models["all"] = train_multitask_model(X_train, y_train, W_train, task_types,
                                 **training_params)
-  results = eval_model(test, model, task_types,
-      modeltype="keras_multitask")
-  local_task_types = task_types.copy()
-  aucs = compute_roc_auc_scores(results, local_task_types)
-  if aucs:
-    print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
-  r2s = compute_r2_scores(results, local_task_types)
-  if r2s:
-    print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  return results
+  return models
 
-def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_params):
+def fit_singletask_mlp(train_data, task_types, **training_params):
   """
   Perform stochastic gradient descent optimization for a keras MLP.
 
@@ -62,42 +44,15 @@ def fit_singletask_mlp(per_task_data, task_types, num_to_train=None, **training_
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
   """
-  ret_vals = {}
-  aucs, r2s, rms = {}, {}, {}
-  sorted_targets = sorted(per_task_data.keys())
-  if num_to_train:
-    sorted_targets = sorted_targets[:num_to_train]
-  all_results = {}
-  for index, target in enumerate(sorted_targets):
+  models = {}
+  for index, target in enumerate(sorted(train_data.keys())):
     print "Training model %d" % index
     print "Target %s" % target
-    (train, X_train, y_train, W_train), (test, X_test, y_test, W_test) = (
-        per_task_data[target])
-    print "len(train)"
-    print len(train)
-    print "len(test)"
-    print len(test)
-    model = train_multitask_model(X_train, y_train, W_train,
+    (train_ids, X_train, y_train, W_train) = train_data[target]
+    print "%d compounds in Train" % len(train_ids)
+    models[target] = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)
-    results = eval_model(test, model, {target: task_types[target]}, 
-                         # We run singletask models as special cases of
-                         # multitask.
-                         modeltype="keras_multitask")
-    all_results[target] = results[target]
-    target_aucs = compute_roc_auc_scores(results, task_types)
-    target_r2s = compute_r2_scores(results, task_types)
-    target_rms = compute_rms_scores(results, task_types)
-
-    aucs.update(target_aucs)
-    r2s.update(target_r2s)
-    rms.update(target_rms)
-  if aucs:
-    print aucs
-    print "Mean AUC: %f" % np.mean(np.array(aucs.values()))
-  if r2s:
-    print r2s
-    print "Mean R^2: %f" % np.mean(np.array(r2s.values()))
-  return all_results
+  return models
 
 def train_multitask_model(X, y, W, task_types,
   learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True, activation="relu",

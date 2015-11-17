@@ -9,27 +9,70 @@ import csv
 import numpy as np
 import warnings
 from deep_chem.utils.preprocess import dataset_to_numpy
-from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.preprocess import labels_to_weights
+from deep_chem.utils.preprocess import undo_transform_outputs
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
+from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import recall_score
+from sklearn.metrics import accuracy_score
 from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 
-def model_predictions(test_set, model, n_targets, task_types,
-    modeltype="sklearn", mode="regular"):
+def compute_model_performance(raw_test_data, test_data, task_types, models, modeltype,
+    output_transforms, aucs=True, r2s=False, rms=False, recall=False, accuracy=False, mcc=False):
+  """Computes statistics for model performance on test set."""
+  all_results, auc_vals, r2_vals, rms_vals, mcc_vals, recall_vals, accuracy_vals = {}, {}, {}, {}, {}, {}, {}
+  for index, target in enumerate(sorted(test_data.keys())):
+    print "Evaluating model %d" % index
+    print "Target %s" % target
+    (test_ids, Xtest, ytest, wtest) = test_data[target]
+    (_, _, ytest_raw, _) = raw_test_data[target]
+    model = models[target]
+    results = eval_model(test_ids, Xtest, ytest, ytest_raw, wtest, model, {target: task_types[target]}, 
+                         modeltype=modeltype, output_transforms=output_transforms)
+    all_results[target] = results[target]
+    if aucs:
+      auc_vals.update(compute_roc_auc_scores(results, task_types))
+    if r2s: 
+      r2_vals.update(compute_r2_scores(results, task_types))
+    if rms:
+      rms_vals.update(compute_rms_scores(results, task_types))
+    if mcc:
+      mcc_vals.update(compute_matthews_corr(results, task_types))
+    if recall:
+      recall_vals.update(compute_recall_score(results, task_types))
+    if accuracy:
+      recall_vals.update(compute_accuracy_score(results, task_types))
+
+  if aucs:
+    print "Mean AUC: %f" % np.mean(np.array(auc_vals.values()))
+  if r2s:
+    print "Mean R^2: %f" % np.mean(np.array(r2_vals.values()))
+  if rms:
+    print "Mean RMS: %f" % np.mean(np.array(rms_vals.values()))
+  if mcc:
+    print "Mean MCC: %f" % np.mean(np.array(mcc_vals.values()))
+  if recall:
+    print "Mean Recall: %f" % np.mean(np.array(recall_vals.values()))
+  if accuracy:
+    print "Mean Accuracy: %f" % np.mean(np.array(accuracy_vals.values()))
+    
+  return all_results, aucs, r2s, rms
+
+def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   """Obtains predictions of provided model on test_set.
 
-  Returns a list of per-task predictions.
+  Returns an ndarray of shape (n_samples, n_targets) 
 
   TODO(rbharath): This function uses n_targets instead of
   task_transforms like everything else.
 
   Parameters
   ----------
-  test_set: dict 
-    A dictionary of type produced by load_datasets. Contains the test-set.
+  X: numpy.ndarray 
+    Test set data. 
   model: model.
     A trained scikit-learn or keras model.
   n_targets: int
@@ -41,16 +84,14 @@ def model_predictions(test_set, model, n_targets, task_types,
     Either sklearn, keras, or keras_multitask
   """
   # Extract features for test set and make preds
-  if mode == "regular":
-    X, _, _ = dataset_to_numpy(test_set)
-  elif mode == "tensor":
-    X, _, _ = tensor_dataset_to_numpy(test_set)
+  # TODO(rbharath): This change in shape should not(!) be handled here. Make
+  # an upstream change so the evaluator doesn't have to worry about this.
+  if len(np.shape(X)) > 2:  # Dealing with 3D data
+    if len(np.shape(X)) != 5:
+      raise ValueError("Tensorial datatype must be of shape (n_samples, N, N, N, n_channels).")
     (n_samples, axis_length, _, _, n_channels) = np.shape(X)
-    # TODO(rbharath): Modify the featurization so that it matches desired shaped. 
     X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
-  else:
-    raise ValueError("Improper mode: " + str(mode))
-  if modeltype == "keras_multitask":
+  if modeltype == "keras-graph":
     predictions = model.predict({"input": X})
     ypreds = []
     for index in range(n_targets):
@@ -62,82 +103,24 @@ def model_predictions(test_set, model, n_targets, task_types,
       ypreds = model.predict_proba(X)
     elif task_type == "regression":
       ypreds = model.predict(X)
-  elif modeltype == "keras":
+  elif modeltype == "keras-sequential":
     ypreds = model.predict(X)
   else:
     raise ValueError("Improper modeltype.")
-  # Handle the edge case for singletask. 
+  if type(ypreds) == np.ndarray:
+    ypreds = np.squeeze(ypreds)
   if type(ypreds) != list:
     ypreds = [ypreds]
   return ypreds
 
-def size_eval_model(test_set, model, task_types, modeltype="sklearn"):
-  """Split test set based on size of molecule."""
-  weights = {}
-  for smiles in test_set:
-    weights[smiles] = ExactMolWt(Chem.MolFromSmiles(smiles))
-  #print weights
-  weight_arr = np.array(weights.values())
-  print "mean: " + str(np.mean(weight_arr))
-  print "std: " + str(np.std(weight_arr))
-  print "max: " + str(np.amax(weight_arr))
-  print "min: " + str(np.amin(weight_arr))
-  buckets = {250: {}, 500: {}, 750: {}, 1000: {}, 1250: {}, 1500: {}, 1750: {}, 2000: {}, 2250: {}, 2500: {}, 2750: {}}
-  buckets_to_labels = {250: "0-250", 500: "250-500", 750: "500-750", 1000: "750-1000", 1250: "1000-1250", 1500: "1250-1500", 1750: "1500-1750", 2000: "1750-2000", 2250: "2000-2250", 2500: "2250-2500", 2750: "2500-2750"}
-  for smiles in test_set:
-    weight = weights[smiles]
-    if weight < 250:
-      buckets[250][smiles] = test_set[smiles]
-    elif weight < 500:
-      buckets[500][smiles] = test_set[smiles]
-    elif weight < 750:
-      buckets[750][smiles] = test_set[smiles]
-    elif weight < 1000:
-      buckets[1000][smiles] = test_set[smiles]
-    elif weight < 1250:
-      buckets[1250][smiles] = test_set[smiles]
-    elif weight < 1500:
-      buckets[1500][smiles] = test_set[smiles]
-    elif weight < 1750:
-      buckets[1750][smiles] = test_set[smiles]
-    elif weight < 2000:
-      buckets[2000][smiles] = test_set[smiles]
-    elif weight < 2250:
-      buckets[2250][smiles] = test_set[smiles]
-    elif weight < 2500:
-      buckets[2500][smiles] = test_set[smiles]
-    elif weight < 2750:
-      buckets[2750][smiles] = test_set[smiles]
-    else:
-      raise ValueError("High Weight: " + str(weight))
-  for weight_class in sorted(buckets.keys()):
-    test_bucket = buckets[weight_class]
-    if len(test_bucket) == 0:
-      continue
-    print "Evaluating model for %s dalton molecules" % buckets_to_labels[weight_class]
-    print "%d compounds in bucket" % len(test_bucket)
-    results = eval_model(test_bucket, model, task_types, modeltype=modeltype)
-
-    target_r2s = compute_r2_scores(results, task_types)
-    target_rms = compute_rms_scores(results, task_types)
-    print "R^2: " + str(target_r2s)
-    print "RMS: " + str(target_rms)
-  
-  print "Performing Global Evaluation"
-  results = eval_model(test_set, model, task_types, modeltype=modeltype)
-  target_r2s = compute_r2_scores(results, task_types)
-  target_rms = compute_rms_scores(results, task_types)
-  print "R^2: " + str(target_r2s)
-  print "RMS: " + str(target_rms)
-
-  
-def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular"):
+def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types, output_transforms, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
   Returns a dict which maps target-names to pairs of np.ndarrays (ytrue,
   yscore) of true labels vs. predict
 
-  TODO(rbharath): This function is too complex. Refactor and simplify.
+  # TODO(rbharath): Multitask support is now broken. Need to use weight matrix
+  # W to get rid of missing data entries for multitask data.
 
   Parameters
   ----------
@@ -152,92 +135,31 @@ def eval_model(test_set, model, task_types, modeltype="sklearn", mode="regular")
     Either sklearn, keras, or keras_multitask
   """
   sorted_targets = sorted(task_types.keys())
-  local_task_types = task_types.copy()
-  endpoints = sorted_targets
-  ypreds = model_predictions(test_set, model, len(sorted_targets),
-      local_task_types, modeltype=modeltype, mode=mode)
+  ypreds = model_predictions(X, model, len(task_types),
+      task_types, modeltype=modeltype)
   results = {}
-  for target in endpoints:
-    results[target] = ([], [], [])  # (smiles, ytrue, yscore)
-  # Iterate through test set data points.
-  for index, smiles in enumerate(sorted(test_set.keys())):
-    datapoint = test_set[smiles]
-    labels = datapoint["labels"]
-    for t_ind, target in enumerate(endpoints):
-      task_type = local_task_types[target]
-      if (task_type == "classification"
-        and target in sorted_targets
-        and labels[target] == -1):
-        continue
-      else:
-        mol_smiles, ytrue, yscore = results[target]
-        mol_smiles.append(smiles)
-        if task_type == "classification":
-          if labels[target] == 0:
-            ytrue.append(0)
-          elif labels[target] == 1:
-            ytrue.append(1)
-          else:
-            raise ValueError("Labels must be 0/1.")
-        elif target in sorted_targets and task_type == "regression":
-          ytrue.append(labels[target])
-        elif target not in sorted_targets and task_type == "regression":
-          descriptors = datapoint["descriptors"]
-          # The "target" for descriptors is simply the index in the
-          # descriptor vector.
-          ytrue.append(descriptors[int(target)])
-        else:
-          raise ValueError("task_type must be classification or regression.")
-        yscore.append(ypreds[t_ind][index])
-  for target in endpoints:
-    mol_smiles, ytrue, yscore = results[target]
-    results[target] = (mol_smiles, np.array(ytrue), np.array(yscore))
+  for target_ind, target in enumerate(sorted_targets):
+    ytrue_raw, ytrue, ypred = Ytrue_raw[:, target_ind], Ytrue[:, target_ind], ypreds[target_ind]
+    ypred = undo_transform_outputs(ytrue_raw, ypred, output_transforms)
+    results[target] = (ids, np.squeeze(ytrue_raw), np.squeeze(ypred))
   return results
 
 def results_to_csv(results, out, task_type="classification"):
   """Writes results as CSV to out."""
   for target in results:
-    out_file = "%s-%s.csv" % (out, target)
-    mol_smiles, ytrues, yscores= results[target]
+    mol_ids, ytrues, yscores= results[target]
     if task_type == "classification":
       yscores = np.around(yscores[:,1]).astype(int)
     elif task_type == "regression":
       if type(yscores[0]) == np.ndarray:
         yscores = yscores[:,0]
-    with open(out_file, "wb") as csvfile:
+    with open(out, "wb") as csvfile:
       csvwriter = csv.writer(csvfile, delimiter="\t")
-      csvwriter.writerow(["Smiles", "True", "Model-Prediction"])
-      for smiles, ytrue, yscore in zip(mol_smiles, ytrues, yscores):
-        csvwriter.writerow([smiles, ytrue, yscore])
-    print "Writing results on test set for target %s to %s" % (target, out_file)
+      csvwriter.writerow(["Ids", "True", "Model-Prediction"])
+      for id, ytrue, yscore in zip(mol_ids, ytrues, yscores):
+        csvwriter.writerow([id, ytrue, yscore])
+    print "Writing results on test set for target %s to %s" % (target, out)
     
-
-def compute_roc_auc_scores(results, task_types):
-  """Transforms the results dict into roc-auc-scores and prints scores.
-
-  Parameters
-  ----------
-  results: dict
-    A dictionary of type produced by eval_model which maps target-names to
-    pairs of lists (ytrue, yscore).
-  task_types: dict 
-    dict mapping target names to output type. Each output type must be either
-    "classification" or "regression".
-  """
-  scores = {}
-  for target in results:
-    if task_types[target] != "classification":
-      continue
-    _, ytrue, yscore = results[target]
-    sample_weights = labels_to_weights(ytrue)
-    try:
-      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
-    except Exception as e:
-      warnings.warn("ROC AUC score calculation failed.")
-      score = 0.5
-    print "Target %s: AUC %f" % (target, score)
-    scores[target] = score
-  return scores
 
 def compute_r2_scores(results, task_types):
   """Transforms the results dict into R^2 values and prints them.
@@ -281,4 +203,65 @@ def compute_rms_scores(results, task_types):
     rms = np.sqrt(mean_squared_error(ytrue, yscore))
     print "Target %s: RMS %f" % (target, rms)
     scores[target] = rms 
+  return scores
+
+def compute_roc_auc_scores(results, task_types):
+  """Transforms the results dict into roc-auc-scores and prints scores.
+
+  Parameters
+  ----------
+  results: dict
+  task_types: dict 
+    dict mapping target names to output type. Each output type must be either
+    "classification" or "regression".
+  """
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, yscore = results[target]
+    sample_weights = labels_to_weights(ytrue)
+    try:
+      score = roc_auc_score(ytrue, yscore[:,1], sample_weight=sample_weights)
+    except Exception as e:
+      warnings.warn("ROC AUC score calculation failed.")
+      score = 0.5
+    print "Target %s: AUC %f" % (target, score)
+    scores[target] = score
+  return scores
+
+def compute_matthews_corr(results, task_types):
+  """Computes Matthews Correlation Coefficients."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    mcc = matthews_corrcoef(ytrue, np.around(ypred[:,1]))
+    print "Target %s: MCC %f" % (target, mcc)
+    scores[target] = mcc
+  return scores
+
+def compute_recall_score(results, task_types):
+  """Computes recall score."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    recall = recall_score(ytrue, np.around(ypred[:, 1]))
+    print "Target %s: Recall %f" % (target, recall)
+    scores[target] = recall 
+  return scores
+
+def compute_accuracy_score(results, task_types):
+  """Computes accuracy score."""
+  scores = {}
+  for target in results:
+    if task_types[target] != "classification":
+      continue
+    _, ytrue, ypred = results[target]
+    accuracy = accuracy_score(ytrue, np.around(ypred[:, 1]))
+    print "Target %s: Accuracy %f" % (target, accuracy)
+    scores[target] = accuracy 
   return scores

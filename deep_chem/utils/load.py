@@ -12,16 +12,14 @@ import cPickle as pickle
 from deep_chem.utils.preprocess import transform_outputs
 from deep_chem.utils.preprocess import transform_inputs
 from deep_chem.utils.preprocess import dataset_to_numpy
-from deep_chem.utils.preprocess import tensor_dataset_to_numpy
 from deep_chem.utils.preprocess import multitask_to_singletask
 from deep_chem.utils.preprocess import split_dataset
 from deep_chem.utils.preprocess import to_arrays
 from vs_utils.utils import ScaffoldGenerator
 
 def process_datasets(paths, input_transforms, output_transforms,
-    prediction_endpoint=None, split_endpoint=None, datatype="vector",
-    feature_types=["fingerprints"], mode="multitask", splittype="random",
-    seed=None, weight_positives=True):
+    feature_types=["fingerprints"], mode="multitask",
+    splittype="random", seed=None, weight_positives=True):
   """Extracts datasets and split into train/test.
 
   Returns a dict that maps target names to tuples.
@@ -38,38 +36,32 @@ def process_datasets(paths, input_transforms, output_transforms,
   seed: int
     Seed used for random splits.
   """
-  dataset = load_and_transform_dataset(paths, input_transforms, output_transforms,
-      prediction_endpoint, split_endpoint=split_endpoint,
-      feature_types=feature_types, weight_positives=weight_positives)
+  dataset = load_datasets(paths, feature_types=feature_types)
+  train_dict, test_dict = {}, {}
   if mode == "singletask":
     singletask = multitask_to_singletask(dataset)
-    arrays = {}
     for target in singletask:
       data = singletask[target]
       if len(data) == 0:
         continue
       train, test = split_dataset(dataset, splittype)
-      train_data, test_data = to_arrays(train, test, datatype)
-      arrays[target] = train_data, test_data 
-    return arrays
+      train_dict[target], test_dict[target] = to_arrays(train, test)
   elif mode == "multitask":
-    sorted_targets = sorted(dataset.keys())
     train, test = split_dataset(dataset, splittype)
-    train_data, test_data = to_arrays(train, test, datatype)
-    return train_data, test_data
+    train_data, test_data = to_arrays(train, test)
+    train_dict["all"], test_dict["all"] = train_data, test_data
   else:
     raise ValueError("Unsupported mode for process_datasets.")
-
+  print "Shape of Xtrain"
+  target = train_dict.itervalues().next()
+  print np.shape(target[1])
+  return train_dict, test_dict 
 
 def load_molecules(paths, feature_types=["fingerprints"]):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
   fingerprints, smiles strings, scaffolds, mol_ids.
-
-  TODO(rbharath): This function assumes that all datapoints are uniquely keyed
-  by smiles strings. This doesn't hold true for the pdbbind dataset. Need to find
-  a more general indexing mechanism.
 
   Parameters
   ----------
@@ -90,21 +82,18 @@ def load_molecules(paths, feature_types=["fingerprints"]):
               contents["smiles"], contents["features"],
               contents["scaffolds"], contents["mol_id"])
           splits = contents["split"] if "split" in contents else None
-          for mol in range(len(contents["smiles"])):
-            if smiles[mol] not in molecules:
-              molecules[smiles[mol]] = {"fingerprint": features[mol],
-                                        "scaffold": scaffolds[mol],
-                                        "mol_id": mol_ids[mol],
-                                        "feature_types": [feature_type]}
+          for mol in range(len(contents["mol_id"])):
+            if mol_ids[mol] not in molecules:
+              molecules[mol_ids[mol]] = {"fingerprint": features[mol],
+                                         "scaffold": scaffolds[mol],
+                                         "mol_id": mol_ids[mol],
+                                         "feature_types": [feature_type]}
             if splits is not None:
-              molecules[smiles[mol]]["split"] = splits[mol]
-            # TODO(rbharath): Our processing pipeline sometimes makes different
-            # molecules look the same (due to bugs in how we hydrogenate for
-            # example). Fix these bugs in our processing pipeline.
-            elif feature_type not in molecules[smiles[mol]]["feature_types"]:
-              entry = molecules[smiles[mol]]
+              molecules[mol_ids[mol]]["split"] = splits[mol]
+            elif feature_type not in molecules[mol_ids[mol]]["feature_types"]:
+              entry = molecules[mol_ids[mol]]
               entry["fingerprint"] = np.append(
-                  molecules[smiles[mol]]["fingerprint"], features[mol])
+                  molecules[mol_ids[mol]]["fingerprint"], features[mol])
               entry["feature_types"].append(feature_type)
   return molecules 
 
@@ -124,12 +113,10 @@ def get_target_names(paths, target_dir_name="targets"):
         if "pkl.gz" in target_pickle]
   return target_names
 
-def load_assays(paths, prediction_endpoint, split_endpoint=None, target_dir_name="targets"):
+def load_assays(paths, target_dir_name="targets"):
   """Load regression dataset labels from assays.
 
-  Returns a dictionary that maps smiles strings to label vectors.
-
-  TODO(rbharath): Remove the use of smiles as unique identifier
+  Returns a dictionary that maps mol_id's to label vectors.
 
   Parameters
   ----------
@@ -149,48 +136,32 @@ def load_assays(paths, prediction_endpoint, split_endpoint=None, target_dir_name
       target_name = target_pickle.split(".")[0]
       with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
         contents = pickle.load(f)
-        if prediction_endpoint not in contents:
+        if "prediction" not in contents:
           raise ValueError("Prediction Endpoint Missing.")
-        for ind, smiles in enumerate(contents["smiles"]):
-          measurement = contents[prediction_endpoint][ind]
-          if split_endpoint is not None:
-            splits[smiles] = contents[split_endpoint][ind]
+        for ind, id in enumerate(contents["mol_id"]):
+          measurement = contents["prediction"][ind]
+          if "split" is not None:
+            splits[id] = contents["split"][ind]
           else:
-            splits[smiles] = None
-          # TODO(rbharath): There is some amount of duplicate collisions
-          # due to choice of smiles generation. Look into this more
-          # carefully and see if the underlying issues are fundamental..
+            splits[id] = None
           try:
             if measurement is None or np.isnan(measurement):
               continue
           except TypeError:
             continue
-          if smiles not in labels:
-            labels[smiles] = {}
+          if id not in labels:
+            labels[id] = {}
             # Ensure that each target has some entry in dict.
             for name in target_names:
               # Set all targets to invalid for now.
-              labels[smiles][name] = -1
-          labels[smiles][target_name] = measurement 
+              labels[id][name] = -1
+          labels[id][target_name] = measurement 
   return labels, splits
 
-def load_datasets(paths, prediction_endpoint, split_endpoint, datatype="vs",
-    **load_args):
-  """Dispatches to correct loader depending on type of data."""
-  if datatype == "vs":
-    return load_vs_datasets(paths, prediction_endpoint,
-                            split_endpoint, **load_args)
-  elif datatype == "pdbbind":
-    return load_pdbbind_datasets(paths, prediction_endpoint, **load_args)
-  else:
-    raise ValueError("Unsupported datatype.")
-
-
-def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name="targets",
-    feature_types=["fingerprints"]):
+def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints"]):
   """Load both labels and fingerprints.
 
-  Returns a dictionary that maps smiles to pairs of (fingerprint, labels)
+  Returns a dictionary that maps mol_id's to pairs of (fingerprint, labels)
   where labels is itself a dict that maps target-names to labels.
 
   Parameters
@@ -200,15 +171,15 @@ def load_vs_datasets(paths, prediction_endpoint, split_endpoint, target_dir_name
   """
   data = {}
   molecules = load_molecules(paths, feature_types)
-  labels, splits = load_assays(paths, prediction_endpoint, split_endpoint, target_dir_name)
-  for ind, smiles in enumerate(molecules):
-    if smiles not in labels:
+  labels, splits = load_assays(paths, target_dir_name)
+  for ind, id in enumerate(molecules):
+    if id not in labels:
       continue
-    mol = molecules[smiles]
-    data[smiles] = {"fingerprint": mol["fingerprint"],
-                    "scaffold": mol["scaffold"],
-                    "labels": labels[smiles],
-                    "split": splits[smiles]}
+    mol = molecules[id]
+    data[id] = {"fingerprint": mol["fingerprint"],
+                "scaffold": mol["scaffold"],
+                "labels": labels[id],
+                "split": splits[id]}
   return data
 
 def ensure_balanced(y, W):
@@ -223,9 +194,7 @@ def ensure_balanced(y, W):
         pos_weight += W[sample_ind, target_ind]
     assert np.isclose(pos_weight, neg_weight)
 
-def load_and_transform_dataset(paths, input_transforms, output_transforms,
-    prediction_endpoint, split_endpoint=None, labels_endpoint="labels", weight_positives=True,
-    datatype="vs", feature_types=["fingerprints"]):
+def transform_data(data, input_transforms, output_transforms):
   """Transform data labels as specified
 
   Parameters
@@ -238,28 +207,10 @@ def load_and_transform_dataset(paths, input_transforms, output_transforms,
     are performed in the order specified. An empty list corresponds to no
     transformations. Only for regression outputs.
   """
-  dataset = load_datasets(paths, prediction_endpoint, split_endpoint, datatype=datatype,
-      feature_types=feature_types)
-  if datatype == "vs":
-    X, y, W = dataset_to_numpy(dataset, weight_positives=weight_positives)
-  elif datatype == "pdbbind":
-    X, y, W = tensor_dataset_to_numpy(dataset)
-  y = transform_outputs(y, W, output_transforms,
-      weight_positives=weight_positives)
-  X = transform_inputs(X, input_transforms)
-  trans_data = {}
-  sorted_smiles = sorted(dataset.keys())
-  sorted_targets = sorted(output_transforms.keys())
-  for s_index, smiles in enumerate(sorted_smiles):
-    datapoint = dataset[smiles]
-    labels = {}
-    for t_index, target in enumerate(sorted_targets):
-      if W[s_index][t_index] == 0:
-        labels[target] = -1
-      else:
-        labels[target] = y[s_index][t_index]
-    datapoint[labels_endpoint] = labels
-    datapoint["fingerprint"] = X[s_index]
-
-    trans_data[smiles] = datapoint 
-  return trans_data
+  trans_dict = {}
+  for target in data:
+    ids, X, y, W = data[target]
+    y = transform_outputs(y, W, output_transforms)
+    X = transform_inputs(X, input_transforms)
+    trans_dict[target] = (ids, X, y, W)
+  return trans_dict
