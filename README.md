@@ -17,7 +17,7 @@ Linux Installation
 Deep_chem currently requires Python 2.7
 
 ###Anaconda 2.7
-Download the **Python 2.7** version of Anaconda for linux (32 or 64 bit depending on system) [here](www.continuum.io/downloads#_unix).
+Download the **Python 2.7** version of Anaconda for linux (32 or 64 bit depending on system) [here](https://www.continuum.io/downloads#_unix).
 
 Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
 
