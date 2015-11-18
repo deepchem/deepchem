@@ -4,6 +4,7 @@ Utility functions to save keras/sklearn models.
 import os
 import gzip
 import cPickle as pickle
+import dill
 from keras.models import model_from_json
 from sklearn.externals import joblib
 
@@ -13,6 +14,8 @@ def save_model(models, modeltype, filename):
     save_sklearn_model(models, filename)
   elif "keras" in modeltype:
     save_keras_model(models, filename)
+  elif "autograd" in modeltype:
+    save_autograd_model(models, filename)
   else:
     raise ValueError("Unsupported modeltype.")
 
@@ -22,6 +25,8 @@ def load_model(modeltype, filename):
     return load_sklearn_model(filename)
   elif "keras" in modeltype:
     return load_keras_model(filename)
+  elif "autograd" in modeltype:
+    return load_autograd_model(models, filename)
   else:
     raise ValueError("Unsupported modeltype.")
 
@@ -32,7 +37,15 @@ def save_sklearn_model(models, filename):
 def load_sklearn_model(filename):
   """Loads sklearn model from file on disk."""
   return joblib.load(filename)
-  
+
+def save_autograd_model(models, filename):
+  """Saves autograd model to disk using dill."""
+  dill.dump(models, filename)
+
+def load_autograd_model(filename):
+  """Loads autograd models from file."""
+  return dill.load(filename)
+
 def save_keras_model(models, filename):
   """Saves keras models to disk."""
   filename, _ = os.path.splitext(filename)

@@ -111,7 +111,7 @@ def parse_args(input_args=None):
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
                       "singletask_deep_network", "multitask_deep_network",
-                      "3D_cnn"],
+                      "3D_cnn", "neural_fingerprint"],
                       help="Type of model to build. Some models may allow for\n"
                            "further specification of hyperparameters. See flags below.")
 
@@ -248,6 +248,8 @@ def fit_model(args):
     models = fit_singletask_models(train_dict, args.model, task_types)
   if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
     modeltype = "keras"
+  elif args.model in ["neural_fingerprint"]:
+    modeltype = "autograd"
   else:
     modeltype = "sklearn"
   save_model(models, modeltype, args.saved_out)
