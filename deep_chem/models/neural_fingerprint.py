@@ -5,6 +5,8 @@ Code for training neural-fingerprint models in deep_chem framework.
 import autograd.numpy as np
 import autograd.numpy.random as npr
 from neuralfingerprint import build_conv_deep_net
+from neuralfingerprint import normalize_array, adam
+from neuralfingerprint import build_batched_grad
 
 def fit_neural_fingerprints(train_data, task_types, **training_params)
   """Fit neural fingerprint model."""
@@ -20,8 +22,8 @@ def fit_neural_fingerprints(train_data, task_types, **training_params)
     models[target] = train_neural_fingerprint(X_train, y_train, training_params)
   return models
 
-def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, train_params, seed=0,
-             validation_smiles=None, validation_raw_targets=None):
+def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
+             train_params, seed=0, validation_smiles=None, validation_raw_targets=None):
     """loss_fun has inputs (weights, smiles, targets)"""
     print "Total number of weights in the network:", num_weights
     init_weights = npr.RandomState(seed).randn(num_weights) * train_params['init_scale']
@@ -29,15 +31,15 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, t
     train_targets, undo_norm = normalize_array(train_raw_targets)
     training_curve = []
     def callback(weights, iter):
-        if iter % 10 == 0:
-            print "max of weights", np.max(np.abs(weights))
-            train_preds = undo_norm(pred_fun(weights, train_smiles))
-            cur_loss = loss_fun(weights, train_smiles, train_targets)
-            training_curve.append(cur_loss)
-            print "Iteration", iter, "loss", cur_loss, "train RMSE", rmse(train_preds, train_raw_targets),
-            if validation_smiles is not None:
-                validation_preds = undo_norm(pred_fun(weights, validation_smiles))
-                print "Validation RMSE", iter, ":", rmse(validation_preds, validation_raw_targets),
+      if iter % 10 == 0:
+        print "max of weights", np.max(np.abs(weights))
+        train_preds = undo_norm(pred_fun(weights, train_smiles))
+        cur_loss = loss_fun(weights, train_smiles, train_targets)
+        training_curve.append(cur_loss)
+        print "Iteration", iter, "loss", cur_loss, "train RMSE", rmse(train_preds, train_raw_targets),
+        if validation_smiles is not None:
+          validation_preds = undo_norm(pred_fun(weights, validation_smiles))
+          print "Validation RMSE", iter, ":", rmse(validation_preds, validation_raw_targets),
 
     # Build gradient using autograd.
     grad_fun = grad(loss_fun)
@@ -46,7 +48,8 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, t
 
     # Optimize weights.
     trained_weights = adam(grad_fun_with_data, init_weights, callback=callback,
-                           num_iters=train_params['num_iters'], step_size=train_params['step_size'],
+                           num_iters=train_params['num_iters'],
+                           step_size=train_params['step_size'],
                            b1=train_params['b1'], b2=train_params['b2'])
 
     def predict_func(new_smiles):
@@ -54,11 +57,14 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets, t
         return undo_norm(pred_fun(trained_weights, new_smiles))
     return predict_func, trained_weights, training_curve
 
-
+# TODO(rbharath): X_train needs to be made a ndarray of smiles string.
+# TODO(rbharath): training_params needs to be hooked up with modeler.
 def train_neural_fingerprint(X_train, y_train, training_params):
   """Trains a neural fingerprint model."""
-  model_params = dict(fp_length = 512,   # Usually neural fps need far fewer dimensions than morgan.
-                      fp_depth = 4,      # The depth of the network equals the fingerprint radius.
+  model_params = dict(fp_length = 512,   # Usually neural fps need far fewer
+                                         # dimensions than morgan.
+                      fp_depth = 4,      # The depth of the network equals the
+                                         # fingerprint radius.
                       conv_width = 20,   # Only the neural fps need this parameter.
                       h1_size = 100,     # Size of hidden layer of network on top of fps.
                       L2_reg = -2)
@@ -74,7 +80,7 @@ def train_neural_fingerprint(X_train, y_train, training_params):
   loss_fun, pred_fun, conv_parser =  build_conv_deep_net(
       conv_arch_params, vanilla_net_params, model_params['L2_reg'])
   num_weights = len(conv_parser)
-  predict_func, trained_weights, conv_training_curve = \
-      train_nn(pred_fun, loss_fun, num_weights, train_inputs, train_targets,
-               train_params, validation_smiles=val_inputs, validation_raw_targets=val_targets)
+  predict_func, trained_weights, conv_training_curve = train_nn(
+      pred_fun, loss_fun, num_weights, X_train, y_train, train_params,
+      validation_smiles=val_inputs, validation_raw_targets=val_targets)
   return (predict_func, train_weights, conv_training_curve)

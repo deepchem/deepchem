@@ -26,7 +26,9 @@ def parse_args(input_args=None):
  
   # FEATURIZE FLAGS
   featurize_cmd = subparsers.add_parser("featurize",
-                      help="Featurize raw input data.")
+                      help="Featurize raw input data. The word 'endpoint' below is used\n"
+                           "to refer to a field in the input (a column-name in a csv or xlsx)\n"
+                           "or a field name in an sdf file or pandas dataframe.")
   featurize_cmd.add_argument("--input-file", required=1,
                       help="Input file with data.")
   featurize_cmd.add_argument("--input-type", default="csv",
@@ -202,7 +204,7 @@ def train_test_input(args):
   """Saves transformed model."""
   targets = get_target_names(args.paths)
   output_transforms = {target: args.output_transforms for target in targets}
-  train_dict, test_dict= process_datasets(args.paths,
+  train_dict, test_dict = process_datasets(args.paths,
       args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
       mode=args.mode)
