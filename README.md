@@ -11,26 +11,26 @@ Requirements
 * [keras](keras.io)
 * [vs_utils] (https://github.com/pandegroup/vs-utils.git)
 
-Linux Installation
+Linux (64-bit) Installation 
 ------------------
 
 Deep_chem currently requires Python 2.7
 
 ###Anaconda 2.7
-Download the **Python 2.7** version of Anaconda for linux (32 or 64 bit depending on system) [here](https://www.continuum.io/downloads#_unix).
+Download the **64-bit Python 2.7** version of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).
 
 Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
 
 ###openbabel
 ```bash
-conda install -c https://conda.anaconda.org/omnia openbabel
+conda install -c omnia openbabel
 ```  
 
 Follow the onscreen installation instructions
 
 ###rdkit
 ```bash
-conda install -c https://conda.anaconda.org/omnia rdkit
+conda install -c omnia rdkit
 ```
 
 Follow the onscreen installation instructions
