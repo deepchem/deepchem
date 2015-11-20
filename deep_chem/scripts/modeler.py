@@ -9,6 +9,7 @@ from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
 from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
+from deep_chem.utils.featurize import generate_smiles
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
@@ -178,10 +179,14 @@ def parse_args(input_args=None):
 
   return parser.parse_args(input_args)
 
+# TODO(rbharath): This function needs to take feature-types as an argument
+# rather than generating all features for all compounds.
 def featurize_input(args):
   """Featurizes raw input data."""
   if len(args.fields) != len(args.field_types):
     raise ValueError("number of fields does not equal number of field types")
+  if args.id_endpoint is None:
+    args.id_endpoint = args.smiles_endpoint
   out_x_pkl, out_y_pkl = generate_directories(args.name, args.out, 
       args.feature_endpoints)
   df, mols = extract_data(args.input_file, args.input_type, args.fields,
@@ -199,6 +204,8 @@ def featurize_input(args):
   print "Generating rdkit descriptors"
   generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
       args.id_endpoint, "descriptors")
+  print "Generating smiles descriptors"
+  generate_smiles(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
 
 def train_test_input(args):
   """Saves transformed model."""

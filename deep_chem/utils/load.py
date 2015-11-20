@@ -140,7 +140,7 @@ def load_assays(paths, target_dir_name="targets"):
           raise ValueError("Prediction Endpoint Missing.")
         for ind, id in enumerate(contents["mol_id"]):
           measurement = contents["prediction"][ind]
-          if "split" is not None:
+          if "split" in contents:
             splits[id] = contents["split"][ind]
           else:
             splits[id] = None

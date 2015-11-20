@@ -28,6 +28,9 @@ def generate_directories(name, out, feature_endpoints):
   descriptor_dir = os.path.join(dataset_dir, "descriptors")
   if not os.path.exists(descriptor_dir):
     os.makedirs(descriptor_dir)
+  smiles_dir = os.path.join(dataset_dir, "smiles")
+  if not os.path.exists(smiles_dir):
+    os.makedirs(smiles_dir)
   target_dir = os.path.join(dataset_dir, "targets")
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
@@ -142,11 +145,10 @@ def get_row_data(row, input_type, fields, smiles_endpoint, colnames=None):
     for field in fields:
       row_data[field] = row[field]
   elif input_type == "sdf":
-    mol = {}
+    mol = row
+    row_data[smiles_endpoint] = Chem.MolToSmiles(mol)
     for field in fields:
-      if field == smiles_endpoint:
-        row_data[field] = Chem.MolToSmiles(mol)
-      elif not mol.HasProp(field):
+      if not mol.HasProp(field):
         row_data[field] = None
       else:
         row_data[field] = mol.GetProp(field)
@@ -215,6 +217,25 @@ def generate_features(df, feature_endpoints, smiles_endpoint, id_endpoint, out_p
   with gzip.open(out_pkl, "wb") as f:
     pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
 
+# TODO(rbharath): This is a hack that generates smiles strings as features.
+def generate_smiles(df, name, out, smiles_endpoint, id_endpoint):
+  dataset_dir = os.path.join(out, name)
+  feature_dir = os.path.join(dataset_dir, "smiles")
+  features = os.path.join(feature_dir,
+      "%s-%s.pkl.gz" % (name, "smiles"))
+
+  features_df = pd.DataFrame([]) 
+  features_df["smiles"] = df[[smiles_endpoint]]
+  features_df["scaffolds"] = df[[smiles_endpoint]].apply(
+    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
+    axis=1)
+  features_df["mol_id"] = df[[id_endpoint]]
+  features_df["features"] = df[[smiles_endpoint]]
+
+  with gzip.open(features, "wb") as f:
+    pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
+
+
 def extract_data(input_file, input_type, fields, field_types, 
       prediction_endpoint, smiles_endpoint, threshold, delimiter):
   """Extracts data from input as Pandas data frame"""
@@ -238,7 +259,7 @@ def extract_data(input_file, input_type, fields, field_types,
         row[field] = 1 if raw_val > threshold else 0 
       else:
         row[field] = process_field(row_data[field], field_type)
-    mol = Chem.MolFromSmiles(row[smiles_endpoint])
+    mol = Chem.MolFromSmiles(row_data[smiles_endpoint])
     row["smiles"] = smiles.get_smiles(mol)
     mols.append(mol)
     rows.append(row)
