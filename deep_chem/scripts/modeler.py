@@ -211,10 +211,14 @@ def train_test_input(args):
   """Saves transformed model."""
   targets = get_target_names(args.paths)
   output_transforms = {target: args.output_transforms for target in targets}
+  if "smiles" in args.feature_types:
+    dtype=str
+  else:
+    dtype=float
   train_dict, test_dict = process_datasets(args.paths,
       args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
-      mode=args.mode)
+      mode=args.mode, dtype=dtype)
   trans_train_dict = transform_data(train_dict, args.input_transforms,
       args.output_transforms)
   trans_test_dict = transform_data(test_dict, args.input_transforms, args.output_transforms)
@@ -251,8 +255,11 @@ def fit_model(args):
       validation_split=args.validation_split)
   elif args.model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
-    models = fit_3D_convolution(train_data, test_data, task_types,
+    models = fit_3D_convolution(train_dict, task_types,
         nb_epoch=args.n_epochs, batch_size=args.batch_size)
+  elif args.model == "neural_fingerprint":
+    from deep_chem.models.neural_fingerprint import fit_neural_fingerprints
+    models = fit_neural_fingerprints(train_dict, task_types)
   else:
     models = fit_singletask_models(train_dict, args.model, task_types)
   if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:

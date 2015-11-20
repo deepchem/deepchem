@@ -9,14 +9,17 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
-def to_arrays(train, test):
+def to_arrays(train, test, dtype=float):
   """Turns train/test into numpy array."""
-  train_ids, X_train, y_train, W_train = dataset_to_numpy(train)
-  test_ids, X_test, y_test, W_test = dataset_to_numpy(test)
+  train_ids, X_train, y_train, W_train = dataset_to_numpy(train, dtype=dtype)
+  test_ids, X_test, y_test, W_test = dataset_to_numpy(test, dtype=dtype)
   return (train_ids, X_train, y_train, W_train), (test_ids, X_test, y_test, W_test)
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
+  # Short-circuit to handle difficulties with strings.
+  if not input_transforms:
+    return X
   # Copy X up front to have non-destructive updates.
   X = np.copy(X)
   if len(np.shape(X)) == 2:
@@ -157,13 +160,13 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
-def dataset_to_numpy(dataset, weight_positives=True):
+def dataset_to_numpy(dataset, weight_positives=True, dtype=float):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint["fingerprint"])
   n_targets = len(sample_datapoint["labels"])
-  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
+  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,), dtype=dtype))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())

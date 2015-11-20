@@ -7,8 +7,10 @@ import autograd.numpy.random as npr
 from neuralfingerprint import build_conv_deep_net
 from neuralfingerprint import normalize_array, adam
 from neuralfingerprint import build_batched_grad
+from neuralfingerprint.util import rmse
+from autograd import grad
 
-def fit_neural_fingerprints(train_data, task_types, **training_params)
+def fit_neural_fingerprints(train_data, task_types, **training_params):
   """Fit neural fingerprint model."""
   # TODO(rbharath): Code smell here. Looks just like fit_singletask_mlp. Is it
   # worth factoring out core logic here?
@@ -74,13 +76,21 @@ def train_neural_fingerprint(X_train, y_train, training_params):
                       step_size = np.exp(-6),
                       b1 = np.exp(-3),   # Parameter for Adam optimizer.
                       b2 = np.exp(-2))   # Parameter for Adam optimizer.
+  # Define the architecture of the network that sits on top of the fingerprints.
+  vanilla_net_params = dict(
+      layer_sizes = [model_params['fp_length'], model_params['h1_size']],  # One hidden layer.
+      normalize=True, L2_reg = model_params['L2_reg'], nll_func = rmse)
+
   conv_layer_sizes = [model_params['conv_width']] * model_params['fp_depth']
   conv_arch_params = {'num_hidden_features' : conv_layer_sizes,
                       'fp_length' : model_params['fp_length'], 'normalize' : 1}
+  print "np.shape(X_train)"
+  print np.shape(X_train)
+  print "X_train[:10]"
+  print X_train[:10]
   loss_fun, pred_fun, conv_parser =  build_conv_deep_net(
       conv_arch_params, vanilla_net_params, model_params['L2_reg'])
   num_weights = len(conv_parser)
   predict_func, trained_weights, conv_training_curve = train_nn(
-      pred_fun, loss_fun, num_weights, X_train, y_train, train_params,
-      validation_smiles=val_inputs, validation_raw_targets=val_targets)
+      pred_fun, loss_fun, num_weights, X_train, y_train, train_params)
   return (predict_func, train_weights, conv_training_curve)
