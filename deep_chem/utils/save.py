@@ -26,7 +26,7 @@ def load_model(modeltype, filename):
   elif "keras" in modeltype:
     return load_keras_model(filename)
   elif "autograd" in modeltype:
-    return load_autograd_model(models, filename)
+    return load_autograd_model(filename)
   else:
     raise ValueError("Unsupported modeltype.")
 
@@ -40,11 +40,13 @@ def load_sklearn_model(filename):
 
 def save_autograd_model(models, filename):
   """Saves autograd model to disk using dill."""
-  dill.dump(models, filename)
+  with open(filename, "wb") as f:
+    dill.dump(models, f)
 
 def load_autograd_model(filename):
   """Loads autograd models from file."""
-  return dill.load(filename)
+  with open(filename) as f:
+    return dill.load(f)
 
 def save_keras_model(models, filename):
   """Saves keras models to disk."""

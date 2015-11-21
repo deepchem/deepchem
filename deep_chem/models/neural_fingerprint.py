@@ -59,7 +59,6 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
         return undo_norm(pred_fun(trained_weights, new_smiles))
     return predict_func, trained_weights, training_curve
 
-# TODO(rbharath): X_train needs to be made a ndarray of smiles string.
 # TODO(rbharath): training_params needs to be hooked up with modeler.
 def train_neural_fingerprint(X_train, y_train, training_params):
   """Trains a neural fingerprint model."""
@@ -84,13 +83,14 @@ def train_neural_fingerprint(X_train, y_train, training_params):
   conv_layer_sizes = [model_params['conv_width']] * model_params['fp_depth']
   conv_arch_params = {'num_hidden_features' : conv_layer_sizes,
                       'fp_length' : model_params['fp_length'], 'normalize' : 1}
-  print "np.shape(X_train)"
-  print np.shape(X_train)
-  print "X_train[:10]"
-  print X_train[:10]
+  # This arcane array->list->array is necessary since our original array has
+  # dtype=object, which causes autograd to choke. Unmaking and remaking the
+  # ndarray seems to remove this problem.
+  X_train = list(X_train)
+  X_train = np.array(X_train)
   loss_fun, pred_fun, conv_parser =  build_conv_deep_net(
       conv_arch_params, vanilla_net_params, model_params['L2_reg'])
   num_weights = len(conv_parser)
   predict_func, trained_weights, conv_training_curve = train_nn(
       pred_fun, loss_fun, num_weights, X_train, y_train, train_params)
-  return (predict_func, train_weights, conv_training_curve)
+  return (predict_func, trained_weights, conv_training_curve)

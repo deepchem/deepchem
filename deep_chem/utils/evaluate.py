@@ -23,15 +23,17 @@ from rdkit.Chem.Descriptors import ExactMolWt
 def compute_model_performance(raw_test_data, test_data, task_types, models, modeltype,
     output_transforms, aucs=True, r2s=False, rms=False, recall=False, accuracy=False, mcc=False):
   """Computes statistics for model performance on test set."""
-  all_results, auc_vals, r2_vals, rms_vals, mcc_vals, recall_vals, accuracy_vals = {}, {}, {}, {}, {}, {}, {}
+  all_results, auc_vals, r2_vals, rms_vals, mcc_vals, recall_vals, accuracy_vals = (
+      {}, {}, {}, {}, {}, {}, {})
   for index, target in enumerate(sorted(test_data.keys())):
     print "Evaluating model %d" % index
     print "Target %s" % target
     (test_ids, Xtest, ytest, wtest) = test_data[target]
     (_, _, ytest_raw, _) = raw_test_data[target]
     model = models[target]
-    results = eval_model(test_ids, Xtest, ytest, ytest_raw, wtest, model, {target: task_types[target]}, 
-                         modeltype=modeltype, output_transforms=output_transforms)
+    results = eval_model(test_ids, Xtest, ytest, ytest_raw, wtest, model,
+        {target: task_types[target]}, modeltype=modeltype,
+        output_transforms=output_transforms)
     all_results[target] = results[target]
     if aucs:
       auc_vals.update(compute_roc_auc_scores(results, task_types))
@@ -96,6 +98,11 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     ypreds = []
     for index in range(n_targets):
       ypreds.append(predictions["task%d" % index])
+  if modeltype == "autograd":
+    # This arcane transformation is needed to undo dtype=object
+    X = np.array(list(X))
+    (predict_func, train_weights, training_curve) = model
+    ypreds = predict_func(X)
   elif modeltype == "sklearn":
     # Must be single-task (breaking multitask RFs here)
     task_type = task_types.itervalues().next()
