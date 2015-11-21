@@ -259,7 +259,9 @@ def fit_model(args):
         nb_epoch=args.n_epochs, batch_size=args.batch_size)
   elif args.model == "neural_fingerprint":
     from deep_chem.models.neural_fingerprint import fit_neural_fingerprints
-    models = fit_neural_fingerprints(train_dict, task_types)
+    models = fit_neural_fingerprints(train_dict, task_types,
+                num_hidden=args.n_hidden, learning_rate=args.learning_rate,
+                batch_size=args.batch_size, num_epochs=args.n_epochs, decay=args.decay)
   else:
     models = fit_singletask_models(train_dict, args.model, task_types)
   if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
