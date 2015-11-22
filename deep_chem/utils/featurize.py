@@ -17,7 +17,7 @@ from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
 
-def generate_directories(name, out, feature_endpoints):
+def generate_directories(name, out, feature_fields):
   """Generate directory structure for featurized dataset."""
   dataset_dir = os.path.join(out, name)
   if not os.path.exists(dataset_dir):
@@ -31,17 +31,17 @@ def generate_directories(name, out, feature_endpoints):
   target_dir = os.path.join(dataset_dir, "targets")
   if not os.path.exists(target_dir):
     os.makedirs(target_dir)
-  if feature_endpoints is not None:
-    feature_endpoint_dir = os.path.join(dataset_dir, "features")
-    if not os.path.exists(feature_endpoint_dir):
-      os.makedirs(feature_endpoint_dir)
+  if feature_fields is not None:
+    feature_field_dir = os.path.join(dataset_dir, "features")
+    if not os.path.exists(feature_field_dir):
+      os.makedirs(feature_field_dir)
 
   # Return names of files to be generated
   # TODO(rbharath): Explicitly passing around out_*_pkl is an encapsulation
   # failure. Remove this.
   out_y_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
-  out_x_pkl = (os.path.join(feature_endpoint_dir, "%s-features.pkl.gz" %name)
-      if feature_endpoints is not None else None)
+  out_x_pkl = (os.path.join(feature_field_dir, "%s-features.pkl.gz" %name)
+      if feature_fields is not None else None)
   return out_x_pkl, out_y_pkl
 
 def parse_float_input(val):
@@ -57,7 +57,7 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def generate_vs_utils_features(df, name, out, smiles_endpoint, id_endpoint, featuretype):
+def generate_vs_utils_features(df, name, out, smiles_field, id_field, featuretype):
   """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
   feature_dir = os.path.join(dataset_dir, featuretype)
@@ -65,16 +65,16 @@ def generate_vs_utils_features(df, name, out, smiles_endpoint, id_endpoint, feat
       "%s-%s.pkl.gz" % (name, featuretype))
 
   feature_df = pd.DataFrame([]) 
-  feature_df["smiles"] = df[[smiles_endpoint]]
-  feature_df["scaffolds"] = df[[smiles_endpoint]].apply(
-    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
+  feature_df["smiles"] = df[[smiles_field]]
+  feature_df["scaffolds"] = df[[smiles_field]].apply(
+    functools.partial(generate_scaffold, smiles_field=smiles_field),
     axis=1)
-  feature_df["mol_id"] = df[[id_endpoint]]
+  feature_df["mol_id"] = df[[id_field]]
 
   mols = []
   for row in df.iterrows():
     # pandas rows are tuples (row_num, row_data)
-    smiles = row[1][smiles_endpoint]
+    smiles = row[1][smiles_field]
     mols.append(Chem.MolFromSmiles(smiles))
   if featuretype == "fingerprints":
     featurizer = CircularFingerprint(size=1024)
@@ -125,7 +125,7 @@ def get_colnames(row, input_type):
   elif input_type == "csv":
     return row
 
-def get_row_data(row, input_type, fields, smiles_endpoint, colnames=None):
+def get_row_data(row, input_type, fields, smiles_field, colnames=None):
   """Extract information from row data."""
   row_data = {}
   if input_type == "xlsx":
@@ -142,11 +142,10 @@ def get_row_data(row, input_type, fields, smiles_endpoint, colnames=None):
     for field in fields:
       row_data[field] = row[field]
   elif input_type == "sdf":
-    mol = {}
+    mol = row 
     for field in fields:
-      if field == smiles_endpoint:
-        row_data[field] = Chem.MolToSmiles(mol)
-      elif not mol.HasProp(field):
+      row_data[smiles_field] = Chem.MolToSmiles(mol)
+      if not mol.HasProp(field):
         row_data[field] = None
       else:
         row_data[field] = mol.GetProp(field)
@@ -168,46 +167,46 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data 
 
-def generate_targets(df, mols, prediction_endpoint, split_endpoint,
-    smiles_endpoint, id_endpoint, out_pkl):
+def generate_targets(df, mols, prediction_field, split_field,
+    smiles_field, id_field, out_pkl):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified 
     #unique identifier instead of assuming smiles string
   labels_df = pd.DataFrame([])
-  labels_df["mol_id"] = df[[id_endpoint]]
-  labels_df["smiles"] = df[[smiles_endpoint]]
-  labels_df["prediction"] = df[[prediction_endpoint]]
-  if split_endpoint is not None:
-    labels_df["split"] = df[[split_endpoint]]
+  labels_df["mol_id"] = df[[id_field]]
+  labels_df["smiles"] = df[[smiles_field]]
+  labels_df["prediction"] = df[[prediction_field]]
+  if split_field is not None:
+    labels_df["split"] = df[[split_field]]
 
   # Write pkl.gz file
   with gzip.open(out_pkl, "wb") as f:
     pickle.dump(labels_df, f, pickle.HIGHEST_PROTOCOL)
 
-def generate_scaffold(smiles_elt, include_chirality=False, smiles_endpoint="smiles"):
-  smiles_string = smiles_elt[smiles_endpoint]
+def generate_scaffold(smiles_elt, include_chirality=False, smiles_field="smiles"):
+  smiles_string = smiles_elt[smiles_field]
   mol = Chem.MolFromSmiles(smiles_string)
   engine = ScaffoldGenerator(include_chirality=include_chirality)
   scaffold = engine.get_scaffold(mol)
   return(scaffold)
 
-def generate_features(df, feature_endpoints, smiles_endpoint, id_endpoint, out_pkl):
-  if feature_endpoints is None:
-    print("No feature endpoint specified by user.")
+def generate_features(df, feature_fields, smiles_field, id_field, out_pkl):
+  if feature_fields is None:
+    print("No feature field specified by user.")
     return
 
   features_df = pd.DataFrame([]) 
-  features_df["smiles"] = df[[smiles_endpoint]]
-  features_df["scaffolds"] = df[[smiles_endpoint]].apply(
-    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
+  features_df["smiles"] = df[[smiles_field]]
+  features_df["scaffolds"] = df[[smiles_field]].apply(
+    functools.partial(generate_scaffold, smiles_field=smiles_field),
     axis=1)
-  features_df["mol_id"] = df[[id_endpoint]]
+  features_df["mol_id"] = df[[id_field]]
 
   features_data = []
   for row in df.iterrows():
     # pandas rows are tuples (row_num, row_data)
     row, feature_list = row[1], []
-    for feature in feature_endpoints:
+    for feature in feature_fields:
       feature_list.append(row[feature])
     features_data.append({"row": np.array(feature_list)})
   features_df["features"] = pd.DataFrame(features_data)
@@ -216,7 +215,7 @@ def generate_features(df, feature_endpoints, smiles_endpoint, id_endpoint, out_p
     pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
 
 def extract_data(input_file, input_type, fields, field_types, 
-      prediction_endpoint, smiles_endpoint, threshold, delimiter):
+      prediction_field, smiles_field, threshold, delimiter):
   """Extracts data from input as Pandas data frame"""
   rows, mols, smiles = [], [], SmilesGenerator()
   colnames = [] 
@@ -231,14 +230,14 @@ def extract_data(input_file, input_type, fields, field_types,
     if (input_type == "xlsx" or input_type == "csv") and row_index == 0:  
       colnames = get_colnames(raw_row, input_type)
       continue
-    row, row_data = {}, get_row_data(raw_row, input_type, fields, smiles_endpoint, colnames)
+    row, row_data = {}, get_row_data(raw_row, input_type, fields, smiles_field, colnames)
     for ind, (field, field_type) in enumerate(zip(fields, field_types)):
-      if field == prediction_endpoint and threshold is not None:
+      if field == prediction_field and threshold is not None:
         raw_val = process_field(row_data[field], field_type)
         row[field] = 1 if raw_val > threshold else 0 
       else:
         row[field] = process_field(row_data[field], field_type)
-    mol = Chem.MolFromSmiles(row[smiles_endpoint])
+    mol = Chem.MolFromSmiles(row_data[smiles_field])
     row["smiles"] = smiles.get_smiles(mol)
     mols.append(mol)
     rows.append(row)

@@ -5,6 +5,7 @@ import argparse
 import gzip
 import numpy as np
 import cPickle as pickle
+import os
 from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
 from deep_chem.utils.featurize import generate_targets
@@ -22,39 +23,43 @@ from deep_chem.utils.evaluate import compute_model_performance
 def add_featurization_command(subparsers):
   featurize_cmd = subparsers.add_parser("featurize",
       help="Featurize raw input data.")
-  featurize_cmd.add_argument("--input-file", required=1,
+  add_featurize_group(featurize_cmd)
+
+def add_featurize_group(featurize_cmd):
+  featurize_group = featurize_cmd.add_argument_group("Input Specifications")
+  featurize_group.add_argument("--input-file", required=1,
       help="Input file with data.")
-  featurize_cmd.add_argument("--input-type", default="csv",
+  featurize_group.add_argument("--input-type", default="csv",
       choices=["xlsx", "csv", "pandas", "sdf"],
       help="Type of input file. If pandas, input must be a pkl.gz\n"
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
-  featurize_cmd.add_argument("--delimiter", default=",",
+  featurize_group.add_argument("--delimiter", default=",",
       help="If csv input, delimiter to use for read csv file")
-  featurize_cmd.add_argument("--fields", required=1, nargs="+",
+  featurize_group.add_argument("--fields", required=1, nargs="+",
       help = "Names of fields.")
-  featurize_cmd.add_argument("--field-types", required=1, nargs="+",
+  featurize_group.add_argument("--field-types", required=1, nargs="+",
       choices=["string", "float", "list-string", "list-float", "ndarray"],
       help="Type of data in fields.")
-  featurize_cmd.add_argument("--feature-endpoints", type=str, nargs="+",
-      help="Optional endpoint that holds pre-computed feature vector")
-  featurize_cmd.add_argument("--prediction-endpoint", type=str, required=1,
-      help="Name of measured endpoint to predict.")
-  featurize_cmd.add_argument("--split-endpoint", type=str, default=None,
-      help="Name of endpoint specifying train/test split.")
-  featurize_cmd.add_argument("--smiles-endpoint", type=str, default="smiles",
-      help="Name of endpoint specifying SMILES for molecule.")
-  featurize_cmd.add_argument("--id-endpoint", type=str, default=None,
-      help="Name of endpoint specifying unique identifier for molecule.\n"
-           "If none is specified, then smiles-endpoint is used as identifier.")
+  featurize_group.add_argument("--feature-fields", type=str, nargs="+",
+      help="Optional field that holds pre-computed feature vector")
+  featurize_group.add_argument("--prediction-field", type=str, required=1,
+      help="Name of measured field to predict.")
+  featurize_group.add_argument("--split-field", type=str, default=None,
+      help="Name of field specifying train/test split.")
+  featurize_group.add_argument("--smiles-field", type=str, default="smiles",
+      help="Name of field specifying SMILES for molecule.")
+  featurize_group.add_argument("--id-field", type=str, default=None,
+      help="Name of field specifying unique identifier for molecule.\n"
+           "If none is specified, then smiles-field is used as identifier.")
   # TODO(rbharath): This should be moved to train-tests-split
-  featurize_cmd.add_argument("--threshold", type=float, default=None,
-      help="If specified, will be used to binarize real-valued prediction-endpoint.")
-  featurize_cmd.add_argument("--name", required=1,
+  featurize_group.add_argument("--threshold", type=float, default=None,
+      help="If specified, will be used to binarize real-valued prediction-field.")
+  featurize_group.add_argument("--name", required=1,
       help="Name of the dataset.")
-  featurize_cmd.add_argument("--out", required=1,
+  featurize_group.add_argument("--out", required=1,
       help="Folder to generate processed dataset in.")
-  featurize_cmd.set_defaults(func=featurize_input)
+  featurize_group.set_defaults(func=featurize_input)
 
 def add_train_test_command(subparsers):
   train_test_cmd = subparsers.add_parser("train-test-split",
@@ -86,7 +91,7 @@ def add_train_test_command(subparsers):
       help="Location to save test set.")
   train_test_cmd.set_defaults(func=train_test_input)
 
-def add_model_arguments(fit_cmd):
+def add_model_group(fit_cmd):
   group = fit_cmd.add_argument_group("model")
   group.add_argument("--model", required=1,
       choices=["logistic", "rf_classifier", "rf_regressor",
@@ -127,7 +132,7 @@ def add_fit_command(subparsers):
   group.add_argument("--paths", nargs="+", required=1,
                       help="Paths to input datasets.")
 
-  add_model_arguments(fit_cmd)
+  add_model_group(fit_cmd)
   group = fit_cmd.add_argument_group("save")
   group.add_argument("--saved-out", type=str, required=1,
       help="Location to save trained model.")
@@ -179,36 +184,12 @@ def add_model_command(subparsers):
   model_cmd = subparsers.add_parser("model",
       help="Combines featurize, train-test-split, fit, eval into one command\n"
            "for user convenience.")
-  featurize_group = model_cmd.add_argument_group("featurize")
-  featurize_group.add_argument("--input-file", required=1,
-      help="Input file with data.")
-  featurize_group.add_argument("--input-type", default="csv",
-      choices=["xlsx", "csv", "pandas", "sdf"],
-      help="Type of input file. If pandas, input must be a pkl.gz\n"
-           "containing a pandas dataframe. If sdf, should be in\n"
-           "(perhaps gzipped) sdf file.")
-  featurize_group.add_argument("--fields", required=1, nargs="+",
-      help = "Names of fields. Fields correspond to columns in csv files,\n"
-             "and to molecular property names for SDF files.")
-  featurize_group.add_argument("--field-types", required=1, nargs="+",
-      choices=["string", "float", "list-string", "list-float", "ndarray"],
-      help="Type of data in fields.")
-  featurize_group.add_argument("--feature-fields", type=str, nargs="+",
-      help="Optional endpoint that holds pre-computed feature vector")
-  featurize_group.add_argument("--prediction-field", type=str, required=1,
-      help="Name of measured endpoint to predict.")
-  featurize_group.add_argument("--split-field", type=str, default=None,
-      help="Name of endpoint specifying train/test split.")
-  featurize_group.add_argument("--smiles-field", type=str, default="smiles",
-      help="Name of endpoint specifying SMILES for molecule.")
-  featurize_group.add_argument("--id-field", type=str, default=None,
-      help="Name of endpoint specifying unique identifier for molecule.\n"
-           "If none is specified, then smiles-endpoint is used as identifier.")
-  featurize_group.add_argument("--feature-types", nargs="+", required=1,
+  model_cmd.add_argument("--skip-featurization", action="store_true",
+      help="If set, skip the featurization step.")
+  model_cmd.add_argument("--feature-types", nargs="+", required=1,
       help="Types of featurizations to use. Each featurization must correspond\n"
            "to subdirectory in generated data directory.")
-  featurize_group.add_argument("--out", required=1,
-      help="Folder to generate processed dataset in.")
+  add_featurize_group(model_cmd)
 
   train_test_group = model_cmd.add_argument_group("train_test_group")
   train_test_group.add_argument("--input-transforms", nargs="+", default=[],
@@ -225,12 +206,66 @@ def add_model_command(subparsers):
       help="Type of train/test data-splitting. 'scaffold' uses Bemis-Murcko scaffolds.\n"
            "specified requires that split be in original data.")
 
-  add_model_arguments(model_cmd)
+  add_model_group(model_cmd)
   model_cmd.add_argument("--task-type", default="classification",
       choices=["classification", "regression"],
       help="Type of learning task.")
-  model_cmd.add_argument("--csv-out", type=str, default=None,
-      help="Outputted predictions on the test set.")
+  model_cmd.set_defaults(func=create_model)
+
+def create_model(args):
+  """Creates a model"""
+  data_dir = os.path.join(args.out, args.name)
+  print "+++++++++++++++++++++++++++++++++"
+  print "Perform featurization"
+  if not args.skip_featurization:
+    _featurize_input(args.name, args.out, args.input_file, args.input_type,
+        args.fields, args.field_types, args.feature_fields, args.prediction_field,
+        args.smiles_field, args.split_field, args.id_field, args.threshold,
+        args.delimiter)
+
+  print "+++++++++++++++++++++++++++++++++"
+  print "Perform train-test split"
+  paths = [data_dir]
+  weight_positives = False  # Hard coding this for now
+  train_out = os.path.join(args.out, "%s-train.pkl.gz" % args.name)
+  test_out = os.path.join(args.out, "%s-test.pkl.gz" % args.name)
+  _train_test_input(paths, args.output_transforms,
+      args.input_transforms, args.feature_types, args.splittype,
+      weight_positives, args.mode, train_out, test_out)
+
+  print "+++++++++++++++++++++++++++++++++"
+  print "Fit model"
+  modeltype = get_model_type(args.model)
+  extension = get_model_extension(modeltype)
+  saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
+  _fit_model(paths, args.model, args.task_type, args.n_hidden,
+      args.learning_rate, args.dropout, args.n_epochs, args.decay, args.batch_size,
+      args.validation_split, saved_out, train_out)
+
+
+  print "+++++++++++++++++++++++++++++++++"
+  print "Eval Model on Train"
+  print "-------------------"
+  csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.model)
+  csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.model)
+  compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
+    False, False, False, False)
+  compute_r2s, compute_rms = False, False 
+  if args.task_type == "classification":
+    compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
+        True, True, True, True)
+  elif args.task_type == "regression":
+    compute_r2s, compute_rms = True, True
+  _eval_trained_model(modeltype, saved_out, train_out,
+      paths, args.task_type, compute_aucs, compute_recall,
+      compute_accuracy, compute_matthews_corrcoef, compute_r2s,
+      compute_rms, csv_out_train)
+  print "Eval Model on Test"
+  print "------------------"
+  _eval_trained_model(modeltype, saved_out, test_out,
+      paths, args.task_type, compute_aucs, compute_recall,
+      compute_accuracy, compute_matthews_corrcoef, compute_r2s,
+      compute_rms, csv_out_test)
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -256,6 +291,8 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types, fea
   """Featurizes raw input data."""
   if len(fields) != len(field_types):
     raise ValueError("number of fields does not equal number of field types")
+  if id_field is None:
+    id_field = smiles_field
   out_x_pkl, out_y_pkl = generate_directories(name, out, 
       feature_fields)
   df, mols = extract_data(input_file, input_type, fields,
@@ -272,9 +309,9 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types, fea
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "descriptors")
 
 def train_test_input(args):
-    _train_test_input(args.paths, args.output_transforms,
-        args.input_transforms, args.feature_types, args.splittype,
-        args.weight_positives, args.mode, args.train_out, args.test_out)
+  _train_test_input(args.paths, args.output_transforms,
+      args.input_transforms, args.feature_types, args.splittype,
+      args.weight_positives, args.mode, args.train_out, args.test_out)
 
 def _train_test_input(paths, output_transforms, input_transforms,
     feature_types, splittype, weight_positives, mode, train_out, test_out):
@@ -303,11 +340,12 @@ def _train_test_input(paths, output_transforms, input_transforms,
 
 def fit_model(args):
   # TODO(rbharath): Bundle these arguments up into a training_params dict.
-  _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
-      n_epochs, decay, batch_size, validation_split, saved_out)
+  _fit_model(args.paths, args.model, args.task_type, args.n_hidden,
+      args.learning_rate, args.dropout, args.n_epochs, args.decay, args.batch_size,
+      args.validation_split, args.saved_out, args.saved_data)
 
 def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
-      n_epochs, decay, batch_size, validation_split, saved)out):
+      n_epochs, decay, batch_size, validation_split, saved_out, saved_data):
   """Builds model from featurized data."""
   targets = get_target_names(paths)
   task_types = {target: task_type for target in targets}
@@ -316,37 +354,50 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
     stored_train = pickle.load(f)
   train_dict = stored_train["transformed"]
 
-  if args.model == "singletask_deep_network":
+  if model == "singletask_deep_network":
     from deep_chem.models.deep import fit_singletask_mlp
     models = fit_singletask_mlp(train_dict, task_types, n_hidden=n_hidden,
       learning_rate=learning_rate, dropout=dropout,
       nb_epoch=n_epochs, decay=decay, batch_size=batch_size,
       validation_split=validation_split)
-  elif args.model == "multitask_deep_network":
+  elif model == "multitask_deep_network":
     from deep_chem.models.deep import fit_multitask_mlp
     models = fit_multitask_mlp(train_dict, task_types,
       n_hidden=n_hidden, learning_rate = learning_rate,
       dropout=dropout, batch_size=batch_size,
       nb_epoch=n_epochs, decay=decay,
       validation_split=validation_split)
-  elif args.model == "3D_cnn":
+  elif model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(train_data, test_data, task_types,
         nb_epoch=n_epochs, batch_size=batch_size)
   else:
-    models = fit_singletask_models(train_dict, args.model, task_types)
-  if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
+    models = fit_singletask_models(train_dict, model, task_types)
+  modeltype = get_model_type(model)
+  save_model(models, modeltype, saved_out)
+
+def get_model_type(model):
+  if model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
     modeltype = "keras"
   else:
     modeltype = "sklearn"
-  save_model(models, modeltype, saved_out)
+  return modeltype
+
+def get_model_extension(modeltype):
+  if modeltype == "sklearn":
+    return "joblib"
+  elif modeltype == "autograd":
+    return "pkl.gz"
+  elif modeltype == "keras":
+    return "h5"
 
 def eval_trained_model(args):
-  _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
-      compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef,
-      compute_r2s, compute_rms, csv_out)
+  _eval_trained_model(args.modeltype, args.saved_model, args.saved_data,
+      args.paths, args.task_type, args.compute_aucs, args.compute_recall,
+      args.compute_accuracy, args.compute_matthews_corrcoef, args.compute_r2s,
+      args.compute_rms, args.csv_out)
 
-def eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
+def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
     compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef,
     compute_r2s, compute_rms, csv_out):
   model = load_model(modeltype, saved_model)

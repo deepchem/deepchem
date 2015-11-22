@@ -35,7 +35,7 @@ def fit_singletask_models(train_data, modeltype, task_types):
   """
   models = {}
   for index, target in enumerate(sorted(train_data.keys())):
-    print "Building model %d" % index
+    print "Building model for target %s" % target 
     (_, X_train, y_train, W_train) = train_data[target]
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(n_estimators=500, n_jobs=-1,
