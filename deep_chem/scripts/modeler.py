@@ -370,7 +370,7 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
       input_file, input_type, fields, field_types, prediction_field,
       smiles_field, threshold, delimiter)
   print "Generating targets"
-  generate_targets(df, mols, prediction_field, split_field,
+  generate_targets(df, prediction_field, split_field,
                    smiles_field, id_field, out_y_pkl)
   print "Generating user-specified features"
   generate_features(df, feature_fields, smiles_field, id_field, out_x_pkl)
