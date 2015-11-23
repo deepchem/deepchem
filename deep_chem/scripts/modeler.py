@@ -461,9 +461,12 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(
         train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size)
-  elif args.model == "neural_fingerprint":
+  elif model == "neural_fingerprint":
     from deep_chem.models.neural_fingerprint import fit_neural_fingerprints
-    models = fit_neural_fingerprints(train_dict, task_types)
+    models = fit_neural_fingerprints(
+                train_dict, task_types, num_hidden=n_hidden,
+                learning_rate=learning_rate, batch_size=batch_size,
+                num_epochs=n_epochs, decay=decay)
   else:
     models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)

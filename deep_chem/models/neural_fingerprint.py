@@ -21,7 +21,7 @@ def fit_neural_fingerprints(train_data, task_types, **training_params):
     (ids, X_train, y_train, W_train) = train_data[target] 
     if task_types[target] != "regression":
       raise ValueError("Only regression supported for neural fingerprints.")
-    models[target] = train_neural_fingerprint(X_train, y_train, training_params)
+    models[target] = train_neural_fingerprint(X_train, y_train, **training_params)
   return models
 
 def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
@@ -52,7 +52,7 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
     trained_weights = adam(grad_fun_with_data, init_weights, callback=callback,
                            num_iters=train_params['num_iters'],
                            step_size=train_params['step_size'],
-                           b1=train_params['b1'], b2=train_params['b2'])
+                           b1=train_params['decay'])
 
     def predict_func(new_smiles):
         """Returns to the original units that the raw targets were in."""
@@ -60,21 +60,18 @@ def train_nn(pred_fun, loss_fun, num_weights, train_smiles, train_raw_targets,
     return predict_func, trained_weights, training_curve
 
 # TODO(rbharath): training_params needs to be hooked up with modeler.
-def train_neural_fingerprint(X_train, y_train, training_params):
-  """Trains a neural fingerprint model."""
-  model_params = dict(fp_length = 512,   # Usually neural fps need far fewer
-                                         # dimensions than morgan.
-                      fp_depth = 4,      # The depth of the network equals the
-                                         # fingerprint radius.
-                      conv_width = 20,   # Only the neural fps need this parameter.
-                      h1_size = 100,     # Size of hidden layer of network on top of fps.
-                      L2_reg = -2)
-  train_params = dict(num_iters = 10,
-                      batch_size = 100,
+def train_neural_fingerprint(X_train, y_train, **training_params):
+  model_params = dict(fp_length = 50,   # Usually neural fps need far fewer dimensions than morgan.
+                      fp_depth = 3,     # The depth of the network equals the fingerprint radius.
+                      conv_width = 20,  # Size of vector at each node in the convnet.
+                      h1_size = training_params['num_hidden'],  # Size of hidden layer of network on top of fps.
+                      L2_reg = np.exp(-2))
+  train_params = dict(num_iters = training_params['num_epochs'] * len(y_train) / training_params['batch_size'],
+                      batch_size = training_params['batch_size'],
                       init_scale = np.exp(-4),
-                      step_size = np.exp(-6),
-                      b1 = np.exp(-3),   # Parameter for Adam optimizer.
-                      b2 = np.exp(-2))   # Parameter for Adam optimizer.
+                      step_size = training_params['learning_rate'],
+                      decay = training_params['decay'])
+
   # Define the architecture of the network that sits on top of the fingerprints.
   vanilla_net_params = dict(
       layer_sizes = [model_params['fp_length'], model_params['h1_size']],  # One hidden layer.
@@ -93,4 +90,4 @@ def train_neural_fingerprint(X_train, y_train, training_params):
   num_weights = len(conv_parser)
   predict_func, trained_weights, conv_training_curve = train_nn(
       pred_fun, loss_fun, num_weights, X_train, y_train, train_params)
-  return (predict_func, trained_weights, conv_training_curve)
+  return predict_func, trained_weights, conv_training_curve
