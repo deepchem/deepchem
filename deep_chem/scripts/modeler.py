@@ -176,8 +176,10 @@ def add_eval_command(subparsers):
   group.add_argument("--compute-rms", action="store_true", default=False,
       help="Compute RMS for trained models on test set.")
 
-  eval_cmd.add_argument("--csv-out", type=str, default=None,
-      help="Outputted predictions on the test set.")
+  eval_cmd.add_argument("--csv-out", type=str, required=1,
+      help="Outputted predictions on evaluated set.")
+  eval_cmd.add_argument("--stats-out", type=str, required=1j,
+      help="Computed statistics on evaluated set.")
   eval_cmd.set_defaults(func=eval_trained_model)
 
 # TODO(rbharath): There are a lot of duplicate commands introduced here. Is
@@ -250,7 +252,9 @@ def create_model(args):
   print "Eval Model on Train"
   print "-------------------"
   csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.name)
+  stats_out_train = os.path.join(data_dir, "%s-train-stats.txt" % args.name)
   csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.name)
+  stats_out_test = os.path.join(data_dir, "%s-test-stats.txt" % args.name)
   compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
     False, False, False, False)
   compute_r2s, compute_rms = False, False 
@@ -262,13 +266,13 @@ def create_model(args):
   _eval_trained_model(modeltype, saved_out, train_out,
       paths, args.task_type, compute_aucs, compute_recall,
       compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_train)
+      compute_rms, csv_out_train, stats_out_train)
   print "Eval Model on Test"
   print "------------------"
   _eval_trained_model(modeltype, saved_out, test_out,
       paths, args.task_type, compute_aucs, compute_recall,
       compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_test)
+      compute_rms, csv_out_test, stats_out_test)
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -407,11 +411,11 @@ def eval_trained_model(args):
   _eval_trained_model(args.modeltype, args.saved_model, args.saved_data,
       args.paths, args.task_type, args.compute_aucs, args.compute_recall,
       args.compute_accuracy, args.compute_matthews_corrcoef, args.compute_r2s,
-      args.compute_rms, args.csv_out)
+      args.compute_rms, args.csv_out, args.stats_out)
 
 def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
     compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef,
-    compute_r2s, compute_rms, csv_out):
+    compute_r2s, compute_rms, csv_out, stats_out):
   model = load_model(modeltype, saved_model)
   targets = get_target_names(paths)
   task_types = {target: task_type for target in targets}
@@ -422,12 +426,14 @@ def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
   raw_test_dict = stored_test["raw"]
   output_transforms = stored_test["transforms"]["output_transform"]
 
-  results, aucs, r2s, rms = compute_model_performance(raw_test_dict, test_dict,
-      task_types, model, modeltype, output_transforms, compute_aucs,
-      compute_r2s, compute_rms, compute_recall,
-      compute_accuracy, compute_matthews_corrcoef) 
-  if csv_out is not None:
-    results_to_csv(results, csv_out, task_type=task_type)
+  with open(stats_out, "wb") as f:
+    results, aucs, r2s, rms = compute_model_performance(raw_test_dict, test_dict,
+        task_types, model, modeltype, output_transforms, compute_aucs,
+        compute_r2s, compute_rms, compute_recall, compute_accuracy,
+        compute_matthews_corrcoef, print_file=f) 
+  with open(stats_out, "r") as f:
+    print f.read()
+  results_to_csv(results, csv_out, task_type=task_type)
 
 def main():
   args = parse_args()
