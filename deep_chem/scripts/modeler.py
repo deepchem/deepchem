@@ -68,12 +68,14 @@ def add_train_test_command(subparsers):
   train_test_cmd.add_argument("--input-transforms", nargs="+", default=[],
       choices=["normalize-and-truncate"],
       help="Transforms to apply to input data.")
-  train_test_cmd.add_argument("--output-transforms", nargs="+", default=[],
-      choices=["log", "normalize"],
-      help="Transforms to apply to output data.")
-  train_test_cmd.add_argument("--feature-types", nargs="+", required=1,
-      help="Types of featurizations to use. Each featurization must correspond\n"
-           "to subdirectory in generated data directory.")
+  train_test_cmd.add_argument("--output-transforms", type=str, default="",
+      help="Comma-separated list (no spaces) of transforms to apply to output data.\n"
+           "Supported transforms are 'log' and 'normalize'. 'None' will be taken\n"
+           "to mean no transforms are required.")
+  train_test_cmd.add_argument("--feature-types", type=str, required=1,
+      help="Comma-separated list (no spaces) of types of featurizations to use.\n"
+           "Each featurization must correspond to subdirectory in generated\n"
+           "data directory.")
   train_test_cmd.add_argument("--paths", nargs="+", required=1,
       help="Paths to input datasets.")
   train_test_cmd.add_argument("--splittype", type=str, default="scaffold",
@@ -186,21 +188,22 @@ def add_model_command(subparsers):
            "for user convenience.")
   model_cmd.add_argument("--skip-featurization", action="store_true",
       help="If set, skip the featurization step.")
-  model_cmd.add_argument("--feature-types", nargs="+", required=1,
-      help="Types of featurizations to use. Each featurization must correspond\n"
-           "to subdirectory in generated data directory.")
   add_featurize_group(model_cmd)
 
   train_test_group = model_cmd.add_argument_group("train_test_group")
   train_test_group.add_argument("--input-transforms", nargs="+", default=[],
       choices=["normalize-and-truncate"],
       help="Transforms to apply to input data.")
-  train_test_group.add_argument("--output-transforms", nargs="+", default=[],
-      choices=["log", "normalize"],
-      help="Transforms to apply to output data.")
+  train_test_group.add_argument("--output-transforms", type=str, default="",
+      help="Comma-separated list (no spaces) of transforms to apply to output data.\n"
+           "Supported transforms are log and normalize.")
   train_test_group.add_argument("--mode", default="singletask",
       choices=["singletask", "multitask"],
       help="Type of model being built.")
+  train_test_group.add_argument("--feature-types", type=str, required=1,
+      help="Comma-separated list (no spaces) of types of featurizations to use.\n"
+           "Each featurization must correspond to subdirectory in generated\n"
+           "data directory.")
   train_test_group.add_argument("--splittype", type=str, default="scaffold",
       choices=["scaffold", "random", "specified"],
       help="Type of train/test data-splitting. 'scaffold' uses Bemis-Murcko scaffolds.\n"
@@ -227,8 +230,8 @@ def create_model(args):
   print "Perform train-test split"
   paths = [data_dir]
   weight_positives = False  # Hard coding this for now
-  train_out = os.path.join(args.out, "%s-train.pkl.gz" % args.name)
-  test_out = os.path.join(args.out, "%s-test.pkl.gz" % args.name)
+  train_out = os.path.join(data_dir, "%s-train.pkl.gz" % args.name)
+  test_out = os.path.join(data_dir, "%s-test.pkl.gz" % args.name)
   _train_test_input(paths, args.output_transforms,
       args.input_transforms, args.feature_types, args.splittype,
       weight_positives, args.mode, train_out, test_out)
@@ -246,8 +249,8 @@ def create_model(args):
   print "+++++++++++++++++++++++++++++++++"
   print "Eval Model on Train"
   print "-------------------"
-  csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.model)
-  csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.model)
+  csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.name)
+  csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.name)
   compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
     False, False, False, False)
   compute_r2s, compute_rms = False, False 
@@ -317,7 +320,12 @@ def _train_test_input(paths, output_transforms, input_transforms,
     feature_types, splittype, weight_positives, mode, train_out, test_out):
   """Saves transformed model."""
   targets = get_target_names(paths)
+  if output_transforms == "" or output_transforms == "None":
+    output_transforms = []
+  else:
+    output_transforms = output_transforms.split(",")
   output_transforms_dict = {target: output_transforms for target in targets}
+  feature_types = feature_types.split(",")
   train_dict, test_dict= process_datasets(paths,
       input_transforms, output_transforms_dict, feature_types=feature_types, 
       splittype=splittype, weight_positives=weight_positives,
@@ -377,8 +385,12 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
   save_model(models, modeltype, saved_out)
 
 def get_model_type(model):
-  if model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
-    modeltype = "keras"
+  if model in ["singletask_deep_network", "multitask_deep_network"]:
+    modeltype = "keras-graph"
+  elif model in ["3D_cnn"]:
+    modeltype = "keras-sequential"
+  elif model == "neural_fingerprint":
+    modeltype = "autograd"
   else:
     modeltype = "sklearn"
   return modeltype
@@ -388,7 +400,7 @@ def get_model_extension(modeltype):
     return "joblib"
   elif modeltype == "autograd":
     return "pkl.gz"
-  elif modeltype == "keras":
+  elif modeltype == "keras-graph" or modeltype == "keras-sequential":
     return "h5"
 
 def eval_trained_model(args):
