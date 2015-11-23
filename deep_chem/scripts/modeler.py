@@ -9,6 +9,7 @@ from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
 from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
+from deep_chem.utils.featurize import generate_smiles
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
@@ -26,7 +27,9 @@ def parse_args(input_args=None):
  
   # FEATURIZE FLAGS
   featurize_cmd = subparsers.add_parser("featurize",
-                      help="Featurize raw input data.")
+                      help="Featurize raw input data. The word 'endpoint' below is used\n"
+                           "to refer to a field in the input (a column-name in a csv or xlsx)\n"
+                           "or a field name in an sdf file or pandas dataframe.")
   featurize_cmd.add_argument("--input-file", required=1,
                       help="Input file with data.")
   featurize_cmd.add_argument("--input-type", default="csv",
@@ -111,7 +114,7 @@ def parse_args(input_args=None):
                       choices=["logistic", "rf_classifier", "rf_regressor",
                       "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
                       "singletask_deep_network", "multitask_deep_network",
-                      "3D_cnn"],
+                      "3D_cnn", "neural_fingerprint"],
                       help="Type of model to build. Some models may allow for\n"
                            "further specification of hyperparameters. See flags below.")
 
@@ -147,7 +150,7 @@ def parse_args(input_args=None):
   group.add_argument("--paths", nargs="+", required=1,
                       help="Paths to input datasets.")
   group.add_argument("--modeltype", required=1,
-                      choices=["sklearn", "keras-graph", "keras-sequential"],
+                      choices=["autograd", "sklearn", "keras-graph", "keras-sequential"],
                       help="Type of model to load.")
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
@@ -176,10 +179,14 @@ def parse_args(input_args=None):
 
   return parser.parse_args(input_args)
 
+# TODO(rbharath): This function needs to take feature-types as an argument
+# rather than generating all features for all compounds.
 def featurize_input(args):
   """Featurizes raw input data."""
   if len(args.fields) != len(args.field_types):
     raise ValueError("number of fields does not equal number of field types")
+  if args.id_endpoint is None:
+    args.id_endpoint = args.smiles_endpoint
   out_x_pkl, out_y_pkl = generate_directories(args.name, args.out, 
       args.feature_endpoints)
   df, mols = extract_data(args.input_file, args.input_type, args.fields,
@@ -197,15 +204,21 @@ def featurize_input(args):
   print "Generating rdkit descriptors"
   generate_vs_utils_features(df, args.name, args.out, args.smiles_endpoint,
       args.id_endpoint, "descriptors")
+  print "Generating smiles descriptors"
+  generate_smiles(df, args.name, args.out, args.smiles_endpoint, args.id_endpoint)
 
 def train_test_input(args):
   """Saves transformed model."""
   targets = get_target_names(args.paths)
   output_transforms = {target: args.output_transforms for target in targets}
-  train_dict, test_dict= process_datasets(args.paths,
+  if "smiles" in args.feature_types:
+    dtype=object
+  else:
+    dtype=float
+  train_dict, test_dict = process_datasets(args.paths,
       args.input_transforms, output_transforms, feature_types=args.feature_types, 
       splittype=args.splittype, weight_positives=args.weight_positives,
-      mode=args.mode)
+      mode=args.mode, dtype=dtype)
   trans_train_dict = transform_data(train_dict, args.input_transforms,
       args.output_transforms)
   trans_test_dict = transform_data(test_dict, args.input_transforms, args.output_transforms)
@@ -242,12 +255,19 @@ def fit_model(args):
       validation_split=args.validation_split)
   elif args.model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
-    models = fit_3D_convolution(train_data, test_data, task_types,
+    models = fit_3D_convolution(train_dict, task_types,
         nb_epoch=args.n_epochs, batch_size=args.batch_size)
+  elif args.model == "neural_fingerprint":
+    from deep_chem.models.neural_fingerprint import fit_neural_fingerprints
+    models = fit_neural_fingerprints(train_dict, task_types,
+                num_hidden=args.n_hidden, learning_rate=args.learning_rate,
+                batch_size=args.batch_size, num_epochs=args.n_epochs, decay=args.decay)
   else:
     models = fit_singletask_models(train_dict, args.model, task_types)
   if args.model in ["singletask_deep_network", "multitask_deep_network", "3D_cnn"]:
     modeltype = "keras"
+  elif args.model in ["neural_fingerprint"]:
+    modeltype = "autograd"
   else:
     modeltype = "sklearn"
   save_model(models, modeltype, args.saved_out)

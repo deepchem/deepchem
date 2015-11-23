@@ -19,7 +19,8 @@ from vs_utils.utils import ScaffoldGenerator
 
 def process_datasets(paths, input_transforms, output_transforms,
     feature_types=["fingerprints"], mode="multitask",
-    splittype="random", seed=None, weight_positives=True):
+    splittype="random", seed=None, weight_positives=True,
+    dtype=float):
   """Extracts datasets and split into train/test.
 
   Returns a dict that maps target names to tuples.
@@ -45,10 +46,10 @@ def process_datasets(paths, input_transforms, output_transforms,
       if len(data) == 0:
         continue
       train, test = split_dataset(dataset, splittype)
-      train_dict[target], test_dict[target] = to_arrays(train, test)
+      train_dict[target], test_dict[target] = to_arrays(train, test, dtype=dtype)
   elif mode == "multitask":
     train, test = split_dataset(dataset, splittype)
-    train_data, test_data = to_arrays(train, test)
+    train_data, test_data = to_arrays(train, test, dtype=dtype)
     train_dict["all"], test_dict["all"] = train_data, test_data
   else:
     raise ValueError("Unsupported mode for process_datasets.")
@@ -140,7 +141,7 @@ def load_assays(paths, target_dir_name="targets"):
           raise ValueError("Prediction Endpoint Missing.")
         for ind, id in enumerate(contents["mol_id"]):
           measurement = contents["prediction"][ind]
-          if "split" is not None:
+          if "split" in contents:
             splits[id] = contents["split"][ind]
           else:
             splits[id] = None
