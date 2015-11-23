@@ -453,7 +453,7 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
     models = fit_3D_convolution(
         train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size)
   else:
-    models = fit_singletask_models(train_dict, model, task_types)
+    models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)
   save_model(models, modeltype, saved_out)
 
