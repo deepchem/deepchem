@@ -9,6 +9,7 @@ from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
 from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
+from deep_chem.utils.featurize import generate_smiles
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
 from deep_chem.utils.load import get_target_names
@@ -125,7 +126,8 @@ def add_model_group(fit_cmd):
       "--model", required=1,
       choices=["logistic", "rf_classifier", "rf_regressor",
                "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
-               "singletask_deep_network", "multitask_deep_network", "3D_cnn"],
+               "singletask_deep_network", "multitask_deep_network", "3D_cnn",
+               "neural_fingerprint"],
       help="Type of model to build. Some models may allow for\n"
            "further specification of hyperparameters. See flags below.")
 
@@ -159,7 +161,7 @@ def add_fit_command(subparsers):
       "fit", help="Fit a model to training data.")
   group = fit_cmd.add_argument_group("load-and-transform")
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group.add_argument(
@@ -195,12 +197,12 @@ def add_eval_command(subparsers):
       help="Paths to input datasets.")
   group.add_argument(
       "--modeltype", required=1,
-      choices=["sklearn", "keras-graph", "keras-sequential"],
+      choices=["autograd", "sklearn", "keras-graph", "keras-sequential"],
       help="Type of model to load.")
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group = eval_cmd.add_argument_group("Classification metrics")
@@ -271,7 +273,7 @@ def add_model_command(subparsers):
 
   add_model_group(model_cmd)
   model_cmd.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   model_cmd.set_defaults(func=create_model)
@@ -349,6 +351,8 @@ def parse_args(input_args=None):
 
   return parser.parse_args(input_args)
 
+# TODO(rbharath): This function needs to take feature-types as an argument
+# rather than generating all features for all compounds.
 def featurize_input(args):
   """Wrapper function that calls _featurize_input with args unwrapped."""
   _featurize_input(
@@ -378,6 +382,8 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "fingerprints")
   print "Generating rdkit descriptors"
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "descriptors")
+  print "Generating smiles descriptors"
+  generate_smiles(df, name, out, smiles_field, id_field)
 
 def train_test_input(args):
   """Wrapper function that calls _train_test_input after unwrapping args."""
@@ -395,6 +401,10 @@ def _train_test_input(paths, output_transforms, input_transforms,
     output_transforms = []
   else:
     output_transforms = output_transforms.split(",")
+  if "smiles" in feature_types:
+    dtype=object
+  else:
+    dtype=float
   output_transforms_dict = {target: output_transforms for target in targets}
   feature_types = feature_types.split(",")
   train_dict, test_dict = process_datasets(
@@ -452,6 +462,12 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(
         train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size)
+  elif model == "neural_fingerprint":
+    from deep_chem.models.neural_fingerprint import fit_neural_fingerprints
+    models = fit_neural_fingerprints(
+                train_dict, task_types, num_hidden=n_hidden,
+                learning_rate=learning_rate, batch_size=batch_size,
+                num_epochs=n_epochs, decay=decay)
   else:
     models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)

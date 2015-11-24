@@ -104,6 +104,11 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     ypreds = []
     for index in range(n_targets):
       ypreds.append(predictions["task%d" % index])
+  elif modeltype == "autograd":
+    # This arcane transformation is needed to undo dtype=object
+    X = np.array(list(X))
+    (predict_func, train_weights, training_curve) = model
+    ypreds = predict_func(X)
   elif modeltype == "sklearn":
     # Must be single-task (breaking multitask RFs here)
     task_type = task_types.itervalues().next()
@@ -114,7 +119,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   elif modeltype == "keras-sequential":
     ypreds = model.predict(X)
   else:
-    raise ValueError("Improper modeltype.")
+    raise ValueError("Improper modeltype %s." % modeltype)
   if isinstance(ypreds, np.ndarray):
     ypreds = np.squeeze(ypreds)
   if not isinstance(ypreds, list):
