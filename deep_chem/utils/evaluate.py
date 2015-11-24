@@ -104,7 +104,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     ypreds = []
     for index in range(n_targets):
       ypreds.append(predictions["task%d" % index])
-  if modeltype == "autograd":
+  elif modeltype == "autograd":
     # This arcane transformation is needed to undo dtype=object
     X = np.array(list(X))
     (predict_func, train_weights, training_curve) = model
@@ -119,7 +119,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
   elif modeltype == "keras-sequential":
     ypreds = model.predict(X)
   else:
-    raise ValueError("Improper modeltype.")
+    raise ValueError("Improper modeltype %s." % modeltype)
   if isinstance(ypreds, np.ndarray):
     ypreds = np.squeeze(ypreds)
   if not isinstance(ypreds, list):

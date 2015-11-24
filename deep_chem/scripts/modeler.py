@@ -126,7 +126,8 @@ def add_model_group(fit_cmd):
       "--model", required=1,
       choices=["logistic", "rf_classifier", "rf_regressor",
                "linear", "ridge", "lasso", "lasso_lars", "elastic_net",
-               "singletask_deep_network", "multitask_deep_network", "3D_cnn"],
+               "singletask_deep_network", "multitask_deep_network", "3D_cnn",
+               "neural_fingerprint"],
       help="Type of model to build. Some models may allow for\n"
            "further specification of hyperparameters. See flags below.")
 
@@ -160,7 +161,7 @@ def add_fit_command(subparsers):
       "fit", help="Fit a model to training data.")
   group = fit_cmd.add_argument_group("load-and-transform")
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group.add_argument(
@@ -201,7 +202,7 @@ def add_eval_command(subparsers):
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group = eval_cmd.add_argument_group("Classification metrics")
@@ -272,7 +273,7 @@ def add_model_command(subparsers):
 
   add_model_group(model_cmd)
   model_cmd.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   model_cmd.set_defaults(func=create_model)
@@ -400,7 +401,7 @@ def _train_test_input(paths, output_transforms, input_transforms,
     output_transforms = []
   else:
     output_transforms = output_transforms.split(",")
-  if "smiles" in args.feature_types:
+  if "smiles" in feature_types:
     dtype=object
   else:
     dtype=float

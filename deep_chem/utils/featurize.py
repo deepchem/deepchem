@@ -217,19 +217,19 @@ def generate_features(dataframe, feature_fields, smiles_field, id_field, out_pkl
     pickle.dump(features_df, pickle_file, pickle.HIGHEST_PROTOCOL)
 
 # TODO(rbharath): This is a hack that generates smiles strings as features.
-def generate_smiles(df, name, out, smiles_endpoint, id_endpoint):
+def generate_smiles(df, name, out, smiles_field, id_field):
   dataset_dir = os.path.join(out, name)
   feature_dir = os.path.join(dataset_dir, "smiles")
   features = os.path.join(feature_dir,
       "%s-%s.pkl.gz" % (name, "smiles"))
 
   features_df = pd.DataFrame([]) 
-  features_df["smiles"] = df[[smiles_endpoint]]
-  features_df["scaffolds"] = df[[smiles_endpoint]].apply(
-    functools.partial(generate_scaffold, smiles_endpoint=smiles_endpoint),
+  features_df["smiles"] = df[[smiles_field]]
+  features_df["scaffolds"] = df[[smiles_field]].apply(
+    functools.partial(generate_scaffold, smiles_field=smiles_field),
     axis=1)
-  features_df["mol_id"] = df[[id_endpoint]]
-  features_df["features"] = df[[smiles_endpoint]]
+  features_df["mol_id"] = df[[id_field]]
+  features_df["features"] = df[[smiles_field]]
 
   with gzip.open(features, "wb") as f:
     pickle.dump(features_df, f, pickle.HIGHEST_PROTOCOL)
