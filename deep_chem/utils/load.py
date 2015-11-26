@@ -36,16 +36,24 @@ def process_datasets(paths, input_transforms, output_transforms,
   seed: int
     Seed used for random splits.
   """
+  print("Loading dataset...")
   dataset = load_datasets(paths, feature_types=feature_types)
+  print("Loaded dataset")
   train_dict, test_dict = {}, {}
   if mode == "singletask":
     singletask = multitask_to_singletask(dataset)
-    for target in singletask:
-      data = singletask[target]
+    print("Completed multitask_to_singletask")
+    for task in singletask:
+      print(task)
+      print("About to split dataset")
+      data = singletask[task]
       if len(data) == 0:
         continue
+      print("About to split train and test")
       train, test = split_dataset(dataset, splittype)
-      train_dict[target], test_dict[target] = to_arrays(train, test)
+      print("Done spliting train and test")
+      train_dict[task], test_dict[task] = to_arrays(train, test)
+      print("to_arrays is done")
   elif mode == "multitask":
     train, test = split_dataset(dataset, splittype)
     train_data, test_data = to_arrays(train, test)
@@ -140,7 +148,7 @@ def load_assays(paths, target_dir_name="targets"):
           raise ValueError("Prediction Endpoint Missing.")
         for ind, id in enumerate(contents["mol_id"]):
           measurement = contents["prediction"][ind]
-          if "split" is not None:
+          if "split" in contents:
             splits[id] = contents["split"][ind]
           else:
             splits[id] = None
