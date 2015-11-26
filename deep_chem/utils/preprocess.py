@@ -18,6 +18,9 @@ def to_arrays(train, test):
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
   # Copy X up front to have non-destructive updates.
+  if not input_transforms:
+    return X
+
   X = np.copy(X)
   if len(np.shape(X)) == 2:
     (n_samples, n_features) = np.shape(X)
@@ -163,15 +166,22 @@ def dataset_to_numpy(dataset, weight_positives=True):
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint["fingerprint"])
   n_targets = len(sample_datapoint["labels"])
-  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
+  #print("Allocating X...")
+  #X = np.squeeze(np.zeros((n_samples,) + feature_shape))
+  print("Allocating y...")
   y = np.zeros((n_samples, n_targets))
+  print("allocating W...")
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
+  print("Done sorting. About to fill X")
+  tensors = []
   for id_ind, id in enumerate(sorted_ids):
     datapoint = dataset[id]
     fingerprint, labels = (datapoint["fingerprint"],
       datapoint["labels"])
-    X[id_ind] = np.reshape(fingerprint, np.shape(X[id_ind]))
+    tensors.append(np.squeeze(fingerprint))
+    #fingerprint.reshape(np.shape(X[id_ind]))
+    #X[id_ind] = fingerprint
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
     for target_ind, target in enumerate(sorted_targets):
@@ -180,8 +190,11 @@ def dataset_to_numpy(dataset, weight_positives=True):
         W[id_ind][target_ind] = 0
       else:
         y[id_ind][target_ind] = labels[target]
+
+  X = np.stack(tensors)
   if weight_positives:
     W = balance_positives(y, W)
+  print("Done filling X")
   return (sorted_ids, X, y, W)
 
 def multitask_to_singletask(dataset):

@@ -16,6 +16,13 @@ def save_model(models, modeltype, filename):
   else:
     raise ValueError("Unsupported modeltype.")
 
+def save_sharded_dataset(dataset, filename):
+  joblib.dump(dataset, filename, compress=0)
+
+def load_sharded_dataset(filename):
+  dataset = joblib.load(filename)
+  return(dataset)
+
 def load_model(modeltype, filename):
   """Dispatcher function for loading."""
   if modeltype == "sklearn":
