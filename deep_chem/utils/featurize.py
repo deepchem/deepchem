@@ -54,34 +54,45 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field, featuretype):
+def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field,
+    featuretype, log_every_n=1000):
   """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
   feature_dir = os.path.join(dataset_dir, featuretype)
-  features = os.path.join(feature_dir, "%s-%s.pkl.gz" % (name, featuretype))
+  features_file = os.path.join(feature_dir, "%s-%s.pkl.gz" % (name, featuretype))
 
-  feature_df = pd.DataFrame([])
-  feature_df["smiles"] = dataframe[[smiles_field]]
-  feature_df["scaffolds"] = dataframe[[smiles_field]].apply(
-      functools.partial(generate_scaffold, smiles_field=smiles_field),
-      axis=1)
-  feature_df["mol_id"] = dataframe[[id_field]]
-
-  mols = []
-  for row in dataframe.iterrows():
-    # pandas rows are tuples (row_num, row_data)
-    smiles = row[1][smiles_field]
-    mols.append(Chem.MolFromSmiles(smiles))
+  print "About to instantiate featurizer."
   if featuretype == "fingerprints":
     featurizer = CircularFingerprint(size=1024)
   elif featuretype == "descriptors":
     featurizer = SimpleDescriptors()
   else:
     raise ValueError("Unsupported featuretype requested.")
+  print "About to generate features for molecules"
+  features, mol = [], None
+  smiles = dataframe[smiles_field].tolist()
+  for row_ind, row_data in enumerate(smiles):
+    if row_ind % log_every_n == 0:
+      print "Featurizing molecule %d" % row_ind
+    mol = Chem.MolFromSmiles(row_data)
+    features.append(featurizer.featurize([mol]))
+  print "Done generating features. About to transfer them to dataframe."
+  feature_df = pd.DataFrame([])
   feature_df["features"] = pd.DataFrame(
-      [{"features": feature} for feature in featurizer.featurize(mols)])
+      [{"features": feature} for feature in features])
+  #feature_df["features"] = pd.DataFrame(
+  #    [{"features": feature} for feature in featurizer.featurize(mols)])
 
-  with gzip.open(features, "wb") as gzip_file:
+  print "Done transfering to dataframe. About to populate remaining df fields."
+  feature_df["smiles"] = dataframe[[smiles_field]]
+  feature_df["scaffolds"] = dataframe[[smiles_field]].apply(
+      functools.partial(generate_scaffold, smiles_field=smiles_field),
+      axis=1)
+  feature_df["mol_id"] = dataframe[[id_field]]
+  print "Populated 'smiles', 'scaffolds', 'mol_id' fields"
+
+  print "About to write pkl.gz file"
+  with gzip.open(features_file, "wb") as gzip_file:
     pickle.dump(feature_df, gzip_file, pickle.HIGHEST_PROTOCOL)
 
 def get_rows(input_file, input_type, delimiter):
@@ -164,7 +175,7 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data
 
-def generate_targets(dataframe, prediction_field, split_field,
+def generate_targets(dataframe, target_fields, split_field,
                      smiles_field, id_field, out_pkl):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified
@@ -172,7 +183,8 @@ def generate_targets(dataframe, prediction_field, split_field,
   labels_df = pd.DataFrame([])
   labels_df["mol_id"] = dataframe[[id_field]]
   labels_df["smiles"] = dataframe[[smiles_field]]
-  labels_df["prediction"] = dataframe[[prediction_field]]
+  for target in target_fields:
+    labels_df[target] = dataframe[[target]]
   if split_field is not None:
     labels_df["split"] = dataframe[[split_field]]
 
@@ -214,12 +226,14 @@ def generate_features(dataframe, feature_fields, smiles_field, id_field, out_pkl
     pickle.dump(features_df, pickle_file, pickle.HIGHEST_PROTOCOL)
 
 def extract_data(input_file, input_type, fields, field_types,
-                 prediction_field, smiles_field, threshold, delimiter):
+                 target_fields, smiles_field, threshold, delimiter,
+                 log_every_n=1000):
   """Extracts data from input as Pandas data frame"""
   rows, mols, smiles = [], [], SmilesGenerator()
   colnames = []
   for row_index, raw_row in enumerate(get_rows(input_file, input_type, delimiter)):
-    print row_index
+    if row_index % log_every_n == 0:
+      print row_index
     # Skip empty rows
     if raw_row is None:
       continue
@@ -231,7 +245,7 @@ def extract_data(input_file, input_type, fields, field_types,
       continue
     row, row_data = {}, get_row_data(raw_row, input_type, fields, smiles_field, colnames)
     for (field, field_type) in zip(fields, field_types):
-      if field == prediction_field and threshold is not None:
+      if field in target_fields and threshold is not None:
         raw_val = process_field(row_data[field], field_type)
         row[field] = 1 if raw_val > threshold else 0
       else:

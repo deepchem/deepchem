@@ -11,7 +11,7 @@ from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
-from deep_chem.utils.load import get_target_names
+#from deep_chem.utils.load import get_target_names
 from deep_chem.utils.load import process_datasets
 from deep_chem.utils.load import transform_data
 from deep_chem.utils.evaluate import results_to_csv
@@ -51,7 +51,7 @@ def add_featurize_group(featurize_cmd):
       "--feature-fields", type=str, nargs="+",
       help="Optional field that holds pre-computed feature vector")
   featurize_group.add_argument(
-      "--prediction-field", type=str, required=1,
+      "--target-fields", type=str, nargs="+", required=1,
       help="Name of measured field to predict.")
   featurize_group.add_argument(
       "--split-field", type=str, default=None,
@@ -66,7 +66,7 @@ def add_featurize_group(featurize_cmd):
   # TODO(rbharath): This should be moved to train-tests-split
   featurize_group.add_argument(
       "--threshold", type=float, default=None,
-      help="If specified, will be used to binarize real-valued prediction-field.")
+      help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
       "--name", required=1,
       help="Name of the dataset.")
@@ -284,7 +284,7 @@ def create_model(args):
   if not args.skip_featurization:
     _featurize_input(
         args.name, args.out, args.input_file, args.input_type, args.fields,
-        args.field_types, args.feature_fields, args.prediction_field,
+        args.field_types, args.feature_fields, args.target_fields,
         args.smiles_field, args.split_field, args.id_field, args.threshold,
         args.delimiter)
 
@@ -296,7 +296,8 @@ def create_model(args):
   test_out = os.path.join(data_dir, "%s-test.pkl.gz" % args.name)
   _train_test_input(
       paths, args.output_transforms, args.input_transforms, args.feature_types,
-      args.splittype, weight_positives, args.mode, train_out, test_out)
+      args.splittype, weight_positives, args.mode, train_out, test_out,
+      args.target_fields)
 
   print "+++++++++++++++++++++++++++++++++"
   print "Fit model"
@@ -306,7 +307,7 @@ def create_model(args):
   _fit_model(
       paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
       args.dropout, args.n_epochs, args.decay, args.batch_size,
-      args.validation_split, saved_out, train_out)
+      args.validation_split, saved_out, train_out, args.target_fields)
 
 
   print "+++++++++++++++++++++++++++++++++"
@@ -327,13 +328,13 @@ def create_model(args):
   _eval_trained_model(
       modeltype, saved_out, train_out, paths, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_train, stats_out_train)
+      compute_rms, csv_out_train, stats_out_train,  args.target_fields)
   print "Eval Model on Test"
   print "------------------"
   _eval_trained_model(
       modeltype, saved_out, test_out, paths, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_test, stats_out_test)
+      compute_rms, csv_out_test, stats_out_test, args.target_fields)
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -353,12 +354,12 @@ def featurize_input(args):
   """Wrapper function that calls _featurize_input with args unwrapped."""
   _featurize_input(
       args.name, args.out, args.input_file, args.input_type, args.fields,
-      args.field_types, args.feature_fields, args.prediction_field,
+      args.field_types, args.feature_fields, args.target_fields,
       args.smiles_field, args.split_field, args.id_field, args.threshold,
       args.delimiter)
 
 def _featurize_input(name, out, input_file, input_type, fields, field_types,
-                     feature_fields, prediction_field, smiles_field,
+                     feature_fields, target_fields, smiles_field,
                      split_field, id_field, threshold, delimiter):
   """Featurizes raw input data."""
   if len(fields) != len(field_types):
@@ -367,10 +368,10 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
     id_field = smiles_field
   out_x_pkl, out_y_pkl = generate_directories(name, out, feature_fields)
   df, mols = extract_data(
-      input_file, input_type, fields, field_types, prediction_field,
+      input_file, input_type, fields, field_types, target_fields,
       smiles_field, threshold, delimiter)
   print "Generating targets"
-  generate_targets(df, prediction_field, split_field,
+  generate_targets(df, target_fields, split_field,
                    smiles_field, id_field, out_y_pkl)
   print "Generating user-specified features"
   generate_features(df, feature_fields, smiles_field, id_field, out_x_pkl)
@@ -384,23 +385,24 @@ def train_test_input(args):
   _train_test_input(
       args.paths, args.output_transforms, args.input_transforms,
       args.feature_types, args.splittype, args.weight_positives, args.mode,
-      args.train_out, args.test_out)
+      args.train_out, args.test_out, args.target_fields)
 
 def _train_test_input(paths, output_transforms, input_transforms,
                       feature_types, splittype, weight_positives, mode,
-                      train_out, test_out):
+                      train_out, test_out, target_names):
   """Saves transformed model."""
-  targets = get_target_names(paths)
+  #targets = get_target_names(paths)
   if output_transforms == "" or output_transforms == "None":
     output_transforms = []
   else:
     output_transforms = output_transforms.split(",")
-  output_transforms_dict = {target: output_transforms for target in targets}
+  output_transforms_dict = {target: output_transforms for target in target_names}
   feature_types = feature_types.split(",")
   train_dict, test_dict = process_datasets(
       paths, input_transforms, output_transforms_dict,
       feature_types=feature_types, splittype=splittype,
-      weight_positives=weight_positives, mode=mode)
+      weight_positives=weight_positives, mode=mode,
+      target_names=target_names)
   trans_train_dict = transform_data(
       train_dict, input_transforms, output_transforms)
   trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
@@ -423,14 +425,15 @@ def fit_model(args):
   _fit_model(
       args.paths, args.model, args.task_type, args.n_hidden,
       args.learning_rate, args.dropout, args.n_epochs, args.decay,
-      args.batch_size, args.validation_split, args.saved_out, args.saved_data)
+      args.batch_size, args.validation_split, args.saved_out, args.saved_data,
+      args.target_fields)
 
 def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
                n_epochs, decay, batch_size, validation_split, saved_out,
-               saved_data):
+               saved_data, target_names):
   """Builds model from featurized data."""
-  targets = get_target_names(paths)
-  task_types = {target: task_type for target in targets}
+  #targets = get_target_names(paths)
+  task_types = {target: task_type for target in target_names}
 
   with gzip.open(saved_data) as data_file:
     stored_train = pickle.load(data_file)
@@ -484,16 +487,17 @@ def eval_trained_model(args):
       args.modeltype, args.saved_model, args.saved_data, args.paths,
       args.task_type, args.compute_aucs, args.compute_recall,
       args.compute_accuracy, args.compute_matthews_corrcoef, args.compute_r2s,
-      args.compute_rms, args.csv_out, args.stats_out)
+      args.compute_rms, args.csv_out, args.stats_out,
+      args.target_fields)
 
 def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
                         compute_aucs, compute_recall, compute_accuracy,
                         compute_matthews_corrcoef, compute_r2s, compute_rms,
-                        csv_out, stats_out):
+                        csv_out, stats_out, target_names):
   """Evaluates a trained model on specified data."""
   model = load_model(modeltype, saved_model)
-  targets = get_target_names(paths)
-  task_types = {target: task_type for target in targets}
+  #targets = get_target_names(paths)
+  task_types = {target: task_type for target in target_names}
 
   with gzip.open(saved_data) as data_file:
     stored_test = pickle.load(data_file)

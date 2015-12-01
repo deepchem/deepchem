@@ -144,8 +144,8 @@ def balance_positives(y, W):
     if to_next_target:
       continue
     n_positives, n_negatives = len(positive_inds), len(negative_inds)
-    print "For target %d, n_positives: %d, n_negatives: %d" % (
-        target_ind, n_positives, n_negatives)
+    #print "For target %d, n_positives: %d, n_negatives: %d" % (
+    #    target_ind, n_positives, n_negatives)
     # TODO(rbharath): This results since the coarse train/test split doesn't
     # guarantee that the test set actually has any positives for targets. FIX
     # THIS BEFORE RELEASE!
@@ -157,13 +157,13 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
-def dataset_to_numpy(dataset, weight_positives=True):
+def dataset_to_numpy(dataset, weight_positives=False):
   """Transforms a set of tensor data into numpy arrays (X, y)"""
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint["fingerprint"])
   n_targets = len(sample_datapoint["labels"])
-  X = np.squeeze(np.zeros((n_samples,) + feature_shape + (n_targets,)))
+  X = np.squeeze(np.zeros((n_samples,) + feature_shape))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
