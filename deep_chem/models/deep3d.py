@@ -12,12 +12,14 @@ def fit_3D_convolution(per_task_data, task_types, **training_params):
   Perform stochastic gradient descent for a 3D CNN.
   """
   models = {}
-  (_, X_train, y_train, _), _ = per_task_data["all"]
+  (_, X_train, y_train, _) = per_task_data.itervalues().next()
   nb_classes = 2
   models["all"] = train_3D_convolution(X_train, y_train, **training_params)
   return models
 
-def train_3D_convolution(X, y, batch_size=50, nb_epoch=1):
+def train_3D_convolution(X, y, batch_size=50, nb_epoch=1,learning_rate=0.01,
+  loss_function="mean_squared_error"):
+
   """
   Fit a keras 3D CNN to datat.
 
@@ -70,9 +72,9 @@ def train_3D_convolution(X, y, batch_size=50, nb_epoch=1):
   # TODO(rbharath): Generalize this to support classification as well as regression.
   model.add(Dense(32/2, 1, init='normal'))
 
-  sgd = RMSprop(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+  sgd = RMSprop(lr=learning_rate, decay=1e-6, momentum=0.9, nesterov=True)
   print "About to compile model"
-  model.compile(loss='mean_squared_error', optimizer=sgd)
+  model.compile(loss=loss_function, optimizer=sgd)
   print "About to fit data to model."
   model.fit(X, y, batch_size=batch_size, nb_epoch=nb_epoch)
   return model

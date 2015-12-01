@@ -89,7 +89,7 @@ def train_multitask_model(X, y, W, task_types,
   sorted_targets = sorted(task_types.keys())
   local_task_types = task_types.copy()
   endpoints = sorted_targets
-  (_, n_inputs) = np.shape(X)
+  (_, n_inputs) = np.shape(X[0].flatten())
   # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
   W = W + eps * np.ones(np.shape(W))
   model = Graph()

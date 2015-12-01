@@ -4,6 +4,7 @@ Top level script to featurize input, train models, and evaluate them.
 import argparse
 import gzip
 import cPickle as pickle
+import joblib
 import os
 from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
@@ -17,6 +18,8 @@ from deep_chem.utils.load import transform_data
 from deep_chem.utils.evaluate import results_to_csv
 from deep_chem.utils.save import save_model
 from deep_chem.utils.save import load_model
+from deep_chem.utils.save import save_sharded_dataset
+from deep_chem.utils.save import load_sharded_dataset
 from deep_chem.utils.evaluate import compute_model_performance
 
 def add_featurization_command(subparsers):
@@ -145,6 +148,9 @@ def add_model_group(fit_cmd):
   group.add_argument(
       "--batch-size", type=int, default=32,
       help="Number of examples per minibatch for NN models.")
+  group.add_argument(
+      "--loss-function", type=str, default="mean_squared_error",
+      help="Loss function type.")  
   group.add_argument(
       "--decay", type=float, default=1e-4,
       help="Learning rate decay for NN models.")
@@ -292,8 +298,8 @@ def create_model(args):
   print "Perform train-test split"
   paths = [data_dir]
   weight_positives = False  # Hard coding this for now
-  train_out = os.path.join(data_dir, "%s-train.pkl.gz" % args.name)
-  test_out = os.path.join(data_dir, "%s-test.pkl.gz" % args.name)
+  train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
+  test_out = os.path.join(data_dir, "%s-test.joblib" % args.name)
   _train_test_input(
       paths, args.output_transforms, args.input_transforms, args.feature_types,
       args.splittype, weight_positives, args.mode, train_out, test_out,
@@ -306,7 +312,7 @@ def create_model(args):
   saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
   _fit_model(
       paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
-      args.dropout, args.n_epochs, args.decay, args.batch_size,
+      args.dropout, args.n_epochs, args.decay, args.batch_size, args.loss_function,
       args.validation_split, saved_out, train_out, args.target_fields)
 
 
@@ -398,14 +404,20 @@ def _train_test_input(paths, output_transforms, input_transforms,
     output_transforms = output_transforms.split(",")
   output_transforms_dict = {target: output_transforms for target in target_names}
   feature_types = feature_types.split(",")
+  print("About to process_dataset")
   train_dict, test_dict = process_datasets(
       paths, input_transforms, output_transforms_dict,
       feature_types=feature_types, splittype=splittype,
       weight_positives=weight_positives, mode=mode,
       target_names=target_names)
+  print("Finished process_dataset")
+
+  print("Starting transform_data")
   trans_train_dict = transform_data(
       train_dict, input_transforms, output_transforms)
+  print("Finished transform_data on train")
   trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
+  print("Finished transform_data on test")
   transforms = {"input_transforms": input_transforms,
                 "output_transform": output_transforms}
   stored_train = {"raw": train_dict,
@@ -414,10 +426,9 @@ def _train_test_input(paths, output_transforms, input_transforms,
   stored_test = {"raw": test_dict,
                  "transformed": trans_test_dict,
                  "transforms": transforms}
-  with gzip.open(train_out, "wb") as train_file:
-    pickle.dump(stored_train, train_file)
-  with gzip.open(test_out, "wb") as test_file:
-    pickle.dump(stored_test, test_file)
+  print("About to save dataset..")
+  save_sharded_dataset(stored_train, train_out)
+  save_sharded_dataset(stored_test, test_out)
 
 def fit_model(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
@@ -425,18 +436,17 @@ def fit_model(args):
   _fit_model(
       args.paths, args.model, args.task_type, args.n_hidden,
       args.learning_rate, args.dropout, args.n_epochs, args.decay,
-      args.batch_size, args.validation_split, args.saved_out, args.saved_data,
-      args.target_fields)
+      args.batch_size, args.loss_function, args.validation_split,
+      args.saved_out, args.saved_data, args.target_fields)
 
 def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
-               n_epochs, decay, batch_size, validation_split, saved_out,
+               n_epochs, decay, batch_size, loss_function, validation_split, saved_out,
                saved_data, target_names):
   """Builds model from featurized data."""
   #targets = get_target_names(paths)
   task_types = {target: task_type for target in target_names}
 
-  with gzip.open(saved_data) as data_file:
-    stored_train = pickle.load(data_file)
+  stored_train = load_sharded_dataset(saved_data)
   train_dict = stored_train["transformed"]
 
   if model == "singletask_deep_network":
@@ -454,7 +464,8 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
   elif model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(
-        train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size)
+        train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size,
+        learning_rate=learning_rate,loss_function=loss_function)
   else:
     models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)
@@ -499,8 +510,7 @@ def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
   #targets = get_target_names(paths)
   task_types = {target: task_type for target in target_names}
 
-  with gzip.open(saved_data) as data_file:
-    stored_test = pickle.load(data_file)
+  stored_test = load_sharded_dataset(saved_data)
   test_dict = stored_test["transformed"]
   raw_test_dict = stored_test["raw"]
   output_transforms = stored_test["transforms"]["output_transform"]
