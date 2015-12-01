@@ -58,8 +58,8 @@ def process_datasets(paths, input_transforms, output_transforms,
     train_dict["all"], test_dict["all"] = train_data, test_data
   else:
     raise ValueError("Unsupported mode for process_datasets.")
-  print "Shape of Xtrain"
   target = train_dict.itervalues().next()
+  print "Shape of Xtrain"
   print np.shape(target[1])
   return train_dict, test_dict 
 
@@ -102,22 +102,6 @@ def load_molecules(paths, feature_types=["fingerprints"]):
                   molecules[mol_ids[mol]]["fingerprint"], features[mol])
               entry["feature_types"].append(feature_type)
   return molecules 
-
-#def get_target_names(paths, target_dir_name="targets"):
-#  """Get names of targets in provided collections.
-#
-#  Parameters
-#  ----------
-#  paths: list 
-#    List of paths to base directory.
-#  """
-#  target_names = []
-#  for dataset_path in paths:
-#    target_dir = os.path.join(dataset_path, target_dir_name)
-#    target_names += [target_pickle.split(".")[0]
-#        for target_pickle in os.listdir(target_dir)
-#        if "pkl.gz" in target_pickle]
-#  return target_names
 
 def load_assays(paths, target_dir_name, target_names):
   """Load regression dataset labels from assays.

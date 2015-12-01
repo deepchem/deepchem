@@ -176,8 +176,6 @@ def dataset_to_numpy(dataset, weight_positives=False):
     fingerprint, labels = (datapoint["fingerprint"],
       datapoint["labels"])
     tensors.append(np.squeeze(fingerprint))
-    #fingerprint.reshape(np.shape(X[id_ind]))
-    #X[id_ind] = fingerprint
     sorted_targets = sorted(labels.keys())
     # Set labels from measurements
     for target_ind, target in enumerate(sorted_targets):
@@ -186,11 +184,9 @@ def dataset_to_numpy(dataset, weight_positives=False):
         W[id_ind][target_ind] = 0
       else:
         y[id_ind][target_ind] = labels[target]
-
   X = np.stack(tensors)
   if weight_positives:
     W = balance_positives(y, W)
-  print("Done filling X")
   return (sorted_ids, X, y, W)
 
 def multitask_to_singletask(dataset):
