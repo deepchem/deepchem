@@ -18,7 +18,7 @@ def fit_multitask_mlp(train_data, task_types, **training_params):
   Parameters
   ----------
   task_types: dict 
-    dict mapping target names to output type. Each output type must be either
+    dict mapping task names to output type. Each output type must be either
     "classification" or "regression".
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
@@ -37,10 +37,10 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
   Perform stochastic gradient descent optimization for a keras MLP.
 
   task_types: dict 
-    dict mapping target names to output type. Each output type must be either
+    dict mapping task names to output type. Each output type must be either
     "classification" or "regression".
   output_transforms: dict 
-    dict mapping target names to label transform. Each output type must be either
+    dict mapping task names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   training_params: dict
     Aggregates keyword parameters to pass to train_multitask_model
@@ -48,14 +48,14 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
   models = {}
   train_ids = train_data["mol_ids"]
   X_train = train_data["features"]
-  sorted_targets = train_data["sorted_targets"]
-  for index, target in enumerate(sorted_targets):
+  sorted_tasks = train_data["sorted_tasks"]
+  for index, task in enumerate(sorted_tasks):
     print "Training model %d" % index
-    print "Target %s" % target
-    (y_train, W_train) = train_data[target]
+    print "Target %s" % task
+    (y_train, W_train) = train_data[task]
     print "%d compounds in Train" % len(train_ids)
-    models[target] = train_multitask_model(X_train, y_train, W_train,
-        {target: task_types[target]}, **training_params)
+    models[task] = train_multitask_model(X_train, y_train, W_train,
+        {task: task_types[task]}, **training_params)
   return models
 
 def train_multitask_model(X, y, W, task_types,
@@ -75,7 +75,7 @@ def train_multitask_model(X, y, W, task_types,
   W: np.ndarray
     Weight matrix
   task_types: dict 
-    dict mapping target names to output type. Each output type must be either
+    dict mapping task names to output type. Each output type must be either
     "classification" or "regression".
   learning_rate: float
     Learning rate used.
@@ -90,9 +90,9 @@ def train_multitask_model(X, y, W, task_types,
   """
   eps = .001
   num_tasks = len(task_types)
-  sorted_targets = sorted(task_types.keys())
+  sorted_tasks = sorted(task_types.keys())
   local_task_types = task_types.copy()
-  endpoints = sorted_targets
+  endpoints = sorted_tasks
   (_, n_inputs) = np.shape(X[0].flatten())
   # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
   W = W + eps * np.ones(np.shape(W))
@@ -103,8 +103,8 @@ def train_multitask_model(X, y, W, task_types,
       name="dense", input="input")
   model.add_node(Dropout(dropout), name="dropout", input="dense")
   top_layer = "dropout"
-  for task, target in enumerate(endpoints):
-    task_type = local_task_types[target]
+  for task, task in enumerate(endpoints):
+    task_type = local_task_types[task]
     if task_type == "classification":
       model.add_node(
           Dense(n_hidden, 2, init='uniform', activation="softmax"),
@@ -116,8 +116,8 @@ def train_multitask_model(X, y, W, task_types,
     model.add_output(name="task%d" % task, input="dense_head%d" % task)
   data_dict, loss_dict, sample_weights = {}, {}, {}
   data_dict["input"] = X
-  for task, target in enumerate(endpoints):
-    task_type = local_task_types[target]
+  for task, task in enumerate(endpoints):
+    task_type = local_task_types[task]
     taskname = "task%d" % task
     sample_weights[taskname] = W[:, task]
     if task_type == "classification":

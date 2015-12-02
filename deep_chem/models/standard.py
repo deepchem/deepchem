@@ -24,15 +24,18 @@ def fit_singletask_models(train_data, modeltype):
   seed: int (optional)
     Seed to initialize np.random.
   output_transforms: dict
-    dict mapping target names to label transform. Each output type must be either
+    dict mapping task names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   """
   models = {}
+  print "fit_singletask_models()"
+  print "train_data.keys()"
+  print train_data.keys()
   X_train = train_data["features"]
-  sorted_targets = train_data["sorted_targets"]
-  for target in sorted_targets:
-    print "Building model for target %s" % target
-    (y_train, _) = train_data[target]
+  sorted_tasks = train_data["sorted_tasks"]
+  for task in sorted_tasks:
+    print "Building model for task %s" % task
+    (y_train, _) = train_data[task]
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(
           n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
@@ -54,7 +57,7 @@ def fit_singletask_models(train_data, modeltype):
     else:
       raise ValueError("Invalid model type provided.")
     model.fit(X_train, y_train.ravel())
-    models[target] = model
+    models[task] = model
   return models
 
 ## TODO(rbharath): I believe this is broken. Update it to work with the rest of

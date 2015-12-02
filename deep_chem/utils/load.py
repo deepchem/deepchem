@@ -11,10 +11,8 @@ import os
 import cPickle as pickle
 from deep_chem.utils.preprocess import transform_outputs
 from deep_chem.utils.preprocess import transform_inputs
-from deep_chem.utils.preprocess import dataset_to_numpy
-from deep_chem.utils.preprocess import multitask_to_singletask
+from deep_chem.utils.preprocess import standardize 
 from deep_chem.utils.preprocess import split_dataset
-from deep_chem.utils.preprocess import to_arrays
 from vs_utils.utils import ScaffoldGenerator
 
 def process_datasets(paths, input_transforms, output_transforms,
@@ -43,8 +41,8 @@ def process_datasets(paths, input_transforms, output_transforms,
   """
   dataset = load_datasets(paths, feature_types=feature_types, target_names=target_names)
   train, test = split_dataset(dataset, splittype)
-  train_dict = standardize(train, mode=mode)
-  test_dict = standardize(test, mode=mode)
+  train_dict = standardize(train, mode)
+  test_dict = standardize(test, mode)
   #if mode == "singletask":
   #  # Perform common train/test split across all tasks
   #  #train_features, train_labels = multitask_to_singletask(train)
@@ -207,10 +205,12 @@ def transform_data(data, input_transforms, output_transforms):
     transformations. Only for regression outputs.
   """
   trans_dict = {}
-  X = transform_inputs(train_dict["features"], input_transforms)
-  trans_dict["mol_ids"], trans_dict["features"] = train_dict["mol_ids"], X
-  for target in data:
-    y, W = data[target]
+  X = transform_inputs(data["features"], input_transforms)
+  trans_dict["mol_ids"], trans_dict["features"] = data["mol_ids"], X
+  trans_dict["sorted_tasks"] = data["sorted_tasks"]
+  for task in data["sorted_tasks"]:
+    y, W = data[task]
     y = transform_outputs(y, W, output_transforms)
-    trans_dict[target] = (y, W)
+    trans_dict[task] = (y, W)
+  assert trans_dict.keys() == data.keys()
   return trans_dict

@@ -21,7 +21,7 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
 
 def compute_model_performance(raw_test_data, test_data, task_types, models,
-                              modeltype, output_transforms, aucs=True,
+                              modeltype, output_transforms, aucs=False,
                               r2s=False, rms=False, recall=False,
                               accuracy=False, mcc=False,
                               print_file=sys.stdout):
@@ -29,11 +29,13 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
   all_results = {}
   auc_vals, mcc_vals, recall_vals, accuracy_vals = {}, {}, {}, {}
   r2_vals, rms_vals = {}, {}
-  for index, target in enumerate(sorted(test_data.keys())):
+  test_ids = test_data["mol_ids"]
+  X_test = test_data["features"]
+  for index, target in enumerate(test_data["sorted_tasks"]):
     print("Evaluating model %d" % index, file=print_file)
     print("Target %s" % target, file=print_file)
-    (test_ids, X_test, y_test, w_test) = test_data[target]
-    (_, _, ytest_raw, _) = raw_test_data[target]
+    (y_test, w_test) = test_data[target]
+    (ytest_raw, _) = raw_test_data[target]
     #model = models[target]
     model = models.itervalues().next()
     results = eval_model(

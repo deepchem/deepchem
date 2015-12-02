@@ -33,42 +33,42 @@ def summarize_distribution(y):
   print "Histogram: "
   print hist
 
-def analyze_data(dataset, splittype="random"):
-  """Analyzes regression dataset.
-
-  Parameters
-  ----------
-  dataset: dict
-    A dictionary of type produced by load_datasets.
-  splittype: string
-    Type of split for train/test. Either random or scaffold.
-  """
-  singletask = multitask_to_singletask(dataset)
-  for target in singletask:
-    data = singletask[target]
-    if len(data.keys()) == 0:
-      continue
-    if splittype == "random":
-      train, test = train_test_random_split(data, seed=0)
-    elif splittype == "scaffold":
-      train, test = train_test_scaffold_split(data)
-    else:
-      raise ValueError("Improper splittype. Must be random/scaffold.")
-    _, Xtrain, ytrain, _ = dataset_to_numpy(train)
-    # TODO(rbharath): Take this out once debugging is completed
-    ytrain = np.log(ytrain)
-    mean = np.mean(ytrain)
-    std = np.std(ytrain)
-    minval = np.amin(ytrain)
-    maxval = np.amax(ytrain)
-    hist = np.histogram(ytrain)
-    print target
-    print "Mean: %f" % mean
-    print "Std: %f" % std
-    print "Min: %f" % minval
-    print "Max: %f" % maxval
-    print "Histogram: "
-    print hist
+#def analyze_data(dataset, splittype="random"):
+#  """Analyzes regression dataset.
+#
+#  Parameters
+#  ----------
+#  dataset: dict
+#    A dictionary of type produced by load_datasets.
+#  splittype: string
+#    Type of split for train/test. Either random or scaffold.
+#  """
+#  singletask = multitask_to_singletask(dataset)
+#  for target in singletask:
+#    data = singletask[target]
+#    if len(data.keys()) == 0:
+#      continue
+#    if splittype == "random":
+#      train, test = train_test_random_split(data, seed=0)
+#    elif splittype == "scaffold":
+#      train, test = train_test_scaffold_split(data)
+#    else:
+#      raise ValueError("Improper splittype. Must be random/scaffold.")
+#    _, Xtrain, ytrain, _ = dataset_to_numpy(train)
+#    # TODO(rbharath): Take this out once debugging is completed
+#    ytrain = np.log(ytrain)
+#    mean = np.mean(ytrain)
+#    std = np.std(ytrain)
+#    minval = np.amin(ytrain)
+#    maxval = np.amax(ytrain)
+#    hist = np.histogram(ytrain)
+#    print target
+#    print "Mean: %f" % mean
+#    print "Std: %f" % std
+#    print "Min: %f" % minval
+#    print "Max: %f" % maxval
+#    print "Histogram: "
+#    print hist
 
 
 def compare_all_datasets():

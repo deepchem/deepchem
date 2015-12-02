@@ -165,7 +165,7 @@ def add_fit_command(subparsers):
       "fit", help="Fit a model to training data.")
   group = fit_cmd.add_argument_group("load-and-transform")
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group.add_argument(
@@ -206,7 +206,7 @@ def add_eval_command(subparsers):
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group = eval_cmd.add_argument_group("Classification metrics")
@@ -249,6 +249,12 @@ def add_model_command(subparsers):
   model_cmd.add_argument(
       "--skip-featurization", action="store_true",
       help="If set, skip the featurization step.")
+  model_cmd.add_argument(
+      "--skip-train-test-split", action="store_true",
+      help="If set, skip the train-test-split step.")
+  model_cmd.add_argument(
+      "--skip-fit", action="store_true",
+      help="If set, skip model fit step.")
   add_featurize_group(model_cmd)
 
   train_test_group = model_cmd.add_argument_group("train_test_group")
@@ -300,20 +306,22 @@ def create_model(args):
   weight_positives = False  # Hard coding this for now
   train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
   test_out = os.path.join(data_dir, "%s-test.joblib" % args.name)
-  _train_test_input(
-      paths, args.output_transforms, args.input_transforms, args.feature_types,
-      args.splittype, weight_positives, args.mode, train_out, test_out,
-      args.target_fields)
+  if not args.skip_train_test_split:
+    _train_test_input(
+        paths, args.output_transforms, args.input_transforms, args.feature_types,
+        args.splittype, weight_positives, args.mode, train_out, test_out,
+        args.target_fields)
 
   print "+++++++++++++++++++++++++++++++++"
   print "Fit model"
   modeltype = get_model_type(args.model)
   extension = get_model_extension(modeltype)
   saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
-  _fit_model(
-      paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
-      args.dropout, args.n_epochs, args.decay, args.batch_size, args.loss_function,
-      args.validation_split, saved_out, train_out, args.target_fields)
+  if not args.skip_fit:
+    _fit_model(
+        paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
+        args.dropout, args.n_epochs, args.decay, args.batch_size, args.loss_function,
+        args.validation_split, saved_out, train_out, args.target_fields)
 
 
   print "+++++++++++++++++++++++++++++++++"
@@ -326,6 +334,9 @@ def create_model(args):
   compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
       False, False, False, False)
   compute_r2s, compute_rms = False, False
+  print "create_model()"
+  print "args.task_type"
+  print args.task_type
   if args.task_type == "classification":
     compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
         True, True, True, True)
@@ -334,7 +345,9 @@ def create_model(args):
   _eval_trained_model(
       modeltype, saved_out, train_out, paths, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_train, stats_out_train,  args.target_fields)
+      compute_rms, csv_out_train, stats_out_train, args.target_fields)
+  print "(compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s, compute_rms)"
+  print (compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s, compute_rms)
   print "Eval Model on Test"
   print "------------------"
   _eval_trained_model(
@@ -517,8 +530,9 @@ def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
   with open(stats_out, "wb") as stats_file:
     results, _, _, _ = compute_model_performance(
         raw_test_dict, test_dict, task_types, model, modeltype,
-        output_transforms, compute_aucs, compute_r2s, compute_rms, compute_recall,
-        compute_accuracy, compute_matthews_corrcoef, print_file=stats_file)
+        output_transforms, aucs=compute_aucs, r2s=compute_r2s, rms=compute_rms,
+        recall=compute_recall, accuracy=compute_accuracy,
+        mcc=compute_matthews_corrcoef, print_file=stats_file)
   with open(stats_out, "r") as stats_file:
     print stats_file.read()
   results_to_csv(results, csv_out, task_type=task_type)

@@ -13,12 +13,12 @@ def fit_3D_convolution(train_data, task_types, **training_params):
   """
   models = {}
   X_train = train_data["features"]
-  if len(train_data["sorted_targets"]) > 1:
+  if len(train_data["sorted_tasks"]) > 1:
     raise ValueError("3D Convolutions only supported for singletask.")
-  target_name = train_data["sorted_targets"][0]
-  (y_train, _) = train_data["sorted_targets"].itervalues().next()
+  task_name = train_data["sorted_tasks"][0]
+  (y_train, _) = train_data["sorted_tasks"].itervalues().next()
   nb_classes = 2
-  models[target_name] = train_3D_convolution(X_train, y_train, **training_params)
+  models[task_name] = train_3D_convolution(X_train, y_train, **training_params)
   return models
 
 def train_3D_convolution(X, y, batch_size=50, nb_epoch=1,learning_rate=0.01,
