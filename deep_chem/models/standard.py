@@ -31,11 +31,21 @@ def fit_singletask_models(train_data, modeltype):
   print "fit_singletask_models()"
   print "train_data.keys()"
   print train_data.keys()
+  import numpy as np
   X_train = train_data["features"]
+  print "np.shape(X_train)"
+  print np.shape(X_train)
   sorted_tasks = train_data["sorted_tasks"]
   for task in sorted_tasks:
     print "Building model for task %s" % task
-    (y_train, _) = train_data[task]
+    (y_train, W_train) = train_data[task]
+    W_train = W_train.ravel()
+    task_X_train = X_train[W_train.nonzero()]
+    task_y_train = y_train[W_train.nonzero()]
+    print "np.shape(task_X_train)"
+    print np.shape(task_X_train)
+    print "np.shape(task_y_train)"
+    print np.shape(task_y_train)
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(
           n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
@@ -56,7 +66,7 @@ def fit_singletask_models(train_data, modeltype):
       model = ElasticNetCV(max_iter=2000, n_jobs=-1)
     else:
       raise ValueError("Invalid model type provided.")
-    model.fit(X_train, y_train.ravel())
+    model.fit(task_X_train, task_y_train.ravel())
     models[task] = model
   return models
 

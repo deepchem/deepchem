@@ -53,8 +53,11 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
     print "Training model %d" % index
     print "Target %s" % task
     (y_train, W_train) = train_data[task]
+    flat_W_train = W_train.ravel()
+    task_X_train = X_train[flat_W_train.nonzero()]
+    task_y_train = y_train[flat_W_train.nonzero()]
     print "%d compounds in Train" % len(train_ids)
-    models[task] = train_multitask_model(X_train, y_train, W_train,
+    models[task] = train_multitask_model(task_X_train, task_y_train, W_train,
         {task: task_types[task]}, **training_params)
   return models
 
@@ -93,39 +96,45 @@ def train_multitask_model(X, y, W, task_types,
   sorted_tasks = sorted(task_types.keys())
   local_task_types = task_types.copy()
   endpoints = sorted_tasks
-  (_, n_inputs) = np.shape(X[0].flatten())
+  print "train_multitask_model()"
+  print "np.shape(X)"
+  print np.shape(X)
+  n_inputs = len(X[0].flatten())
   # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
   W = W + eps * np.ones(np.shape(W))
+  print "np.shape(W)"
+  print np.shape(W)
   model = Graph()
-  model.add_input(name="input", ndim=n_inputs)
+  #model.add_input(name="input", ndim=n_inputs)
+  model.add_input(name="input", input_shape=(n_inputs,))
   model.add_node(
-      Dense(n_inputs, n_hidden, init='uniform', activation=activation),
+      Dense(n_hidden, init='uniform', activation=activation),
       name="dense", input="input")
   model.add_node(Dropout(dropout), name="dropout", input="dense")
   top_layer = "dropout"
-  for task, task in enumerate(endpoints):
+  for ind, task in enumerate(endpoints):
     task_type = local_task_types[task]
     if task_type == "classification":
       model.add_node(
-          Dense(n_hidden, 2, init='uniform', activation="softmax"),
-          name="dense_head%d" % task, input=top_layer)
+          Dense(2, init='uniform', activation="softmax"),
+          name="dense_head%d" % ind, input=top_layer)
     elif task_type == "regression":
       model.add_node(
-          Dense(n_hidden, 1, init='uniform'),
-          name="dense_head%d" % task, input=top_layer)
-    model.add_output(name="task%d" % task, input="dense_head%d" % task)
+          Dense(1, init='uniform'),
+          name="dense_head%d" % ind, input=top_layer)
+    model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
   data_dict, loss_dict, sample_weights = {}, {}, {}
   data_dict["input"] = X
-  for task, task in enumerate(endpoints):
+  for ind, task in enumerate(endpoints):
     task_type = local_task_types[task]
-    taskname = "task%d" % task
-    sample_weights[taskname] = W[:, task]
+    taskname = "task%d" % ind 
+    sample_weights[taskname] = W[:,ind]
     if task_type == "classification":
       loss_dict[taskname] = "binary_crossentropy"
-      data_dict[taskname] = to_one_hot(y[:,task])
+      data_dict[taskname] = to_one_hot(y[:,ind])
     elif task_type == "regression":
       loss_dict[taskname] = "mean_squared_error"
-      data_dict[taskname] = y[:,task]
+      data_dict[taskname] = y[:,ind]
   sgd = SGD(lr=learning_rate, decay=decay, momentum=momentum, nesterov=nesterov)
   print "About to compile model!"
   model.compile(optimizer=sgd, loss=loss_dict)

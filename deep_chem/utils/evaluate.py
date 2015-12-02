@@ -36,10 +36,13 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
     print("Target %s" % target, file=print_file)
     (y_test, w_test) = test_data[target]
     (ytest_raw, _) = raw_test_data[target]
-    #model = models[target]
-    model = models.itervalues().next()
+    w_test = w_test.ravel()
+    task_X_test = X_test[w_test.nonzero()]
+    task_y_test = y_test[w_test.nonzero()]
+    task_y_test_raw = y_test[w_test.nonzero()]
+    model = models[target]
     results = eval_model(
-        test_ids, X_test, y_test, ytest_raw, w_test, model,
+        test_ids, task_X_test, task_y_test, task_y_test_raw, model,
         {target: task_types[target]}, modeltype=modeltype,
         output_transforms=output_transforms)
     all_results[target] = results[target]
@@ -54,7 +57,7 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
     if recall:
       recall_vals.update(compute_recall_score(results, task_types))
     if accuracy:
-      recall_vals.update(compute_accuracy_score(results, task_types))
+      accuracy_vals.update(compute_accuracy_score(results, task_types))
 
   if aucs:
     print("Mean AUC: %f" % np.mean(np.array(auc_vals.values())), file=print_file)
@@ -111,6 +114,9 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     # Must be single-task (breaking multitask RFs here)
     task_type = task_types.itervalues().next()
     if task_type == "classification":
+      print("model_predictions()")
+      print("np.shape(X)")
+      print(np.shape(X))
       ypreds = model.predict_proba(X)
     elif task_type == "regression":
       ypreds = model.predict(X)
@@ -124,7 +130,7 @@ def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
     ypreds = [ypreds]
   return ypreds
 
-def eval_model(ids, X, Ytrue, Ytrue_raw, W, model, task_types,
+def eval_model(ids, X, Ytrue, Ytrue_raw, model, task_types,
                output_transforms, modeltype="sklearn"):
   """Evaluates the provided model on the test-set.
 
