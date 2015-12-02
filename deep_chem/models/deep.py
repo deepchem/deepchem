@@ -26,7 +26,8 @@ def fit_multitask_mlp(train_data, task_types, **training_params):
   models = {}
   # Follows convention from process_datasets that the data for multitask models
   # is grouped under key "all"
-  (_, X_train, y_train, W_train) = train_data["all"]
+  X_train = train_data["features"]
+  (y_train, W_train) = train_data["all"]
   models["all"] = train_multitask_model(X_train, y_train, W_train, task_types,
                                 **training_params)
   return models
@@ -45,10 +46,13 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
     Aggregates keyword parameters to pass to train_multitask_model
   """
   models = {}
-  for index, target in enumerate(sorted(train_data.keys())):
+  train_ids = train_data["mol_ids"]
+  X_train = train_data["features"]
+  sorted_targets = train_data["sorted_targets"]
+  for index, target in enumerate(sorted_targets):
     print "Training model %d" % index
     print "Target %s" % target
-    (train_ids, X_train, y_train, W_train) = train_data[target]
+    (y_train, W_train) = train_data[target]
     print "%d compounds in Train" % len(train_ids)
     models[target] = train_multitask_model(X_train, y_train, W_train,
         {target: task_types[target]}, **training_params)

@@ -9,6 +9,62 @@ import numpy as np
 import warnings
 from deep_chem.utils.analysis import summarize_distribution
 
+def standardize(dataset):
+  sorted_ids, X, task_ys, task_ws = standardize_dataset(dataset)
+  sorted_targets = sorted(task_ys.keys())
+  data = {}
+  data["mol_ids"] = sorted_ids
+  data["features"] = X
+  data["sorted_targets"] = sorted_targets
+  for target in sorted_targets:
+    data[target] = (task_ys[target], task_ws[target])
+  return data
+
+def standardize_dataset(dataset):
+  """Transforms a set of tensor data into standard dictionary format"""
+  # Perform common train/test split across all tasks
+  n_samples = len(dataset.keys())
+  sample_datapoint = dataset.itervalues().next()
+  feature_shape = np.shape(sample_datapoint["fingerprint"])
+  labels = sample_datapoint["labels"]
+  sorted_tasks = sorted(labels.keys())
+  n_tasks = len(sorted_targets)
+  task_ys = {target: [] for target in sorted_targets}
+  task_ws = {target: [] for target in sorted_targets}
+  sorted_ids = sorted(dataset.keys())
+  tensors = []
+  for id_ind, id in enumerate(sorted_ids):
+    datapoint = dataset[id]
+    fingerprint, labels = (datapoint["fingerprint"],
+      datapoint["labels"])
+    tensors.append(np.squeeze(fingerprint))
+    # Set labels from measurements
+    for target_ind, target in enumerate(sorted_targets):
+      if labels[target] == -1:
+        task_ys[target].append(-1)
+        task_ws[target].append(0)
+      else:
+        task_ys[target].append(labels[target])
+        task_ws[target].append(1)
+  X = np.stack(tensors)
+  print "standardize_dataset()"
+  print "Shape of X"
+  print np.shape(X)
+  if mode == "singletask":
+    for target in sorted_targets:
+      task_ys[target] = np.array(task_ys[target])
+      task_ws[target] = np.array(task_ws[target])
+    return sorted_ids, X, task_ys, task_ws
+  elif mode == multitask:
+    y = np.zeros((n_samples, n_targets))
+    w = np.ones((n_samples, n_targets))
+    for target in sorted_targets:
+      y[:,target] = np.array(task_ys[target])
+      w[:, target] = np.array(task_ws[target])
+    return sorted_ids, X, {"all": y}, {"all": w} 
+  else:
+    raise ValueError("Unsupported mode for process_datasets.")
+
 def to_arrays(train, test):
   """Turns train/test into numpy array."""
   train_ids, X_train, y_train, W_train = dataset_to_numpy(train)
@@ -166,7 +222,7 @@ def dataset_to_numpy(dataset, weight_positives=False):
   sample_datapoint = dataset.itervalues().next()
   feature_shape = np.shape(sample_datapoint["fingerprint"])
   n_targets = len(sample_datapoint["labels"])
-  X = np.squeeze(np.zeros((n_samples,) + feature_shape))
+  #X = np.squeeze(np.zeros((n_samples,) + feature_shape))
   y = np.zeros((n_samples, n_targets))
   W = np.ones((n_samples, n_targets))
   sorted_ids = sorted(dataset.keys())
@@ -204,20 +260,20 @@ def multitask_to_singletask(dataset):
   # Generate single-task data structures
   labels = dataset.itervalues().next()["labels"]
   sorted_targets = sorted(labels.keys())
-  singletask = {target: {} for target in sorted_targets}
+  singletask_features = []
+  singletask_labels = {target: [] for target in sorted_targets}
   # Populate the singletask datastructures
   sorted_ids = sorted(dataset.keys())
   for index, id in enumerate(sorted_ids):
     datapoint = dataset[id]
     labels = datapoint["labels"]
+    singletask_features.append(datapoint["fingeprint"])
     for t_ind, target in enumerate(sorted_targets):
       if labels[target] == -1:
         continue
       else:
-        datapoint_copy = datapoint.copy()
-        datapoint_copy["labels"] = {target: labels[target]}
-        singletask[target][id] = datapoint_copy 
-  return singletask
+        singletask_labels[target].append(labels[target])
+  return singletask_features, singletask_labels
 
 def split_dataset(dataset, splittype, seed=None):
   """Split provided data using specified method."""

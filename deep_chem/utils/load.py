@@ -22,7 +22,12 @@ def process_datasets(paths, input_transforms, output_transforms,
     splittype="random", seed=None, weight_positives=True, target_names=[]):
   """Extracts datasets and split into train/test.
 
-  Returns a dict that maps target names to tuples.
+  Returns a dict with the following keys
+  
+  "features" -> X
+  "mol_ids"  -> ids
+  target -> (y, W) 
+  "sorted_targets" -> sorted_targets
 
   Parameters
   ----------
@@ -37,30 +42,36 @@ def process_datasets(paths, input_transforms, output_transforms,
     Seed used for random splits.
   """
   dataset = load_datasets(paths, feature_types=feature_types, target_names=target_names)
-  train_dict, test_dict = {}, {}
-  if mode == "singletask":
-    singletask = multitask_to_singletask(dataset)
-    print("Completed multitask_to_singletask")
-    for task in singletask:
-      print(task)
-      print("About to split dataset")
-      data = singletask[task]
-      if len(data) == 0:
-        continue
-      print("About to split train and test")
-      train, test = split_dataset(dataset, splittype)
-      print("Done spliting train and test")
-      train_dict[task], test_dict[task] = to_arrays(train, test)
-      print("to_arrays is done")
-  elif mode == "multitask":
-    train, test = split_dataset(dataset, splittype)
-    train_data, test_data = to_arrays(train, test)
-    train_dict["all"], test_dict["all"] = train_data, test_data
-  else:
-    raise ValueError("Unsupported mode for process_datasets.")
-  target = train_dict.itervalues().next()
-  print "Shape of Xtrain"
-  print np.shape(target[1])
+  train, test = split_dataset(dataset, splittype)
+  train_dict = standardize(train, mode=mode)
+  test_dict = standardize(test, mode=mode)
+  #if mode == "singletask":
+  #  # Perform common train/test split across all tasks
+  #  #train_features, train_labels = multitask_to_singletask(train)
+  #  #test_features, test_labels = multitask_to_singletask(test)
+  #  #train_dict["features"], train_dict["labels"] = train_features, train_labels
+  #  #test_dict["features"], test_dict["labels"] = test_features, test_labels
+  #  #print("Completed multitask_to_singletask")
+  #  #for task in singletask:
+  #  #  print(task)
+  #  #  print("About to split dataset")
+  #  #  data = singletask[task]
+  #  #  if len(data) == 0:
+  #  #    continue
+  #  #  print("About to split train and test")
+  #  #  train, test = split_dataset(dataset, splittype)
+  #  #  print("Done spliting train and test")
+  #  #  train_dict[task], test_dict[task] = to_arrays(train, test)
+  #  #  print("to_arrays is done")
+  #elif mode == "multitask":
+  #  train, test = split_dataset(dataset, splittype)
+  #  train_data, test_data = to_arrays(train, test)
+  #  train_dict["all"], test_dict["all"] = train_data, test_data
+  #else:
+  #  raise ValueError("Unsupported mode for process_datasets.")
+  #target = train_dict.itervalues().next()
+  #print "Shape of Xtrain"
+  #print np.shape(target[1])
   return train_dict, test_dict 
 
 def load_molecules(paths, feature_types=["fingerprints"]):
@@ -196,9 +207,10 @@ def transform_data(data, input_transforms, output_transforms):
     transformations. Only for regression outputs.
   """
   trans_dict = {}
+  X = transform_inputs(train_dict["features"], input_transforms)
+  trans_dict["mol_ids"], trans_dict["features"] = train_dict["mol_ids"], X
   for target in data:
-    ids, X, y, W = data[target]
+    y, W = data[target]
     y = transform_outputs(y, W, output_transforms)
-    X = transform_inputs(X, input_transforms)
-    trans_dict[target] = (ids, X, y, W)
+    trans_dict[target] = (y, W)
   return trans_dict

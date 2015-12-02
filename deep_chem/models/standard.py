@@ -28,9 +28,11 @@ def fit_singletask_models(train_data, modeltype):
     None or "log". Only for regression outputs.
   """
   models = {}
-  for target in sorted(train_data.keys()):
+  X_train = train_data["features"]
+  sorted_targets = train_data["sorted_targets"]
+  for target in sorted_targets:
     print "Building model for target %s" % target
-    (_, X_train, y_train, _) = train_data[target]
+    (y_train, _) = train_data[target]
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(
           n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
@@ -55,13 +57,13 @@ def fit_singletask_models(train_data, modeltype):
     models[target] = model
   return models
 
-# TODO(rbharath): I believe this is broken. Update it to work with the rest of
-# the package.
-def fit_multitask_rf(train_data):
-  """Fits a multitask RF model to provided dataset.
-  """
-  (_, X_train, y_train, _) = train_data
-  model = RandomForestClassifier(
-      n_estimators=100, n_jobs=-1, class_weight="auto")
-  model.fit(X_train, y_train)
-  return model
+## TODO(rbharath): I believe this is broken. Update it to work with the rest of
+## the package.
+#def fit_multitask_rf(train_data):
+#  """Fits a multitask RF model to provided dataset.
+#  """
+#  (_, X_train, y_train, _) = train_data
+#  model = RandomForestClassifier(
+#      n_estimators=100, n_jobs=-1, class_weight="auto")
+#  model.fit(X_train, y_train)
+#  return model

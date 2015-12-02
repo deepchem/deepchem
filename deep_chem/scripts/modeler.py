@@ -397,7 +397,6 @@ def _train_test_input(paths, output_transforms, input_transforms,
                       feature_types, splittype, weight_positives, mode,
                       train_out, test_out, target_names):
   """Saves transformed model."""
-  #targets = get_target_names(paths)
   if output_transforms == "" or output_transforms == "None":
     output_transforms = []
   else:

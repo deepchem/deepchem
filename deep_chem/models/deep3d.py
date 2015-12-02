@@ -7,14 +7,18 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
 
-def fit_3D_convolution(per_task_data, task_types, **training_params):
+def fit_3D_convolution(train_data, task_types, **training_params):
   """
   Perform stochastic gradient descent for a 3D CNN.
   """
   models = {}
-  (_, X_train, y_train, _) = per_task_data.itervalues().next()
+  X_train = train_data["features"]
+  if len(train_data["sorted_targets"]) > 1:
+    raise ValueError("3D Convolutions only supported for singletask.")
+  target_name = train_data["sorted_targets"][0]
+  (y_train, _) = train_data["sorted_targets"].itervalues().next()
   nb_classes = 2
-  models["all"] = train_3D_convolution(X_train, y_train, **training_params)
+  models[target_name] = train_3D_convolution(X_train, y_train, **training_params)
   return models
 
 def train_3D_convolution(X, y, batch_size=50, nb_epoch=1,learning_rate=0.01,
