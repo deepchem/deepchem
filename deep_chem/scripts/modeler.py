@@ -1,10 +1,10 @@
 """
 Top level script to featurize input, train models, and evaluate them.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import argparse
-import gzip
-import cPickle as pickle
-import joblib
 import os
 from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
@@ -12,7 +12,6 @@ from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
-#from deep_chem.utils.load import get_target_names
 from deep_chem.utils.load import process_datasets
 from deep_chem.utils.load import transform_data
 from deep_chem.utils.evaluate import results_to_csv
@@ -150,7 +149,7 @@ def add_model_group(fit_cmd):
       help="Number of examples per minibatch for NN models.")
   group.add_argument(
       "--loss-function", type=str, default="mean_squared_error",
-      help="Loss function type.")  
+      help="Loss function type.")
   group.add_argument(
       "--decay", type=float, default=1e-4,
       help="Learning rate decay for NN models.")
@@ -171,11 +170,6 @@ def add_fit_command(subparsers):
   group.add_argument(
       "--saved-data", required=1,
       help="Location of saved transformed data.")
-  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
-  group.add_argument(
-      "--paths", nargs="+", required=1,
-      help="Paths to input datasets.")
-
   add_model_group(fit_cmd)
   group = fit_cmd.add_argument_group("save")
   group.add_argument(
@@ -195,10 +189,6 @@ def add_eval_command(subparsers):
       help="Location from which to load saved model.")
   group.add_argument(
       "--saved-data", required=1, help="Location of saved transformed data.")
-  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
-  group.add_argument(
-      "--paths", nargs="+", required=1,
-      help="Paths to input datasets.")
   group.add_argument(
       "--modeltype", required=1,
       choices=["sklearn", "keras-graph", "keras-sequential"],
@@ -291,8 +281,8 @@ def add_model_command(subparsers):
 def create_model(args):
   """Creates a model"""
   data_dir = os.path.join(args.out, args.name)
-  print "+++++++++++++++++++++++++++++++++"
-  print "Perform featurization"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Perform featurization")
   if not args.skip_featurization:
     _featurize_input(
         args.name, args.out, args.input_file, args.input_type, args.fields,
@@ -300,8 +290,8 @@ def create_model(args):
         args.smiles_field, args.split_field, args.id_field, args.threshold,
         args.delimiter)
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Perform train-test split"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Perform train-test split")
   paths = [data_dir]
   weight_positives = False  # Hard coding this for now
   train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
@@ -312,21 +302,21 @@ def create_model(args):
         args.splittype, weight_positives, args.mode, train_out, test_out,
         args.target_fields)
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Fit model"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Fit model")
   modeltype = get_model_type(args.model)
   extension = get_model_extension(modeltype)
   saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
   if not args.skip_fit:
     _fit_model(
-        paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
+        args.model, args.task_type, args.n_hidden, args.learning_rate,
         args.dropout, args.n_epochs, args.decay, args.batch_size, args.loss_function,
         args.validation_split, saved_out, train_out, args.target_fields)
 
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Eval Model on Train"
-  print "-------------------"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Eval Model on Train")
+  print("-------------------")
   csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.name)
   stats_out_train = os.path.join(data_dir, "%s-train-stats.txt" % args.name)
   csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.name)
@@ -334,24 +324,22 @@ def create_model(args):
   compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
       False, False, False, False)
   compute_r2s, compute_rms = False, False
-  print "create_model()"
-  print "args.task_type"
-  print args.task_type
+  print("create_model()")
+  print("args.task_type")
+  print(args.task_type)
   if args.task_type == "classification":
     compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
         True, True, True, True)
   elif args.task_type == "regression":
     compute_r2s, compute_rms = True, True
   _eval_trained_model(
-      modeltype, saved_out, train_out, paths, args.task_type, compute_aucs,
+      modeltype, saved_out, train_out, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
       compute_rms, csv_out_train, stats_out_train, args.target_fields)
-  print "(compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s, compute_rms)"
-  print (compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s, compute_rms)
-  print "Eval Model on Test"
-  print "------------------"
+  print("Eval Model on Test")
+  print("------------------")
   _eval_trained_model(
-      modeltype, saved_out, test_out, paths, args.task_type, compute_aucs,
+      modeltype, saved_out, test_out, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
       compute_rms, csv_out_test, stats_out_test, args.target_fields)
 
@@ -386,17 +374,17 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
   if id_field is None:
     id_field = smiles_field
   out_x_pkl, out_y_pkl = generate_directories(name, out, feature_fields)
-  df, mols = extract_data(
+  df, _ = extract_data(
       input_file, input_type, fields, field_types, target_fields,
       smiles_field, threshold, delimiter)
-  print "Generating targets"
+  print("Generating targets")
   generate_targets(df, target_fields, split_field,
                    smiles_field, id_field, out_y_pkl)
-  print "Generating user-specified features"
+  print("Generating user-specified features")
   generate_features(df, feature_fields, smiles_field, id_field, out_x_pkl)
-  print "Generating circular fingerprints"
+  print("Generating circular fingerprints")
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "fingerprints")
-  print "Generating rdkit descriptors"
+  print("Generating rdkit descriptors")
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "descriptors")
 
 def train_test_input(args):
@@ -418,10 +406,8 @@ def _train_test_input(paths, output_transforms, input_transforms,
   feature_types = feature_types.split(",")
   print("About to process_dataset")
   train_dict, test_dict = process_datasets(
-      paths, input_transforms, output_transforms_dict,
-      feature_types=feature_types, splittype=splittype,
-      weight_positives=weight_positives, mode=mode,
-      target_names=target_names)
+      paths, feature_types=feature_types, splittype=splittype,
+      mode=mode, target_names=target_names)
   print("Finished process_dataset")
 
   print("Starting transform_data")
@@ -446,16 +432,15 @@ def fit_model(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
   # TODO(rbharath): Bundle these arguments up into a training_params dict.
   _fit_model(
-      args.paths, args.model, args.task_type, args.n_hidden,
+      args.model, args.task_type, args.n_hidden,
       args.learning_rate, args.dropout, args.n_epochs, args.decay,
       args.batch_size, args.loss_function, args.validation_split,
       args.saved_out, args.saved_data, args.target_fields)
 
-def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
+def _fit_model(model, task_type, n_hidden, learning_rate, dropout,
                n_epochs, decay, batch_size, loss_function, validation_split, saved_out,
                saved_data, target_names):
   """Builds model from featurized data."""
-  #targets = get_target_names(paths)
   task_types = {target: task_type for target in target_names}
 
   stored_train = load_sharded_dataset(saved_data)
@@ -476,8 +461,8 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
   elif model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(
-        train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size,
-        learning_rate=learning_rate,loss_function=loss_function)
+        train_dict, nb_epoch=n_epochs, batch_size=batch_size,
+        learning_rate=learning_rate, loss_function=loss_function)
   else:
     models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)
@@ -507,19 +492,18 @@ def get_model_extension(modeltype):
 def eval_trained_model(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   _eval_trained_model(
-      args.modeltype, args.saved_model, args.saved_data, args.paths,
+      args.modeltype, args.saved_model, args.saved_data,
       args.task_type, args.compute_aucs, args.compute_recall,
       args.compute_accuracy, args.compute_matthews_corrcoef, args.compute_r2s,
       args.compute_rms, args.csv_out, args.stats_out,
       args.target_fields)
 
-def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
+def _eval_trained_model(modeltype, saved_model, saved_data, task_type,
                         compute_aucs, compute_recall, compute_accuracy,
                         compute_matthews_corrcoef, compute_r2s, compute_rms,
                         csv_out, stats_out, target_names):
   """Evaluates a trained model on specified data."""
   model = load_model(modeltype, saved_model)
-  #targets = get_target_names(paths)
   task_types = {target: task_type for target in target_names}
 
   stored_test = load_sharded_dataset(saved_data)
@@ -534,7 +518,7 @@ def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
         recall=compute_recall, accuracy=compute_accuracy,
         mcc=compute_matthews_corrcoef, print_file=stats_file)
   with open(stats_out, "r") as stats_file:
-    print stats_file.read()
+    print(stats_file.read())
   results_to_csv(results, csv_out, task_type=task_type)
 
 def main():

@@ -2,11 +2,7 @@
 Utility functions to evaluate models on datasets.
 """
 from __future__ import print_function
-
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2015, Stanford University"
-__license__ = "LGPL"
-
+from __future__ import division
 import csv
 import numpy as np
 import warnings
@@ -19,6 +15,11 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
+
+__author__ = "Bharath Ramsundar"
+__copyright__ = "Copyright 2015, Stanford University"
+__license__ = "LGPL"
+
 
 def compute_model_performance(raw_test_data, test_data, task_types, models,
                               modeltype, output_transforms, aucs=False,
@@ -35,7 +36,6 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
     print("Evaluating model %d" % index, file=print_file)
     print("Target %s" % target, file=print_file)
     (y_test, w_test) = test_data[target]
-    (ytest_raw, _) = raw_test_data[target]
     w_test = w_test.ravel()
     task_X_test = X_test[w_test.nonzero()]
     task_y_test = y_test[w_test.nonzero()]
@@ -177,7 +177,6 @@ def results_to_csv(results, out, task_type="classification"):
       for mol_id, ytrue, yscore in zip(mol_ids, ytrues, yscores):
         csvwriter.writerow([mol_id, ytrue, yscore])
     print("Writing results on test set for target %s to %s" % (target, out))
-
 
 def compute_r2_scores(results, task_types):
   """Transforms the results dict into R^2 values and prints them.

@@ -69,14 +69,3 @@ def fit_singletask_models(train_data, modeltype):
     model.fit(task_X_train, task_y_train.ravel())
     models[task] = model
   return models
-
-## TODO(rbharath): I believe this is broken. Update it to work with the rest of
-## the package.
-#def fit_multitask_rf(train_data):
-#  """Fits a multitask RF model to provided dataset.
-#  """
-#  (_, X_train, y_train, _) = train_data
-#  model = RandomForestClassifier(
-#      n_estimators=100, n_jobs=-1, class_weight="auto")
-#  model.fit(X_train, y_train)
-#  return model

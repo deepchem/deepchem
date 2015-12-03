@@ -1,78 +1,48 @@
 """
 Utility functions to load datasets.
 """
-__author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2015, Stanford University"
-__license__ = "LGPL"
-
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import gzip
 import numpy as np
 import os
 import cPickle as pickle
 from deep_chem.utils.preprocess import transform_outputs
 from deep_chem.utils.preprocess import transform_inputs
-from deep_chem.utils.preprocess import standardize 
+from deep_chem.utils.preprocess import standardize
 from deep_chem.utils.preprocess import split_dataset
-from vs_utils.utils import ScaffoldGenerator
 
-def process_datasets(paths, input_transforms, output_transforms,
-    feature_types=["fingerprints"], mode="multitask",
-    splittype="random", seed=None, weight_positives=True, target_names=[]):
+__author__ = "Bharath Ramsundar"
+__copyright__ = "Copyright 2015, Stanford University"
+__license__ = "LGPL"
+
+
+def process_datasets(paths, feature_types=None, mode="multitask",
+                     splittype="random", target_names=None):
   """Extracts datasets and split into train/test.
 
   Returns a dict with the following keys
-  
+
   "features" -> X
   "mol_ids"  -> ids
-  target -> (y, W) 
+  target -> (y, W)
   "sorted_targets" -> sorted_targets
 
   Parameters
   ----------
-  paths: list 
-    List of paths to Google vs datasets. 
-  output_transforms: dict 
-    dict mapping target names to label transform. Each output type must be either
-    None or "log". Only for regression outputs.
+  paths: list
+    List of paths to Google vs datasets.
   splittype: string
     Must be "random" or "scaffold"
-  seed: int
-    Seed used for random splits.
   """
   dataset = load_datasets(paths, feature_types=feature_types, target_names=target_names)
   train, test = split_dataset(dataset, splittype)
   train_dict = standardize(train, mode)
   test_dict = standardize(test, mode)
-  #if mode == "singletask":
-  #  # Perform common train/test split across all tasks
-  #  #train_features, train_labels = multitask_to_singletask(train)
-  #  #test_features, test_labels = multitask_to_singletask(test)
-  #  #train_dict["features"], train_dict["labels"] = train_features, train_labels
-  #  #test_dict["features"], test_dict["labels"] = test_features, test_labels
-  #  #print("Completed multitask_to_singletask")
-  #  #for task in singletask:
-  #  #  print(task)
-  #  #  print("About to split dataset")
-  #  #  data = singletask[task]
-  #  #  if len(data) == 0:
-  #  #    continue
-  #  #  print("About to split train and test")
-  #  #  train, test = split_dataset(dataset, splittype)
-  #  #  print("Done spliting train and test")
-  #  #  train_dict[task], test_dict[task] = to_arrays(train, test)
-  #  #  print("to_arrays is done")
-  #elif mode == "multitask":
-  #  train, test = split_dataset(dataset, splittype)
-  #  train_data, test_data = to_arrays(train, test)
-  #  train_dict["all"], test_dict["all"] = train_data, test_data
-  #else:
-  #  raise ValueError("Unsupported mode for process_datasets.")
-  #target = train_dict.itervalues().next()
-  #print "Shape of Xtrain"
-  #print np.shape(target[1])
-  return train_dict, test_dict 
+  return train_dict, test_dict
 
-def load_molecules(paths, feature_types=["fingerprints"]):
+def load_molecules(paths, feature_types):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
@@ -93,9 +63,8 @@ def load_molecules(paths, feature_types=["fingerprints"]):
       for pickle_file in pickle_files:
         with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
           contents = pickle.load(f)
-          smiles, features, scaffolds, mol_ids = (
-              contents["smiles"], contents["features"],
-              contents["scaffolds"], contents["mol_id"])
+          features, scaffolds, mol_ids = (
+              contents["features"], contents["scaffolds"], contents["mol_id"])
           splits = contents["split"] if "split" in contents else None
           for mol in range(len(contents["mol_id"])):
             if mol_ids[mol] not in molecules:
@@ -110,7 +79,7 @@ def load_molecules(paths, feature_types=["fingerprints"]):
               entry["fingerprint"] = np.append(
                   molecules[mol_ids[mol]]["fingerprint"], features[mol])
               entry["feature_types"].append(feature_type)
-  return molecules 
+  return molecules
 
 def load_assays(paths, target_dir_name, target_names):
   """Load regression dataset labels from assays.
@@ -119,7 +88,7 @@ def load_assays(paths, target_dir_name, target_names):
 
   Parameters
   ----------
-  paths: list 
+  paths: list
     List of paths to base directory.
   target_dir_name: string
     Name of subdirectory containing assay data.
@@ -151,11 +120,11 @@ def load_assays(paths, target_dir_name, target_names):
                 continue
             except TypeError:
               continue
-            labels[mol_id][target_name] = measurement 
+            labels[mol_id][target_name] = measurement
   return labels, splits
 
-def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints"],
-                  target_names=[]):
+def load_datasets(paths, target_dir_name="targets", feature_types=None,
+                  target_names=None):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps mol_id's to pairs of (fingerprint, labels)
@@ -169,14 +138,14 @@ def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints
   data = {}
   molecules = load_molecules(paths, feature_types)
   labels, splits = load_assays(paths, target_dir_name, target_names)
-  for ind, id in enumerate(molecules):
-    if id not in labels:
+  for mol_id in molecules:
+    if mol_id not in labels:
       continue
-    mol = molecules[id]
-    data[id] = {"fingerprint": mol["fingerprint"],
-                "scaffold": mol["scaffold"],
-                "labels": labels[id],
-                "split": splits[id]}
+    mol = molecules[mol_id]
+    data[mol_id] = {"fingerprint": mol["fingerprint"],
+                    "scaffold": mol["scaffold"],
+                    "labels": labels[mol_id],
+                    "split": splits[mol_id]}
   return data
 
 def ensure_balanced(y, W):
@@ -196,9 +165,9 @@ def transform_data(data, input_transforms, output_transforms):
 
   Parameters
   ----------
-  paths: list 
-    List of paths to Google vs datasets. 
-  output_transforms: dict 
+  paths: list
+    List of paths to Google vs datasets.
+  output_transforms: dict
     dict mapping target names to list of label transforms. Each list element
     must be None, "log", "normalize", or "log-normalize". The transformations
     are performed in the order specified. An empty list corresponds to no

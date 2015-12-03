@@ -1,15 +1,19 @@
 """
 Utility functions to preprocess datasets before building models.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+import numpy as np
+import warnings
+
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
-import numpy as np
-import warnings
-from deep_chem.utils.analysis import summarize_distribution
 
 def standardize(dataset, mode):
+  """Represents a loaded dataset in standardize dictionary format."""
   sorted_ids, X, task_ys, task_ws = dataset_to_numpy(dataset, mode)
   sorted_tasks = sorted(task_ys.keys())
   data = {}
@@ -18,17 +22,13 @@ def standardize(dataset, mode):
   data["sorted_tasks"] = sorted_tasks
   for task in sorted_tasks:
     data[task] = (task_ys[task], task_ws[task])
-  print "standardize()"
-  print "data.keys()"
-  print data.keys()
   return data
 
 def dataset_to_numpy(dataset, mode):
-  """Transforms a set of tensor data into standard dictionary format"""
+  """Transforms a set of tensor data into standard set of numpy arrays"""
   # Perform common train/test split across all tasks
   n_samples = len(dataset.keys())
   sample_datapoint = dataset.itervalues().next()
-  feature_shape = np.shape(sample_datapoint["fingerprint"])
   labels = sample_datapoint["labels"]
   sorted_tasks = sorted(labels.keys())
   n_tasks = len(sorted_tasks)
@@ -36,13 +36,12 @@ def dataset_to_numpy(dataset, mode):
   task_ws = {task: [] for task in sorted_tasks}
   sorted_ids = sorted(dataset.keys())
   tensors = []
-  for id_ind, id in enumerate(sorted_ids):
-    datapoint = dataset[id]
-    fingerprint, labels = (datapoint["fingerprint"],
-      datapoint["labels"])
+  for mol_id in sorted_ids:
+    datapoint = dataset[mol_id]
+    fingerprint, labels = (datapoint["fingerprint"], datapoint["labels"])
     tensors.append(np.squeeze(fingerprint))
     # Set labels from measurements
-    for task_ind, task in enumerate(sorted_tasks):
+    for task in sorted_tasks:
       if labels[task] == -1:
         task_ys[task].append(-1)
         task_ws[task].append(0)
@@ -50,9 +49,6 @@ def dataset_to_numpy(dataset, mode):
         task_ys[task].append(labels[task])
         task_ws[task].append(1)
   X = np.stack(tensors)
-  print "dataset_to_numpy()"
-  print "Shape of X"
-  print np.shape(X)
   if mode == "singletask":
     for task in sorted_tasks:
       task_ys[task] = np.reshape(np.array(task_ys[task]), (n_samples, 1))
@@ -62,17 +58,11 @@ def dataset_to_numpy(dataset, mode):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     for ind, task in enumerate(sorted_tasks):
-      y[:,ind] = np.array(task_ys[task])
-      w[:,ind] = np.array(task_ws[task])
-    return sorted_ids, X, {"all": y}, {"all": w} 
+      y[:, ind] = np.array(task_ys[task])
+      w[:, ind] = np.array(task_ws[task])
+    return sorted_ids, X, {"all": y}, {"all": w}
   else:
     raise ValueError("Unsupported mode for process_datasets.")
-
-#def to_arrays(train, test):
-#  """Turns train/test into numpy array."""
-#  train_ids, X_train, y_train, W_train = dataset_to_numpy(train)
-#  test_ids, X_test, y_test, W_test = dataset_to_numpy(test)
-#  return (train_ids, X_train, y_train, W_train), (test_ids, X_test, y_test, W_test)
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
@@ -82,7 +72,7 @@ def transform_inputs(X, input_transforms):
 
   X = np.copy(X)
   if len(np.shape(X)) == 2:
-    (n_samples, n_features) = np.shape(X)
+    n_features = np.shape(X)[1]
   else:
     raise ValueError("Only know how to transform vectorial data.")
   Z = np.zeros(np.shape(X))
@@ -94,10 +84,10 @@ def transform_inputs(X, input_transforms):
       if input_transform == "normalize-and-truncate":
         if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
           mean, std = np.mean(feature_data), np.std(feature_data)
-          feature_data = feature_data - mean 
+          feature_data = feature_data - mean
           if std != 0.:
             feature_data = feature_data / std
-          feature_data[feature_data > trunc] = trunc 
+          feature_data[feature_data > trunc] = trunc
           feature_data[feature_data < -trunc] = -trunc
           if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
             raise ValueError("Truncation failed on feature %d" % feature)
@@ -130,11 +120,11 @@ def transform_outputs(y, W, output_transforms):
 
   Parameters
   ----------
-  y: ndarray 
+  y: ndarray
     Labels
   W: ndarray
-    Weights 
-  output_transforms: list 
+    Weights
+  output_transforms: list
     List of specified transforms (must be "log", "normalize"). The
     transformations are performed in the order specified. An empty list
     corresponds to no transformations. Only for regression outputs.
@@ -165,7 +155,7 @@ def transform_outputs(y, W, output_transforms):
         task_data[nonzero] = task_data[nonzero] - mean
         # Set standard deviation to one
         if std == 0.:
-          print "Variance normalization skipped for task %d due to 0 stdev" % task
+          print("Variance normalization skipped for task %d due to 0 stdev" % task)
           continue
         task_data[nonzero] = task_data[nonzero] / std
       else:
@@ -208,12 +198,10 @@ def balance_positives(y, W):
                       "(missing data) for balance_positives target %d. " % target_ind +
                       "Continuing without balancing.")
         to_next_target = True
-        break 
+        break
     if to_next_target:
       continue
     n_positives, n_negatives = len(positive_inds), len(negative_inds)
-    #print "For target %d, n_positives: %d, n_negatives: %d" % (
-    #    target_ind, n_positives, n_negatives)
     # TODO(rbharath): This results since the coarse train/test split doesn't
     # guarantee that the test set actually has any positives for targets. FIX
     # THIS BEFORE RELEASE!
@@ -224,35 +212,6 @@ def balance_positives(y, W):
     W[positive_inds, target_ind] = pos_weight
     W[negative_inds, target_ind] = 1
   return W
-
-#def dataset_to_numpy(dataset, weight_positives=False):
-#  """Transforms a set of tensor data into numpy arrays (X, y)"""
-#  n_samples = len(dataset.keys())
-#  sample_datapoint = dataset.itervalues().next()
-#  feature_shape = np.shape(sample_datapoint["fingerprint"])
-#  n_targets = len(sample_datapoint["labels"])
-#  #X = np.squeeze(np.zeros((n_samples,) + feature_shape))
-#  y = np.zeros((n_samples, n_targets))
-#  W = np.ones((n_samples, n_targets))
-#  sorted_ids = sorted(dataset.keys())
-#  tensors = []
-#  for id_ind, id in enumerate(sorted_ids):
-#    datapoint = dataset[id]
-#    fingerprint, labels = (datapoint["fingerprint"],
-#      datapoint["labels"])
-#    tensors.append(np.squeeze(fingerprint))
-#    sorted_targets = sorted(labels.keys())
-#    # Set labels from measurements
-#    for target_ind, target in enumerate(sorted_targets):
-#      if labels[target] == -1:
-#        y[id_ind][target_ind] = -1
-#        W[id_ind][target_ind] = 0
-#      else:
-#        y[id_ind][target_ind] = labels[target]
-#  X = np.stack(tensors)
-#  if weight_positives:
-#    W = balance_positives(y, W)
-#  return (sorted_ids, X, y, W)
 
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.
@@ -273,11 +232,11 @@ def multitask_to_singletask(dataset):
   singletask_labels = {target: [] for target in sorted_targets}
   # Populate the singletask datastructures
   sorted_ids = sorted(dataset.keys())
-  for index, id in enumerate(sorted_ids):
-    datapoint = dataset[id]
+  for mol_id in sorted_ids:
+    datapoint = dataset[mol_id]
     labels = datapoint["labels"]
     singletask_features.append(datapoint["fingeprint"])
-    for t_ind, target in enumerate(sorted_targets):
+    for target in sorted_targets:
       if labels[target] == -1:
         continue
       else:
@@ -299,13 +258,13 @@ def split_dataset(dataset, splittype, seed=None):
 def train_test_specified_split(dataset):
   """Split provided data due to splits in origin data."""
   train, test = {}, {}
-  for id, datapoint in dataset.iteritems():
+  for mol_id, datapoint in dataset.iteritems():
     if "split" not in datapoint:
       raise ValueError("Missing required split information.")
     if datapoint["split"].lower() == "train":
-      train[id] = datapoint
+      train[mol_id] = datapoint
     elif datapoint["split"].lower() == "test":
-      test[id] = datapoint
+      test[mol_id] = datapoint
   return train, test
 
 def train_test_random_split(dataset, frac_train=.8, seed=None):
@@ -316,8 +275,8 @@ def train_test_random_split(dataset, frac_train=.8, seed=None):
 
   Parameters
   ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
+  dataset: dict
+    A dictionary of type produced by load_datasets.
   frac_train: float
     Proportion of data in train set.
   seed: int (optional)
@@ -345,15 +304,15 @@ def train_test_scaffold_split(dataset, frac_train=.8):
 
   Parameters
   ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
+  dataset: dict
+    A dictionary of type produced by load_datasets.
   frac_train: float
     The fraction (between 0 and 1) of the data to use for train set.
   """
   scaffolds = scaffold_separate(dataset)
   train_size = frac_train * len(dataset)
-  train, test= {}, {}
-  for scaffold, elements in scaffolds:
+  train, test = {}, {}
+  for elements in scaffolds:
     # If adding this scaffold makes the train_set too big, add to test set.
     if len(train) + len(elements) > train_size:
       for elt in elements:
@@ -373,19 +332,19 @@ def scaffold_separate(dataset):
 
   Parameters
   ----------
-  dataset: dict 
-    A dictionary of type produced by load_datasets. 
+  dataset: dict
+    A dictionary of type produced by load_datasets.
   """
   scaffolds = {}
-  for id in dataset:
-    datapoint = dataset[id]
+  for mol_id in dataset:
+    datapoint = dataset[mol_id]
     scaffold = datapoint["scaffold"]
     if scaffold not in scaffolds:
-      scaffolds[scaffold] = [id]
+      scaffolds[scaffold] = [mol_id]
     else:
-      scaffolds[scaffold].append(id)
-  # Sort from largest to smallest scaffold sets 
-  return sorted(scaffolds.items(), key=lambda x: -len(x[1]))
+      scaffolds[scaffold].append(mol_id)
+  # Sort from largest to smallest scaffold sets
+  return [elt for (scaffold, elt) in sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
 
 def labels_to_weights(ytrue):
   """Uses the true labels to compute and output sample weights.
@@ -407,8 +366,5 @@ def labels_to_weights(ytrue):
     elif entry == 1:  # positive
       sample_weights[ind] = pos_weight
     else:
-      print "labels_to_weights()"
-      print "ytrue"
-      print ytrue
       raise ValueError("ytrue can only contain 0s or 1s.")
   return sample_weights
