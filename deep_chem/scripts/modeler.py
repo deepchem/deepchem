@@ -324,9 +324,6 @@ def create_model(args):
   compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
       False, False, False, False)
   compute_r2s, compute_rms = False, False
-  print("create_model()")
-  print("args.task_type")
-  print(args.task_type)
   if args.task_type == "classification":
     compute_aucs, compute_recall, compute_accuracy, compute_matthews_corrcoef = (
         True, True, True, True)
