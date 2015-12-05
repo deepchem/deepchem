@@ -22,12 +22,12 @@ def process_datasets(paths, feature_types=None, mode="multitask",
                      splittype="random", target_names=None):
   """Extracts datasets and split into train/test.
 
-  Returns a dict with the following keys
+  Returns a dict with the following key/value pairs
 
-  "features" -> X
-  "mol_ids"  -> ids
+  features -> X
+  mol_ids  -> ids
   target -> (y, W)
-  "sorted_targets" -> sorted_targets
+  sorted_targets -> sorted_targets
 
   Parameters
   ----------

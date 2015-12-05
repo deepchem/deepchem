@@ -63,7 +63,6 @@ def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field,
   feature_dir = os.path.join(dataset_dir, featuretype)
   features_file = os.path.join(feature_dir, "%s-%s.pkl.gz" % (name, featuretype))
 
-  print("About to instantiate featurizer.")
   if featuretype == "fingerprints":
     featurizer = CircularFingerprint(size=1024)
   elif featuretype == "descriptors":
@@ -78,18 +77,16 @@ def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field,
       print("Featurizing molecule %d" % row_ind)
     mol = Chem.MolFromSmiles(row_data)
     features.append(featurizer.featurize([mol]))
-  print("Done generating features. About to transfer them to dataframe.")
+
   feature_df = pd.DataFrame([])
   feature_df["features"] = pd.DataFrame(
       [{"features": feature} for feature in features])
 
-  print("Done transfering to dataframe. About to populate remaining df fields.")
   feature_df["smiles"] = dataframe[[smiles_field]]
   feature_df["scaffolds"] = dataframe[[smiles_field]].apply(
       functools.partial(generate_scaffold, smiles_field=smiles_field),
       axis=1)
   feature_df["mol_id"] = dataframe[[id_field]]
-  print("Populated 'smiles', 'scaffolds', 'mol_id' fields")
 
   print("About to write pkl.gz file")
   with gzip.open(features_file, "wb") as gzip_file:

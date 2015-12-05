@@ -345,29 +345,3 @@ def scaffold_separate(dataset):
       scaffolds[scaffold].append(mol_id)
   # Sort from largest to smallest scaffold sets
   return [elt for (scaffold, elt) in sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
-
-#def labels_to_weights(ytrue):
-#  """Uses the true labels to compute and output sample weights.
-#
-#  Parameters
-#  ----------
-#  ytrue: list or np.ndarray
-#    True labels.
-#  """
-#  n_total = np.shape(ytrue)[0]
-#  n_positives = np.sum(ytrue)
-#  n_negatives = n_total - n_positives
-#  pos_weight = np.floor(n_negatives/n_positives)
-#
-#  sample_weights = np.zeros(np.shape(ytrue)[0])
-#  for ind, entry in enumerate(ytrue):
-#    if entry == 0:  # negative
-#      sample_weights[ind] = 1
-#    elif entry == 1:  # positive
-#      sample_weights[ind] = pos_weight
-#    else:
-#      print("labels_to_weights()")
-#      print("ytrue")
-#      print(ytrue)
-#      raise ValueError("ytrue can only contain 0s or 1s.")
-#  return sample_weights

@@ -28,13 +28,8 @@ def fit_singletask_models(train_data, modeltype):
     None or "log". Only for regression outputs.
   """
   models = {}
-  print "fit_singletask_models()"
-  print "train_data.keys()"
-  print train_data.keys()
   import numpy as np
   X_train = train_data["features"]
-  print "np.shape(X_train)"
-  print np.shape(X_train)
   sorted_tasks = train_data["sorted_tasks"]
   for task in sorted_tasks:
     print "Building model for task %s" % task
