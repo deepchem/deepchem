@@ -42,10 +42,6 @@ def fit_singletask_models(train_data, modeltype):
     W_train = W_train.ravel()
     task_X_train = X_train[W_train.nonzero()]
     task_y_train = y_train[W_train.nonzero()]
-    print "np.shape(task_X_train)"
-    print np.shape(task_X_train)
-    print "np.shape(task_y_train)"
-    print np.shape(task_y_train)
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(
           n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")

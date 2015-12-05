@@ -44,12 +44,12 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
     task_y_test_raw = y_test[nonzero_ws]
     model = models[target]
     # TODO(rbharath): Multitask vs. singletask is explicitly cased here and
-    # below. This is awkward. More elegant way of handling this? 
+    # below. This is awkward. More elegant way of handling this?
     if target == "all":
       eval_task_types = task_types.copy()
     else:
       eval_task_types = {target: task_types[target]}
-    
+
     results = eval_model(
         test_ids, task_X_test, task_y_test, task_y_test_raw, model,
         eval_task_types, modeltype=modeltype,
@@ -74,17 +74,29 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
       rms_vals.update(compute_rms_scores(results, task_types))
   # Print classification metrics
   if aucs:
+    print("AUCs", file=print_file)
+    print(auc_vals, file=print_file)
     print("Mean AUC: %f" % np.mean(np.array(auc_vals.values())), file=print_file)
   if mcc:
+    print("MCCs", file=print_file)
+    print(mcc_vals, file=print_file)
     print("Mean MCC: %f" % np.mean(np.array(mcc_vals.values())), file=print_file)
   if recall:
+    print("Recalls", file=print_file)
+    print(recall_vals, file=print_file)
     print("Mean Recall: %f" % np.mean(np.array(recall_vals.values())), file=print_file)
   if accuracy:
+    print("Accuracies", file=print_file)
+    print(accuracy_vals, file=print_file)
     print("Mean Accuracy: %f" % np.mean(np.array(accuracy_vals.values())), file=print_file)
   # Print regression metrics
   if r2s:
+    print("R^2s", file=print_file)
+    print(r2_vals, file=print_file)
     print("Mean R^2: %f" % np.mean(np.array(r2_vals.values())), file=print_file)
   if rms:
+    print("RMSs", file=print_file)
+    print(rms_vals, file=print_file)
     print("Mean RMS: %f" % np.mean(np.array(rms_vals.values())), file=print_file)
 
   return all_results, aucs, r2s, rms
@@ -179,19 +191,41 @@ def eval_model(ids, X, Ytrue, Ytrue_raw, model, task_types,
 
 def results_to_csv(results, out, task_type="classification"):
   """Writes results as CSV to out."""
-  for target in results:
-    mol_ids, ytrues, yscores = results[target]
+  sorted_tasks = sorted(results.keys())
+  processed_results = {}
+  for task in sorted_tasks:
+    mol_ids, ytrues, yscores = results[task]
     if task_type == "classification":
       yscores = np.around(yscores[:, 1]).astype(int)
     elif task_type == "regression":
       if isinstance(yscores[0], np.ndarray):
         yscores = yscores[:, 0]
-    with open(out, "wb") as csvfile:
-      csvwriter = csv.writer(csvfile, delimiter="\t")
-      csvwriter.writerow(["Ids", "True", "Model-Prediction"])
-      for mol_id, ytrue, yscore in zip(mol_ids, ytrues, yscores):
-        csvwriter.writerow([mol_id, ytrue, yscore])
-    print("Writing results on test set for target %s to %s" % (target, out))
+    for (mol_id, ytrue, yscore) in zip(mol_ids, ytrues, yscores):
+      if mol_id not in processed_results:
+        processed_results[mol_id] = {}
+      processed_results[mol_id][task] = (ytrue, yscore)
+  with open(out, "wb") as csvfile:
+    csvwriter = csv.writer(csvfile, delimiter="\t")
+    colnames = ["Ids"]
+    for task in sorted_tasks:
+      colnames += ["%s-True" % task, "%s-Pred" % task]
+    csvwriter.writerow(colnames)
+    for mol_id in processed_results:
+      col = [mol_id]
+      for task in sorted_tasks:
+        if task in processed_results[mol_id]:
+          ytrue, yscore = processed_results[mol_id][task]
+          # TODO(rbharath): Missing data handling is broken for multitask
+          # regression models! Find a more general solution (perhaps by using
+          # NaNs in place of -1)
+          # Handle missing data case
+          if ytrue == -1:
+            (ytrue, yscore) = ("", "")
+        else:
+          (ytrue, yscore) = ("", "")
+        col += [ytrue, yscore]
+      csvwriter.writerow(col)
+  print("Writing results on test set to %s" % out)
 
 def compute_r2_scores(results, task_types):
   """Transforms the results dict into R^2 values and prints them.

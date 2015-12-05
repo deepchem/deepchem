@@ -35,12 +35,12 @@ def add_featurize_group(featurize_cmd):
       help="Input file with data.")
   featurize_group.add_argument(
       "--input-type", default="csv",
-      choices=["xlsx", "csv", "pandas", "sdf"],
+      choices=["csv", "pandas", "sdf"],
       help="Type of input file. If pandas, input must be a pkl.gz\n"
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
   featurize_group.add_argument(
-      "--delimiter", default=",",
+      "--delimiter", default=",", type=str,
       help="If csv input, delimiter to use for read csv file")
   featurize_group.add_argument(
       "--fields", required=1, nargs="+",
@@ -293,13 +293,12 @@ def create_model(args):
   print("+++++++++++++++++++++++++++++++++")
   print("Perform train-test split")
   paths = [data_dir]
-  weight_positives = False  # Hard coding this for now
   train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
   test_out = os.path.join(data_dir, "%s-test.joblib" % args.name)
   if not args.skip_train_test_split:
     _train_test_input(
         paths, args.output_transforms, args.input_transforms, args.feature_types,
-        args.splittype, weight_positives, args.mode, train_out, test_out,
+        args.splittype, args.mode, train_out, test_out,
         args.target_fields)
 
   print("+++++++++++++++++++++++++++++++++")
@@ -388,18 +387,17 @@ def train_test_input(args):
   """Wrapper function that calls _train_test_input after unwrapping args."""
   _train_test_input(
       args.paths, args.output_transforms, args.input_transforms,
-      args.feature_types, args.splittype, args.weight_positives, args.mode,
+      args.feature_types, args.splittype, args.mode,
       args.train_out, args.test_out, args.target_fields)
 
 def _train_test_input(paths, output_transforms, input_transforms,
-                      feature_types, splittype, weight_positives, mode,
+                      feature_types, splittype, mode,
                       train_out, test_out, target_names):
   """Saves transformed model."""
   if output_transforms == "" or output_transforms == "None":
     output_transforms = []
   else:
     output_transforms = output_transforms.split(",")
-  output_transforms_dict = {target: output_transforms for target in target_names}
   feature_types = feature_types.split(",")
   print("About to process_dataset")
   train_dict, test_dict = process_datasets(
