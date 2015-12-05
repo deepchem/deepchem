@@ -1,9 +1,10 @@
 """
 Top level script to featurize input, train models, and evaluate them.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import argparse
-import gzip
-import cPickle as pickle
 import os
 from deep_chem.utils.featurize import generate_directories
 from deep_chem.utils.featurize import extract_data
@@ -11,12 +12,13 @@ from deep_chem.utils.featurize import generate_targets
 from deep_chem.utils.featurize import generate_features
 from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.models.standard import fit_singletask_models
-from deep_chem.utils.load import get_target_names
 from deep_chem.utils.load import process_datasets
 from deep_chem.utils.load import transform_data
 from deep_chem.utils.evaluate import results_to_csv
 from deep_chem.utils.save import save_model
 from deep_chem.utils.save import load_model
+from deep_chem.utils.save import save_sharded_dataset
+from deep_chem.utils.save import load_sharded_dataset
 from deep_chem.utils.evaluate import compute_model_performance
 
 def add_featurization_command(subparsers):
@@ -33,12 +35,12 @@ def add_featurize_group(featurize_cmd):
       help="Input file with data.")
   featurize_group.add_argument(
       "--input-type", default="csv",
-      choices=["xlsx", "csv", "pandas", "sdf"],
+      choices=["csv", "pandas", "sdf"],
       help="Type of input file. If pandas, input must be a pkl.gz\n"
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
   featurize_group.add_argument(
-      "--delimiter", default=",",
+      "--delimiter", default=",", type=str,
       help="If csv input, delimiter to use for read csv file")
   featurize_group.add_argument(
       "--fields", required=1, nargs="+",
@@ -51,7 +53,7 @@ def add_featurize_group(featurize_cmd):
       "--feature-fields", type=str, nargs="+",
       help="Optional field that holds pre-computed feature vector")
   featurize_group.add_argument(
-      "--prediction-field", type=str, required=1,
+      "--target-fields", type=str, nargs="+", required=1,
       help="Name of measured field to predict.")
   featurize_group.add_argument(
       "--split-field", type=str, default=None,
@@ -66,7 +68,7 @@ def add_featurize_group(featurize_cmd):
   # TODO(rbharath): This should be moved to train-tests-split
   featurize_group.add_argument(
       "--threshold", type=float, default=None,
-      help="If specified, will be used to binarize real-valued prediction-field.")
+      help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
       "--name", required=1,
       help="Name of the dataset.")
@@ -146,6 +148,9 @@ def add_model_group(fit_cmd):
       "--batch-size", type=int, default=32,
       help="Number of examples per minibatch for NN models.")
   group.add_argument(
+      "--loss-function", type=str, default="mean_squared_error",
+      help="Loss function type.")
+  group.add_argument(
       "--decay", type=float, default=1e-4,
       help="Learning rate decay for NN models.")
   group.add_argument(
@@ -159,17 +164,12 @@ def add_fit_command(subparsers):
       "fit", help="Fit a model to training data.")
   group = fit_cmd.add_argument_group("load-and-transform")
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group.add_argument(
       "--saved-data", required=1,
       help="Location of saved transformed data.")
-  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
-  group.add_argument(
-      "--paths", nargs="+", required=1,
-      help="Paths to input datasets.")
-
   add_model_group(fit_cmd)
   group = fit_cmd.add_argument_group("save")
   group.add_argument(
@@ -189,10 +189,6 @@ def add_eval_command(subparsers):
       help="Location from which to load saved model.")
   group.add_argument(
       "--saved-data", required=1, help="Location of saved transformed data.")
-  # TODO(rbharath): CODE SMELL. This shouldn't be shuttled around
-  group.add_argument(
-      "--paths", nargs="+", required=1,
-      help="Paths to input datasets.")
   group.add_argument(
       "--modeltype", required=1,
       choices=["sklearn", "keras-graph", "keras-sequential"],
@@ -200,7 +196,7 @@ def add_eval_command(subparsers):
   # TODO(rbharath): This argument seems a bit extraneous. Is it really
   # necessary?
   group.add_argument(
-      "--task-type", default="classification",
+      "--task-type", required=1,
       choices=["classification", "regression"],
       help="Type of learning task.")
   group = eval_cmd.add_argument_group("Classification metrics")
@@ -243,6 +239,12 @@ def add_model_command(subparsers):
   model_cmd.add_argument(
       "--skip-featurization", action="store_true",
       help="If set, skip the featurization step.")
+  model_cmd.add_argument(
+      "--skip-train-test-split", action="store_true",
+      help="If set, skip the train-test-split step.")
+  model_cmd.add_argument(
+      "--skip-fit", action="store_true",
+      help="If set, skip model fit step.")
   add_featurize_group(model_cmd)
 
   train_test_group = model_cmd.add_argument_group("train_test_group")
@@ -279,39 +281,41 @@ def add_model_command(subparsers):
 def create_model(args):
   """Creates a model"""
   data_dir = os.path.join(args.out, args.name)
-  print "+++++++++++++++++++++++++++++++++"
-  print "Perform featurization"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Perform featurization")
   if not args.skip_featurization:
     _featurize_input(
         args.name, args.out, args.input_file, args.input_type, args.fields,
-        args.field_types, args.feature_fields, args.prediction_field,
+        args.field_types, args.feature_fields, args.target_fields,
         args.smiles_field, args.split_field, args.id_field, args.threshold,
         args.delimiter)
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Perform train-test split"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Perform train-test split")
   paths = [data_dir]
-  weight_positives = False  # Hard coding this for now
-  train_out = os.path.join(data_dir, "%s-train.pkl.gz" % args.name)
-  test_out = os.path.join(data_dir, "%s-test.pkl.gz" % args.name)
-  _train_test_input(
-      paths, args.output_transforms, args.input_transforms, args.feature_types,
-      args.splittype, weight_positives, args.mode, train_out, test_out)
+  train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
+  test_out = os.path.join(data_dir, "%s-test.joblib" % args.name)
+  if not args.skip_train_test_split:
+    _train_test_input(
+        paths, args.output_transforms, args.input_transforms, args.feature_types,
+        args.splittype, args.mode, train_out, test_out,
+        args.target_fields)
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Fit model"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Fit model")
   modeltype = get_model_type(args.model)
   extension = get_model_extension(modeltype)
   saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
-  _fit_model(
-      paths, args.model, args.task_type, args.n_hidden, args.learning_rate,
-      args.dropout, args.n_epochs, args.decay, args.batch_size,
-      args.validation_split, saved_out, train_out)
+  if not args.skip_fit:
+    _fit_model(
+        args.model, args.task_type, args.n_hidden, args.learning_rate,
+        args.dropout, args.n_epochs, args.decay, args.batch_size, args.loss_function,
+        args.validation_split, saved_out, train_out, args.target_fields)
 
 
-  print "+++++++++++++++++++++++++++++++++"
-  print "Eval Model on Train"
-  print "-------------------"
+  print("+++++++++++++++++++++++++++++++++")
+  print("Eval Model on Train")
+  print("-------------------")
   csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.name)
   stats_out_train = os.path.join(data_dir, "%s-train-stats.txt" % args.name)
   csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.name)
@@ -325,15 +329,15 @@ def create_model(args):
   elif args.task_type == "regression":
     compute_r2s, compute_rms = True, True
   _eval_trained_model(
-      modeltype, saved_out, train_out, paths, args.task_type, compute_aucs,
+      modeltype, saved_out, train_out, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_train, stats_out_train)
-  print "Eval Model on Test"
-  print "------------------"
+      compute_rms, csv_out_train, stats_out_train, args.target_fields)
+  print("Eval Model on Test")
+  print("------------------")
   _eval_trained_model(
-      modeltype, saved_out, test_out, paths, args.task_type, compute_aucs,
+      modeltype, saved_out, test_out, args.task_type, compute_aucs,
       compute_recall, compute_accuracy, compute_matthews_corrcoef, compute_r2s,
-      compute_rms, csv_out_test, stats_out_test)
+      compute_rms, csv_out_test, stats_out_test, args.target_fields)
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -353,12 +357,12 @@ def featurize_input(args):
   """Wrapper function that calls _featurize_input with args unwrapped."""
   _featurize_input(
       args.name, args.out, args.input_file, args.input_type, args.fields,
-      args.field_types, args.feature_fields, args.prediction_field,
+      args.field_types, args.feature_fields, args.target_fields,
       args.smiles_field, args.split_field, args.id_field, args.threshold,
       args.delimiter)
 
 def _featurize_input(name, out, input_file, input_type, fields, field_types,
-                     feature_fields, prediction_field, smiles_field,
+                     feature_fields, target_fields, smiles_field,
                      split_field, id_field, threshold, delimiter):
   """Featurizes raw input data."""
   if len(fields) != len(field_types):
@@ -366,44 +370,47 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
   if id_field is None:
     id_field = smiles_field
   out_x_pkl, out_y_pkl = generate_directories(name, out, feature_fields)
-  df, mols = extract_data(
-      input_file, input_type, fields, field_types, prediction_field,
+  df, _ = extract_data(
+      input_file, input_type, fields, field_types, target_fields,
       smiles_field, threshold, delimiter)
-  print "Generating targets"
-  generate_targets(df, prediction_field, split_field,
+  print("Generating targets")
+  generate_targets(df, target_fields, split_field,
                    smiles_field, id_field, out_y_pkl)
-  print "Generating user-specified features"
+  print("Generating user-specified features")
   generate_features(df, feature_fields, smiles_field, id_field, out_x_pkl)
-  print "Generating circular fingerprints"
+  print("Generating circular fingerprints")
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "fingerprints")
-  print "Generating rdkit descriptors"
+  print("Generating rdkit descriptors")
   generate_vs_utils_features(df, name, out, smiles_field, id_field, "descriptors")
 
 def train_test_input(args):
   """Wrapper function that calls _train_test_input after unwrapping args."""
   _train_test_input(
       args.paths, args.output_transforms, args.input_transforms,
-      args.feature_types, args.splittype, args.weight_positives, args.mode,
-      args.train_out, args.test_out)
+      args.feature_types, args.splittype, args.mode,
+      args.train_out, args.test_out, args.target_fields)
 
 def _train_test_input(paths, output_transforms, input_transforms,
-                      feature_types, splittype, weight_positives, mode,
-                      train_out, test_out):
+                      feature_types, splittype, mode,
+                      train_out, test_out, target_names):
   """Saves transformed model."""
-  targets = get_target_names(paths)
   if output_transforms == "" or output_transforms == "None":
     output_transforms = []
   else:
     output_transforms = output_transforms.split(",")
-  output_transforms_dict = {target: output_transforms for target in targets}
   feature_types = feature_types.split(",")
+  print("About to process_dataset")
   train_dict, test_dict = process_datasets(
-      paths, input_transforms, output_transforms_dict,
-      feature_types=feature_types, splittype=splittype,
-      weight_positives=weight_positives, mode=mode)
+      paths, feature_types=feature_types, splittype=splittype,
+      mode=mode, target_names=target_names)
+  print("Finished process_dataset")
+
+  print("Starting transform_data")
   trans_train_dict = transform_data(
       train_dict, input_transforms, output_transforms)
+  print("Finished transform_data on train")
   trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
+  print("Finished transform_data on test")
   transforms = {"input_transforms": input_transforms,
                 "output_transform": output_transforms}
   stored_train = {"raw": train_dict,
@@ -412,28 +419,26 @@ def _train_test_input(paths, output_transforms, input_transforms,
   stored_test = {"raw": test_dict,
                  "transformed": trans_test_dict,
                  "transforms": transforms}
-  with gzip.open(train_out, "wb") as train_file:
-    pickle.dump(stored_train, train_file)
-  with gzip.open(test_out, "wb") as test_file:
-    pickle.dump(stored_test, test_file)
+  print("About to save dataset..")
+  save_sharded_dataset(stored_train, train_out)
+  save_sharded_dataset(stored_test, test_out)
 
 def fit_model(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
   # TODO(rbharath): Bundle these arguments up into a training_params dict.
   _fit_model(
-      args.paths, args.model, args.task_type, args.n_hidden,
+      args.model, args.task_type, args.n_hidden,
       args.learning_rate, args.dropout, args.n_epochs, args.decay,
-      args.batch_size, args.validation_split, args.saved_out, args.saved_data)
+      args.batch_size, args.loss_function, args.validation_split,
+      args.saved_out, args.saved_data, args.target_fields)
 
-def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
-               n_epochs, decay, batch_size, validation_split, saved_out,
-               saved_data):
+def _fit_model(model, task_type, n_hidden, learning_rate, dropout,
+               n_epochs, decay, batch_size, loss_function, validation_split, saved_out,
+               saved_data, target_names):
   """Builds model from featurized data."""
-  targets = get_target_names(paths)
-  task_types = {target: task_type for target in targets}
+  task_types = {target: task_type for target in target_names}
 
-  with gzip.open(saved_data) as data_file:
-    stored_train = pickle.load(data_file)
+  stored_train = load_sharded_dataset(saved_data)
   train_dict = stored_train["transformed"]
 
   if model == "singletask_deep_network":
@@ -451,7 +456,8 @@ def _fit_model(paths, model, task_type, n_hidden, learning_rate, dropout,
   elif model == "3D_cnn":
     from deep_chem.models.deep3d import fit_3D_convolution
     models = fit_3D_convolution(
-        train_dict, task_types, nb_epoch=n_epochs, batch_size=batch_size)
+        train_dict, nb_epoch=n_epochs, batch_size=batch_size,
+        learning_rate=learning_rate, loss_function=loss_function)
   else:
     models = fit_singletask_models(train_dict, model)
   modeltype = get_model_type(model)
@@ -481,22 +487,21 @@ def get_model_extension(modeltype):
 def eval_trained_model(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   _eval_trained_model(
-      args.modeltype, args.saved_model, args.saved_data, args.paths,
+      args.modeltype, args.saved_model, args.saved_data,
       args.task_type, args.compute_aucs, args.compute_recall,
       args.compute_accuracy, args.compute_matthews_corrcoef, args.compute_r2s,
-      args.compute_rms, args.csv_out, args.stats_out)
+      args.compute_rms, args.csv_out, args.stats_out,
+      args.target_fields)
 
-def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
+def _eval_trained_model(modeltype, saved_model, saved_data, task_type,
                         compute_aucs, compute_recall, compute_accuracy,
                         compute_matthews_corrcoef, compute_r2s, compute_rms,
-                        csv_out, stats_out):
+                        csv_out, stats_out, target_names):
   """Evaluates a trained model on specified data."""
   model = load_model(modeltype, saved_model)
-  targets = get_target_names(paths)
-  task_types = {target: task_type for target in targets}
+  task_types = {target: task_type for target in target_names}
 
-  with gzip.open(saved_data) as data_file:
-    stored_test = pickle.load(data_file)
+  stored_test = load_sharded_dataset(saved_data)
   test_dict = stored_test["transformed"]
   raw_test_dict = stored_test["raw"]
   output_transforms = stored_test["transforms"]["output_transform"]
@@ -504,10 +509,11 @@ def _eval_trained_model(modeltype, saved_model, saved_data, paths, task_type,
   with open(stats_out, "wb") as stats_file:
     results, _, _, _ = compute_model_performance(
         raw_test_dict, test_dict, task_types, model, modeltype,
-        output_transforms, compute_aucs, compute_r2s, compute_rms, compute_recall,
-        compute_accuracy, compute_matthews_corrcoef, print_file=stats_file)
+        output_transforms, aucs=compute_aucs, r2s=compute_r2s, rms=compute_rms,
+        recall=compute_recall, accuracy=compute_accuracy,
+        mcc=compute_matthews_corrcoef, print_file=stats_file)
   with open(stats_out, "r") as stats_file:
-    print stats_file.read()
+    print(stats_file.read())
   results_to_csv(results, csv_out, task_type=task_type)
 
 def main():
