@@ -24,13 +24,19 @@ def fit_singletask_models(train_data, modeltype):
   seed: int (optional)
     Seed to initialize np.random.
   output_transforms: dict
-    dict mapping target names to label transform. Each output type must be either
+    dict mapping task names to label transform. Each output type must be either
     None or "log". Only for regression outputs.
   """
   models = {}
-  for target in sorted(train_data.keys()):
-    print "Building model for target %s" % target
-    (_, X_train, y_train, _) = train_data[target]
+  import numpy as np
+  X_train = train_data["features"]
+  sorted_tasks = train_data["sorted_tasks"]
+  for task in sorted_tasks:
+    print "Building model for task %s" % task
+    (y_train, W_train) = train_data[task]
+    W_train = W_train.ravel()
+    task_X_train = X_train[W_train.nonzero()]
+    task_y_train = y_train[W_train.nonzero()]
     if modeltype == "rf_regressor":
       model = RandomForestRegressor(
           n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
@@ -51,17 +57,6 @@ def fit_singletask_models(train_data, modeltype):
       model = ElasticNetCV(max_iter=2000, n_jobs=-1)
     else:
       raise ValueError("Invalid model type provided.")
-    model.fit(X_train, y_train.ravel())
-    models[target] = model
+    model.fit(task_X_train, task_y_train.ravel())
+    models[task] = model
   return models
-
-# TODO(rbharath): I believe this is broken. Update it to work with the rest of
-# the package.
-def fit_multitask_rf(train_data):
-  """Fits a multitask RF model to provided dataset.
-  """
-  (_, X_train, y_train, _) = train_data
-  model = RandomForestClassifier(
-      n_estimators=100, n_jobs=-1, class_weight="auto")
-  model.fit(X_train, y_train)
-  return model
