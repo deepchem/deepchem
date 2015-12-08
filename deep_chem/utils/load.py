@@ -8,7 +8,7 @@ __license__ = "LGPL"
 import gzip
 import numpy as np
 import os
-import cPickle as pickle
+import cjoblib as joblib
 from deep_chem.utils.preprocess import transform_outputs
 from deep_chem.utils.preprocess import transform_inputs
 from deep_chem.utils.preprocess import dataset_to_numpy
@@ -19,7 +19,7 @@ from vs_utils.utils import ScaffoldGenerator
 
 def process_datasets(paths, input_transforms, output_transforms,
     feature_types=["fingerprints"], mode="multitask",
-    splittype="random", seed=None, weight_positives=True):
+    splittype="random", seed=None, weight_positives=True, shard_id=None):
   """Extracts datasets and split into train/test.
 
   Returns a dict that maps target names to tuples.
@@ -65,7 +65,7 @@ def process_datasets(paths, input_transforms, output_transforms,
   print np.shape(target[1])
   return train_dict, test_dict 
 
-def load_molecules(paths, feature_types=["fingerprints"]):
+def load_molecules(paths, feature_types=["fingerprints"], shard_id=None):
   """Load dataset fingerprints and return fingerprints.
 
   Returns a dictionary that maps smiles strings to dicts that contain
@@ -79,30 +79,31 @@ def load_molecules(paths, feature_types=["fingerprints"]):
   molecules = {}
   for dataset_path in paths:
     for feature_type in feature_types:
-      pickle_dir = os.path.join(dataset_path, feature_type)
-      pickle_files = os.listdir(pickle_dir)
-      if len(pickle_files) == 0:
-        raise ValueError("No Pickle Files found to load molecules")
-      for pickle_file in pickle_files:
-        with gzip.open(os.path.join(pickle_dir, pickle_file), "rb") as f:
-          contents = pickle.load(f)
-          smiles, features, scaffolds, mol_ids = (
-              contents["smiles"], contents["features"],
-              contents["scaffolds"], contents["mol_id"])
-          splits = contents["split"] if "split" in contents else None
-          for mol in range(len(contents["mol_id"])):
-            if mol_ids[mol] not in molecules:
-              molecules[mol_ids[mol]] = {"fingerprint": features[mol],
-                                         "scaffold": scaffolds[mol],
-                                         "mol_id": mol_ids[mol],
-                                         "feature_types": [feature_type]}
-            if splits is not None:
-              molecules[mol_ids[mol]]["split"] = splits[mol]
-            elif feature_type not in molecules[mol_ids[mol]]["feature_types"]:
-              entry = molecules[mol_ids[mol]]
-              entry["fingerprint"] = np.append(
-                  molecules[mol_ids[mol]]["fingerprint"], features[mol])
-              entry["feature_types"].append(feature_type)
+      joblib_dir = os.path.join(dataset_path, feature_type)
+      joblib_files = os.listdir(joblib_dir)
+      if shard_id is not None:
+        joblib_files = [f for f in joblib_files if shard_id in f]
+      if len(joblib_files) == 0:
+        raise ValueError("No joblib Files found to load molecules")
+      for joblib_file in joblib_files:
+        contents = load_sharded_dataset(os.path.join(joblib_dir, joblib_file))
+        smiles, features, scaffolds, mol_ids = (
+            contents["smiles"], contents["features"],
+            contents["scaffolds"], contents["mol_id"])
+        splits = contents["split"] if "split" in contents else None
+        for mol in range(len(contents["mol_id"])):
+          if mol_ids[mol] not in molecules:
+            molecules[mol_ids[mol]] = {"fingerprint": features[mol],
+                                       "scaffold": scaffolds[mol],
+                                       "mol_id": mol_ids[mol],
+                                       "feature_types": [feature_type]}
+          if splits is not None:
+            molecules[mol_ids[mol]]["split"] = splits[mol]
+          elif feature_type not in molecules[mol_ids[mol]]["feature_types"]:
+            entry = molecules[mol_ids[mol]]
+            entry["fingerprint"] = np.append(
+                molecules[mol_ids[mol]]["fingerprint"], features[mol])
+            entry["feature_types"].append(feature_type)
   return molecules 
 
 def get_target_names(paths, target_dir_name="targets"):
@@ -116,9 +117,9 @@ def get_target_names(paths, target_dir_name="targets"):
   target_names = []
   for dataset_path in paths:
     target_dir = os.path.join(dataset_path, target_dir_name)
-    target_names += [target_pickle.split(".")[0]
-        for target_pickle in os.listdir(target_dir)
-        if "pkl.gz" in target_pickle]
+    target_names += [target_joblib.split(".")[0]
+        for target_joblib in os.listdir(target_dir)
+        if "pkl.gz" in target_joblib]
   return target_names
 
 def load_assays(paths, target_dir_name="targets"):
@@ -138,12 +139,12 @@ def load_assays(paths, target_dir_name="targets"):
   target_names = get_target_names(paths, target_dir_name)
   for dataset_path in paths:
     target_dir = os.path.join(dataset_path, target_dir_name)
-    for target_pickle in os.listdir(target_dir):
-      if "pkl.gz" not in target_pickle:
+    for target_joblib in os.listdir(target_dir):
+      if "pkl.gz" not in target_joblib:
         continue
-      target_name = target_pickle.split(".")[0]
-      with gzip.open(os.path.join(target_dir, target_pickle), "rb") as f:
-        contents = pickle.load(f)
+      target_name = target_joblib.split(".")[0]
+      with gzip.open(os.path.join(target_dir, target_joblib), "rb") as f:
+        contents = joblib.load(f)
         if "prediction" not in contents:
           raise ValueError("Prediction Endpoint Missing.")
         for ind, id in enumerate(contents["mol_id"]):
@@ -166,7 +167,7 @@ def load_assays(paths, target_dir_name="targets"):
           labels[id][target_name] = measurement 
   return labels, splits
 
-def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints"]):
+def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints"], shard_id=None):
   """Load both labels and fingerprints.
 
   Returns a dictionary that maps mol_id's to pairs of (fingerprint, labels)
@@ -178,7 +179,7 @@ def load_datasets(paths, target_dir_name="targets", feature_types=["fingerprints
     Paths to base directory.
   """
   data = {}
-  molecules = load_molecules(paths, feature_types)
+  molecules = load_molecules(paths, feature_types, shard_id=shard_id)
   labels, splits = load_assays(paths, target_dir_name)
   for ind, id in enumerate(molecules):
     if id not in labels:

@@ -14,11 +14,13 @@ from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
 
-def generate_directories(name, out, feature_fields):
+def generate_directories(name, input_file, out, feature_fields):
   """Generate directory structure for featurized dataset."""
   dataset_dir = os.path.join(out, name)
   if not os.path.exists(dataset_dir):
     os.makedirs(dataset_dir)
+
+  '''
   fingerprint_dir = os.path.join(dataset_dir, "fingerprints")
   if not os.path.exists(fingerprint_dir):
     os.makedirs(fingerprint_dir)
@@ -34,12 +36,15 @@ def generate_directories(name, out, feature_fields):
       os.makedirs(feature_field_dir)
 
   # Return names of files to be generated
-  # TODO(rbharath): Explicitly passing around out_*_pkl is an encapsulation
+  # TODO(rbharath): Explicitly passing around out_*_joblib is an encapsulation
   # failure. Remove this.
-  out_y_pkl = os.path.join(target_dir, "%s.pkl.gz" % name)
-  out_x_pkl = (os.path.join(feature_field_dir, "%s-features.pkl.gz" %name)
+  basename = os.path.basename(input_file)
+  '''
+
+  out_y_joblib = os.path.join(dataset_dir, "%s_%s.joblib" %(name, basename))
+  out_x_joblib = (os.path.join(dataset_dir, "%s_%s-features.joblib" %(name, basename))
                if feature_fields is not None else None)
-  return out_x_pkl, out_y_pkl
+  return out_x_joblib, out_y_joblib
 
 def parse_float_input(val):
   """Safely parses a float input."""
@@ -54,11 +59,13 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
-def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field, featuretype):
+def generate_vs_utils_features(dataframe, name, input_file, out, smiles_field, id_field, featuretype):
   """Generates circular fingerprints for dataset."""
   dataset_dir = os.path.join(out, name)
   feature_dir = os.path.join(dataset_dir, featuretype)
-  features = os.path.join(feature_dir, "%s-%s.pkl.gz" % (name, featuretype))
+  shard_index_0 = input_file.split("_")[1]
+  shard_index_1 = input_file.split("_")[2]
+  features = os.path.join(feature_dir, "%s-%s-%d-%d.joblib" % (name, featuretype, shard_index_0, shard_index_1))
 
   feature_df = pd.DataFrame([])
   feature_df["smiles"] = dataframe[[smiles_field]]
@@ -81,8 +88,7 @@ def generate_vs_utils_features(dataframe, name, out, smiles_field, id_field, fea
   feature_df["features"] = pd.DataFrame(
       [{"features": feature} for feature in featurizer.featurize(mols)])
 
-  with gzip.open(features, "wb") as gzip_file:
-    pickle.dump(feature_df, gzip_file, pickle.HIGHEST_PROTOCOL)
+  save_sharded_dataset(features_df, features)
 
 def get_rows(input_file, input_type, delimiter):
   """Returns an iterator over all rows in input_file"""
@@ -165,7 +171,7 @@ def process_field(data, field_type):
     return data
 
 def generate_targets(dataframe, prediction_field, split_field,
-                     smiles_field, id_field, out_pkl):
+                     smiles_field, id_field, out_joblib):
   """Process input data file, generate labels, i.e. y"""
   #TODO(enf, rbharath): Modify package unique identifier to take user-specified
     #unique identifier instead of assuming smiles string
@@ -176,8 +182,8 @@ def generate_targets(dataframe, prediction_field, split_field,
   if split_field is not None:
     labels_df["split"] = dataframe[[split_field]]
 
-  # Write pkl.gz file
-  with gzip.open(out_pkl, "wb") as pickle_file:
+  # Write joblib file
+  with gzip.open(out_joblib, "wb") as pickle_file:
     pickle.dump(labels_df, pickle_file, pickle.HIGHEST_PROTOCOL)
 
 def generate_scaffold(smiles_elt, include_chirality=False, smiles_field="smiles"):
@@ -188,7 +194,7 @@ def generate_scaffold(smiles_elt, include_chirality=False, smiles_field="smiles"
   scaffold = engine.get_scaffold(mol)
   return scaffold
 
-def generate_features(dataframe, feature_fields, smiles_field, id_field, out_pkl):
+def generate_features(dataframe, feature_fields, smiles_field, id_field, out_joblib):
   """Puts user defined features into a standard directory structure."""
   if feature_fields is None:
     print("No feature field specified by user.")
@@ -210,7 +216,7 @@ def generate_features(dataframe, feature_fields, smiles_field, id_field, out_pkl
     features_data.append({"row": np.array(feature_list)})
   features_df["features"] = pd.DataFrame(features_data)
 
-  with gzip.open(out_pkl, "wb") as pickle_file:
+  with gzip.open(out_joblib, "wb") as pickle_file:
     pickle.dump(features_df, pickle_file, pickle.HIGHEST_PROTOCOL)
 
 def extract_data(input_file, input_type, fields, field_types,

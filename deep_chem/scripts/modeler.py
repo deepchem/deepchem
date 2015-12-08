@@ -32,12 +32,12 @@ def add_featurize_group(featurize_cmd):
   """Adds flags for featurizization."""
   featurize_group = featurize_cmd.add_argument_group("Input Specifications")
   featurize_group.add_argument(
-      "--input-file", required=1,
+      "--input-files", required=1, nargs="+",
       help="Input file with data.")
   featurize_group.add_argument(
       "--input-type", default="csv",
       choices=["xlsx", "csv", "pandas", "sdf"],
-      help="Type of input file. If pandas, input must be a pkl.gz\n"
+      help="Type of input file. If pandas, input must be a joblib.gz\n"
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
   featurize_group.add_argument(
@@ -357,13 +357,15 @@ def parse_args(input_args=None):
 
 def featurize_input(args):
   """Wrapper function that calls _featurize_input with args unwrapped."""
-  _featurize_input(
+  _featurize_inputs(
       args.name, args.out, args.input_file, args.input_type, args.fields,
       args.field_types, args.feature_fields, args.prediction_field,
       args.smiles_field, args.split_field, args.id_field, args.threshold,
       args.delimiter)
 
-def _featurize_input(name, out, input_file, input_type, fields, field_types,
+#make this helper and add a wrapper function that has "input files" and add multiprocessing option
+#shard into 10x at this step (make a flag)
+def _featurize_input(input_file, name, out, input_type, fields, field_types,
                      feature_fields, prediction_field, smiles_field,
                      split_field, id_field, threshold, delimiter):
   """Featurizes raw input data."""
@@ -371,19 +373,31 @@ def _featurize_input(name, out, input_file, input_type, fields, field_types,
     raise ValueError("number of fields does not equal number of field types")
   if id_field is None:
     id_field = smiles_field
-  out_x_pkl, out_y_pkl = generate_directories(name, out, feature_fields)
+  out_x_joblib, out_y_joblib = generate_directories(name, input_file, out, feature_fields)
   df, mols = extract_data(
       input_file, input_type, fields, field_types, prediction_field,
       smiles_field, threshold, delimiter)
   print "Generating targets"
   generate_targets(df, prediction_field, split_field,
-                   smiles_field, id_field, out_y_pkl)
+                   smiles_field, id_field, out_y_joblib)
   print "Generating user-specified features"
-  generate_features(df, feature_fields, smiles_field, id_field, out_x_pkl)
+  generate_features(df, feature_fields, smiles_field, id_field, out_x_joblib)
   print "Generating circular fingerprints"
-  generate_vs_utils_features(df, name, out, smiles_field, id_field, "fingerprints")
+  generate_vs_utils_features(df, name, input_file, out, smiles_field, id_field, "fingerprints")
   print "Generating rdkit descriptors"
-  generate_vs_utils_features(df, name, out, smiles_field, id_field, "descriptors")
+  generate_vs_utils_features(df, name, input_file, out, smiles_field, id_field, "descriptors")
+
+def _featurize_inputs(name, out, input_files, input_type, fields, field_types,
+                     feature_fields, prediction_field, smiles_field,
+                     split_field, id_field, threshold, delimiter):
+  
+  other_arguments = (name, out, input_type, fields, field_types,
+                     feature_fields, prediction_field, smiles_field,
+                     split_field, id_field, threshold, delimiter)
+  pool = mp.Pool(mp.cpu_count())
+  pool.map(_featurize_input, itertools.izip(input_files, itertools.repeat(other_arguments)))
+  pool.terminate()
+  
 
 def train_test_input(args):
   """Wrapper function that calls _train_test_input after unwrapping args."""
@@ -392,6 +406,7 @@ def train_test_input(args):
       args.feature_types, args.splittype, args.weight_positives, args.mode,
       args.train_out, args.test_out)
 
+#decompose this into: a) compute train test split using only smiles.  b) for each shard, make a train test numpy array 
 def _train_test_input(paths, output_transforms, input_transforms,
                       feature_types, splittype, weight_positives, mode,
                       train_out, test_out):
@@ -427,6 +442,10 @@ def _train_test_input(paths, output_transforms, input_transforms,
   print("About to save dataset..")
   save_sharded_dataset(stored_train, train_out)
   save_sharded_dataset(stored_test, test_out)
+
+def _train_test_inputs(paths, output_transforms, input_transforms,
+                      feature_types, splittype, weight_positives, mode,
+                      train_out, test_out):
 
 def fit_model(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
@@ -486,7 +505,7 @@ def get_model_extension(modeltype):
   if modeltype == "sklearn":
     return "joblib"
   elif modeltype == "autograd":
-    return "pkl.gz"
+    return "joblib.gz"
   elif modeltype == "keras-graph" or modeltype == "keras-sequential":
     return "h5"
 

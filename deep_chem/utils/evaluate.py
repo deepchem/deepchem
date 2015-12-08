@@ -34,7 +34,6 @@ def compute_model_performance(raw_test_data, test_data, task_types, models,
     print("Target %s" % target, file=print_file)
     (test_ids, X_test, y_test, w_test) = test_data[target]
     (_, _, ytest_raw, _) = raw_test_data[target]
-    #model = models[target]
     model = models.itervalues().next()
     results = eval_model(
         test_ids, X_test, y_test, ytest_raw, w_test, model,
