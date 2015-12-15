@@ -6,11 +6,19 @@ from __future__ import division
 from __future__ import unicode_literals
 import numpy as np
 import warnings
+from glob import glob
+import pandas as pd
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def get_task_type(model_type):
+  if model_type in ["logistic", "rf_classifier", "singletask_deep_classifier",
+                    "multitask_deep_classifier"]:
+    return("classifier")
+  else:
+    return("regressor")
 
 def standardize(dataset, mode):
   """Represents a loaded dataset in standardize dictionary format."""
@@ -24,29 +32,121 @@ def standardize(dataset, mode):
     data[task] = (task_ys[task], task_ws[task])
   return data
 
-def dataset_to_numpy(dataset, mode):
+#decompose this into: a) compute train test split using only smiles.  b) for each shard, make a train test numpy array 
+def get_train_test_files(paths, train_proportion=0.8):
+  all_files = []
+  for path in paths:
+    all_files.append(glob("%s" % path))
+  train_indices = list(np.random.choice(len(all_files), int(len(all_files)*train_proportion)))
+  test_indices = list(set(range(len(all_files)))-set(train_indices))
+
+  train_files = all_files[train_indices]
+  test_files = all_files[test_indices]
+  return(train_files, test_files)
+
+def get_metadata_filename(data_dir):
+  metadata_filename = os.path.join(data_dir, "metadata.joblib")
+  return(metadata_filename)
+
+def train_test_split(paths, output_transforms, input_transforms,
+                      feature_types, splittype, mode,
+                      data_dir, target_names):
+  """Saves transformed model."""
+  
+
+  #TODO(enf/rbharath): Scaffold split is completely broken here. 
+
+  #TODO(enf/rbharath): Transforms are also completely broken here.
+
+  print("About to train/test split dataset")
+  train_files, test_files = get_train_test_files(paths)
+  print("About to write numpy arrays for train & test")
+  train_metadata = write_numpy_to_disk(train_files, data_dir, mode)
+  train_metadata["split"] = "train"
+  test_metadata = write_numpy_to_disk(test_files, data_dir, mode)
+  test_metadata["split"] = "test"
+
+  metadata = pd.concat([train_metadata, test_metadata])
+  metadata['input_transforms'] = input_transforms
+  metadata['output_transforms'] = output_transforms
+
+  metadata_filename = get_metadata_filename(data_dir)
+  print("Saving metadata file to %s" % metadata_filename)
+  save_sharded_dataset(metadata, metadata_filename)
+  print("Saved metadata.")
+
+  '''
+  print("Starting transform_data")
+  trans_train_dict = transform_data(
+      train_dict, input_transforms, output_transforms)
+  print("Finished transform_data on train")
+  trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
+  print("Finished transform_data on test")
+  transforms = {"input_transforms": input_transforms,
+                "output_transform": output_transforms}
+  stored_train = {"raw": train_dict,
+                  "transformed": trans_train_dict,
+                  "transforms": transforms}
+  stored_test = {"raw": test_dict,
+                 "transformed": trans_test_dict,
+                 "transforms": transforms}
+  print("About to save dataset..")
+  save_sharded_dataset(stored_train, train_out)
+  save_sharded_dataset(stored_test, test_out)
+  '''
+
+def write_numpy_to_disk(df_files, out_dir, mode):
+  if not os.path.exists(out_dir): 
+    os.makedirs(out_dir)
+
+  metadata = pd.DataFrame(columns=('df_file', 'task_names' 'ids', 'X', 'y', 'w'))
+
+  for i, df_file in enumerate(df_files):
+    df = load_sharded_dataset(df_file)
+    task_names = get_sorted_task_names(df)
+    ids, X, y, w = df_to_numpy(df, mode)
+    basename = os.path.splitext(os.path.basename(df_file))[0]
+    out_X = os.path.join(out_dir, "%s-X.joblib" % basename)
+    out_y = os.path.join(out_dir, "%s-y.joblib" % basename)
+    out_w = os.path.join(out_dir, "%s-w.joblib" % basename)
+    out_ids = os.path.join(out_dir, "%s-ids.joblib" % basename)
+
+    save_sharded_dataset(X, out_X)
+    save_sharded_dataset(y, out_y)
+    save_sharded_dataset(w, out_w)
+    save_sharded_dataset(ids, out_ids)
+
+    metadata.loc[i] = [df_file, task_names, ids, X, y, w]
+
+  return(metadata)
+
+def get_sorted_task_names(df):
+  column_names = df.keys()
+  task_names = set(column_names) - set(["mol_id", "smiles", "split", "features"])
+  return(sorted(list(task_names)))
+
+def df_to_numpy(df, mode):
   """Transforms a set of tensor data into standard set of numpy arrays"""
   # Perform common train/test split across all tasks
-  n_samples = len(dataset.keys())
-  sample_datapoint = dataset.itervalues().next()
-  labels = sample_datapoint["labels"]
-  sorted_tasks = sorted(labels.keys())
+  n_samples = df.shape[0]
+  sample_datapoint = df.iterrows().next()
+  sorted_tasks = get_sorted_task_names(df)
   n_tasks = len(sorted_tasks)
   task_ys = {task: [] for task in sorted_tasks}
   task_ws = {task: [] for task in sorted_tasks}
-  sorted_ids = sorted(dataset.keys())
+  sorted_ids = sorted(df.keys())
   tensors = []
   for mol_id in sorted_ids:
-    datapoint = dataset[mol_id]
-    fingerprint, labels = (datapoint["fingerprint"], datapoint["labels"])
-    tensors.append(np.squeeze(fingerprint))
+    datapoint = df[mol_id]
+    features = datapoint["features"]
+    tensors.append(np.squeeze(features))
     # Set labels from measurements
     for task in sorted_tasks:
-      if labels[task] == -1:
+      if datapoint[task] == -1:
         task_ys[task].append(-1)
         task_ws[task].append(0)
       else:
-        task_ys[task].append(labels[task])
+        task_ys[task].append(datapoint[task])
         task_ws[task].append(1)
   X = np.stack(tensors)
   if mode == "singletask":
@@ -62,7 +162,7 @@ def dataset_to_numpy(dataset, mode):
       w[:, ind] = np.array(task_ws[task])
     return sorted_ids, X, {"all": y}, {"all": w}
   else:
-    raise ValueError("Unsupported mode for process_datasets.")
+    raise ValueError("Unsupported mode.")
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
@@ -213,6 +313,8 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
+#TODO(enf/rbharath): This is completely broken. 
+'''
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.
 
@@ -242,7 +344,10 @@ def multitask_to_singletask(dataset):
       else:
         singletask_labels[target].append(labels[target])
   return singletask_features, singletask_labels
+'''
 
+#TODO(enf/rbharath): Completly broken as well.
+'''
 def split_dataset(dataset, splittype, seed=None):
   """Split provided data using specified method."""
   if splittype == "random":
@@ -254,6 +359,7 @@ def split_dataset(dataset, splittype, seed=None):
   else:
     raise ValueError("Improper splittype.")
   return train, test
+
 
 def train_test_specified_split(dataset):
   """Split provided data due to splits in origin data."""
@@ -345,3 +451,4 @@ def scaffold_separate(dataset):
       scaffolds[scaffold].append(mol_id)
   # Sort from largest to smallest scaffold sets
   return [elt for (scaffold, elt) in sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
+'''

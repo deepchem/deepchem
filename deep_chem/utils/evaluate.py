@@ -20,6 +20,27 @@ __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
 
+def eval_trained_model(modeltype, saved_model, saved_data, task_type,
+                      csv_out, stats_out, target_names):
+  """Evaluates a trained model on specified data."""
+  model = load_model(modeltype, saved_model)
+  task_types = {target: task_type for target in target_names}
+
+  stored_test = load_sharded_dataset(saved_data)
+  test_dict = stored_test["transformed"]
+  raw_test_dict = stored_test["raw"]
+  output_transforms = stored_test["transforms"]["output_transform"]
+
+  with open(stats_out, "wb") as stats_file:
+    results, _, _, _ = compute_model_performance(
+        raw_test_dict, test_dict, task_types, model, modeltype,
+        output_transforms, aucs=compute_aucs, r2s=compute_r2s, rms=compute_rms,
+        recall=compute_recall, accuracy=compute_accuracy,
+        mcc=compute_matthews_corrcoef, print_file=stats_file)
+  with open(stats_out, "r") as stats_file:
+    print(stats_file.read())
+  results_to_csv(results, csv_out, task_type=task_type)
+
 def compute_model_performance(raw_test_data, test_data, task_types, models,
                               modeltype, output_transforms, aucs=False,
                               r2s=False, rms=False, recall=False,

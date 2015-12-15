@@ -42,6 +42,7 @@ def process_datasets(paths, feature_types=None, mode="multitask",
   test_dict = standardize(test, mode)
   return train_dict, test_dict
 
+'''
 def load_molecules(paths, feature_types):
   """Load dataset fingerprints and return fingerprints.
 
@@ -80,7 +81,9 @@ def load_molecules(paths, feature_types):
                   molecules[mol_ids[mol]]["fingerprint"], features[mol])
               entry["feature_types"].append(feature_type)
   return molecules
+'''
 
+'''
 def load_assays(paths, target_dir_name, target_names):
   """Load regression dataset labels from assays.
 
@@ -122,6 +125,7 @@ def load_assays(paths, target_dir_name, target_names):
               continue
             labels[mol_id][target_name] = measurement
   return labels, splits
+'''
 
 def load_datasets(paths, target_dir_name="targets", feature_types=None,
                   target_names=None):
