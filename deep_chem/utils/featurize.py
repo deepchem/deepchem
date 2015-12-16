@@ -192,7 +192,7 @@ def extract_data(input_file, input_type, fields, field_types,
   dataframe = pd.DataFrame(rows)
   return dataframe
 
-def featurize_input(input_file, name, out, input_type, fields, field_types,
+def featurize_input(input_file, feature_dir, input_type, fields, field_types,
                      feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold):
   """Featurizes raw input data."""
@@ -211,12 +211,9 @@ def featurize_input(input_file, name, out, input_type, fields, field_types,
   print("Generating rdkit descriptors")
   add_vs_utils_features(df, "descriptors")
 
-  print("Creating dataset dir and writing DataFrame")
-  dataset_dir = os.path.join(out, name)
-  if not os.path.exists(dataset_dir):
-    os.makedirs(dataset_dir)
+  print("Writing DataFrame")
   df_filename = os.path.join(
-      dataset_dir, "%s.joblib" %(os.path.basename(input_file)))
+      feature_dir, "%s.joblib" %(os.path.basename(input_file)))
   save_sharded_dataset(df, df_filename)
   print("Finished saving.")
 
@@ -228,12 +225,12 @@ TODO for next time:
 Stor
 
 '''
-def featurize_inputs(name, out, input_files, input_type, fields, field_types,
-                     feature_fields, smiles_field,
+def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
+                     feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold):
   
-  other_arguments = (name, out, input_type, fields, field_types,
-                     feature_fields, smiles_field,
+  other_arguments = (feature_dir, input_type, fields, field_types,
+                     feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold)
   pool = mp.Pool(mp.cpu_count())
   pool.map(featurize_input, itertools.izip(input_files, itertools.repeat(other_arguments)))

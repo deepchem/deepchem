@@ -6,25 +6,10 @@ from __future__ import division
 from __future__ import unicode_literals
 import argparse
 import os
-from deep_chem.utils.featurize import generate_directories
-from deep_chem.utils.featurize import extract_data
-from deep_chem.utils.featurize import generate_targets
-from deep_chem.utils.featurize import generate_features
-from deep_chem.utils.featurize import generate_vs_utils_features
 from deep_chem.utils.featurize import featurize_inputs
-from deep_chem.models.standard import fit_singletask_models
-from deep_chem.utils.load import process_datasets
-from deep_chem.utils.load import transform_data
-from deep_chem.utils.save import save_model
-from deep_chem.utils.save import load_model
-from deep_chem.utils.save import save_sharded_dataset
-from deep_chem.utils.save import load_sharded_dataset
-from deep_chem.utils.evaluate import results_to_csv
 from deep_chem.utils.evaluate import eval_trained_model
-from deep_chem.utils.evaluate import compute_model_performance
 from deep_chem.utils.preprocess import train_test_split
 from deep_chem.utils.fit import fit_model
-
 
 def add_featurization_command(subparsers):
   """Adds flags for featurize subcommand."""
@@ -45,9 +30,6 @@ def add_featurize_group(featurize_cmd):
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
   featurize_group.add_argument(
-      "--delimiter", default=",", type=str,
-      help="If csv input, delimiter to use for read csv file")
-  featurize_group.add_argument(
       "--fields", required=1, nargs="+",
       help="Names of fields.")
   featurize_group.add_argument(
@@ -58,7 +40,7 @@ def add_featurize_group(featurize_cmd):
       "--feature-fields", type=str, nargs="+",
       help="Optional field that holds pre-computed feature vector")
   featurize_group.add_argument(
-      "--target-fields", type=str, nargs="+", required=1,
+      "--task-fields", type=str, nargs="+", required=1,
       help="Name of measured field to predict.")
   featurize_group.add_argument(
       "--split-field", type=str, default=None,
@@ -75,11 +57,9 @@ def add_featurize_group(featurize_cmd):
       "--threshold", type=float, default=None,
       help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
-      "--name", required=1,
-      help="Name of the dataset.")
-  featurize_group.add_argument(
-      "--out", required=1,
-      help="Folder to generate processed dataset in.")
+      "--feature-dir", type=str, required=1,
+      help="Directory where featurized dataset will be stored. \n"
+           "Will be created if does not exist")
   featurize_group.set_defaults(func=featurize_inputs_wrapper)
 
 def add_train_test_command(subparsers):
@@ -118,11 +98,8 @@ def add_train_test_command(subparsers):
       choices=["singletask", "multitask"],
       help="Type of model being built.")
   train_test_cmd.add_argument(
-      "--train-out", type=str, required=1,
-      help="Location to save train set.")
-  train_test_cmd.add_argument(
-      "--test-out", type=str, required=1,
-      help="Location to save test set.")
+      "--data-dir", type=str, required=1,
+      help="Location to save train and test data.")
   train_test_cmd.set_defaults(func=train_test_split_wrapper)
 
 def add_model_group(fit_cmd):
@@ -160,10 +137,6 @@ def add_model_group(fit_cmd):
   group.add_argument(
       "--decay", type=float, default=1e-4,
       help="Learning rate decay for NN models.")
-  group.add_argument(
-      "--validation-split", type=float, default=0.0,
-      help="Percent of training data to use for validation.")
-
 
 def add_fit_command(subparsers):
   """Adds arguments for fit subcommand."""
@@ -171,15 +144,14 @@ def add_fit_command(subparsers):
       "fit", help="Fit a model to training data.")
   group = fit_cmd.add_argument_group("load-and-transform")
   group.add_argument(
-      "--saved-data", required=1,
+      "--data-dir", required=1,
       help="Location of saved transformed data.")
   add_model_group(fit_cmd)
   group = fit_cmd.add_argument_group("save")
   group.add_argument(
-      "--saved-out", type=str, required=1,
+      "--model-dir", type=str, required=1,
       help="Location to save trained model.")
   fit_cmd.set_defaults(func=fit_model_wrapper)
-
 
 def add_eval_command(subparsers):
   """Adds arguments for eval subcommand."""
@@ -249,63 +221,70 @@ def add_model_command(subparsers):
   add_model_group(model_cmd)
   model_cmd.set_defaults(func=create_model)
 
-def extract_training_params(args):
+def extract_model_params(args):
+  """
+  Given input arguments, return a dict specifiying model parameters.
+  """
   params = ["nb_hidden", "learning_rate", "dropout",
             "nb_epoch", "decay", "batch_size", "loss_function"]
 
-  training_params = {param : getattr(args, param) for param in params}
-  return(training_params)
+  model_params = {param : getattr(args, param) for param in params}
+  return(model_params)
 
 def create_model(args):
   """Creates a model"""
-  data_dir = os.path.join(args.out, args.name)
+  feature_dir = args.feature_dir
+  if not os.path.exists(feature_dir):
+    os.makedirs(feature_dir)
+
+  data_dir = args.data_dir
+  if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+
+  model_dir = args.model_dir
+  model_name = args.model
+
   print("+++++++++++++++++++++++++++++++++")
   print("Perform featurization")
   if not args.skip_featurization:
     featurize_inputs(
-        args.name, args.out, args.input_file, args.input_type, args.fields,
-        args.field_types, args.feature_fields, args.target_fields,
-        args.smiles_field, args.split_field, args.id_field, args.threshold,
-        args.delimiter)
+        feature_dir, args.input_files, args.input_type, args.fields,
+        args.field_types, args.feature_fields, args.task_fields,
+        args.smiles_field, args.split_field, args.id_field, args.threshold)
 
   print("+++++++++++++++++++++++++++++++++")
   print("Perform train-test split")
-  paths = [data_dir]
-  train_out = os.path.join(data_dir, "%s-train.joblib" % args.name)
-  test_out = os.path.join(data_dir, "%s-test.joblib" % args.name)
+  paths = [feature_dir]
   if not args.skip_train_test_split:
     train_test_split(
         paths, args.output_transforms, args.input_transforms, args.feature_types,
-        args.splittype, args.mode, train_out, test_out,
-        args.target_fields)
+        args.splittype, args.mode, data_dir)
 
   print("+++++++++++++++++++++++++++++++++")
   print("Fit model")
   model_type = get_model_type(args.model)
-  extension = get_model_extension(model_type)
-  saved_out = os.path.join(data_dir, "%s.%s" % (args.model, extension))
   if not args.skip_fit:
-    training_params = extract_training_params(args)
+    model_params = extract_model_params(args)
     fit_model(
-        args.model, training_params,
-        args.validation_split, saved_out, train_out, args.target_fields)
-
+        model_name, model_params, model_dir, data_dir)
 
   print("+++++++++++++++++++++++++++++++++")
   print("Eval Model on Train")
   print("-------------------")
-  csv_out_train = os.path.join(data_dir, "%s-train.csv" % args.name)
-  stats_out_train = os.path.join(data_dir, "%s-train-stats.txt" % args.name)
-  csv_out_test = os.path.join(data_dir, "%s-test.csv" % args.name)
-  stats_out_test = os.path.join(data_dir, "%s-test-stats.txt" % args.name)
+  csv_out_train = os.path.join(data_dir, "train.csv")
+  stats_out_train = os.path.join(data_dir, "train-stats.txt")
+  csv_out_test = os.path.join(data_dir, "test.csv")
+  stats_out_test = os.path.join(data_dir, "test-stats.txt")
   eval_trained_model(
-      model_type, saved_out, train_out, csv_out_train, 
-      stats_out_train, args.target_fields)
+      model_type, model_dir, data_dir, csv_out_train,
+
+      stats_out_train, args.task_fields, split="train")
   print("Eval Model on Test")
   print("------------------")
   eval_trained_model(
-      model_type, saved_out, test_out, csv_out_test, 
-      stats_out_test, args.target_fields)
+      model_type, model_dir, data_dir, csv_out_test,
+
+      stats_out_test, args.task_fields, split="test")
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -323,27 +302,26 @@ def parse_args(input_args=None):
 
 def featurize_inputs_wrapper(args):
   """Wrapper function that calls _featurize_input with args unwrapped."""
+  if not os.path.exists(args.feature_dir):
+    os.makedirs(args.feature_dir)
   featurize_inputs(
-      args.name, args.out, args.input_file, args.input_type, args.fields,
-      args.field_types, args.feature_fields, args.target_fields,
-      args.smiles_field, args.split_field, args.id_field, args.threshold,
-      args.delimiter)
+      args.feature_dir, args.input_files, args.input_type, args.fields,
+      args.field_types, args.feature_fields, args.task_fields,
+      args.smiles_field, args.split_field, args.id_field, args.threshold)
 
 def train_test_split_wrapper(args):
   """Wrapper function that calls _train_test_split_wrapper after unwrapping args."""
-  preprocess.train_test_split(
-      args.paths, args.output_transforms, args.input_transforms,
-      args.feature_types, args.splittype, args.mode,
-      args.train_out, args.test_out, args.target_fields)
+  train_test_split(args.paths, args.output_transforms,
+
+                   args.input_transforms, args.feature_types,
+
+                   args.splittype, args.mode, args.data_dir)
 
 def fit_model_wrapper(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
-  training_params = extract_training_params(args)
+  model_params = extract_model_params(args)
   fit_model(
-      args.model, training_params, args.validation_split,
-      args.saved_out, args.saved_data, args.target_fields)
-
-
+      args.model_name, model_params, args.model_dir, args.data_dir)
 
 def get_model_type(model):
   """Associate each model with a model_type (used for saving/loading)."""
@@ -369,10 +347,8 @@ def get_model_extension(model_type):
 def eval_trained_model_wrapper(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   eval_trained_model(
-      args.model_type, args.saved_model, args.saved_data,
-      args.csv_out, args.stats_out, args.target_fields)
-
-
+      args.model_type, args.saved_model, args.data_dir,
+      args.csv_out, args.stats_out, args.task_fields)
 
 def main():
   """Invokes argument parser."""
