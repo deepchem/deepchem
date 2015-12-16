@@ -57,7 +57,7 @@ def add_featurize_group(featurize_cmd):
       "--threshold", type=float, default=None,
       help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
-      "--feature-dir", type=str, required=1,
+      "--feature-dir", type=str, required=0,
       help="Directory where featurized dataset will be stored. \n"
            "Will be created if does not exist")
   featurize_group.set_defaults(func=featurize_inputs_wrapper)
@@ -192,6 +192,9 @@ def add_model_command(subparsers):
   model_cmd.add_argument(
       "--skip-fit", action="store_true",
       help="If set, skip model fit step.")
+  model_cmd.add_argument(
+      "--base-dir", type=str, required=1,
+      help="The base directory for the model.")
   add_featurize_group(model_cmd)
 
   train_test_group = model_cmd.add_argument_group("train_test_group")
@@ -231,17 +234,19 @@ def extract_model_params(args):
   model_params = {param : getattr(args, param) for param in params}
   return(model_params)
 
+def ensure_exists(dirs):
+  for directory in dirs:
+    if not os.path.exists(directory):
+      os.makedirs(directory)
+
 def create_model(args):
   """Creates a model"""
-  feature_dir = args.feature_dir
-  if not os.path.exists(feature_dir):
-    os.makedirs(feature_dir)
+  base_dir = args.base_dir
+  feature_dir = os.path.join(base_dir, "features")
+  data_dir = os.path.join(base_dir, "data")
+  model_dir = os.path.join(base_dir, "model")
+  ensure_exists([base_dir, feature_dir, data_dir, model_dir])
 
-  data_dir = args.data_dir
-  if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-
-  model_dir = args.model_dir
   model_name = args.model
 
   print("+++++++++++++++++++++++++++++++++")

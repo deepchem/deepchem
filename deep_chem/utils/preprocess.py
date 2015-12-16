@@ -32,7 +32,7 @@ def get_train_test_files(paths, train_proportion=0.8):
   """
   all_files = []
   for path in paths:
-    all_files.append(glob("%s" % path))
+    all_files += glob(os.path.join(path, "*.joblib"))
   train_indices = list(np.random.choice(len(all_files), int(len(all_files)*train_proportion)))
   test_indices = list(set(range(len(all_files)))-set(train_indices))
 
@@ -59,6 +59,10 @@ def train_test_split(paths, output_transforms, input_transforms,
 
   print("About to train/test split dataset")
   train_files, test_files = get_train_test_files(paths)
+  print("train_files")
+  print(train_files)
+  print("test_files")
+  print(test_files)
   print("About to write numpy arrays for train & test")
   train_metadata = write_dataset(train_files, data_dir, mode)
   train_metadata["split"] = "train"
@@ -66,8 +70,8 @@ def train_test_split(paths, output_transforms, input_transforms,
   test_metadata["split"] = "test"
 
   metadata = pd.concat([train_metadata, test_metadata])
-  metadata['input_transforms'] = input_transforms
-  metadata['output_transforms'] = output_transforms
+  metadata['input_transforms'] = ",".join(input_transforms)
+  metadata['output_transforms'] = ",".join(output_transforms)
 
   metadata_filename = get_metadata_filename(data_dir)
   print("Saving metadata file to %s" % metadata_filename)
@@ -99,10 +103,9 @@ def write_dataset(df_files, out_dir, mode):
   Turns featurized dataframes into numpy files, writes them & metadata to disk.
   """
   if not os.path.exists(out_dir):
-
     os.makedirs(out_dir)
 
-  metadata = pd.DataFrame(columns=('df_file', 'task_names' 'ids', 'X', 'y', 'w'))
+  metadata = pd.DataFrame(columns=('df_file', 'task_names', 'ids', 'X', 'y', 'w'))
 
   for i, df_file in enumerate(df_files):
     df = load_sharded_dataset(df_file)
@@ -119,7 +122,7 @@ def write_dataset(df_files, out_dir, mode):
     save_sharded_dataset(w, out_w)
     save_sharded_dataset(ids, out_ids)
 
-    metadata.loc[i] = [df_file, task_names, ids, X, y, w]
+    metadata.loc[i] = [df_file, task_names, out_ids, out_X, out_y, out_w]
 
   return metadata
 
@@ -128,7 +131,8 @@ def get_sorted_task_names(df):
   Given metadata df, return sorted names of tasks.
   """
   column_names = df.keys()
-  task_names = set(column_names) - set(["mol_id", "smiles", "split", "features"])
+  task_names = (set(column_names) - 
+                set(["mol_id", "smiles", "split", "features", "descriptors", "fingerprints"]))
   return sorted(list(task_names))
 
 def df_to_numpy(df, mode):
@@ -137,37 +141,19 @@ def df_to_numpy(df, mode):
   n_samples = df.shape[0]
   sorted_tasks = get_sorted_task_names(df)
   n_tasks = len(sorted_tasks)
-  task_ys = {task: [] for task in sorted_tasks}
-  task_ws = {task: [] for task in sorted_tasks}
-  sorted_ids = sorted(df.keys())
+
+  y = df[sorted_tasks].values
+  w = np.ones((n_samples, n_tasks))
+  w[np.where(y=='')] = 0
+
   tensors = []
-  for mol_id in sorted_ids:
-    datapoint = df[mol_id]
+  for i, datapoint in df.iterrows():
     features = datapoint["features"]
     tensors.append(np.squeeze(features))
-    # Set labels from measurements
-    for task in sorted_tasks:
-      if datapoint[task] == -1:
-        task_ys[task].append(-1)
-        task_ws[task].append(0)
-      else:
-        task_ys[task].append(datapoint[task])
-        task_ws[task].append(1)
+
   X = np.stack(tensors)
-  if mode == "singletask":
-    for task in sorted_tasks:
-      task_ys[task] = np.reshape(np.array(task_ys[task]), (n_samples, 1))
-      task_ws[task] = np.reshape(np.array(task_ws[task]), (n_samples, 1))
-    return sorted_ids, X, task_ys, task_ws
-  elif mode == "multitask":
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    for ind, task in enumerate(sorted_tasks):
-      y[:, ind] = np.array(task_ys[task])
-      w[:, ind] = np.array(task_ws[task])
-    return sorted_ids, X, {"all": y}, {"all": w}
-  else:
-    raise ValueError("Unsupported mode.")
+  sorted_ids = df['mol_id']
+  return sorted_ids, X, y, w
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
@@ -266,23 +252,6 @@ def transform_outputs(y, W, output_transforms):
       else:
         raise ValueError("Unsupported Output transform")
   return y
-
-def to_one_hot(y):
-  """Transforms label vector into one-hot encoding.
-
-  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
-
-  y: np.ndarray
-    A vector of shape [n_samples, 1]
-  """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
-  return y_hot
 
 def balance_positives(y, W):
   """Ensure that positive and negative examples have equal weight."""

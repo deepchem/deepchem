@@ -4,17 +4,21 @@ Process an input dataset into a format suitable for machine learning.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+import multiprocessing as mp
 import os
 import cPickle as pickle
 import gzip
-import functools
 import pandas as pd
 import numpy as np
 import csv
+from functools import partial
 from rdkit import Chem
-from vs_utils.utils import SmilesGenerator, ScaffoldGenerator
+from vs_utils.utils import ScaffoldGenerator
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
+from deep_chem.utils.save import save_sharded_dataset
+from deep_chem.utils.save import load_sharded_dataset
+
 
 def parse_float_input(val):
   """Safely parses a float input."""
@@ -29,6 +33,7 @@ def parse_float_input(val):
     if ">" in val or "<" in val or "-" in val:
       return np.nan
 
+#TODO(enf/rbharath): make agnostic to input type.
 def get_rows(input_file, input_type):
   """Returns an iterator over all rows in input_file"""
   # TODO(rbharath): This function loads into memory, which can be painful. The
@@ -39,8 +44,7 @@ def get_rows(input_file, input_type):
       reader = csv.reader(inp_file_obj)
       return [row for row in reader]
   elif input_type == "pandas":
-    with gzip.open(input_file) as inp_file_obj:
-      dataframe = pickle.load(inp_file_obj)
+    dataframe = load_sharded_dataset(input_file)
     return dataframe.iterrows()
   elif input_type == "sdf":
     if ".gz" in input_file:
@@ -121,8 +125,7 @@ def add_vs_utils_features(df, featuretype, log_every_n=1000):
       print("Featurizing molecule %d" % row_ind)
     mol = Chem.MolFromSmiles(row_data)
     features.append(featurizer.featurize([mol]))
-
-  df[featuretype] = pd.DataFrame(features)
+  df[featuretype] = features
   return
 
 '''
@@ -133,8 +136,8 @@ Files to save:
 
 '''
 
-def standardize_df(ori_df, feature_fields, task_fields, smiles_field, 
-  split_field, id_field, threshold):
+def standardize_df(ori_df, feature_fields, task_fields, smiles_field,
+  split_field, id_field):
   df = pd.DataFrame([])
   df["mol_id"] = ori_df[[id_field]]
   df["smiles"] = ori_df[[smiles_field]]
@@ -155,18 +158,14 @@ def standardize_df(ori_df, feature_fields, task_fields, smiles_field,
       features_data.append({"row": np.array(feature_list)})
     df["features"] = pd.DataFrame(features_data)
 
+  return(df)
 
-  # Write pkl.gz file
-  with gzip.open(out_pkl, "wb") as pickle_file:
-    pickle.dump(df, pickle_file, pickle.HIGHEST_PROTOCOL)
-  return
-
-
+#TODO(enf/rbharath): This is broken for sdf files.
 def extract_data(input_file, input_type, fields, field_types,
                  task_fields, smiles_field, threshold,
                  log_every_n=1000):
   """Extracts data from input as Pandas data frame"""
-  rows, smiles = [], SmilesGenerator()
+  rows = []
   colnames = []
   for row_index, raw_row in enumerate(get_rows(input_file, input_type)):
     if row_index % log_every_n == 0:
@@ -187,14 +186,14 @@ def extract_data(input_file, input_type, fields, field_types,
         row[field] = 1 if raw_val > threshold else 0
       else:
         row[field] = process_field(row_data[field], field_type)
-    row["smiles"] = smiles.get_smiles(mol)
+    #row["smiles"] = smiles.get_smiles(mol)
     rows.append(row)
   dataframe = pd.DataFrame(rows)
   return dataframe
 
 def featurize_input(input_file, feature_dir, input_type, fields, field_types,
-                     feature_fields, task_fields, smiles_field,
-                     split_field, id_field, threshold):
+                    feature_fields, task_fields, smiles_field,
+                    split_field, id_field, threshold):
   """Featurizes raw input data."""
   if len(fields) != len(field_types):
     raise ValueError("number of fields does not equal number of field types")
@@ -204,8 +203,8 @@ def featurize_input(input_file, feature_dir, input_type, fields, field_types,
   df = extract_data(input_file, input_type, fields, field_types, task_fields,
                     smiles_field, threshold)
   print("Standardizing User DataFrame")
-  df = standardize_df(df, feature_fields, task_fields, smiles_field, 
-                      split_field, id_field, threshold)
+  df = standardize_df(df, feature_fields, task_fields, smiles_field,
+                      split_field, id_field)
   print("Generating circular fingerprints")
   add_vs_utils_features(df, "fingerprints")
   print("Generating rdkit descriptors")
@@ -213,26 +212,23 @@ def featurize_input(input_file, feature_dir, input_type, fields, field_types,
 
   print("Writing DataFrame")
   df_filename = os.path.join(
-      feature_dir, "%s.joblib" %(os.path.basename(input_file)))
+      feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
   save_sharded_dataset(df, df_filename)
   print("Finished saving.")
 
   return
 
-'''
-TODO for next time: 
-
-Stor
-
-'''
 def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
                      feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold):
-  
-  other_arguments = (feature_dir, input_type, fields, field_types,
-                     feature_fields, task_fields, smiles_field,
-                     split_field, id_field, threshold)
+
+  featurize_input_partial = partial(featurize_input, feature_dir=feature_dir, input_type=input_type, 
+                                    fields=fields, field_types=field_types, feature_fields=feature_fields,
+                                    task_fields=task_fields, smiles_field=smiles_field,
+                                    split_field=split_field, id_field=id_field, threshold=threshold)
+
+  #for input_file in input_files:
+  #  featurize_input_partial(input_file)
   pool = mp.Pool(mp.cpu_count())
-  pool.map(featurize_input, itertools.izip(input_files, itertools.repeat(other_arguments)))
+  pool.map(featurize_input_partial, input_files)
   pool.terminate()
-  

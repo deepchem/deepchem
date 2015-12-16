@@ -19,7 +19,7 @@ class DockingDNN(Model):
   """
   def __init__(self, task_types, model_params, initialize_raw_model=True):
     if initialize_raw_model:
-      (_, axis_length, _, _, n_channels) = model_params["data_shape"]
+      (axis_length, _, _, n_channels) = model_params["data_shape"]
 
       learning_rate = model_params["learning_rate"]
       loss_function = model_params["loss_function"]
@@ -88,4 +88,3 @@ class DockingDNN(Model):
     y_pred = self.raw_model.predict_on_batch(X)
     y_pred = np.squeeze(y_pred)
     return(y_pred)
-    
