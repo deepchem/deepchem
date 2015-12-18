@@ -164,10 +164,6 @@ def add_eval_command(subparsers):
       help="Location from which to load saved model.")
   group.add_argument(
       "--saved-data", required=1, help="Location of saved transformed data.")
-  group.add_argument(
-      "--model_type", required=1,
-      choices=["sklearn", "keras-graph", "keras-sequential"],
-      help="Type of model to load.")
   eval_cmd.add_argument(
       "--csv-out", type=str, required=1,
       help="Outputted predictions on evaluated set.")
@@ -267,7 +263,6 @@ def create_model(args):
 
   print("+++++++++++++++++++++++++++++++++")
   print("Fit model")
-  model_type = get_model_type(args.model)
   if not args.skip_fit:
     model_params = extract_model_params(args)
     fit_model(
@@ -281,15 +276,13 @@ def create_model(args):
   csv_out_test = os.path.join(data_dir, "test.csv")
   stats_out_test = os.path.join(data_dir, "test-stats.txt")
   eval_trained_model(
-      model_type, model_dir, data_dir, csv_out_train,
-
-      stats_out_train, args.task_fields, split="train")
+      model_name, model_dir, data_dir, csv_out_train,
+      stats_out_train, split="train")
   print("Eval Model on Test")
   print("------------------")
   eval_trained_model(
-      model_type, model_dir, data_dir, csv_out_test,
-
-      stats_out_test, args.task_fields, split="test")
+      model_name, model_dir, data_dir, csv_out_test,
+      stats_out_test, split="test")
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -328,32 +321,11 @@ def fit_model_wrapper(args):
   fit_model(
       args.model_name, model_params, args.model_dir, args.data_dir)
 
-def get_model_type(model):
-  """Associate each model with a model_type (used for saving/loading)."""
-  if model in ["singletask_deep_network", "multitask_deep_network"]:
-    model_type = "keras-graph"
-  elif model in ["3D_cnn"]:
-    model_type = "keras-sequential"
-  elif model == "neural_fingerprint":
-    model_type = "autograd"
-  else:
-    model_type = "sklearn"
-  return model_type
-
-def get_model_extension(model_type):
-  """Get the saved filetype extension for various types of models."""
-  if model_type == "sklearn":
-    return "joblib"
-  elif model_type == "autograd":
-    return "joblib.gz"
-  elif model_type == "keras-graph" or model_type == "keras-sequential":
-    return "h5"
-
 def eval_trained_model_wrapper(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   eval_trained_model(
-      args.model_type, args.saved_model, args.data_dir,
-      args.csv_out, args.stats_out, args.task_fields)
+      args.model, args.model_dir, args.data_dir,
+      args.csv_out, args.stats_out, split="test")
 
 def main():
   """Invokes argument parser."""

@@ -16,15 +16,15 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
-def get_task_type(model_type):
+def get_task_type(model_name):
   """
   Given model type, determine if classifier or regressor.
   """
-  if model_type in ["logistic", "rf_classifier", "singletask_deep_classifier",
+  if model_name in ["logistic", "rf_classifier", "singletask_deep_classifier",
                     "multitask_deep_classifier"]:
-    return "classifier"
+    return "classification"
   else:
-    return "regressor"
+    return "regression"
 
 def get_train_test_files(paths, train_proportion=0.8):
   """

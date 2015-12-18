@@ -9,6 +9,19 @@ from keras.models import model_from_json
 from sklearn.externals import joblib
 from deep_chem.models.model import model_builder
 
+def get_model_type(model_name):
+  """Associate each model with a model_type (used for saving/loading)."""
+  if model_name in ["singletask_deep_classifier", "multitask_deep_classifier",
+                    "singletask_deep_regressor", "multitask_deep_regressor"]:
+    model_type = "keras-graph"
+  elif model_name in ["convolutional_3D_regressor"]:
+    model_type = "keras-sequential"
+  elif model_name == "neural_fingerprint":
+    model_type = "autograd"
+  else:
+    model_type = "sklearn"
+  return model_type
+
 def get_parameter_filename(model_dir):
   """
   Given model directory, obtain filename for stored parameters.
@@ -23,8 +36,9 @@ def get_model_filename(model_dir):
   filename = os.path.join(model_dir, "model_params.joblib")
   return filename
 
-def save_model(model, model_type, model_dir):
+def save_model(model, model_name, model_dir):
   """Dispatcher function for saving."""
+  model_type = get_model_type(model_name)
   params = {"model_params" : model.model_params,
             "task_types" : model.task_types}
   save_sharded_dataset(params, get_parameter_filename(model_dir))
@@ -46,10 +60,11 @@ def load_sharded_dataset(filename):
   dataset = joblib.load(filename)
   return dataset
 
-def load_model(model_type, model_dir):
+def load_model(model_name, model_dir):
   """Dispatcher function for loading."""
+  model_type = get_model_type(model_name)
   params = load_sharded_dataset(get_parameter_filename(model_dir))
-  model = model_builder(model_type, params["task_types"], params["model_params"])
+  model = model_builder(model_name, params["task_types"], params["model_params"])
   if model_type == "sklearn":
     raw_model = load_sklearn_model(get_model_filename(model_dir))
   elif "keras" in model_type:

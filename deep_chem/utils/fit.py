@@ -38,6 +38,6 @@ def fit_model(model_name, model_params, model_dir, data_dir):
     y = load_sharded_dataset(row['y'])
     w = load_sharded_dataset(row['w'])
 
-    model.train_on_batch(X, y, w)
+    model.fit_on_batch(X, y, w)
 
   save_model(model, model_name, model_dir)
