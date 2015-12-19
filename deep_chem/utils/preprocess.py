@@ -9,8 +9,10 @@ import warnings
 from glob import glob
 import pandas as pd
 import os
+import multiprocessing as mp
 from deep_chem.utils.save import load_sharded_dataset
 from deep_chem.utils.save import save_sharded_dataset
+from functools import partial
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -70,6 +72,8 @@ def train_test_split(paths, output_transforms, input_transforms,
   test_metadata["split"] = "test"
 
   metadata = pd.concat([train_metadata, test_metadata])
+  print("metadata[:3]")
+  print(metadata[:3])
   metadata['input_transforms'] = ",".join(input_transforms)
   metadata['output_transforms'] = ",".join(output_transforms)
 
@@ -98,6 +102,22 @@ def train_test_split(paths, output_transforms, input_transforms,
   save_sharded_dataset(stored_test, test_out)
   '''
 
+def write_dataset_single(df_file, out_dir, mode):
+  df = load_sharded_dataset(df_file)
+  task_names = get_sorted_task_names(df)
+  ids, X, y, w = df_to_numpy(df, mode)
+  basename = os.path.splitext(os.path.basename(df_file))[0]
+  out_X = os.path.join(out_dir, "%s-X.joblib" % basename)
+  out_y = os.path.join(out_dir, "%s-y.joblib" % basename)
+  out_w = os.path.join(out_dir, "%s-w.joblib" % basename)
+  out_ids = os.path.join(out_dir, "%s-ids.joblib" % basename)
+
+  save_sharded_dataset(X, out_X)
+  save_sharded_dataset(y, out_y)
+  save_sharded_dataset(w, out_w)
+  save_sharded_dataset(ids, out_ids)
+  return([df_file, task_names, out_ids, out_X, out_y, out_w])
+
 def write_dataset(df_files, out_dir, mode):
   """
   Turns featurized dataframes into numpy files, writes them & metadata to disk.
@@ -105,26 +125,17 @@ def write_dataset(df_files, out_dir, mode):
   if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 
-  metadata = pd.DataFrame(columns=('df_file', 'task_names', 'ids', 'X', 'y', 'w'))
+  write_dataset_single_partial = partial(write_dataset_single, out_dir=out_dir, mode=mode)
 
-  for i, df_file in enumerate(df_files):
-    df = load_sharded_dataset(df_file)
-    task_names = get_sorted_task_names(df)
-    ids, X, y, w = df_to_numpy(df, mode)
-    basename = os.path.splitext(os.path.basename(df_file))[0]
-    out_X = os.path.join(out_dir, "%s-X.joblib" % basename)
-    out_y = os.path.join(out_dir, "%s-y.joblib" % basename)
-    out_w = os.path.join(out_dir, "%s-w.joblib" % basename)
-    out_ids = os.path.join(out_dir, "%s-ids.joblib" % basename)
+  pool = mp.Pool(mp.cpu_count())
+  metadata_rows = pool.map(write_dataset_single_partial, df_files)
+  pool.terminate()
 
-    save_sharded_dataset(X, out_X)
-    save_sharded_dataset(y, out_y)
-    save_sharded_dataset(w, out_w)
-    save_sharded_dataset(ids, out_ids)
-
-    metadata.loc[i] = [df_file, task_names, out_ids, out_X, out_y, out_w]
-
-  return metadata
+  metadata_df = pd.DataFrame(metadata_rows, 
+                             columns=('df_file', 'task_names', 'ids', 'X', 'y', 'w'))
+  print("metadata_df[:3]")
+  print(metadata_df[:3])
+  return metadata_df
 
 def get_sorted_task_names(df):
   """

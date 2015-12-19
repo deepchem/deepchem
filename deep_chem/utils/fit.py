@@ -28,11 +28,19 @@ def fit_model(model_name, model_params, model_dir, data_dir):
   sample_X = load_sharded_dataset(metadata_df.iterrows().next()[1]['X'])[0]
   model_params['data_shape'] = np.shape(sample_X)
 
+  print("model_params")
+  print(model_params)
+
   model = model_builder(model_name, task_types, model_params)
 
-  for _, row in metadata_df.iterrows():
-    if row['split'] != "train":
-      continue
+  print("model")
+  print(model)
+
+  train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
+  nb_batch = train_metadata.shape[0]
+
+  for i, row in train_metadata.iterrows():
+    print("Training on batch %d out of %d" % (i+1, nb_batch))
 
     X = load_sharded_dataset(row['X'])
     y = load_sharded_dataset(row['y'])

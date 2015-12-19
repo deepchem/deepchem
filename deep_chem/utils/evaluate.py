@@ -45,22 +45,25 @@ def compute_y_pred(model, data_dir, csv_out, split):
   column_names = ['ids'] + task_names + pred_task_names + w_task_names
   pred_y_df = pd.DataFrame(columns=column_names)
 
-  for _, row in metadata_df.iterrows():
-    if row['split'] == split:
-      X = load_sharded_dataset(row['X'])
-      y = load_sharded_dataset(row['y'])
-      w = load_sharded_dataset(row['w'])
-      ids = load_sharded_dataset(row['ids'])
+  split_df = metadata_df.loc[metadata_df['split'] == split]
+  nb_batch = split_df.shape[0]
 
-      y_pred = model.predict_on_batch(X)
-      y_pred = np.reshape(y_pred, np.shape(y))
+  for i, row in split_df.iterrows():
+    print("Evaluating on %s batch %d out of %d" % (split, i+1, nb_batch))
+    X = load_sharded_dataset(row['X'])
+    y = load_sharded_dataset(row['y'])
+    w = load_sharded_dataset(row['w'])
+    ids = load_sharded_dataset(row['ids'])
 
-      mini_df = pd.DataFrame(columns=column_names)
-      mini_df['ids'] = ids
-      mini_df[task_names] = y
-      mini_df[pred_task_names] = y_pred
-      mini_df[w_task_names] = w
-      pred_y_df = pd.concat([pred_y_df, mini_df])
+    y_pred = model.predict_on_batch(X)
+    y_pred = np.reshape(y_pred, np.shape(y))
+
+    mini_df = pd.DataFrame(columns=column_names)
+    mini_df['ids'] = ids
+    mini_df[task_names] = y
+    mini_df[pred_task_names] = y_pred
+    mini_df[w_task_names] = w
+    pred_y_df = pd.concat([pred_y_df, mini_df])
 
   print("Saving predictions to %s" % csv_out)
   pred_y_df.to_csv(csv_out)

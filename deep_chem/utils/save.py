@@ -64,7 +64,8 @@ def load_model(model_name, model_dir):
   """Dispatcher function for loading."""
   model_type = get_model_type(model_name)
   params = load_sharded_dataset(get_parameter_filename(model_dir))
-  model = model_builder(model_name, params["task_types"], params["model_params"])
+  model = model_builder(model_name, params["task_types"],
+                        params["model_params"], initialize_raw_model=False)
   if model_type == "sklearn":
     raw_model = load_sklearn_model(get_model_filename(model_dir))
   elif "keras" in model_type:

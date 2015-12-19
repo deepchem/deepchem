@@ -14,7 +14,6 @@ class Model(object):
   def __init__(self, task_types, model_params, initialize_raw_model=True):
     self.task_types = task_types
     self.model_params = model_params
-    self.raw_model = None
 
   def fit_on_batch(self, X, y, w):
     """

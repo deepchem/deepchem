@@ -310,9 +310,7 @@ def featurize_inputs_wrapper(args):
 def train_test_split_wrapper(args):
   """Wrapper function that calls _train_test_split_wrapper after unwrapping args."""
   train_test_split(args.paths, args.output_transforms,
-
                    args.input_transforms, args.feature_types,
-
                    args.splittype, args.mode, args.data_dir)
 
 def fit_model_wrapper(args):
