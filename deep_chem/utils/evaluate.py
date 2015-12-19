@@ -47,6 +47,7 @@ def compute_y_pred(model, data_dir, csv_out, split):
 
   split_df = metadata_df.loc[metadata_df['split'] == split]
   nb_batch = split_df.shape[0]
+  MAX_GPU_RAM = float(691007488/50)
 
   for i, row in split_df.iterrows():
     print("Evaluating on %s batch %d out of %d" % (split, i+1, nb_batch))
@@ -55,7 +56,20 @@ def compute_y_pred(model, data_dir, csv_out, split):
     w = load_sharded_dataset(row['w'])
     ids = load_sharded_dataset(row['ids'])
 
-    y_pred = model.predict_on_batch(X)
+    if sys.getsizeof(X) > MAX_GPU_RAM:
+      nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
+      nb_sample = np.shape(X)[0]
+      interval_points = np.linspace(0,nb_sample,nb_block+1).astype(int)
+      for j in range(0,len(interval_points)-1):
+        indices = range(interval_points[j],interval_points[j+1])
+        X_batch = X[indices,:]
+        y_batch = y[indices]
+        w_batch = w[indices]
+        y_preds.append(model.predict_on_batch(X_batch))
+      y_pred = np.concatenate(y_preds)
+    else:
+      y_pred = model.predict_on_batch(X)
+
     y_pred = np.reshape(y_pred, np.shape(y))
 
     mini_df = pd.DataFrame(columns=column_names)

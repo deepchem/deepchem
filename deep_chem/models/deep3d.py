@@ -78,7 +78,8 @@ class DockingDNN(Model):
   def fit_on_batch(self, X, y, w):
     # TODO(rbharath): Modify the featurization so that it matches desired shaped.
     X = shuffle_data(X)
-    self.raw_model.train_on_batch(X, y)
+    loss = self.raw_model.train_on_batch(X, y)
+    print("Loss: %f" % loss)
 
   def predict_on_batch(self, X):
     if len(np.shape(X)) != 5:

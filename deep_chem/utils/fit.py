@@ -8,6 +8,7 @@ from deep_chem.utils.save import load_sharded_dataset
 from deep_chem.utils.save import save_model
 from deep_chem.utils.preprocess import get_task_type
 import numpy as np
+import sys
 
 def get_task_names(metadata_df):
   """
@@ -38,14 +39,26 @@ def fit_model(model_name, model_params, model_dir, data_dir):
 
   train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
   nb_batch = train_metadata.shape[0]
-
+  MAX_GPU_RAM = float(691007488/50)
   for i, row in train_metadata.iterrows():
     print("Training on batch %d out of %d" % (i+1, nb_batch))
-
     X = load_sharded_dataset(row['X'])
     y = load_sharded_dataset(row['y'])
     w = load_sharded_dataset(row['w'])
 
-    model.fit_on_batch(X, y, w)
+    print("sys.getsizeof(X): %s" % str(sys.getsizeof(X)))
+    if sys.getsizeof(X) > MAX_GPU_RAM:
+      print("X exceeds available GPU memory size. Sharding.")
+      nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
+      nb_sample = np.shape(X)[0]
+      interval_points = np.linspace(0,nb_sample,nb_block+1).astype(int)
+      for j in range(0,len(interval_points)-1):
+        indices = range(interval_points[j],interval_points[j+1])
+        X_batch = X[indices,:]
+        y_batch = y[indices]
+        w_batch = w[indices]
+        model.fit_on_batch(X_batch, y_batch, w_batch)
+    else:
+      model.fit_on_batch(X, y, w)
 
   save_model(model, model_name, model_dir)
