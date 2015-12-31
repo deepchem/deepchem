@@ -9,6 +9,30 @@ from sklearn.linear_model import RidgeCV
 from sklearn.linear_model import LassoCV
 from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
+from deep_chem.models import Model
+
+class SklearnModel(Model):
+  """
+  Abstract base class for different ML models.
+  """
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
+    self.task_types = task_types
+    self.model_params = model_params
+    self.raw_model = None
+
+  def fit_on_batch(self, X, y, w):
+    """
+    Updates existing model with new information.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own fit_on_batch method.")
+
+  def predict_on_batch(self, X):
+    """
+    Makes predictions on given batch of new data.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own predict_on_batch method.")   
 
 def fit_singletask_models(train_data, modeltype):
   """Fits singletask linear regression models to potency.

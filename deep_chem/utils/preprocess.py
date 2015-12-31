@@ -6,63 +6,346 @@ from __future__ import division
 from __future__ import unicode_literals
 import numpy as np
 import warnings
+from glob import glob
+import pandas as pd
+import os
+import multiprocessing as mp
+from deep_chem.utils.save import load_sharded_dataset
+from deep_chem.utils.save import save_sharded_dataset
+from functools import partial
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def get_task_type(model_name):
+  """
+  Given model type, determine if classifier or regressor.
+  """
+  if model_name in ["logistic", "rf_classifier", "singletask_deep_classifier",
+                    "multitask_deep_classifier"]:
+    return "classification"
+  else:
+    return "regression"
 
-def standardize(dataset, mode):
-  """Represents a loaded dataset in standardize dictionary format."""
-  sorted_ids, X, task_ys, task_ws = dataset_to_numpy(dataset, mode)
-  sorted_tasks = sorted(task_ys.keys())
-  data = {}
-  data["mol_ids"] = sorted_ids
-  data["features"] = X
-  data["sorted_tasks"] = sorted_tasks
-  for task in sorted_tasks:
-    data[task] = (task_ys[task], task_ws[task])
-  return data
+def get_train_test_files(paths, train_proportion=0.8):
+  """
+  Randomly split files into train and test.
+  """
+  all_files = []
+  for path in paths:
+    all_files += glob(os.path.join(path, "*.joblib"))
+  train_indices = list(np.random.choice(len(all_files), int(len(all_files)*train_proportion), replace=False))
+  test_indices = list(set(range(len(all_files)))-set(train_indices))
 
-def dataset_to_numpy(dataset, mode):
+  train_files = [all_files[i] for i in train_indices]
+  test_files = [f for f in all_files if f not in train_files]
+  return train_files, test_files
+
+def reshuffle_train_test_split(data_dir, train_proportion=0.8):
+  metadata_df = load_sharded_dataset(get_metadata_filename(data_dir))
+  num_indices = metadata_df.shape[0]
+  train_indices = list(np.random.choice(num_indices, num_indices*train_proportion, replace=False))
+  test_indices = [i for i in range(0, num_indices) if i not in train_indices]
+  print("Train indices:")
+  print(train_indices)
+  print("Test indices:")
+  print(test_indices)
+  metadata_df.iloc[train_indices]["split"] = "train"
+  metadata_df.iloc[test_indices]["split"] = "test"
+  save_sharded_dataset(metadata_df, get_metadata_filename(data_dir))
+  return metadata_df
+
+def get_metadata_filename(data_dir):
+  """
+  Get standard location for metadata file.
+  """
+  metadata_filename = os.path.join(data_dir, "metadata.joblib")
+  return metadata_filename
+
+def train_test_split(paths, input_transforms, output_transforms,
+                     feature_types, splittype, mode, data_dir):
+  """Saves transformed model."""
+
+  #TODO(enf/rbharath): Scaffold split is completely broken here.
+
+  #TODO(enf/rbharath): Transforms are also completely broken here.
+
+  #TODO(enf/rbharath): Ability to concat vectorial features is broken.
+
+  print("About to train/test split dataset")
+  train_files, test_files = get_train_test_files(paths)
+  train_metadata = write_dataset(train_files, data_dir, mode)
+  train_metadata["split"] = "train"
+  test_metadata = write_dataset(test_files, data_dir, mode)
+  test_metadata["split"] = "test"
+
+  metadata = pd.concat([train_metadata, test_metadata])
+  metadata['input_transforms'] = ",".join(input_transforms)
+  metadata['output_transforms'] = ",".join(output_transforms)
+
+  metadata = transform_data(metadata, input_transforms, output_transforms)
+
+  metadata_filename = get_metadata_filename(data_dir)
+  print("Saving metadata file to %s" % metadata_filename)
+  save_sharded_dataset(metadata, metadata_filename)
+  print("Saved metadata.")
+
+  '''
+  print("Starting transform_data")
+  trans_train_dict = transform_data(
+      train_dict, input_transforms, output_transforms)
+  print("Finished transform_data on train")
+  trans_test_dict = transform_data(test_dict, input_transforms, output_transforms)
+  print("Finished transform_data on test")
+  transforms = {"input_transforms": input_transforms,
+                "output_transform": output_transforms}
+  stored_train = {"raw": train_dict,
+                  "transformed": trans_train_dict,
+                  "transforms": transforms}
+  stored_test = {"raw": test_dict,
+                 "transformed": trans_test_dict,
+                 "transforms": transforms}
+  print("About to save dataset..")
+  save_sharded_dataset(stored_train, train_out)
+  save_sharded_dataset(stored_test, test_out)
+  '''
+def write_dataset(df_files, out_dir, mode, transforms=[]):
+  """
+  Turns featurized dataframes into numpy files, writes them & metadata to disk.
+  """
+  if not os.path.exists(out_dir):
+    os.makedirs(out_dir)
+
+  write_dataset_single_partial = partial(write_dataset_single, out_dir=out_dir, mode=mode)
+
+  #pool = mp.Pool(mp.cpu_count())
+  #metadata_rows = pool.map(write_dataset_single_partial, df_files)
+  #pool.terminate()
+  metadata_rows = []
+  for df_file in df_files:
+    metadata_rows.append(write_dataset_single_partial(df_file))
+
+  metadata_df = pd.DataFrame(metadata_rows, 
+                             columns=('df_file', 'task_names', 'ids', 
+                                      'X', 'X-transformed', 'y', 'y-transformed', 
+                                      'w',
+                                      'X_sums', 'X_sum_squares', 'X_n',
+                                      'y_sums', 'y_sum_squares', 'y_n')) 
+
+  return metadata_df
+
+def write_dataset_single(df_file, out_dir, mode):
+  print("Examining %s" % df_file)
+  df = load_sharded_dataset(df_file)
+  task_names = get_sorted_task_names(df)
+  ids, X, y, w = df_to_numpy(df, mode)
+  X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
+  y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
+
+  basename = os.path.splitext(os.path.basename(df_file))[0]
+  out_X = os.path.join(out_dir, "%s-X.joblib" % basename)
+  out_X_transformed = os.path.join(out_dir, "%s-X-transformed.joblib" % basename)
+  out_y = os.path.join(out_dir, "%s-y.joblib" % basename)
+  out_y_transformed = os.path.join(out_dir, "%s-y-transformed.joblib" % basename)
+  out_w = os.path.join(out_dir, "%s-w.joblib" % basename)
+  out_ids = os.path.join(out_dir, "%s-ids.joblib" % basename)
+
+  save_sharded_dataset(X, out_X)
+  save_sharded_dataset(y, out_y)
+  save_sharded_dataset(w, out_w)
+  save_sharded_dataset(ids, out_ids)
+  return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y, 
+          out_y_transformed, out_w,
+          X_sums, X_sum_squares, X_n, 
+          y_sums, y_sum_squares, y_n])
+
+def compute_sums_and_nb_sample(tensor, W=None):
+  if W is None:
+    sums = np.sum(tensor, axis=0)
+    sum_squares = np.sum(np.square(tensor), axis=0)
+    nb_sample = np.shape(tensor)[0]
+  else:
+    nb_task = np.shape(tensor)[1]
+    sums = np.zeros((nb_task))
+    sum_squares = np.zeros((nb_task))
+    nb_sample = np.zeros((nb_task))
+    for task in range(0, nb_task):
+      y_task = tensor[:,task]
+      W_task = W[:,task]
+      nonzero_indices = np.nonzero(W_task)
+      y_task_nonzero = y_task[nonzero_indices]
+      sums[task] = np.sum(y_task_nonzero)
+      sum_squares[task] = np.dot(y_task_nonzero, y_task_nonzero)
+      nb_sample[task] = np.shape(y_task_nonzero)[0]
+  return (sums, sum_squares, nb_sample)
+
+def compute_mean_and_std(df):
+  X_sums, X_sum_squares, X_n = (df['X_sums'], 
+                                df['X_sum_squares'],
+                                df['X_n'])
+  #X_sums = np.concatenate(X_sums, axis=0)
+  #X_sum_squares = np.concatenate(X_sum_squares, axis=0)
+  n = np.sum(X_n)
+  overall_X_sums = np.sum(X_sums, axis=0)
+  overall_X_means = overall_X_sums / n
+  overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
+
+  X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
+
+  y_sums, y_sum_squares, y_n = (df['y_sums'].values, 
+                                df['y_sum_squares'].values,
+                                df['y_n'].values)
+  y_sums = np.vstack(y_sums)
+  y_sum_squares = np.vstack(y_sum_squares)
+  n = np.sum(y_n)
+  y_means = np.sum(y_sums, axis=0)/n
+  y_vars = np.sum(y_sum_squares,axis=0)/n - np.square(y_means)
+
+  return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
+
+def transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
+                      log_X, log_y, X_means, X_stds, y_means, y_stds, trunc):
+  total = df.shape[0]
+  row = df.iloc[i]
+  X = load_sharded_dataset(row['X'])
+  if normalize_X or log_X:
+    if normalize_X:
+      print("Normalizing X sample %d out of %d" % (i+1,total))
+      X = np.nan_to_num((X - X_means) / X_stds)
+      if truncate_X:
+         print("Truncating X sample %d out of %d" % (i+1,total))
+         X[X > trunc] = trunc
+         X[X < (-1.0*trunc)] = -1.0 * trunc
+    if log_X:
+      X = np.log(X)
+  save_sharded_dataset(X, row['X-transformed'])
+
+  y = load_sharded_dataset(row['y'])
+  if normalize_y or log_y:    
+    if normalize_y:
+      print("Normalizing y sample %d out of %d" % (i+1,total))
+      y = np.nan_to_num((y - y_means) / y_stds)
+      if truncate_y:
+        y[y > trunc] = trunc
+        y[y < (-1.0*trunc)] = -1.0 * trunc
+    if log_y:
+      y = np.log(y)
+  save_sharded_dataset(y, row['y-transformed'])  
+
+def transform(df, normalize_X=True, normalize_y=True, 
+              truncate_X=True, truncate_y=True,
+              log_X=False, log_y=False, parallel=False):
+  trunc = 5.0
+  X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
+  total = df.shape[0]
+  indices = range(0, df.shape[0])
+  transform_row_partial = partial(transform_row, df=df, normalize_X=normalize_X, 
+                                  normalize_y=normalize_y, truncate_X=truncate_X, 
+                                  truncate_y=truncate_y, log_X=log_X,
+                                 log_y=log_y, X_means=X_means, X_stds=X_stds,
+                                 y_means=y_means, y_stds=y_stds, trunc=trunc)
+  if parallel:
+    pool = mp.Pool(int(mp.cpu_count()/4))
+    pool.map(transform_row_partial, indices)
+    pool.terminate()
+  else:
+    for index in indices:
+      transform_row_partial(index)
+
+  return X_means, X_stds, y_means, y_stds
+
+def transform_data(metadata_df, input_transforms, output_transforms):
+  train_df = metadata_df.loc[metadata_df["split"] == "train"]
+  test_df = metadata_df.loc[metadata_df["split"] == "test"]
+  (normalize_X, truncate_x, normalize_y, 
+      truncate_y, log_X, log_y) = False, False, False, False, False, False
+
+  if "normalize-and-truncate" in input_transforms:
+    normalize_X=True 
+    truncate_x=True
+  elif "normalize" in input_transforms:
+    normalize_X=True
+
+  if "normalize" in output_transforms:
+    normalize_y=True
+
+  if "log" in input_transforms:
+    log_X = True 
+  if "log" in output_transforms:
+    log_y = True
+
+  print("Transforming training data.")
+  X_means, X_stds, y_means, y_stds = transform(train_df, normalize_X, 
+                                               normalize_y, truncate_x,
+                                               truncate_y, log_X, log_y)
+  nrow = train_df.shape[0]
+  train_df['X_means'] = [X_means for i in range(0,nrow)]
+  train_df['X_stds'] = [X_stds for i in range(0,nrow)]
+  train_df['y_means'] = [y_means for i in range(0,nrow)]
+  train_df['y_stds'] = [y_stds for i in range(0,nrow)]
+
+  print("Transforming test data.")
+  X_means, X_stds, y_means, y_stds = transform(test_df, normalize_X, 
+                                               normalize_y, truncate_x,
+                                               truncate_y, log_X, log_y)
+  nrow = test_df.shape[0]
+  test_df['X_means'] = [X_means for i in range(0,nrow)]
+  test_df['X_stds'] = [X_stds for i in range(0,nrow)]
+  test_df['y_means'] = [y_means for i in range(0,nrow)]
+  test_df['y_stds'] = [y_stds for i in range(0,nrow)]
+
+  return(pd.concat([train_df, test_df]))
+
+def undo_normalization(y, y_means, y_stds):
+  """Undo the applied normalization transform."""
+  y = y * y_means + y_stds
+  return y * y_means + y_stds
+
+def undo_transform(y, y_means, y_stds, output_transforms):
+  """Undo transforms on y_pred, W_pred."""
+  output_transforms = [output_transforms]
+  print(output_transforms)
+  if (output_transforms == [""] or output_transforms == ['']
+    or output_transforms == []):
+    return y
+  elif output_transforms == ["log"]:
+    return np.exp(y)
+  elif output_transforms == ["normalize"]:
+    return undo_normalization(y, y_means, y_stds)
+  elif output_transforms == ["log", "normalize"]:
+    return np.exp(undo_normalization(y, y_means, y_stds))
+  else:
+    raise ValueError("Unsupported output transforms.")
+
+def get_sorted_task_names(df):
+  """
+  Given metadata df, return sorted names of tasks.
+  """
+  column_names = df.keys()
+  task_names = (set(column_names) - 
+                set(["mol_id", "smiles", "split", "features", "descriptors", "fingerprints"]))
+  return sorted(list(task_names))
+
+def df_to_numpy(df, mode):
   """Transforms a set of tensor data into standard set of numpy arrays"""
   # Perform common train/test split across all tasks
-  n_samples = len(dataset.keys())
-  sample_datapoint = dataset.itervalues().next()
-  labels = sample_datapoint["labels"]
-  sorted_tasks = sorted(labels.keys())
+  n_samples = df.shape[0]
+  sorted_tasks = get_sorted_task_names(df)
   n_tasks = len(sorted_tasks)
-  task_ys = {task: [] for task in sorted_tasks}
-  task_ws = {task: [] for task in sorted_tasks}
-  sorted_ids = sorted(dataset.keys())
+
+  y = df[sorted_tasks].values
+  w = np.ones((n_samples, n_tasks))
+  w[np.where(y=='')] = 0
+
   tensors = []
-  for mol_id in sorted_ids:
-    datapoint = dataset[mol_id]
-    fingerprint, labels = (datapoint["fingerprint"], datapoint["labels"])
-    tensors.append(np.squeeze(fingerprint))
-    # Set labels from measurements
-    for task in sorted_tasks:
-      if labels[task] == -1:
-        task_ys[task].append(-1)
-        task_ws[task].append(0)
-      else:
-        task_ys[task].append(labels[task])
-        task_ws[task].append(1)
+  for i, datapoint in df.iterrows():
+    features = datapoint["features"]
+    tensors.append(np.squeeze(features))
+
   X = np.stack(tensors)
-  if mode == "singletask":
-    for task in sorted_tasks:
-      task_ys[task] = np.reshape(np.array(task_ys[task]), (n_samples, 1))
-      task_ws[task] = np.reshape(np.array(task_ws[task]), (n_samples, 1))
-    return sorted_ids, X, task_ys, task_ws
-  elif mode == "multitask":
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    for ind, task in enumerate(sorted_tasks):
-      y[:, ind] = np.array(task_ys[task])
-      w[:, ind] = np.array(task_ws[task])
-    return sorted_ids, X, {"all": y}, {"all": w}
-  else:
-    raise ValueError("Unsupported mode for process_datasets.")
+  sorted_ids = df['mol_id']
+  return sorted_ids, X, y, w
 
 def transform_inputs(X, input_transforms):
   """Transform the input feature data."""
@@ -77,7 +360,7 @@ def transform_inputs(X, input_transforms):
     raise ValueError("Only know how to transform vectorial data.")
   Z = np.zeros(np.shape(X))
   # Meant to be done after normalize
-  trunc = 5
+  trunc = 5.0
   for feature in range(n_features):
     feature_data = X[:, feature]
     for input_transform in input_transforms:
@@ -92,10 +375,11 @@ def transform_inputs(X, input_transforms):
           if np.amax(feature_data) > trunc or np.amin(feature_data) < -trunc:
             raise ValueError("Truncation failed on feature %d" % feature)
       else:
-        raise ValueError("Unsupported Input Transform")
+        raise ValueError("untilnsupported Input Transform")
     Z[:, feature] = feature_data
   return Z
 
+'''
 def undo_normalization(y_orig, y_pred):
   """Undo the applied normalization transform."""
   old_mean = np.mean(y_orig)
@@ -114,6 +398,7 @@ def undo_transform_outputs(y_raw, y_pred, output_transforms):
     return np.exp(undo_normalization(np.log(y_raw), y_pred))
   else:
     raise ValueError("Unsupported output transforms.")
+'''
 
 def transform_outputs(y, W, output_transforms):
   """Tranform the provided outputs
@@ -162,23 +447,6 @@ def transform_outputs(y, W, output_transforms):
         raise ValueError("Unsupported Output transform")
   return y
 
-def to_one_hot(y):
-  """Transforms label vector into one-hot encoding.
-
-  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
-
-  y: np.ndarray
-    A vector of shape [n_samples, 1]
-  """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
-  return y_hot
-
 def balance_positives(y, W):
   """Ensure that positive and negative examples have equal weight."""
   n_samples, n_targets = np.shape(y)
@@ -213,6 +481,9 @@ def balance_positives(y, W):
     W[negative_inds, target_ind] = 1
   return W
 
+#TODO(enf/rbharath): This is completely broken.
+
+'''
 def multitask_to_singletask(dataset):
   """Transforms a multitask dataset to a singletask dataset.
 
@@ -242,7 +513,10 @@ def multitask_to_singletask(dataset):
       else:
         singletask_labels[target].append(labels[target])
   return singletask_features, singletask_labels
+'''
 
+#TODO(enf/rbharath): Completly broken as well.
+'''
 def split_dataset(dataset, splittype, seed=None):
   """Split provided data using specified method."""
   if splittype == "random":
@@ -345,3 +619,4 @@ def scaffold_separate(dataset):
       scaffolds[scaffold].append(mol_id)
   # Sort from largest to smallest scaffold sets
   return [elt for (scaffold, elt) in sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
+'''

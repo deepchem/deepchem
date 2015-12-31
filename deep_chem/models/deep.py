@@ -5,8 +5,72 @@ import numpy as np
 from keras.models import Graph
 from keras.layers.core import Dense, Dropout
 from keras.optimizers import SGD
-from deep_chem.utils.preprocess import to_one_hot
+from deep_chem.models import Model
 
+#TODO(rbharath/enf): Make this real. It's a dummy now.
+class SingleTaskDNN(Model):
+  """
+  Abstract base class for different ML models.
+  """
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
+    self.task_types = task_types
+    self.model_params = model_params
+    self.raw_model = None
+
+  def fit_on_batch(self, X, y, w):
+    """
+    Updates existing model with new information.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own fit_on_batch method.")
+
+  def predict_on_batch(self, X):
+    """
+    Makes predictions on given batch of new data.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own predict_on_batch method.")    
+
+#TODO(rbharath/enf): Make this real. It's a dummy now.
+class MultiTaskDNN(Model):
+  """
+  Abstract base class for different ML models.
+  """
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
+    self.task_types = task_types
+    self.model_params = model_params
+    self.raw_model = None
+
+  def fit_on_batch(self, X, y, w):
+    """
+    Updates existing model with new information.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own fit_on_batch method.")
+
+  def predict_on_batch(self, X):
+    """
+    Makes predictions on given batch of new data.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own predict_on_batch method.")   
+
+def to_one_hot(y):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+
+  y: np.ndarray
+    A vector of shape [n_samples, 1]
+  """
+  n_samples = np.shape(y)[0]
+  y_hot = np.zeros((n_samples, 2))
+  for index, val in enumerate(y):
+    if val == 0:
+      y_hot[index] = np.array([1, 0])
+    elif val == 1:
+      y_hot[index] = np.array([0, 1])
+  return y_hot
 
 def fit_multitask_mlp(train_data, task_types, **training_params):
   """
@@ -62,7 +126,7 @@ def fit_singletask_mlp(train_data, task_types, **training_params):
 
 def train_multitask_model(X, y, W, task_types, learning_rate=0.01,
                           decay=1e-6, momentum=0.9, nesterov=True, activation="relu",
-                          dropout=0.5, nb_epoch=20, batch_size=50, n_hidden=500,
+                          dropout=0.5, nb_epoch=20, batch_size=50, nb_hidden=500,
                           validation_split=0.1):
   """
   Perform stochastic gradient descent optimization for a keras multitask MLP.
@@ -106,7 +170,7 @@ def train_multitask_model(X, y, W, task_types, learning_rate=0.01,
   #model.add_input(name="input", ndim=n_inputs)
   model.add_input(name="input", input_shape=(n_inputs,))
   model.add_node(
-      Dense(n_hidden, init='uniform', activation=activation),
+      Dense(nb_hidden, init='uniform', activation=activation),
       name="dense", input="input")
   model.add_node(Dropout(dropout), name="dropout", input="dense")
   top_layer = "dropout"
