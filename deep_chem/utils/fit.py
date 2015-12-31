@@ -42,13 +42,11 @@ def fit_model(model_name, model_params, model_dir, data_dir):
   MAX_GPU_RAM = float(691007488/50)
   for i, row in train_metadata.iterrows():
     print("Training on batch %d out of %d" % (i+1, nb_batch))
-    X = load_sharded_dataset(row['X'])
-    y = load_sharded_dataset(row['y'])
+    X = load_sharded_dataset(row['X-transformed'])
+    y = load_sharded_dataset(row['y-transformed'])
     w = load_sharded_dataset(row['w'])
 
-    print("sys.getsizeof(X): %s" % str(sys.getsizeof(X)))
     if sys.getsizeof(X) > MAX_GPU_RAM:
-      print("X exceeds available GPU memory size. Sharding.")
       nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
       nb_sample = np.shape(X)[0]
       interval_points = np.linspace(0,nb_sample,nb_block+1).astype(int)

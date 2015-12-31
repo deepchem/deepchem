@@ -229,6 +229,6 @@ def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
 
   #for input_file in input_files:
   #  featurize_input_partial(input_file)
-  pool = mp.Pool(mp.cpu_count())
+  pool = mp.Pool(int(mp.cpu_count()/2))
   pool.map(featurize_input_partial, input_files)
   pool.terminate()

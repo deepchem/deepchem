@@ -258,7 +258,7 @@ def create_model(args):
   paths = [feature_dir]
   if not args.skip_train_test_split:
     train_test_split(
-        paths, args.output_transforms, args.input_transforms, args.feature_types,
+        paths, args.input_transforms, args.output_transforms, args.feature_types,
         args.splittype, args.mode, data_dir)
 
   print("+++++++++++++++++++++++++++++++++")
@@ -277,12 +277,12 @@ def create_model(args):
   stats_out_test = os.path.join(data_dir, "test-stats.txt")
   eval_trained_model(
       model_name, model_dir, data_dir, csv_out_train,
-      stats_out_train, split="train")
+      stats_out_train, args.output_transforms, split="train")
   print("Eval Model on Test")
   print("------------------")
   eval_trained_model(
       model_name, model_dir, data_dir, csv_out_test,
-      stats_out_test, split="test")
+      stats_out_test, args.output_transforms, split="test")
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -309,8 +309,8 @@ def featurize_inputs_wrapper(args):
 
 def train_test_split_wrapper(args):
   """Wrapper function that calls _train_test_split_wrapper after unwrapping args."""
-  train_test_split(args.paths, args.output_transforms,
-                   args.input_transforms, args.feature_types,
+  train_test_split(args.paths, args.input_transforms, 
+                   args.output_transforms, args.feature_types,
                    args.splittype, args.mode, args.data_dir)
 
 def fit_model_wrapper(args):
@@ -323,7 +323,7 @@ def eval_trained_model_wrapper(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   eval_trained_model(
       args.model, args.model_dir, args.data_dir,
-      args.csv_out, args.stats_out, split="test")
+      args.csv_out, args.stats_out, args.output_transforms, split="test")
 
 def main():
   """Invokes argument parser."""
