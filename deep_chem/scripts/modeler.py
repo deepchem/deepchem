@@ -137,6 +137,15 @@ def add_model_group(fit_cmd):
   group.add_argument(
       "--decay", type=float, default=1e-4,
       help="Learning rate decay for NN models.")
+  group.add_argument(
+      "--activation", type=str, default="relu",
+      help="NN activation function.")
+  group.add_argument(
+      "--momentum", type=float, default=.9,
+      help="Momentum for stochastic gradient descent.")
+  group.add_argument(
+      "--nesterov", action="store_true",
+      help="If set, use Nesterov acceleration.")
 
 def add_fit_command(subparsers):
   """Adds arguments for fit subcommand."""
@@ -171,6 +180,13 @@ def add_eval_command(subparsers):
       "--stats-out", type=str, required=1j,
       help="Computed statistics on evaluated set.")
   eval_cmd.set_defaults(func=eval_trained_model_wrapper)
+
+def add_predict_command(subparsers):
+  """Adds arguments for predict subcommand."""
+  predict_cmd = subparsers.add_parser(
+    "predict",
+    help="Make predictions of model on new data.")
+  #group = predict_cmd.add_a
 
 # TODO(rbharath): There are a lot of duplicate commands introduced here. Is
 # there a nice way to factor them?
@@ -225,7 +241,8 @@ def extract_model_params(args):
   Given input arguments, return a dict specifiying model parameters.
   """
   params = ["nb_hidden", "learning_rate", "dropout",
-            "nb_epoch", "decay", "batch_size", "loss_function"]
+            "nb_epoch", "decay", "batch_size", "loss_function",
+            "activation", "momentum", "nesterov"]
 
   model_params = {param : getattr(args, param) for param in params}
   return(model_params)

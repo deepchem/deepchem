@@ -7,7 +7,8 @@ from __future__ import unicode_literals
 import os
 from keras.models import model_from_json
 from sklearn.externals import joblib
-from deep_chem.models.model import model_builder
+#from deep_chem.models.model import model_builder
+from deep_chem.models import Model
 
 def get_model_type(model_name):
   """Associate each model with a model_type (used for saving/loading)."""
@@ -64,7 +65,7 @@ def load_model(model_name, model_dir):
   """Dispatcher function for loading."""
   model_type = get_model_type(model_name)
   params = load_sharded_dataset(get_parameter_filename(model_dir))
-  model = model_builder(model_name, params["task_types"],
+  model = Model.model_builder(model_name, params["task_types"],
                         params["model_params"], initialize_raw_model=False)
   if model_type == "sklearn":
     raw_model = load_sklearn_model(get_model_filename(model_dir))

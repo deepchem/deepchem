@@ -11,6 +11,8 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
+  # List of registered models
+  registered_model_types = {}
   def __init__(self, task_types, model_params, initialize_raw_model=True):
     self.task_types = task_types
     self.model_params = model_params
@@ -40,6 +42,23 @@ class Model(object):
     Return raw model.
     """
     return(self.raw_model)
+
+  @staticmethod
+  def model_builder(model_type, task_types, model_params,
+                    initialize_raw_model=True):
+    print("model_builder()")
+    print("model_params")
+    print(model_params)
+    if model_type in Model.registered_model_types:
+      model = Model.registered_model_types[model_type](
+          task_types, model_params, initialize_raw_model)
+    else:
+      raise ValueError("model_type %s is not supported" % model_type)
+    return model
+
+  @staticmethod
+  def register_model_type(model_type, model_class):
+    Model.registered_model_types[model_type] = model_class
 
 
 '''

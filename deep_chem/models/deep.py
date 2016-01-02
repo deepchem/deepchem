@@ -7,53 +7,103 @@ from keras.layers.core import Dense, Dropout
 from keras.optimizers import SGD
 from deep_chem.models import Model
 
-#TODO(rbharath/enf): Make this real. It's a dummy now.
-class SingleTaskDNN(Model):
-  """
-  Abstract base class for different ML models.
-  """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
-    self.task_types = task_types
-    self.model_params = model_params
-    self.raw_model = None
-
-  def fit_on_batch(self, X, y, w):
-    """
-    Updates existing model with new information.
-    """
-    raise NotImplementedError(
-        "Each model is responsible for its own fit_on_batch method.")
-
-  def predict_on_batch(self, X):
-    """
-    Makes predictions on given batch of new data.
-    """
-    raise NotImplementedError(
-        "Each model is responsible for its own predict_on_batch method.")    
-
-#TODO(rbharath/enf): Make this real. It's a dummy now.
 class MultiTaskDNN(Model):
   """
   Abstract base class for different ML models.
   """
   def __init__(self, task_types, model_params, initialize_raw_model=True):
-    self.task_types = task_types
-    self.model_params = model_params
-    self.raw_model = None
+    super(MultiTaskDNN, self).__init__(task_types, model_params,
+                                       initialize_raw_model)
+    if initialize_raw_model:
+      sorted_tasks = sorted(task_types.keys())
+      (n_inputs,) = model_params["data_shape"]
+      model = Graph()
+      model.add_input(name="input", input_shape=(n_inputs,))
+      model.add_node(
+          Dense(model_params["nb_hidden"], init='uniform',
+                activation=model_params["activation"]),
+          name="dense", input="input")
+      model.add_node(Dropout(model_params["dropout"]), name="dropout",
+                             input="dense")
+      top_layer = "dropout"
+      for ind, task in enumerate(sorted_tasks):
+        task_type = task_types[task]
+        if task_type == "classification":
+          model.add_node(
+              Dense(2, init='uniform', activation="softmax"),
+              name="dense_head%d" % ind, input=top_layer)
+        elif task_type == "regression":
+          model.add_node(
+              Dense(1, init='uniform'),
+              name="dense_head%d" % ind, input=top_layer)
+        model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
+
+      loss_dict = {}
+      for ind, task in enumerate(sorted_tasks):
+        task_type, taskname = task_types[task], "task%d" % ind
+        if task_type == "classification":
+          loss_dict[taskname] = "binary_crossentropy"
+        elif task_type == "regression":
+          loss_dict[taskname] = "mean_squared_error"
+      sgd = SGD(lr=model_params["learning_rate"],
+                decay=model_params["decay"],
+                momentum=model_params["momentum"],
+                nesterov=model_params["nesterov"])
+      model.compile(optimizer=sgd, loss=loss_dict)
+      self.raw_model = model
+
+  def get_data_dict(self, X, y=None):
+    data = {}
+    data["input"] = X
+    for ind, task in enumerate(sorted(self.task_types.keys())):
+      task_type, taskname = task_types[task], "task%d" % ind
+      if y is not None:
+        if task_type == "classification":
+          data[taskname] = to_one_hot(y[:, ind])
+        elif task_type == "regression":
+          data[taskname] = y[:, ind]
+    return data
+
+  def get_sample_weight(self, w):
+    """Get dictionaries needed to fit models"""
+    sample_weight = {}
+    for ind, task in enumerate(sorted(self.task_types.keys())):
+      sample_weight["task%d" % ind] = w[:, ind]
+    return sample_weight
 
   def fit_on_batch(self, X, y, w):
     """
     Updates existing model with new information.
     """
-    raise NotImplementedError(
-        "Each model is responsible for its own fit_on_batch method.")
+    eps = .001
+    # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
+    W = W + eps * np.ones(np.shape(W))
+    data = self.get_data_dict(X, y)
+    sample_weight = self.get_sample_weight(w)
+    loss = self.raw_model.train_on_batch(data, sample_weight=sample_weight)
 
   def predict_on_batch(self, X):
     """
     Makes predictions on given batch of new data.
     """
-    raise NotImplementedError(
-        "Each model is responsible for its own predict_on_batch method.")   
+    data = self.get_data_dict(X)
+    y_pred = self.raw_model.predict_on_batch(data)
+    y_pred = np.squeeze(y_pred)
+    return y_pred
+
+Model.register_model_type("multitask_deep_regressor", MultiTaskDNN)
+Model.register_model_type("multitask_deep_classifier", MultiTaskDNN)
+
+class SingleTaskDNN(MultiTaskDNN):
+  """
+  Abstract base class for different ML models.
+  """
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
+    super(SingleTaskDNN, self).__init__(task_types, model_params,
+                                       initialize_raw_model)
+
+Model.register_model_type("singletask_deep_regressor", SingleTaskDNN)
+Model.register_model_type("singletask_deep_classifier", SingleTaskDNN)
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
@@ -154,52 +204,6 @@ def train_multitask_model(X, y, W, task_types, learning_rate=0.01,
   nb_epoch: int
     maximal number of epochs to run the optimizer
   """
-  eps = .001
-  sorted_tasks = sorted(task_types.keys())
-  local_task_types = task_types.copy()
-  endpoints = sorted_tasks
-  print "train_multitask_model()"
-  print "np.shape(X)"
-  print np.shape(X)
-  n_inputs = len(X[0].flatten())
-  # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
-  W = W + eps * np.ones(np.shape(W))
-  print "np.shape(W)"
-  print np.shape(W)
-  model = Graph()
-  #model.add_input(name="input", ndim=n_inputs)
-  model.add_input(name="input", input_shape=(n_inputs,))
-  model.add_node(
-      Dense(nb_hidden, init='uniform', activation=activation),
-      name="dense", input="input")
-  model.add_node(Dropout(dropout), name="dropout", input="dense")
-  top_layer = "dropout"
-  for ind, task in enumerate(endpoints):
-    task_type = local_task_types[task]
-    if task_type == "classification":
-      model.add_node(
-          Dense(2, init='uniform', activation="softmax"),
-          name="dense_head%d" % ind, input=top_layer)
-    elif task_type == "regression":
-      model.add_node(
-          Dense(1, init='uniform'),
-          name="dense_head%d" % ind, input=top_layer)
-    model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
-  data_dict, loss_dict, sample_weights = {}, {}, {}
-  data_dict["input"] = X
-  for ind, task in enumerate(endpoints):
-    task_type = local_task_types[task]
-    taskname = "task%d" % ind
-    sample_weights[taskname] = W[:, ind]
-    if task_type == "classification":
-      loss_dict[taskname] = "binary_crossentropy"
-      data_dict[taskname] = to_one_hot(y[:, ind])
-    elif task_type == "regression":
-      loss_dict[taskname] = "mean_squared_error"
-      data_dict[taskname] = y[:, ind]
-  sgd = SGD(lr=learning_rate, decay=decay, momentum=momentum, nesterov=nesterov)
-  print "About to compile model!"
-  model.compile(optimizer=sgd, loss=loss_dict)
   print "Done compiling. About to fit model!"
   print "validation_split: " + str(validation_split)
   model.fit(data_dict, nb_epoch=nb_epoch, batch_size=batch_size,

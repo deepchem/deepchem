@@ -104,7 +104,9 @@ def compute_model_performance(pred_y_df, task_names, task_type, stats_file, outp
     raise ValueError("Unrecognized task type: %s" % task_type)
 
   performance_df = pd.DataFrame(columns=colnames)
-
+  print("compute_model_performance()")
+  print("pred_y_df")
+  print(pred_y_df)
   y_means = pred_y_df.iterrows().next()[1]["y_means"]
   y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
 

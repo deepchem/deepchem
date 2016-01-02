@@ -2,7 +2,9 @@
 Fit model. To be incorporated into Model class.
 """
 
-from deep_chem.models.model import model_builder
+#from deep_chem.models.model import model_builder
+import deep_chem.models.deep
+from deep_chem.models import Model
 from deep_chem.utils.preprocess import get_metadata_filename
 from deep_chem.utils.save import load_sharded_dataset
 from deep_chem.utils.save import save_model
@@ -29,16 +31,15 @@ def fit_model(model_name, model_params, model_dir, data_dir):
   sample_X = load_sharded_dataset(metadata_df.iterrows().next()[1]['X'])[0]
   model_params['data_shape'] = np.shape(sample_X)
 
-  print("model_params")
-  print(model_params)
-
-  model = model_builder(model_name, task_types, model_params)
+  model = Model.model_builder(model_name, task_types, model_params)
 
   print("model")
   print(model)
 
   train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
   nb_batch = train_metadata.shape[0]
+  # TODO(rbharath/enf): This is black magic. Needs to be removed/made more
+  # general.
   MAX_GPU_RAM = float(691007488/50)
   for i, row in train_metadata.iterrows():
     print("Training on batch %d out of %d" % (i+1, nb_batch))
