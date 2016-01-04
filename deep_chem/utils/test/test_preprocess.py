@@ -40,6 +40,9 @@ class TestPreprocess(unittest.TestCase):
           pos_weight += Wbal[sample_ind, target_ind]
       assert np.isclose(pos_weight, neg_weight)
 
+# TODO(rbharath): Can this just be removed since undo_transform has been
+# reimplemented?
+'''
   def test_undo_transform_outputs(self):
     # Test undo-log
     y_raw = np.ones(10)
@@ -65,3 +68,4 @@ class TestPreprocess(unittest.TestCase):
     output_transforms = ["log", "normalize"]
     y_ret = undo_transform_outputs(y_raw, y_pred, output_transforms)
     assert np.allclose(y_raw, y_ret)
+'''
