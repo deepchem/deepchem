@@ -46,9 +46,6 @@ class Model(object):
   @staticmethod
   def model_builder(model_type, task_types, model_params,
                     initialize_raw_model=True):
-    print("model_builder()")
-    print("model_params")
-    print(model_params)
     if model_type in Model.registered_model_types:
       model = Model.registered_model_types[model_type](
           task_types, model_params, initialize_raw_model)

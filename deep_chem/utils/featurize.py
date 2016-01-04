@@ -101,10 +101,9 @@ def process_field(data, field_type):
   elif field_type == "ndarray":
     return data
 
-def generate_scaffold(smiles_elt, include_chirality=False, smiles_field="smiles"):
+def generate_scaffold(smiles, include_chirality=False, smiles_field="smiles"):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
-  smiles_string = smiles_elt[smiles_field]
-  mol = Chem.MolFromSmiles(smiles_string)
+  mol = Chem.MolFromSmiles(smiles)
   engine = ScaffoldGenerator(include_chirality=include_chirality)
   scaffold = engine.get_scaffold(mol)
   return scaffold
@@ -222,10 +221,14 @@ def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
                      feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold):
 
-  featurize_input_partial = partial(featurize_input, feature_dir=feature_dir, input_type=input_type, 
-                                    fields=fields, field_types=field_types, feature_fields=feature_fields,
-                                    task_fields=task_fields, smiles_field=smiles_field,
-                                    split_field=split_field, id_field=id_field, threshold=threshold)
+  featurize_input_partial = partial(featurize_input, feature_dir=feature_dir,
+                                    input_type=input_type, fields=fields,
+                                    field_types=field_types,
+                                    feature_fields=feature_fields,
+                                    task_fields=task_fields,
+                                    smiles_field=smiles_field,
+                                    split_field=split_field, id_field=id_field,
+                                    threshold=threshold)
 
   #for input_file in input_files:
   #  featurize_input_partial(input_file)

@@ -73,22 +73,23 @@ def add_train_test_command(subparsers):
       choices=["normalize-and-truncate"],
       help="Transforms to apply to input data.")
   train_test_cmd.add_argument(
-      "--output-transforms", type=str, default="",
-      help="Comma-separated list (no spaces) of transforms to apply to output data.\n"
-           "Supported transforms are 'log' and 'normalize'. 'None' will be taken\n"
+      "--output-transforms", nargs="+", default=[],
+      help="Supported transforms are 'log' and 'normalize'. 'None' will be taken\n"
            "to mean no transforms are required.")
   train_test_cmd.add_argument(
-      "--feature-types", type=str, required=1,
-      help="Comma-separated list (no spaces) of types of featurizations to use.\n"
-           "Each featurization must correspond to subdirectory in generated\n"
-           "data directory.")
+      "--feature-types", nargs="+", required=1,
+      choices=["features", "fingerprints", "descriptors"],
+      help="Featurizations of data to use.\n"
+           "'features' denotes user-defined features.\n"
+           "'fingerprints' denotes ECFP fingeprints.\n"
+           "'descriptors' denotes RDKit chem descriptors.\n")
   train_test_cmd.add_argument(
       "--paths", nargs="+", required=1,
       help="Paths to input datasets.")
   train_test_cmd.add_argument(
       "--splittype", type=str, default="scaffold",
       choices=["scaffold", "random", "specified"],
-      help="Type of train/test data-splitting. 'scaffold' uses Bemis-Murcko scaffolds.\n"
+      help="Type of train/test data-split. 'scaffold' uses Bemis-Murcko scaffolds.\n"
            "specified requires that split be in original data.")
   train_test_cmd.add_argument(
       "--weight-positives", type=bool, default=False,
@@ -215,22 +216,23 @@ def add_model_command(subparsers):
       choices=["normalize-and-truncate"],
       help="Transforms to apply to input data.")
   train_test_group.add_argument(
-      "--output-transforms", type=str, default="",
-      help="Comma-separated list (no spaces) of transforms to apply to output data.\n"
-           "Supported transforms are log and normalize.")
+      "--output-transforms", nargs="+", default=[],
+      help="Supported transforms are log and normalize.")
   train_test_group.add_argument(
       "--mode", default="singletask",
       choices=["singletask", "multitask"],
       help="Type of model being built.")
   train_test_group.add_argument(
-      "--feature-types", type=str, required=1,
-      help="Comma-separated list (no spaces) of types of featurizations to use.\n"
-           "Each featurization must correspond to subdirectory in generated\n"
-           "data directory.")
+      "--feature-types", nargs="+", required=1,
+      choices=["features", "fingerprints", "descriptors"],
+      help="Featurizations of data to use.\n"
+           "'features' denotes user-defined features.\n"
+           "'fingerprints' denotes ECFP fingeprints.\n"
+           "'descriptors' denotes RDKit chem descriptors.\n")
   train_test_group.add_argument(
       "--splittype", type=str, default="scaffold",
       choices=["scaffold", "random", "specified"],
-      help="Type of train/test data-splitting. 'scaffold' uses Bemis-Murcko scaffolds.\n"
+      help="Type of train/test data-split. 'scaffold' uses Bemis-Murcko scaffolds.\n"
            "specified requires that split be in original data.")
 
   add_model_group(model_cmd)

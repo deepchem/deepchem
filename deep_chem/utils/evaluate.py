@@ -51,6 +51,11 @@ def compute_y_pred(model, data_dir, csv_out, split):
 
   split_df = metadata_df.loc[metadata_df['split'] == split]
   nb_batch = split_df.shape[0]
+  print("compute_y_pred()")
+  print("split_df.shape")
+  print(split_df.shape)
+  # TODO(rbharath/enf): This is only for GPU models, and is currently depends
+  # on magic numbers.
   MAX_GPU_RAM = float(691007488/50)
 
   for i, row in split_df.iterrows():
