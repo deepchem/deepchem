@@ -1,10 +1,14 @@
 """
 Tests for dataset classes. 
 """
+import os
 import unittest
 import numpy as np
 import pandas as pd
+import tempfile
+import shutil
 from deep_chem.utils.dataset import FeaturizedDataset
+from deep_chem.utils.save import save_sharded_dataset
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -21,6 +25,14 @@ def featurize_compound(smiles, split=None):
           "descriptors": np.zeros(10),
           "fingerprints": np.zeros(10),
           "task": 1.0}
+
+def featurized_dataset_from_data(data_df, out_dir):
+  """
+  Writes featurized data to disk and returns a FeaturizedData object.
+  """
+  data_loc = os.path.join(out_dir, "data.joblib")
+  save_sharded_dataset(data_df, data_loc)
+  return FeaturizedDataset(paths=[out_dir])
 
 class TestFeaturizedDataset(unittest.TestCase):
   """
@@ -60,3 +72,33 @@ class TestFeaturizedDataset(unittest.TestCase):
     train, test = dataset.train_test_split(splittype="specified")
     assert len(train.compound_df) == .8 * len(self.compound_df)
     assert len(test.compound_df) == .2 * len(self.compound_df)
+
+  def test_to_arrays(self):
+    """
+    Basic sanity test of to_arrays function.
+    """
+    dataset = FeaturizedDataset(compound_df=self.compound_df)
+    # Test singletask mode writing runs
+    dirpath = tempfile.mkdtemp()
+    arrays = dataset.to_arrays(dirpath, "singletask", ["fingerprints"])
+    shutil.rmtree(dirpath)
+
+    # Test multitask mode writing runs
+    dirpath = tempfile.mkdtemp()
+    arrays = dataset.to_arrays(dirpath, "multitask", ["fingerprints"])
+    shutil.rmtree(dirpath)
+
+  def test_transform_data(self):
+    """
+    Basic sanity test of data transforms.
+    """
+    featurepath = tempfile.mkdtemp()
+    dataset = featurized_dataset_from_data(self.compound_df, featurepath)
+    # Test normalization transforms. 
+    dirpath = tempfile.mkdtemp()
+    arrays = dataset.to_arrays(dirpath, "singletask", ["fingerprints"])
+    input_transforms = ["normalize"]
+    output_transforms = ["normalize"]
+    arrays.transform_data(input_transforms, output_transforms)
+    shutil.rmtree(dirpath)
+    shutil.rmtree(featurepath)

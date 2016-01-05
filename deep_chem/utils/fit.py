@@ -33,9 +33,6 @@ def fit_model(model_name, model_params, model_dir, data_dir):
 
   model = Model.model_builder(model_name, task_types, model_params)
 
-  print("model")
-  print(model)
-
   train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
   nb_batch = train_metadata.shape[0]
   # TODO(rbharath/enf): This is black magic. Needs to be removed/made more

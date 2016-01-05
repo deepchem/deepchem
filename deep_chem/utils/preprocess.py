@@ -10,9 +10,6 @@ from glob import glob
 import pandas as pd
 import os
 import multiprocessing as mp
-from deep_chem.utils.save import load_sharded_dataset
-from deep_chem.utils.save import save_sharded_dataset
-from functools import partial
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -28,13 +25,6 @@ def get_task_type(model_name):
   else:
     return "regression"
 
-def get_metadata_filename(data_dir):
-  """
-  Get standard location for metadata file.
-  """
-  metadata_filename = os.path.join(data_dir, "metadata.joblib")
-  return metadata_filename
-
 def train_test_split(paths, input_transforms, output_transforms,
                      feature_types, splittype, mode, data_dir):
   """Saves transformed model."""
@@ -43,6 +33,15 @@ def train_test_split(paths, input_transforms, output_transforms,
   dataset = FeaturizedDataset(paths=paths)
   train_dataset, test_dataset = dataset.train_test_split(splittype)
 
+  train_dir = os.path.join(data_dir, "train")
+  train_arrays = train_dataset.to_arrays(train_dir, mode, feature_types)
+  print("Transforming train data.")
+  train_arrays.transform_data(input_transforms, output_transforms)
+
+  test_dir = os.path.join(data_dir, "test")
+  test_dataset.write(test_dir, mode, feature_types)
+  print("Transforming test data.")
+  test_arrays.transform_data(input_transforms, output_transforms)
 
 '''
   print("About to train/test split dataset")
@@ -64,47 +63,6 @@ def train_test_split(paths, input_transforms, output_transforms,
   print("Saved metadata.")
 '''
 
-def transform_data(metadata_df, input_transforms, output_transforms):
-  train_df = metadata_df.loc[metadata_df["split"] == "train"]
-  test_df = metadata_df.loc[metadata_df["split"] == "test"]
-  (normalize_X, truncate_x, normalize_y, 
-      truncate_y, log_X, log_y) = False, False, False, False, False, False
-
-  if "normalize-and-truncate" in input_transforms:
-    normalize_X=True 
-    truncate_x=True
-  elif "normalize" in input_transforms:
-    normalize_X=True
-
-  if "normalize" in output_transforms:
-    normalize_y=True
-
-  if "log" in input_transforms:
-    log_X = True 
-  if "log" in output_transforms:
-    log_y = True
-
-  print("Transforming training data.")
-  X_means, X_stds, y_means, y_stds = transform(train_df, normalize_X, 
-                                               normalize_y, truncate_x,
-                                               truncate_y, log_X, log_y)
-  nrow = train_df.shape[0]
-  train_df['X_means'] = [X_means for i in range(0,nrow)]
-  train_df['X_stds'] = [X_stds for i in range(0,nrow)]
-  train_df['y_means'] = [y_means for i in range(0,nrow)]
-  train_df['y_stds'] = [y_stds for i in range(0,nrow)]
-
-  print("Transforming test data.")
-  X_means, X_stds, y_means, y_stds = transform(test_df, normalize_X, 
-                                               normalize_y, truncate_x,
-                                               truncate_y, log_X, log_y)
-  nrow = test_df.shape[0]
-  test_df['X_means'] = [X_means for i in range(0,nrow)]
-  test_df['X_stds'] = [X_stds for i in range(0,nrow)]
-  test_df['y_means'] = [y_means for i in range(0,nrow)]
-  test_df['y_stds'] = [y_stds for i in range(0,nrow)]
-
-  return(pd.concat([train_df, test_df]))
 
 def undo_normalization(y, y_means, y_stds):
   """Undo the applied normalization transform."""
@@ -126,58 +84,6 @@ def undo_transform(y, y_means, y_stds, output_transforms):
     return np.exp(undo_normalization(y, y_means, y_stds))
   else:
     raise ValueError("Unsupported output transforms.")
-
-def transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
-                      log_X, log_y, X_means, X_stds, y_means, y_stds, trunc):
-  total = df.shape[0]
-  row = df.iloc[i]
-  X = load_sharded_dataset(row['X'])
-  if normalize_X or log_X:
-    if normalize_X:
-      print("Normalizing X sample %d out of %d" % (i+1,total))
-      X = np.nan_to_num((X - X_means) / X_stds)
-      if truncate_X:
-         print("Truncating X sample %d out of %d" % (i+1,total))
-         X[X > trunc] = trunc
-         X[X < (-1.0*trunc)] = -1.0 * trunc
-    if log_X:
-      X = np.log(X)
-  save_sharded_dataset(X, row['X-transformed'])
-
-  y = load_sharded_dataset(row['y'])
-  if normalize_y or log_y:    
-    if normalize_y:
-      print("Normalizing y sample %d out of %d" % (i+1,total))
-      y = np.nan_to_num((y - y_means) / y_stds)
-      if truncate_y:
-        y[y > trunc] = trunc
-        y[y < (-1.0*trunc)] = -1.0 * trunc
-    if log_y:
-      y = np.log(y)
-  save_sharded_dataset(y, row['y-transformed'])  
-
-def transform(df, normalize_X=True, normalize_y=True, 
-              truncate_X=True, truncate_y=True,
-              log_X=False, log_y=False, parallel=False):
-  trunc = 5.0
-  X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
-  total = df.shape[0]
-  indices = range(0, df.shape[0])
-  transform_row_partial = partial(transform_row, df=df, normalize_X=normalize_X, 
-                                  normalize_y=normalize_y, truncate_X=truncate_X, 
-                                  truncate_y=truncate_y, log_X=log_X,
-                                 log_y=log_y, X_means=X_means, X_stds=X_stds,
-                                 y_means=y_means, y_stds=y_stds, trunc=trunc)
-  if parallel:
-    pool = mp.Pool(int(mp.cpu_count()/4))
-    pool.map(transform_row_partial, indices)
-    pool.terminate()
-  else:
-    for index in indices:
-      transform_row_partial(index)
-
-  return X_means, X_stds, y_means, y_stds
-
 
 #todo(enf/rbharath): this is completely broken.
 

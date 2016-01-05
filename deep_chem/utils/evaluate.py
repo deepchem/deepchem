@@ -40,9 +40,12 @@ def compute_y_pred(model, data_dir, csv_out, split):
   """
   Computes model predictions on data and stores csv to disk.
   """
-  metadata_filename = get_metadata_filename(data_dir)
-  metadata_df = load_sharded_dataset(metadata_filename)
-  task_names = metadata_df.iterrows().next()[1]['task_names']
+  test_dir = os.path.join(data_dir, "test")
+  test = NumpyDataset(test_dir)
+  #metadata_filename = get_metadata_filename(data_dir)
+  #metadata_df = load_sharded_dataset(metadata_filename)
+  #task_names = metadata_df.iterrows().next()[1]['task_names']
+  task_names = test.get_task_names()
   pred_task_names = ["%s_pred" % task_name for task_name in task_names]
   w_task_names = ["%s_weight" % task_name for task_name in task_names]
   column_names = (['ids'] + task_names + pred_task_names + w_task_names
