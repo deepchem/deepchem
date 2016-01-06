@@ -5,8 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 import numpy as np
-from deep_chem.utils.preprocess import transform_outputs
-from deep_chem.utils.preprocess import transform_inputs
+from deepchem.utils.preprocess import transform_outputs
+from deepchem.utils.preprocess import transform_inputs
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"

@@ -7,8 +7,8 @@ __license__ = "LGPL"
 
 import numpy as np
 import unittest
-from deep_chem.utils.preprocess import balance_positives
-from deep_chem.utils.preprocess import undo_transform_outputs
+from deepchem.utils.preprocess import balance_positives
+from deepchem.utils.preprocess import undo_transform_outputs
 
 def ensure_balanced(y, W):
   """Helper function that ensures postives and negatives are balanced."""

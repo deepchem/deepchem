@@ -2,16 +2,16 @@
 Fit model. To be incorporated into Model class.
 """
 
-#from deep_chem.models.model import model_builder
+#from deepchem.models.model import model_builder
 import os
 import sys
 import numpy as np
-import deep_chem.models.deep
-from deep_chem.utils.dataset import NumpyDataset
-from deep_chem.models import Model
-#from deep_chem.utils.preprocess import get_metadata_filename
-from deep_chem.utils.dataset import load_sharded_dataset
-from deep_chem.utils.preprocess import get_task_type
+import deepchem.models.deep
+from deepchem.utils.dataset import NumpyDataset
+from deepchem.models import Model
+#from deepchem.utils.preprocess import get_metadata_filename
+from deepchem.utils.dataset import load_sharded_dataset
+from deepchem.utils.preprocess import get_task_type
 
 def get_task_names(metadata_df):
   """

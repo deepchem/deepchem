@@ -5,7 +5,7 @@ import numpy as np
 from keras.models import Graph
 from keras.layers.core import Dense, Dropout
 from keras.optimizers import SGD
-from deep_chem.models import Model
+from deepchem.models import Model
 
 class MultiTaskDNN(Model):
   """

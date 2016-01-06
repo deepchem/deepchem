@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import tempfile
 import shutil
-from deep_chem.utils.dataset import FeaturizedDataset
-from deep_chem.utils.save import save_sharded_dataset
+from deepchem.utils.dataset import FeaturizedDataset
+from deepchem.utils.save import save_sharded_dataset
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"

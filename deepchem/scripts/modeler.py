@@ -6,10 +6,10 @@ from __future__ import division
 from __future__ import unicode_literals
 import argparse
 import os
-from deep_chem.utils.featurize import featurize_inputs
-from deep_chem.utils.evaluate import eval_trained_model
-from deep_chem.utils.preprocess import train_test_split
-from deep_chem.utils.fit import fit_model
+from deepchem.utils.featurize import featurize_inputs
+from deepchem.utils.evaluate import eval_trained_model
+from deepchem.utils.preprocess import train_test_split
+from deepchem.utils.fit import fit_model
 
 def add_featurization_command(subparsers):
   """Adds flags for featurize subcommand."""

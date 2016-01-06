@@ -8,13 +8,13 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import warnings
-#from deep_chem.utils.preprocess import undo_transform_outputs
-#from deep_chem.utils.preprocess import get_metadata_filename
-from deep_chem.utils.dataset import NumpyDataset
-from deep_chem.utils.preprocess import get_task_type
-from deep_chem.utils.preprocess import undo_transform
-from deep_chem.utils.dataset import load_sharded_dataset
-from deep_chem.models import Model 
+#from deepchem.utils.preprocess import undo_transform_outputs
+#from deepchem.utils.preprocess import get_metadata_filename
+from deepchem.utils.dataset import NumpyDataset
+from deepchem.utils.preprocess import get_task_type
+from deepchem.utils.preprocess import undo_transform
+from deepchem.utils.dataset import load_sharded_dataset
+from deepchem.models import Model 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score

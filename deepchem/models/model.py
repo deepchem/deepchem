@@ -6,10 +6,10 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-from deep_chem.models.deep import SingleTaskDNN
-#from deep_chem.models.deep import MultiTaskDNN
-#from deep_chem.models.deep3d import DockingDNN
-#from deep_chem.models.standard import SklearnModel
+from deepchem.models.deep import SingleTaskDNN
+#from deepchem.models.deep import MultiTaskDNN
+#from deepchem.models.deep3d import DockingDNN
+#from deepchem.models.standard import SklearnModel
 
 #def model_builder(model_type, task_types, model_params,
 #                  initialize_raw_model=True):

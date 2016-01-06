@@ -3,7 +3,7 @@ import sys
 
 if 'develop' not in sys.argv:
     raise NotImplementedError("Use python setup.py develop.")
-setup(name="deep_chem",
+setup(name="deepchem",
    url='https://github.com/pandegroup/deep-learning',
    description='Deep Learning Toolchain for Cheminformatics and Protein Analysis',
    install_requires=['keras'],

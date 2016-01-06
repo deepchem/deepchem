@@ -9,7 +9,7 @@ from sklearn.linear_model import RidgeCV
 from sklearn.linear_model import LassoCV
 from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
-from deep_chem.models import Model
+from deepchem.models import Model
 
 class SklearnModel(Model):
   """

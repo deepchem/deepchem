@@ -10,9 +10,9 @@ import pandas as pd
 import joblib
 import os
 from keras.models import model_from_json
-from deep_chem.utils.dataset import NumpyDataset
-from deep_chem.utils.dataset import load_sharded_dataset
-from deep_chem.utils.dataset import save_sharded_dataset
+from deepchem.utils.dataset import NumpyDataset
+from deepchem.utils.dataset import load_sharded_dataset
+from deepchem.utils.dataset import save_sharded_dataset
 
 '''
 def get_parameter_filename(model_dir):

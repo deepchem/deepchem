@@ -11,7 +11,7 @@ from keras.optimizers import RMSprop
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
-from deep_chem.models import Model
+from deepchem.models import Model
 
 def shuffle_shape(shape):
   (axis_length, _, _, n_channels) = shape

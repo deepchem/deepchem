@@ -10,7 +10,7 @@ from glob import glob
 import pandas as pd
 import os
 import multiprocessing as mp
-from deep_chem.utils.dataset import FeaturizedDataset
+from deepchem.utils.dataset import FeaturizedDataset
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"

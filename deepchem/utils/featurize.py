@@ -15,8 +15,8 @@ from functools import partial
 from rdkit import Chem
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
-from deep_chem.utils.dataset import save_sharded_dataset
-from deep_chem.utils.dataset import load_sharded_dataset
+from deepchem.utils.dataset import save_sharded_dataset
+from deepchem.utils.dataset import load_sharded_dataset
 
 
 def parse_float_input(val):
