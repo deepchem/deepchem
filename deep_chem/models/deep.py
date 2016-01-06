@@ -55,8 +55,11 @@ class MultiTaskDNN(Model):
   def get_data_dict(self, X, y=None):
     data = {}
     data["input"] = X
+    print("get_data_dict()")
+    print("self.task_types.keys()")
+    print(self.task_types.keys())
     for ind, task in enumerate(sorted(self.task_types.keys())):
-      task_type, taskname = task_types[task], "task%d" % ind
+      task_type, taskname = self.task_types[task], "task%d" % ind
       if y is not None:
         if task_type == "classification":
           data[taskname] = to_one_hot(y[:, ind])
@@ -77,7 +80,7 @@ class MultiTaskDNN(Model):
     """
     eps = .001
     # Add eps weight to avoid minibatches with zero weight (causes theano to crash).
-    W = W + eps * np.ones(np.shape(W))
+    w = w + eps * np.ones(np.shape(w))
     data = self.get_data_dict(X, y)
     sample_weight = self.get_sample_weight(w)
     loss = self.raw_model.train_on_batch(data, sample_weight=sample_weight)
@@ -86,8 +89,30 @@ class MultiTaskDNN(Model):
     """
     Makes predictions on given batch of new data.
     """
+    #print("deep.predict_on_batch()")
+    #print("np.shape(X)")
+    #print(np.shape(X))
+    #print("type(self.raw_model)")
+    #print(type(self.raw_model))
     data = self.get_data_dict(X)
-    y_pred = self.raw_model.predict_on_batch(data)
+    #print("data")
+    #print(data)
+    y_pred_dict = self.raw_model.predict_on_batch(data)
+    sorted_tasks = sorted(self.task_types.keys())
+    nb_samples = np.shape(X)[0]
+    nb_tasks = len(sorted_tasks)
+    y_pred = np.zeros((nb_samples, nb_tasks))
+    for ind, task in enumerate(sorted_tasks):
+      taskname = "task%d" % ind
+      y_pred[:,ind] = np.squeeze(y_pred_dict[taskname])
+    #print("np.shape(y_pred)")
+    #print(np.shape(y_pred))
+    #print("type(self.raw_model.predict(data))")
+    #print(type(self.raw_model.predict(data)))
+    #print("self.raw_model.predict(data).keys()")
+    #print(self.raw_model.predict(data).keys())
+    #print("np.shape(self.raw_model.predict(data))")
+    #print(np.shape(self.raw_model.predict(data)))
     y_pred = np.squeeze(y_pred)
     return y_pred
 

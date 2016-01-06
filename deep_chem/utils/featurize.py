@@ -13,11 +13,10 @@ import numpy as np
 import csv
 from functools import partial
 from rdkit import Chem
-from vs_utils.utils import ScaffoldGenerator
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
-from deep_chem.utils.save import save_sharded_dataset
-from deep_chem.utils.save import load_sharded_dataset
+from deep_chem.utils.dataset import save_sharded_dataset
+from deep_chem.utils.dataset import load_sharded_dataset
 
 
 def parse_float_input(val):
@@ -100,13 +99,6 @@ def process_field(data, field_type):
     return np.array(data.split(","))
   elif field_type == "ndarray":
     return data
-
-def generate_scaffold(smiles, include_chirality=False, smiles_field="smiles"):
-  """Compute the Bemis-Murcko scaffold for a SMILES string."""
-  mol = Chem.MolFromSmiles(smiles)
-  engine = ScaffoldGenerator(include_chirality=include_chirality)
-  scaffold = engine.get_scaffold(mol)
-  return scaffold
 
 def add_vs_utils_features(df, featuretype, log_every_n=1000):
   """Generates circular fingerprints for dataset."""

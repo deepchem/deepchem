@@ -3,14 +3,15 @@ Fit model. To be incorporated into Model class.
 """
 
 #from deep_chem.models.model import model_builder
-import deep_chem.models.deep
-from deep_chem.models import Model
-from deep_chem.utils.preprocess import get_metadata_filename
-from deep_chem.utils.save import load_sharded_dataset
-from deep_chem.utils.save import save_model
-from deep_chem.utils.preprocess import get_task_type
-import numpy as np
+import os
 import sys
+import numpy as np
+import deep_chem.models.deep
+from deep_chem.utils.dataset import NumpyDataset
+from deep_chem.models import Model
+#from deep_chem.utils.preprocess import get_metadata_filename
+from deep_chem.utils.dataset import load_sharded_dataset
+from deep_chem.utils.preprocess import get_task_type
 
 def get_task_names(metadata_df):
   """
@@ -22,24 +23,29 @@ def get_task_names(metadata_df):
 def fit_model(model_name, model_params, model_dir, data_dir):
   """Builds model from featurized data."""
   task_type = get_task_type(model_name)
-  metadata_filename = get_metadata_filename(data_dir)
-  metadata_df = load_sharded_dataset(metadata_filename)
-  task_names = get_task_names(metadata_df)
-  task_types = {task: task_type for task in task_names}
+  train = NumpyDataset(os.path.join(data_dir, "train"))
 
-  #This simply loads a sample X tensor and finds its shape.
-  sample_X = load_sharded_dataset(metadata_df.iterrows().next()[1]['X'])[0]
-  model_params['data_shape'] = np.shape(sample_X)
+  task_types = {task: task_type for task in train.get_task_names()}
+  model_params["data_shape"] = train.get_data_shape()
 
   model = Model.model_builder(model_name, task_types, model_params)
+  model.fit(train)
+  Model.save_model(model, model_name, model_dir)
 
-  train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
-  nb_batch = train_metadata.shape[0]
-  # TODO(rbharath/enf): This is black magic. Needs to be removed/made more
-  # general.
+  #metadata_filename = get_metadata_filename(data_dir)
+  #metadata_df = load_sharded_dataset(metadata_filename)
+  #task_names = get_task_names(metadata_df)
+
+  #This simply loads a sample X tensor and finds its shape.
+  #sample_X = load_sharded_dataset(metadata_df.iterrows().next()[1]['X'])[0]
+  #model_params['data_shape'] = np.shape(sample_X)
+
+  #train_metadata = metadata_df.loc[metadata_df['split'] =="train"]
+  #nb_shards = train_metadata.shape[0]
+  '''
   MAX_GPU_RAM = float(691007488/50)
   for i, row in train_metadata.iterrows():
-    print("Training on batch %d out of %d" % (i+1, nb_batch))
+    print("Training on shard %d out of %d" % (i+1, nb_shards))
     X = load_sharded_dataset(row['X-transformed'])
     y = load_sharded_dataset(row['y-transformed'])
     w = load_sharded_dataset(row['w'])
@@ -56,5 +62,5 @@ def fit_model(model_name, model_params, model_dir, data_dir):
         model.fit_on_batch(X_batch, y_batch, w_batch)
     else:
       model.fit_on_batch(X, y, w)
+    '''
 
-  save_model(model, model_name, model_dir)

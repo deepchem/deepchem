@@ -5,15 +5,16 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
 import numpy as np
 import warnings
 #from deep_chem.utils.preprocess import undo_transform_outputs
-from deep_chem.utils.preprocess import get_metadata_filename
-from deep_chem.utils.preprocess import get_sorted_task_names
+#from deep_chem.utils.preprocess import get_metadata_filename
+from deep_chem.utils.dataset import NumpyDataset
 from deep_chem.utils.preprocess import get_task_type
 from deep_chem.utils.preprocess import undo_transform
-from deep_chem.utils.save import load_model
-from deep_chem.utils.save import load_sharded_dataset
+from deep_chem.utils.dataset import load_sharded_dataset
+from deep_chem.models import Model 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
@@ -30,7 +31,10 @@ __license__ = "LGPL"
 def eval_trained_model(model_name, model_dir, data_dir,
                        csv_out, stats_out, output_transforms, split="test"):
   """Evaluates a trained model on specified data."""
-  model = load_model(model_name, model_dir)
+  print("eval_trained_model()")
+  print("output_transforms")
+  print(output_transforms)
+  model = Model.load_model(model_name, model_dir)
   task_type = get_task_type(model_name)
   task_names, pred_y_df = compute_y_pred(model, data_dir, csv_out, split)
   compute_model_performance(pred_y_df, task_names, 
@@ -40,34 +44,36 @@ def compute_y_pred(model, data_dir, csv_out, split):
   """
   Computes model predictions on data and stores csv to disk.
   """
-  test_dir = os.path.join(data_dir, "test")
-  test = NumpyDataset(test_dir)
+  test = NumpyDataset(data_dir)
+  task_names = test.get_task_names()
   #metadata_filename = get_metadata_filename(data_dir)
   #metadata_df = load_sharded_dataset(metadata_filename)
   #task_names = metadata_df.iterrows().next()[1]['task_names']
-  task_names = test.get_task_names()
-  pred_task_names = ["%s_pred" % task_name for task_name in task_names]
-  w_task_names = ["%s_weight" % task_name for task_name in task_names]
-  column_names = (['ids'] + task_names + pred_task_names + w_task_names
-                         + ["y_means", "y_stds"])
-  pred_y_df = pd.DataFrame(columns=column_names)
 
-  split_df = metadata_df.loc[metadata_df['split'] == split]
-  nb_batch = split_df.shape[0]
-  print("compute_y_pred()")
-  print("split_df.shape")
-  print(split_df.shape)
-  # TODO(rbharath/enf): This is only for GPU models, and is currently depends
-  # on magic numbers.
-  MAX_GPU_RAM = float(691007488/50)
+  pred_y_df = model.predict(test)
+  #split_df = metadata_df.loc[metadata_df['split'] == split]
+  #nb_batch = split_df.shape[0]
+  #print("compute_y_pred()")
+  #print("split_df.shape")
+  #print(split_df.shape)
 
+  print("Saving predictions to %s" % csv_out)
+  pred_y_df.to_csv(csv_out)
+  print("Saved.")
+
+  return task_names, pred_y_df
+
+  '''
   for i, row in split_df.iterrows():
     print("Evaluating on %s batch %d out of %d" % (split, i+1, nb_batch))
     X = load_sharded_dataset(row['X-transformed'])
     y = load_sharded_dataset(row['y-transformed'])
     w = load_sharded_dataset(row['w'])
     ids = load_sharded_dataset(row['ids'])
-
+  '''
+  '''
+  MAX_GPU_RAM = float(691007488/50)
+  for (X, y, w, ids) in test.itershards():
     if sys.getsizeof(X) > MAX_GPU_RAM:
       nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
       nb_sample = np.shape(X)[0]
@@ -82,7 +88,6 @@ def compute_y_pred(model, data_dir, csv_out, split):
       y_pred = np.concatenate(y_preds)
     else:
       y_pred = model.predict_on_batch(X)
-
     y_pred = np.reshape(y_pred, np.shape(y))
 
     mini_df = pd.DataFrame(columns=column_names)
@@ -93,12 +98,7 @@ def compute_y_pred(model, data_dir, csv_out, split):
     mini_df["y_means"] = split_df["y_means"]
     mini_df["y_stds"] = split_df["y_stds"]
     pred_y_df = pd.concat([pred_y_df, mini_df])
-
-  print("Saving predictions to %s" % csv_out)
-  pred_y_df.to_csv(csv_out)
-  print("Saved.")
-
-  return task_names, pred_y_df
+  '''
 
 def compute_model_performance(pred_y_df, task_names, task_type, stats_file, output_transforms):
   """
@@ -113,15 +113,24 @@ def compute_model_performance(pred_y_df, task_names, task_type, stats_file, outp
 
   performance_df = pd.DataFrame(columns=colnames)
   print("compute_model_performance()")
+  print("output_transforms")
+  print(output_transforms)
   print("pred_y_df")
   print(pred_y_df)
   y_means = pred_y_df.iterrows().next()[1]["y_means"]
   y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
 
   for i, task_name in enumerate(task_names):
+    print("task_name")
+    print(task_name)
     y = pred_y_df[task_name]
     y_pred = pred_y_df["%s_pred" % task_name]
     w = pred_y_df["%s_weight" % task_name]
+    print("pre-transform")
+    print("y")
+    print(y)
+    print("y_pred")
+    print(y_pred)
 
     y = undo_transform(y, y_means, y_stds, output_transforms)
     y_pred = undo_transform(y_pred, y_means, y_stds, output_transforms)
@@ -135,6 +144,10 @@ def compute_model_performance(pred_y_df, task_names, task_type, stats_file, outp
       performance_df.loc[i] = [task_name, auc, mcc, recall, accuracy]
 
     elif task_type == "regression":
+      print("y")
+      print(y)
+      print("y_pred")
+      print(y_pred)
       r2s = r2_score(y, y_pred)
       rms = np.sqrt(mean_squared_error(y, y_pred))
       performance_df.loc[i] = [task_name, r2s, rms]

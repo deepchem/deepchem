@@ -10,6 +10,7 @@ from glob import glob
 import pandas as pd
 import os
 import multiprocessing as mp
+from deep_chem.utils.dataset import FeaturizedDataset
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -29,7 +30,6 @@ def train_test_split(paths, input_transforms, output_transforms,
                      feature_types, splittype, mode, data_dir):
   """Saves transformed model."""
 
-  #TODO(enf/rbharath): Scaffold split is completely broken here.
   dataset = FeaturizedDataset(paths=paths)
   train_dataset, test_dataset = dataset.train_test_split(splittype)
 
@@ -39,7 +39,7 @@ def train_test_split(paths, input_transforms, output_transforms,
   train_arrays.transform_data(input_transforms, output_transforms)
 
   test_dir = os.path.join(data_dir, "test")
-  test_dataset.write(test_dir, mode, feature_types)
+  test_arrays = test_dataset.to_arrays(test_dir, mode, feature_types)
   print("Transforming test data.")
   test_arrays.transform_data(input_transforms, output_transforms)
 
@@ -71,8 +71,8 @@ def undo_normalization(y, y_means, y_stds):
 
 def undo_transform(y, y_means, y_stds, output_transforms):
   """Undo transforms on y_pred, W_pred."""
-  output_transforms = [output_transforms]
-  print(output_transforms)
+  if not isinstance(output_transforms, list):
+    output_transforms = [output_transforms]
   if (output_transforms == [""] or output_transforms == ['']
     or output_transforms == []):
     return y
@@ -83,7 +83,7 @@ def undo_transform(y, y_means, y_stds, output_transforms):
   elif output_transforms == ["log", "normalize"]:
     return np.exp(undo_normalization(y, y_means, y_stds))
   else:
-    raise ValueError("Unsupported output transforms.")
+    raise ValueError("Unsupported output transforms %s." % str(output_transforms))
 
 #todo(enf/rbharath): this is completely broken.
 
