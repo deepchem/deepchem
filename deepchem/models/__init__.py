@@ -9,48 +9,12 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from keras.models import model_from_json
 from deepchem.utils.dataset import NumpyDataset
 from deepchem.utils.dataset import load_sharded_dataset
 from deepchem.utils.dataset import save_sharded_dataset
 
-'''
-def get_parameter_filename(model_dir):
-  """
-  Given model directory, obtain filename for stored parameters.
-  """
-  filename = os.path.join(model_dir, "model_params.joblib")
-  return filename
-'''
-
 # TODO(rbharath): Make these instance methods...
-def save_sklearn_model(model, filename):
-  """Saves sklearn model to disk using joblib."""
-  joblib.dump(model, filename)
 
-def save_keras_model(model, filename):
-  """Saves keras models to disk."""
-  filename, _ = os.path.splitext(filename)
-
-  # Note that keras requires the model architecture and weights to be stored
-  # separately. A json file is generated that specifies the model architecture.
-  # The weights will be stored in an h5 file. The pkl.gz file with store the
-  # target name.
-  json_filename = "%s.%s" % (filename, "json")
-  h5_filename = "%s.%s" % (filename, "h5")
-  # Save architecture
-  json_string = model.to_json()
-  with open(json_filename, "wb") as file_obj:
-    file_obj.write(json_string)
-  model.save_weights(h5_filename, overwrite=True)
-
-
-def get_model_filename(model_dir):
-  """
-  Given model directory, obtain filename for the model itself.
-  """
-  filename = os.path.join(model_dir, "model_params.joblib")
-  return filename
 
 # TODO(rbharath): Make a static method
 def get_model_type(model_name):
@@ -66,27 +30,6 @@ def get_model_type(model_name):
     model_type = "sklearn"
   return model_type
 
-# TODO(rbharath): Make this an instance method of Model objects.
-def load_sklearn_model(filename):
-  """Loads sklearn model from file on disk."""
-  return joblib.load(filename)
-
-def load_keras_model(filename):
-  """Loads keras model from disk.
-
-  Assumes that filename.json and filename.h5 respectively contain the model
-  architecture and weights.
-  """
-  filename, _ = os.path.splitext(filename)
-
-  json_filename = "%s.%s" % (filename, "json")
-  h5_filename = "%s.%s" % (filename, "h5")
-
-  with open(json_filename) as file_obj:
-    model = model_from_json(file_obj.read())
-  model.load_weights(h5_filename)
-  return model
-
 #TODO(enf/rbharath): incorporate save, load, eval, fit features into class Model.
 class Model(object):
   """
@@ -94,7 +37,9 @@ class Model(object):
   """
   # List of registered models
   registered_model_types = {}
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
+  def __init__(self, model_type, task_types, model_params,
+               initialize_raw_model=True):
+    self.model_type = model_type
     self.task_types = task_types
     self.model_params = model_params
 
@@ -124,6 +69,18 @@ class Model(object):
     """
     return(self.raw_model)
 
+  def get_param_filename(self, out_dir):
+    """
+    Given model directory, obtain filename for the model itself.
+    """
+    return os.path.join(out_dir, "model_params.joblib")
+
+  def get_model_filename(self, out_dir):
+    """
+    Given model directory, obtain filename for the model itself.
+    """
+    return os.path.join(out_dir, "model.joblib")
+
   @staticmethod
   def model_builder(model_type, task_types, model_params,
                     initialize_raw_model=True):
@@ -132,7 +89,7 @@ class Model(object):
     """
     if model_type in Model.registered_model_types:
       model = Model.registered_model_types[model_type](
-          task_types, model_params, initialize_raw_model)
+          model_type, task_types, model_params, initialize_raw_model)
     else:
       raise ValueError("model_type %s is not supported" % model_type)
     return model
@@ -144,40 +101,20 @@ class Model(object):
     """
     Model.registered_model_types[model_type] = model_class
 
-  @staticmethod
-  def load_model(model_name, model_dir):
+  def load(self, model_dir):
     """Dispatcher function for loading."""
-    model_type = get_model_type(model_name)
-    params = load_sharded_dataset(get_model_filename(model_dir))
-    model = Model.model_builder(model_name, params["task_types"],
-                          params["model_params"], initialize_raw_model=False)
-    if model_type == "sklearn":
-      raw_model = load_sklearn_model(get_model_filename(model_dir))
-    elif "keras" in model_type:
-      raw_model = load_keras_model(get_model_filename(model_dir))
-    else:
-      raise ValueError("Unsupported model_type.")
-    model.set_raw_model(raw_model)
-    return model
+    #model_type = get_model_type(model_name)
+    params = load_sharded_dataset(self.get_model_filename(model_dir))
+    self.model_params = params["model_params"]
+    self.task_types = params["task_types"]
+    self.model_type = params["model_type"]
 
-  # TODO(rbharath): This really shouldn't be a static method. Make an instance
-  # method instance.
-  @staticmethod
-  def save_model(model, model_name, model_dir):
+  def save(self, out_dir):
     """Dispatcher function for saving."""
-    model_type = get_model_type(model_name)
-    params = {"model_params" : model.model_params,
-              "task_types" : model.task_types}
-    save_sharded_dataset(params, get_model_filename(model_dir))
-
-    raw_model = model.get_raw_model()
-    if model_type == "sklearn":
-      save_sklearn_model(raw_model, get_model_filename(model_dir))
-    elif "keras" in model_type:
-      save_keras_model(raw_model, get_model_filename(model_dir))
-    else:
-      raise ValueError("Unsupported model_type.")
-
+    params = {"model_params" : self.model_params,
+              "task_types" : self.task_types,
+              "model_type": self.model_type}
+    save_sharded_dataset(params, self.get_params_filename(out_dir))
 
   def fit(self, numpy_dataset):
     """
