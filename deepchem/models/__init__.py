@@ -13,24 +13,6 @@ from deepchem.utils.dataset import NumpyDataset
 from deepchem.utils.dataset import load_sharded_dataset
 from deepchem.utils.dataset import save_sharded_dataset
 
-# TODO(rbharath): Make these instance methods...
-
-
-# TODO(rbharath): Make a static method
-def get_model_type(model_name):
-  """Associate each model with a model_type (used for saving/loading)."""
-  if model_name in ["singletask_deep_classifier", "multitask_deep_classifier",
-                    "singletask_deep_regressor", "multitask_deep_regressor"]:
-    model_type = "keras-graph"
-  elif model_name in ["convolutional_3D_regressor"]:
-    model_type = "keras-sequential"
-  elif model_name == "neural_fingerprint":
-    model_type = "autograd"
-  else:
-    model_type = "sklearn"
-  return model_type
-
-#TODO(enf/rbharath): incorporate save, load, eval, fit features into class Model.
 class Model(object):
   """
   Abstract base class for different ML models.
@@ -103,7 +85,6 @@ class Model(object):
 
   def load(self, model_dir):
     """Dispatcher function for loading."""
-    #model_type = get_model_type(model_name)
     params = load_sharded_dataset(self.get_model_filename(model_dir))
     self.model_params = params["model_params"]
     self.task_types = params["task_types"]
@@ -164,18 +145,10 @@ class Model(object):
         y_preds = []
         for j in range(0,len(interval_points)-1):
           indices = range(interval_points[j],interval_points[j+1])
-          X_batch = X[indices,:]
-          y_batch = y[indices]
-          w_batch = w[indices]
-          y_preds.append(self.predict_on_batch(X_batch))
+          y_preds.append(self.predict_on_batch(X[indices,:]))
         y_pred = np.concatenate(y_preds)
       else:
         y_pred = self.predict_on_batch(X)
-      print("model.predict()")
-      print("np.shape(y)")
-      print(np.shape(y))
-      print("np.shape(y_pred)")
-      print(np.shape(y_pred))
       y_pred = np.reshape(y_pred, np.shape(y))
 
       shard_df = pd.DataFrame(columns=column_names)
@@ -188,61 +161,3 @@ class Model(object):
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
     return pred_y_df 
-
-'''
-def model_predictions(X, model, n_targets, task_types, modeltype="sklearn"):
-  """Obtains predictions of provided model on test_set.
-
-  Returns an ndarray of shape (n_samples, n_targets)
-
-  TODO(rbharath): This function uses n_targets instead of
-  task_transforms like everything else.
-
-  Parameters
-  ----------
-  X: numpy.ndarray
-    Test set data.
-  model: model.
-    A trained scikit-learn or keras model.
-  n_targets: int
-    Number of output targets
-  task_types: dict
-    dict mapping target names to output type. Each output type must be either
-    "classification" or "regression".
-  modeltype: string
-    Either sklearn, keras, or keras_multitask
-  """
-  # Extract features for test set and make preds
-  # TODO(rbharath): This change in shape should not(!) be handled here. Make
-  # an upstream change so the evaluator doesn't have to worry about this.
-  if len(np.shape(X)) > 2:  # Dealing with 3D data
-    if len(np.shape(X)) != 5:
-      raise ValueError(
-          "Tensorial datatype must be of shape (n_samples, N, N, N, n_channels).")
-    (n_samples, axis_length, _, _, n_channels) = np.shape(X)
-    X = np.reshape(X, (n_samples, axis_length, n_channels, axis_length, axis_length))
-  if modeltype == "keras-graph":
-    predictions = model.predict({"input": X})
-    ypreds = []
-    for index in range(n_targets):
-      ypreds.append(predictions["task%d" % index])
-  elif modeltype == "sklearn":
-    # Must be single-task (breaking multitask RFs here)
-    task_type = task_types.itervalues().next()
-    if task_type == "classification":
-      print("model_predictions()")
-      print("np.shape(X)")
-      print(np.shape(X))
-      ypreds = model.predict_proba(X)
-    elif task_type == "regression":
-      ypreds = model.predict(X)
-  elif modeltype == "keras-sequential":
-    ypreds = model.predict(X)
-  else:
-    raise ValueError("Improper modeltype.")
-  if isinstance(ypreds, np.ndarray):
-    ypreds = np.squeeze(ypreds)
-  if not isinstance(ypreds, list):
-    ypreds = [ypreds]
-  return ypreds
-'''
