@@ -56,9 +56,6 @@ class MultiTaskDNN(Model):
   def get_data_dict(self, X, y=None):
     data = {}
     data["input"] = X
-    print("get_data_dict()")
-    print("self.task_types.keys()")
-    print(self.task_types.keys())
     for ind, task in enumerate(sorted(self.task_types.keys())):
       task_type, taskname = self.task_types[task], "task%d" % ind
       if y is not None:
@@ -90,14 +87,7 @@ class MultiTaskDNN(Model):
     """
     Makes predictions on given batch of new data.
     """
-    #print("deep.predict_on_batch()")
-    #print("np.shape(X)")
-    #print(np.shape(X))
-    #print("type(self.raw_model)")
-    #print(type(self.raw_model))
     data = self.get_data_dict(X)
-    #print("data")
-    #print(data)
     y_pred_dict = self.raw_model.predict_on_batch(data)
     sorted_tasks = sorted(self.task_types.keys())
     nb_samples = np.shape(X)[0]
@@ -106,14 +96,6 @@ class MultiTaskDNN(Model):
     for ind, task in enumerate(sorted_tasks):
       taskname = "task%d" % ind
       y_pred[:,ind] = np.squeeze(y_pred_dict[taskname])
-    #print("np.shape(y_pred)")
-    #print(np.shape(y_pred))
-    #print("type(self.raw_model.predict(data))")
-    #print(type(self.raw_model.predict(data)))
-    #print("self.raw_model.predict(data).keys()")
-    #print(self.raw_model.predict(data).keys())
-    #print("np.shape(self.raw_model.predict(data))")
-    #print(np.shape(self.raw_model.predict(data)))
     y_pred = np.squeeze(y_pred)
     return y_pred
 
@@ -184,91 +166,3 @@ def to_one_hot(y):
     elif val == 1:
       y_hot[index] = np.array([0, 1])
   return y_hot
-
-def fit_multitask_mlp(train_data, task_types, **training_params):
-  """
-  Perform stochastic gradient descent optimization for a keras multitask MLP.
-  Returns AUCs, R^2 scores, and RMS values.
-
-  Parameters
-  ----------
-  task_types: dict
-    dict mapping task names to output type. Each output type must be either
-    "classification" or "regression".
-  training_params: dict
-    Aggregates keyword parameters to pass to train_multitask_model
-  """
-  models = {}
-  # Follows convention from process_datasets that the data for multitask models
-  # is grouped under key "all"
-  X_train = train_data["features"]
-  (y_train, W_train) = train_data["all"]
-  models["all"] = train_multitask_model(X_train, y_train, W_train, task_types,
-                                        **training_params)
-  return models
-
-def fit_singletask_mlp(train_data, task_types, **training_params):
-  """
-  Perform stochastic gradient descent optimization for a keras MLP.
-
-  task_types: dict
-    dict mapping task names to output type. Each output type must be either
-    "classification" or "regression".
-  output_transforms: dict
-    dict mapping task names to label transform. Each output type must be either
-    None or "log". Only for regression outputs.
-  training_params: dict
-    Aggregates keyword parameters to pass to train_multitask_model
-  """
-  models = {}
-  train_ids = train_data["mol_ids"]
-  X_train = train_data["features"]
-  sorted_tasks = train_data["sorted_tasks"]
-  for index, task in enumerate(sorted_tasks):
-    print "Training model %d" % index
-    print "Target %s" % task
-    (y_train, W_train) = train_data[task]
-    flat_W_train = W_train.ravel()
-    task_X_train = X_train[flat_W_train.nonzero()]
-    task_y_train = y_train[flat_W_train.nonzero()]
-    print "%d compounds in Train" % len(train_ids)
-    models[task] = train_multitask_model(task_X_train, task_y_train, W_train,
-                                         {task: task_types[task]},
-                                         **training_params)
-  return models
-
-def train_multitask_model(X, y, W, task_types, learning_rate=0.01,
-                          decay=1e-6, momentum=0.9, nesterov=True, activation="relu",
-                          dropout=0.5, nb_epoch=20, batch_size=50, nb_hidden=500,
-                          validation_split=0.1):
-  """
-  Perform stochastic gradient descent optimization for a keras multitask MLP.
-  Returns a trained model.
-
-  Parameters
-  ----------
-  X: np.ndarray
-    Feature matrix
-  y: np.ndarray
-    Label matrix
-  W: np.ndarray
-    Weight matrix
-  task_types: dict
-    dict mapping task names to output type. Each output type must be either
-    "classification" or "regression".
-  learning_rate: float
-    Learning rate used.
-  decay: float
-    Learning rate decay.
-  momentum: float
-    Momentum used in SGD.
-  nesterov: bool
-    Use Nesterov acceleration
-  nb_epoch: int
-    maximal number of epochs to run the optimizer
-  """
-  print "Done compiling. About to fit model!"
-  print "validation_split: " + str(validation_split)
-  model.fit(data_dict, nb_epoch=nb_epoch, batch_size=batch_size,
-            validation_split=validation_split, sample_weight=sample_weights)
-  return model
