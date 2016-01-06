@@ -8,9 +8,50 @@ from keras.layers.core import Dense, Dropout
 from keras.optimizers import SGD
 from deepchem.models import Model
 
-class MultiTaskDNN(Model):
+class KerasModel(Model)
   """
-  Abstract base class for different ML models.
+  Abstract base class shared across all Keras models.
+  """
+
+  def save(self, out_dir):
+    """
+    Saves underlying keras model to disk. 
+    """
+    super(MultiTaskDNN, self).save(out_dir)
+    model = self.get_raw_model()
+    filename, _ = os.path.splitext(self.get_model_filename(out_dir))
+
+    # Note that keras requires the model architecture and weights to be stored
+    # separately. A json file is generated that specifies the model architecture.
+    # The weights will be stored in an h5 file. The pkl.gz file with store the
+    # target name.
+    json_filename = "%s.%s" % (filename, "json")
+    h5_filename = "%s.%s" % (filename, "h5")
+    # Save architecture
+    json_string = model.to_json()
+    with open(json_filename, "wb") as file_obj:
+      file_obj.write(json_string)
+    model.save_weights(h5_filename, overwrite=True)
+
+  def load(self, model_dir):
+    """
+    Load keras multitask DNN from disk.
+    """
+    super(MultiTaskDNN, self).load(model_dir)
+    filename = self.get_Model_filename(model_dir)
+    filename, _ = os.path.splitext(filename)
+
+    json_filename = "%s.%s" % (filename, "json")
+    h5_filename = "%s.%s" % (filename, "h5")
+
+    with open(json_filename) as file_obj:
+      model = model_from_json(file_obj.read())
+    model.load_weights(h5_filename)
+    self.raw_model = model
+
+class MultiTaskDNN(KerasModel):
+  """
+  Model for multitask MLP in keras.
   """
   def __init__(self, task_types, model_params, initialize_raw_model=True):
     super(MultiTaskDNN, self).__init__(model_type, task_types, model_params,
@@ -98,43 +139,6 @@ class MultiTaskDNN(Model):
       y_pred[:,ind] = np.squeeze(y_pred_dict[taskname])
     y_pred = np.squeeze(y_pred)
     return y_pred
-
-  def save(self, out_dir):
-    """
-    Saves underlying keras model to disk. 
-    """
-    super(MultiTaskDNN, self).save(out_dir)
-    model = self.get_raw_model()
-    filename, _ = os.path.splitext(self.get_model_filename(out_dir))
-
-    # Note that keras requires the model architecture and weights to be stored
-    # separately. A json file is generated that specifies the model architecture.
-    # The weights will be stored in an h5 file. The pkl.gz file with store the
-    # target name.
-    json_filename = "%s.%s" % (filename, "json")
-    h5_filename = "%s.%s" % (filename, "h5")
-    # Save architecture
-    json_string = model.to_json()
-    with open(json_filename, "wb") as file_obj:
-      file_obj.write(json_string)
-    model.save_weights(h5_filename, overwrite=True)
-
-  def load(self, model_dir):
-    """
-    Load keras multitask DNN from disk.
-    """
-    super(MultiTaskDNN, self).load(model_dir)
-    filename = self.get_Model_filename(model_dir)
-    filename, _ = os.path.splitext(filename)
-
-    json_filename = "%s.%s" % (filename, "json")
-    h5_filename = "%s.%s" % (filename, "h5")
-
-    with open(json_filename) as file_obj:
-      model = model_from_json(file_obj.read())
-    model.load_weights(h5_filename)
-    self.raw_model = model
-
 
 Model.register_model_type("multitask_deep_regressor", MultiTaskDNN)
 Model.register_model_type("multitask_deep_classifier", MultiTaskDNN)

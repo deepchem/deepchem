@@ -24,7 +24,7 @@ def shuffle_data(X):
   return X
 
 
-class DockingDNN(Model):
+class DockingDNN(KerasModel):
   """
   Wrapper class for fitting 3D convolutional networks for deep docking.
   """
