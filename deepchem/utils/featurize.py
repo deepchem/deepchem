@@ -63,24 +63,28 @@ class Samples(object):
     else:
       self.df = df
 
+  # TODO(rbharath): There are some tricky issues dealing with information
+  # separation between Samples and FeaturizedSamples that affect the semantics
+  # of load and save. Punting for the moment to get something that runs.
   def save(self, out):
     """
     Saves samples to disk.
     """
-    sample_params = {"input_file": self.input_file,
-                     "tasks": self.tasks,
-                     "smiles_field": self.smiles_field,
-                     "split_field": self.split_field,
-                     "id_field": self.id_field,
-                     "threshold": self.threshold,
-                     "user_specified_features": self.user_specified_features,
-                     "df": self.df}
-    save_to_disk(sample_params, out)
+    #sample_params = {"input_file": self.input_file,
+    #                 "tasks": self.tasks,
+    #                 "smiles_field": self.smiles_field,
+    #                 "split_field": self.split_field,
+    #                 "id_field": self.id_field,
+    #                 "threshold": self.threshold,
+    #                 "user_specified_features": self.user_specified_features,
+    #                 "df": self.df}
+    #save_to_disk(sample_params, out)
+    save_to_disk(self.df, out)
 
-  @staticmethod
-  def load(out):
-    sample_params = load_from_disk(out)
-    return Samples(**sample_params)
+  #@staticmethod
+  #def load(out):
+  #  sample_params = load_from_disk(out)
+  #  return Samples(**sample_params)
 
   def get_samples(self):
     """Accessor for samples in this object."""
@@ -189,14 +193,14 @@ class Samples(object):
         for feature in user_specified_features:
           feature_list.append(row[feature])
         features_data.append({"row": np.array(feature_list)})
-      df["features"] = pd.DataFrame(features_data)
+      df["user-specified-features"] = pd.DataFrame(features_data)
     return df
 
   def featurize(self, featuretype, log_every_n=1000):
     """Generates circular fingerprints for dataset."""
     if featuretype == "ECFP":
       featurizer = CircularFingerprint(size=1024)
-    elif featuretype == "descriptors":
+    elif featuretype == "RDKIT-descriptors":
       featurizer = SimpleDescriptors()
     else:
       raise ValueError("Unsupported featuretype requested.")
@@ -220,23 +224,24 @@ def featurize_input(feature_dir, input_file, user_specified_features, tasks,
   print("Generating circular fingerprints")
   samples.featurize("ECFP")
   print("Generating rdkit descriptors")
-  add_vs_utils_features(df, "descriptors")
+  samples.featurize("RDKIT-descriptors")
   df_filename = os.path.join(
       feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
   print("Saving samples to disk.")
   samples.save(df_filename)
 
-def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
+def featurize_inputs(feature_dir, input_files,
                      feature_fields, task_fields, smiles_field,
                      split_field, id_field, threshold):
 
-  featurize_input_partial = partial(featurize_input, feature_dir=feature_dir,
-                                    input_type=input_type, fields=fields,
-                                    field_types=field_types,
+  featurize_input_partial = partial(featurize_input,
+                                    feature_dir=feature_dir,
+                                    input_type=input_type,
                                     feature_fields=feature_fields,
                                     task_fields=task_fields,
                                     smiles_field=smiles_field,
-                                    split_field=split_field, id_field=id_field,
+                                    split_field=split_field,
+                                    id_field=id_field,
                                     threshold=threshold)
 
   pool = mp.Pool(int(mp.cpu_count()/2))

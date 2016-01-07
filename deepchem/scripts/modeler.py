@@ -30,14 +30,7 @@ def add_featurize_group(featurize_cmd):
            "containing a pandas dataframe. If sdf, should be in\n"
            "(perhaps gzipped) sdf file.")
   featurize_group.add_argument(
-      "--fields", required=1, nargs="+",
-      help="Names of fields.")
-  featurize_group.add_argument(
-      "--field-types", required=1, nargs="+",
-      choices=["string", "float", "list-string", "list-float", "ndarray"],
-      help="Type of data in fields.")
-  featurize_group.add_argument(
-      "--feature-fields", type=str, nargs="+",
+      "--user-specified-features", type=str, nargs="+",
       help="Optional field that holds pre-computed feature vector")
   featurize_group.add_argument(
       "--task-fields", type=str, nargs="+", required=1,
@@ -52,13 +45,12 @@ def add_featurize_group(featurize_cmd):
       "--id-field", type=str, default=None,
       help="Name of field specifying unique identifier for molecule.\n"
            "If none is specified, then smiles-field is used as identifier.")
-  # TODO(rbharath): This should be moved to train-tests-split
   featurize_group.add_argument(
       "--threshold", type=float, default=None,
       help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
       "--feature-dir", type=str, required=0,
-      help="Directory where featurized dataset will be stored. \n"
+      help="Directory where featurized dataset will be stored.\n"
            "Will be created if does not exist")
   featurize_group.set_defaults(func=featurize_inputs_wrapper)
 
@@ -80,7 +72,7 @@ def add_transforms_group(cmd):
       help="Type of model being built.")
   transform_group.add_argument(
       "--feature-types", nargs="+", required=1,
-      choices=["features", "fingerprints", "descriptors"],
+      choices=["user-specified-features", "ECFP", "RDKIT-descriptors"],
       help="Featurizations of data to use.\n"
            "'features' denotes user-defined features.\n"
            "'fingerprints' denotes ECFP fingeprints.\n"
@@ -250,8 +242,8 @@ def create_model(args):
   print("Perform featurization")
   if not args.skip_featurization:
     featurize_inputs(
-        feature_dir, args.input_files, args.input_type, args.fields,
-        args.field_types, args.feature_fields, args.task_fields,
+        feature_dir, args.input_files, args.input_type,
+        args.user_specified_features, args.task_fields,
         args.smiles_field, args.split_field, args.id_field, args.threshold)
 
   print("+++++++++++++++++++++++++++++++++")
@@ -310,7 +302,7 @@ def featurize_inputs_wrapper(args):
     os.makedirs(args.feature_dir)
   featurize_inputs(
       args.feature_dir, args.input_files, args.input_type, args.fields,
-      args.field_types, args.feature_fields, args.task_fields,
+      args.field_types, args.user_specified_features, args.task_fields,
       args.smiles_field, args.split_field, args.id_field, args.threshold)
 
 def train_test_split_wrapper(args):
