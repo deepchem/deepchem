@@ -10,7 +10,7 @@ from glob import glob
 import pandas as pd
 import os
 import multiprocessing as mp
-from deepchem.utils.dataset import FeaturizedDataset
+from deepchem.utils.dataset import FeaturizedSamples
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -30,7 +30,7 @@ def train_test_split(paths, input_transforms, output_transforms,
                      feature_types, splittype, mode, data_dir):
   """Saves transformed model."""
 
-  dataset = FeaturizedDataset(paths=paths)
+  dataset = FeaturizedSamples(paths=paths)
   train_dataset, test_dataset = dataset.train_test_split(splittype)
 
   train_dir = os.path.join(data_dir, "train")
@@ -59,7 +59,7 @@ def train_test_split(paths, input_transforms, output_transforms,
 
   metadata_filename = get_metadata_filename(data_dir)
   print("Saving metadata file to %s" % metadata_filename)
-  save_sharded_dataset(metadata, metadata_filename)
+  save_to_disk(metadata, metadata_filename)
   print("Saved metadata.")
 '''
 

@@ -10,11 +10,11 @@ from rdkit import Chem
 import joblib
 from vs_utils.utils import ScaffoldGenerator
 
-def save_sharded_dataset(dataset, filename):
+def save_to_disk(dataset, filename):
   """Save a dataset to file."""
   joblib.dump(dataset, filename, compress=0)
 
-def load_sharded_dataset(filename):
+def load_from_disk(filename):
   """Load a dataset from file."""
   dataset = joblib.load(filename)
   return dataset
@@ -73,10 +73,10 @@ def get_sorted_task_names(df):
   """
   column_names = df.keys()
   task_names = (set(column_names) - 
-                set(FeaturizedDataset.colnames))
+                set(FeaturizedSamples.colnames))
   return sorted(list(task_names))
 
-class FeaturizedDataset(object):
+class FeaturizedSamples(object):
   """
   Wrapper class for featurized data on disk.
   """
@@ -87,9 +87,6 @@ class FeaturizedDataset(object):
 
   def __init__(self, paths=None, dataset_files=[], compound_df=None):
     if paths is not None:
-      print("FeaturizedDataset()")
-      print("paths")
-      print(paths)
       for path in paths:
         dataset_files += glob.glob(os.path.join(path, "*.joblib"))
     self.dataset_files = dataset_files
@@ -103,7 +100,7 @@ class FeaturizedDataset(object):
     """
     compound_rows = []
     for dataset_file in self.dataset_files:
-      df = load_sharded_dataset(dataset_file)
+      df = load_from_disk(dataset_file)
       compound_ids = list(df["mol_id"])
       smiles = list(df["smiles"])
       splits = list(df["split"])
@@ -127,12 +124,12 @@ class FeaturizedDataset(object):
 
   def _train_test_from_indices(self, train_inds, test_inds):
     """
-    Helper to generate train/test FeaturizedDatasets.
+    Helper to generate train/test FeaturizedSampless.
     """
-    train_dataset = FeaturizedDataset(
+    train_dataset = FeaturizedSamples(
         dataset_files=self.dataset_files,
         compound_df=self.compound_df.iloc[train_inds])
-    test_dataset = FeaturizedDataset(
+    test_dataset = FeaturizedSamples(
         dataset_files=self.dataset_files,
         compound_df=self.compound_df.iloc[test_inds])
     return train_dataset, test_dataset
@@ -208,11 +205,11 @@ class FeaturizedDataset(object):
                                         'w',
                                         'X_sums', 'X_sum_squares', 'X_n',
                                         'y_sums', 'y_sum_squares', 'y_n')) 
-    return NumpyDataset(out_dir, metadata_df)
+    return ShardedDataset(out_dir, metadata_df)
 
 def write_dataset_single(df_file, out_dir, mode, feature_types):
   print("Examining %s" % df_file)
-  df = load_sharded_dataset(df_file)
+  df = load_from_disk(df_file)
   task_names = get_sorted_task_names(df)
   ids, X, y, w = df_to_numpy(df, mode, feature_types)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
@@ -226,17 +223,17 @@ def write_dataset_single(df_file, out_dir, mode, feature_types):
   out_w = os.path.join(out_dir, "%s-w.joblib" % basename)
   out_ids = os.path.join(out_dir, "%s-ids.joblib" % basename)
 
-  save_sharded_dataset(X, out_X)
-  save_sharded_dataset(y, out_y)
-  save_sharded_dataset(w, out_w)
-  save_sharded_dataset(ids, out_ids)
+  save_to_disk(X, out_X)
+  save_to_disk(y, out_y)
+  save_to_disk(w, out_w)
+  save_to_disk(ids, out_ids)
   return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y, 
           out_y_transformed, out_w,
           X_sums, X_sum_squares, X_n, 
           y_sums, y_sum_squares, y_n])
 
 
-class NumpyDataset(object):
+class ShardedDataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
@@ -247,7 +244,7 @@ class NumpyDataset(object):
     """
     self.data_dir = data_dir
     if metadata_df is None:
-      metadata_df = load_sharded_dataset(self.get_metadata_filename())
+      metadata_df = load_from_disk(self.get_metadata_filename())
     self.metadata_df = metadata_df
     self.save_metadata()
 
@@ -265,7 +262,7 @@ class NumpyDataset(object):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    sample_X = load_sharded_dataset(self.metadata_df.iterrows().next()[1]['X'])[0]
+    sample_X = load_from_disk(self.metadata_df.iterrows().next()[1]['X'])[0]
     return np.shape(sample_X)
 
   def get_metadata_filename(self):
@@ -279,7 +276,7 @@ class NumpyDataset(object):
     """
     Save metadata file to disk.
     """
-    save_sharded_dataset(
+    save_to_disk(
       self.metadata_df, self.get_metadata_filename())
 
   def get_number_shards(self):
@@ -295,10 +292,10 @@ class NumpyDataset(object):
     nb_shards = self.get_number_shards()
     for i, row in self.metadata_df.iterrows():
       print("Loading shard %d out of %d" % (i+1, nb_shards))
-      X = load_sharded_dataset(row['X-transformed'])
-      y = load_sharded_dataset(row['y-transformed'])
-      w = load_sharded_dataset(row['w'])
-      ids = load_sharded_dataset(row['ids'])
+      X = load_from_disk(row['X-transformed'])
+      y = load_from_disk(row['y-transformed'])
+      w = load_from_disk(row['w'])
+      ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
       
 
@@ -364,7 +361,7 @@ def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
                       log_X, log_y, X_means, X_stds, y_means, y_stds, trunc):
   total = df.shape[0]
   row = df.iloc[i]
-  X = load_sharded_dataset(row['X'])
+  X = load_from_disk(row['X'])
   if normalize_X or log_X:
     if normalize_X:
       print("Normalizing X sample %d out of %d" % (i+1,total))
@@ -375,9 +372,9 @@ def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
          X[X < (-1.0*trunc)] = -1.0 * trunc
     if log_X:
       X = np.log(X)
-  save_sharded_dataset(X, row['X-transformed'])
+  save_to_disk(X, row['X-transformed'])
 
-  y = load_sharded_dataset(row['y'])
+  y = load_from_disk(row['y'])
   if normalize_y or log_y:    
     if normalize_y:
       print("Normalizing y sample %d out of %d" % (i+1,total))
@@ -387,7 +384,7 @@ def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
         y[y < (-1.0*trunc)] = -1.0 * trunc
     if log_y:
       y = np.log(y)
-  save_sharded_dataset(y, row['y-transformed'])  
+  save_to_disk(y, row['y-transformed'])  
 
 # TODO(rbharath/enf): These need to be better integrated with new OO paradigm.
 def compute_sums_and_nb_sample(tensor, W=None):

@@ -15,90 +15,136 @@ from functools import partial
 from rdkit import Chem
 from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
-from deepchem.utils.dataset import save_sharded_dataset
-from deepchem.utils.dataset import load_sharded_dataset
+from deepchem.utils.dataset import save_to_disk
+from deepchem.utils.dataset import load_from_disk
 
-
-def parse_float_input(val):
-  """Safely parses a float input."""
-  # TODO(rbharath): Correctly parse float ranges.
-  try:
-    if val is None:
-      return val
-    else:
-      fval = float(val)
-      return fval
-  except ValueError:
-    if ">" in val or "<" in val or "-" in val:
-      return np.nan
-
-#TODO(enf/rbharath): make agnostic to input type.
-def get_rows(input_file, input_type):
-  """Returns an iterator over all rows in input_file"""
-  # TODO(rbharath): This function loads into memory, which can be painful. The
-  # right option here might be to create a class which internally handles data
-  # loading.
-  if input_type == "csv":
-    with open(input_file, "rb") as inp_file_obj:
-      reader = csv.reader(inp_file_obj)
-      return [row for row in reader]
-  elif input_type == "pandas":
-    dataframe = load_sharded_dataset(input_file)
-    return dataframe.iterrows()
-  elif input_type == "sdf":
-    if ".gz" in input_file:
-      with gzip.open(input_file) as inp_file_obj:
-        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-        mols = [mol for mol in supp if mol is not None]
-      return mols
-    else:
-      with open(input_file) as inp_file_obj:
-        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-        mols = [mol for mol in supp if mol is not None]
-      return mols
-
-def get_colnames(row, input_type):
-  """Get names of all columns."""
-  if input_type == "csv":
-    return row
-
-def get_row_data(row, input_type, fields, smiles_field, colnames=None):
-  """Extract information from row data."""
-  row_data = {}
-  if input_type == "csv":
-    for ind, colname in enumerate(colnames):
-      if colname in fields:
-        row_data[colname] = row[ind]
-  elif input_type == "pandas":
-    # pandas rows are tuples (row_num, row_data)
-    row = row[1]
-    for field in fields:
-      row_data[field] = row[field]
-  elif input_type == "sdf":
-    mol = row
-    for field in fields:
-      row_data[smiles_field] = Chem.MolToSmiles(mol)
-      if not mol.HasProp(field):
-        row_data[field] = None
-      else:
-        row_data[field] = mol.GetProp(field)
-  return row_data
-
-def process_field(data, field_type):
+def _process_field(val):
   """Parse data in a field."""
-  if field_type == "string":
-    return data
-  elif field_type == "float":
-    return parse_float_input(data)
-  elif field_type == "list-string":
-    if isinstance(data, list):
-      return data
+  if isinstance(val, float) or isinstance(val, np.ndarray):
+    return val
+  elif isinstance(val, list):
+    return [process_field(elt) for elt in val]
+  elif isinstance(val, str):
+    try:
+      return float(val)
+    except ValueError:
+      return val
+  else:
+    raise ValueError("Field of unrecognized type: %s" % str(val))
+
+class Samples(object):
+  """
+  Handles loading/featurizing of chemical samples (datapoints).
+
+  Currently knows how to load csv-files/pandas-dataframes/SDF-files.
+  """
+    
+  def __init__(self, input_file, tasks, smiles_field, threshold,
+               log_every_n=1000):
+    """Extracts data from input as Pandas data frame"""
+    rows = []
+    self.tasks = tasks
+    self.threshold = threshold
+    self.input_file = input_file
+    self.input_type = self._get_input_type(input_file)
+    self.fields = self._get_fields(input_file)
+
+    for ind, row in enumerate(self._get_raw_samples()):
+      if ind % log_every_n == 0:
+        print("Loading sample %d" % row_index)
+      row.append(self._process_raw_sample(row))
+    self.df = pd.DataFrame(rows)
+
+  def get_samples(self):
+    """Accessor for samples in this object."""
+    return self.df.iterrows()
+
+  def _get_fields(self):
+    """Get the names of fields and field_types for input data."""
+    # If CSV input, assume that first row contains labels
+    if self.input_type == "csv":
+      return self._get_raw_samples(self.input_file).next()
+    elif self.input_type == "pandas":
+      df = load_from_disk(self.input_file)
+      return df.keys()
+    elif self.input_type == "sdf":
+      sample_mol = self.get_rows(self.input_file).next()
+      return list(sample_mol.GetPropNames())
     else:
-      return data.split(",")
-  elif field_type == "list-float":
-    return np.array(data.split(","))
-  elif field_type == "ndarray":
+      raise ValueError("Unrecognized extension for %s" % self.input_file)
+
+  def _get_input_type(self):
+    """Get type of input file. Must be csv/pkl.gz/sdf file."""
+    filename, file_extension = os.path.splitext(self.input_file)
+    # If gzipped, need to compute extension again
+    if file_extension == ".gz":
+      filename, file_extension = os.path.splitext(filename)
+    if file_extension == "csv":
+      return "csv"
+    elif file_extension == "pkl":
+      return "pandas"
+    elif file_extension == "sdf":
+      return "sdf"
+    else:
+      raise ValueError("Unrecognized extension for %s" % input_file)
+
+  def _get_raw_samples(self):
+    """Returns an iterator over all rows in input_file"""
+    input_type = self.get_input_type(self.input_file)
+    if input_type == "csv":
+      with open(self.input_file, "rb") as inp_file_obj:
+        for row in csv.reader(inp_file_obj):
+          if row is not None:
+            yield row
+    elif input_type == "pandas":
+      dataframe = load_from_disk(self.input_file)
+      for row in dataframe.iterrows():
+        yield row
+    elif input_type == "sdf":
+      if ".gz" in self.input_file:
+        with gzip.open(self.input_file) as inp_file_obj:
+          supp = Chem.ForwardSDMolSupplier(inp_file_obj)
+          for mol in supp:
+            if mol is not None:
+              yield mol
+      else:
+        with open(self.input_file) as inp_file_obj:
+          supp = Chem.ForwardSDMolSupplier(inp_file_obj)
+          mols = [mol for mol in supp if mol is not None]
+          for mol in supp:
+            if mol is not None:
+              yield mol
+
+  def _process_raw_sample(self, row):
+    """Extract information from row data."""
+    data = {}
+    if self.input_type == "csv":
+      for ind, field in enumerate(self.fields):
+        data[field] = _process_field(row[ind])
+      return data
+    elif self.input_type == "pandas":
+      # pandas rows are tuples (row_num, data)
+      row = row[1]
+      for field in self.fields:
+        data[field] = _process_field(row[field])
+    elif self.input_type == "sdf":
+      mol = row
+      for field in self.fields:
+        if not mol.HasProp(field):
+          data[field] = None
+        else:
+          data[field] = _process_field(mol.GetProp(field))
+      data["smiles"] = Chem.MolToSmiles(mol)
+    else:
+      raise ValueError("Unrecognized input_type")
+    if self.threshold is not None:
+      for task in self.tasks:
+        raw = _process_field(data[task])
+        if not isinstance(raw, float):
+          raise ValueError("Cannot threshold non-float fields.")
+        data[field] = 1 if raw > threshold else 0
     return data
+
 
 def add_vs_utils_features(df, featuretype, log_every_n=1000):
   """Generates circular fingerprints for dataset."""
@@ -151,38 +197,7 @@ def standardize_df(ori_df, feature_fields, task_fields, smiles_field,
 
   return(df)
 
-#TODO(enf/rbharath): This is broken for sdf files.
-def extract_data(input_file, input_type, fields, field_types,
-                 task_fields, smiles_field, threshold,
-                 log_every_n=1000):
-  """Extracts data from input as Pandas data frame"""
-  rows = []
-  colnames = []
-  for row_index, raw_row in enumerate(get_rows(input_file, input_type)):
-    if row_index % log_every_n == 0:
-      print(row_index)
-    # Skip empty rows
-    if raw_row is None:
-      continue
-    # TODO(rbharath): The script expects that all columns in csv files
-    # have column names attached. Check that this holds true somewhere
-    # Get column names if csv and continue
-    if input_type == "csv" and row_index == 0:
-      colnames = get_colnames(raw_row, input_type)
-      continue
-    row, row_data = {}, get_row_data(raw_row, input_type, fields, smiles_field, colnames)
-    for (field, field_type) in zip(fields, field_types):
-      if field in task_fields and threshold is not None:
-        raw_val = process_field(row_data[field], field_type)
-        row[field] = 1 if raw_val > threshold else 0
-      else:
-        row[field] = process_field(row_data[field], field_type)
-    #row["smiles"] = smiles.get_smiles(mol)
-    rows.append(row)
-  dataframe = pd.DataFrame(rows)
-  return dataframe
-
-def featurize_input(input_file, feature_dir, input_type, fields, field_types,
+def featurize_input(self, feature_dir,
                     feature_fields, task_fields, smiles_field,
                     split_field, id_field, threshold):
   """Featurizes raw input data."""
@@ -191,7 +206,7 @@ def featurize_input(input_file, feature_dir, input_type, fields, field_types,
   if id_field is None:
     id_field = smiles_field
 
-  df = extract_data(input_file, input_type, fields, field_types, task_fields,
+  df = extract_data(self.input_file, input_type, fields, field_types, task_fields,
                     smiles_field, threshold)
   print("Standardizing User DataFrame")
   df = standardize_df(df, feature_fields, task_fields, smiles_field,
@@ -204,10 +219,8 @@ def featurize_input(input_file, feature_dir, input_type, fields, field_types,
   print("Writing DataFrame")
   df_filename = os.path.join(
       feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
-  save_sharded_dataset(df, df_filename)
+  save_to_disk(df, df_filename)
   print("Finished saving.")
-
-  return
 
 def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
                      feature_fields, task_fields, smiles_field,
@@ -222,8 +235,6 @@ def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
                                     split_field=split_field, id_field=id_field,
                                     threshold=threshold)
 
-  #for input_file in input_files:
-  #  featurize_input_partial(input_file)
   pool = mp.Pool(int(mp.cpu_count()/2))
   pool.map(featurize_input_partial, input_files)
   pool.terminate()

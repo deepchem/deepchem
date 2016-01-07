@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import tempfile
 import shutil
-from deepchem.utils.dataset import FeaturizedDataset
-from deepchem.utils.save import save_sharded_dataset
+from deepchem.utils.dataset import FeaturizedSamples
+from deepchem.utils.save import save_to_disk
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -31,12 +31,12 @@ def featurized_dataset_from_data(data_df, out_dir):
   Writes featurized data to disk and returns a FeaturizedData object.
   """
   data_loc = os.path.join(out_dir, "data.joblib")
-  save_sharded_dataset(data_df, data_loc)
-  return FeaturizedDataset(paths=[out_dir])
+  save_to_disk(data_df, data_loc)
+  return FeaturizedSamples(paths=[out_dir])
 
-class TestFeaturizedDataset(unittest.TestCase):
+class TestFeaturizedSamples(unittest.TestCase):
   """
-  Test FeaturizedDataset.
+  Test FeaturizedSamples.
   """
 
   def setUp(self):
@@ -59,7 +59,7 @@ class TestFeaturizedDataset(unittest.TestCase):
     """
     Basic sanity test of train/test split.
     """
-    dataset = FeaturizedDataset(compound_df=self.compound_df)
+    dataset = FeaturizedSamples(compound_df=self.compound_df)
 
     train, test = dataset.train_test_split(splittype="random")
     assert len(train.compound_df) == .8 * len(self.compound_df)
@@ -77,7 +77,7 @@ class TestFeaturizedDataset(unittest.TestCase):
     """
     Basic sanity test of to_arrays function.
     """
-    dataset = FeaturizedDataset(compound_df=self.compound_df)
+    dataset = FeaturizedSamples(compound_df=self.compound_df)
     # Test singletask mode writing runs
     dirpath = tempfile.mkdtemp()
     arrays = dataset.to_arrays(dirpath, "singletask", ["fingerprints"])

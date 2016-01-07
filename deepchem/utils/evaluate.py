@@ -10,10 +10,10 @@ import numpy as np
 import warnings
 #from deepchem.utils.preprocess import undo_transform_outputs
 #from deepchem.utils.preprocess import get_metadata_filename
-from deepchem.utils.dataset import NumpyDataset
+from deepchem.utils.dataset import ShardedDataset
 from deepchem.utils.preprocess import get_task_type
 from deepchem.utils.preprocess import undo_transform
-from deepchem.utils.dataset import load_sharded_dataset
+from deepchem.utils.dataset import load_from_disk
 from deepchem.models import Model 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
@@ -44,10 +44,10 @@ def compute_y_pred(model, data_dir, csv_out, split):
   """
   Computes model predictions on data and stores csv to disk.
   """
-  test = NumpyDataset(data_dir)
+  test = ShardedDataset(data_dir)
   task_names = test.get_task_names()
   #metadata_filename = get_metadata_filename(data_dir)
-  #metadata_df = load_sharded_dataset(metadata_filename)
+  #metadata_df = load_from_disk(metadata_filename)
   #task_names = metadata_df.iterrows().next()[1]['task_names']
 
   pred_y_df = model.predict(test)
@@ -66,10 +66,10 @@ def compute_y_pred(model, data_dir, csv_out, split):
   '''
   for i, row in split_df.iterrows():
     print("Evaluating on %s batch %d out of %d" % (split, i+1, nb_batch))
-    X = load_sharded_dataset(row['X-transformed'])
-    y = load_sharded_dataset(row['y-transformed'])
-    w = load_sharded_dataset(row['w'])
-    ids = load_sharded_dataset(row['ids'])
+    X = load_from_disk(row['X-transformed'])
+    y = load_from_disk(row['y-transformed'])
+    w = load_from_disk(row['w'])
+    ids = load_from_disk(row['ids'])
   '''
   '''
   MAX_GPU_RAM = float(691007488/50)

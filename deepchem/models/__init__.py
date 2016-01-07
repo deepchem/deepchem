@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from deepchem.utils.dataset import NumpyDataset
-from deepchem.utils.dataset import load_sharded_dataset
-from deepchem.utils.dataset import save_sharded_dataset
+from deepchem.utils.dataset import ShardedDataset
+from deepchem.utils.dataset import load_from_disk
+from deepchem.utils.dataset import save_to_disk
 
 class Model(object):
   """
@@ -85,7 +85,7 @@ class Model(object):
 
   def load(self, model_dir):
     """Dispatcher function for loading."""
-    params = load_sharded_dataset(self.get_model_filename(model_dir))
+    params = load_from_disk(self.get_model_filename(model_dir))
     self.model_params = params["model_params"]
     self.task_types = params["task_types"]
     self.model_type = params["model_type"]
@@ -95,16 +95,16 @@ class Model(object):
     params = {"model_params" : self.model_params,
               "task_types" : self.task_types,
               "model_type": self.model_type}
-    save_sharded_dataset(params, self.get_params_filename(out_dir))
+    save_to_disk(params, self.get_params_filename(out_dir))
 
-  def fit(self, numpy_dataset):
+  def fit(self, sharded_dataset):
     """
-    Fits a model on data in a NumpyDataset object.
+    Fits a model on data in a ShardedDataset object.
     """
     # TODO(rbharath/enf): This GPU_RAM is black magic. Needs to be removed/made
     # more general.
     MAX_GPU_RAM = float(691007488/50)
-    for (X, y, w, _) in numpy_dataset.itershards():
+    for (X, y, w, _) in sharded_dataset.itershards():
       if sys.getsizeof(X) > MAX_GPU_RAM:
         nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
         nb_sample = np.shape(X)[0]
@@ -123,11 +123,11 @@ class Model(object):
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
-  def predict(self, numpy_dataset):
+  def predict(self, sharded_dataset):
     """
-    Uses self to make predictions on provided NumpyDataset object.
+    Uses self to make predictions on provided ShardedDataset object.
     """
-    task_names = numpy_dataset.get_task_names()
+    task_names = sharded_dataset.get_task_names()
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
     column_names = (['ids'] + task_names + pred_task_names + w_task_names
@@ -137,7 +137,7 @@ class Model(object):
     # TODO(rbharath/enf): This is only for GPU models, and is currently depends
     # on magic numbers.
     MAX_GPU_RAM = float(691007488/50)
-    for (X, y, w, ids) in numpy_dataset.itershards():
+    for (X, y, w, ids) in sharded_dataset.itershards():
       if sys.getsizeof(X) > MAX_GPU_RAM:
         nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
         nb_sample = np.shape(X)[0]
@@ -156,8 +156,8 @@ class Model(object):
       shard_df[task_names] = y
       shard_df[pred_task_names] = y_pred
       shard_df[w_task_names] = w
-      shard_df["y_means"] = numpy_dataset.get_label_means() 
-      shard_df["y_stds"] = numpy_dataset.get_label_stds() 
+      shard_df["y_means"] = sharded_dataset.get_label_means() 
+      shard_df["y_stds"] = sharded_dataset.get_label_stds() 
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
     return pred_y_df 
