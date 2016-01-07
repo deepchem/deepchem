@@ -24,16 +24,10 @@ def add_featurize_group(featurize_cmd):
       "--input-files", required=1, nargs="+",
       help="Input file with data.")
   featurize_group.add_argument(
-      "--input-type", default="csv",
-      choices=["csv", "pandas", "sdf"],
-      help="Type of input file. If pandas, input must be a joblib\n"
-           "containing a pandas dataframe. If sdf, should be in\n"
-           "(perhaps gzipped) sdf file.")
-  featurize_group.add_argument(
       "--user-specified-features", type=str, nargs="+",
       help="Optional field that holds pre-computed feature vector")
   featurize_group.add_argument(
-      "--task-fields", type=str, nargs="+", required=1,
+      "--tasks", type=str, nargs="+", required=1,
       help="Name of measured field to predict.")
   featurize_group.add_argument(
       "--split-field", type=str, default=None,
@@ -242,8 +236,8 @@ def create_model(args):
   print("Perform featurization")
   if not args.skip_featurization:
     featurize_inputs(
-        feature_dir, args.input_files, args.input_type,
-        args.user_specified_features, args.task_fields,
+        feature_dir, args.input_files,
+        args.user_specified_features, args.tasks,
         args.smiles_field, args.split_field, args.id_field, args.threshold)
 
   print("+++++++++++++++++++++++++++++++++")
@@ -301,9 +295,9 @@ def featurize_inputs_wrapper(args):
   if not os.path.exists(args.feature_dir):
     os.makedirs(args.feature_dir)
   featurize_inputs(
-      args.feature_dir, args.input_files, args.input_type, args.fields,
-      args.field_types, args.user_specified_features, args.task_fields,
-      args.smiles_field, args.split_field, args.id_field, args.threshold)
+      args.feature_dir, args.input_files, args.user_specified_features,
+      args.tasks, args.smiles_field, args.split_field, args.id_field,
+      args.threshold)
 
 def train_test_split_wrapper(args):
   """Wrapper function that calls _train_test_split_wrapper after unwrapping args."""

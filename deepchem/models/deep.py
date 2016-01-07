@@ -8,7 +8,7 @@ from keras.layers.core import Dense, Dropout
 from keras.optimizers import SGD
 from deepchem.models import Model
 
-class KerasModel(Model)
+class KerasModel(Model):
   """
   Abstract base class shared across all Keras models.
   """

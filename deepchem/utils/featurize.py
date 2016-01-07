@@ -43,22 +43,25 @@ class Samples(object):
                id_field=None, threshold=None, user_specified_features=None,
                log_every_n=1000, df=None):
     """Extracts data from input as Pandas data frame"""
-    rows = []
     self.tasks = tasks
     self.user_specified_features = user_specified_features
     self.threshold = threshold
     self.input_file = input_file
-    self.input_type = self._get_input_type(input_file)
+    self.input_type = self._get_input_type()
     self.split_field = split_field
-    self.fields = self._get_fields(input_file)
+    self.fields = self._get_fields()
+    self.smiles_field = smiles_field
     if id_field is None:
       self.id_field = smiles_field
+    else:
+      self.id_field = id_field
 
     if df is None:
+      rows = []
       for ind, row in enumerate(self._get_raw_samples()):
         if ind % log_every_n == 0:
-          print("Loading sample %d" % row_index)
-        row.append(self._process_raw_sample(row))
+          print("Loading sample %d" % ind)
+        rows.append(self._process_raw_sample(row))
       self.df = self._standardize_df(pd.DataFrame(rows))
     else:
       self.df = df
@@ -94,12 +97,13 @@ class Samples(object):
     """Get the names of fields and field_types for input data."""
     # If CSV input, assume that first row contains labels
     if self.input_type == "csv":
-      return self._get_raw_samples(self.input_file).next()
+      with open(self.input_file, "rb") as inp_file_obj:
+        return csv.reader(inp_file_obj).next()
     elif self.input_type == "pandas":
       df = load_from_disk(self.input_file)
       return df.keys()
     elif self.input_type == "sdf":
-      sample_mol = self.get_rows(self.input_file).next()
+      sample_mol = self._get_raw_samples(self.input_file).next()
       return list(sample_mol.GetPropNames())
     else:
       raise ValueError("Unrecognized extension for %s" % self.input_file)
@@ -110,21 +114,24 @@ class Samples(object):
     # If gzipped, need to compute extension again
     if file_extension == ".gz":
       filename, file_extension = os.path.splitext(filename)
-    if file_extension == "csv":
+    if file_extension == ".csv":
       return "csv"
-    elif file_extension == "pkl":
+    elif file_extension == ".pkl":
       return "pandas"
-    elif file_extension == "sdf":
+    elif file_extension == ".sdf":
       return "sdf"
     else:
-      raise ValueError("Unrecognized extension for %s" % input_file)
+      raise ValueError("Unrecognized extension %s" % file_extension)
 
   def _get_raw_samples(self):
     """Returns an iterator over all rows in input_file"""
-    input_type = self.get_input_type(self.input_file)
+    input_type = self._get_input_type()
     if input_type == "csv":
       with open(self.input_file, "rb") as inp_file_obj:
-        for row in csv.reader(inp_file_obj):
+        for ind, row in enumerate(csv.reader(inp_file_obj)):
+          # Skip labels
+          if ind == 0:
+            continue
           if row is not None:
             yield row
     elif input_type == "pandas":
@@ -206,7 +213,7 @@ class Samples(object):
       raise ValueError("Unsupported featuretype requested.")
     print("About to generate features for molecules")
     features = []
-    sample_smiles = df["smiles"].tolist()
+    sample_smiles = self.df["smiles"].tolist()
     for ind, smiles in enumerate(sample_smiles):
       if ind % log_every_n == 0:
         print("Featurizing sample %d" % ind)
@@ -214,7 +221,7 @@ class Samples(object):
       features.append(featurizer.featurize([mol]))
     self.df[featuretype] = features
 
-def featurize_input(feature_dir, input_file, user_specified_features, tasks,
+def featurize_input(input_file, feature_dir, user_specified_features, tasks,
                     smiles_field, split_field, id_field, threshold):
   """Featurizes raw input data."""
   samples = Samples(input_file=input_file, tasks=tasks, threshold=threshold,
@@ -231,19 +238,20 @@ def featurize_input(feature_dir, input_file, user_specified_features, tasks,
   samples.save(df_filename)
 
 def featurize_inputs(feature_dir, input_files,
-                     feature_fields, task_fields, smiles_field,
+                     user_specified_features, tasks, smiles_field,
                      split_field, id_field, threshold):
 
   featurize_input_partial = partial(featurize_input,
                                     feature_dir=feature_dir,
-                                    input_type=input_type,
-                                    feature_fields=feature_fields,
-                                    task_fields=task_fields,
+                                    user_specified_features=user_specified_features,
+                                    tasks=tasks,
                                     smiles_field=smiles_field,
                                     split_field=split_field,
                                     id_field=id_field,
                                     threshold=threshold)
 
-  pool = mp.Pool(int(mp.cpu_count()/2))
-  pool.map(featurize_input_partial, input_files)
-  pool.terminate()
+  for input_file in input_files:
+    featurize_input_partial(input_file)
+  #pool = mp.Pool(int(mp.cpu_count()/2))
+  #pool.map(featurize_input_partial, input_files)
+  #pool.terminate()
