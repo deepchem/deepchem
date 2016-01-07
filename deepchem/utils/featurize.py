@@ -39,21 +39,48 @@ class Samples(object):
   Currently knows how to load csv-files/pandas-dataframes/SDF-files.
   """
     
-  def __init__(self, input_file, tasks, smiles_field, threshold,
-               log_every_n=1000):
+  def __init__(self, input_file, tasks, smiles_field, split_field=None,
+               id_field=None, threshold=None, user_specified_features=None,
+               log_every_n=1000, df=None):
     """Extracts data from input as Pandas data frame"""
     rows = []
     self.tasks = tasks
+    self.user_specified_features = user_specified_features
     self.threshold = threshold
     self.input_file = input_file
     self.input_type = self._get_input_type(input_file)
+    self.split_field = split_field
     self.fields = self._get_fields(input_file)
+    if id_field is None:
+      self.id_field = smiles_field
 
-    for ind, row in enumerate(self._get_raw_samples()):
-      if ind % log_every_n == 0:
-        print("Loading sample %d" % row_index)
-      row.append(self._process_raw_sample(row))
-    self.df = pd.DataFrame(rows)
+    if df is None:
+      for ind, row in enumerate(self._get_raw_samples()):
+        if ind % log_every_n == 0:
+          print("Loading sample %d" % row_index)
+        row.append(self._process_raw_sample(row))
+      self.df = self._standardize_df(pd.DataFrame(rows))
+    else:
+      self.df = df
+
+  def save(self, out):
+    """
+    Saves samples to disk.
+    """
+    sample_params = {"input_file": self.input_file,
+                     "tasks": self.tasks,
+                     "smiles_field": self.smiles_field,
+                     "split_field": self.split_field,
+                     "id_field": self.id_field,
+                     "threshold": self.threshold,
+                     "user_specified_features": self.user_specified_features,
+                     "df": self.df}
+    save_to_disk(sample_params, out)
+
+  @staticmethod
+  def load(out):
+    sample_params = load_from_disk(out)
+    return Samples(**sample_params)
 
   def get_samples(self):
     """Accessor for samples in this object."""
@@ -145,82 +172,59 @@ class Samples(object):
         data[field] = 1 if raw > threshold else 0
     return data
 
+  def _standardize_df(self, ori_df):
+    df = pd.DataFrame([])
+    df["mol_id"] = ori_df[[self.id_field]]
+    df["smiles"] = ori_df[[self.smiles_field]]
+    for task in self.tasks:
+      df[task] = ori_df[[task]]
+    if self.split_field is not None:
+      df["split"] = ori_df[[self.split_field]]
 
-def add_vs_utils_features(df, featuretype, log_every_n=1000):
-  """Generates circular fingerprints for dataset."""
-  if featuretype == "fingerprints":
-    featurizer = CircularFingerprint(size=1024)
-  elif featuretype == "descriptors":
-    featurizer = SimpleDescriptors()
-  else:
-    raise ValueError("Unsupported featuretype requested.")
-  print("About to generate features for molecules")
-  features, mol = [], None
-  smiles = df["smiles"].tolist()
-  for row_ind, row_data in enumerate(smiles):
-    if row_ind % log_every_n == 0:
-      print("Featurizing molecule %d" % row_ind)
-    mol = Chem.MolFromSmiles(row_data)
-    features.append(featurizer.featurize([mol]))
-  df[featuretype] = features
-  return
+    if self.user_specified_features is not None:
+      features_data = []
+      for row in ori_df.iterrows():
+        # pandas rows are tuples (row_num, row_data)
+        row, feature_list = row[1], []
+        for feature in user_specified_features:
+          feature_list.append(row[feature])
+        features_data.append({"row": np.array(feature_list)})
+      df["features"] = pd.DataFrame(features_data)
+    return df
 
-'''
-Files to save:
+  def featurize(self, featuretype, log_every_n=1000):
+    """Generates circular fingerprints for dataset."""
+    if featuretype == "ECFP":
+      featurizer = CircularFingerprint(size=1024)
+    elif featuretype == "descriptors":
+      featurizer = SimpleDescriptors()
+    else:
+      raise ValueError("Unsupported featuretype requested.")
+    print("About to generate features for molecules")
+    features = []
+    sample_smiles = df["smiles"].tolist()
+    for ind, smiles in enumerate(sample_smiles):
+      if ind % log_every_n == 0:
+        print("Featurizing sample %d" % ind)
+      mol = Chem.MolFromSmiles(smiles)
+      features.append(featurizer.featurize([mol]))
+    self.df[featuretype] = features
 
-(1) mol_id, smiles, [all feature fields] (X-ish)
-(2) mol_id, smiles, split, [all task labels] (Y-ish)
-
-'''
-
-def standardize_df(ori_df, feature_fields, task_fields, smiles_field,
-  split_field, id_field):
-  df = pd.DataFrame([])
-  df["mol_id"] = ori_df[[id_field]]
-  df["smiles"] = ori_df[[smiles_field]]
-  for task in task_fields:
-    df[task] = ori_df[[task]]
-  if split_field is not None:
-    df["split"] = ori_df[[split_field]]
-
-  if feature_fields is None:
-    print("No feature field specified by user.")
-  else:
-    features_data = []
-    for row in ori_df.iterrows():
-      # pandas rows are tuples (row_num, row_data)
-      row, feature_list = row[1], []
-      for feature in feature_fields:
-        feature_list.append(row[feature])
-      features_data.append({"row": np.array(feature_list)})
-    df["features"] = pd.DataFrame(features_data)
-
-  return(df)
-
-def featurize_input(self, feature_dir,
-                    feature_fields, task_fields, smiles_field,
-                    split_field, id_field, threshold):
+def featurize_input(feature_dir, input_file, user_specified_features, tasks,
+                    smiles_field, split_field, id_field, threshold):
   """Featurizes raw input data."""
-  if len(fields) != len(field_types):
-    raise ValueError("number of fields does not equal number of field types")
-  if id_field is None:
-    id_field = smiles_field
-
-  df = extract_data(self.input_file, input_type, fields, field_types, task_fields,
-                    smiles_field, threshold)
-  print("Standardizing User DataFrame")
-  df = standardize_df(df, feature_fields, task_fields, smiles_field,
-                      split_field, id_field)
+  samples = Samples(input_file=input_file, tasks=tasks, threshold=threshold,
+                    smiles_field=smiles_field, split_field=split_field,
+                    user_specified_features=user_specified_features,
+                    id_field=id_field)
   print("Generating circular fingerprints")
-  add_vs_utils_features(df, "fingerprints")
+  samples.featurize("ECFP")
   print("Generating rdkit descriptors")
   add_vs_utils_features(df, "descriptors")
-
-  print("Writing DataFrame")
   df_filename = os.path.join(
       feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
-  save_to_disk(df, df_filename)
-  print("Finished saving.")
+  print("Saving samples to disk.")
+  samples.save(df_filename)
 
 def featurize_inputs(feature_dir, input_files, input_type, fields, field_types,
                      feature_fields, task_fields, smiles_field,
