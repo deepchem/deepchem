@@ -56,11 +56,16 @@ def compute_model_performance(pred_y_df, task_names, task_type, stats_file, outp
   y_means = pred_y_df.iterrows().next()[1]["y_means"]
   y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
 
+  print("compute_model_performance()")
   for i, task_name in enumerate(task_names):
     y = pred_y_df[task_name]
     y_pred = pred_y_df["%s_pred" % task_name]
     w = pred_y_df["%s_weight" % task_name]
-
+    
+    print("y_means")
+    print(y_means)
+    print("y_stds")
+    print(y_stds)
     y = undo_transform(y, y_means, y_stds, output_transforms)
     y_pred = undo_transform(y_pred, y_means, y_stds, output_transforms)
 

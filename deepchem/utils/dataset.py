@@ -397,9 +397,9 @@ def compute_sums_and_nb_sample(tensor, W=None):
     nb_sample = np.shape(tensor)[0]
   else:
     nb_task = np.shape(tensor)[1]
-    sums = np.zeros((nb_task))
-    sum_squares = np.zeros((nb_task))
-    nb_sample = np.zeros((nb_task))
+    sums = np.zeros(nb_task)
+    sum_squares = np.zeros(nb_task)
+    nb_sample = np.zeros(nb_task)
     for task in range(nb_task):
       y_task = tensor[:,task]
       W_task = W[:,task]
@@ -417,7 +417,7 @@ def compute_mean_and_std(df):
   X_sums, X_sum_squares, X_n = (df['X_sums'], 
                                 df['X_sum_squares'],
                                 df['X_n'])
-  n = np.sum(X_n)
+  n = float(np.sum(X_n))
   overall_X_sums = np.sum(X_sums, axis=0)
   overall_X_means = overall_X_sums / n
   overall_X_sum_squares = np.sum(X_sum_squares, axis=0)

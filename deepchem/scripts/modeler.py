@@ -198,6 +198,9 @@ def add_model_command(subparsers):
       "--skip-fit", action="store_true",
       help="If set, skip model fit step.")
   model_cmd.add_argument(
+      "--skip-eval", action="store_true",
+      help="If set, skip model eval step.")
+  model_cmd.add_argument(
       "--base-dir", type=str, required=1,
       help="The base directory for the model.")
   add_featurize_group(model_cmd)
@@ -258,20 +261,22 @@ def create_model(args):
   print("+++++++++++++++++++++++++++++++++")
   print("Eval Model on Train")
   print("-------------------")
-  csv_out_train = os.path.join(data_dir, "train.csv")
-  stats_out_train = os.path.join(data_dir, "train-stats.txt")
-  csv_out_test = os.path.join(data_dir, "test.csv")
-  stats_out_test = os.path.join(data_dir, "test-stats.txt")
-  train_dir = os.path.join(data_dir, "train")
-  eval_trained_model(
-      model_name, model_dir, train_dir, csv_out_train,
-      stats_out_train, args.output_transforms, split="train")
+  if not args.skip_fit:
+    csv_out_train = os.path.join(data_dir, "train.csv")
+    stats_out_train = os.path.join(data_dir, "train-stats.txt")
+    csv_out_test = os.path.join(data_dir, "test.csv")
+    stats_out_test = os.path.join(data_dir, "test-stats.txt")
+    train_dir = os.path.join(data_dir, "train")
+    eval_trained_model(
+        model_name, model_dir, train_dir, csv_out_train,
+        stats_out_train, args.output_transforms, split="train")
   print("Eval Model on Test")
   print("------------------")
-  test_dir = os.path.join(data_dir, "test")
-  eval_trained_model(
-      model_name, model_dir, test_dir, csv_out_test,
-      stats_out_test, args.output_transforms, split="test")
+  if not args.skip_fit:
+    test_dir = os.path.join(data_dir, "test")
+    eval_trained_model(
+        model_name, model_dir, test_dir, csv_out_test,
+        stats_out_test, args.output_transforms, split="test")
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
