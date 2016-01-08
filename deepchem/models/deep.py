@@ -1,6 +1,7 @@
 """
 Code for processing the Google vs-datasets using keras.
 """
+import os
 import numpy as np
 from keras.models import Graph
 from keras.models import model_from_json
@@ -17,9 +18,9 @@ class KerasModel(Model):
     """
     Saves underlying keras model to disk. 
     """
-    super(MultiTaskDNN, self).save(out_dir)
+    super(KerasModel, self).save(out_dir)
     model = self.get_raw_model()
-    filename, _ = os.path.splitext(self.get_model_filename(out_dir))
+    filename, _ = os.path.splitext(Model.get_model_filename(out_dir))
 
     # Note that keras requires the model architecture and weights to be stored
     # separately. A json file is generated that specifies the model architecture.
@@ -32,13 +33,12 @@ class KerasModel(Model):
     with open(json_filename, "wb") as file_obj:
       file_obj.write(json_string)
     model.save_weights(h5_filename, overwrite=True)
-
+  
   def load(self, model_dir):
     """
     Load keras multitask DNN from disk.
     """
-    super(MultiTaskDNN, self).load(model_dir)
-    filename = self.get_Model_filename(model_dir)
+    filename = Model.get_model_filename(model_dir)
     filename, _ = os.path.splitext(filename)
 
     json_filename = "%s.%s" % (filename, "json")
@@ -53,7 +53,8 @@ class MultiTaskDNN(KerasModel):
   """
   Model for multitask MLP in keras.
   """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
+  def __init__(self, model_type, task_types, model_params,
+               initialize_raw_model=True):
     super(MultiTaskDNN, self).__init__(model_type, task_types, model_params,
                                        initialize_raw_model)
     if initialize_raw_model:
@@ -147,9 +148,9 @@ class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
-    super(SingleTaskDNN, self).__init__(task_types, model_params,
-                                       initialize_raw_model)
+  def __init__(self, model_type, task_types, model_params, initialize_raw_model=True):
+    super(SingleTaskDNN, self).__init__(model_type, task_types, model_params,
+                                        initialize_raw_model)
 
 Model.register_model_type("singletask_deep_regressor", SingleTaskDNN)
 Model.register_model_type("singletask_deep_classifier", SingleTaskDNN)

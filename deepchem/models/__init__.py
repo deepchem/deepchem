@@ -51,17 +51,19 @@ class Model(object):
     """
     return(self.raw_model)
 
-  def get_param_filename(self, out_dir):
-    """
-    Given model directory, obtain filename for the model itself.
-    """
-    return os.path.join(out_dir, "model_params.joblib")
-
-  def get_model_filename(self, out_dir):
+  @staticmethod
+  def get_model_filename(out_dir):
     """
     Given model directory, obtain filename for the model itself.
     """
     return os.path.join(out_dir, "model.joblib")
+
+  @staticmethod
+  def get_params_filename(out_dir):
+    """
+    Given model directory, obtain filename for the model itself.
+    """
+    return os.path.join(out_dir, "model_params.joblib")
 
   @staticmethod
   def model_builder(model_type, task_types, model_params,
@@ -83,20 +85,28 @@ class Model(object):
     """
     Model.registered_model_types[model_type] = model_class
 
-  def load(self, model_dir):
+  @staticmethod
+  def load(model_type, model_dir):
     """Dispatcher function for loading."""
-    params = load_from_disk(self.get_model_filename(model_dir))
-    self.model_params = params["model_params"]
-    self.task_types = params["task_types"]
-    self.model_type = params["model_type"]
+    params = load_from_disk(Model.get_params_filename(model_dir))
+    if model_type in Model.registered_model_types:
+      model = Model.registered_model_types[model_type](
+          model_type=params["model_type"],
+          task_types=params["task_types"],
+          model_params=params["model_params"])
+      model.load(model_dir)
+    else:
+      raise ValueError("model_type %s is not supported" % model_type)
+    return model
 
   def save(self, out_dir):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
               "task_types" : self.task_types,
               "model_type": self.model_type}
-    save_to_disk(params, self.get_params_filename(out_dir))
+    save_to_disk(params, Model.get_params_filename(out_dir))
 
+  # TODO(rbharath): This training is currently broken w.r.t minibatches! Fix.
   def fit(self, sharded_dataset):
     """
     Fits a model on data in a ShardedDataset object.
@@ -104,19 +114,22 @@ class Model(object):
     # TODO(rbharath/enf): This GPU_RAM is black magic. Needs to be removed/made
     # more general.
     MAX_GPU_RAM = float(691007488/50)
-    for (X, y, w, _) in sharded_dataset.itershards():
-      if sys.getsizeof(X) > MAX_GPU_RAM:
-        nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
-        nb_sample = np.shape(X)[0]
-        interval_points = np.linspace(0,nb_sample,nb_block+1).astype(int)
-        for j in range(0,len(interval_points)-1):
-          indices = range(interval_points[j],interval_points[j+1])
-          X_batch = X[indices,:]
-          y_batch = y[indices]
-          w_batch = w[indices]
-          self.fit_on_batch(X_batch, y_batch, w_batch)
-      else:
-        self.fit_on_batch(X, y, w)
+    for epoch in range(self.model_params["nb_epoch"]):
+      print("Starting epoch %s" % str(epoch+1))
+      for i, (X, y, w, _) in enumerate(sharded_dataset.itershards()):
+        print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
+        if sys.getsizeof(X) > MAX_GPU_RAM:
+          nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
+          nb_sample = np.shape(X)[0]
+          interval_points = np.linspace(nb_sample,nb_block+1).astype(int)
+          for j in range(len(interval_points)-1):
+            indices = range(interval_points[j],interval_points[j+1])
+            X_batch = X[indices,:]
+            y_batch = y[indices]
+            w_batch = w[indices]
+            self.fit_on_batch(X_batch, y_batch, w_batch)
+        else:
+          self.fit_on_batch(X, y, w)
 
   # TODO(rbharath): What does this function do when y is not provided. Suspect
   # it breaks. Need to fix.

@@ -262,9 +262,6 @@ def create_model(args):
   stats_out_train = os.path.join(data_dir, "train-stats.txt")
   csv_out_test = os.path.join(data_dir, "test.csv")
   stats_out_test = os.path.join(data_dir, "test-stats.txt")
-  print("create_model()")
-  print("args.output_transforms")
-  print(args.output_transforms)
   train_dir = os.path.join(data_dir, "train")
   eval_trained_model(
       model_name, model_dir, train_dir, csv_out_train,

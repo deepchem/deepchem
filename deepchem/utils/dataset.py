@@ -35,7 +35,6 @@ def df_to_numpy(df, mode, feature_types):
 
   y = df[sorted_tasks].values
   w = np.ones((n_samples, n_tasks))
-  w[np.where(y=='')] = 0
 
   tensors = []
   for i, datapoint in df.iterrows():
@@ -44,27 +43,19 @@ def df_to_numpy(df, mode, feature_types):
       feature_list.append(datapoint[feature_type])
     features = np.squeeze(np.concatenate(feature_list))
     tensors.append(features)
-
   x = np.stack(tensors)
-  sorted_ids = df['mol_id']
+
+  # Remove entries with missing labels
+  nonzero_labels = np.where(np.squeeze(y)!='') 
+  x = x[nonzero_labels]
+  y = y[nonzero_labels]
+  w = w[nonzero_labels]
+  nonzero_rows = []
+  for nonzero_ind in np.squeeze(nonzero_labels):
+    nonzero_rows.append(df.iloc[nonzero_ind])
+  sorted_ids = pd.DataFrame(nonzero_rows)["mol_id"]
+
   return sorted_ids, x, y, w
-
-def get_train_test_files(paths, splittype, train_proportion=0.8):
-  """
-  Randomly split files into train and test.
-  """
-  #all_files = []
-  #for path in paths:
-  #  all_files += glob(os.path.join(path, "*.joblib"))
-  train_indices = list(
-      np.random.choice(len(all_files), int(len(all_files)*train_proportion),
-                       replace=False))
-  test_indices = list(set(range(len(all_files)))-set(train_indices))
-
-  train_files = [all_files[i] for i in train_indices]
-  test_files = [f for f in all_files if f not in train_files]
-  return train_files, test_files
-
 
 # TODO(rbharath): Should this be a method?
 def get_sorted_task_names(df):
@@ -82,8 +73,11 @@ class FeaturizedSamples(object):
   """
 
   # The standard columns for featurized data.
-  colnames = ["mol_id", "smiles", "split", "features", "descriptors",
-              "fingerprints"]
+  # TODO(rbharath): colnames are implicitly set in class Samples. Needs to be
+  # moved into Samples to avoid bugs (ran into issues when chaning
+  # "fingerprints" -> "ECFP") 
+  colnames = ["mol_id", "smiles", "split", "user-specified-features", "RDKIT-descriptors",
+              "ECFP"]
 
   def __init__(self, paths=None, dataset_files=[], compound_df=None):
     if paths is not None:
@@ -375,9 +369,9 @@ def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
   save_to_disk(X, row['X-transformed'])
 
   y = load_from_disk(row['y'])
+  w = load_from_disk(row['w'])
   if normalize_y or log_y:    
     if normalize_y:
-      print("Normalizing y sample %d out of %d" % (i+1,total))
       y = np.nan_to_num((y - y_means) / y_stds)
       if truncate_y:
         y[y > trunc] = trunc
@@ -393,6 +387,10 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
   If W is specified, only nonzero weight entries of tensor are used.
   """
+  if len(np.shape(tensor)) == 1:
+    tensor = np.reshape(tensor, (len(tensor), 1))
+  if W is not None and len(np.shape(W)) == 1:
+    W = np.reshape(W, (len(W), 1))
   if W is None:
     sums = np.sum(tensor, axis=0)
     sum_squares = np.sum(np.square(tensor), axis=0)
@@ -402,17 +400,14 @@ def compute_sums_and_nb_sample(tensor, W=None):
     sums = np.zeros((nb_task))
     sum_squares = np.zeros((nb_task))
     nb_sample = np.zeros((nb_task))
-    for task in range(0, nb_task):
+    for task in range(nb_task):
       y_task = tensor[:,task]
       W_task = W[:,task]
-      nonzero_indices = np.nonzero(W_task)
+      nonzero_indices = np.nonzero(W_task)[0]
       y_task_nonzero = y_task[nonzero_indices]
       sums[task] = np.sum(y_task_nonzero)
       sum_squares[task] = np.dot(y_task_nonzero, y_task_nonzero)
       nb_sample[task] = np.shape(y_task_nonzero)[0]
-  print("compute_sums_and_nb_sample()")
-  print("np.shape(tensor)")
-  print(np.shape(tensor))
   return (sums, sum_squares, nb_sample)
 
 def compute_mean_and_std(df):
