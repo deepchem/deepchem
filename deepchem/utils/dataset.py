@@ -39,8 +39,11 @@ class Dataset(object):
           feature_types=feature_types)
 
       metadata_rows = []
-      for df_file in samples.dataset_files:
-        metadata_rows.append(write_dataset_single_partial(df_file))
+      # TODO(rbharath): Still a bit of information leakage.
+      for df_file, df in zip(samples.dataset_files, samples.itersamples()):
+        retval = write_dataset_single_partial((df_file, df))
+        if retval is not None:
+          metadata_rows.append(retval)
 
       # TODO(rbharath): FeaturizedSamples should not be responsible for
       # X-transform, X_sums, etc. Move that stuff over to Dataset.
@@ -246,9 +249,12 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
 
-def write_dataset_single(df_file, data_dir, feature_types):
+def write_dataset_single(val, data_dir, feature_types):
+  (df_file, df) = val
   print("Examining %s" % df_file)
-  df = load_from_disk(df_file)
+  # TODO(rbharath): This is a hack. clean up.
+  if not len(df):
+    return None
   task_names = FeaturizedSamples.get_sorted_task_names(df)
   ids, X, y, w = df_to_numpy(df, feature_types)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
@@ -286,6 +292,9 @@ def df_to_numpy(df, feature_types):
       feature_list.append(datapoint[feature_type])
     features = np.squeeze(np.concatenate(feature_list))
     tensors.append(features)
+  print("df_to_numpy()")
+  print("len(df)")
+  print(len(df))
   x = np.stack(tensors)
 
   # Remove entries with missing labels

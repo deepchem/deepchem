@@ -299,6 +299,22 @@ class FeaturizedSamples(object):
     save_to_disk(df, self._get_compounds_filename())
     self.compounsd_df = df
 
+  # TODO(rbharath): Might this be inefficient?
+  def itersamples(self):
+    """
+    Provides an iterator over samples.
+    
+    Each sample from the iterator is a dataframe of samples.
+    """
+    compound_ids = set(list(self.compounds_df["mol_id"]))
+    for df_file in self.dataset_files:
+      df = load_from_disk(df_file)
+      visible_inds = []
+      for ind, row in df.iterrows():
+        if row["mol_id"] in compound_ids:
+          visible_inds.append(ind)
+      yield df.iloc[visible_inds]
+
   def train_test_split(self, splittype, train_dir, test_dir, seed=None,
                        frac_train=.8):
     """
