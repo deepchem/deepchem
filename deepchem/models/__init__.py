@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from deepchem.utils.dataset import ShardedDataset
+from deepchem.utils.dataset import Dataset
 from deepchem.utils.dataset import load_from_disk
 from deepchem.utils.dataset import save_to_disk
 
@@ -86,6 +86,17 @@ class Model(object):
     Model.registered_model_types[model_type] = model_class
 
   @staticmethod
+  def get_task_type(model_name):
+    """
+    Given model type, determine if classifier or regressor.
+    """
+    if model_name in ["logistic", "rf_classifier", "singletask_deep_classifier",
+                      "multitask_deep_classifier"]:
+      return "classification"
+    else:
+      return "regression"
+
+  @staticmethod
   def load(model_type, model_dir):
     """Dispatcher function for loading."""
     params = load_from_disk(Model.get_params_filename(model_dir))
@@ -109,7 +120,7 @@ class Model(object):
   # TODO(rbharath): This training is currently broken w.r.t minibatches! Fix.
   def fit(self, sharded_dataset):
     """
-    Fits a model on data in a ShardedDataset object.
+    Fits a model on data in a Dataset object.
     """
     # TODO(rbharath/enf): This GPU_RAM is black magic. Needs to be removed/made
     # more general.
@@ -138,7 +149,7 @@ class Model(object):
   # complicated. Better way to model?
   def predict(self, sharded_dataset):
     """
-    Uses self to make predictions on provided ShardedDataset object.
+    Uses self to make predictions on provided Dataset object.
     """
     task_names = sharded_dataset.get_task_names()
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]

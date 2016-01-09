@@ -5,11 +5,22 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 import argparse
+import glob
 import os
-from deepchem.utils.featurize import featurize_inputs
-from deepchem.utils.evaluate import eval_trained_model
-from deepchem.utils.preprocess import train_test_split
-from deepchem.utils.fit import fit_model
+from functools import partial
+from deepchem.utils.featurize import DataFeaturizer
+from deepchem.utils.featurize import FeaturizedSamples
+from deepchem.utils.dataset import Dataset
+from deepchem.utils.evaluate import Evaluator
+from deepchem.models import Model
+# We need to import models so they can be created by model_builder
+import deepchem.models.deep
+import deepchem.models.standard
+import deepchem.models.deep3d
+
+# TODO(rbharath): Are any commands except for create_model actually used? Due to
+# the --skip-foo flags, it's possible to run all functionality directly through
+# create_model. Perhaps trim the fat and delete the remaining commands.
 
 def add_featurization_command(subparsers):
   """Adds flags for featurize subcommand."""
@@ -46,6 +57,9 @@ def add_featurize_group(featurize_cmd):
       "--feature-dir", type=str, required=0,
       help="Directory where featurized dataset will be stored.\n"
            "Will be created if does not exist")
+  featurize_group.add_argument(
+      "--parallel", type=float, default=None,
+      help="Use multiprocessing will be used to parallelize featurization.")
   featurize_group.set_defaults(func=featurize_inputs_wrapper)
 
 def add_transforms_group(cmd):
@@ -241,7 +255,8 @@ def create_model(args):
     featurize_inputs(
         feature_dir, args.input_files,
         args.user_specified_features, args.tasks,
-        args.smiles_field, args.split_field, args.id_field, args.threshold)
+        args.smiles_field, args.split_field, args.id_field, args.threshold,
+        args.parallel)
 
   print("+++++++++++++++++++++++++++++++++")
   print("Perform train-test split")
@@ -261,22 +276,22 @@ def create_model(args):
   print("+++++++++++++++++++++++++++++++++")
   print("Eval Model on Train")
   print("-------------------")
-  if not args.skip_fit:
+  if not args.skip_eval:
     csv_out_train = os.path.join(data_dir, "train.csv")
     stats_out_train = os.path.join(data_dir, "train-stats.txt")
     csv_out_test = os.path.join(data_dir, "test.csv")
     stats_out_test = os.path.join(data_dir, "test-stats.txt")
-    train_dir = os.path.join(data_dir, "train")
+    train_dir = os.path.join(data_dir, "train-data")
     eval_trained_model(
         model_name, model_dir, train_dir, csv_out_train,
-        stats_out_train, args.output_transforms, split="train")
+        stats_out_train, split="train")
   print("Eval Model on Test")
   print("------------------")
-  if not args.skip_fit:
-    test_dir = os.path.join(data_dir, "test")
+  if not args.skip_eval:
+    test_dir = os.path.join(data_dir, "test-data")
     eval_trained_model(
         model_name, model_dir, test_dir, csv_out_test,
-        stats_out_test, args.output_transforms, split="test")
+        stats_out_test, split="test")
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -301,11 +316,80 @@ def featurize_inputs_wrapper(args):
       args.tasks, args.smiles_field, args.split_field, args.id_field,
       args.threshold)
 
+def featurize_inputs(feature_dir, input_files,
+                     user_specified_features, tasks, smiles_field,
+                     split_field, id_field, threshold, parallel):
+
+  featurize_input_partial = partial(featurize_input,
+                                    feature_dir=feature_dir,
+                                    user_specified_features=user_specified_features,
+                                    tasks=tasks,
+                                    smiles_field=smiles_field,
+                                    split_field=split_field,
+                                    id_field=id_field,
+                                    threshold=threshold)
+
+  if parallel:
+    pool = mp.Pool(int(mp.cpu_count()/2))
+    pool.map(featurize_input_partial, input_files)
+    pool.terminate()
+  else:
+    for input_file in input_files:
+      featurize_input_partial(input_file)
+
+def featurize_input(input_file, feature_dir, user_specified_features, tasks,
+                    smiles_field, split_field, id_field, threshold):
+  """Featurizes raw input data."""
+  featurizer = DataFeaturizer(tasks=tasks,
+                              smiles_field=smiles_field,
+                              split_field=split_field,
+                              id_field=id_field,
+                              threshold=threshold,
+                              user_specified_features=user_specified_features,
+                              verbose=True)
+  out = os.path.join(
+      feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
+  featurizer.featurize(input_file, FeaturizedSamples.feature_types, out)
+
 def train_test_split_wrapper(args):
   """Wrapper function that calls _train_test_split_wrapper after unwrapping args."""
   train_test_split(args.paths, args.input_transforms, 
                    args.output_transforms, args.feature_types,
                    args.splittype, args.mode, args.data_dir)
+
+def train_test_split(paths, input_transforms, output_transforms,
+                     feature_types, splittype, mode, data_dir):
+  """Saves transformed model."""
+
+  dataset_files = []
+  for path in paths:
+    dataset_files += glob.glob(os.path.join(path, "*.joblib"))
+  print("paths")
+  print(paths)
+
+  print("Loading featurized data.")
+  samples_dir = os.path.join(data_dir, "samples")
+  samples = FeaturizedSamples(samples_dir, dataset_files)
+  
+  print("Split data into train/test")
+  train_samples_dir = os.path.join(data_dir, "train-samples")
+  test_samples_dir = os.path.join(data_dir, "test-samples")
+  train_samples, test_samples = samples.train_test_split(splittype,
+    train_samples_dir, test_samples_dir)
+
+  train_data_dir = os.path.join(data_dir, "train-data")
+  test_data_dir = os.path.join(data_dir, "test-data")
+
+  print("Generating train data.")
+  train_dataset = Dataset(train_data_dir, train_samples, feature_types)
+  print("Generating test data.")
+  test_dataset = Dataset(test_data_dir, test_samples, feature_types)
+
+  print("Transforming train data.")
+  train_dataset.transform(input_transforms, output_transforms)
+
+  print("Transforming test data.")
+  test_dataset.transform(input_transforms, output_transforms)
 
 def fit_model_wrapper(args):
   """Wrapper that calls _fit_model with arguments unwrapped."""
@@ -313,11 +397,33 @@ def fit_model_wrapper(args):
   fit_model(
       args.model_name, model_params, args.model_dir, args.data_dir)
 
+def fit_model(model_name, model_params, model_dir, data_dir):
+  """Builds model from featurized data."""
+  task_type = Model.get_task_type(model_name)
+  train_dir = os.path.join(data_dir, "train-data")
+  train = Dataset(train_dir)
+
+  task_types = {task: task_type for task in train.get_task_names()}
+  model_params["data_shape"] = train.get_data_shape()
+
+  model = Model.model_builder(model_name, task_types, model_params)
+  model.fit(train)
+  model.save(model_dir)
+
 def eval_trained_model_wrapper(args):
   """Wrapper function that calls _eval_trained_model with unwrapped args."""
   eval_trained_model(
       args.model, args.model_dir, args.data_dir,
-      args.csv_out, args.stats_out, args.output_transforms, split="test")
+      args.csv_out, args.stats_out, split="test")
+
+def eval_trained_model(model_type, model_dir, data_dir,
+                       csv_out, stats_out, split="test"):
+  """Evaluates a trained model on specified data."""
+  model = Model.load(model_type, model_dir)
+  data = Dataset(data_dir)
+
+  evaluator = Evaluator(model, data, verbose=True)
+  evaluator.compute_model_performance(csv_out, stats_out)
 
 def main():
   """Invokes argument parser."""

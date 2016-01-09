@@ -7,8 +7,41 @@ __license__ = "LGPL"
 
 import numpy as np
 import unittest
-from deepchem.utils.preprocess import balance_positives
-from deepchem.utils.preprocess import undo_transform_outputs
+
+# TODO(rbharath): Can this just be removed?
+def balance_positives(y, W):
+  """Ensure that positive and negative examples have equal weight."""
+  n_samples, n_targets = np.shape(y)
+  for target_ind in range(n_targets):
+    positive_inds, negative_inds = [], []
+    to_next_target = False
+    for sample_ind in range(n_samples):
+      label = y[sample_ind, target_ind]
+      if label == 1:
+        positive_inds.append(sample_ind)
+      elif label == 0:
+        negative_inds.append(sample_ind)
+      elif label == -1:  # Case of missing label
+        continue
+      else:
+        warnings.warn("Labels must be 0/1 or -1 " +
+                      "(missing data) for balance_positives target %d. " % target_ind +
+                      "Continuing without balancing.")
+        to_next_target = True
+        break
+    if to_next_target:
+      continue
+    n_positives, n_negatives = len(positive_inds), len(negative_inds)
+    # TODO(rbharath): This results since the coarse train/test split doesn't
+    # guarantee that the test set actually has any positives for targets. FIX
+    # THIS BEFORE RELEASE!
+    if n_positives == 0:
+      pos_weight = 0
+    else:
+      pos_weight = float(n_negatives)/float(n_positives)
+    W[positive_inds, target_ind] = pos_weight
+    W[negative_inds, target_ind] = 1
+  return W
 
 def ensure_balanced(y, W):
   """Helper function that ensures postives and negatives are balanced."""
@@ -39,33 +72,3 @@ class TestPreprocess(unittest.TestCase):
         elif y[sample_ind, target_ind] == 1:
           pos_weight += Wbal[sample_ind, target_ind]
       assert np.isclose(pos_weight, neg_weight)
-
-# TODO(rbharath): Can this just be removed since undo_transform has been
-# reimplemented?
-'''
-  def test_undo_transform_outputs(self):
-    # Test undo-log
-    y_raw = np.ones(10)
-    y_pred = np.log(y_raw)
-    output_transforms = ["log"]
-    assert np.array_equal(y_raw, undo_transform_outputs(y_raw, y_pred, output_transforms))
-
-    # Test undo-normalization
-    y_raw = np.random.randint(0, 10, size=(10,))
-    mean = np.mean(y_raw)
-    std = np.std(y_raw)
-    y_pred = (y_raw-mean)/std
-    output_transforms = ["normalize"]
-    y_ret = undo_transform_outputs(y_raw, y_pred, output_transforms)
-    assert np.allclose(y_raw, y_ret)
-    
-    # Test undo log-normalization
-    y_raw = np.random.randint(1, 10, size=(10,))
-    y_pred = np.log(y_raw)
-    mean = np.mean(y_pred)
-    std = np.std(y_pred)
-    y_pred = (y_pred - mean)/std
-    output_transforms = ["log", "normalize"]
-    y_ret = undo_transform_outputs(y_raw, y_pred, output_transforms)
-    assert np.allclose(y_raw, y_ret)
-'''

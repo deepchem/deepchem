@@ -70,7 +70,7 @@ class SklearnModel(Model):
 
   def load(self, model_dir):
     """Loads sklearn model from joblib file on disk."""
-    self.raw_model = joblib.load(Model.get_model_filename(model_dir)
+    self.raw_model = joblib.load(Model.get_model_filename(model_dir))
 
 Model.register_model_type("logistic", SklearnModel)
 Model.register_model_type("rf_classifier", SklearnModel)

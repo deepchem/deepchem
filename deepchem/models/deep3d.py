@@ -12,6 +12,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
 from deepchem.models import Model
+from deepchem.models.deep import KerasModel
 
 def shuffle_shape(shape):
   (axis_length, _, _, n_channels) = shape

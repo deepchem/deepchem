@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import tempfile
 import shutil
-from deepchem.utils.dataset import FeaturizedSamples
+from deepchem.utils.featurize import FeaturizedSamples
 from deepchem.utils.save import save_to_disk
 
 __author__ = "Bharath Ramsundar"
