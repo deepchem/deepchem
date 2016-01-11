@@ -118,7 +118,7 @@ class Model(object):
     save_to_disk(params, Model.get_params_filename(out_dir))
 
   # TODO(rbharath): This training is currently broken w.r.t minibatches! Fix.
-  def fit(self, sharded_dataset):
+  def fit(self, dataset):
     """
     Fits a model on data in a Dataset object.
     """
@@ -127,7 +127,7 @@ class Model(object):
     MAX_GPU_RAM = float(691007488/50)
     for epoch in range(self.model_params["nb_epoch"]):
       print("Starting epoch %s" % str(epoch+1))
-      for i, (X, y, w, _) in enumerate(sharded_dataset.itershards()):
+      for i, (X, y, w, _) in enumerate(dataset.itershards()):
         print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
         if sys.getsizeof(X) > MAX_GPU_RAM:
           nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
@@ -147,11 +147,11 @@ class Model(object):
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
-  def predict(self, sharded_dataset):
+  def predict(self, dataset):
     """
     Uses self to make predictions on provided Dataset object.
     """
-    task_names = sharded_dataset.get_task_names()
+    task_names = dataset.get_task_names()
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
     column_names = (['ids'] + task_names + pred_task_names + w_task_names
@@ -161,7 +161,7 @@ class Model(object):
     # TODO(rbharath/enf): This is only for GPU models, and is currently depends
     # on magic numbers.
     MAX_GPU_RAM = float(691007488/50)
-    for (X, y, w, ids) in sharded_dataset.itershards():
+    for (X, y, w, ids) in dataset.itershards():
       if sys.getsizeof(X) > MAX_GPU_RAM:
         nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
         nb_sample = np.shape(X)[0]
@@ -180,8 +180,10 @@ class Model(object):
       shard_df[task_names] = y
       shard_df[pred_task_names] = y_pred
       shard_df[w_task_names] = w
-      shard_df["y_means"] = sharded_dataset.get_label_means() 
-      shard_df["y_stds"] = sharded_dataset.get_label_stds() 
+      # TODO(rbharath): This feels like a total hack. Is there a structured way
+      # to deal with this instead?
+      shard_df["y_means"] = list(dataset.get_label_means())[0] * np.ones(np.shape(y))
+      shard_df["y_stds"] = list(dataset.get_label_stds())[0]  * np.ones(np.shape(y))
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
     return pred_y_df 

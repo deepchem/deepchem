@@ -18,10 +18,6 @@ import deepchem.models.deep
 import deepchem.models.standard
 import deepchem.models.deep3d
 
-# TODO(rbharath): Are any commands except for create_model actually used? Due to
-# the --skip-foo flags, it's possible to run all functionality directly through
-# create_model. Perhaps trim the fat and delete the remaining commands.
-
 def add_featurize_group(featurize_cmd):
   """Adds flags for featurizization."""
   featurize_group = featurize_cmd.add_argument_group("Input Specifications")
@@ -138,17 +134,17 @@ def add_model_command(subparsers):
       "model", help="Combines featurize, train-test-split, fit, eval into one\n"
       "command for user convenience.")
   model_cmd.add_argument(
-      "--skip-featurization", action="store_true",
-      help="If set, skip the featurization step.")
+      "--featurize", action="store_true",
+      help="Perform the featurization step.")
   model_cmd.add_argument(
-      "--skip-train-test-split", action="store_true",
-      help="If set, skip the train-test-split step.")
+      "--train-test-split", action="store_true",
+      help="Perform the train-test-split step.")
   model_cmd.add_argument(
-      "--skip-fit", action="store_true",
-      help="If set, skip model fit step.")
+      "--fit", action="store_true",
+      help="Perform model fit step.")
   model_cmd.add_argument(
-      "--skip-eval", action="store_true",
-      help="If set, skip model eval step.")
+      "--eval", action="store_true",
+      help="Perform model eval step.")
   model_cmd.add_argument(
       "--base-dir", type=str, required=1,
       help="The base directory for the model.")
@@ -186,7 +182,7 @@ def create_model(args):
 
   print("+++++++++++++++++++++++++++++++++")
   print("Perform featurization")
-  if not args.skip_featurization:
+  if args.featurize:
     featurize_inputs(
         feature_dir, args.input_files,
         args.user_specified_features, args.tasks,
@@ -196,14 +192,14 @@ def create_model(args):
   print("+++++++++++++++++++++++++++++++++")
   print("Perform train-test split")
   paths = [feature_dir]
-  if not args.skip_train_test_split:
+  if args.train_test_split:
     train_test_split(
         paths, args.input_transforms, args.output_transforms, args.feature_types,
         args.splittype, args.mode, data_dir)
 
   print("+++++++++++++++++++++++++++++++++")
   print("Fit model")
-  if not args.skip_fit:
+  if args.fit:
     model_params = extract_model_params(args)
     fit_model(
         model_name, model_params, model_dir, data_dir)
@@ -211,7 +207,7 @@ def create_model(args):
   print("+++++++++++++++++++++++++++++++++")
   print("Eval Model on Train")
   print("-------------------")
-  if not args.skip_eval:
+  if args.eval:
     csv_out_train = os.path.join(data_dir, "train.csv")
     stats_out_train = os.path.join(data_dir, "train-stats.txt")
     csv_out_test = os.path.join(data_dir, "test.csv")
@@ -222,7 +218,7 @@ def create_model(args):
         stats_out_train, split="train")
   print("Eval Model on Test")
   print("------------------")
-  if not args.skip_eval:
+  if args.eval:
     test_dir = os.path.join(data_dir, "test-data")
     eval_trained_model(
         model_name, model_dir, test_dir, csv_out_test,

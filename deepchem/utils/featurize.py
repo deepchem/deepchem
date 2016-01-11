@@ -16,6 +16,15 @@ from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
+from vs_utils.utils import ScaffoldGenerator
+
+def generate_scaffold(smiles, include_chirality=False, smiles_field="smiles"):
+  """Compute the Bemis-Murcko scaffold for a SMILES string."""
+  mol = Chem.MolFromSmiles(smiles)
+  engine = ScaffoldGenerator(include_chirality=include_chirality)
+  scaffold = engine.get_scaffold(mol)
+  return scaffold
+
 
 def _process_field(val):
   """Parse data in a field."""
@@ -328,20 +337,15 @@ class FeaturizedSamples(object):
     if splittype == "random":
       train_inds, test_inds = self._train_test_random_split(seed=seed, frac_train=frac_train)
     elif splittype == "scaffold":
-      train_inds, test_inds = self.train_test_scaffold_split(frac_train=frac_train)
+      train_inds, test_inds = self._train_test_scaffold_split(frac_train=frac_train)
     elif splittype == "specified":
-      train_inds, test_inds = self.train_test_specified_split()
+      train_inds, test_inds = self._train_test_specified_split()
     else:
       raise ValueError("improper splittype.")
-    print("train_test_split()")
     train_samples = FeaturizedSamples(train_dir, self.dataset_files)
     train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
-    print("len(train_inds)")
-    print(len(train_inds))
     test_samples = FeaturizedSamples(test_dir, self.dataset_files)
     test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
-    print("len(test_inds)")
-    print(len(test_inds))
 
     return train_samples, test_samples
 

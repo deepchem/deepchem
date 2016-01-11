@@ -6,17 +6,9 @@ import numpy as np
 import pandas as pd
 from functools import partial
 from rdkit import Chem
-from vs_utils.utils import ScaffoldGenerator
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.featurize import FeaturizedSamples
-
-def generate_scaffold(smiles, include_chirality=False, smiles_field="smiles"):
-  """Compute the Bemis-Murcko scaffold for a SMILES string."""
-  mol = Chem.MolFromSmiles(smiles)
-  engine = ScaffoldGenerator(include_chirality=include_chirality)
-  scaffold = engine.get_scaffold(mol)
-  return scaffold
 
 class Dataset(object):
   """
@@ -37,19 +29,10 @@ class Dataset(object):
       write_dataset_single_partial = partial(
           write_dataset_single, data_dir=self.data_dir,
           feature_types=feature_types)
-      print("Dataset()")
-      print("data_dir")
-      print(data_dir)
-      print("len(samples.compounds_df)")
-      print(len(samples.compounds_df))
 
       metadata_rows = []
       # TODO(rbharath): Still a bit of information leakage.
       for df_file, df in zip(samples.dataset_files, samples.itersamples()):
-        print("df_file")
-        print(df_file)
-        print("len(df)")
-        print(len(df))
         retval = write_dataset_single_partial((df_file, df))
         if retval is not None:
           metadata_rows.append(retval)
@@ -301,9 +284,6 @@ def df_to_numpy(df, feature_types):
       feature_list.append(datapoint[feature_type])
     features = np.squeeze(np.concatenate(feature_list))
     tensors.append(features)
-  print("df_to_numpy()")
-  print("len(df)")
-  print(len(df))
   x = np.stack(tensors)
 
   # Remove entries with missing labels
