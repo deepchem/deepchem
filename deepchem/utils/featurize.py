@@ -68,7 +68,13 @@ class DataFeaturizer(object):
     df = self._standardize_df(pd.DataFrame(rows))
     for feature_type in feature_types:
       self._featurize_df(df, feature_type)
+    print("featurize()")
+    print("len(df)")
+    print(len(df))
+    print("out")
+    print(out)
     save_to_disk(df, out)
+    df_loaded = load_from_disk(out)
 
   def _get_fields(self, input_file):
     """Get the names of fields and field_types for input data."""
@@ -226,7 +232,7 @@ class FeaturizedSamples(object):
                   set(FeaturizedSamples.feature_types))
     return sorted(list(task_names))
 
-  def __init__(self, feature_dir, dataset_files=None, overwrite=True):
+  def __init__(self, feature_dir, dataset_files=None, overwrite=True, reload=False):
     """
     Initialiize FeaturizedSamples
 
@@ -241,14 +247,18 @@ class FeaturizedSamples(object):
     if not os.path.exists(feature_dir):
       os.makedirs(feature_dir)
     self.feature_dir = feature_dir
-    
-    if os.path.exists(self._get_compounds_filename()):
+    print("FeaturizedSamples()")
+    if os.path.exists(self._get_compounds_filename()) and reload:
+      print("compounds loaded from disk")
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
+      print("compounds recomputed")
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.
       save_to_disk(compounds_df, self._get_compounds_filename())
+    print("len(compounds_df)")
+    print(len(compounds_df))
     self._check_validity(compounds_df)
     self.compounds_df = compounds_df
     

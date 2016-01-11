@@ -282,7 +282,7 @@ def train_test_split(paths, input_transforms, output_transforms,
 
   print("Loading featurized data.")
   samples_dir = os.path.join(data_dir, "samples")
-  samples = FeaturizedSamples(samples_dir, dataset_files)
+  samples = FeaturizedSamples(samples_dir, dataset_files, reload=False)
   
   print("Split data into train/test")
   train_samples_dir = os.path.join(data_dir, "train-samples")

@@ -37,6 +37,9 @@ class Dataset(object):
       write_dataset_single_partial = partial(
           write_dataset_single, data_dir=self.data_dir,
           feature_types=feature_types)
+      print("Dataset()")
+      print("samples.compounds_df")
+      print(samples.compounds_df)
 
       metadata_rows = []
       # TODO(rbharath): Still a bit of information leakage.
