@@ -38,12 +38,18 @@ class Dataset(object):
           write_dataset_single, data_dir=self.data_dir,
           feature_types=feature_types)
       print("Dataset()")
-      print("samples.compounds_df")
-      print(samples.compounds_df)
+      print("data_dir")
+      print(data_dir)
+      print("len(samples.compounds_df)")
+      print(len(samples.compounds_df))
 
       metadata_rows = []
       # TODO(rbharath): Still a bit of information leakage.
       for df_file, df in zip(samples.dataset_files, samples.itersamples()):
+        print("df_file")
+        print(df_file)
+        print("len(df)")
+        print(len(df))
         retval = write_dataset_single_partial((df_file, df))
         if retval is not None:
           metadata_rows.append(retval)

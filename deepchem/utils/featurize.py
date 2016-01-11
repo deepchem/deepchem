@@ -247,18 +247,13 @@ class FeaturizedSamples(object):
     if not os.path.exists(feature_dir):
       os.makedirs(feature_dir)
     self.feature_dir = feature_dir
-    print("FeaturizedSamples()")
     if os.path.exists(self._get_compounds_filename()) and reload:
-      print("compounds loaded from disk")
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
-      print("compounds recomputed")
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.
       save_to_disk(compounds_df, self._get_compounds_filename())
-    print("len(compounds_df)")
-    print(len(compounds_df))
     self._check_validity(compounds_df)
     self.compounds_df = compounds_df
     
@@ -307,7 +302,7 @@ class FeaturizedSamples(object):
     """Internal method used to replace compounds_df."""
     self._check_validity(df)
     save_to_disk(df, self._get_compounds_filename())
-    self.compounsd_df = df
+    self.compounds_df = df
 
   # TODO(rbharath): Might this be inefficient?
   def itersamples(self):
@@ -338,12 +333,17 @@ class FeaturizedSamples(object):
       train_inds, test_inds = self.train_test_specified_split()
     else:
       raise ValueError("improper splittype.")
-    train_dataset = FeaturizedSamples(train_dir, self.dataset_files)
-    train_dataset._set_compound_df(self.compounds_df.iloc[train_inds])
-    test_dataset = FeaturizedSamples(test_dir, self.dataset_files)
-    test_dataset._set_compound_df(self.compounds_df.iloc[test_inds])
+    print("train_test_split()")
+    train_samples = FeaturizedSamples(train_dir, self.dataset_files)
+    train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
+    print("len(train_inds)")
+    print(len(train_inds))
+    test_samples = FeaturizedSamples(test_dir, self.dataset_files)
+    test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
+    print("len(test_inds)")
+    print(len(test_inds))
 
-    return train_dataset, test_dataset
+    return train_samples, test_samples
 
   def _train_test_random_split(self, seed=None, frac_train=.8):
     """

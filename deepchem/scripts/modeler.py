@@ -277,9 +277,6 @@ def train_test_split(paths, input_transforms, output_transforms,
   dataset_files = []
   for path in paths:
     dataset_files += glob.glob(os.path.join(path, "*.joblib"))
-  print("paths")
-  print(paths)
-
   print("Loading featurized data.")
   samples_dir = os.path.join(data_dir, "samples")
   samples = FeaturizedSamples(samples_dir, dataset_files, reload=False)
@@ -321,10 +318,6 @@ def eval_trained_model(model_type, model_dir, data_dir,
                        csv_out, stats_out, split="test"):
   """Evaluates a trained model on specified data."""
   model = Model.load(model_type, model_dir)
-  print("eval_trained_model()")
-  print("data_dir")
-  print(data_dir)
-  
   data = Dataset(data_dir)
 
   evaluator = Evaluator(model, data, verbose=True)
