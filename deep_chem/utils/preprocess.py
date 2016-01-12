@@ -299,8 +299,8 @@ def transform_data(metadata_df, input_transforms, output_transforms):
 
 def undo_normalization(y, y_means, y_stds):
   """Undo the applied normalization transform."""
-  y = y * y_means + y_stds
-  return y * y_means + y_stds
+  y = y * y_stds + y_means
+  return y
 
 def undo_transform(y, y_means, y_stds, output_transforms):
   """Undo transforms on y_pred, W_pred."""
@@ -312,6 +312,7 @@ def undo_transform(y, y_means, y_stds, output_transforms):
   elif output_transforms == ["log"]:
     return np.exp(y)
   elif output_transforms == ["normalize"]:
+    print("Undoing normalization.")
     return undo_normalization(y, y_means, y_stds)
   elif output_transforms == ["log", "normalize"]:
     return np.exp(undo_normalization(y, y_means, y_stds))

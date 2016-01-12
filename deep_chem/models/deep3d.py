@@ -36,10 +36,11 @@ class DockingDNN(Model):
                           axis_length, axis_length, axis_length)
 
       learning_rate = model_params["learning_rate"]
+      print("learning rate = %f" % learning_rate)
       loss_function = model_params["loss_function"]
 
          # number of convolutional filters to use at each layer
-      nb_filters = [axis_length/2, axis_length, axis_length]
+      nb_filters = [axis_length/2 , axis_length, axis_length]
 
       # level of pooling to perform at each layer (POOL x POOL)
       nb_pool = [2, 2, 2]

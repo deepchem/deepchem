@@ -51,7 +51,7 @@ def compute_y_pred(model, data_dir, csv_out, split):
 
   split_df = metadata_df.loc[metadata_df['split'] == split]
   nb_batch = split_df.shape[0]
-  MAX_GPU_RAM = float(691007488/50)
+  MAX_GPU_RAM = float(691007488/100)
 
   for i, row in split_df.iterrows():
     print("Evaluating on %s batch %d out of %d" % (split, i+1, nb_batch))
@@ -106,7 +106,11 @@ def compute_model_performance(pred_y_df, task_names, task_type, stats_file, outp
   performance_df = pd.DataFrame(columns=colnames)
 
   y_means = pred_y_df.iterrows().next()[1]["y_means"]
+  print("y_means")
+  print(y_means)
   y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
+  print("y_stds")
+  print(y_stds)
 
   for i, task_name in enumerate(task_names):
     y = pred_y_df[task_name]
