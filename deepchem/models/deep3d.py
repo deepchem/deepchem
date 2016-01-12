@@ -11,7 +11,8 @@ from keras.optimizers import RMSprop
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution3D, MaxPooling3D
-from deep_chem.models import Model
+from deepchem.models import Model
+from deepchem.models.deep import KerasModel
 
 def shuffle_shape(shape):
   (axis_length, _, _, n_channels) = shape
@@ -24,7 +25,7 @@ def shuffle_data(X):
   return X
 
 
-class DockingDNN(Model):
+class DockingDNN(KerasModel):
   """
   Wrapper class for fitting 3D convolutional networks for deep docking.
   """
@@ -76,7 +77,6 @@ class DockingDNN(Model):
       self.raw_model = model
 
   def fit_on_batch(self, X, y, w):
-    # TODO(rbharath): Modify the featurization so that it matches desired shaped.
     X = shuffle_data(X)
     loss = self.raw_model.train_on_batch(X, y)
     print("Loss: %f" % loss)
@@ -89,3 +89,5 @@ class DockingDNN(Model):
     y_pred = self.raw_model.predict_on_batch(X)
     y_pred = np.squeeze(y_pred)
     return y_pred
+
+Model.register_model_type("convolutional_3D_regressor", DockingDNN)
