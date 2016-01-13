@@ -31,7 +31,7 @@ def _process_field(val):
   if isinstance(val, float) or isinstance(val, np.ndarray):
     return val
   elif isinstance(val, list):
-    return [process_field(elt) for elt in val]
+    return [_process_field(elt) for elt in val]
   elif isinstance(val, str):
     try:
       return float(val)
@@ -76,12 +76,7 @@ class DataFeaturizer(object):
       rows.append(self._process_raw_sample(input_type, row, fields))
     df = self._standardize_df(pd.DataFrame(rows))
     for feature_type in feature_types:
-      self._featurize_df(df, feature_type)
-    print("featurize()")
-    print("len(df)")
-    print(len(df))
-    print("out")
-    print(out)
+      self._featurize_df(df, rows, feature_type)
     save_to_disk(df, out)
     df_loaded = load_from_disk(out)
 
@@ -109,7 +104,7 @@ class DataFeaturizer(object):
       filename, file_extension = os.path.splitext(filename)
     if file_extension == ".csv":
       return "csv"
-    elif file_extension == ".pkl":
+    elif file_extension in [".pkl", ".joblib"]:
       return "pandas"
     elif file_extension == ".sdf":
       return "sdf"
@@ -129,7 +124,7 @@ class DataFeaturizer(object):
             yield row
     elif input_type == "pandas":
       dataframe = load_from_disk(input_file)
-      for row in dataframe.iterrows():
+      for _, row in dataframe.iterrows():
         yield row
     elif input_type == "sdf":
       if ".gz" in input_file:
@@ -154,8 +149,6 @@ class DataFeaturizer(object):
         data[field] = _process_field(row[ind])
       return data
     elif input_type == "pandas":
-      # pandas rows are tuples (row_num, data)
-      row = row[1]
       for field in fields:
         data[field] = _process_field(row[field])
     elif input_type == "sdf":
@@ -187,22 +180,22 @@ class DataFeaturizer(object):
 
     return df
 
-  def _featurize_df(self, df, feature_type):
+  def _featurize_df(self, df, rows, feature_type):
     """Generates circular fingerprints for dataset."""
     if feature_type == "user-specified-features":
       if self.user_specified_features is not None:
         if self.verbose:
           print("Adding user-defined features.")
         features_data = []
-        for row in df.iterrows():
+        for row in rows:
           # pandas rows are tuples (row_num, row_data)
-          row, feature_list = row[1], []
-          for feature in user_specified_features:
-            feature_list.append(row[feature])
-          features_data.append({"row": np.array(feature_list)})
+          feature_list = []
+          for feature_name in self.user_specified_features:
+            feature_list.append(row[feature_name])
+          features_data.append({feature_type: np.array(feature_list)})
         df[feature_type] = pd.DataFrame(features_data)
         return
-    elif feature_type in ["ECFP", "RDKIT-descriptors"]:
+    elif feature_type in ["ECFP", "RDKIT-descriptors", "NNScore"]:
       if feature_type == "ECFP":
         if self.verbose:
           print("Generating ECFP circular fingerprints.")
@@ -211,6 +204,8 @@ class DataFeaturizer(object):
         if self.verbose:
           print("Generating RDKIT descriptors.")
         featurizer = SimpleDescriptors()
+      elif feature_type == "NNScore":
+        pass
       features = []
       sample_smiles = df["smiles"].tolist()
       for ind, smiles in enumerate(sample_smiles):
@@ -301,8 +296,12 @@ class FeaturizedSamples(object):
       df = load_from_disk(dataset_file)
       compound_ids = list(df["mol_id"])
       smiles = list(df["smiles"])
-      splits = list(df["split"])
+      if "split" in df.keys():
+        splits = list(df["split"])
+      else:
+        splits = [None] * len(smiles)
       compound_rows += [list(elt) for elt in zip(compound_ids, smiles, splits)]
+
     compounds_df = pd.DataFrame(compound_rows,
                                 columns=("mol_id", "smiles", "split"))
     return compounds_df

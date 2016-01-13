@@ -1,6 +1,9 @@
 """
 Contains wrapper class for datasets.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import os
 import numpy as np
 import pandas as pd
@@ -286,13 +289,14 @@ def df_to_numpy(df, feature_types):
     tensors.append(features)
   x = np.stack(tensors)
 
-  # Remove entries with missing labels
-  nonzero_labels = np.squeeze(np.where(np.squeeze(y)!=''))
+  #TODO(enf/rbharath): This is not compatible with multitask use case.
+  nonzero_labels = np.arange(len(y))[[val != '' for val in y]]
+  #nonzero_labels = np.squeeze(np.where(y!=''))
   x = x[nonzero_labels]
   y = y[nonzero_labels]
   w = w[nonzero_labels]
   nonzero_rows = []
-  for nonzero_ind in np.squeeze(nonzero_labels):
+  for nonzero_ind in nonzero_labels:
     nonzero_rows.append(df.iloc[nonzero_ind])
   nonzero_df = pd.DataFrame(nonzero_rows)
   sorted_ids = nonzero_df["mol_id"]
@@ -319,7 +323,7 @@ def compute_mean_and_std(df):
                                 df['y_n'].values)
   y_sums = np.vstack(y_sums)
   y_sum_squares = np.vstack(y_sum_squares)
-  n = np.sum(y_n)
+  n = float(np.sum(y_n))
   y_means = np.sum(y_sums, axis=0)/n
   y_vars = np.sum(y_sum_squares,axis=0)/n - np.square(y_means)
   return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
