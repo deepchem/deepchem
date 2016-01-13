@@ -122,25 +122,21 @@ class Model(object):
     """
     Fits a model on data in a Dataset object.
     """
-    # TODO(rbharath/enf): This GPU_RAM is black magic. Needs to be removed/made
-    # more general.
-    MAX_GPU_RAM = float(691007488/50)
+    # TODO(rbharath/enf): We need a structured way to deal with potential GPU
+    #                     memory overflows.
+    batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
       print("Starting epoch %s" % str(epoch+1))
       for i, (X, y, w, _) in enumerate(dataset.itershards()):
         print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
-        if sys.getsizeof(X) > MAX_GPU_RAM:
-          nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
-          nb_sample = np.shape(X)[0]
-          interval_points = np.linspace(nb_sample,nb_block+1).astype(int)
-          for j in range(len(interval_points)-1):
-            indices = range(interval_points[j],interval_points[j+1])
-            X_batch = X[indices,:]
-            y_batch = y[indices]
-            w_batch = w[indices]
-            self.fit_on_batch(X_batch, y_batch, w_batch)
-        else:
-          self.fit_on_batch(X, y, w)
+        nb_sample = np.shape(X)[0]
+        interval_points = np.linspace(0,nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
+        for j in range(len(interval_points)-1):
+          indices = range(interval_points[j],interval_points[j+1])
+          X_batch = X[indices,:]
+          y_batch = y[indices]
+          w_batch = w[indices]
+          self.fit_on_batch(X_batch, y_batch, w_batch)
 
   # TODO(rbharath): What does this function do when y is not provided. Suspect
   # it breaks. Need to fix.

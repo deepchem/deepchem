@@ -289,13 +289,14 @@ def df_to_numpy(df, feature_types):
     tensors.append(features)
   x = np.stack(tensors)
 
-  # Remove entries with missing labels
-  nonzero_labels = np.squeeze(np.where(np.squeeze(y)!=''))
+  #TODO(enf/rbharath): This is not compatible with multitask use case.
+  nonzero_labels = np.arange(len(y))[[val != '' for val in y]]
+  #nonzero_labels = np.squeeze(np.where(y!=''))
   x = x[nonzero_labels]
   y = y[nonzero_labels]
   w = w[nonzero_labels]
   nonzero_rows = []
-  for nonzero_ind in np.squeeze(nonzero_labels):
+  for nonzero_ind in nonzero_labels:
     nonzero_rows.append(df.iloc[nonzero_ind])
   nonzero_df = pd.DataFrame(nonzero_rows)
   sorted_ids = nonzero_df["mol_id"]

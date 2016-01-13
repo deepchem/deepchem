@@ -29,8 +29,8 @@ class DockingDNN(KerasModel):
   """
   Wrapper class for fitting 3D convolutional networks for deep docking.
   """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
-    super(DockingDNN, self).__init__(task_types, model_params, initialize_raw_model)
+  def __init__(self, model_type, task_types, model_params, initialize_raw_model=True):
+    super(DockingDNN, self).__init__(model_type, task_types, model_params, initialize_raw_model)
     if initialize_raw_model:
       (axis_length, _, _, n_channels) = model_params["data_shape"]
       self.input_shape = (n_channels, 
