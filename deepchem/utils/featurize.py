@@ -77,11 +77,6 @@ class DataFeaturizer(object):
     df = self._standardize_df(pd.DataFrame(rows))
     for feature_type in feature_types:
       self._featurize_df(df, feature_type)
-    print("featurize()")
-    print("len(df)")
-    print(len(df))
-    print("out")
-    print(out)
     save_to_disk(df, out)
     df_loaded = load_from_disk(out)
 
