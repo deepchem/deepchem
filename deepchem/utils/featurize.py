@@ -52,6 +52,8 @@ class DataFeaturizer(object):
                id_field=None, threshold=None, user_specified_features=None,
                verbose=False, log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
+    if not isinstance(tasks, list):
+      raise ValueError("tasks must be a list.")
     self.tasks = tasks
     self.smiles_field = smiles_field
     self.split_field = split_field
