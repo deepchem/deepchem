@@ -51,7 +51,7 @@ class Dataset(object):
                    'y_sums', 'y_sum_squares', 'y_n')) 
       save_to_disk(
         self.metadata_df, self._get_metadata_filename())
-      # input/output transforms not specified, so
+      # input/output transforms not specified yet, so
       # self.transforms = (input_transforms, output_transforms) =>
       self.transforms = ([], [])
       save_to_disk(
@@ -99,6 +99,9 @@ class Dataset(object):
     """
     return self.metadata_df.shape[0]
 
+  # TODO(rbharath): There is a dangerous mixup in semantics. If itershards() is
+  # called without calling transform(), it will explode. Maybe have a separate
+  # initialization function to avoid this problem.
   def itershards(self):
     """
     Iterates over all shards in dataset.
@@ -251,7 +254,7 @@ def write_dataset_single(val, data_dir, feature_types):
   if not len(df):
     return None
   task_names = FeaturizedSamples.get_sorted_task_names(df)
-  ids, X, y, w = df_to_numpy(df, feature_types)
+  ids, X, y, w = _df_to_numpy(df, feature_types)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
@@ -267,18 +270,21 @@ def write_dataset_single(val, data_dir, feature_types):
   save_to_disk(y, out_y)
   save_to_disk(w, out_w)
   save_to_disk(ids, out_ids)
+  # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
+  # itershards expects to loop over X-transformed? (Ditto for y/w)
   return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y, 
           out_y_transformed, out_w,
           X_sums, X_sum_squares, X_n, 
           y_sums, y_sum_squares, y_n])
 
-def df_to_numpy(df, feature_types):
+def _df_to_numpy(df, feature_types):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   sorted_tasks = FeaturizedSamples.get_sorted_task_names(df)
   n_tasks = len(sorted_tasks)
   y = df[sorted_tasks].values
+  y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
   tensors = []
   for i, datapoint in df.iterrows():
@@ -288,18 +294,12 @@ def df_to_numpy(df, feature_types):
     features = np.squeeze(np.concatenate(feature_list))
     tensors.append(features)
   x = np.stack(tensors)
+  sorted_ids = df["mol_id"]
 
-  #TODO(enf/rbharath): This is not compatible with multitask use case.
-  nonzero_labels = np.arange(len(y))[[val != '' for val in y]]
-  #nonzero_labels = np.squeeze(np.where(y!=''))
-  x = x[nonzero_labels]
-  y = y[nonzero_labels]
-  w = w[nonzero_labels]
-  nonzero_rows = []
-  for nonzero_ind in nonzero_labels:
-    nonzero_rows.append(df.iloc[nonzero_ind])
-  nonzero_df = pd.DataFrame(nonzero_rows)
-  sorted_ids = nonzero_df["mol_id"]
+  # Set missing data to have weight zero
+  missing = (y == "")
+  y[missing] = 0.
+  w[missing] = 0.
 
   return sorted_ids, x, y, w
 

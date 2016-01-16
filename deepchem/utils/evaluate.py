@@ -91,6 +91,7 @@ class Evaluator(object):
       raise ValueError("Unrecognized task type: %s" % self.task_type)
 
     performance_df = pd.DataFrame(columns=colnames)
+    print("compute_model_performance()")
     y_means = pred_y_df.iterrows().next()[1]["y_means"]
     y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
 
