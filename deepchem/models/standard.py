@@ -59,7 +59,7 @@ class SklearnModel(Model):
       Xs.append(X)
       ys.append(y)
     X = np.concatenate(Xs)
-    y = np.concatenate(ys)
+    y = np.concatenate(ys).ravel()
     self.raw_model.fit(X, y)
 
   def predict_on_batch(self, X):

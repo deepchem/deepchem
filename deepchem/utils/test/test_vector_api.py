@@ -43,13 +43,13 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     shutil.rmtree(self.model_dir)
 
   def test_API(self):
-    """Straightforward test of deepchem API."""
-    splittype = "random"
+    """Straightforward test of singletask deepchem regression API."""
+    splittype = "scaffold"
     feature_types = ["ECFP"]
     output_transforms = ["normalize"]
     input_transforms = []
     task_type = "regression"
-    model_params = {}
+    model_params = {"batch_size": 5}
     model_name = "rf_regressor"
 
     # Featurize input
@@ -74,6 +74,7 @@ class TestSingletaskVectorAPI(unittest.TestCase):
 
     # Fit model
     task_types = {task: task_type for task in self.tasks}
+    model_params["data_shape"] = train_dataset.get_data_shape()
     model = Model.model_builder(model_name, task_types, model_params)
     model.fit(train_dataset)
     model.save(self.model_dir)
@@ -109,13 +110,19 @@ class TestMultitaskVectorAPI(unittest.TestCase):
     shutil.rmtree(self.model_dir)
 
   def test_API(self):
-    """Straightforward test of deepchem API."""
-    splittype = "random"
+    """Straightforward test of multitask deepchem classification API."""
+    splittype = "scaffold"
     feature_types = ["ECFP"]
-    output_transforms = ["normalize"]
+    output_transforms = []
     input_transforms = []
     task_type = "classification"
-    model_params = {}
+    # TODO(rbharath): There should be some automatic check to ensure that all
+    # required model_params are specified.
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2}
     model_name = "multitask_deep_classifier"
 
     # Featurize input
@@ -140,6 +147,7 @@ class TestMultitaskVectorAPI(unittest.TestCase):
 
     # Fit model
     task_types = {task: task_type for task in self.tasks}
+    model_params["data_shape"] = train_dataset.get_data_shape()
     model = Model.model_builder(model_name, task_types, model_params)
     model.fit(train_dataset)
     model.save(self.model_dir)

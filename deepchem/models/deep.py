@@ -136,8 +136,15 @@ class MultiTaskDNN(KerasModel):
     nb_tasks = len(sorted_tasks)
     y_pred = np.zeros((nb_samples, nb_tasks))
     for ind, task in enumerate(sorted_tasks):
+      task_type = self.task_types[task]
       taskname = "task%d" % ind
-      y_pred[:,ind] = np.squeeze(y_pred_dict[taskname])
+      if task_type == "classification":
+        # Class probabilities are predicted for classification outputs. Instead,
+        # output the most likely class.
+        y_pred_task = np.squeeze(np.argmax(y_pred_dict[taskname], axis=1))
+      else:
+        y_pred_task = np.squeeze(y_pred_dict[taskname])
+      y_pred[:,ind] = y_pred_task
     y_pred = np.squeeze(y_pred)
     return y_pred
 

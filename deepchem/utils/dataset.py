@@ -13,6 +13,10 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.featurize import FeaturizedSamples
 
+# TODO(rbharath): The semantics of this class are very difficult to debug.
+# Multiple transformations of the data are performed on disk, and computations
+# of mean/std are spread across multiple functions for efficiency. Some
+# refactoring needs to happen here.
 class Dataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
@@ -108,7 +112,6 @@ class Dataset(object):
     """
     nb_shards = self.get_number_shards()
     for i, row in self.metadata_df.iterrows():
-      print("Loading shard %d out of %d" % (i+1, nb_shards))
       X = load_from_disk(row['X-transformed'])
       y = load_from_disk(row['y-transformed'])
       w = load_from_disk(row['w'])
@@ -120,20 +123,19 @@ class Dataset(object):
         truncate_y, log_X, log_y) = False, False, False, False, False, False
 
     if "truncate" in input_transforms:
-      truncate_x=True
+      truncate_x = True
     if "normalize" in input_transforms:
-      normalize_X=True
+      normalize_X = True
     if "log" in input_transforms:
       log_X = True 
 
     if "normalize" in output_transforms:
-      normalize_y=True
+      normalize_y = True
     if "log" in output_transforms:
       log_y = True
 
     # Store input_transforms/output_transforms so the dataset remembers its state.
 
-    print("Transforming data.")
     X_means, X_stds, y_means, y_stds = self._transform(normalize_X, normalize_y,
                                                        truncate_x, truncate_y,
                                                        log_X, log_y,
@@ -193,10 +195,9 @@ def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
   X = load_from_disk(row['X'])
   if normalize_X or log_X:
     if normalize_X:
-      print("Normalizing X sample %d out of %d" % (i+1,total))
+      # Turns NaNs to zeros
       X = np.nan_to_num((X - X_means) / X_stds)
       if truncate_X:
-         print("Truncating X sample %d out of %d" % (i+1,total))
          X[X > trunc] = trunc
          X[X < (-1.0*trunc)] = -1.0 * trunc
     if log_X:
@@ -249,7 +250,6 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
 def write_dataset_single(val, data_dir, feature_types):
   (df_file, df) = val
-  print("Examining %s" % df_file)
   # TODO(rbharath): This is a hack. clean up.
   if not len(df):
     return None
@@ -301,29 +301,33 @@ def _df_to_numpy(df, feature_types):
   y[missing] = 0.
   w[missing] = 0.
 
-  return sorted_ids, x, y, w
+  return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 
 def compute_mean_and_std(df):
   """
   Compute means/stds of X/y from sums/sum_squares of tensors.
   """
-  X_sums, X_sum_squares, X_n = (df['X_sums'], 
-                                df['X_sum_squares'],
-                                df['X_n'])
+  X_sums, X_sum_squares, X_n = (list(df['X_sums']), 
+                                list(df['X_sum_squares']),
+                                list(df['X_n']))
+  # Note that X_n is a list of floats
   n = float(np.sum(X_n))
+  X_sums = np.vstack(X_sums)
+  X_sum_squares = np.vstack(X_sum_squares)
   overall_X_sums = np.sum(X_sums, axis=0)
   overall_X_means = overall_X_sums / n
   overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
 
   X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
 
-  y_sums, y_sum_squares, y_n = (df['y_sums'].values, 
-                                df['y_sum_squares'].values,
-                                df['y_n'].values)
+  y_sums, y_sum_squares, y_n = (list(df['y_sums']), 
+                                list(df['y_sum_squares']),
+                                list(df['y_n']))
+  # Note y_n is a list of arrays of shape (n_tasks,)
+  y_n = np.sum(y_n, axis=0)
   y_sums = np.vstack(y_sums)
   y_sum_squares = np.vstack(y_sum_squares)
-  n = float(np.sum(y_n))
-  y_means = np.sum(y_sums, axis=0)/n
-  y_vars = np.sum(y_sum_squares,axis=0)/n - np.square(y_means)
+  y_means = np.sum(y_sums, axis=0)/y_n
+  y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
   return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)

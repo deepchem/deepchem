@@ -117,7 +117,6 @@ class Model(object):
               "model_type": self.model_type}
     save_to_disk(params, Model.get_params_filename(out_dir))
 
-  # TODO(rbharath): This training is currently broken w.r.t minibatches! Fix.
   def fit(self, dataset):
     """
     Fits a model on data in a Dataset object.
@@ -130,10 +129,11 @@ class Model(object):
       for i, (X, y, w, _) in enumerate(dataset.itershards()):
         print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
         nb_sample = np.shape(X)[0]
-        interval_points = np.linspace(0,nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
+        interval_points = np.linspace(
+            0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
         for j in range(len(interval_points)-1):
           indices = range(interval_points[j],interval_points[j+1])
-          X_batch = X[indices,:]
+          X_batch = X[indices, :]
           y_batch = y[indices]
           w_batch = w[indices]
           self.fit_on_batch(X_batch, y_batch, w_batch)
@@ -154,21 +154,16 @@ class Model(object):
                            + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
-    # TODO(rbharath/enf): This is only for GPU models, and is currently depends
-    # on magic numbers.
-    MAX_GPU_RAM = float(691007488/50)
+    batch_size = self.model_params["batch_size"]
     for (X, y, w, ids) in dataset.itershards():
-      if sys.getsizeof(X) > MAX_GPU_RAM:
-        nb_block = float(sys.getsizeof(X))/MAX_GPU_RAM
-        nb_sample = np.shape(X)[0]
-        interval_points = np.linspace(0,nb_sample,nb_block+1).astype(int)
-        y_preds = []
-        for j in range(0,len(interval_points)-1):
-          indices = range(interval_points[j],interval_points[j+1])
-          y_preds.append(self.predict_on_batch(X[indices,:]))
-        y_pred = np.concatenate(y_preds)
-      else:
-        y_pred = self.predict_on_batch(X)
+      nb_sample = np.shape(X)[0]
+      interval_points = np.linspace(
+          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
+      y_preds = []
+      for j in range(0,len(interval_points)-1):
+        indices = range(interval_points[j],interval_points[j+1])
+        y_preds.append(self.predict_on_batch(X[indices,:]))
+      y_pred = np.concatenate(y_preds)
       y_pred = np.reshape(y_pred, np.shape(y))
 
       shard_df = pd.DataFrame(columns=column_names)
