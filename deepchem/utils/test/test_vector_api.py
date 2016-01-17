@@ -42,16 +42,9 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     shutil.rmtree(self.test_dir)
     shutil.rmtree(self.model_dir)
 
-  def test_API(self):
-    """Straightforward test of singletask deepchem regression API."""
-    splittype = "scaffold"
-    feature_types = ["ECFP"]
-    output_transforms = ["normalize"]
-    input_transforms = []
-    task_type = "regression"
-    model_params = {"batch_size": 5}
-    model_name = "rf_regressor"
-
+  def _create_model(self, splittype, feature_types, input_transforms,
+                    output_transforms, task_type, model_params, model_name):
+    """Helper method to create model for test."""
     # Featurize input
     featurizer = DataFeaturizer(tasks=self.tasks,
                                 smiles_field=self.smiles_field,
@@ -83,7 +76,33 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     evaluator = Evaluator(model, test_dataset, verbose=True)
     with tempfile.NamedTemporaryFile() as test_csv_out:
       with tempfile.NamedTemporaryFile() as test_stats_out:
-        evaluator.compute_model_performance(test_csv_out, test_stats_out)
+        pred_y_df, perf_df = evaluator.compute_model_performance(
+            test_csv_out, test_stats_out)
+
+  def test_singletask_rf_ECFP_regression_API(self):
+    """Test of singletask RF ECFP regression API."""
+    splittype = "scaffold"
+    feature_types = ["ECFP"]
+    input_transforms = []
+    output_transforms = ["normalize"]
+    task_type = "regression"
+    model_params = {"batch_size": 5}
+    model_name = "rf_regressor"
+    self._create_model(splittype, feature_types, input_transforms,
+                       output_transforms, task_type, model_params, model_name)
+
+
+  def test_singletask_rf_RDKIT_descriptor_regression_API(self):
+    """Test of singletask RF RDKIT-descriptor regression API."""
+    splittype = "scaffold"
+    feature_types = ["RDKIT-descriptors"]
+    input_transforms = ["normalize", "truncate"]
+    output_transforms = ["normalize"]
+    task_type = "regression"
+    model_params = {"batch_size": 5}
+    model_name = "rf_regressor"
+    self._create_model(splittype, feature_types, input_transforms,
+                       output_transforms, task_type, model_params, model_name)
 
 class TestMultitaskVectorAPI(unittest.TestCase):
   """

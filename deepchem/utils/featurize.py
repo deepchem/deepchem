@@ -179,7 +179,6 @@ class DataFeaturizer(object):
       df[task] = ori_df[[task]]
     if self.split_field is not None:
       df["split"] = ori_df[[self.split_field]]
-
     return df
 
   def _featurize_df(self, df, rows, feature_type):
@@ -197,7 +196,7 @@ class DataFeaturizer(object):
           features_data.append({feature_type: np.array(feature_list)})
         df[feature_type] = pd.DataFrame(features_data)
         return
-    elif feature_type in ["ECFP", "RDKIT-descriptors", "NNScore"]:
+    elif feature_type in ["ECFP", "RDKIT-descriptors"]:
       if feature_type == "ECFP":
         if self.verbose:
           print("Generating ECFP circular fingerprints.")
@@ -206,8 +205,6 @@ class DataFeaturizer(object):
         if self.verbose:
           print("Generating RDKIT descriptors.")
         featurizer = SimpleDescriptors()
-      elif feature_type == "NNScore":
-        pass
       features = []
       sample_smiles = df["smiles"].tolist()
       for ind, smiles in enumerate(sample_smiles):

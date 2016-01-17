@@ -118,8 +118,8 @@ class Evaluator(object):
         rms = np.sqrt(mean_squared_error(y, y_pred))
         performance_df.loc[i] = [task_name, r2s, rms]
 
-    print("Saving model performance scores to %s" % stats_file)
+    if self.verbose:
+      print("Saving model performance scores to %s" % stats_file)
     performance_df.to_csv(stats_file)
-    
-    print("Model performance scores:")
-    print(performance_df)
+
+    return pred_y_df, performance_df

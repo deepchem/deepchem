@@ -279,6 +279,9 @@ def write_dataset_single(val, data_dir, feature_types):
 
 def _df_to_numpy(df, feature_types):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
+  if not set(feature_types).issubset(df.keys()):
+    raise ValueError(
+        "Featurized data does not support requested feature_types.")
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   sorted_tasks = FeaturizedSamples.get_sorted_task_names(df)
