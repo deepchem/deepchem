@@ -15,15 +15,22 @@ from deepchem.models import Model
 from deepchem.models.deep import KerasModel
 
 def shuffle_shape(shape):
+  """
+  Shuffle shape of form (N, N, N, C) into (C, N, N, N).
+  """
   (axis_length, _, _, n_channels) = shape
   shuffled_shape = (n_channels, axis_length, axis_length, axis_length)
   return shuffled_shape
 
 def shuffle_data(X):
+  """
+  Make data of shape (C, N, N, N) from (N, N, N, C)
+
+  C is n_channels, N is axis_length.
+  """
   (n_samples, axis_length, _, _, n_channels) = np.shape(X)
   X = np.reshape(X, (n_samples, n_channels, axis_length, axis_length, axis_length))
   return X
-
 
 class DockingDNN(KerasModel):
   """
@@ -33,7 +40,7 @@ class DockingDNN(KerasModel):
     super(DockingDNN, self).__init__(model_type, task_types, model_params, initialize_raw_model)
     if initialize_raw_model:
       (axis_length, _, _, n_channels) = model_params["data_shape"]
-      self.input_shape = (n_channels, 
+      self.input_shape = (n_channels,
                           axis_length, axis_length, axis_length)
 
       learning_rate = model_params["learning_rate"]
@@ -41,7 +48,7 @@ class DockingDNN(KerasModel):
       loss_function = model_params["loss_function"]
 
          # number of convolutional filters to use at each layer
-      nb_filters = [axis_length/2 , axis_length, axis_length]
+      nb_filters = [axis_length/2, axis_length, axis_length]
 
       # level of pooling to perform at each layer (POOL x POOL)
       nb_pool = [2, 2, 2]
@@ -50,13 +57,13 @@ class DockingDNN(KerasModel):
       nb_conv = [7, 5, 3]
       model = Sequential()
 
-      model.add(Convolution3D(nb_filter=nb_filters[0], nb_depth=nb_conv[0], 
+      model.add(Convolution3D(nb_filter=nb_filters[0], nb_depth=nb_conv[0],
                               nb_row=nb_conv[0], nb_col=nb_conv[0],
                               input_shape=self.input_shape, border_mode="full"))
       model.add(Activation('relu'))
 
       model.add(MaxPooling3D(pool_size=(nb_pool[0], nb_pool[0], nb_pool[0])))
-      model.add(Convolution3D(nb_filter=nb_filters[1],  nb_depth=nb_conv[1],
+      model.add(Convolution3D(nb_filter=nb_filters[1], nb_depth=nb_conv[1],
                               nb_row=nb_conv[1], nb_col=nb_conv[1], border_mode="full"))
       model.add(Activation('relu'))
       model.add(MaxPooling3D(pool_size=(nb_pool[1], nb_pool[1], nb_pool[1])))

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import argparse
 import glob
 import os
+import multiprocessing as mp
 from functools import partial
 from deepchem.utils.featurize import DataFeaturizer
 from deepchem.utils.featurize import FeaturizedSamples
@@ -44,10 +45,6 @@ def add_featurize_group(featurize_cmd):
       "--threshold", type=float, default=None,
       help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
-      "--feature-dir", type=str, required=0,
-      help="Directory where featurized dataset will be stored.\n"
-           "Will be created if does not exist")
-  featurize_group.add_argument(
       "--parallel", type=float, default=None,
       help="Use multiprocessing will be used to parallelize featurization.")
 
@@ -63,10 +60,6 @@ def add_transforms_group(cmd):
       choices=["normalize", "log"],
       help="Supported transforms are 'log' and 'normalize'. 'None' will be taken\n"
            "to mean no transforms are required.")
-  transform_group.add_argument(
-      "--mode", default="singletask",
-      choices=["singletask", "multitask"],
-      help="Type of model being built.")
   transform_group.add_argument(
       "--feature-types", nargs="+", required=1,
       choices=["user-specified-features", "ECFP", "RDKIT-descriptors"],
@@ -128,6 +121,7 @@ def add_model_group(fit_cmd):
       "--nesterov", action="store_true",
       help="If set, use Nesterov acceleration.")
 
+
 def add_model_command(subparsers):
   """Adds flags for model subcommand."""
   model_cmd = subparsers.add_parser(
@@ -136,6 +130,9 @@ def add_model_command(subparsers):
   model_cmd.add_argument(
       "--featurize", action="store_true",
       help="Perform the featurization step.")
+  model_cmd.add_argument(
+      "--generate-dataset", action="store_true",
+      help="Generate dataset from featurized data.")
   model_cmd.add_argument(
       "--train-test-split", action="store_true",
       help="Perform the train-test-split step.")
@@ -146,8 +143,20 @@ def add_model_command(subparsers):
       "--eval", action="store_true",
       help="Perform model eval step.")
   model_cmd.add_argument(
-      "--base-dir", type=str, required=1,
+      "--eval-full", action="store_true",
+      help="Evaluate model on full dataset.")
+  model_cmd.add_argument(
+      "--base-dir", type=str, default=None,
       help="The base directory for the model.")
+  model_cmd.add_argument(
+      "--feature-dir", type=str, default=None,
+      help="The feature storage directory for the model.")
+  model_cmd.add_argument(
+      "--data-dir", type=str, default=None,
+      help="The data storage directory for the model.")
+  model_cmd.add_argument(
+      "--model-dir", type=str, default=None,
+      help="The model storage directory for the model.")
   add_featurize_group(model_cmd)
 
   add_transforms_group(model_cmd)
@@ -163,66 +172,99 @@ def extract_model_params(args):
             "activation", "momentum", "nesterov"]
 
   model_params = {param : getattr(args, param) for param in params}
-  return(model_params)
+  return model_params
 
 def ensure_exists(dirs):
+  """Creates dirs if they don't exist."""
   for directory in dirs:
     if not os.path.exists(directory):
       os.makedirs(directory)
 
 def create_model(args):
   """Creates a model"""
-  base_dir = args.base_dir
-  feature_dir = os.path.join(base_dir, "features")
-  data_dir = os.path.join(base_dir, "data")
-  model_dir = os.path.join(base_dir, "model")
-  ensure_exists([base_dir, feature_dir, data_dir, model_dir])
-
   model_name = args.model
+  if args.base_dir is not None:
+    feature_dir = os.path.join(args.base_dir, "features")
+    data_dir = os.path.join(args.base_dir, "data")
+    model_dir = os.path.join(args.base_dir, "model")
+    ensure_exists([args.base_dir, feature_dir, data_dir, model_dir])
+  else:
+    if (args.model_dir is None or
+        args.data_dir is None or
+        args.feature_dir is None):
+      raise ValueError("If base-dir not specified, must specify "
+                       "feature-dir, data-dir, model-dir.")
 
-  print("+++++++++++++++++++++++++++++++++")
-  print("Perform featurization")
+    feature_dir, model_dir, data_dir = (args.feature_dir, args.model_dir,
+                                        args.data_dir)
+    ensure_exists([feature_dir, data_dir, model_dir])
+
   if args.featurize:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Perform featurization")
     featurize_inputs(
-        feature_dir, args.input_files,
-        args.user_specified_features, args.tasks,
-        args.smiles_field, args.split_field, args.id_field, args.threshold,
-        args.parallel)
+        feature_dir, data_dir, args.input_files, args.user_specified_features,
+        args.tasks, args.smiles_field, args.split_field, args.id_field,
+        args.threshold, args.parallel)
 
-  print("+++++++++++++++++++++++++++++++++")
-  print("Perform train-test split")
-  paths = [feature_dir]
+  if args.generate_dataset:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Generate dataset for featurized samples")
+    samples_dir = os.path.join(data_dir, "samples")
+    samples = FeaturizedSamples(samples_dir, reload_data=True)
+
+    print("Generating dataset.")
+    full_data_dir = os.path.join(data_dir, "full-data")
+    full_dataset = Dataset(full_data_dir, samples, args.feature_types)
+
+    print("Transform data.")
+    full_dataset.transform(args.input_transforms, args.output_transforms)
+
+
   if args.train_test_split:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Perform train-test split")
     train_test_split(
-        paths, args.input_transforms, args.output_transforms, args.feature_types,
-        args.splittype, args.mode, data_dir)
+        args.input_transforms, args.output_transforms, args.feature_types,
+        args.splittype, data_dir)
 
-  print("+++++++++++++++++++++++++++++++++")
-  print("Fit model")
   if args.fit:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Fit model")
     model_params = extract_model_params(args)
     fit_model(
         model_name, model_params, model_dir, data_dir)
 
-  print("+++++++++++++++++++++++++++++++++")
-  print("Eval Model on Train")
-  print("-------------------")
   if args.eval:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Eval Model on Train")
+    print("-------------------")
+    train_dir = os.path.join(data_dir, "train-data")
     csv_out_train = os.path.join(data_dir, "train.csv")
     stats_out_train = os.path.join(data_dir, "train-stats.txt")
-    csv_out_test = os.path.join(data_dir, "test.csv")
-    stats_out_test = os.path.join(data_dir, "test-stats.txt")
-    train_dir = os.path.join(data_dir, "train-data")
     eval_trained_model(
         model_name, model_dir, train_dir, csv_out_train,
-        stats_out_train, split="train")
-  print("Eval Model on Test")
-  print("------------------")
-  if args.eval:
+        stats_out_train)
+
+    print("Eval Model on Test")
+    print("------------------")
     test_dir = os.path.join(data_dir, "test-data")
+    csv_out_test = os.path.join(data_dir, "test.csv")
+    stats_out_test = os.path.join(data_dir, "test-stats.txt")
     eval_trained_model(
         model_name, model_dir, test_dir, csv_out_test,
-        stats_out_test, split="test")
+        stats_out_test)
+
+  if args.eval_full:
+    print("+++++++++++++++++++++++++++++++++")
+    print("Eval Model on Full Dataset")
+    print("--------------------------")
+    full_data_dir = os.path.join(data_dir, "full-data")
+    csv_out_full = os.path.join(data_dir, "full.csv")
+    stats_out_full = os.path.join(data_dir, "full-stats.txt")
+    eval_trained_model(
+        model_name, model_dir, full_data_dir, csv_out_full,
+        stats_out_full)
 
 def parse_args(input_args=None):
   """Parse command-line arguments."""
@@ -231,10 +273,11 @@ def parse_args(input_args=None):
   add_model_command(subparsers)
   return parser.parse_args(input_args)
 
-def featurize_inputs(feature_dir, input_files,
+def featurize_inputs(feature_dir, data_dir, input_files,
                      user_specified_features, tasks, smiles_field,
                      split_field, id_field, threshold, parallel):
 
+  """Allows for parallel data featurization."""
   featurize_input_partial = partial(featurize_input,
                                     feature_dir=feature_dir,
                                     user_specified_features=user_specified_features,
@@ -252,6 +295,12 @@ def featurize_inputs(feature_dir, input_files,
     for input_file in input_files:
       featurize_input_partial(input_file)
 
+  dataset_files = glob.glob(os.path.join(feature_dir, "*.joblib"))
+
+  print("Writing samples to disk.")
+  samples_dir = os.path.join(data_dir, "samples")
+  FeaturizedSamples(samples_dir, dataset_files)
+
 def featurize_input(input_file, feature_dir, user_specified_features, tasks,
                     smiles_field, split_field, id_field, threshold):
   """Featurizes raw input data."""
@@ -266,29 +315,26 @@ def featurize_input(input_file, feature_dir, user_specified_features, tasks,
       feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
   featurizer.featurize(input_file, FeaturizedSamples.feature_types, out)
 
-def train_test_split(paths, input_transforms, output_transforms,
-                     feature_types, splittype, mode, data_dir):
+def train_test_split(input_transforms, output_transforms,
+                     feature_types, splittype, data_dir):
   """Saves transformed model."""
 
-  dataset_files = []
-  for path in paths:
-    dataset_files += glob.glob(os.path.join(path, "*.joblib"))
-  print("Loading featurized data.")
   samples_dir = os.path.join(data_dir, "samples")
-  samples = FeaturizedSamples(samples_dir, dataset_files, reload=False)
-  
+  samples = FeaturizedSamples(samples_dir, reload_data=True)
+
   print("Split data into train/test")
   train_samples_dir = os.path.join(data_dir, "train-samples")
   test_samples_dir = os.path.join(data_dir, "test-samples")
-  train_samples, test_samples = samples.train_test_split(splittype,
-    train_samples_dir, test_samples_dir)
+  train_samples, test_samples = samples.train_test_split(
+      splittype, train_samples_dir, test_samples_dir)
 
   train_data_dir = os.path.join(data_dir, "train-data")
   test_data_dir = os.path.join(data_dir, "test-data")
 
-  print("Generating train data.")
+  print("Generating train dataset.")
   train_dataset = Dataset(train_data_dir, train_samples, feature_types)
-  print("Generating test data.")
+
+  print("Generating test dataset.")
   test_dataset = Dataset(test_data_dir, test_samples, feature_types)
 
   print("Transforming train data.")
@@ -311,13 +357,15 @@ def fit_model(model_name, model_params, model_dir, data_dir):
   model.save(model_dir)
 
 def eval_trained_model(model_type, model_dir, data_dir,
-                       csv_out, stats_out, split="test"):
+                       csv_out, stats_out):
   """Evaluates a trained model on specified data."""
   model = Model.load(model_type, model_dir)
   data = Dataset(data_dir)
 
   evaluator = Evaluator(model, data, verbose=True)
-  evaluator.compute_model_performance(csv_out, stats_out)
+  _, perf_df = evaluator.compute_model_performance(csv_out, stats_out)
+  print("Model Performance.")
+  print(perf_df)
 
 def main():
   """Invokes argument parser."""
