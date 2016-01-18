@@ -1,5 +1,5 @@
 """
-Integration tests for singletask vector feature models. 
+Integration tests for singletask vector feature models.
 """
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -7,7 +7,6 @@ __license__ = "LGPL"
 
 import os
 import unittest
-import numpy as np
 import tempfile
 import shutil
 from deepchem.utils.featurize import DataFeaturizer
@@ -28,7 +27,7 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     self.input_file = os.path.join(current_dir, "example.csv")
     self.tasks = ["log-solubility"]
-    self.smiles_field="smiles"
+    self.smiles_field = "smiles"
     self.feature_dir = tempfile.mkdtemp()
     self.samplesdir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
@@ -53,11 +52,12 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     featurizer.featurize(self.input_file, feature_types, feature_file)
 
     # Transform data into arrays for ML
-    samples = FeaturizedSamples(self.samplesdir, [feature_file], reload=False)
+    samples = FeaturizedSamples(self.samplesdir, [feature_file],
+                                reload_data=False)
 
     # Split into train/test
-    train_samples, test_samples = samples.train_test_split(splittype,
-      self.train_dir, self.test_dir)
+    train_samples, test_samples = samples.train_test_split(
+        splittype, self.train_dir, self.test_dir)
     train_dataset = Dataset(self.train_dir, train_samples, feature_types)
     test_dataset = Dataset(self.test_dir, test_samples, feature_types)
 
@@ -76,7 +76,7 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     evaluator = Evaluator(model, test_dataset, verbose=True)
     with tempfile.NamedTemporaryFile() as test_csv_out:
       with tempfile.NamedTemporaryFile() as test_stats_out:
-        pred_y_df, perf_df = evaluator.compute_model_performance(
+        _, _ = evaluator.compute_model_performance(
             test_csv_out, test_stats_out)
 
   def test_singletask_rf_ECFP_regression_API(self):
@@ -114,7 +114,7 @@ class TestMultitaskVectorAPI(unittest.TestCase):
     self.tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
                   "task7", "task8", "task9", "task10", "task11", "task12",
                   "task13", "task14", "task15", "task16"]
-    self.smiles_field="smiles"
+    self.smiles_field = "smiles"
     self.feature_dir = tempfile.mkdtemp()
     self.samplesdir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
@@ -152,11 +152,12 @@ class TestMultitaskVectorAPI(unittest.TestCase):
     featurizer.featurize(self.input_file, feature_types, feature_file)
 
     # Transform data into arrays for ML
-    samples = FeaturizedSamples(self.samplesdir, [feature_file], reload=False)
+    samples = FeaturizedSamples(self.samplesdir, [feature_file],
+                                reload_data=False)
 
     # Split into train/test
-    train_samples, test_samples = samples.train_test_split(splittype,
-      self.train_dir, self.test_dir)
+    train_samples, test_samples = samples.train_test_split(
+        splittype, self.train_dir, self.test_dir)
     train_dataset = Dataset(self.train_dir, train_samples, feature_types)
     test_dataset = Dataset(self.test_dir, test_samples, feature_types)
 

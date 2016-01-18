@@ -24,6 +24,7 @@ class Model(object):
     self.model_type = model_type
     self.task_types = task_types
     self.model_params = model_params
+    self.raw_model = None
 
   def fit_on_batch(self, X, y, w):
     """
@@ -37,7 +38,7 @@ class Model(object):
     Makes predictions on given batch of new data.
     """
     raise NotImplementedError(
-        "Each model is responsible for its own predict_on_batch method.")    
+        "Each model is responsible for its own predict_on_batch method.")
 
   def set_raw_model(self, raw_model):
     """
@@ -49,7 +50,7 @@ class Model(object):
     """
     Return raw model.
     """
-    return(self.raw_model)
+    return self.raw_model
 
   @staticmethod
   def get_model_filename(out_dir):
@@ -130,16 +131,13 @@ class Model(object):
         print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
         nb_sample = np.shape(X)[0]
         interval_points = np.linspace(
-            0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
+            0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
         for j in range(len(interval_points)-1):
-          indices = range(interval_points[j],interval_points[j+1])
+          indices = range(interval_points[j], interval_points[j+1])
           X_batch = X[indices, :]
           y_batch = y[indices]
           w_batch = w[indices]
           self.fit_on_batch(X_batch, y_batch, w_batch)
-
-  # TODO(rbharath): What does this function do when y is not provided. Suspect
-  # it breaks. Need to fix.
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
@@ -151,18 +149,18 @@ class Model(object):
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
     column_names = (['ids'] + task_names + pred_task_names + w_task_names
-                           + ["y_means", "y_stds"])
+                    + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
     batch_size = self.model_params["batch_size"]
     for (X, y, w, ids) in dataset.itershards():
       nb_sample = np.shape(X)[0]
       interval_points = np.linspace(
-          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1).astype(int)
+          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
       y_preds = []
-      for j in range(0,len(interval_points)-1):
-        indices = range(interval_points[j],interval_points[j+1])
-        y_preds.append(self.predict_on_batch(X[indices,:]))
+      for j in range(len(interval_points)-1):
+        indices = range(interval_points[j], interval_points[j+1])
+        y_preds.append(self.predict_on_batch(X[indices, :]))
       y_pred = np.concatenate(y_preds)
       y_pred = np.reshape(y_pred, np.shape(y))
 
@@ -177,4 +175,4 @@ class Model(object):
       shard_df["y_stds"] = list(dataset.get_label_stds())[0]  * np.ones(np.shape(y))
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
-    return pred_y_df 
+    return pred_y_df

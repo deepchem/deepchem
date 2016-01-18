@@ -16,7 +16,7 @@ class KerasModel(Model):
 
   def save(self, out_dir):
     """
-    Saves underlying keras model to disk. 
+    Saves underlying keras model to disk.
     """
     super(KerasModel, self).save(out_dir)
     model = self.get_raw_model()
@@ -33,7 +33,7 @@ class KerasModel(Model):
     with open(json_filename, "wb") as file_obj:
       file_obj.write(json_string)
     model.save_weights(h5_filename, overwrite=True)
-  
+
   def load(self, model_dir):
     """
     Load keras multitask DNN from disk.
@@ -66,8 +66,9 @@ class MultiTaskDNN(KerasModel):
           Dense(model_params["nb_hidden"], init='uniform',
                 activation=model_params["activation"]),
           name="dense", input="input")
-      model.add_node(Dropout(model_params["dropout"]), name="dropout",
-                             input="dense")
+      model.add_node(Dropout(model_params["dropout"]),
+                     name="dropout",
+                     input="dense")
       top_layer = "dropout"
       for ind, task in enumerate(sorted_tasks):
         task_type = task_types[task]
@@ -96,6 +97,7 @@ class MultiTaskDNN(KerasModel):
       self.raw_model = model
 
   def get_data_dict(self, X, y=None):
+    """Wrap data X in dict for graph computations (Keras graph only for now)."""
     data = {}
     data["input"] = X
     for ind, task in enumerate(sorted(self.task_types.keys())):
@@ -110,7 +112,7 @@ class MultiTaskDNN(KerasModel):
   def get_sample_weight(self, w):
     """Get dictionaries needed to fit models"""
     sample_weight = {}
-    for ind, task in enumerate(sorted(self.task_types.keys())):
+    for ind in range(len(sorted(self.task_types.keys()))):
       sample_weight["task%d" % ind] = w[:, ind]
     return sample_weight
 
@@ -124,6 +126,7 @@ class MultiTaskDNN(KerasModel):
     data = self.get_data_dict(X, y)
     sample_weight = self.get_sample_weight(w)
     loss = self.raw_model.train_on_batch(data, sample_weight=sample_weight)
+    return loss
 
   def predict_on_batch(self, X):
     """
@@ -144,7 +147,7 @@ class MultiTaskDNN(KerasModel):
         y_pred_task = np.squeeze(np.argmax(y_pred_dict[taskname], axis=1))
       else:
         y_pred_task = np.squeeze(y_pred_dict[taskname])
-      y_pred[:,ind] = y_pred_task
+      y_pred[:, ind] = y_pred_task
     y_pred = np.squeeze(y_pred)
     return y_pred
 

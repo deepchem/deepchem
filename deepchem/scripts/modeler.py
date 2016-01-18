@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import argparse
 import glob
 import os
+import multiprocessing as mp
 from functools import partial
 from deepchem.utils.featurize import DataFeaturizer
 from deepchem.utils.featurize import FeaturizedSamples
@@ -59,10 +60,6 @@ def add_transforms_group(cmd):
       choices=["normalize", "log"],
       help="Supported transforms are 'log' and 'normalize'. 'None' will be taken\n"
            "to mean no transforms are required.")
-  transform_group.add_argument(
-      "--mode", default="singletask",
-      choices=["singletask", "multitask"],
-      help="Type of model being built.")
   transform_group.add_argument(
       "--feature-types", nargs="+", required=1,
       choices=["user-specified-features", "ECFP", "RDKIT-descriptors"],
@@ -175,9 +172,10 @@ def extract_model_params(args):
             "activation", "momentum", "nesterov"]
 
   model_params = {param : getattr(args, param) for param in params}
-  return(model_params)
+  return model_params
 
 def ensure_exists(dirs):
+  """Creates dirs if they don't exist."""
   for directory in dirs:
     if not os.path.exists(directory):
       os.makedirs(directory)
@@ -198,9 +196,8 @@ def create_model(args):
                        "feature-dir, data-dir, model-dir.")
 
     feature_dir, model_dir, data_dir = (args.feature_dir, args.model_dir,
-                                        args.data_dir)  
+                                        args.data_dir)
     ensure_exists([feature_dir, data_dir, model_dir])
-                
 
   if args.featurize:
     print("+++++++++++++++++++++++++++++++++")
@@ -214,7 +211,7 @@ def create_model(args):
     print("+++++++++++++++++++++++++++++++++")
     print("Generate dataset for featurized samples")
     samples_dir = os.path.join(data_dir, "samples")
-    samples = FeaturizedSamples(samples_dir, reload=True)
+    samples = FeaturizedSamples(samples_dir, reload_data=True)
 
     print("Generating dataset.")
     full_data_dir = os.path.join(data_dir, "full-data")
@@ -222,15 +219,14 @@ def create_model(args):
 
     print("Transform data.")
     full_dataset.transform(args.input_transforms, args.output_transforms)
-  
+
 
   if args.train_test_split:
     print("+++++++++++++++++++++++++++++++++")
     print("Perform train-test split")
-    paths = [feature_dir]
     train_test_split(
-        paths, args.input_transforms, args.output_transforms, args.feature_types,
-        args.splittype, args.mode, data_dir)
+        args.input_transforms, args.output_transforms, args.feature_types,
+        args.splittype, data_dir)
 
   if args.fit:
     print("+++++++++++++++++++++++++++++++++")
@@ -281,6 +277,7 @@ def featurize_inputs(feature_dir, data_dir, input_files,
                      user_specified_features, tasks, smiles_field,
                      split_field, id_field, threshold, parallel):
 
+  """Allows for parallel data featurization."""
   featurize_input_partial = partial(featurize_input,
                                     feature_dir=feature_dir,
                                     user_specified_features=user_specified_features,
@@ -302,7 +299,7 @@ def featurize_inputs(feature_dir, data_dir, input_files,
 
   print("Writing samples to disk.")
   samples_dir = os.path.join(data_dir, "samples")
-  samples = FeaturizedSamples(samples_dir, dataset_files)
+  FeaturizedSamples(samples_dir, dataset_files)
 
 def featurize_input(input_file, feature_dir, user_specified_features, tasks,
                     smiles_field, split_field, id_field, threshold):
@@ -318,18 +315,18 @@ def featurize_input(input_file, feature_dir, user_specified_features, tasks,
       feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
   featurizer.featurize(input_file, FeaturizedSamples.feature_types, out)
 
-def train_test_split(paths, input_transforms, output_transforms,
-                     feature_types, splittype, mode, data_dir):
+def train_test_split(input_transforms, output_transforms,
+                     feature_types, splittype, data_dir):
   """Saves transformed model."""
 
   samples_dir = os.path.join(data_dir, "samples")
-  samples = FeaturizedSamples(samples_dir, reload=True)
-  
+  samples = FeaturizedSamples(samples_dir, reload_data=True)
+
   print("Split data into train/test")
   train_samples_dir = os.path.join(data_dir, "train-samples")
   test_samples_dir = os.path.join(data_dir, "test-samples")
-  train_samples, test_samples = samples.train_test_split(splittype,
-    train_samples_dir, test_samples_dir)
+  train_samples, test_samples = samples.train_test_split(
+      splittype, train_samples_dir, test_samples_dir)
 
   train_data_dir = os.path.join(data_dir, "train-data")
   test_data_dir = os.path.join(data_dir, "test-data")
@@ -366,7 +363,7 @@ def eval_trained_model(model_type, model_dir, data_dir,
   data = Dataset(data_dir)
 
   evaluator = Evaluator(model, data, verbose=True)
-  pred_y_df, perf_df = evaluator.compute_model_performance(csv_out, stats_out)
+  _, perf_df = evaluator.compute_model_performance(csv_out, stats_out)
   print("Model Performance.")
   print(perf_df)
 

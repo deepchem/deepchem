@@ -5,12 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
 import numpy as np
 import warnings
-from deepchem.utils.dataset import Dataset
-from deepchem.utils.dataset import load_from_disk
-from deepchem.models import Model 
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
@@ -18,7 +14,6 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
 import pandas as pd
-import sys
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -32,8 +27,9 @@ def undo_transform(y, y_means, y_stds, output_transforms):
   """Undo transforms on y_pred, W_pred."""
   if not isinstance(output_transforms, list):
     output_transforms = [output_transforms]
-  if (output_transforms == [""] or output_transforms == ['']
-    or output_transforms == []):
+  if (output_transforms == [""]
+      or output_transforms == ['']
+      or output_transforms == []):
     return y
   elif output_transforms == ["log"]:
     return np.exp(y)
@@ -56,7 +52,7 @@ def compute_roc_auc_scores(y, y_pred, w):
   """
   try:
     score = roc_auc_score(y, y_pred, sample_weight=w)
-  except Exception:
+  except ValueError:
     warnings.warn("ROC AUC score calculation failed.")
     score = 0.5
   return score

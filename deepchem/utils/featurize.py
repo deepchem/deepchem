@@ -4,9 +4,7 @@ Process an input dataset into a format suitable for machine learning.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
-import multiprocessing as mp
 import os
-import cPickle as pickle
 import gzip
 import pandas as pd
 import numpy as np
@@ -18,13 +16,17 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from vs_utils.utils import ScaffoldGenerator
 
-def generate_scaffold(smiles, include_chirality=False, smiles_field="smiles"):
+def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
   mol = Chem.MolFromSmiles(smiles)
   engine = ScaffoldGenerator(include_chirality=include_chirality)
   scaffold = engine.get_scaffold(mol)
   return scaffold
 
+def _check_validity(compounds_df):
+  """Ensure that columns of compound_df contain required elements."""
+  if not set(FeaturizedSamples.colnames).issubset(compounds_df.keys()):
+    raise ValueError("Compound dataframe does not contain required columns")
 
 def _process_field(val):
   """Parse data in a field."""
@@ -40,6 +42,67 @@ def _process_field(val):
   else:
     raise ValueError("Field of unrecognized type: %s" % str(val))
 
+def _get_input_type(input_file):
+  """Get type of input file. Must be csv/pkl.gz/sdf file."""
+  filename, file_extension = os.path.splitext(input_file)
+  # If gzipped, need to compute extension again
+  if file_extension == ".gz":
+    filename, file_extension = os.path.splitext(filename)
+  if file_extension == ".csv":
+    return "csv"
+  elif file_extension in [".pkl", ".joblib"]:
+    return "pandas"
+  elif file_extension == ".sdf":
+    return "sdf"
+  else:
+    raise ValueError("Unrecognized extension %s" % file_extension)
+
+def _get_fields(input_file):
+  """Get the names of fields and field_types for input data."""
+  # If CSV input, assume that first row contains labels
+  input_type = _get_input_type(input_file)
+  if input_type == "csv":
+    with open(input_file, "rb") as inp_file_obj:
+      return csv.reader(inp_file_obj).next()
+  elif input_type == "pandas":
+    df = load_from_disk(input_file)
+    return df.keys()
+  elif input_type == "sdf":
+    sample_mol = _get_raw_samples(input_file).next()
+    return list(sample_mol.GetPropNames())
+  else:
+    raise ValueError("Unrecognized extension for %s" % input_file)
+
+
+def _get_raw_samples(input_file):
+  """Returns an iterator over all rows in input_file"""
+  input_type = _get_input_type(input_file)
+  if input_type == "csv":
+    with open(input_file, "rb") as inp_file_obj:
+      for ind, row in enumerate(csv.reader(inp_file_obj)):
+        # Skip labels
+        if ind == 0:
+          continue
+        if row is not None:
+          yield row
+  elif input_type == "pandas":
+    dataframe = load_from_disk(input_file)
+    for _, row in dataframe.iterrows():
+      yield row
+  elif input_type == "sdf":
+    if ".gz" in input_file:
+      with gzip.open(input_file) as inp_file_obj:
+        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
+        for mol in supp:
+          if mol is not None:
+            yield mol
+    else:
+      with open(input_file) as inp_file_obj:
+        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
+        for mol in supp:
+          if mol is not None:
+            yield mol
+
 class DataFeaturizer(object):
   """
   Handles loading/featurizing of chemical samples (datapoints).
@@ -47,7 +110,7 @@ class DataFeaturizer(object):
   Currently knows how to load csv-files/pandas-dataframes/SDF-files. Writes a
   dataframe object to disk as output.
   """
-    
+
   def __init__(self, tasks, smiles_field, split_field=None,
                id_field=None, threshold=None, user_specified_features=None,
                verbose=False, log_every_n=1000):
@@ -68,11 +131,11 @@ class DataFeaturizer(object):
 
   def featurize(self, input_file, feature_types, out):
     """Featurize provided file and write to specified location."""
-    fields = self._get_fields(input_file)
-    input_type = self._get_input_type(input_file)
+    fields = _get_fields(input_file)
+    input_type = _get_input_type(input_file)
 
     rows = []
-    for ind, row in enumerate(self._get_raw_samples(input_file)):
+    for ind, row in enumerate(_get_raw_samples(input_file)):
       if ind % self.log_every_n == 0:
         print("Loading sample %d" % ind)
       rows.append(self._process_raw_sample(input_type, row, fields))
@@ -80,68 +143,6 @@ class DataFeaturizer(object):
     for feature_type in feature_types:
       self._featurize_df(df, rows, feature_type)
     save_to_disk(df, out)
-    df_loaded = load_from_disk(out)
-
-  def _get_fields(self, input_file):
-    """Get the names of fields and field_types for input data."""
-    # If CSV input, assume that first row contains labels
-    input_type = self._get_input_type(input_file)
-    if input_type == "csv":
-      with open(input_file, "rb") as inp_file_obj:
-        return csv.reader(inp_file_obj).next()
-    elif input_type == "pandas":
-      df = load_from_disk(input_file)
-      return df.keys()
-    elif input_type == "sdf":
-      sample_mol = self._get_raw_samples(input_file).next()
-      return list(sample_mol.GetPropNames())
-    else:
-      raise ValueError("Unrecognized extension for %s" % input_file)
-
-  def _get_input_type(self, input_file):
-    """Get type of input file. Must be csv/pkl.gz/sdf file."""
-    filename, file_extension = os.path.splitext(input_file)
-    # If gzipped, need to compute extension again
-    if file_extension == ".gz":
-      filename, file_extension = os.path.splitext(filename)
-    if file_extension == ".csv":
-      return "csv"
-    elif file_extension in [".pkl", ".joblib"]:
-      return "pandas"
-    elif file_extension == ".sdf":
-      return "sdf"
-    else:
-      raise ValueError("Unrecognized extension %s" % file_extension)
-
-  def _get_raw_samples(self, input_file):
-    """Returns an iterator over all rows in input_file"""
-    input_type = self._get_input_type(input_file)
-    if input_type == "csv":
-      with open(input_file, "rb") as inp_file_obj:
-        for ind, row in enumerate(csv.reader(inp_file_obj)):
-          # Skip labels
-          if ind == 0:
-            continue
-          if row is not None:
-            yield row
-    elif input_type == "pandas":
-      dataframe = load_from_disk(input_file)
-      for _, row in dataframe.iterrows():
-        yield row
-    elif input_type == "sdf":
-      if ".gz" in input_file:
-        with gzip.open(input_file) as inp_file_obj:
-          supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-          for mol in supp:
-            if mol is not None:
-              yield mol
-      else:
-        with open(input_file) as inp_file_obj:
-          supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-          mols = [mol for mol in supp if mol is not None]
-          for mol in supp:
-            if mol is not None:
-              yield mol
 
   def _process_raw_sample(self, input_type, row, fields):
     """Extract information from row data."""
@@ -168,10 +169,11 @@ class DataFeaturizer(object):
         raw = _process_field(data[task])
         if not isinstance(raw, float):
           raise ValueError("Cannot threshold non-float fields.")
-        data[field] = 1 if raw > threshold else 0
+        data[field] = 1 if raw > self.threshold else 0
     return data
 
   def _standardize_df(self, ori_df):
+    """Copy specified columns to new df with standard column names."""
     df = pd.DataFrame([])
     df["mol_id"] = ori_df[[self.id_field]]
     df["smiles"] = ori_df[[self.smiles_field]]
@@ -230,12 +232,13 @@ class FeaturizedSamples(object):
     Given metadata df, return sorted names of tasks.
     """
     column_names = df.keys()
-    task_names = (set(column_names) - 
+    task_names = (set(column_names) -
                   set(FeaturizedSamples.colnames) -
                   set(FeaturizedSamples.feature_types))
     return sorted(list(task_names))
 
-  def __init__(self, feature_dir, dataset_files=None, overwrite=True, reload=False):
+  def __init__(self, feature_dir, dataset_files=None, overwrite=True,
+               reload_data=False):
     """
     Initialiize FeaturizedSamples
 
@@ -250,16 +253,16 @@ class FeaturizedSamples(object):
     if not os.path.exists(feature_dir):
       os.makedirs(feature_dir)
     self.feature_dir = feature_dir
-    if os.path.exists(self._get_compounds_filename()) and reload:
+    if os.path.exists(self._get_compounds_filename()) and reload_data:
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.
       save_to_disk(compounds_df, self._get_compounds_filename())
-    self._check_validity(compounds_df)
+    _check_validity(compounds_df)
     self.compounds_df = compounds_df
-    
+
     if os.path.exists(self._get_dataset_paths_filename()):
       if dataset_files is not None:
         if overwrite:
@@ -269,10 +272,6 @@ class FeaturizedSamples(object):
       self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
     else:
       save_to_disk(dataset_files, self._get_dataset_paths_filename())
-
-  def _check_validity(self, compounds_df):
-    if not set(FeaturizedSamples.colnames).issubset(compounds_df.keys()):
-      raise ValueError("Compound dataframe does not contain required columns")
 
   def _get_compounds_filename(self):
     """
@@ -307,7 +306,7 @@ class FeaturizedSamples(object):
 
   def _set_compound_df(self, df):
     """Internal method used to replace compounds_df."""
-    self._check_validity(df)
+    _check_validity(df)
     save_to_disk(df, self._get_compounds_filename())
     self.compounds_df = df
 
@@ -315,7 +314,7 @@ class FeaturizedSamples(object):
   def itersamples(self):
     """
     Provides an iterator over samples.
-    
+
     Each sample from the iterator is a dataframe of samples.
     """
     compound_ids = set(list(self.compounds_df["mol_id"]))
