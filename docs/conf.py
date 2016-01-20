@@ -20,6 +20,7 @@ import shlex
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath("../../deepchem"))
 
 # -- General configuration ------------------------------------------------
 
@@ -31,13 +32,19 @@ import shlex
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.coverage',
-    'sphinx.ext.pngmath',
+    'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
+    'numpydoc',
     'sphinx.ext.viewcode',
 ]
+
+autosummary_generate = True
+autodoc_default_flags = ['members', 'inherited-members']
+numpydoc_class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -55,8 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'deepchem'
-copyright = u'2016, Bharath Ramsundar, Evan Feinberg'
-author = u'Bharath Ramsundar, Evan Feinberg'
+copyright = u'2016, Stanford University and the Authors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -116,7 +122,7 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+html_theme = 'bizstyle'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -261,7 +267,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'deepchem', u'deepchem Documentation',
-     [author], 1)
+     ["Stanford University"], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -275,8 +281,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   (master_doc, 'deepchem', u'deepchem Documentation',
-   author, 'deepchem', 'One line description of project.',
-   'Miscellaneous'),
+   'Stanford University', 'deepchem', 'Deep-learning models for drug discovery.',
+   'Scientific'),
 ]
 
 # Documents to append as an appendix to all manuals.
