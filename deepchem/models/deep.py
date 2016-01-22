@@ -134,6 +134,8 @@ class MultiTaskDNN(KerasModel):
     """
     data = self.get_data_dict(X)
     y_pred_dict = self.raw_model.predict_on_batch(data)
+    print("y_pred_dict.keys()")
+    print(y_pred_dict.keys())
     sorted_tasks = sorted(self.task_types.keys())
     nb_samples = np.shape(X)[0]
     nb_tasks = len(sorted_tasks)
@@ -141,6 +143,8 @@ class MultiTaskDNN(KerasModel):
     for ind, task in enumerate(sorted_tasks):
       task_type = self.task_types[task]
       taskname = "task%d" % ind
+      print("taskname")
+      print(taskname)
       if task_type == "classification":
         # Class probabilities are predicted for classification outputs. Instead,
         # output the most likely class.

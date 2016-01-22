@@ -45,6 +45,15 @@ def add_featurize_group(featurize_cmd):
       "--threshold", type=float, default=None,
       help="If specified, will be used to binarize real-valued target-fields.")
   featurize_group.add_argument(
+      "--protein-pdb-field", type=str, default=None,
+      help="Name of field holding protein pdb.")
+  featurize_group.add_argument(
+      "--ligand-pdb-field", type=str, default=None,
+      help="Name of field holding ligand pdb.")
+  featurize_group.add_argument(
+      "--ligand-mol2-field", type=str, default=None,
+      help="Name of field holding ligand mol2.")
+  featurize_group.add_argument(
       "--parallel", type=float, default=None,
       help="Use multiprocessing will be used to parallelize featurization.")
 
@@ -62,7 +71,7 @@ def add_transforms_group(cmd):
            "to mean no transforms are required.")
   transform_group.add_argument(
       "--feature-types", nargs="+", required=1,
-      choices=["user-specified-features", "ECFP", "RDKIT-descriptors"],
+      choices=["user-specified-features", "ECFP", "RDKIT-descriptors", "NNScore"],
       help="Featurizations of data to use.\n"
            "'features' denotes user-defined features.\n"
            "'fingerprints' denotes ECFP fingeprints.\n"
@@ -205,7 +214,8 @@ def create_model(args):
     featurize_inputs(
         feature_dir, data_dir, args.input_files, args.user_specified_features,
         args.tasks, args.smiles_field, args.split_field, args.id_field,
-        args.threshold, args.parallel)
+        args.threshold, args.protein_pdb_field,
+        args.ligand_pdb_field, args.ligand_mol2_field, args.parallel)
 
   if args.generate_dataset:
     print("+++++++++++++++++++++++++++++++++")
@@ -275,7 +285,8 @@ def parse_args(input_args=None):
 
 def featurize_inputs(feature_dir, data_dir, input_files,
                      user_specified_features, tasks, smiles_field,
-                     split_field, id_field, threshold, parallel):
+                     split_field, id_field, threshold, protein_pdb_field, 
+                     ligand_pdb_field, ligand_mol2_field, parallel):
 
   """Allows for parallel data featurization."""
   featurize_input_partial = partial(featurize_input,
@@ -285,7 +296,10 @@ def featurize_inputs(feature_dir, data_dir, input_files,
                                     smiles_field=smiles_field,
                                     split_field=split_field,
                                     id_field=id_field,
-                                    threshold=threshold)
+                                    threshold=threshold,
+                                    protein_pdb_field=protein_pdb_field,
+                                    ligand_pdb_field=ligand_pdb_field,
+                                    ligand_mol2_field=ligand_mol2_field)
 
   if parallel:
     pool = mp.Pool(int(mp.cpu_count()/2))
@@ -302,13 +316,17 @@ def featurize_inputs(feature_dir, data_dir, input_files,
   FeaturizedSamples(samples_dir, dataset_files)
 
 def featurize_input(input_file, feature_dir, user_specified_features, tasks,
-                    smiles_field, split_field, id_field, threshold):
+                    smiles_field, split_field, id_field, threshold, protein_pdb_field,
+                     ligand_pdb_field, ligand_mol2_field):
   """Featurizes raw input data."""
   featurizer = DataFeaturizer(tasks=tasks,
                               smiles_field=smiles_field,
                               split_field=split_field,
                               id_field=id_field,
                               threshold=threshold,
+                              protein_pdb_field=protein_pdb_field,
+                              ligand_pdb_field=ligand_pdb_field,
+                              ligand_mol2_field=ligand_mol2_field,
                               user_specified_features=user_specified_features,
                               verbose=True)
   out = os.path.join(
