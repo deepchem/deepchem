@@ -128,11 +128,12 @@ class Model(object):
     for epoch in range(self.model_params["nb_epoch"]):
       print("Starting epoch %s" % str(epoch+1))
       for i, (X, y, w, _) in enumerate(dataset.itershards()):
-        print("Training on batch-%s/epoch-%s" % (str(i+1), str(epoch+1)))
+        print("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)))
         nb_sample = np.shape(X)[0]
         interval_points = np.linspace(
             0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
         for j in range(len(interval_points)-1):
+          print("Training on batch-%s/shard-%s/epoch-%s" % (str(j+1), str(i+1), str(epoch+1)))
           indices = range(interval_points[j], interval_points[j+1])
           X_batch = X[indices, :]
           y_batch = y[indices]

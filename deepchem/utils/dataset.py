@@ -294,10 +294,6 @@ def write_dataset_single(val, data_dir, feature_types):
 def _df_to_numpy(df, feature_types):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   if not set(feature_types).issubset(df.keys()):
-    print("feature_types")
-    print(feature_types)
-    print("df.keys()")
-    print(df.keys())
     raise ValueError(
         "Featurized data does not support requested feature_types.")
   # perform common train/test split across all tasks
@@ -318,18 +314,11 @@ def _df_to_numpy(df, feature_types):
   sorted_ids = df["mol_id"]
 
   # Set missing data to have weight zero
-  missing = (y == "")
-  print("missing")
-  print(missing)
+  missing = (y.astype(object) == "")
+
   y[missing] = 0.
   w[missing] = 0.
 
-  print("len(sorted_ids)")
-  print(len(sorted_ids))
-  print("np.shape(x) np.shape(y) np.shape(w)")
-  print(np.shape(x))
-  print(np.shape(y))
-  print(np.shape(w))
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 

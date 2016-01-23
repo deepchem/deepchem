@@ -17,6 +17,7 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pickle_from_disk
 from vs_utils.utils import ScaffoldGenerator
 from vs_utils.features.nnscore import NNScoreComplexFeaturizer
+import multiprocessing as mp
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
@@ -242,11 +243,21 @@ class DataFeaturizer(object):
       print("Currently conducting NNScore Featurization.")
       protein_pdbs = list(df["protein_pdb"])
       ligand_pdbs = list(df["ligand_pdb"])
-      featurizer = NNScoreComplexFeaturizer()
-      features = featurizer.featurize_complexes(ligand_pdbs, protein_pdbs)
+      complexes = zip(ligand_pdbs, protein_pdbs)
+      
+      pool = mp.Pool(mp.cpu_count())
+      features = pool.map(map_function, complexes)
+      pool.terminate()
+
+      features = np.concatenate(features)
       df[feature_type] = list(features)
     else:
       raise ValueError("Unsupported feature_type requested.")
+
+def map_function(data_tuple):
+  featurizer = NNScoreComplexFeaturizer()
+  ligand_pdb, protein_pdb = data_tuple
+  return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
 class FeaturizedSamples(object):
   """
@@ -267,8 +278,6 @@ class FeaturizedSamples(object):
                   set(FeaturizedSamples.colnames) -
                   set(FeaturizedSamples.optional_colnames) -
                   set(FeaturizedSamples.feature_types))
-    print("FeaturizedSamples.get_sorted_task_names.task_names")
-    print(task_names)
     return sorted(list(task_names))
 
   def __init__(self, feature_dir, dataset_files=None, overwrite=True,
