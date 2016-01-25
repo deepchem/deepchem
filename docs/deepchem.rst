@@ -1,5 +1,8 @@
-deepchem package
-================
+.. _modules:
+
+Modules
+=======
+
 
 Subpackages
 -----------

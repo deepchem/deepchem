@@ -1,4 +1,4 @@
-deep_chem
+deepchem
 =============
 
 Deep Learning Toolchain for Cheminformatics and Protein Analysis
@@ -9,12 +9,12 @@ Requirements
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
 * [keras](keras.io)
-* [vs_utils] (https://github.com/pandegroup/vs-utils.git)
+* [vs-utils] (https://github.com/pandegroup/vs-utils.git)
 
 Linux (64-bit) Installation 
 ------------------
 
-Deep_chem currently requires Python 2.7
+```deepchem``` currently requires Python 2.7
 
 ###Anaconda 2.7
 Download the **64-bit Python 2.7** version of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).
@@ -57,13 +57,13 @@ Cd into the vs-utils directory and execute
 python setup.py develop
 ```
 
-###deep_chem
+###deepchem
 Clone the deep_chem git repository
 ```bash
-git clone https://github.com/pandegroup/deep-learning.git
+git clone https://github.com/pandegroup/deepchem.git
 ```
 
-Cd into the deep-learning directory and execute 
+Cd into the deepchem directory and execute 
 ```bash
 python setup.py develop
 ```
