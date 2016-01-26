@@ -41,5 +41,5 @@ def load_pandas_from_disk(filename):
   else:
     # First line of user-specified CSV *must* be header.
     df = pd.read_csv(filename, header=0)
-    df = df.replace(np.nan,str(""), regex=True)
+    df = df.replace(np.nan, str(""), regex=True)
     return df

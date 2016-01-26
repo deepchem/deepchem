@@ -97,7 +97,7 @@ def _get_raw_samples(input_file, iterator=True):
   elif input_type == "pandas-pickle":
     dataframe = load_pickle_from_disk(input_file)
     for _, row in dataframe.iterrows():
-      yield row   
+      yield row
   else:
     raise ValueError("Unrecognized input type for %s" % input_file)
 '''
@@ -143,7 +143,7 @@ class DataFeaturizer(object):
     print("Loaded raw data frame from file.")
     def process_raw_sample_helper(row, fields, input_type):
       return self._process_raw_sample(input_type, row, fields)
-    process_raw_sample_helper_partial = partial(process_raw_sample_helper, 
+    process_raw_sample_helper_partial = partial(process_raw_sample_helper,
                                                 fields=fields,
                                                 input_type=input_type)
 
@@ -191,8 +191,6 @@ class DataFeaturizer(object):
   def _standardize_df(self, ori_df):
     """Copy specified columns to new df with standard column names."""
     df = pd.DataFrame([])
-    print("ori_df.keys()")
-    print(ori_df.keys())
     df["mol_id"] = ori_df[[self.id_field]]
     df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
@@ -244,7 +242,7 @@ class DataFeaturizer(object):
       protein_pdbs = list(df["protein_pdb"])
       ligand_pdbs = list(df["ligand_pdb"])
       complexes = zip(ligand_pdbs, protein_pdbs)
-      
+
       pool = mp.Pool(processes=mp.cpu_count())
       features = pool.map(map_function, complexes)
       pool.terminate()
@@ -264,7 +262,7 @@ class FeaturizedSamples(object):
   Wrapper class for featurized data on disk.
   """
   # The standard columns for featurized data.
-  colnames = ["mol_id", "smiles", "split"] 
+  colnames = ["mol_id", "smiles", "split"]
   optional_colnames = ["protein_pdb", "ligand_pdb", "ligand_mol2"]
   feature_types = ["user-specified-features", "RDKIT-descriptors", "ECFP", "NNScore"]
 

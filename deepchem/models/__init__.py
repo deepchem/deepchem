@@ -161,8 +161,7 @@ class Model(object):
       y_preds = []
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
-        y_pred_on_batch = self.predict_on_batch(X[indices, :])
-        #y_pred_on_batch = np.reshape(y_pred_on_batch, (len(indices),))
+        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape((len(indices),len(task_names)))
         y_preds.append(y_pred_on_batch)
 
       y_pred = np.concatenate(y_preds)
