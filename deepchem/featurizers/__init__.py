@@ -5,7 +5,6 @@ import types
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdGeometry, rdMolTransforms
-from deepchem.utils.ob_utils import Ionizer
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
