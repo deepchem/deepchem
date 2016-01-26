@@ -24,9 +24,7 @@ class TestSingletaskVectorAPI(unittest.TestCase):
   Test top-level API for singletask vector models."
   """
   def setUp(self):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.input_file = os.path.join(current_dir, "example.csv")
-    self.tasks = ["log-solubility"]
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.smiles_field = "smiles"
     self.feature_dir = tempfile.mkdtemp()
     self.samplesdir = tempfile.mkdtemp()
@@ -42,14 +40,18 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     shutil.rmtree(self.model_dir)
 
   def _create_model(self, splittype, feature_types, input_transforms,
-                    output_transforms, task_type, model_params, model_name):
+                    output_transforms, task_type, model_params, model_name,
+                    input_file, tasks, protein_pdb_field=None, ligand_pdb_field=None):
     """Helper method to create model for test."""
     # Featurize input
-    featurizer = DataFeaturizer(tasks=self.tasks,
+    input_file = os.path.join(self.current_dir, input_file)
+    featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
+                                protein_pdb_field=protein_pdb_field,
+                                ligand_pdb_field=ligand_pdb_field,
                                 verbose=True)
     feature_file = os.path.join(self.feature_dir, "out.joblib")
-    featurizer.featurize(self.input_file, feature_types, feature_file)
+    featurizer.featurize(input_file, feature_types, feature_file)
 
     # Transform data into arrays for ML
     samples = FeaturizedSamples(self.samplesdir, [feature_file],
@@ -66,7 +68,7 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     test_dataset.transform(input_transforms, output_transforms)
 
     # Fit model
-    task_types = {task: task_type for task in self.tasks}
+    task_types = {task: task_type for task in tasks}
     model_params["data_shape"] = train_dataset.get_data_shape()
     model = Model.model_builder(model_name, task_types, model_params)
     model.fit(train_dataset)
@@ -88,8 +90,11 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     task_type = "regression"
     model_params = {"batch_size": 5}
     model_name = "rf_regressor"
+    input_file = "example.csv"
+    tasks = ["log-solubility"]
     self._create_model(splittype, feature_types, input_transforms,
-                       output_transforms, task_type, model_params, model_name)
+                       output_transforms, task_type, model_params, model_name,
+                       input_file=input_file, tasks=tasks)
 
 
   def test_singletask_rf_RDKIT_descriptor_regression_API(self):
@@ -101,8 +106,35 @@ class TestSingletaskVectorAPI(unittest.TestCase):
     task_type = "regression"
     model_params = {"batch_size": 5}
     model_name = "rf_regressor"
+    input_file = "example.csv"
+    tasks = ["log-solubility"]
     self._create_model(splittype, feature_types, input_transforms,
-                       output_transforms, task_type, model_params, model_name)
+                       output_transforms, task_type, model_params, model_name,
+                       input_file=input_file, tasks=tasks)
+
+  def test_singletask_mlp_NNScore_regression_API(self):
+    """Test of singletask MLP NNScore regression API."""
+    splittype = "scaffold"
+    feature_types = ["NNScore"]
+    input_transforms = ["normalize", "truncate"]
+    output_transforms = ["normalize"]
+    task_type = "regression"
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2}
+    model_name = "singletask_deep_regressor"
+    protein_pdb_field = "protein_pdb"
+    ligand_pdb_field = "ligand_pdb"
+    input_file = "nnscore_example.pkl.gz"
+    tasks = ["label"]
+    self._create_model(splittype, feature_types, input_transforms,
+                       output_transforms, task_type, model_params, model_name,
+                       input_file=input_file,
+                       protein_pdb_field=protein_pdb_field,
+                       ligand_pdb_field=ligand_pdb_field,
+                       tasks=tasks)
 
 class TestMultitaskVectorAPI(unittest.TestCase):
   """

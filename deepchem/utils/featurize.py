@@ -14,7 +14,10 @@ from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import load_pickle_from_disk
 from vs_utils.utils import ScaffoldGenerator
+from vs_utils.features.nnscore import NNScoreComplexFeaturizer
+import multiprocessing as mp
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
@@ -50,8 +53,10 @@ def _get_input_type(input_file):
     filename, file_extension = os.path.splitext(filename)
   if file_extension == ".csv":
     return "csv"
-  elif file_extension in [".pkl", ".joblib"]:
-    return "pandas"
+  elif file_extension == ".pkl":
+    return "pandas-pickle"
+  elif file_extension == ".joblib":
+    return "pandas-joblib"
   elif file_extension == ".sdf":
     return "sdf"
   else:
@@ -64,8 +69,11 @@ def _get_fields(input_file):
   if input_type == "csv":
     with open(input_file, "rb") as inp_file_obj:
       return csv.reader(inp_file_obj).next()
-  elif input_type == "pandas":
+  elif input_type == "pandas-joblib":
     df = load_from_disk(input_file)
+    return df.keys()
+  elif input_type == "pandas-pickle":
+    df = load_pickle_from_disk(input_file)
     return df.keys()
   elif input_type == "sdf":
     sample_mol = _get_raw_samples(input_file).next()
@@ -85,10 +93,14 @@ def _get_raw_samples(input_file):
           continue
         if row is not None:
           yield row
-  elif input_type == "pandas":
+  elif input_type == "pandas-joblib":
     dataframe = load_from_disk(input_file)
     for _, row in dataframe.iterrows():
       yield row
+  elif input_type == "pandas-pickle":
+    dataframe = load_pickle_from_disk(input_file)
+    for _, row in dataframe.iterrows():
+      yield row   
   elif input_type == "sdf":
     if ".gz" in input_file:
       with gzip.open(input_file) as inp_file_obj:
@@ -113,6 +125,8 @@ class DataFeaturizer(object):
 
   def __init__(self, tasks, smiles_field, split_field=None,
                id_field=None, threshold=None, user_specified_features=None,
+               protein_pdb_field=None, ligand_pdb_field=None,
+               ligand_mol2_field=None,
                verbose=False, log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
     if not isinstance(tasks, list):
@@ -125,6 +139,9 @@ class DataFeaturizer(object):
     else:
       self.id_field = id_field
     self.threshold = threshold
+    self.protein_pdb_field = protein_pdb_field
+    self.ligand_pdb_field = ligand_pdb_field
+    self.ligand_mol2_field = ligand_mol2_field
     self.user_specified_features = user_specified_features
     self.verbose = verbose
     self.log_every_n = log_every_n
@@ -141,6 +158,7 @@ class DataFeaturizer(object):
       rows.append(self._process_raw_sample(input_type, row, fields))
     df = self._standardize_df(pd.DataFrame(rows))
     for feature_type in feature_types:
+      print("Currently feauturizing feature_type: %s" % feature_type)
       self._featurize_df(df, rows, feature_type)
     save_to_disk(df, out)
 
@@ -151,7 +169,7 @@ class DataFeaturizer(object):
       for ind, field in enumerate(fields):
         data[field] = _process_field(row[ind])
       return data
-    elif input_type == "pandas":
+    elif input_type in ["pandas-pickle", "pandas-joblib"]:
       for field in fields:
         data[field] = _process_field(row[field])
     elif input_type == "sdf":
@@ -181,6 +199,12 @@ class DataFeaturizer(object):
       df[task] = ori_df[[task]]
     if self.split_field is not None:
       df["split"] = ori_df[[self.split_field]]
+    if self.protein_pdb_field is not None:
+      df["protein_pdb"] = ori_df[[self.protein_pdb_field]]
+    if self.ligand_pdb_field is not None:
+      df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
+    if self.ligand_mol2_field is not None:
+      df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
     return df
 
   def _featurize_df(self, df, rows, feature_type):
@@ -215,16 +239,34 @@ class DataFeaturizer(object):
         mol = Chem.MolFromSmiles(smiles)
         features.append(featurizer.featurize([mol]))
       df[feature_type] = features
+    elif feature_type == "NNScore":
+      print("Currently conducting NNScore Featurization.")
+      protein_pdbs = list(df["protein_pdb"])
+      ligand_pdbs = list(df["ligand_pdb"])
+      complexes = zip(ligand_pdbs, protein_pdbs)
+      
+      pool = mp.Pool(mp.cpu_count())
+      features = pool.map(map_function, complexes)
+      pool.terminate()
+
+      features = np.concatenate(features)
+      df[feature_type] = list(features)
     else:
       raise ValueError("Unsupported feature_type requested.")
+
+def map_function(data_tuple):
+  featurizer = NNScoreComplexFeaturizer()
+  ligand_pdb, protein_pdb = data_tuple
+  return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
 class FeaturizedSamples(object):
   """
   Wrapper class for featurized data on disk.
   """
   # The standard columns for featurized data.
-  colnames = ["mol_id", "smiles", "split"]
-  feature_types = ["user-specified-features", "RDKIT-descriptors", "ECFP"]
+  colnames = ["mol_id", "smiles", "split"] 
+  optional_colnames = ["protein_pdb", "ligand_pdb", "ligand_mol2"]
+  feature_types = ["user-specified-features", "RDKIT-descriptors", "ECFP", "NNScore"]
 
   @staticmethod
   def get_sorted_task_names(df):
@@ -234,6 +276,7 @@ class FeaturizedSamples(object):
     column_names = df.keys()
     task_names = (set(column_names) -
                   set(FeaturizedSamples.colnames) -
+                  set(FeaturizedSamples.optional_colnames) -
                   set(FeaturizedSamples.feature_types))
     return sorted(list(task_names))
 

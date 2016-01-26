@@ -314,7 +314,8 @@ def _df_to_numpy(df, feature_types):
   sorted_ids = df["mol_id"]
 
   # Set missing data to have weight zero
-  missing = (y == "")
+  missing = (y.astype(object) == "")
+
   y[missing] = 0.
   w[missing] = 0.
 
