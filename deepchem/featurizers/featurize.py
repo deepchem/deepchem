@@ -10,13 +10,13 @@ import pandas as pd
 import numpy as np
 import csv
 from rdkit import Chem
-from vs_utils.features.fingerprints import CircularFingerprint
-from vs_utils.features.basic import SimpleDescriptors
+from deepchem.featurizers.fingerprints import CircularFingerprint
+from deepchem.featurizers.basic import SimpleDescriptors
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from vs_utils.utils import ScaffoldGenerator
-from vs_utils.features.nnscore import NNScoreComplexFeaturizer
+from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 import multiprocessing as mp
 from functools import partial
 

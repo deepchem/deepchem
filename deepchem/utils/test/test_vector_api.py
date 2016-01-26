@@ -9,8 +9,8 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.utils.featurize import DataFeaturizer
-from deepchem.utils.featurize import FeaturizedSamples
+from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.utils.dataset import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model

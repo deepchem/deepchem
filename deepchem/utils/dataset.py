@@ -11,7 +11,7 @@ import multiprocessing as mp
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
-from deepchem.utils.featurize import FeaturizedSamples
+from deepchem.featurizers.featurize import FeaturizedSamples
 
 # TODO(rbharath): The semantics of this class are very difficult to debug.
 # Multiple transformations of the data are performed on disk, and computations
