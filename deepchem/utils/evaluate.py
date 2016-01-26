@@ -93,20 +93,10 @@ class Evaluator(object):
 
     for i, task_name in enumerate(self.task_names):
       y = pred_y_df[task_name].values
-      print("y")
-      print(y)
       y_pred = pred_y_df["%s_pred" % task_name].values
-      print("y_pred")
-      print(y_pred)
       w = pred_y_df["%s_weight" % task_name].values
       y = undo_transform(y, y_means, y_stds, self.output_transforms)
       y_pred = undo_transform(y_pred, y_means, y_stds, self.output_transforms)
-      print("means, stds")
-      print(y_means)
-      print(y_stds)
-      print("untransformed y, y_pred")
-      print(y)
-      print(y_pred)
 
       if self.task_type == "classification":
         y, y_pred = y[w.nonzero()].astype(int), y_pred[w.nonzero()].astype(int)

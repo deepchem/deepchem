@@ -14,10 +14,12 @@ from vs_utils.features.fingerprints import CircularFingerprint
 from vs_utils.features.basic import SimpleDescriptors
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
-from deepchem.utils.save import load_pickle_from_disk
+from deepchem.utils.save import load_pandas_from_disk
 from vs_utils.utils import ScaffoldGenerator
 from vs_utils.features.nnscore import NNScoreComplexFeaturizer
 import multiprocessing as mp
+from functools import partial
+
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
@@ -57,8 +59,6 @@ def _get_input_type(input_file):
     return "pandas-pickle"
   elif file_extension == ".joblib":
     return "pandas-joblib"
-  elif file_extension == ".sdf":
-    return "sdf"
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
@@ -75,14 +75,11 @@ def _get_fields(input_file):
   elif input_type == "pandas-pickle":
     df = load_pickle_from_disk(input_file)
     return df.keys()
-  elif input_type == "sdf":
-    sample_mol = _get_raw_samples(input_file).next()
-    return list(sample_mol.GetPropNames())
   else:
     raise ValueError("Unrecognized extension for %s" % input_file)
 
-
-def _get_raw_samples(input_file):
+'''
+def _get_raw_samples(input_file, iterator=True):
   """Returns an iterator over all rows in input_file"""
   input_type = _get_input_type(input_file)
   if input_type == "csv":
@@ -101,19 +98,9 @@ def _get_raw_samples(input_file):
     dataframe = load_pickle_from_disk(input_file)
     for _, row in dataframe.iterrows():
       yield row   
-  elif input_type == "sdf":
-    if ".gz" in input_file:
-      with gzip.open(input_file) as inp_file_obj:
-        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-        for mol in supp:
-          if mol is not None:
-            yield mol
-    else:
-      with open(input_file) as inp_file_obj:
-        supp = Chem.ForwardSDMolSupplier(inp_file_obj)
-        for mol in supp:
-          if mol is not None:
-            yield mol
+  else:
+    raise ValueError("Unrecognized input type for %s" % input_file)
+'''
 
 class DataFeaturizer(object):
   """
@@ -146,21 +133,40 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_types, out):
+  def featurize(self, input_file, feature_types, feature_dir, shard_size=128):
     """Featurize provided file and write to specified location."""
-    fields = _get_fields(input_file)
     input_type = _get_input_type(input_file)
 
-    rows = []
-    for ind, row in enumerate(_get_raw_samples(input_file)):
-      if ind % self.log_every_n == 0:
-        print("Loading sample %d" % ind)
-      rows.append(self._process_raw_sample(input_type, row, fields))
-    df = self._standardize_df(pd.DataFrame(rows))
-    for feature_type in feature_types:
-      print("Currently feauturizing feature_type: %s" % feature_type)
-      self._featurize_df(df, rows, feature_type)
-    save_to_disk(df, out)
+    print("Loading raw samples now.")
+    raw_df = load_pandas_from_disk(input_file)
+    fields = raw_df.keys()
+    print("Loaded raw data frame from file.")
+    def process_raw_sample_helper(row, fields, input_type):
+      return self._process_raw_sample(input_type, row, fields)
+    process_raw_sample_helper_partial = partial(process_raw_sample_helper, 
+                                                fields=fields,
+                                                input_type=input_type)
+
+    processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
+    print("finished processing rows")
+    raw_df = pd.DataFrame.from_records(processed_rows)
+
+    nb_sample = raw_df.shape[0]
+    interval_points = np.linspace(
+        0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
+    shard_files = []
+    for j in range(len(interval_points)-1):
+      print("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1))
+      raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
+      df = self._standardize_df(raw_df_shard)
+      for feature_type in feature_types:
+        print("Currently feauturizing feature_type: %s" % feature_type)
+        self._featurize_df(df, feature_type)
+
+      shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
+      save_to_disk(df, shard_out)
+      shard_files.append(shard_out)
+    return shard_files
 
   def _process_raw_sample(self, input_type, row, fields):
     """Extract information from row data."""
@@ -172,14 +178,6 @@ class DataFeaturizer(object):
     elif input_type in ["pandas-pickle", "pandas-joblib"]:
       for field in fields:
         data[field] = _process_field(row[field])
-    elif input_type == "sdf":
-      mol = row
-      for field in fields:
-        if not mol.HasProp(field):
-          data[field] = None
-        else:
-          data[field] = _process_field(mol.GetProp(field))
-      data["smiles"] = Chem.MolToSmiles(mol)
     else:
       raise ValueError("Unrecognized input_type")
     if self.threshold is not None:
@@ -193,6 +191,8 @@ class DataFeaturizer(object):
   def _standardize_df(self, ori_df):
     """Copy specified columns to new df with standard column names."""
     df = pd.DataFrame([])
+    print("ori_df.keys()")
+    print(ori_df.keys())
     df["mol_id"] = ori_df[[self.id_field]]
     df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
@@ -207,14 +207,14 @@ class DataFeaturizer(object):
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
     return df
 
-  def _featurize_df(self, df, rows, feature_type):
+  def _featurize_df(self, df, feature_type):
     """Generates circular fingerprints for dataset."""
     if feature_type == "user-specified-features":
       if self.user_specified_features is not None:
         if self.verbose:
           print("Adding user-defined features.")
         features_data = []
-        for row in rows:
+        for _, row in df.iterrows():
           # pandas rows are tuples (row_num, row_data)
           feature_list = []
           for feature_name in self.user_specified_features:
@@ -245,7 +245,7 @@ class DataFeaturizer(object):
       ligand_pdbs = list(df["ligand_pdb"])
       complexes = zip(ligand_pdbs, protein_pdbs)
       
-      pool = mp.Pool(mp.cpu_count())
+      pool = mp.Pool(processes=mp.cpu_count())
       features = pool.map(map_function, complexes)
       pool.terminate()
 

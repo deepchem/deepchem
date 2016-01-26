@@ -10,6 +10,7 @@ from __future__ import unicode_literals
 from sklearn.externals import joblib
 import gzip
 import cPickle as pickle
+import pandas as pd
 
 def save_to_disk(dataset, filename):
   """Save a dataset to file."""
@@ -17,8 +18,10 @@ def save_to_disk(dataset, filename):
 
 def load_from_disk(filename):
   """Load a dataset from file."""
-  dataset = joblib.load(filename)
-  return dataset
+  if ".pkl" in filename:
+    return load_pickle_from_disk(filename)
+  else:
+    return joblib.load(filename)
 
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""
@@ -29,3 +32,12 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
+
+def load_pandas_from_disk(filename):
+  """Load data as pandas dataframe."""
+  if ".csv" not in filename:
+    return load_from_disk(filename)
+  else:
+    # First line of user-specified CSV *must* be header.
+    df = pd.read_csv(filename, header=0)
+    return df

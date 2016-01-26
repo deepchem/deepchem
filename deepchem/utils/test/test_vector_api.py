@@ -50,11 +50,10 @@ class TestSingletaskVectorAPI(unittest.TestCase):
                                 protein_pdb_field=protein_pdb_field,
                                 ligand_pdb_field=ligand_pdb_field,
                                 verbose=True)
-    feature_file = os.path.join(self.feature_dir, "out.joblib")
-    featurizer.featurize(input_file, feature_types, feature_file)
+    feature_files = featurizer.featurize(input_file, feature_types, self.feature_dir)
 
     # Transform data into arrays for ML
-    samples = FeaturizedSamples(self.samplesdir, [feature_file],
+    samples = FeaturizedSamples(self.samplesdir, feature_files,
                                 reload_data=False)
 
     # Split into train/test
@@ -180,11 +179,10 @@ class TestMultitaskVectorAPI(unittest.TestCase):
     featurizer = DataFeaturizer(tasks=self.tasks,
                                 smiles_field=self.smiles_field,
                                 verbose=True)
-    feature_file = os.path.join(self.feature_dir, "out.joblib")
-    featurizer.featurize(self.input_file, feature_types, feature_file)
+    feature_files = featurizer.featurize(self.input_file, feature_types, self.feature_dir)
 
     # Transform data into arrays for ML
-    samples = FeaturizedSamples(self.samplesdir, [feature_file],
+    samples = FeaturizedSamples(self.samplesdir, feature_files,
                                 reload_data=False)
 
     # Split into train/test
