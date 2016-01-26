@@ -11,6 +11,7 @@ from sklearn.externals import joblib
 import gzip
 import cPickle as pickle
 import pandas as pd
+import numpy as np
 
 def save_to_disk(dataset, filename):
   """Save a dataset to file."""
@@ -40,4 +41,5 @@ def load_pandas_from_disk(filename):
   else:
     # First line of user-specified CSV *must* be header.
     df = pd.read_csv(filename, header=0)
+    df = df.replace(np.nan,str(""), regex=True)
     return df

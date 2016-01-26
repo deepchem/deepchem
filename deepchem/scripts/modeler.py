@@ -280,6 +280,10 @@ def parse_args(input_args=None):
   add_model_command(subparsers)
   return parser.parse_args(input_args)
 
+def shard_inputs(input_file):
+  input_file_no_ext = os.path.splitext(input_file)
+
+
 def featurize_inputs(feature_dir, data_dir, input_files,
                      user_specified_features, tasks, smiles_field,
                      split_field, id_field, threshold, protein_pdb_field, 
@@ -321,9 +325,8 @@ def featurize_input(input_file, feature_dir, user_specified_features, tasks,
                               ligand_mol2_field=ligand_mol2_field,
                               user_specified_features=user_specified_features,
                               verbose=True)
-  out = os.path.join(
-      feature_dir, "%s.joblib" %(os.path.splitext(os.path.basename(input_file))[0]))
-  featurizer.featurize(input_file, FeaturizedSamples.feature_types, out)
+
+  featurizer.featurize(input_file, FeaturizedSamples.feature_types, feature_dir)
 
 def train_test_split(input_transforms, output_transforms,
                      feature_types, splittype, data_dir):
