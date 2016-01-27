@@ -12,6 +12,7 @@ import csv
 from rdkit import Chem
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import SimpleDescriptors
+from deepchem.utils.save import log
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
@@ -78,30 +79,6 @@ def _get_fields(input_file):
   else:
     raise ValueError("Unrecognized extension for %s" % input_file)
 
-'''
-def _get_raw_samples(input_file, iterator=True):
-  """Returns an iterator over all rows in input_file"""
-  input_type = _get_input_type(input_file)
-  if input_type == "csv":
-    with open(input_file, "rb") as inp_file_obj:
-      for ind, row in enumerate(csv.reader(inp_file_obj)):
-        # Skip labels
-        if ind == 0:
-          continue
-        if row is not None:
-          yield row
-  elif input_type == "pandas-joblib":
-    dataframe = load_from_disk(input_file)
-    for _, row in dataframe.iterrows():
-      yield row
-  elif input_type == "pandas-pickle":
-    dataframe = load_pickle_from_disk(input_file)
-    for _, row in dataframe.iterrows():
-      yield row
-  else:
-    raise ValueError("Unrecognized input type for %s" % input_file)
-'''
-
 class DataFeaturizer(object):
   """
   Handles loading/featurizing of chemical samples (datapoints).
@@ -113,8 +90,7 @@ class DataFeaturizer(object):
   def __init__(self, tasks, smiles_field, split_field=None,
                id_field=None, threshold=None, user_specified_features=None,
                protein_pdb_field=None, ligand_pdb_field=None,
-               ligand_mol2_field=None,
-               verbose=False, log_every_n=1000):
+               ligand_mol2_field=None, verbose=False, log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
     if not isinstance(tasks, list):
       raise ValueError("tasks must be a list.")
@@ -133,14 +109,15 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_types, feature_dir, shard_size=128):
+  def featurize(self, input_file, feature_types, feature_dir, 
+                shard_size=128):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
-    print("Loading raw samples now.")
+    log("Loading raw samples now.", self.verbose)
     raw_df = load_pandas_from_disk(input_file)
     fields = raw_df.keys()
-    print("Loaded raw data frame from file.")
+    log("Loaded raw data frame from file.", self.verbose)
     def process_raw_sample_helper(row, fields, input_type):
       return self._process_raw_sample(input_type, row, fields)
     process_raw_sample_helper_partial = partial(process_raw_sample_helper,
@@ -148,7 +125,7 @@ class DataFeaturizer(object):
                                                 input_type=input_type)
 
     processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
-    print("finished processing rows")
+    log("finished processing rows", self.verbose)
     raw_df = pd.DataFrame.from_records(processed_rows)
 
     nb_sample = raw_df.shape[0]
@@ -156,11 +133,12 @@ class DataFeaturizer(object):
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
     shard_files = []
     for j in range(len(interval_points)-1):
-      print("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1))
+      log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-      df = self._standardize_df(raw_df_shard)
+      
+      df = self._standardize_df(raw_df_shard)   
       for feature_type in feature_types:
-        print("Currently feauturizing feature_type: %s" % feature_type)
+        log("Currently feauturizing feature_type: %s" % feature_type, self.verbose)
         self._featurize_df(df, feature_type)
 
       shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
@@ -190,8 +168,7 @@ class DataFeaturizer(object):
 
   def _standardize_df(self, ori_df):
     """Copy specified columns to new df with standard column names."""
-    df = pd.DataFrame([])
-    df["mol_id"] = ori_df[[self.id_field]]
+    df = pd.DataFrame(ori_df[[self.id_field]])
     df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
       df[task] = ori_df[[task]]
@@ -209,8 +186,7 @@ class DataFeaturizer(object):
     """Generates circular fingerprints for dataset."""
     if feature_type == "user-specified-features":
       if self.user_specified_features is not None:
-        if self.verbose:
-          print("Adding user-defined features.")
+        log("Adding user-defined features.", self.verbose)
         features_data = []
         for _, row in df.iterrows():
           # pandas rows are tuples (row_num, row_data)
@@ -222,31 +198,28 @@ class DataFeaturizer(object):
         return
     elif feature_type in ["ECFP", "RDKIT-descriptors"]:
       if feature_type == "ECFP":
-        if self.verbose:
-          print("Generating ECFP circular fingerprints.")
-        featurizer = CircularFingerprint(size=1024)
+        log("Generating ECFP circular fingerprints.", self.verbose)
+        featurizer = CircularFingerlog(size=1024)
       elif feature_type == "RDKIT-descriptors":
-        if self.verbose:
-          print("Generating RDKIT descriptors.")
+        log("Generating RDKIT descriptors.", self.verbose)
         featurizer = SimpleDescriptors()
       features = []
       sample_smiles = df["smiles"].tolist()
       for ind, smiles in enumerate(sample_smiles):
         if ind % self.log_every_n == 0:
-          print("Featurizing sample %d" % ind)
+          log("Featurizing sample %d" % ind, self.verbose)
         mol = Chem.MolFromSmiles(smiles)
         features.append(featurizer.featurize([mol]))
       df[feature_type] = features
     elif feature_type == "NNScore":
-      print("Currently conducting NNScore Featurization.")
+      log("Currently conducting NNScore Featurization.", self.verbose)
       protein_pdbs = list(df["protein_pdb"])
       ligand_pdbs = list(df["ligand_pdb"])
-      complexes = zip(ligand_pdbs, protein_pdbs)
+      complexes = zip(range(len(ligand_pdbs)), ligand_pdbs, protein_pdbs)
 
       pool = mp.Pool(processes=mp.cpu_count())
       features = pool.map(map_function, complexes)
       pool.terminate()
-
       features = np.concatenate(features)
       df[feature_type] = list(features)
     else:
@@ -254,7 +227,9 @@ class DataFeaturizer(object):
 
 def map_function(data_tuple):
   featurizer = NNScoreComplexFeaturizer()
-  ligand_pdb, protein_pdb = data_tuple
+  ind, ligand_pdb, protein_pdb = data_tuple
+  print("Mapping on ind %d" % ind)
+  print("ind, type(ligand_pdb), type(protein_pdb): %s " % str((ind, type(ligand_pdb), type(protein_pdb))))
   return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
 class FeaturizedSamples(object):

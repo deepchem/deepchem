@@ -5,6 +5,7 @@ import types
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdGeometry, rdMolTransforms
+from deepchem.utils.save import log
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
@@ -78,7 +79,7 @@ class ComplexFeaturizer(object):
     features = []
     for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
       if i % log_every_n == 0:
-        print("Featurizing %d / %d" % (i, len(mol_pdbs)))
+        log("Featurizing %d / %d" % (i, len(mol_pdbs)))
       features.append(self._featurize_complex(mol_pdb, protein_pdb))
     features = np.asarray(features)
     return features

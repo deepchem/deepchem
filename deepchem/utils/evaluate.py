@@ -110,8 +110,12 @@ class Evaluator(object):
         performance_df.loc[i] = [task_name, auc, mcc, recall, accuracy]
 
       elif self.task_type == "regression":
-        r2s = r2_score(y, y_pred)
-        rms = np.sqrt(mean_squared_error(y, y_pred))
+        try:
+          r2s = r2_score(y, y_pred)
+          rms = np.sqrt(mean_squared_error(y, y_pred))
+        except ValueError:
+          r2s = np.nan
+          rms = np.nan
         performance_df.loc[i] = [task_name, r2s, rms]
 
     if self.verbose:

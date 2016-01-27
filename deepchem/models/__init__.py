@@ -12,6 +12,7 @@ import os
 from deepchem.utils.dataset import Dataset
 from deepchem.utils.dataset import load_from_disk
 from deepchem.utils.dataset import save_to_disk
+from deepchem.utils.save import log
 
 class Model(object):
   """
@@ -20,11 +21,12 @@ class Model(object):
   # List of registered models
   registered_model_types = {}
   def __init__(self, model_type, task_types, model_params,
-               initialize_raw_model=True):
+               initialize_raw_model=True, verbose=True):
     self.model_type = model_type
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = None
+    self.verbose = verbose 
 
   def fit_on_batch(self, X, y, w):
     """
@@ -126,14 +128,14 @@ class Model(object):
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
-      print("Starting epoch %s" % str(epoch+1))
+      log("Starting epoch %s" % str(epoch+1), self.verbose)
       for i, (X, y, w, _) in enumerate(dataset.itershards()):
-        print("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)))
+        log("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)), self.verbose)
         nb_sample = np.shape(X)[0]
         interval_points = np.linspace(
             0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
         for j in range(len(interval_points)-1):
-          print("Training on batch-%s/shard-%s/epoch-%s" % (str(j+1), str(i+1), str(epoch+1)))
+          log("Training on batch-%s/shard-%s/epoch-%s" % (str(j+1), str(i+1), str(epoch+1)), self.verbose)
           indices = range(interval_points[j], interval_points[j+1])
           X_batch = X[indices, :]
           y_batch = y[indices]

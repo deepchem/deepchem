@@ -63,7 +63,7 @@ class MultiTaskDNN(KerasModel):
       model = Graph()
       model.add_input(name="input", input_shape=(n_inputs,))
       model.add_node(
-          Dense(model_params["nb_hidden"], init='uniform',
+          Dense(model_params["nb_hidden"], init=model_params["init"],
                 activation=model_params["activation"]),
           name="dense", input="input")
       model.add_node(Dropout(model_params["dropout"]),
@@ -74,11 +74,11 @@ class MultiTaskDNN(KerasModel):
         task_type = task_types[task]
         if task_type == "classification":
           model.add_node(
-              Dense(2, init='uniform', activation="softmax"),
+              Dense(2, init=model_params["init"], activation="softmax"),
               name="dense_head%d" % ind, input=top_layer)
         elif task_type == "regression":
           model.add_node(
-              Dense(1, init='uniform'),
+              Dense(1, init=model_params["init"]),
               name="dense_head%d" % ind, input=top_layer)
         model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
 
