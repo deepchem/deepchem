@@ -21,7 +21,8 @@ class Dataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
-  def __init__(self, data_dir, samples=None, feature_types=None):
+  def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
+               use_user_specified_features=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
@@ -29,13 +30,17 @@ class Dataset(object):
       os.makedirs(data_dir)
     self.data_dir = data_dir
 
+    feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+    if use_user_specified_features:
+      feature_types += ["user-specified-features"]
+
     if samples is not None and feature_types is not None:
       if not isinstance(feature_types, list):
         raise ValueError("feature_types must be a list or None.")
 
       write_dataset_single_partial = partial(
           write_dataset_single, data_dir=self.data_dir,
-          feature_types=feature_types)
+          feature_types=feature_types, tasks=tasks)
 
       metadata_rows = []
       # TODO(rbharath): Still a bit of information leakage.
@@ -261,14 +266,14 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
 
-def write_dataset_single(val, data_dir, feature_types):
+def write_dataset_single(val, data_dir, feature_types, tasks):
   """Writes files for single row (X, y, w, X-transformed, ...) to disk."""
   (df_file, df) = val
   # TODO(rbharath): This is a hack. clean up.
   if not len(df):
     return None
-  task_names = FeaturizedSamples.get_sorted_task_names(df)
-  ids, X, y, w = _df_to_numpy(df, feature_types)
+  task_names = sorted(tasks)
+  ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
@@ -291,14 +296,14 @@ def write_dataset_single(val, data_dir, feature_types):
           X_sums, X_sum_squares, X_n,
           y_sums, y_sum_squares, y_n])
 
-def _df_to_numpy(df, feature_types):
+def _df_to_numpy(df, feature_types, tasks):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   if not set(feature_types).issubset(df.keys()):
     raise ValueError(
         "Featurized data does not support requested feature_types.")
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
-  sorted_tasks = FeaturizedSamples.get_sorted_task_names(df)
+  sorted_tasks = sorted(tasks)
   n_tasks = len(sorted_tasks)
   y = df[sorted_tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
@@ -319,6 +324,12 @@ def _df_to_numpy(df, feature_types):
   y[missing] = 0.
   w[missing] = 0.
 
+  print("x")
+  print(x)
+  print("y")
+  print(y)
+  print("w")
+  print(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 

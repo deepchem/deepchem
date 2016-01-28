@@ -11,35 +11,6 @@ __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "BSD 3-clause"
 
-
-def get_featurizers():
-    """Compile a dict mapping strings to featurizer classes."""
-
-    # import all Featurizer subclasses so __subclasses__ will work
-    # these have to be local imports to avoid circular imports
-    from .basic import MolecularWeight, SimpleDescriptors
-    from .coulomb_matrices import CoulombMatrix
-    from .dragon import DragonDescriptors
-    from .esp import ESP
-    from .fingerprints import CircularFingerprint
-    from .images import MolImage
-    from .scaffolds import ScaffoldGenerator
-    from .shape_grid import ShapeGrid
-
-    featurizers = {}
-    for klass in Featurizer.__subclasses__():
-        assert klass.name is not None, (klass.__name__ +
-                                        " 'name' attribute is None.")
-        if isinstance(klass.name, list):
-            for name in klass.name:
-                assert name not in featurizers
-                featurizers[name] = klass
-        else:
-            assert klass.name not in featurizers
-            featurizers[klass.name] = klass
-    return featurizers
-
-
 def resolve_featurizer(name):
     """
     Resolve featurizer class from a string.
