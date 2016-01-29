@@ -6,6 +6,9 @@ salt-bridge interactions. There might be a bug in the pi-T interaction
 finger, and the H-bonds are known to miss some potential bonds with an
 overly-conservative bond-angle cutoff.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import os
 import unittest
 from deepchem.featurizers.nnscore import Binana
@@ -135,7 +138,7 @@ class TestBinana(unittest.TestCase):
       hbonds_dict[name] = compute_hydrogen_bonds(
           ligand, protein)
     for name, hbonds in hbonds_dict.iteritems():
-      print "Processing hydrogen bonds for %s" % name
+      print("Processing hydrogen bonds for %s" % name)
       assert len(hbonds) == 12
       assert "HDONOR-LIGAND_BACKBONE_ALPHA" in hbonds
       assert "HDONOR-LIGAND_BACKBONE_BETA" in hbonds
@@ -159,13 +162,7 @@ class TestBinana(unittest.TestCase):
       counts_dict[name] = compute_ligand_atom_counts(
           ligand)
     for name, counts in counts_dict.iteritems():
-      print "Processing ligand atom counts for %s" % name
-      # TODO(rbharath): This code is useful for debugging. Remove once
-      # codebase is stable enough.
-      #for key in Binana.atom_types:
-      #  if key in counts:
-      #    del counts[key]
-      #print "Residual counts:"
+      print("Processing ligand atom counts for %s" % name)
       #print counts
       assert len(counts) == len(Binana.atom_types)
 
@@ -179,33 +176,18 @@ class TestBinana(unittest.TestCase):
           ligand, protein)
     num_atoms = len(Binana.atom_types)
     for name, (close_contacts, contacts) in contacts_dict.iteritems():
-      print "Processing contacts for %s" % name
-      print "close_contacts"
+      print("Processing contacts for %s" % name)
+      print("close_contacts")
       for key, val in close_contacts.iteritems():
         if val != 0:
           print (key, val)
-      print "len(close_contacts): " + str(len(close_contacts))
-      print "contacts"
+      print("len(close_contacts): " + str(len(close_contacts)))
+      print("contacts")
       for key, val in contacts.iteritems():
         if val != 0:
           print (key, val)
-      print "len(contacts): " + str(len(contacts))
-      print "Desired Number: " + str(num_atoms*(num_atoms+1)/2)
-      # TODO(rbharath): The following code has proved very useful for
-      # debugging. Remove once the code is stable enough that it's not
-      # required.
-      #if name == '1pi5':
-      #  for first, second in itertools.product(Binana.atom_types,
-      #    Binana.atom_types):
-      #    key = "_".join(sorted([first, second]))
-      #    if key in close_contacts:
-      #      del close_contacts[key]
-      #    if key in contacts:
-      #      del contacts[key]
-      #  print "Residuals close_contacts:"
-      #  print close_contacts
-      #  print "Residuals contacts:"
-      #  print contacts
+      print("len(contacts): " + str(len(contacts)))
+      print("Desired Number: " + str(num_atoms*(num_atoms+1)/2))
       assert len(close_contacts) == num_atoms*(num_atoms+1)/2
       assert len(contacts) == num_atoms*(num_atoms+1)/2
 
@@ -219,9 +201,9 @@ class TestBinana(unittest.TestCase):
       pi_stacking_dict[name] = compute_pi_pi_stacking(
           ligand, protein)
     for name, pi_stacking in pi_stacking_dict.iteritems():
-      print "Processing pi-stacking for %s" % name
+      print("Processing pi-stacking for %s" % name)
       assert len(pi_stacking) == 3
-      print pi_stacking
+      print(pi_stacking)
       assert "STACKING_ALPHA" in pi_stacking
       assert "STACKING_BETA" in pi_stacking
       assert "STACKING_OTHER" in pi_stacking
@@ -240,7 +222,7 @@ class TestBinana(unittest.TestCase):
       pi_t_dict[name] = compute_pi_t(
           ligand, protein)
     for name, pi_t in pi_t_dict.iteritems():
-      print "Processing pi-T for %s" % name
+      print("Processing pi-T for %s" % name)
       assert len(pi_t) == 3
       assert "T-SHAPED_ALPHA" in pi_t
       assert "T-SHAPED_BETA" in pi_t
@@ -255,7 +237,7 @@ class TestBinana(unittest.TestCase):
       pi_cation_dict[name] = compute_pi_cation(
           ligand, protein)
     for name, pi_cation in pi_cation_dict.iteritems():
-      print "Processing pi-cation for %s" % name
+      print("Processing pi-cation for %s" % name)
       assert len(pi_cation) == 6
       assert 'PI-CATION_LIGAND-CHARGED_ALPHA' in pi_cation
       assert 'PI-CATION_LIGAND-CHARGED_BETA' in pi_cation
@@ -276,9 +258,9 @@ class TestBinana(unittest.TestCase):
       salt_bridges_dict[name] = compute_salt_bridges(
           ligand, protein)
     for name, salt_bridges in salt_bridges_dict.iteritems():
-      print "Processing salt-bridges for %s" % name
+      print("Processing salt-bridges for %s" % name)
       assert len(salt_bridges) == 3
-      print salt_bridges
+      print(salt_bridges)
       assert 'SALT-BRIDGE_ALPHA' in salt_bridges
       assert 'SALT-BRIDGE_BETA' in salt_bridges
       assert 'SALT-BRIDGE_OTHER' in salt_bridges
@@ -308,5 +290,5 @@ class TestBinana(unittest.TestCase):
     total_len = (3*num_atoms*(num_atoms+1)/2 + num_atoms
                  + 12 + 6 + 3 + 6 + 3 + 6 + 3 + 1)
     for name, input_vector in features_dict.iteritems():
-      print "Processing input-vector for %s" % name
+      print("Processing input-vector for %s" % name)
       assert len(input_vector) == total_len
