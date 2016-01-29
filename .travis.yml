@@ -1,0 +1,31 @@
+language: python
+python:
+  # We don't actually use the Travis Python, but this keeps it organized.
+  - "2.7"
+install:
+  - sudo apt-get update
+  - wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
+  - bash anaconda.sh -b -p $HOME/anaconda
+  - export PATH="$HOME/anaconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+
+  # Replace dep1 dep2 ... with your dependencies
+  #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION dep1 dep2 ...
+  - conda install -c omnia rdkit
+  - conda install -c omnia openbabel
+  - conda install joblib
+  - pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
+  - pushd .
+  - cd ~/
+  - git clone https://github.com/pandegroup/keras.git
+  - cd keras/
+  - python setup.py install
+  - popd
+  - python setup.py develop
+
+script:
+  - nosetests -v deepchem 
