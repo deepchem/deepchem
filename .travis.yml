@@ -26,11 +26,12 @@ install:
   - conda install -c omnia openbabel
   - conda install joblib
   - pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
+  - pushd .
+  - cd ~/
   - git clone https://github.com/pandegroup/keras.git
   - cd keras/
   - python setup.py install
-  - git clone https://github.com/pandegroup/deepchem.git
-  - cd deepchem/
+  - popd
   - python setup.py develop
 
 script:
