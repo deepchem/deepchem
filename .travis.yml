@@ -1,0 +1,40 @@
+language: python
+python:
+  # We don't actually use the Travis Python, but this keeps it organized.
+  - "2.6"
+  - "2.7"
+  - "3.3"
+  - "3.4"
+install:
+  - sudo apt-get update
+  # We do this conditionally because it saves us some downloading if the
+  # version is the same.
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
+    else
+      wget http://repo.continuum.io/archive/Anaconda3-2.4.1-Linux-x86_64.sh -O anaconda.sh;
+    fi
+  - bash anaconda.sh -b -p $HOME/anaconda
+  - export PATH="$HOME/anaconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+
+  # Replace dep1 dep2 ... with your dependencies
+  #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION dep1 dep2 ...
+  - conda install -c omnia rdkit
+  - conda install -c omnia openbabel
+  - git clone https://github.com/pandegroup/vs-utils.git
+  - cd vs-utils/
+  - python setup.py develop
+  - git clone https://github.com/pandegroup/keras.git
+  - cd keras/
+  - python setup.py install
+  - git clone https://github.com/pandegroup/deepchem.git
+  - cd deepchem/
+  - python setup.py develop
+
+script:
+  - nosetests -v deepchem 
