@@ -20,7 +20,7 @@ from deepchem.featurizers.nnscore import compute_hydrogen_bonds
 from deepchem.featurizers.nnscore import compute_contacts
 from deepchem.featurizers.nnscore import compute_salt_bridges
 from deepchem.featurizers.nnscore_pdb import PDB
-from vs_utils.utils.tests import __file__ as test_directory
+from deepchem.featurizers.tests import __file__ as test_directory
 
 def data_dir():
   """Get location of data directory."""
@@ -70,7 +70,7 @@ class TestBinana(unittest.TestCase):
       hydrophobics_dict[name] = compute_hydrophobic_contacts(
           ligand, protein)
     for name, hydrophobics in hydrophobics_dict.iteritems():
-      print "Processing hydrohobics for %s" % name
+      print("Processing hydrohobics for %s" % name)
       assert len(hydrophobics) == 6
       assert "BACKBONE_ALPHA" in hydrophobics
       assert "BACKBONE_BETA" in hydrophobics
@@ -88,7 +88,7 @@ class TestBinana(unittest.TestCase):
       electrostatics_dict[name] = compute_electrostatic_energy(
           ligand, protein)
     for name, electrostatics in electrostatics_dict.iteritems():
-      print "Processing electrostatics for %s" % name
+      print("Processing electrostatics for %s" % name)
       # The keys of these dicts are pairs of atomtypes, but the keys are
       # sorted so that ("C", "O") is always written as "C_O". Thus, for N
       # atom types, there are N*(N+1)/2 unique pairs.
@@ -107,7 +107,7 @@ class TestBinana(unittest.TestCase):
       active_site_dict[name] = compute_active_site_flexibility(
           ligand, protein)
     for name, active_site_flexibility in active_site_dict.iteritems():
-      print "Processing active site flexibility for %s" % name
+      print("Processing active site flexibility for %s" % name)
       assert len(active_site_flexibility.keys()) == 6
       assert "BACKBONE_ALPHA" in active_site_flexibility
       assert "BACKBONE_BETA" in active_site_flexibility

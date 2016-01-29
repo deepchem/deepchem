@@ -15,7 +15,7 @@ from deepchem.featurizers.basic import SimpleDescriptors
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
-from vs_utils.utils import ScaffoldGenerator
+from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 import multiprocessing as mp
 from functools import partial
@@ -137,19 +137,17 @@ class DataFeaturizer(object):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
-    print("Loading raw samples now.")
     raw_df = load_pandas_from_disk(input_file)
     fields = raw_df.keys()
-    print("Loaded raw data frame from file.")
     def process_raw_sample_helper(row, fields, input_type):
       return self._process_raw_sample(input_type, row, fields)
     process_raw_sample_helper_partial = partial(process_raw_sample_helper,
                                                 fields=fields,
                                                 input_type=input_type)
 
-    processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
-    print("finished processing rows")
-    raw_df = pd.DataFrame.from_records(processed_rows)
+    #processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
+    raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
+    #raw_df = pd.DataFrame.from_records(processed_rows)
 
     nb_sample = raw_df.shape[0]
     interval_points = np.linspace(
@@ -174,7 +172,6 @@ class DataFeaturizer(object):
     if input_type == "csv":
       for ind, field in enumerate(fields):
         data[field] = _process_field(row[ind])
-      return data
     elif input_type in ["pandas-pickle", "pandas-joblib"]:
       for field in fields:
         data[field] = _process_field(row[field])

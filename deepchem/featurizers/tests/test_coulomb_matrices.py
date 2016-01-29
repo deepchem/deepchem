@@ -7,7 +7,7 @@ import unittest
 from rdkit import Chem
 
 from deepchem.featurizers import coulomb_matrices as cm
-from vs_utils.utils.rdkit_utils import conformers
+from deepchem.utils import conformers
 
 
 class TestCoulombMatrix(unittest.TestCase):
