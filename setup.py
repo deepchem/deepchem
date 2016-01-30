@@ -1,8 +1,6 @@
-from setuptools import setup, find_packages
-import sys
+from setuptools import setup
 
-setup(name="deepchem",
-   url='https://github.com/pandegroup/deep-learning',
-   description='Deep Learning Toolchain for Cheminformatics and Protein Analysis',
-   install_requires=['keras'],
-   packages=find_packages())
+setup(
+    setup_requires=['pbr'],
+    pbr=True,
+)
