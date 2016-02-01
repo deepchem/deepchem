@@ -740,6 +740,9 @@ class NNScoreComplexFeaturizer(ComplexFeaturizer):
     hydrogenate_and_compute_partial_charges(
         protein_pdb_file, "pdb", tempdir, protein_hyd_file, protein_pdbqt_file)
 
+    print("os.listdir(tempdir)")
+    print(os.listdir(tempdir))
+
     mol_pdb_obj = PDB()
     mol_pdb_obj.load_from_files(mol_pdb_file, mol_pdbqt_file)
 
