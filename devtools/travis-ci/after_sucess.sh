@@ -18,6 +18,6 @@ pip install numpydoc s3cmd
 conda list -e
 mkdir -p docs/_build
 echo "About to build docs"
-sphinx build -b html docs docs/_build
+sphinx-build -b html docs docs/_build
 echo "About to push docs to s3"
 python devtools/travis-ci/push-docs-to-s3.py
