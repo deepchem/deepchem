@@ -12,7 +12,7 @@ Submodules
 ----------
 
 deepchem.utils.conformers module
------------------------------
+--------------------------------
 
 .. automodule:: deepchem.utils.conformers
     :members:

@@ -1,5 +1,4 @@
 .. _featurization:
-.. currentmodule: deepchem.utils.featurize
 
 Featurization
 =============

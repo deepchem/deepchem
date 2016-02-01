@@ -1,12 +1,5 @@
 deepchem.featurizers package
-======================
-
-Subpackages
------------
-
-.. toctree::
-
-    deepchem.featurizers.test
+============================
 
 Submodules
 ----------
@@ -36,7 +29,7 @@ deepchem.featurizers.featurize module
     :show-inheritance:
 
 deepchem.featurizers.fingeprints module
--------------------------------------
+---------------------------------------
 
 .. automodule:: deepchem.featurizers.fingerprints
     :members:
@@ -44,7 +37,7 @@ deepchem.featurizers.fingeprints module
     :show-inheritance:
 
 deepchem.featurizers.nnscore module
--------------------------------------
+-----------------------------------
 
 .. automodule:: deepchem.featurizers.nnscore
     :members:
@@ -52,7 +45,7 @@ deepchem.featurizers.nnscore module
     :show-inheritance:
 
 deepchem.featurizers.nnscore module
--------------------------------------
+-----------------------------------
 
 .. automodule:: deepchem.featurizers.nnscore
     :members:
