@@ -720,38 +720,32 @@ class NNScoreComplexFeaturizer(ComplexFeaturizer):
     """
     Compute Binana fingerprint for complex.
     """
-    ### OPEN TEMPDIR
-    tempdir = tempfile.mkdtemp()
-
-    mol_pdb_file = os.path.join(tempdir, "mol.pdb")
-    with open(mol_pdb_file, "w") as mol_f:
+    mol_pdb_file = tempfile.NamedTemporaryFile(suffix="pdb")
+    with open(mol_pdb_file.name, "w") as mol_f:
       mol_f.writelines(mol_pdb)
-    protein_pdb_file = os.path.join(tempdir, "protein.pdb")
-    with open(protein_pdb_file, "w") as protein_f:
+    protein_pdb_file = tempfile.NamedTemporaryFile(suffix="pdb")
+    with open(protein_pdb_file.name, "w") as protein_f:
       protein_f.writelines(protein_pdb)
 
-    mol_hyd_file = os.path.join(tempdir, "mol_hyd.pdb")
-    mol_pdbqt_file = os.path.join(tempdir, "mol_hyd.pdbqt")
+    mol_hyd_file = tempfile.NamedTemporaryFile(suffix="pdb")
+    mol_pdbqt_file = tempfile.NamedTemporaryFile(suffix="pdbqt")
     hydrogenate_and_compute_partial_charges(
-        mol_pdb_file, "pdb", tempdir, mol_hyd_file, mol_pdbqt_file)
+        mol_pdb_file.name, "pdb", mol_hyd_file.name,
+        mol_pdbqt_file.name)
 
-    protein_hyd_file = os.path.join(tempdir, "protein_hyd.pdb")
-    protein_pdbqt_file = os.path.join(tempdir, "protein_hyd.pdbqt")
+    protein_hyd_file = tempfile.NamedTemporaryFile(suffix="pdb")
+    protein_pdbqt_file = tempfile.NamedTemporaryFile(suffix="pdbqt")
     hydrogenate_and_compute_partial_charges(
-        protein_pdb_file, "pdb", tempdir, protein_hyd_file, protein_pdbqt_file)
-
-    print("os.listdir(tempdir)")
-    print(os.listdir(tempdir))
+        protein_pdb_file.name, "pdb", protein_hyd_file.name,
+        protein_pdbqt_file.name)
 
     mol_pdb_obj = PDB()
-    mol_pdb_obj.load_from_files(mol_pdb_file, mol_pdbqt_file)
+    mol_pdb_obj.load_from_files(mol_pdb_file.name, mol_pdbqt_file.name)
 
     protein_pdb_obj = PDB()
-    protein_pdb_obj.load_from_files(protein_pdb_file, protein_pdbqt_file)
+    protein_pdb_obj.load_from_files(
+        protein_pdb_file.name, protein_pdbqt_file.name)
 
     features = self.binana.compute_input_vector(mol_pdb_obj, protein_pdb_obj)
-
-    ### CLOSE TEMPDIR
-    shutil.rmtree(tempdir)
 
     return features

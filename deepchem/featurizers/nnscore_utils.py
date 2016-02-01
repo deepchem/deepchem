@@ -55,7 +55,6 @@ def pdbqt_to_pdb(input_file, output_directory):
     subprocess.Popen(obabel_command, stdout=outfile).wait()
 
 def hydrogenate_and_compute_partial_charges(input_file, input_format,
-                                            output_directory,
                                             hyd_output=None,
                                             pdbqt_output=None,
                                             verbose=False):
@@ -77,15 +76,13 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
     Path to input file.
   input_format: String
     Name of input format.
-  output_directory: String
-    Path to desired output directory.
   """
   basename = os.path.basename(input_file).split(".")[0]
 
-  if hyd_output is None:
-    hyd_output = os.path.join(output_directory, basename + "_hyd.pdb")
-  if pdbqt_output is None:
-    pdbqt_output = os.path.join(output_directory, basename + "_hyd.pdbqt")
+  #if hyd_output is None:
+  #  hyd_output = os.path.join(output_directory, basename + "_hyd.pdb")
+  #if pdbqt_output is None:
+  #  pdbqt_output = os.path.join(output_directory, basename + "_hyd.pdbqt")
 
   if verbose:
     print "Create pdb with hydrogens added"
