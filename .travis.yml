@@ -1,32 +1,28 @@
 language: python
 python:
 - '2.7'
-
 install:
-  - sudo apt-get update
-  - wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
-  - bash anaconda.sh -b -p $HOME/anaconda
-  - export PATH="$HOME/anaconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda config --add channels http://conda.binstar.org/omnia
-  - conda update -q conda
-  - conda info -a
-  - conda install pandas
-  - conda install -c omnia rdkit
-  - conda install -c omnia openbabel
-  - conda install joblib
-  - conda install -c omnia theano
-  - conda install -c omnia keras
-  - python setup.py install
+- sudo apt-get update
+- wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
+- bash anaconda.sh -b -p $HOME/anaconda
+- export PATH="$HOME/anaconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda config --add channels http://conda.binstar.org/omnia
+- conda update -q conda
+- conda info -a
+- conda install pandas
+- conda install -c omnia rdkit
+- conda install -c omnia openbabel
+- conda install joblib
+- conda install -c omnia theano
+- conda install -c omnia keras
+- python setup.py install
 script:
 - nosetests -v deepchem
-
-env:
-  global:
-  # encrypted AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to push documentation to S3
-  - secure: "phb7WC1IFAY2UkANd0ydiME/Abt9g73DcqkIrjt5I9UMG3gqMXtZ5wn2X3eolZQdmHVG/1ZheEf+XX1F1+12c3FlD2kVQWkpuOBAJMzjlqe7KwrAclFopqQa5Lro4kH5gAz5GOkXuaWY9CmL/WObOCnVq3MKmbJRO3jTnLU5OxD/ecbfZUZXFQsWegp5A/DiYjG7BjBqD90BCNKNGGd8ALZDEojOu0wJQuwm/1pG4CjgT79ji4S+ygnjnA3/bJf+j1gzTo5naJyqHPITO1N71uQlb9ZZmUhzLveRu2tANSAPyxnUUI6daTpRRQUKof75QggnPbGPsj+IF/DL69YOeTXAVeTT4Stt9k6gWjTPCVQOb36fkMbYNMKaIN4L33WBsXJXqxJ5i9LXMCMoeCYB92p56q2Wp5TvhS2SgRX+rLmZCd29dN7aN31X61XsjKImr846DyABnlinZ2faUG5HNa2tOEm1xuHatW8UGMNHBkhR0rUMIlZaVYv7kQtbH8uGRwsRQH326pmMmQJwLkVe9l78cScN/C7ETvPimCBZEwjiw0shNelao52z39JlLKSvuPll172dbubb5aEls/1+uAWsQ05KnjtUlMBsARtRv99RVKDvsNUqlTAjQbWDj82JktLf+FATSAZ7s5Sj9yLWKD+QiO3Ug8JNpf6+ezm8mBo="
-  - secure: "Qu0HJwAAzxcavXcDn7mIczNc3sv3xZNYs0LPoCEsJ4azjewFAC9KwI9tptqdbnEkcRJ3cyHde2n+CLg67+m3KTg9s6hoJ+lUSb+jW97zSVXusF4p3vprak+i2dqnH8JAwMD2mOktmSC+FKsQEUzm0gwwCg1BPzxJTsTngWKjYqRk5aAddSMGrVojV+D3mQoyZhqI+eCg7YRb3bl43aPwrcy11yDLhmEbP/8zEuabu02IG3Eix7qJghALbTaRi2amNSmS900y70Jm6uvIX+cUnkXJImUQathwrbIUJfQLTTQN6Rs5prR5MRd2a9Dtcp1ZtnQykNpfZ6bn847jdDtBx3emovvj4CQMEoxhTSUgePjYhU3rU7lVa5tIt2ZITL638MnZUHXVj36bZXzYJpmKZK9tUFQAp7RdjCf8twdfxaQYaVj6buZrJtD0EYDCyLtSA2KHkY48Z6+8z6idxL3vPACnuREsBpRc9I/oyJ9ygrXR9ghUdS0Pt+0YQwzkBvW3dREDdQL/ibWoI3WTXEY0y7TO/LfAAkk51MBE79xdq4EilzVrMEzGlsihPI6dGbYvF2V8+jBGN1XPayHPFIL4QBJuCo1sk7lXf55siAyMElq1uTmKTF3qn1BXs7p8DSyQQ5+S/CeWokOPNYZTpvWgM0B/BvMt2wJwcVQoOtlQM9o="
-
 after_success:
-  - source devtools/travis-ci/after_sucess.sh
+- source devtools/travis-ci/after_sucess.sh
+env:
+  matrix:
+  - secure: FojR+Zrw/XLeDWHaZnwqkBt7DGwOJ6N9X0HJIkkzGsTxQy405qY9bfKMgzivY4UAppqWH2R9kcY/3K2lnFOU9Z2dSf9ZSLVmXjQQK+YhiFiPVQG1bQ8XEhQ51927AZn2wGqzPSFlOI8M4ek2V4a6d72Wg6SOooVbI+A9PtrdXNJlEfonY0QfSakhg+IFPBsN84khbGaHlTRCXvozRTSm3Ubo4jidN54WbO7Ll18qJ183Fgh8SVxYfodDAusZaWU2e/q9lCk6nkJ9bDC9anPbuTXpSlIkH7x7WcrMbLCrvvHJq26YOCjReCDea1/N8ECsarXWfvPjz1Cv59QSghoLxFeRRNCDHWaWTccKgWRAFd60+vSgd8CcoMFsMY0XedO2mSQztLAb2pS2TCoCPMD/5Zip5pkXOxJB5CwPqSuJ41FBPYthzyhG1MPbaQnPDZjtx5TDaVdN5w+Nfc40i9+0rFNisEyAdi2dTcr6bWZ7UlWj7LBDJGVjYPC8lKsaip6dyov3KeLveod0IbY5zCVnqF2rwuID5n/6ejGgytv1caZWa9TvEjzuSJoo8d2uXwyTzQLntardt2ZvtA8ZmwChyaq0pNtUgxQE4wn8hZG19+lAvIc95ZDJuSV7xwuo5XsMDffa3jrjyWhByveyfbHs1znAmAl4w6NJ32ylWr0/+Do=
+  - secure: JDldUkMQE7+vlKX2ghTFhGWCWHzJJtC4w8xIzAaKo04zHaBcrHSmhXXwkkPjyGjgcXE6ORKUI/zJnCecErpPbHYVEQUGzyTG9ikQr0pIENTua5j5AHJUt5Y+aWsD2fzNWE1ZT88sxKAqj96rsfRfj7coymkoyLXrvqdd5OVm+sEiup5MLGEutbMrOPXChSXBUiGetLakoMnQ0WznOttWVUb52j5SsCJSOh7baX0eNdEmaGZ+ok4R/j8/c8LTARVOC2AZ6c6BIfJPHk7rPpq4HoeVRIgp2o7vbjosE+eI499OPP1AcFHUm38XJ68mDsw5exu/ONEbFgxzA2hXqVW/TDnWpaJ0hLKxjGg8JnJ63OYWyY2nk7UGQNPwiVj4DiN7zsNkV1+IbaUmiGjbWAxyCa8FBOoXos7DQ7pVtWNvhZtsAzJaCNgvCFgsrxcutxGuN9zkpmL30QNpE6HT/mvmww5MHH5KacBYPLjqmihQCuasT9L6k2+dPspRRfbrgyBZJxffteWumXBThIaqs8BuqG1CxxgkOgvUTSBZyoZtfX3CW8ClEIKT89+bQXQKwcqSqWCu7qsFx7A6ssmzliCzO5iXZhxaPS7rICqRu4HPJ1YNS5bUbwwEmBeMw0ATsxpfo0ityNSJbO0AvXiIr9fcVv0cPJuz3pialFrGDMMPjeY=
