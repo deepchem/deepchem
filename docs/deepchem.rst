@@ -12,6 +12,7 @@ Subpackages
     deepchem.models
     deepchem.scripts
     deepchem.utils
+    deepchem.featurizers
 
 Module contents
 ---------------
