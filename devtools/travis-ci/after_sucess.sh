@@ -14,15 +14,8 @@ fi
 
 # Create the docs and push them to S3
 # -----------------------------------
-
-echo "About to install deepchem."
-conda install --yes `conda build devtools/conda-recipe --output`
-echo "About to install numpydoc, s3cmd"
-pip install numpydoc s3cmd
-echo "About to install requirements.txt"
-conda install --yes `cat docs/requirements.txt | xargs`
-
-conda list -e
+echo "pwd"
+pwd
 mkdir -p docs/_build
 echo "About to build docs"
 sphinx build -b html docs docs/_build
