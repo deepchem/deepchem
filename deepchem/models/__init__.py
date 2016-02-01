@@ -19,10 +19,11 @@ class Model(object):
   Abstract base class for different ML models.
   """
   # List of registered models
-  registered_model_types = {}
-  def __init__(self, model_type, task_types, model_params,
+  registered_model_classes = {}
+  non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
+  def __init__(self, task_types, model_params, model_instance=None,
                initialize_raw_model=True, verbose=True):
-    self.model_type = model_type
+    self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = None
@@ -69,24 +70,25 @@ class Model(object):
     return os.path.join(out_dir, "model_params.joblib")
 
   @staticmethod
-  def model_builder(model_type, task_types, model_params,
+  def model_builder(model_instance, task_types, model_params,
                     initialize_raw_model=True):
     """
     Factory method that initializes model of requested type.
     """
-    if model_type in Model.registered_model_types:
-      model = Model.registered_model_types[model_type](
-          model_type, task_types, model_params, initialize_raw_model)
+    if model_instance.__class__ in non_sklearn_models:
+      model = model_instance(task_types, model_params, initialize_raw_model)
     else:
-      raise ValueError("model_type %s is not supported" % model_type)
+      model = Model.registered_model_classes["SklearnModel"](model_instance, 
+                                                       task_types, model_params,
+                                                       initialize_raw_model)
     return model
 
   @staticmethod
-  def register_model_type(model_type, model_class):
+  def register_model_type(model_class):
     """
     Registers model types in static variable for factory/dispatchers to use.
     """
-    Model.registered_model_types[model_type] = model_class
+    Model.registered_model_classes[model_class.__class__] = model_class
 
   @staticmethod
   def get_task_type(model_name):
@@ -100,24 +102,27 @@ class Model(object):
       return "regression"
 
   @staticmethod
-  def load(model_type, model_dir):
+  def load(model_dir):
     """Dispatcher function for loading."""
     params = load_from_disk(Model.get_params_filename(model_dir))
-    if model_type in Model.registered_model_types:
-      model = Model.registered_model_types[model_type](
-          model_type=params["model_type"],
+    model_class = params["model_class"]
+    if model_class in Model.registered_model_classes:
+      model = Model.registered_model_classes[model_class](
           task_types=params["task_types"],
           model_params=params["model_params"])
       model.load(model_dir)
     else:
-      raise ValueError("model_type %s is not supported" % model_type)
+      model = Model.registered_model_classes["SklearnModel"](model_instance=model_class,
+                           task_types=params["task_types"],
+                           model_params=params["model_params"])
+      model.load(model_dir)
     return model
 
   def save(self, out_dir):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
               "task_types" : self.task_types,
-              "model_type": self.model_type}
+              "model_class": self.__class__}
     save_to_disk(params, Model.get_params_filename(out_dir))
 
   def fit(self, dataset):

@@ -18,34 +18,14 @@ class SklearnModel(Model):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, model_type, task_types, model_params,
+  def __init__(self, task_types, model_params, 
+               model_instance=RandomForestRegressor(),
                initialize_raw_model=True):
     super(SklearnModel, self).__init__(
-        model_type, task_types, model_params, initialize_raw_model)
+        task_types, model_params, initialize_raw_model)
     self.task_types = task_types
     self.model_params = model_params
-    if initialize_raw_model:
-      if self.model_type == "rf_regressor":
-        raw_model = RandomForestRegressor(
-            n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
-      elif self.model_type == "rf_classifier":
-        raw_model = RandomForestClassifier(
-            n_estimators=500, n_jobs=-1, warm_start=True, max_features="sqrt")
-      elif self.model_type == "logistic":
-        raw_model = LogisticRegression(class_weight="auto")
-      elif self.model_type == "linear":
-        raw_model = LinearRegression(normalize=True)
-      elif self.model_type == "ridge":
-        raw_model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0], normalize=True)
-      elif self.model_type == "lasso":
-        raw_model = LassoCV(max_iter=2000, n_jobs=-1)
-      elif self.model_type == "lasso_lars":
-        raw_model = LassoLarsCV(max_iter=2000, n_jobs=-1)
-      elif self.model_type == "elastic_net":
-        raw_model = ElasticNetCV(max_iter=2000, n_jobs=-1)
-      else:
-        raise ValueError("Invalid model type provided.")
-    self.raw_model = raw_model
+    self.raw_model = model_instance
 
   # TODO(rbharath): This does not work with very large datasets! sklearn does
   # support partial_fit, but only for some models. Might make sense to make
@@ -77,6 +57,10 @@ class SklearnModel(Model):
     """Loads sklearn model from joblib file on disk."""
     self.raw_model = load_from_disk(Model.get_model_filename(model_dir))
 
+Model.register_model_type(SklearnModel)
+
+#TODO(enf/rbharath): deprecate the following if __init__.py functions as planned.
+'''
 Model.register_model_type("logistic", SklearnModel)
 Model.register_model_type("rf_classifier", SklearnModel)
 Model.register_model_type("rf_regressor", SklearnModel)
@@ -85,3 +69,4 @@ Model.register_model_type("ridge", SklearnModel)
 Model.register_model_type("lasso", SklearnModel)
 Model.register_model_type("lasso_lars", SklearnModel)
 Model.register_model_type("elastic_net", SklearnModel)
+'''

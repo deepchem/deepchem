@@ -113,7 +113,7 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_dir, shard_size=128):
+  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
@@ -139,11 +139,6 @@ class DataFeaturizer(object):
       log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
       
-      print("featurize()")
-      print("raw_df_shard.keys()")
-      print(raw_df_shard.keys())
-      print("self.id_field")
-      print(self.id_field)
       df = self._standardize_df(raw_df_shard) 
       log("Aggregating User-Specified Features", self.verbose)
       self._add_user_specified_features(df)
@@ -161,7 +156,13 @@ class DataFeaturizer(object):
       shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
       save_to_disk(df, shard_out)
       shard_files.append(shard_out)
-    return shard_files
+
+    featurizers = self.compound_featurizers + self.complex_featurizers
+    samples = FeaturizedSamples(samples_dir=samples_dir, featurizers=featurizers, 
+                                dataset_files=shard_files,
+                                reload_data=False)
+
+    return samples
 
   def _process_raw_sample(self, input_type, row, fields):
     """Extract information from row data."""
@@ -318,8 +319,6 @@ class FeaturizedSamples(object):
     compound_rows = []
     for dataset_file in self.dataset_files:
       df = load_from_disk(dataset_file)
-      print("_get_compounds.df.keys()")
-      print(df.keys())
       compound_ids = list(df["mol_id"])
       smiles = list(df["smiles"])
       if "split" in df.keys():
@@ -352,7 +351,7 @@ class FeaturizedSamples(object):
       for ind, row in df.iterrows():
         if row["mol_id"] in compound_ids:
           visible_inds.append(ind)
-      yield df.iloc[visible_inds]
+      yield df.loc[visible_inds]
 
   def train_test_split(self, splittype, train_dir, test_dir, seed=None,
                        frac_train=.8):

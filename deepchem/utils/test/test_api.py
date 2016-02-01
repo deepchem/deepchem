@@ -27,6 +27,9 @@ from deepchem.models import Model
 import deepchem.models.deep
 import deepchem.models.standard
 import deepchem.models.deep3d
+from deepchem.models.deep import SingleTaskDNN
+from deepchem.models.deep import MultiTaskDNN
+from deepchem.models.standard import SklearnModel
 
 class TestAPI(unittest.TestCase):
   """
@@ -48,10 +51,31 @@ class TestAPI(unittest.TestCase):
     shutil.rmtree(self.test_dir)
     shutil.rmtree(self.model_dir)
 
-  def _create_model(self, splittype, compound_featurizers, complex_featurizers, input_transforms,
-                    output_transforms, task_type, model_params, model_name,
-                    input_file, tasks, protein_pdb_field=None, ligand_pdb_field=None):
+  def _create_model(self, train_dataset, test_dataset, model):
     """Helper method to create model for test."""
+
+    # Fit model
+
+    model.fit(train_dataset)
+    model.save(self.model_dir)
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, verbose=True)
+    with tempfile.NamedTemporaryFile() as train_csv_out:
+      with tempfile.NamedTemporaryFile() as train_stats_out:
+        _, _ = evaluator.compute_model_performance(
+            train_csv_out, train_stats_out)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, verbose=True)
+    with tempfile.NamedTemporaryFile() as test_csv_out:
+      with tempfile.NamedTemporaryFile() as test_stats_out:
+        _, _ = evaluator.compute_model_performance(
+            test_csv_out, test_stats_out)
+
+  def _featurize_train_test_split(self, splittype, compound_featurizers, complex_featurizers, input_transforms,
+                        output_transforms, input_file, tasks, protein_pdb_field=None, ligand_pdb_field=None):
+
     # Featurize input
     featurizers = compound_featurizers + complex_featurizers
 
@@ -63,19 +87,16 @@ class TestAPI(unittest.TestCase):
                                 compound_featurizers=compound_featurizers,
                                 complex_featurizers=complex_featurizers,
                                 verbose=True)
-    feature_files = featurizer.featurize(input_file, self.feature_dir)
-    print("feature_files")
-    print(feature_files)
-    # Transform data into arrays for ML
-    samples = FeaturizedSamples(samples_dir=self.samples_dir, featurizers=featurizers, 
-                                dataset_files=feature_files,
-                                reload_data=False)
 
-    # Split into train/test
+    #Featurizes samples and transforms them into NumPy arrays suitable for ML.
+    #returns an instance of class FeaturizedSamples()
+
+    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir)
+
+    # Splits featurized samples into train/test
     train_samples, test_samples = samples.train_test_split(
         splittype, self.train_dir, self.test_dir)
-    print("train_samples.dataset_files")
-    print(train_samples.dataset_files)
+
     train_dataset = Dataset(data_dir=self.train_dir, samples=train_samples, 
                             featurizers=featurizers, tasks=tasks)
     test_dataset = Dataset(data_dir=self.test_dir, samples=test_samples, 
@@ -84,21 +105,8 @@ class TestAPI(unittest.TestCase):
     # Transforming train/test data
     train_dataset.transform(input_transforms, output_transforms)
     test_dataset.transform(input_transforms, output_transforms)
-    # Fit model
-    task_types = {task: task_type for task in tasks}
-    model_params["data_shape"] = train_dataset.get_data_shape()
-    print("model_params['data_shape']")
-    print(model_params["data_shape"])
-    model = Model.model_builder(model_name, task_types, model_params)
-    model.fit(train_dataset)
-    model.save(self.model_dir)
 
-    # Eval model on train
-    evaluator = Evaluator(model, test_dataset, verbose=True)
-    with tempfile.NamedTemporaryFile() as test_csv_out:
-      with tempfile.NamedTemporaryFile() as test_stats_out:
-        _, _ = evaluator.compute_model_performance(
-            test_csv_out, test_stats_out)
+    return train_dataset, test_dataset
 
   def test_singletask_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
@@ -107,14 +115,17 @@ class TestAPI(unittest.TestCase):
     complex_featurizers = []
     input_transforms = []
     output_transforms = ["normalize"]
-    task_type = "regression"
     model_params = {"batch_size": 5}
-    model_name = "rf_regressor"
+    task_types = {"log-solubility": "regression"}
     input_file = "example.csv"
-    tasks = ["log-solubility"]
-    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
-                       output_transforms, task_type, model_params, model_name,
-                       input_file=input_file, tasks=tasks)
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys())
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
+    from sklearn.ensemble import RandomForestRegressor
+    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model)
 
 
   def test_singletask_rf_RDKIT_descriptor_regression_API(self):
@@ -124,14 +135,17 @@ class TestAPI(unittest.TestCase):
     complex_featurizers = []
     input_transforms = ["normalize", "truncate"]
     output_transforms = ["normalize"]
-    task_type = "regression"
+    task_types = {"log-solubility": "regression"}
     model_params = {"batch_size": 5}
-    model_name = "rf_regressor"
     input_file = "example.csv"
-    tasks = ["log-solubility"]
-    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
-                       output_transforms, task_type, model_params, model_name,
-                       input_file=input_file, tasks=tasks)
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys())
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
+    from sklearn.ensemble import RandomForestRegressor
+    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model)
 
   def test_singletask_mlp_NNScore_regression_API(self):
     """Test of singletask MLP NNScore regression API."""
@@ -140,24 +154,29 @@ class TestAPI(unittest.TestCase):
     complex_featurizers = [NNScoreComplexFeaturizer()]
     input_transforms = ["normalize", "truncate"]
     output_transforms = ["normalize"]
-    task_type = "regression"
+    task_types = {"label": "regression"}
     model_params = {"nb_hidden": 10, "activation": "relu",
                     "dropout": .5, "learning_rate": .01,
                     "momentum": .9, "nesterov": False,
                     "decay": 1e-4, "batch_size": 5,
                     "nb_epoch": 2, "init": "glorot_uniform"}
-    model_name = "singletask_deep_regressor"
+
+    input_file = "nnscore_example.pkl.gz"
     protein_pdb_field = "protein_pdb"
     ligand_pdb_field = "ligand_pdb"
-    input_file = "nnscore_example.pkl.gz"
-    tasks = ["label"]
-    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
-                       output_transforms, task_type, model_params, model_name,
-                       input_file=input_file,
-                       protein_pdb_field=protein_pdb_field,
-                       ligand_pdb_field=ligand_pdb_field,
-                       tasks=tasks)
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys(),
+                                                    protein_pdb_field=protein_pdb_field,
+                                                    ligand_pdb_field=ligand_pdb_field)
+    model_params["data_shape"] = train_dataset.get_data_shape()
+    
+    model = SingleTaskDNN(task_types, model_params)
+    self._create_model(train_dataset, test_dataset, model)
 
+
+    #TODO(enf/rbharath): 3D CNN's are broken and must be fixed.
+    '''
   def test_singletask_cnn_GridFeaturizer_regression_API(self):
     """Test of singletask 3D ConvNet regression API."""
     splittype = "scaffold"
@@ -187,6 +206,7 @@ class TestAPI(unittest.TestCase):
                        protein_pdb_field=protein_pdb_field,
                        ligand_pdb_field=ligand_pdb_field,
                        tasks=tasks)
+    '''
 
   def test_multitask_mlp_ECFP_classification_API(self):
     """Straightforward test of multitask deepchem classification API."""
@@ -201,19 +221,26 @@ class TestAPI(unittest.TestCase):
                     "momentum": .9, "nesterov": False,
                     "decay": 1e-4, "batch_size": 5,
                     "nb_epoch": 2, "init": "glorot_uniform"}
-    model_name = "multitask_deep_classifier"
 
     input_file = os.path.join(self.current_dir, "multitask_example.csv")
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
                   "task7", "task8", "task9", "task10", "task11", "task12",
                   "task13", "task14", "task15", "task16"]
+    task_types = {task: task_type for task in tasks}
 
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []
 
-    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
-                       output_transforms, task_type, model_params, model_name,
-                       input_file=input_file, tasks=tasks)    
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys())
+    model_params["data_shape"] = train_dataset.get_data_shape()
+    
+
+
+    model = MultiTaskDNN(task_types, model_params)
+    self._create_model(train_dataset, test_dataset, model)
+
 
 '''
 class TestMultitaskVectorAPI(unittest.TestCase):

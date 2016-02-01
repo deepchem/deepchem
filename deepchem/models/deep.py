@@ -53,10 +53,10 @@ class MultiTaskDNN(KerasModel):
   """
   Model for multitask MLP in keras.
   """
-  def __init__(self, model_type, task_types, model_params,
+  def __init__(self, task_types, model_params,
                initialize_raw_model=True):
-    super(MultiTaskDNN, self).__init__(model_type, task_types, model_params,
-                                       initialize_raw_model)
+    super(MultiTaskDNN, self).__init__(task_types, model_params,
+                                       initialize_raw_model=initialize_raw_model)
     if initialize_raw_model:
       sorted_tasks = sorted(task_types.keys())
       (n_inputs,) = model_params["data_shape"]
@@ -146,24 +146,26 @@ class MultiTaskDNN(KerasModel):
         # output the most likely class.
         y_pred_task = np.squeeze(np.argmax(y_pred_dict[taskname], axis=1))
       else:
+        print("taskname")
+        print(taskname)
+        print("y_pred_dict.keys()")
+        print(y_pred_dict.keys())
         y_pred_task = np.squeeze(y_pred_dict[taskname])
       y_pred[:, ind] = y_pred_task
     y_pred = np.squeeze(y_pred)
     return y_pred
 
-Model.register_model_type("multitask_deep_regressor", MultiTaskDNN)
-Model.register_model_type("multitask_deep_classifier", MultiTaskDNN)
+Model.register_model_type(MultiTaskDNN)
 
 class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, model_type, task_types, model_params, initialize_raw_model=True):
-    super(SingleTaskDNN, self).__init__(model_type, task_types, model_params,
-                                        initialize_raw_model)
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
+    super(SingleTaskDNN, self).__init__(task_types, model_params,
+                                        initialize_raw_model=initialize_raw_model)
 
-Model.register_model_type("singletask_deep_regressor", SingleTaskDNN)
-Model.register_model_type("singletask_deep_classifier", SingleTaskDNN)
+Model.register_model_type(SingleTaskDNN)
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
