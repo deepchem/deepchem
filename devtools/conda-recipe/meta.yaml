@@ -51,7 +51,7 @@ test:
     - deepchem
 
   commands:
-    #- nosetests -v deepchem
+    - nosetests -v deepchem
 
 about:
   home: https://github.com/pandegroup/deepchem
