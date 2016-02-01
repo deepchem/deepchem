@@ -11,6 +11,14 @@ Subpackages
 Submodules
 ----------
 
+deepchem.utils.conformers module
+--------------------------------
+
+.. automodule:: deepchem.utils.conformers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 deepchem.utils.dataset module
 -----------------------------
 
@@ -23,14 +31,6 @@ deepchem.utils.evaluate module
 ------------------------------
 
 .. automodule:: deepchem.utils.evaluate
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-deepchem.utils.featurize module
--------------------------------
-
-.. automodule:: deepchem.utils.featurize
     :members:
     :undoc-members:
     :show-inheritance:
