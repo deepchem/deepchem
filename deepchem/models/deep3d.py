@@ -7,10 +7,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
-from keras.optimizers import RMSprop
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution3D, MaxPooling3D
 from deepchem.models import Model
 from deepchem.models.deep import KerasModel
 
@@ -37,7 +33,16 @@ class DockingDNN(KerasModel):
   Wrapper class for fitting 3D convolutional networks for deep docking.
   """
   def __init__(self, task_types, model_params, initialize_raw_model=True):
+    from keras.optimizers import RMSprop
+    from keras.models import Sequential
+    from keras.layers.core import Dense, Dropout, Activation, Flatten
+    from keras.layers.convolutional import Convolution3D, MaxPooling3D
+
     super(DockingDNN, self).__init__(DockingDNN, task_types, model_params, initialize_raw_model)
+
+    # Moving imports to be local to avoid isnstall issues with
+    # Convolution3D, which is not yet part of keras proper.
+
     if initialize_raw_model:
       (axis_length, _, _, n_channels) = model_params["data_shape"]
       self.input_shape = (n_channels,
@@ -97,5 +102,3 @@ class DockingDNN(KerasModel):
     y_pred = self.raw_model.predict_on_batch(X)
     y_pred = np.squeeze(y_pred)
     return y_pred
-
-Model.register_model_type(DockingDNN)

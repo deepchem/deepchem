@@ -9,7 +9,6 @@ Requirements
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
 * [keras](keras.io)
-* [vs-utils] (https://github.com/pandegroup/vs-utils.git)
 
 Linux (64-bit) Installation 
 ------------------
@@ -44,17 +43,6 @@ git clone https://github.com/fchollet/keras.git
 Cd into the keras directory and execute
 ```bash
 python setup.py install
-```
-
-###vs_utils
-Clone the vs_utils git repository
-```bash
-git clone https://github.com/pandegroup/vs-utils.git
-```
-
-Cd into the vs-utils directory and execute
-```bash
-python setup.py develop
 ```
 
 ###deepchem

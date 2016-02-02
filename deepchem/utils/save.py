@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 #import joblib
 from sklearn.externals import joblib
 import gzip
-import cPickle as pickle
+import pickle
 import pandas as pd
 import numpy as np
 import os
