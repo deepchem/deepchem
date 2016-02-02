@@ -324,14 +324,7 @@ def _df_to_numpy(df, feature_types, tasks):
   y[missing] = 0.
   w[missing] = 0.
 
-  print("x")
-  print(x)
-  print("y")
-  print(y)
-  print("w")
-  print(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
-
 
 def compute_mean_and_std(df):
   """
