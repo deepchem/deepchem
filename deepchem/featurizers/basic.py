@@ -31,7 +31,7 @@ class MolecularWeight(Featurizer):
         return wt
 
 
-class SimpleDescriptors(Featurizer):
+class RDKitDescriptors(Featurizer):
     """
     RDKit descriptors.
 

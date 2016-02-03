@@ -32,14 +32,17 @@ class DockingDNN(KerasModel):
   """
   Wrapper class for fitting 3D convolutional networks for deep docking.
   """
-  def __init__(self, model_type, task_types, model_params, initialize_raw_model=True):
-    # Moving imports to be local to avoid isnstall issues with
-    # Convolution3D, which is not yet part of keras proper.
+  def __init__(self, task_types, model_params, initialize_raw_model=True):
     from keras.optimizers import RMSprop
     from keras.models import Sequential
     from keras.layers.core import Dense, Dropout, Activation, Flatten
     from keras.layers.convolutional import Convolution3D, MaxPooling3D
-    super(DockingDNN, self).__init__(model_type, task_types, model_params, initialize_raw_model)
+
+    super(DockingDNN, self).__init__(DockingDNN, task_types, model_params, initialize_raw_model)
+
+    # Moving imports to be local to avoid isnstall issues with
+    # Convolution3D, which is not yet part of keras proper.
+
     if initialize_raw_model:
       (axis_length, _, _, n_channels) = model_params["data_shape"]
       self.input_shape = (n_channels,
@@ -61,16 +64,16 @@ class DockingDNN(KerasModel):
 
       model.add(Convolution3D(nb_filter=nb_filters[0], nb_depth=nb_conv[0],
                               nb_row=nb_conv[0], nb_col=nb_conv[0],
-                              input_shape=self.input_shape, border_mode="full"))
+                              input_shape=self.input_shape, border_mode="valid"))
       model.add(Activation('relu'))
 
       model.add(MaxPooling3D(pool_size=(nb_pool[0], nb_pool[0], nb_pool[0])))
       model.add(Convolution3D(nb_filter=nb_filters[1], nb_depth=nb_conv[1],
-                              nb_row=nb_conv[1], nb_col=nb_conv[1], border_mode="full"))
+                              nb_row=nb_conv[1], nb_col=nb_conv[1], border_mode="valid"))
       model.add(Activation('relu'))
       model.add(MaxPooling3D(pool_size=(nb_pool[1], nb_pool[1], nb_pool[1])))
       model.add(Convolution3D(nb_filter=nb_filters[2], nb_depth=nb_conv[2],
-                              nb_row=nb_conv[2], nb_col=nb_conv[2], border_mode="full"))
+                              nb_row=nb_conv[2], nb_col=nb_conv[2], border_mode="valid"))
       model.add(Activation('relu'))
       model.add(MaxPooling3D(pool_size=(nb_pool[2], nb_pool[2], nb_pool[2])))
       model.add(Flatten())
@@ -99,5 +102,3 @@ class DockingDNN(KerasModel):
     y_pred = self.raw_model.predict_on_batch(X)
     y_pred = np.squeeze(y_pred)
     return y_pred
-
-Model.register_model_type("convolutional_3D_regressor", DockingDNN)
