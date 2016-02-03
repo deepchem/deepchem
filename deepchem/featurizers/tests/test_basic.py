@@ -6,7 +6,7 @@ import unittest
 
 from rdkit import Chem
 
-from deepchem.featurizers.basic import MolecularWeight, SimpleDescriptors
+from deepchem.featurizers.basic import MolecularWeight, RDKitDescriptors
 
 
 class TestMolecularWeight(unittest.TestCase):
@@ -28,9 +28,9 @@ class TestMolecularWeight(unittest.TestCase):
     assert np.allclose(self.engine([self.mol]), 180, atol=0.1)
 
 
-class TestSimpleDescriptors(unittest.TestCase):
+class TestRDKitDescriptors(unittest.TestCase):
   """
-  Test SimpleDescriptors.
+  Test RDKitDescriptors.
   """
   def setUp(self):
     """
@@ -38,9 +38,9 @@ class TestSimpleDescriptors(unittest.TestCase):
     """
     smiles = 'CC(=O)OC1=CC=CC=C1C(=O)O'
     self.mol = Chem.MolFromSmiles(smiles)
-    self.engine = SimpleDescriptors()
+    self.engine = RDKitDescriptors()
 
-  def testSimpleDescriptors(self):
+  def testRDKitDescriptors(self):
     """
     Test simple descriptors.
     """

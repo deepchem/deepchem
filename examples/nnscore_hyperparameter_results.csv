@@ -1,0 +1,5 @@
+,nb_hidden,learning_rate,init,r2_score
+0,10,0.01,glorot_uniform,
+1,10,0.001,glorot_uniform,0.0545074482377
+2,100,0.01,glorot_uniform,
+3,100,0.001,glorot_uniform,0.261622878258

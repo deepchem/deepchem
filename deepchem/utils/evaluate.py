@@ -40,7 +40,7 @@ def undo_transform(y, y_means, y_stds, output_transforms):
   else:
     raise ValueError("Unsupported output transforms %s." % str(output_transforms))
 
-def compute_roc_auc_scores(y, y_pred, w):
+def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
 
   Parameters
@@ -51,7 +51,7 @@ def compute_roc_auc_scores(y, y_pred, w):
     "classification" or "regression".
   """
   try:
-    score = roc_auc_score(y, y_pred, sample_weight=w)
+    score = roc_auc_score(y, y_pred)
   except ValueError:
     warnings.warn("ROC AUC score calculation failed.")
     score = 0.5
@@ -103,15 +103,19 @@ class Evaluator(object):
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
           continue
-        auc = compute_roc_auc_scores(y, y_pred, w)
+        auc = compute_roc_auc_scores(y, y_pred)
         mcc = matthews_corrcoef(y, y_pred)
         recall = recall_score(y, y_pred)
         accuracy = accuracy_score(y, y_pred)
         performance_df.loc[i] = [task_name, auc, mcc, recall, accuracy]
 
       elif self.task_type == "regression":
-        r2s = r2_score(y, y_pred)
-        rms = np.sqrt(mean_squared_error(y, y_pred))
+        try:
+          r2s = r2_score(y, y_pred)
+          rms = np.sqrt(mean_squared_error(y, y_pred))
+        except ValueError:
+          r2s = np.nan
+          rms = np.nan
         performance_df.loc[i] = [task_name, r2s, rms]
 
     if self.verbose:

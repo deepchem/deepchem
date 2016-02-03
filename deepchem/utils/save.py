@@ -12,6 +12,12 @@ import gzip
 import pickle
 import pandas as pd
 import numpy as np
+import os
+
+def log(string, verbose=False):
+  """Print string if verbose."""
+  if verbose:
+    print(string)
 
 def save_to_disk(dataset, filename):
   """Save a dataset to file."""
@@ -19,10 +25,15 @@ def save_to_disk(dataset, filename):
 
 def load_from_disk(filename):
   """Load a dataset from file."""
-  if ".pkl" in filename:
+  name = filename
+  if os.path.splitext(name)[1] == ".gz":
+    name = os.path.splitext(name)[0]
+  if os.path.splitext(name)[1] == ".pkl":
     return load_pickle_from_disk(filename)
-  else:
+  elif os.path.splitext(name)[1] == ".joblib":
     return joblib.load(filename)
+  else:
+    raise ValueError("Unrecognized filetype for %s" % filename)
 
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""

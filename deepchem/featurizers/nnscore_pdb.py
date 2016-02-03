@@ -19,6 +19,7 @@ from deepchem.featurizers.nnscore_utils import cross_product
 from deepchem.featurizers.nnscore_utils import dihedral
 from deepchem.featurizers.nnscore_utils import dot_product
 from deepchem.featurizers.nnscore_utils import vector_subtraction
+from deepchem.utils.save import log
 
 __author__ = "Bharath Ramsundar and Jacob Durrant"
 __license__ = "GNU General Public License"
@@ -61,7 +62,7 @@ def remove_redundant_rings(rings):
         del ring_dict[snd_index]
   return ring_dict.values()
 
-def print_warning(atom, residue, need):
+def print_warning(atom, residue, need, verbose=False):
   """
   Prints warning if residue has improper structure.
 
@@ -81,9 +82,10 @@ def print_warning(atom, residue, need):
           '%s. If this residue is far from the ' % need +
           'active site, this warning may not affect the NNScore.')
   lines = textwrap.wrap(text, 80)
-  for line in lines:
-    print(line)
-  print()
+  if verbose:
+    for line in lines:
+      print line
+    print
 
 
 def bond_length(element1, element2):
@@ -369,12 +371,12 @@ class PDB(object):
     for line in pdb_lines:
       if "CONECT" in line:
         if len(line) < 31:
-          warnings.warn(
+          log(
               "Bad PDB! Improperly formatted CONECT line (too short)")
           continue
         atom_index = int(line[6:11].strip())
         if atom_index not in self.all_atoms:
-          warnings.warn(
+          log(
               "Bad PDB! Improper CONECT line: (atom index not loaded)")
           continue
         bonded_atoms = []
@@ -385,7 +387,7 @@ class PDB(object):
           if line[lower:upper].strip():
             index = int(line[lower:upper])
             if index not in self.all_atoms:
-              warnings.warn(
+              log(
                   "Bad PDB! Improper CONECT line: (bonded atom not loaded)")
               misformatted = True
               break
