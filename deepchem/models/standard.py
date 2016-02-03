@@ -44,9 +44,19 @@ class SklearnModel(Model):
 
   def predict_on_batch(self, X):
     """
-    Makes predictions on given batch of new data.
+    Makes predictions on batch of data.
     """
     return self.raw_model.predict(X)
+
+  def predict(self, X):
+    """
+    Makes predictions on dataset.
+    """
+    # Sets batch_size which the default impl in Model expects
+    #TODO(enf/rbharath): This is kludgy. Fix later.
+    if "batch_size" not in self.model_params.keys():
+      self.model_params["batch_size"] = 32
+    return super(SklearnModel, self).predict(X)
 
   def save(self, out_dir):
     """Saves sklearn model to disk using joblib."""

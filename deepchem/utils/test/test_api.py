@@ -73,9 +73,11 @@ class TestAPI(unittest.TestCase):
         _, _ = evaluator.compute_model_performance(
             test_csv_out, test_stats_out)
 
-  def _featurize_train_test_split(self, splittype, compound_featurizers, complex_featurizers, input_transforms,
-                        output_transforms, input_file, tasks, protein_pdb_field=None, ligand_pdb_field=None):
-
+  def _featurize_train_test_split(self, splittype, compound_featurizers, 
+                                  complex_featurizers, input_transforms,
+                                  output_transforms, input_file, tasks, 
+                                  protein_pdb_field=None, ligand_pdb_field=None,
+                                  shard_size=100):
     # Featurize input
     featurizers = compound_featurizers + complex_featurizers
 
@@ -91,7 +93,8 @@ class TestAPI(unittest.TestCase):
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.
     #returns an instance of class FeaturizedSamples()
 
-    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir)
+    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir,
+                                   shard_size=shard_size)
 
     # Splits featurized samples into train/test
     train_samples, test_samples = samples.train_test_split(
@@ -115,7 +118,7 @@ class TestAPI(unittest.TestCase):
     complex_featurizers = []
     input_transforms = []
     output_transforms = ["normalize"]
-    model_params = {"batch_size": 5}
+    model_params = {}
     task_types = {"log-solubility": "regression"}
     input_file = "example.csv"
     train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
@@ -127,6 +130,28 @@ class TestAPI(unittest.TestCase):
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model)
 
+  def test_singletask_rf_ECFP_regression_sharded_API(self):
+    """Test of singletask RF ECFP regression API: sharded edition."""
+    splittype = "scaffold"
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+    input_transforms = []
+    output_transforms = ["normalize"]
+    model_params = {}
+    task_types = {"label": "regression"}
+    input_file = "../../../datasets/pdbbind_core_df.pkl.gz"
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys(),
+                                                    shard_size=50)
+    # We set shard size above to force the creation of multiple shards of the data.
+    # pdbbind_core has ~200 examples.
+
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
+    from sklearn.ensemble import RandomForestRegressor
+    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model)
 
   def test_singletask_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
@@ -136,7 +161,7 @@ class TestAPI(unittest.TestCase):
     input_transforms = ["normalize", "truncate"]
     output_transforms = ["normalize"]
     task_types = {"log-solubility": "regression"}
-    model_params = {"batch_size": 5}
+    model_params = {}
     input_file = "example.csv"
     train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers, 
                                                     complex_featurizers, input_transforms,
