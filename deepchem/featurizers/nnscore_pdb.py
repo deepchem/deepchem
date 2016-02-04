@@ -84,8 +84,8 @@ def print_warning(atom, residue, need, verbose=False):
   lines = textwrap.wrap(text, 80)
   if verbose:
     for line in lines:
-      print line
-    print
+      print(line)
+    print()
 
 
 def bond_length(element1, element2):
