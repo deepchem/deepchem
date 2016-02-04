@@ -15,10 +15,13 @@ with tempfile.NamedTemporaryFile('w') as f:
   f.write('''[default]
 access_key = {AWS_ACCESS_KEY_ID}
 secret_key = {AWS_SECRET_ACCESS_KEY}
+default_mime_type = binary/octet-stream
+guess_mime_type = True
 '''.format(**os.environ))
   f.flush()
 
-  template = ('s3cmd -M --config {config} '
+  #s3cmd -M -H sync docs/_build/ s3://deepchem.io/
+  template = ('s3cmd -M -H --config {config} '
               'sync docs/_build/ s3://{bucket}/')
   cmd = template.format(
           config=f.name,

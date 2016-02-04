@@ -1,24 +1,19 @@
 """
 Helper Classes and Functions for docking fingerprint computation.
-
-The code below contains heavily modified parts of Jacob Durrant's
-NNScore 2.0.1. The following notice is copied from the original NNScore
-file:
-# NNScore 2.01 is released under the GNU General Public License (see
-# http://www.gnu.org/licenses/gpl.html).
-# If you have any questions, comments, or suggestions, please don't
-# hesitate to contact me, Jacob Durrant, at jdurrant [at] ucsd [dot]
-# edu. If you use NNScore 2.01 in your work, please cite [REFERENCE
-# HERE].
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
+__author__ = "Bharath Ramsundar and Jacob Durrant"
+__license__ = "GNU General Public License"
+
 import math
 import os
 import subprocess
 import openbabel
 import numpy as np
 
-__author__ = "Bharath Ramsundar and Jacob Durrant"
-__license__ = "GNU General Public License"
 
 def force_partial_charge_computation(mol):
   """Force computation of partial charges for molecule.
@@ -76,42 +71,43 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
     Name of input format.
   """
   basename = os.path.basename(input_file).split(".")[0]
-
+  # Since this function passes data to C++ obabel classes, we need to
+  # constantly cast to str to convert unicode to char*
   if verbose:
-    print "Create pdb with hydrogens added"
+    print("Create pdb with hydrogens added")
   hyd_conversion = openbabel.OBConversion()
-  hyd_conversion.SetInAndOutFormats(input_format, "pdb")
+  hyd_conversion.SetInAndOutFormats(str(input_format), str("pdb"))
   mol = openbabel.OBMol()
-  hyd_conversion.ReadFile(mol, input_file)
+  hyd_conversion.ReadFile(mol, str(input_file))
   # AddHydrogens(polaronly, correctForPH, pH)
   mol.AddHydrogens(True, True, 7.4)
-  hyd_conversion.WriteFile(mol, hyd_output)
+  hyd_conversion.WriteFile(mol, str(hyd_output))
 
   if verbose:
-    print "Create a pdbqt file from the hydrogenated pdb above."
+    print("Create a pdbqt file from the hydrogenated pdb above.")
   charge_conversion = openbabel.OBConversion()
-  charge_conversion.SetInAndOutFormats("pdb", "pdbqt")
+  charge_conversion.SetInAndOutFormats(str("pdb"), str("pdbqt"))
 
   if verbose:
-    print "Make protein rigid."
-  charge_conversion.AddOption("c", charge_conversion.OUTOPTIONS)
-  charge_conversion.AddOption("r", charge_conversion.OUTOPTIONS)
+    print("Make protein rigid.")
+  charge_conversion.AddOption(str("c"), charge_conversion.OUTOPTIONS)
+  charge_conversion.AddOption(str("r"), charge_conversion.OUTOPTIONS)
   if verbose:
-    print "Preserve hydrogens"
-  charge_conversion.AddOption("h", charge_conversion.OUTOPTIONS)
+    print("Preserve hydrogens")
+  charge_conversion.AddOption(str("h"), charge_conversion.OUTOPTIONS)
   if verbose:
-    print "Preserve atom indices"
-  charge_conversion.AddOption("p", charge_conversion.OUTOPTIONS)
+    print("Preserve atom indices")
+  charge_conversion.AddOption(str("p"), charge_conversion.OUTOPTIONS)
   if verbose:
-    print "preserve atom indices."
-  charge_conversion.AddOption("n", charge_conversion.OUTOPTIONS)
+    print("preserve atom indices.")
+  charge_conversion.AddOption(str("n"), charge_conversion.OUTOPTIONS)
 
   if verbose:
-    print "About to run obabel conversion."
+    print("About to run obabel conversion.")
   mol = openbabel.OBMol()
-  charge_conversion.ReadFile(mol, hyd_output)
+  charge_conversion.ReadFile(mol, str(hyd_output))
   force_partial_charge_computation(mol)
-  charge_conversion.WriteFile(mol, pdbqt_output)
+  charge_conversion.WriteFile(mol, str(pdbqt_output))
 
 class AromaticRing(object):
   """Holds information about an aromatic ring."""

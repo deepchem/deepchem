@@ -1,14 +1,9 @@
 """
 The following code implements a featurizer based on NNScore 2.0.1
-
-## The following notice is copied from the original NNScore file.
-# NNScore 2.01 is released under the GNU General Public License (see
-# http://www.gnu.org/licenses/gpl.html).
-# If you have any questions, comments, or suggestions, please don't
-# hesitate to contact me, Jacob Durrant, at jdurrant [at] ucsd [dot]
-# edu. If you use NNScore 2.01 in your work, please cite [REFERENCE
-# HERE].
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import os
 import math
 import re
@@ -368,7 +363,6 @@ def compute_hydrogen_bonds(ligand, receptor):
                   < H_BOND_DIST):
                 hydrogens.append(atom)
 
-          #print "nearby hydrogens: " + str(hydrogens)
           # now we need to check the angles
           # TODO(rbharath): Rather than using this heuristic, it seems like
           # it might be better to just report the angle in the feature

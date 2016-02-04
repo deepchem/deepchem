@@ -1,16 +1,9 @@
 """
 Custom PDB class implementation.
-
-The code below contains heavily modified parts of Jacob Durrant's
-NNScore 2.0.1. The following notice is copied from the original NNScore
-file:
-# NNScore 2.01 is released under the GNU General Public License (see
-# http://www.gnu.org/licenses/gpl.html).
-# If you have any questions, comments, or suggestions, please don't
-# hesitate to contact me, Jacob Durrant, at jdurrant [at] ucsd [dot]
-# edu. If you use NNScore 2.01 in your work, please cite [REFERENCE
-# HERE].
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 import ast
 import math
 import textwrap
@@ -91,8 +84,8 @@ def print_warning(atom, residue, need, verbose=False):
   lines = textwrap.wrap(text, 80)
   if verbose:
     for line in lines:
-      print line
-    print
+      print(line)
+    print()
 
 
 def bond_length(element1, element2):
@@ -189,11 +182,6 @@ class MultiStructure(object):
 
   def _separate_into_models(self, lines, noisy):
     """Separate lines into a list of models."""
-    if noisy:
-      print "len(lines)"
-      print len(lines)
-      for line in lines:
-        print line
     models = []
     current = None
     for line in lines:
@@ -205,9 +193,6 @@ class MultiStructure(object):
         current = None
       elif current is not None:
         current.append(line)
-    if noisy:
-      print "len(models)"
-      print len(models)
     return models
 
   def load_from_files(self, pdb_filename, pdbqt_filename):
@@ -1405,7 +1390,6 @@ class PDB(object):
     """
     # first, we need to know what residues are available
     resids = []
-    #print self.get_residues()
     for key in self.get_residues():
       _, resnum, chain = key.split("_")
       resids.append(resnum + "_" + chain)
