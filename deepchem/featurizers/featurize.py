@@ -358,9 +358,9 @@ class FeaturizedSamples(object):
           visible_inds.append(ind)
       yield df.loc[visible_inds]
 
-  def train_valid_test_split(self, splittype, train_dir, test_dir,
-                             valid_dir=None, frac_train=.8, frac_valid=.1,
-                             frac_test=.1, seed=None):
+  def train_valid_test_split(self, splittype, train_dir=None,
+                             valid_dir=None, test_dir=None, frac_train=.8,
+                             frac_valid=.1, frac_test=.1, seed=None):
     """
     Splits self into train/validation/test sets.
 
@@ -378,17 +378,18 @@ class FeaturizedSamples(object):
       train_inds, valid_inds, test_inds = self._specified_split()
     else:
       raise ValueError("improper splittype.")
-    train_samples = FeaturizedSamples(samples_dir=train_dir, 
-                                      dataset_files=self.dataset_files,
-                                      featurizers=self.featurizers)
-    train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
-    test_samples = FeaturizedSamples(samples_dir=test_dir, 
-                                     dataset_files=self.dataset_files,
-                                     featurizers=self.featurizers)
-    test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
-    if valid_dir is None:
-      valid_samples = None
-    else:
+    train_samples, valid_samples, test_samples = None, None, None
+    if train_dir is not None:
+      train_samples = FeaturizedSamples(samples_dir=train_dir, 
+                                        dataset_files=self.dataset_files,
+                                        featurizers=self.featurizers)
+      train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
+    if test_dir is not None:
+      test_samples = FeaturizedSamples(samples_dir=test_dir, 
+                                       dataset_files=self.dataset_files,
+                                       featurizers=self.featurizers)
+      test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
+    if valid_dir is not None:
       valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
                                        dataset_files=self.dataset_files,
                                        featurizers=self.featurizers)
@@ -404,7 +405,7 @@ class FeaturizedSamples(object):
     Returns FeaturizedDataset objects.
     """
     train_samples, _, test_samples = self.train_valid_test_split(
-        splittype, train_dir, test_dir, valid_dir=None,
+        splittype, train_dir, valid_dir=None, test_dir=test_dir,
         frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
     return train_samples, test_samples
 

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import warnings
+from deepchem.utils.save import log
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
@@ -75,8 +76,7 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     pred_y_df = self.model.predict(self.dataset)
-    if self.verbose:
-      print("Saving predictions to %s" % csv_out)
+    log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)
 
     if self.task_type == "classification":
@@ -118,8 +118,7 @@ class Evaluator(object):
           rms = np.nan
         performance_df.loc[i] = [task_name, r2s, rms]
 
-    if self.verbose:
-      print("Saving model performance scores to %s" % stats_file)
+    log("Saving model performance scores to %s" % stats_file, self.verbose)
     performance_df.to_csv(stats_file)
 
     return pred_y_df, performance_df
