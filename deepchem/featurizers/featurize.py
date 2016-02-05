@@ -342,10 +342,22 @@ class FeaturizedSamples(object):
     """Returns size of internal dataset."""
     return self.num_samples
 
-  # TODO(rbharath): Might this be inefficient?
   def itersamples(self):
+    """Iterates over samples in this object."""
+    compound_ids = set(list(self.compounds_df["mol_id"]))
+    for df_file in self.dataset_files:
+      df = load_from_disk(df_file)
+      visible_inds = []
+      for ind, row in df.iterrows():
+        if row["mol_id"] in compound_ids:
+          visible_inds.append(ind)
+      for visible_ind in visible_inds:
+        yield df.loc[visible_ind]
+
+  # TODO(rbharath): Might this be inefficient?
+  def iterdataframes(self):
     """
-    Provides an iterator over samples.
+    Provides a bulk iterator over data.
 
     Each sample from the iterator is a dataframe of samples.
     """
