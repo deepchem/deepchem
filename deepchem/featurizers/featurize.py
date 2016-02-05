@@ -9,6 +9,7 @@ import gzip
 import pandas as pd
 import numpy as np
 import csv
+import numbers
 from rdkit import Chem
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
@@ -36,7 +37,7 @@ def _check_validity(compounds_df):
 
 def _process_field(val):
   """Parse data in a field."""
-  if isinstance(val, float) or isinstance(val, np.ndarray):
+  if (isinstance(val, numbers.Number) or isinstance(val, np.ndarray)):
     return val
   elif isinstance(val, list):
     return [_process_field(elt) for elt in val]
@@ -129,10 +130,7 @@ class DataFeaturizer(object):
                                                 input_type=input_type)
 
 
-    #processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
     raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
-    #raw_df = pd.DataFrame.from_records(processed_rows)
-
     nb_sample = raw_df.shape[0]
     interval_points = np.linspace(
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
@@ -290,6 +288,7 @@ class FeaturizedSamples(object):
       save_to_disk(compounds_df, self._get_compounds_filename())
     _check_validity(compounds_df)
     self.compounds_df = compounds_df
+    self.num_samples = len(compounds_df)
 
     if os.path.exists(self._get_dataset_paths_filename()):
       if dataset_files is not None:
@@ -337,6 +336,11 @@ class FeaturizedSamples(object):
     _check_validity(df)
     save_to_disk(df, self._get_compounds_filename())
     self.compounds_df = df
+    self.num_samples = len(df)
+
+  def __len__(self):
+    """Returns size of internal dataset."""
+    return self.num_samples
 
   # TODO(rbharath): Might this be inefficient?
   def itersamples(self):
@@ -354,17 +358,24 @@ class FeaturizedSamples(object):
           visible_inds.append(ind)
       yield df.loc[visible_inds]
 
-  def train_test_split(self, splittype, train_dir, test_dir, seed=None,
-                       frac_train=.8):
+  def train_valid_test_split(self, splittype, train_dir, test_dir,
+                             valid_dir=None, frac_train=.8, frac_valid=.1,
+                             frac_test=.1, seed=None):
     """
-    Splits self into train/test sets and returns two FeaturizedDatsets
+    Splits self into train/validation/test sets.
+
+    Returns FeaturizedDataset objects.
     """
     if splittype == "random":
-      train_inds, test_inds = self._train_test_random_split(seed=seed, frac_train=frac_train)
+      train_inds, valid_inds, test_inds = self._random_split(
+          seed=seed, frac_train=frac_train, frac_test=frac_test,
+          frac_valid=frac_valid)
     elif splittype == "scaffold":
-      train_inds, test_inds = self._train_test_scaffold_split(frac_train=frac_train)
+      train_inds, valid_inds, test_inds = self._scaffold_split(
+          frac_train=frac_train, frac_test=frac_test,
+          frac_valid=frac_valid)
     elif splittype == "specified":
-      train_inds, test_inds = self._train_test_specified_split()
+      train_inds, valid_inds, test_inds = self._specified_split()
     else:
       raise ValueError("improper splittype.")
     train_samples = FeaturizedSamples(samples_dir=train_dir, 
@@ -375,22 +386,46 @@ class FeaturizedSamples(object):
                                      dataset_files=self.dataset_files,
                                      featurizers=self.featurizers)
     test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
+    if valid_dir is None:
+      valid_samples = None
+    else:
+      valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
+                                       dataset_files=self.dataset_files,
+                                       featurizers=self.featurizers)
+      valid_samples._set_compound_df(self.compounds_df.iloc[valid_inds])
 
+    return train_samples, valid_samples, test_samples
+
+  def train_test_split(self, splittype, train_dir, test_dir, seed=None,
+                       frac_train=.8):
+    """
+    Splits self into train/test sets.
+
+    Returns FeaturizedDataset objects.
+    """
+    train_samples, _, test_samples = self.train_valid_test_split(
+        splittype, train_dir, test_dir, valid_dir=None,
+        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
     return train_samples, test_samples
 
-  def _train_test_random_split(self, seed=None, frac_train=.8):
+  def _random_split(self, seed=None, frac_train=.8, frac_valid=.1,
+                    frac_test=.1):
     """
-    Splits internal compounds randomly into train/test.
+    Splits internal compounds randomly into train/validation/test.
     """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
     train_cutoff = frac_train * len(self.compounds_df)
+    valid_cutoff = (frac_train+frac_valid) * len(self.compounds_df)
     shuffled = np.random.permutation(range(len(self.compounds_df)))
-    return shuffled[:train_cutoff], shuffled[train_cutoff:]
+    return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
+            shuffled[valid_cutoff:])
 
-  def _train_test_scaffold_split(self, frac_train=.8):
+  def _scaffold_split(self, frac_train=.8, frac_valid=.1, frac_test=.1):
     """
-    Splits internal compounds into train/test by scaffold.
+    Splits internal compounds into train/validation/test by scaffold.
     """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     scaffolds = {}
     for ind, row in self.compounds_df.iterrows():
       scaffold = generate_scaffold(row["smiles"])
@@ -402,24 +437,30 @@ class FeaturizedSamples(object):
     scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
                      sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
     train_cutoff = frac_train * len(self.compounds_df)
-    train_inds, test_inds = [], []
+    valid_cutoff = (frac_train+frac_valid) * len(self.compounds_df)
+    train_inds, valid_inds, test_inds = [], [], []
     for scaffold_set in scaffold_sets:
       if len(train_inds) + len(scaffold_set) > train_cutoff:
-        test_inds += scaffold_set
+        if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
+          test_inds += scaffold_set
+        else:
+          valid_inds += scaffold_set
       else:
         train_inds += scaffold_set
-    return train_inds, test_inds
+    return train_inds, valid_inds, test_inds
 
-  def _train_test_specified_split(self):
+  def _specified_split(self):
     """
-    Splits internal compounds into train/test by user-specification.
+    Splits internal compounds into train/validation/test by user-specification.
     """
-    train_inds, test_inds = [], []
+    train_inds, valid_inds, test_inds = [], [], []
     for ind, row in self.compounds_df.iterrows():
       if row["split"].lower() == "train":
         train_inds.append(ind)
+      elif row["split"].lower() == "validation":
+        valid_inds.append(ind)
       elif row["split"].lower() == "test":
         test_inds.append(ind)
       else:
         raise ValueError("Missing required split information.")
-    return train_inds, test_inds
+    return train_inds, valid_inds, test_inds
