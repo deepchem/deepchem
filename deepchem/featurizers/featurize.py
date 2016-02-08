@@ -19,6 +19,7 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
+from pathos.multiprocessing import ProcessingPool
 import multiprocessing as mp
 from functools import partial
 
@@ -200,29 +201,47 @@ class DataFeaturizer(object):
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
     return df
 
-  def _featurize_complexes(self, df, featurizer):
+
+  def _featurize_complexes(self, df, featurizer, parallel=True):
     """Generates circular fingerprints for dataset."""
     protein_pdbs = list(df["protein_pdb"])
     ligand_pdbs = list(df["ligand_pdb"])
     complexes = zip(ligand_pdbs, protein_pdbs)
 
-    features = featurizer.featurize_complexes(ligand_pdbs, protein_pdbs)
+    def featurize_wrapper(ligand_protein_pdb_tuple):
+      ligand_pdb, protein_pdb = ligand_protein_pdb_tuple
+      molecule_features = featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
+      return molecule_features
+
+    features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
+                                                  zip(ligand_pdbs, protein_pdbs))
+    #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
-  def _featurize_compounds(self, df, featurizer):    
+  def _featurize_compounds(self, df, featurizer, parallel=True):    
     """Featurize individual compounds.
 
        Given a featurizer that operates on individual chemical compounds 
        or macromolecules, compute & add features for that compound to the 
        features dataframe
     """
-    features = []
     sample_smiles = df["smiles"].tolist()
-    for ind, smiles in enumerate(sample_smiles):
-      if ind % self.log_every_n == 0:
-        log("Featurizing sample %d" % ind, self.verbose)
-      mol = Chem.MolFromSmiles(smiles)
-      features.append(featurizer.featurize([mol]))
+
+    if not parallel:
+      features = []
+      for ind, smiles in enumerate(sample_smiles):
+        if ind % self.log_every_n == 0:
+          log("Featurizing sample %d" % ind, self.verbose)
+        mol = Chem.MolFromSmiles(smiles)
+        features.append(featurizer.featurize([mol]))
+    else:
+      def featurize_wrapper(smiles):
+        mol = Chem.MolFromSmiles(smiles)
+        return featurizer.featurize([mol])
+
+      features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
+                                                    sample_smiles)
+
     df[featurizer.__class__.__name__] = features
 
   def _add_user_specified_features(self, df):
