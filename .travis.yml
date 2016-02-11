@@ -3,6 +3,7 @@ python:
 - '2.7'
 sudo: required
 install:
+- sudo apt-get update
 - wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
@@ -17,6 +18,8 @@ install:
 - conda install joblib
 - conda install -c omnia theano
 - conda install -c omnia keras
+- conda install seaborn
+- conda install six
 - python setup.py install
 script:
 - nosetests -v deepchem
