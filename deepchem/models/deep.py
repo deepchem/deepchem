@@ -9,7 +9,8 @@ import os
 import numpy as np
 from keras.models import Graph
 from keras.models import model_from_json
-from keras.layers.core import Dense, Dropout
+from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.normalization import BatchNormalization 
 from keras.optimizers import SGD
 from deepchem.models import Model
 
@@ -66,24 +67,38 @@ class MultiTaskDNN(KerasModel):
       (n_inputs,) = model_params["data_shape"]
       model = Graph()
       model.add_input(name="input", input_shape=(n_inputs,))
-      model.add_node(
-          Dense(model_params["nb_hidden"], init=model_params["init"],
-                activation=model_params["activation"]),
-          name="dense", input="input")
-      model.add_node(Dropout(model_params["dropout"]),
-                     name="dropout",
-                     input="dense")
-      top_layer = "dropout"
+      prev_layer = "input"
+      for ind, layer in enumerate(range(model_params["nb_layers"])):
+        dense_layer_name = "dense%d" % ind
+        activation_layer_name = "activation%d" % ind
+        batchnorm_layer_name = "batchnorm%d" % ind
+        dropout_layer_name = "dropout%d" % ind
+        model.add_node(
+            Dense(model_params["nb_hidden"], init=model_params["init"]),
+            name=dense_layer_name, input=prev_layer)
+        prev_layer = dense_layer_name 
+        if model_params["batchnorm"]:
+          model.add_node(
+            BatchNormalization(), input=prev_layer, name=batchnorm_layer_name)
+          prev_layer = batchnorm_layer_name
+        model.add_node(Activation(model_params["activation"]),
+                       name=activation_layer_name, input=prev_layer)
+        prev_layer = activation_layer_name
+        if model_params["dropout"] > 0:
+          model.add_node(Dropout(model_params["dropout"]),
+                         name=dropout_layer_name,
+                         input=prev_layer)
+          prev_layer = dropout_layer_name
       for ind, task in enumerate(sorted_tasks):
         task_type = task_types[task]
         if task_type == "classification":
           model.add_node(
               Dense(2, init=model_params["init"], activation="softmax"),
-              name="dense_head%d" % ind, input=top_layer)
+              name="dense_head%d" % ind, input=prev_layer)
         elif task_type == "regression":
           model.add_node(
               Dense(1, init=model_params["init"]),
-              name="dense_head%d" % ind, input=top_layer)
+              name="dense_head%d" % ind, input=prev_layer)
         model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
 
       loss_dict = {}

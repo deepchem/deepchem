@@ -183,7 +183,8 @@ class TestAPI(unittest.TestCase):
                     "dropout": .5, "learning_rate": .01,
                     "momentum": .9, "nesterov": False,
                     "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform"}
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "nb_layers": 1, "batchnorm": False}
 
     input_file = "nnscore_example.pkl.gz"
     protein_pdb_field = "protein_pdb"
@@ -244,7 +245,8 @@ class TestAPI(unittest.TestCase):
                     "dropout": .5, "learning_rate": .01,
                     "momentum": .9, "nesterov": False,
                     "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform"}
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "nb_layers": 1, "batchnorm": False}
 
     input_file = os.path.join(self.current_dir, "multitask_example.csv")
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
