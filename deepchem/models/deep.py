@@ -150,10 +150,6 @@ class MultiTaskDNN(KerasModel):
         # output the most likely class.
         y_pred_task = np.squeeze(np.argmax(y_pred_dict[taskname], axis=1))
       else:
-        print("taskname")
-        print(taskname)
-        print("y_pred_dict.keys()")
-        print(y_pred_dict.keys())
         y_pred_task = np.squeeze(y_pred_dict[taskname])
       y_pred[:, ind] = y_pred_task
     y_pred = np.squeeze(y_pred)

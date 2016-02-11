@@ -22,12 +22,14 @@ class Model(object):
   registered_model_classes = {}
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbose=True):
+               initialize_raw_model=True, verbosity="low"):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = None
-    self.verbose = verbose 
+    assert verbosity in [None, "low", "high"]
+    self.low_verbosity = (verbosity == "low")
+    self.high_verbosity = (verbosity == "high")
 
   def fit_on_batch(self, X, y, w):
     """
@@ -133,14 +135,16 @@ class Model(object):
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
-      log("Starting epoch %s" % str(epoch+1), self.verbose)
+      log("Starting epoch %s" % str(epoch+1), self.low_verbosity)
       for i, (X, y, w, _) in enumerate(dataset.itershards()):
-        log("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)), self.verbose)
+        log("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
+        self.high_verbosity)
         nb_sample = np.shape(X)[0]
         interval_points = np.linspace(
             0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
         for j in range(len(interval_points)-1):
-          log("Training on batch-%s/shard-%s/epoch-%s" % (str(j+1), str(i+1), str(epoch+1)), self.verbose)
+          log("Training on batch-%s/shard-%s/epoch-%s" %
+              (str(j+1), str(i+1), str(epoch+1)), self.high_verbosity)
           indices = range(interval_points[j], interval_points[j+1])
           X_batch = X[indices, :]
           y_batch = y[indices]

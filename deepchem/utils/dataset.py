@@ -44,7 +44,7 @@ class Dataset(object):
 
       metadata_rows = []
       # TODO(rbharath): Still a bit of information leakage.
-      for df_file, df in zip(samples.dataset_files, samples.itersamples()):
+      for df_file, df in zip(samples.dataset_files, samples.iterdataframes()):
         retval = write_dataset_single_partial((df_file, df))
         if retval is not None:
           metadata_rows.append(retval)

@@ -43,11 +43,3 @@ deepchem.featurizers.nnscore module
     :members:
     :undoc-members:
     :show-inheritance:
-
-deepchem.featurizers.nnscore module
------------------------------------
-
-.. automodule:: deepchem.featurizers.nnscore
-    :members:
-    :undoc-members:
-    :show-inheritance:
