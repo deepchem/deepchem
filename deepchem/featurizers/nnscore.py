@@ -1,5 +1,5 @@
 """
-The following code implements a featurizer based on NNScore 2.0.1
+Protein-ligand noncovalent chemistry descriptors
 """
 from __future__ import print_function
 from __future__ import division

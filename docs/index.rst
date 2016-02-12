@@ -20,6 +20,7 @@ the GNU LGPL (v2.1 or later)
 New users should check out:
 
 - :ref:`installation`
+- :ref:`input`
 - :ref:`featurization`
 
 For API docs, see here:
@@ -32,5 +33,6 @@ For API docs, see here:
    :hidden:
 
    installation
+   input
    featurization
    deepchem

@@ -32,6 +32,11 @@ def load_from_disk(filename):
     return load_pickle_from_disk(filename)
   elif os.path.splitext(name)[1] == ".joblib":
     return joblib.load(filename)
+  elif os.path.splitext(name)[1] == ".csv":
+    # First line of user-specified CSV *must* be header.
+    df = pd.read_csv(filename, header=0)
+    df = df.replace(np.nan, str(""), regex=True)
+    return df
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
