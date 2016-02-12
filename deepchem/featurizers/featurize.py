@@ -136,11 +136,9 @@ class DataFeaturizer(object):
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
     shard_files = []
     for j in range(len(interval_points)-1):
-      #log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
+      log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
       df = self._standardize_df(raw_df_shard)
-      #log("Aggregating User-Specified Features", self.verbose)
-      self._add_user_specified_features(df)
 
       for compound_featurizer in self.compound_featurizers:
         log("Currently featurizing feature_type: %s"
@@ -199,6 +197,9 @@ class DataFeaturizer(object):
       df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
     if self.ligand_mol2_field is not None:
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
+    if self.user_specified_features is not None:
+      log("Aggregating User-Specified Features", self.verbose)
+      self._add_user_specified_features(df)
     return df
 
   def _featurize_complexes(self, df, featurizer):
@@ -343,7 +344,6 @@ class FeaturizedSamples(object):
     """Returns size of internal dataset."""
     return self.num_samples
 
-    irint("feature types %s" % self.feature_types)
   def itersamples(self):
     """Iterates over samples in this object."""
     compound_ids = set(list(self.compounds_df["mol_id"]))

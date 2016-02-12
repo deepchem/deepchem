@@ -96,7 +96,6 @@ def nnscore_hyperparam_search(train_dataset, test_dataset,
                   "decay": 1e-4, "batch_size": 5,
                   "nb_epoch": 10}
   model_name = "singletask_deep_regressor"
-  #model_name = "SingleTaskDNN"
   nb_hidden_vals = [10, 100]
   learning_rate_vals = [.01, .001]
   init_vals = ["glorot_uniform"]
