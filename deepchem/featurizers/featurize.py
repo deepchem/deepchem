@@ -192,7 +192,7 @@ class DataFeaturizer(object):
     df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
       df[task] = ori_df[[task]]
-    if self.split_field is not None:
+    if self.user_specified_features is not None:
       for feature in self.user_specified_features:
         df[feature] = ori_df[[feature]]
     if self.split_field is not None:
