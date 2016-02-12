@@ -34,12 +34,14 @@ def featurize_and_split(input_file, feature_dir, samples_dir, train_dir,
   
   if feature_files is None:
     print("About to featurize.")
-    feature_files = featurizer.featurize(input_file, feature_types,
-                                         feature_dir, shard_size=8)
+    samples = featurizer.featurize(input_file, feature_dir,
+                                   samples_dir, shard_size=8)
     print("Completed Featurization")
-  # Transform data into arrays for ML
-  samples = FeaturizedSamples(samples_dir, feature_files,
-                              reload_data=False)
+  else:
+    # Transform data into arrays for ML
+    samples = FeaturizedSamples(samples_dir, feature_files,
+                                reload_data=False)
+
   # Split into train/test
   train_samples, test_samples = samples.train_test_split(
       splittype, train_dir, test_dir)
