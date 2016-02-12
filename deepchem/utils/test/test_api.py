@@ -110,6 +110,36 @@ class TestAPI(unittest.TestCase):
 
     return train_dataset, test_dataset
 
+  def user_featurize_and_split(input_file, feature_dir, samples_dir, train_dir,                                                          
+                          test_dir, splittype, feature_types,                                                                            
+                          user_specified_features, input_transforms,                                                                     
+                          output_transforms, tasks, feature_files):                    
+    """Featurize inputs with user-specified-features and do train-test split."""                                                         
+  featurizer = DataFeaturizer(tasks=tasks,                                                                                             
+                              smiles_field="smiles",                                                                                   
+                              user_specified_features=user_specified_features,                                                         
+                              verbose=True)                                                                                            
+                                                                                                                                       
+  print("About to featurize.")                                                                                                         
+  samples = featurizer.featurize(input_file, feature_dir,                                                                              
+                                       samples_dir, shard_size=8)                                                                      
+  print("Completed Featurization")                                                                                                     
+  train_samples, test_samples = samples.train_test_split(                                                                              
+      splittype, train_dir, test_dir)                                                                                                  
+  print("Finished train test split.")                                                                                                  
+  train_dataset = Dataset(train_dir, tasks, train_samples, feature_types,                                                              
+                         use_user_specified_features=True)                                                                             
+  test_dataset = Dataset(test_dir, tasks, test_samples, feature_types,                                                                 
+                         use_user_specified_features=True)                                                                             
+  print("Finished creating train test datasets")                                                                                       
+  # Transforming train/test data                                                                                                       
+  train_dataset.transform(input_transforms, output_transforms)                                                                         
+  test_dataset.transform(input_transforms, output_transforms)                                                                          
+  print("Finished Transforming train test data.")                                                                                      
+                                                                                                                                       
+  return train_dataset, test_dataset                                                   
+
+
   def test_singletask_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
@@ -196,6 +226,37 @@ class TestAPI(unittest.TestCase):
                                                     ligand_pdb_field=ligand_pdb_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
     
+    model = SingleTaskDNN(task_types, model_params)
+    self._create_model(train_dataset, test_dataset, model)
+
+
+  def test_singletask_mlp_USF_regression_API(self):
+    """Test of singletask MLP NNScore regression API."""
+    splittype = "scaffold"
+    compound_featurizers = []
+    complex_featurizers = [NNScoreComplexFeaturizer()]
+    input_transforms = ["normalize", "truncate"]
+    output_transforms = ["normalize"]
+    feature_types = ["user_specified_features"]
+    user_specified_features = ["evals"]
+    task_types = {"label": "regression"}
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "nb_layers": 1, "batchnorm": False}
+
+    input_file = "gbd3k.pkl.gz"
+    protein_pdb_field = "None"
+    ligand_pdb_field = "None"
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers,
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys(),
+                                                    protein_pdb_field=protein_pdb_field,
+                                                    ligand_pdb_field=ligand_pdb_field)
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
     model = SingleTaskDNN(task_types, model_params)
     self._create_model(train_dataset, test_dataset, model)
 

@@ -30,9 +30,13 @@ class Dataset(object):
       os.makedirs(data_dir)
     self.data_dir = data_dir
 
-    feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+    if featurizers is not None:
+      feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+    else:
+      feature_types = None
+
     if use_user_specified_features:
-      feature_types += ["user-specified-features"]
+      feature_types = ["user-specified-features"]
 
     if samples is not None and feature_types is not None:
       if not isinstance(feature_types, list):
