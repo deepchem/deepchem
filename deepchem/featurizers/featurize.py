@@ -115,7 +115,7 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128):
+  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128, worker_pool=None):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
@@ -147,12 +147,12 @@ class DataFeaturizer(object):
       for compound_featurizer in self.compound_featurizers:
         log("Currently feauturizing feature_type: %s"
             % compound_featurizer.__class__.__name__, self.verbose)
-        self._featurize_compounds(df, compound_featurizer)
+        self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
 
       for complex_featurizer in self.complex_featurizers:
         log("Currently feauturizing feature_type: %s"
             % complex_featurizer.__class__.__name__, self.verbose)
-        self._featurize_complexes(df, complex_featurizer)
+        self._featurize_complexes(df, complex_featurizer, worker_pool=worker_pool)
 
       shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
       save_to_disk(df, shard_out)
@@ -202,7 +202,8 @@ class DataFeaturizer(object):
     return df
 
 
-  def _featurize_complexes(self, df, featurizer, parallel=True):
+  def _featurize_complexes(self, df, featurizer, parallel=True,
+                           worker_pool=None):
     """Generates circular fingerprints for dataset."""
     protein_pdbs = list(df["protein_pdb"])
     ligand_pdbs = list(df["ligand_pdb"])
@@ -213,12 +214,23 @@ class DataFeaturizer(object):
       molecule_features = featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
       return molecule_features
 
-    features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
-                                                  zip(ligand_pdbs, protein_pdbs))
-    #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
+    if not parallel:
+      features = []
+      for ligand_protein_pdb_tuple in zip(ligand_pdbs, protein_pdbs):
+        features.append(featurize_wrapper(ligand_protein_pdb_tuple))
+    else:
+      if worker_pool is None:
+        worker_pool = ProcessingPool(mp.cpu_count())
+        features = worker_pool.map(featurize_wrapper, 
+                                   zip(ligand_pdbs, protein_pdbs))
+      else:
+        features = worker_pool.map_sync(featurize_wrapper, 
+                                        zip(ligand_pdbs, protein_pdbs))
+      #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
-  def _featurize_compounds(self, df, featurizer, parallel=True):    
+  def _featurize_compounds(self, df, featurizer, parallel=True,
+                           worker_pool=None):    
     """Featurize individual compounds.
 
        Given a featurizer that operates on individual chemical compounds 
@@ -239,8 +251,13 @@ class DataFeaturizer(object):
         mol = Chem.MolFromSmiles(smiles)
         return featurizer.featurize([mol])
 
-      features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
-                                                    sample_smiles)
+      if worker_pool is None:
+        worker_pool = ProcessingPool(mp.cpu_count())
+        features = worker_pool.map(featurize_wrapper, 
+                                   sample_smiles)
+      else:
+        features = worker_pool.map_sync(featurize_wrapper, 
+                                        sample_smiles)
 
     df[featurizer.__class__.__name__] = features
 
