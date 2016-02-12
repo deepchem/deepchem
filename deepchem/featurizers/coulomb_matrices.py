@@ -155,3 +155,60 @@ class CoulombMatrix(Featurizer):
         else:
           continue
     return d
+
+class CoulombMatrixEig(CoulombMatrix):
+  """
+  Calculate the eigenvales of Coulomb matrices for molecules.
+
+  Parameters
+  ----------
+  max_atoms : int
+      Maximum number of atoms for any molecule in the dataset. Used to
+      pad the Coulomb matrix.
+  remove_hydrogens : bool, optional (default False)
+      Whether to remove hydrogens before constructing Coulomb matrix.
+  randomize : bool, optional (default False)
+      Whether to randomize Coulomb matrices to remove dependence on atom
+      index order.
+  n_samples : int, optional (default 1)
+      Number of random Coulomb matrices to generate if randomize is True.
+  seed : int, optional
+      Random seed.
+  """
+
+  conformers = True
+  name = 'coulomb_matrix'
+
+  def __init__(self, max_atoms, remove_hydrogens=False, randomize=False,
+               n_samples=1, seed=None):
+    self.max_atoms = int(max_atoms)
+    self.remove_hydrogens = remove_hydrogens
+    self.randomize = randomize
+    self.n_samples = n_samples
+    if seed is not None:
+      seed = int(seed)
+    self.seed = seed
+
+  def _featurize(self, mol):
+    """
+    Calculate eigenvalues of Coulomb matrix for molecules. Eigenvalues
+    are returned sorted by absolute value in descending order and padded
+    by max_atoms. 
+
+    Parameters
+    ----------
+    mol : RDKit Mol
+        Molecule.
+    """
+    cmat = self.coulomb_matrix(mol)
+    features = []
+    for f in cmat:
+      w, v = np.linalg.eig(f)
+      w_abs = np.abs(w)
+      sortidx = np.argsort(w_abs)
+      sortidx = sortidx[::-1]
+      w = w[sortidx]
+      f = pad_array(w, self.max_atoms)
+      features.append(f)
+    features = np.asarray(features)
+    return features
