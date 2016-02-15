@@ -22,7 +22,8 @@ from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from pathos.multiprocessing import ProcessingPool
 import multiprocessing as mp
 from functools import partial
-
+import multiprocess
+import dill
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
@@ -215,7 +216,7 @@ class DataFeaturizer(object):
       molecule_features = featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
       return molecule_features
 
-    if not parallel:
+    if worker_pool is None:
       features = []
       for ligand_protein_pdb_tuple in zip(ligand_pdbs, protein_pdbs):
         features.append(featurize_wrapper(ligand_protein_pdb_tuple))
@@ -240,7 +241,7 @@ class DataFeaturizer(object):
     """
     sample_smiles = df["smiles"].tolist()
 
-    if not parallel:
+    if worker_pool is None:
       features = []
       for ind, smiles in enumerate(sample_smiles):
         if ind % self.log_every_n == 0:
@@ -248,15 +249,21 @@ class DataFeaturizer(object):
         mol = Chem.MolFromSmiles(smiles)
         features.append(featurizer.featurize([mol]))
     else:
-      def featurize_wrapper(smiles):
+      def featurize_wrapper(smiles, dilled_featurizer):
       	print("Featurizing %s" % smiles)
         mol = Chem.MolFromSmiles(smiles)
-        return featurizer.featurize([mol])
+        featurizer = dill.loads(dilled_featurizer)
+        feature = featurizer.featurize([mol])
+        return feature
 
       if worker_pool is None:
+        dilled_featurizer = dill.dumps(featurizer)
         worker_pool = ProcessingPool(mp.cpu_count())
-        features = worker_pool.map(featurize_wrapper, 
-                                   sample_smiles)
+        featurize_wrapper_partial = partial(featurize_wrapper,
+                                            dilled_featurizer=dilled_featurizer)
+        features = []
+        for smiles in sample_smiles:
+          features.append(featurize_wrapper_partial(smiles))
       else:
         features = worker_pool.map_sync(featurize_wrapper, 
                                         sample_smiles)
