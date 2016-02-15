@@ -19,6 +19,8 @@ from deepchem.utils.save import log
 import tempfile
 import os
 import shutil
+import multiprocessing as mp
+
 
 '''
 http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
@@ -731,7 +733,9 @@ class GridFeaturizer(ComplexFeaturizer):
          ecfp_degree=2, ecfp_power=3, splif_power=3,
          save_intermediates=False, ligand_only=False,
          box_width=16.0, voxel_width=1.0, voxelize_features=True, 
-         voxel_feature_types=[], **kwargs):
+         voxel_feature_types=[], flatten=False, parallel=False, **kwargs):
+    self.parallel = parallel
+    self.flatten = flatten
 
     self.box_x = float(box_x) / 10.0
     self.box_y = float(box_y) / 10.0
@@ -774,8 +778,8 @@ class GridFeaturizer(ComplexFeaturizer):
       protein_f.writelines(protein_pdb_lines)
 
     features_dict = self._transform(protein_pdb_file, ligand_pdb_file)
-    print("np.shape(features_dict.values()[0])")
-    print(np.shape(features_dict.values()[0]))
+    #print("np.shape(features_dict.values()[0])")
+    #print(np.shape(features_dict.values()[0]))
     shutil.rmtree(tempdir)
     return features_dict.values()
 
@@ -792,7 +796,6 @@ class GridFeaturizer(ComplexFeaturizer):
       List of PDBs for proteins. Each PDB should be a list of lines of the
       PDB file.
     """
-
     features = []
     for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
       if i % log_every_n == 0:
@@ -892,19 +895,19 @@ class GridFeaturizer(ComplexFeaturizer):
           ecfp_tensor += self._voxelize(_convert_atom_to_voxel, _hash_ecfp, ligand_xyz,
                            feature_dict=ligand_ecfp_dict, channel_power=self.ecfp_power)
           feature_tensors.append(ecfp_tensor)
-          print("Completed ecfp tensor")
+          #print("Completed ecfp tensor")
         
         if "splif" in self.voxel_feature_types: 
 
           feature_tensors += [self._voxelize(_convert_atom_pair_to_voxel, _hash_ecfp_pair, (protein_xyz, ligand_xyz),
                             feature_dict=splif_dict, channel_power=self.splif_power) for splif_dict in splif_dicts]
-          print("Completed splif tensor")
+          #print("Completed splif tensor")
 
         if "hbond" in self.voxel_feature_types:
 
           feature_tensors += [self._voxelize(_convert_atom_pair_to_voxel, None, (protein_xyz, ligand_xyz),
                               feature_list=hbond, channel_power=0) for hbond in hbond_list]
-          print("Completed hbond tensor")
+          #print("Completed hbond tensor")
 
         if "sybyl" in self.voxel_feature_types:
 
@@ -914,7 +917,7 @@ class GridFeaturizer(ComplexFeaturizer):
           sybyl_tensor += self._voxelize(_convert_atom_to_voxel, hash_sybyl, ligand_xyz, feature_dict=ligand_sybyl_dict, 
                                                nb_channel=len(self.sybyl_types))
           feature_tensors.append(sybyl_tensor)  
-          print("Completed sybyl tensor")        
+          #print("Completed sybyl tensor")        
 
         if "pi_stack" in self.voxel_feature_types:
           pi_parallel_tensor = self._voxelize(_convert_atom_to_voxel, None, protein_xyz,
@@ -928,7 +931,7 @@ class GridFeaturizer(ComplexFeaturizer):
           pi_t_tensor += self._voxelize(_convert_atom_to_voxel, None, ligand_xyz,
                                                feature_dict=ligand_pi_t, nb_channel=1)
           feature_tensors.append(pi_t_tensor)
-          print("Completed pi_stack tensor")
+          #print("Completed pi_stack tensor")
 
         if "cation_pi" in self.voxel_feature_types:
           cation_pi_tensor = self._voxelize(_convert_atom_to_voxel, None, protein_xyz,
@@ -936,14 +939,14 @@ class GridFeaturizer(ComplexFeaturizer):
           cation_pi_tensor += self._voxelize(_convert_atom_to_voxel, None, ligand_xyz,
                                             feature_dict=ligand_cation_pi, nb_channel=1)
           feature_tensors.append(cation_pi_tensor)
-          print("Completed cation_pi tensor.")
+          #print("Completed cation_pi tensor.")
 
         if "salt_bridge" in self.voxel_feature_types:
           salt_bridge_tensor = self._voxelize(_convert_atom_pair_to_voxel, None, (protein_xyz, ligand_xyz),
                                           feature_list=salt_bridge_list, nb_channel=1)
           feature_tensors.append(salt_bridge_tensor)
 
-          print("Completed salt_bridge tensor.")
+          #print("Completed salt_bridge tensor.")
 
         if "charge" in self.voxel_feature_types:
           charge_tensor = self._voxelize(_convert_atom_to_voxel, None, protein_xyz,
@@ -952,12 +955,16 @@ class GridFeaturizer(ComplexFeaturizer):
                                         feature_dict=ligand_charge_dictionary, nb_channel=1, dtype="np.float16")
           feature_tensors.append(charge_tensor)
 
-          print("Completed salt_bridge tensor.")
+          #print("Completed salt_bridge tensor.")
 
         if "charge" in self.voxel_feature_types:
           feature_tensor = np.concatenate(feature_tensors, axis=3).astype(np.float16)
         else:
           feature_tensor = np.concatenate(feature_tensors, axis=3).astype(np.int8)
+
+        if self.flatten:
+          feature_tensor = np.squeeze(feature_tensor)
+
         features[system_id] = feature_tensor
 
       return(features)

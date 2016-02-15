@@ -8,6 +8,7 @@ import pandas as pd
 from rdkit import Chem
 from glob import glob
 import re
+from sklearn.externals import joblib
 
 
 def extract_labels(pdbbind_label_file):
@@ -26,7 +27,7 @@ def extract_labels(pdbbind_label_file):
       labels[line[0]] = line[3]
   return labels
 
-def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_pkl):
+def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
   """
   Takes as input a stem directory containing subdirectories with ligand
     and protein pdb/mol2 files, a pdbbind_label_file containing binding
@@ -89,5 +90,4 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_pkl):
                                               'protein_pdb', 'ligand_pdb',
                                               'ligand_mol2', 'label'))
 
-  with open(pdbbind_df_pkl, "wb") as f:
-    pickle.dump(pdbbind_df, f)
+  joblib.dump(pdbbind_df, pdbbind_df_joblib)
