@@ -5,8 +5,10 @@ from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
 
-dataset_file = "../../datasets/pdbbind_core_df.pkl.gz"
+dataset_file = "../../../datasets/pdbbind_full_df.pkl.gz"
+print("About to load dataset form disk.")
 dataset = load_from_disk(dataset_file)
+print("Loaded dataset.")
 
 grid_featurizer = GridFeaturizer(voxel_width=16.0, feature_types="voxel_combined", voxel_feature_types=["ecfp",
                                  "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"], ecfp_power=9, splif_power=9,
