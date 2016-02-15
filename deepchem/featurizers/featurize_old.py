@@ -9,7 +9,6 @@ import gzip
 import pandas as pd
 import numpy as np
 import csv
-import numbers
 from rdkit import Chem
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
@@ -19,8 +18,8 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
-from pathos.multiprocessing import ProcessingPool
 import multiprocessing as mp
+from pathos.multiprocessing import ProcessingPool
 from functools import partial
 
 
@@ -38,7 +37,7 @@ def _check_validity(compounds_df):
 
 def _process_field(val):
   """Parse data in a field."""
-  if (isinstance(val, numbers.Number) or isinstance(val, np.ndarray)):
+  if isinstance(val, float) or isinstance(val, np.ndarray):
     return val
   elif isinstance(val, list):
     return [_process_field(elt) for elt in val]
@@ -115,7 +114,7 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128, worker_pool=None):
+  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
@@ -131,7 +130,10 @@ class DataFeaturizer(object):
                                                 input_type=input_type)
 
 
+    #processed_rows = raw_df.apply(process_raw_sample_helper_partial, axis=1)
     raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
+    #raw_df = pd.DataFrame.from_records(processed_rows)
+
     nb_sample = raw_df.shape[0]
     interval_points = np.linspace(
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
@@ -147,12 +149,12 @@ class DataFeaturizer(object):
       for compound_featurizer in self.compound_featurizers:
         log("Currently feauturizing feature_type: %s"
             % compound_featurizer.__class__.__name__, self.verbose)
-        self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
+        self._featurize_compounds(df, compound_featurizer)
 
       for complex_featurizer in self.complex_featurizers:
         log("Currently feauturizing feature_type: %s"
             % complex_featurizer.__class__.__name__, self.verbose)
-        self._featurize_complexes(df, complex_featurizer, worker_pool=worker_pool)
+        self._featurize_complexes(df, complex_featurizer)
 
       shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
       save_to_disk(df, shard_out)
@@ -201,9 +203,7 @@ class DataFeaturizer(object):
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
     return df
 
-
-  def _featurize_complexes(self, df, featurizer, parallel=True,
-                           worker_pool=None):
+  def _featurize_complexes(self, df, featurizer, parallel=True):
     """Generates circular fingerprints for dataset."""
     protein_pdbs = list(df["protein_pdb"])
     ligand_pdbs = list(df["ligand_pdb"])
@@ -211,27 +211,15 @@ class DataFeaturizer(object):
 
     def featurize_wrapper(ligand_protein_pdb_tuple):
       ligand_pdb, protein_pdb = ligand_protein_pdb_tuple
-      print("Featurizing %s" % ligand_pdb[0:2])
       molecule_features = featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
-      return molecule_features
+      return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
-    if not parallel:
-      features = []
-      for ligand_protein_pdb_tuple in zip(ligand_pdbs, protein_pdbs):
-        features.append(featurize_wrapper(ligand_protein_pdb_tuple))
-    else:
-      if worker_pool is None:
-        worker_pool = ProcessingPool(mp.cpu_count())
-        features = worker_pool.map(featurize_wrapper, 
-                                   zip(ligand_pdbs, protein_pdbs))
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        zip(ligand_pdbs, protein_pdbs))
-      #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
+    features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
+                                                  zip(ligand_pdbs, protein_pdbs))
+    #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
-  def _featurize_compounds(self, df, featurizer, parallel=True,
-                           worker_pool=None):    
+  def _featurize_compounds(self, df, featurizer, parallel=True):    
     """Featurize individual compounds.
 
        Given a featurizer that operates on individual chemical compounds 
@@ -249,17 +237,11 @@ class DataFeaturizer(object):
         features.append(featurizer.featurize([mol]))
     else:
       def featurize_wrapper(smiles):
-      	print("Featurizing %s" % smiles)
         mol = Chem.MolFromSmiles(smiles)
         return featurizer.featurize([mol])
 
-      if worker_pool is None:
-        worker_pool = ProcessingPool(mp.cpu_count())
-        features = worker_pool.map(featurize_wrapper, 
-                                   sample_smiles)
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        sample_smiles)
+      features = ProcessingPool(mp.cpu_count()).map(featurize_wrapper, 
+                                                    sample_smiles)
 
     df[featurizer.__class__.__name__] = features
 
@@ -284,8 +266,8 @@ class DataFeaturizer(object):
 def map_function(data_tuple, featurizer):
   featurizer = NNScoreComplexFeaturizer()
   ind, ligand_pdb, protein_pdb = data_tuple
-  print("Mapping on ind %d" % ind)
-  print("ind, type(ligand_pdb), type(protein_pdb): %s " % str((ind, type(ligand_pdb), type(protein_pdb))))
+  #print("Mapping on ind %d" % ind)
+  #print("ind, type(ligand_pdb), type(protein_pdb): %s " % str((ind, type(ligand_pdb), type(protein_pdb))))
   return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
 class FeaturizedSamples(object):
@@ -326,7 +308,6 @@ class FeaturizedSamples(object):
       save_to_disk(compounds_df, self._get_compounds_filename())
     _check_validity(compounds_df)
     self.compounds_df = compounds_df
-    self.num_samples = len(compounds_df)
 
     if os.path.exists(self._get_dataset_paths_filename()):
       if dataset_files is not None:
@@ -374,28 +355,11 @@ class FeaturizedSamples(object):
     _check_validity(df)
     save_to_disk(df, self._get_compounds_filename())
     self.compounds_df = df
-    self.num_samples = len(df)
-
-  def __len__(self):
-    """Returns size of internal dataset."""
-    return self.num_samples
-
-  def itersamples(self):
-    """Iterates over samples in this object."""
-    compound_ids = set(list(self.compounds_df["mol_id"]))
-    for df_file in self.dataset_files:
-      df = load_from_disk(df_file)
-      visible_inds = []
-      for ind, row in df.iterrows():
-        if row["mol_id"] in compound_ids:
-          visible_inds.append(ind)
-      for visible_ind in visible_inds:
-        yield df.loc[visible_ind]
 
   # TODO(rbharath): Might this be inefficient?
-  def iterdataframes(self):
+  def itersamples(self):
     """
-    Provides a bulk iterator over data.
+    Provides an iterator over samples.
 
     Each sample from the iterator is a dataframe of samples.
     """
@@ -408,75 +372,43 @@ class FeaturizedSamples(object):
           visible_inds.append(ind)
       yield df.loc[visible_inds]
 
-  def train_valid_test_split(self, splittype, train_dir=None,
-                             valid_dir=None, test_dir=None, frac_train=.8,
-                             frac_valid=.1, frac_test=.1, seed=None):
-    """
-    Splits self into train/validation/test sets.
-
-    Returns FeaturizedDataset objects.
-    """
-    if splittype == "random":
-      train_inds, valid_inds, test_inds = self._random_split(
-          seed=seed, frac_train=frac_train, frac_test=frac_test,
-          frac_valid=frac_valid)
-    elif splittype == "scaffold":
-      train_inds, valid_inds, test_inds = self._scaffold_split(
-          frac_train=frac_train, frac_test=frac_test,
-          frac_valid=frac_valid)
-    elif splittype == "specified":
-      train_inds, valid_inds, test_inds = self._specified_split()
-    else:
-      raise ValueError("improper splittype.")
-    train_samples, valid_samples, test_samples = None, None, None
-    if train_dir is not None:
-      train_samples = FeaturizedSamples(samples_dir=train_dir, 
-                                        dataset_files=self.dataset_files,
-                                        featurizers=self.featurizers)
-      train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
-    if test_dir is not None:
-      test_samples = FeaturizedSamples(samples_dir=test_dir, 
-                                       dataset_files=self.dataset_files,
-                                       featurizers=self.featurizers)
-      test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
-    if valid_dir is not None:
-      valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
-                                       dataset_files=self.dataset_files,
-                                       featurizers=self.featurizers)
-      valid_samples._set_compound_df(self.compounds_df.iloc[valid_inds])
-
-    return train_samples, valid_samples, test_samples
-
   def train_test_split(self, splittype, train_dir, test_dir, seed=None,
                        frac_train=.8):
     """
-    Splits self into train/test sets.
-
-    Returns FeaturizedDataset objects.
+    Splits self into train/test sets and returns two FeaturizedDatsets
     """
-    train_samples, _, test_samples = self.train_valid_test_split(
-        splittype, train_dir, valid_dir=None, test_dir=test_dir,
-        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
+    if splittype == "random":
+      train_inds, test_inds = self._train_test_random_split(seed=seed, frac_train=frac_train)
+    elif splittype == "scaffold":
+      train_inds, test_inds = self._train_test_scaffold_split(frac_train=frac_train)
+    elif splittype == "specified":
+      train_inds, test_inds = self._train_test_specified_split()
+    else:
+      raise ValueError("improper splittype.")
+    train_samples = FeaturizedSamples(samples_dir=train_dir, 
+                                      dataset_files=self.dataset_files,
+                                      featurizers=self.featurizers)
+    train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
+    test_samples = FeaturizedSamples(samples_dir=test_dir, 
+                                     dataset_files=self.dataset_files,
+                                     featurizers=self.featurizers)
+    test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
+
     return train_samples, test_samples
 
-  def _random_split(self, seed=None, frac_train=.8, frac_valid=.1,
-                    frac_test=.1):
+  def _train_test_random_split(self, seed=None, frac_train=.8):
     """
-    Splits internal compounds randomly into train/validation/test.
+    Splits internal compounds randomly into train/test.
     """
-    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
     train_cutoff = frac_train * len(self.compounds_df)
-    valid_cutoff = (frac_train+frac_valid) * len(self.compounds_df)
     shuffled = np.random.permutation(range(len(self.compounds_df)))
-    return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
-            shuffled[valid_cutoff:])
+    return shuffled[:train_cutoff], shuffled[train_cutoff:]
 
-  def _scaffold_split(self, frac_train=.8, frac_valid=.1, frac_test=.1):
+  def _train_test_scaffold_split(self, frac_train=.8):
     """
-    Splits internal compounds into train/validation/test by scaffold.
+    Splits internal compounds into train/test by scaffold.
     """
-    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     scaffolds = {}
     for ind, row in self.compounds_df.iterrows():
       scaffold = generate_scaffold(row["smiles"])
@@ -488,30 +420,24 @@ class FeaturizedSamples(object):
     scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
                      sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
     train_cutoff = frac_train * len(self.compounds_df)
-    valid_cutoff = (frac_train+frac_valid) * len(self.compounds_df)
-    train_inds, valid_inds, test_inds = [], [], []
+    train_inds, test_inds = [], []
     for scaffold_set in scaffold_sets:
       if len(train_inds) + len(scaffold_set) > train_cutoff:
-        if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
-          test_inds += scaffold_set
-        else:
-          valid_inds += scaffold_set
+        test_inds += scaffold_set
       else:
         train_inds += scaffold_set
-    return train_inds, valid_inds, test_inds
+    return train_inds, test_inds
 
-  def _specified_split(self):
+  def _train_test_specified_split(self):
     """
-    Splits internal compounds into train/validation/test by user-specification.
+    Splits internal compounds into train/test by user-specification.
     """
-    train_inds, valid_inds, test_inds = [], [], []
+    train_inds, test_inds = [], []
     for ind, row in self.compounds_df.iterrows():
       if row["split"].lower() == "train":
         train_inds.append(ind)
-      elif row["split"].lower() == "validation":
-        valid_inds.append(ind)
       elif row["split"].lower() == "test":
         test_inds.append(ind)
       else:
         raise ValueError("Missing required split information.")
-    return train_inds, valid_inds, test_inds
+    return train_inds, test_inds
