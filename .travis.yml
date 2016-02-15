@@ -20,7 +20,7 @@ install:
 - conda install -c omnia keras
 - conda install seaborn
 - conda install six
-- conda install -c https://conda.anaconda.org/groakat pathos
+- pip install --user git+https://github.com/uqfoundation/pathos
 - python setup.py install
 script:
 - nosetests -v deepchem
