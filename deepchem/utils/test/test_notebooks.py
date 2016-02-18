@@ -22,11 +22,10 @@ class TestNotebooks(unittest.TestCase):
     self.notebook_dir = os.path.join(current_dir, "../../../examples")
 
   def _test_notebook(self, notebook_location):
-    pass
-    #child = sp.Popen("runipy %s" % notebook_location, stdout=sp.PIPE)
-    #streamdata = child.communicate()[0]
-    #rc = child.returncode
-    #assert rc > 0
+    child = sp.Popen(["runipy", "%s" % notebook_location], stdout=sp.PIPE)
+    streamdata = child.communicate()[0]
+    rc = child.returncode
+    assert rc == 0
 
   def test_solubility_notebook(self):
     """Test solubility notebook."""
@@ -34,8 +33,8 @@ class TestNotebooks(unittest.TestCase):
         self.notebook_dir, "solubility.ipynb")
     self._test_notebook(solubility_notebook)
 
-  def test_protein_ligand_complex_notebook(self):
-    """Test protein-ligand complex notebook."""
-    protein_ligand_complex_notebook = os.path.join(
-        self.notebook_dir, "protein_ligand_complex_notebook.ipynb")
-    self._test_notebook(protein_ligand_complex_notebook)
+  #def test_protein_ligand_complex_notebook(self):
+  #  """Test protein-ligand complex notebook."""
+  #  protein_ligand_complex_notebook = os.path.join(
+  #      self.notebook_dir, "protein_ligand_complex_notebook.ipynb")
+  #  self._test_notebook(protein_ligand_complex_notebook)

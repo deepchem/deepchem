@@ -22,10 +22,6 @@ from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.utils.dataset import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
-# We need to import models so they can be created by model_builder
-import deepchem.models.deep
-import deepchem.models.standard
-import deepchem.models.deep3d
 from deepchem.models.deep import SingleTaskDNN
 from deepchem.models.deep import MultiTaskDNN
 from deepchem.models.standard import SklearnModel
