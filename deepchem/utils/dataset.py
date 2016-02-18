@@ -56,7 +56,7 @@ class Dataset(object):
                    'w',
                    'X_sums', 'X_sum_squares', 'X_n',
                    'y_sums', 'y_sum_squares', 'y_n'))
-      self.save()
+      self.save_to_disk()
       #save_to_disk(
       #    self.metadata_df, self._get_metadata_filename())
       ## input/output transforms not specified yet, so
@@ -71,7 +71,7 @@ class Dataset(object):
       else:
         raise ValueError("No metadata found.")
 
-  def save_to_disk():
+  def save_to_disk(self):
     """Save dataset to disk."""
     save_to_disk(
         self.metadata_df, self._get_metadata_filename())
@@ -126,7 +126,6 @@ class Dataset(object):
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
 
-
   def get_label_means(self):
     """Return pandas series of label means."""
     return self.metadata_df["y_means"]
@@ -134,16 +133,6 @@ class Dataset(object):
   def get_label_stds(self):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
-
-  def get_input_transforms(self):
-    """Returns stored input transforms."""
-    (input_transforms, _) = self.transforms
-    return input_transforms
-
-  def get_output_transforms(self):
-    """Returns stored output transforms."""
-    (_, output_transforms) = self.transforms
-    return output_transforms
 
   def compute_statistics(self):
     """Computes statistics of this dataset"""
@@ -204,6 +193,9 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
 
   save_to_disk(X, out_X)
   save_to_disk(y, out_y)
+  # Write X, y as transformed versions
+  save_to_disk(X, out_X_transformed)
+  save_to_disk(y, out_y_transformed)
   save_to_disk(w, out_w)
   save_to_disk(ids, out_ids)
   # TODO(rbharath): Should X be saved to out_X_transformed as well? Since

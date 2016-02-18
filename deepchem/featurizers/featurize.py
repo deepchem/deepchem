@@ -21,7 +21,6 @@ from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 import multiprocessing as mp
 from functools import partial
-import multiprocess
 import dill
 
 def generate_scaffold(smiles, include_chirality=False):

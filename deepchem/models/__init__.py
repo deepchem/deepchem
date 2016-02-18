@@ -183,10 +183,6 @@ class Model(object):
       shard_df[task_names] = y
       shard_df[pred_task_names] = y_pred
       shard_df[w_task_names] = w
-      # TODO(rbharath): This feels like a total hack. Is there a structured way
-      # to deal with this instead?
-      shard_df["y_means"] = list(dataset.get_label_means())[0] * np.ones(np.shape(y))
-      shard_df["y_stds"] = list(dataset.get_label_stds())[0]  * np.ones(np.shape(y))
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
     return pred_y_df

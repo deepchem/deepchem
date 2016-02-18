@@ -4,7 +4,12 @@ Contains an abstract base class that supports data transformations.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+import os
+import numpy as np
+import warnings
+from functools import partial
 from deepchem.utils.save import save_to_disk
+from deepchem.utils.save import load_from_disk
 
 # TODO(rbharath): The handling of X/y transforms in the same class is
 # awkward. Is there a better way to handle this work. 
@@ -20,6 +25,9 @@ class Transformer(object):
     self.dataset = dataset
     self.transform_X = transform_X
     self.transform_y = transform_y
+    # One, but not both, transform_X or tranform_y is true
+    assert transform_X or transform_y
+    assert not (transform_X and transform_y)
 
   def transform_row(self, i, df):
     """
@@ -28,7 +36,7 @@ class Transformer(object):
     raise NotImplementedError(
       "Each Transformer is responsible for its own tranform_row method.")
 
-  def untransform(self, z, X_transform=False, y_transform=True):
+  def untransform(self, z):
     """Reverses stored transformation on provided data."""
     raise NotImplementedError(
       "Each Transformer is responsible for its own untransfomr method.")
@@ -41,7 +49,6 @@ class Transformer(object):
 
     Adds X-transform, y-transform columns to metadata.
     """
-    self._transform(dataset, parallel=parallel)
     df = dataset.metadata_df
     indices = range(0, df.shape[0])
     transform_row_partial = partial(_transform_row, df=df, transformer=self)
@@ -62,11 +69,14 @@ def _transform_row(i, df, transformer):
   """
   transformer.transform_row(i, df)
 
-class NormalizeTransformer(Transformer):
+class NormalizationTransformer(Transformer):
 
-  def __init__(self, i, df, X_means, X_stds, y_means, y_stds):
+  def __init__(self, transform_X=False, transform_y=False, dataset=None):
     """Initialize clipping transformation."""
-    super(ClippingTransformer, self).__init__(i, df)
+    super(NormalizationTransformer, self).__init__(transform_X=transform_X,
+                                                   transform_y=transform_y,
+                                                   dataset=dataset)
+    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
@@ -88,20 +98,33 @@ class NormalizeTransformer(Transformer):
       y = np.nan_to_num((y - self.y_means) / self.y_stds)
       save_to_disk(y, row['y-transformed'])
 
-  def untransform(z, X_transform=False, y_transform=True):
+  def untransform(self, z):
     """
     Undo transformation on provided data.
     """
-    if X_transform:
-      return z * self.X_stds + X_means
-    elif y_transform:
-      return z * self.y_stds + y_means
+    if self.transform_X:
+      print("z.shape")
+      print(z.shape)
+      print("self.X_stds.shape")
+      print(self.X_stds.shape)
+      print("self.X_means.shape")
+      print(self.X_means.shape)
+      print("self.y_means.shape")
+      print(self.y_means.shape)
+      print("self.y_stds.shape")
+      print(self.y_stds.shape)
+      return z * self.X_stds + self.X_means
+    elif self.transform_y:
+      return z * self.y_stds + self.y_means
 
 class ClippingTransformer(Transformer):
 
-  def __init__(self, i, df, max_val):
+  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+               max_val=5.):
     """Initialize clipping transformation."""
-    super(ClippingTransformer, self).__init__(i, df)
+    super(ClippingTransformer, self).__init__(transform_X=transform_X,
+                                              transform_y=transform_y,
+                                              dataset=dataset)
     self.max_val = max_val
 
   def transform_row(self, i, df):
@@ -110,16 +133,19 @@ class ClippingTransformer(Transformer):
     """
     row = df.iloc[i]
     if self.transform_X:
+      X = load_from_disk(row['X'])
       X[X > self.max_val] = self.max_val
       X[X < (-1.0*self.max_val)] = -1.0 * self.max_val
       save_to_disk(X, row['X-transformed'])
     if self.transform_y:
+      y = load_from_disk(row['y'])
       y[y > trunc] = trunc
       y[y < (-1.0*trunc)] = -1.0 * trunc
       save_to_disk(y, row['y-transformed'])
 
-  def untransform(z, X_transform=False, y_transform=True):
-    raise NotImplementedError("Clipping cannot be undone.")
+  def untransform(self, z):
+    warnings.warn("Clipping cannot be undone.")
+    return z
 
 class LogTransformer(Transformer):
 
@@ -136,6 +162,6 @@ class LogTransformer(Transformer):
       y = np.log(y)
       save_to_disk(y, row['y-transformed'])
 
-  def untransform(z, X_transform=False, y_transform=True):
+  def untransform(self, z):
     """Undoes the logarithmic transformation."""
     return np.exp(z)

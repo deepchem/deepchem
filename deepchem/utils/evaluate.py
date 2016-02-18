@@ -45,7 +45,7 @@ def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
   # Note that transformers have to be undone in reversed order
   for transformer in reversed(transformers):
-    y = transform.unstranform(y)
+    y = transformer.untransform(y)
   return y
 
 def compute_roc_auc_scores(y, y_pred):
@@ -76,7 +76,6 @@ class Evaluator(object):
     # TODO(rbharath): This is a hack based on fact that multi-tasktype models
     # aren't supported.
     self.task_type = model.task_types.itervalues().next()
-    self.output_transforms = dataset.get_output_transforms()
     self.verbose = verbose
 
   def compute_model_performance(self, csv_out, stats_file):
@@ -101,8 +100,8 @@ class Evaluator(object):
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       w = pred_y_df["%s_weight" % task_name].values
-      y = undo_transforms(y)
-      y_pred = undo_transform(y_pred)
+      y = undo_transforms(y, self.transformers)
+      y_pred = undo_transforms(y_pred, self.transformers)
 
       if self.task_type == "classification":
         y, y_pred = y[w.nonzero()].astype(int), y_pred[w.nonzero()].astype(int)
