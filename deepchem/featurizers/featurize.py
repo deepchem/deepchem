@@ -19,7 +19,6 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
-from pathos.multiprocessing import ProcessingPool
 import multiprocessing as mp
 from functools import partial
 import multiprocess
@@ -221,13 +220,8 @@ class DataFeaturizer(object):
       for ligand_protein_pdb_tuple in zip(ligand_pdbs, protein_pdbs):
         features.append(featurize_wrapper(ligand_protein_pdb_tuple))
     else:
-      if worker_pool is None:
-        worker_pool = ProcessingPool(mp.cpu_count())
-        features = worker_pool.map(featurize_wrapper, 
-                                   zip(ligand_pdbs, protein_pdbs))
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        zip(ligand_pdbs, protein_pdbs))
+      features = worker_pool.map_sync(featurize_wrapper, 
+                                      zip(ligand_pdbs, protein_pdbs))
       #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
@@ -256,17 +250,8 @@ class DataFeaturizer(object):
         feature = featurizer.featurize([mol])
         return feature
 
-      if worker_pool is None:
-        dilled_featurizer = dill.dumps(featurizer)
-        worker_pool = ProcessingPool(mp.cpu_count())
-        featurize_wrapper_partial = partial(featurize_wrapper,
-                                            dilled_featurizer=dilled_featurizer)
-        features = []
-        for smiles in sample_smiles:
-          features.append(featurize_wrapper_partial(smiles))
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        sample_smiles)
+      features = worker_pool.map_sync(featurize_wrapper, 
+                                      sample_smiles)
 
     df[featurizer.__class__.__name__] = features
 

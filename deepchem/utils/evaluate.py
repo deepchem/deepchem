@@ -20,26 +20,33 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
-def undo_normalization(y, y_means, y_stds):
-  """Undo the applied normalization transform."""
-  return y * y_stds + y_means
+#def undo_normalization(y, y_means, y_stds):
+#  """Undo the applied normalization transform."""
+#  return y * y_stds + y_means
 
-def undo_transform(y, y_means, y_stds, output_transforms):
-  """Undo transforms on y_pred, W_pred."""
-  if not isinstance(output_transforms, list):
-    output_transforms = [output_transforms]
-  if (output_transforms == [""]
-      or output_transforms == ['']
-      or output_transforms == []):
-    return y
-  elif output_transforms == ["log"]:
-    return np.exp(y)
-  elif output_transforms == ["normalize"]:
-    return undo_normalization(y, y_means, y_stds)
-  elif output_transforms == ["log", "normalize"]:
-    return np.exp(undo_normalization(y, y_means, y_stds))
-  else:
-    raise ValueError("Unsupported output transforms %s." % str(output_transforms))
+#def undo_transform(y, y_means, y_stds, output_transforms):
+#  """Undo transforms on y_pred, W_pred."""
+#  if not isinstance(output_transforms, list):
+#    output_transforms = [output_transforms]
+#  if (output_transforms == [""]
+#      or output_transforms == ['']
+#      or output_transforms == []):
+#    return y
+#  elif output_transforms == ["log"]:
+#    return np.exp(y)
+#  elif output_transforms == ["normalize"]:
+#    return undo_normalization(y, y_means, y_stds)
+#  elif output_transforms == ["log", "normalize"]:
+#    return np.exp(undo_normalization(y, y_means, y_stds))
+#  else:
+#    raise ValueError("Unsupported output transforms %s." % str(output_transforms))
+
+def undo_transforms(y, transformers):
+  """Undoes all transformations applied."""
+  # Note that transformers have to be undone in reversed order
+  for transformer in reversed(transformers):
+    y = transform.unstranform(y)
+  return y
 
 def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
@@ -61,9 +68,10 @@ def compute_roc_auc_scores(y, y_pred):
 class Evaluator(object):
   """Class that evaluates a model on a given dataset."""
 
-  def __init__(self, model, dataset, verbose=False):
+  def __init__(self, model, dataset, transformers, verbose=False):
     self.model = model
     self.dataset = dataset
+    self.transformers = transformers
     self.task_names = dataset.get_task_names()
     # TODO(rbharath): This is a hack based on fact that multi-tasktype models
     # aren't supported.
@@ -88,15 +96,13 @@ class Evaluator(object):
       raise ValueError("Unrecognized task type: %s" % self.task_type)
 
     performance_df = pd.DataFrame(columns=colnames)
-    y_means = pred_y_df.iterrows().next()[1]["y_means"]
-    y_stds = pred_y_df.iterrows().next()[1]["y_stds"]
 
     for i, task_name in enumerate(self.task_names):
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       w = pred_y_df["%s_weight" % task_name].values
-      y = undo_transform(y, y_means, y_stds, self.output_transforms)
-      y_pred = undo_transform(y_pred, y_means, y_stds, self.output_transforms)
+      y = undo_transforms(y)
+      y_pred = undo_transform(y_pred)
 
       if self.task_type == "classification":
         y, y_pred = y[w.nonzero()].astype(int), y_pred[w.nonzero()].astype(int)

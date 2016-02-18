@@ -49,8 +49,6 @@ class Dataset(object):
         if retval is not None:
           metadata_rows.append(retval)
 
-      # TODO(rbharath): FeaturizedSamples should not be responsible for
-      # X-transform, X_sums, etc. Move that stuff over to Dataset.
       self.metadata_df = pd.DataFrame(
           metadata_rows,
           columns=('df_file', 'task_names', 'ids',
@@ -58,19 +56,25 @@ class Dataset(object):
                    'w',
                    'X_sums', 'X_sum_squares', 'X_n',
                    'y_sums', 'y_sum_squares', 'y_n'))
-      save_to_disk(
-          self.metadata_df, self._get_metadata_filename())
-      # input/output transforms not specified yet, so
-      # self.transforms = (input_transforms, output_transforms) =>
-      self.transforms = ([], [])
-      save_to_disk(
-          self.transforms, self._get_transforms_filename())
+      self.save()
+      #save_to_disk(
+      #    self.metadata_df, self._get_metadata_filename())
+      ## input/output transforms not specified yet, so
+      ## self.transforms = (input_transforms, output_transforms) =>
+      #self.transforms = ([], [])
+      #save_to_disk(
+      #    self.transforms, self._get_transforms_filename())
     else:
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
-        self.transforms = load_from_disk(self._get_transforms_filename())
+        #self.transforms = load_from_disk(self._get_transforms_filename())
       else:
         raise ValueError("No metadata found.")
+
+  def save_to_disk():
+    """Save dataset to disk."""
+    save_to_disk(
+        self.metadata_df, self._get_metadata_filename())
 
   def get_task_names(self):
     """
@@ -96,11 +100,11 @@ class Dataset(object):
     metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
     return metadata_filename
 
-  def _get_transforms_filename(self):
-    """
-    Get standard location for stored transforms.
-    """
-    return os.path.join(self.data_dir, "transforms.joblib")
+  #def _get_transforms_filename(self):
+  #  """
+  #  Get standard location for stored transforms.
+  #  """
+  #  return os.path.join(self.data_dir, "transforms.joblib")
 
   def get_number_shards(self):
     """
@@ -122,45 +126,6 @@ class Dataset(object):
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
 
-  def transform(self, input_transforms, output_transforms, parallel=False):
-    """
-    Transforms all internally stored data.
-
-    Adds X-transform, y-transform columns to metadata.
-    """
-    (normalize_X, truncate_x, normalize_y, truncate_y, log_X, log_y) = (
-        False, False, False, False, False, False)
-
-    if "truncate" in input_transforms:
-      truncate_x = True
-    if "normalize" in input_transforms:
-      normalize_X = True
-    if "log" in input_transforms:
-      log_X = True
-
-    if "normalize" in output_transforms:
-      normalize_y = True
-    if "log" in output_transforms:
-      log_y = True
-
-    # Store input_transforms/output_transforms so the dataset remembers its state.
-
-    X_means, X_stds, y_means, y_stds = self._transform(normalize_X, normalize_y,
-                                                       truncate_x, truncate_y,
-                                                       log_X, log_y,
-                                                       parallel=parallel)
-    nrow = self.metadata_df.shape[0]
-    # TODO(rbharath): These lines are puzzling. Better way to avoid storage
-    # duplication here?
-    self.metadata_df['X_means'] = [X_means for _ in range(nrow)]
-    self.metadata_df['X_stds'] = [X_stds for _ in range(nrow)]
-    self.metadata_df['y_means'] = [y_means for _ in range(nrow)]
-    self.metadata_df['y_stds'] = [y_stds for _ in range(nrow)]
-    save_to_disk(
-        self.metadata_df, self._get_metadata_filename())
-    self.transforms = (input_transforms, output_transforms)
-    save_to_disk(
-        self.transforms, self._get_transforms_filename())
 
   def get_label_means(self):
     """Return pandas series of label means."""
@@ -180,60 +145,12 @@ class Dataset(object):
     (_, output_transforms) = self.transforms
     return output_transforms
 
-  def _transform(self, normalize_X=True, normalize_y=True,
-                 truncate_X=True, truncate_y=True,
-                 log_X=False, log_y=False, parallel=False):
-    """Helper to (parallel) transform all indexed data."""
+  def compute_statistics(self):
+    """Computes statistics of this dataset"""
     df = self.metadata_df
-    trunc = 5.0
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
-    indices = range(0, df.shape[0])
-    transform_row_partial = partial(_transform_row, df=df, normalize_X=normalize_X,
-                                    normalize_y=normalize_y, truncate_X=truncate_X,
-                                    truncate_y=truncate_y, log_X=log_X,
-                                    log_y=log_y, X_means=X_means, X_stds=X_stds,
-                                    y_means=y_means, y_stds=y_stds, trunc=trunc)
-    if parallel:
-      pool = mp.Pool(int(mp.cpu_count()/4))
-      pool.map(transform_row_partial, indices)
-      pool.terminate()
-    else:
-      for index in indices:
-        transform_row_partial(index)
-
     return X_means, X_stds, y_means, y_stds
-
-def _transform_row(i, df, normalize_X, normalize_y, truncate_X, truncate_y,
-                   log_X, log_y, X_means, X_stds, y_means, y_stds, trunc):
-  """
-  Transforms the data (X, y, w,...) in a single row.
-
-  Writes X-transforme,d y-transformed to disk.
-  """
-  row = df.iloc[i]
-  X = load_from_disk(row['X'])
-  if normalize_X or log_X:
-    if normalize_X:
-      # Turns NaNs to zeros
-      X = np.nan_to_num((X - X_means) / X_stds)
-      if truncate_X:
-        X[X > trunc] = trunc
-        X[X < (-1.0*trunc)] = -1.0 * trunc
-    if log_X:
-      X = np.log(X)
-  save_to_disk(X, row['X-transformed'])
-
-  y = load_from_disk(row['y'])
-  if normalize_y or log_y:
-    if normalize_y:
-      y = np.nan_to_num((y - y_means) / y_stds)
-      if truncate_y:
-        y[y > trunc] = trunc
-        y[y < (-1.0*trunc)] = -1.0 * trunc
-    if log_y:
-      y = np.log(y)
-  save_to_disk(y, row['y-transformed'])
-
+    
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
