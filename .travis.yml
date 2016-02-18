@@ -22,6 +22,9 @@ install:
 - conda install six
 - conda install dill
 - conda install runipy
+- pip install runipy
+- pip install nglview
+- conda install -c omnia mdtraj 
 - python setup.py install
 script:
 - nosetests -v deepchem

@@ -33,8 +33,8 @@ class TestNotebooks(unittest.TestCase):
         self.notebook_dir, "solubility.ipynb")
     self._test_notebook(solubility_notebook)
 
-  #def test_protein_ligand_complex_notebook(self):
-  #  """Test protein-ligand complex notebook."""
-  #  protein_ligand_complex_notebook = os.path.join(
-  #      self.notebook_dir, "protein_ligand_complex_notebook.ipynb")
-  #  self._test_notebook(protein_ligand_complex_notebook)
+  def test_protein_ligand_complex_notebook(self):
+    """Test protein-ligand complex notebook."""
+    protein_ligand_complex_notebook = os.path.join(
+        self.notebook_dir, "protein_ligand_complex_notebook.ipynb")
+    self._test_notebook(protein_ligand_complex_notebook)
