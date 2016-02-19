@@ -136,12 +136,12 @@ class DataFeaturizer(object):
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
     shard_files = []
     for j in range(len(interval_points)-1):
-      log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
+      log("Sharding and standardizing into shard-%s / %s shards"
+          % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
       
       df = self._standardize_df(raw_df_shard) 
       log("Aggregating User-Specified Features", self.verbose)
-      self._add_user_specified_features(df)
 
       for compound_featurizer in self.compound_featurizers:
         log("Currently feauturizing feature_type: %s"
@@ -198,8 +198,8 @@ class DataFeaturizer(object):
       df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
     if self.ligand_mol2_field is not None:
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
+    self._add_user_specified_features(df, ori_df)
     return df
-
 
   def _featurize_complexes(self, df, featurizer, parallel=True,
                            worker_pool=None):
@@ -254,7 +254,7 @@ class DataFeaturizer(object):
 
     df[featurizer.__class__.__name__] = features
 
-  def _add_user_specified_features(self, df):
+  def _add_user_specified_features(self, df, ori_df):
     """Merge user specified features. 
 
       Merge features included in dataset provided by user
@@ -263,7 +263,7 @@ class DataFeaturizer(object):
     if self.user_specified_features is not None:
       log("Adding user-defined features.", self.verbose)
       features_data = []
-      for _, row in df.iterrows():
+      for ind, row in ori_df.iterrows():
         # pandas rows are tuples (row_num, row_data)
         feature_list = []
         for feature_name in self.user_specified_features:
@@ -499,7 +499,7 @@ class FeaturizedSamples(object):
     for ind, row in self.compounds_df.iterrows():
       if row["split"].lower() == "train":
         train_inds.append(ind)
-      elif row["split"].lower() == "validation":
+      elif row["split"].lower() in ["valid", "validation"]:
         valid_inds.append(ind)
       elif row["split"].lower() == "test":
         test_inds.append(ind)

@@ -53,7 +53,6 @@ class TestAPI(unittest.TestCase):
     """Helper method to create model for test."""
 
     # Fit model
-
     model.fit(train_dataset)
     model.save(self.model_dir)
 
@@ -76,6 +75,8 @@ class TestAPI(unittest.TestCase):
                                   input_transformer_classes,
                                   output_transformer_classes, input_file, tasks, 
                                   protein_pdb_field=None, ligand_pdb_field=None,
+                                  user_specified_features=None,
+                                  split_field=None,
                                   shard_size=100):
     # Featurize input
     featurizers = compound_featurizers + complex_featurizers
@@ -87,6 +88,8 @@ class TestAPI(unittest.TestCase):
                                 ligand_pdb_field=ligand_pdb_field,
                                 compound_featurizers=compound_featurizers,
                                 complex_featurizers=complex_featurizers,
+                                user_specified_features=user_specified_features,
+                                split_field=split_field,
                                 verbose=True)
 
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.
@@ -99,10 +102,13 @@ class TestAPI(unittest.TestCase):
     train_samples, test_samples = samples.train_test_split(
         splittype, self.train_dir, self.test_dir)
 
+    use_user_specified_features = (user_specified_features is not None)
     train_dataset = Dataset(data_dir=self.train_dir, samples=train_samples, 
-                            featurizers=featurizers, tasks=tasks)
+                            featurizers=featurizers, tasks=tasks,
+                            use_user_specified_features=use_user_specified_features)
     test_dataset = Dataset(data_dir=self.test_dir, samples=test_samples, 
-                           featurizers=featurizers, tasks=tasks)
+                           featurizers=featurizers, tasks=tasks,
+                           use_user_specified_features=use_user_specified_features)
 
     # Initialize transformers
     input_transformers = []
@@ -138,6 +144,30 @@ class TestAPI(unittest.TestCase):
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, task_types.keys())
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
+    from sklearn.ensemble import RandomForestRegressor
+    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model, transformers)
+
+  def test_singletask_rf_user_specified_regression_API(self):
+    """Test of singletask RF ECFP regression API."""
+    splittype = "specified"
+    split_field = "split"
+    compound_featurizers = []
+    complex_featurizers = []
+    input_transformers = []
+    output_transformers = [NormalizationTransformer]
+    model_params = {}
+    task_types = {"log-solubility": "regression"}
+    input_file = "user_specified_example.csv"
+    user_specified_features = ["user-specified1", "user-specified2"]
+    train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, task_types.keys(),
+        user_specified_features=user_specified_features,
+        split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
 
     from sklearn.ensemble import RandomForestRegressor

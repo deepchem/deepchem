@@ -57,17 +57,9 @@ class Dataset(object):
                    'X_sums', 'X_sum_squares', 'X_n',
                    'y_sums', 'y_sum_squares', 'y_n'))
       self.save_to_disk()
-      #save_to_disk(
-      #    self.metadata_df, self._get_metadata_filename())
-      ## input/output transforms not specified yet, so
-      ## self.transforms = (input_transforms, output_transforms) =>
-      #self.transforms = ([], [])
-      #save_to_disk(
-      #    self.transforms, self._get_transforms_filename())
     else:
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
-        #self.transforms = load_from_disk(self._get_transforms_filename())
       else:
         raise ValueError("No metadata found.")
 
@@ -100,12 +92,6 @@ class Dataset(object):
     metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
     return metadata_filename
 
-  #def _get_transforms_filename(self):
-  #  """
-  #  Get standard location for stored transforms.
-  #  """
-  #  return os.path.join(self.data_dir, "transforms.joblib")
-
   def get_number_shards(self):
     """
     Returns the number of shards for this dataset.
@@ -125,6 +111,16 @@ class Dataset(object):
       w = load_from_disk(row['w'])
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
+
+  def __len__(self):
+    """
+    Finds number of elements in dataset.
+    """
+    total = 0
+    for _, row in self.metadata_df.iterrows():
+      y = load_from_disk(row['y-transformed'])
+      total += len(y)
+    return total
 
   def get_label_means(self):
     """Return pandas series of label means."""
@@ -218,18 +214,26 @@ def _df_to_numpy(df, feature_types, tasks):
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
   tensors = []
-  for _, datapoint in df.iterrows():
+  for ind , datapoint in df.iterrows():
     feature_list = []
     for feature_type in feature_types:
       feature_list.append(datapoint[feature_type])
-    features = np.squeeze(np.concatenate(feature_list))
+    # TODO(rbharath): Total hack. Fix before merge!!!
+    try:
+      features = np.squeeze(np.concatenate(feature_list))
+      for ind, val in enumerate(features):
+        if features[ind] == "":
+          features[ind] = 0.
+      features = features.astype(float)
+    except ValueError:
+      y[ind] = ""
+      continue
     tensors.append(features)
   x = np.stack(tensors)
   sorted_ids = df["mol_id"]
 
   # Set missing data to have weight zero
   missing = (y.astype(object) == "")
-
   y[missing] = 0.
   w[missing] = 0.
 
