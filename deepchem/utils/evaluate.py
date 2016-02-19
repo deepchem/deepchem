@@ -20,27 +20,6 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
-#def undo_normalization(y, y_means, y_stds):
-#  """Undo the applied normalization transform."""
-#  return y * y_stds + y_means
-
-#def undo_transform(y, y_means, y_stds, output_transforms):
-#  """Undo transforms on y_pred, W_pred."""
-#  if not isinstance(output_transforms, list):
-#    output_transforms = [output_transforms]
-#  if (output_transforms == [""]
-#      or output_transforms == ['']
-#      or output_transforms == []):
-#    return y
-#  elif output_transforms == ["log"]:
-#    return np.exp(y)
-#  elif output_transforms == ["normalize"]:
-#    return undo_normalization(y, y_means, y_stds)
-#  elif output_transforms == ["log", "normalize"]:
-#    return np.exp(undo_normalization(y, y_means, y_stds))
-#  else:
-#    raise ValueError("Unsupported output transforms %s." % str(output_transforms))
-
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
   # Note that transformers have to be undone in reversed order

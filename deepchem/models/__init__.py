@@ -22,7 +22,7 @@ class Model(object):
   registered_model_classes = {}
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity="low"):
+               initialize_raw_model=True, verbosity="low", **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params

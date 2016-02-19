@@ -59,9 +59,10 @@ class MultiTaskDNN(KerasModel):
   Model for multitask MLP in keras.
   """
   def __init__(self, task_types, model_params,
-               initialize_raw_model=True):
+               initialize_raw_model=True, verbosity="low"):
     super(MultiTaskDNN, self).__init__(task_types, model_params,
-                                       initialize_raw_model=initialize_raw_model)
+                                       initialize_raw_model=initialize_raw_model,
+                                       verbosity=verbosity)
     if initialize_raw_model:
       sorted_tasks = sorted(task_types.keys())
       (n_inputs,) = model_params["data_shape"]
@@ -176,9 +177,10 @@ class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
+  def __init__(self, task_types, model_params, initialize_raw_model=True, verbosity="low"):
     super(SingleTaskDNN, self).__init__(task_types, model_params,
-                                        initialize_raw_model=initialize_raw_model)
+                                        initialize_raw_model=initialize_raw_model,
+                                        verbosity=verbosity)
 
 Model.register_model_type(SingleTaskDNN)
 
