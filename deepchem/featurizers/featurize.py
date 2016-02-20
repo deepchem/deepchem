@@ -140,18 +140,15 @@ class DataFeaturizer(object):
     for j in range(len(interval_points)-1):
       log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-      
-      df = self._standardize_df(raw_df_shard) 
-      log("Aggregating User-Specified Features", self.verbose)
-      self._add_user_specified_features(df)
+      df = self._standardize_df(raw_df_shard)
 
       for compound_featurizer in self.compound_featurizers:
-        log("Currently feauturizing feature_type: %s"
+        log("Currently featurizing feature_type: %s"
             % compound_featurizer.__class__.__name__, self.verbose)
         self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
 
       for complex_featurizer in self.complex_featurizers:
-        log("Currently feauturizing feature_type: %s"
+        log("Currently featurizing feature_type: %s"
             % complex_featurizer.__class__.__name__, self.verbose)
         self._featurize_complexes(df, complex_featurizer, worker_pool=worker_pool)
 
@@ -161,8 +158,7 @@ class DataFeaturizer(object):
 
     featurizers = self.compound_featurizers + self.complex_featurizers
     samples = FeaturizedSamples(samples_dir=samples_dir, featurizers=featurizers, 
-                                dataset_files=shard_files,
-                                reload_data=False)
+                                dataset_files=shard_files, reload_data=False)
 
     return samples
 
@@ -192,6 +188,9 @@ class DataFeaturizer(object):
     df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
       df[task] = ori_df[[task]]
+    if self.user_specified_features is not None:
+      for feature in self.user_specified_features:
+        df[feature] = ori_df[[feature]]
     if self.split_field is not None:
       df["split"] = ori_df[[self.split_field]]
     if self.protein_pdb_field is not None:
@@ -200,6 +199,9 @@ class DataFeaturizer(object):
       df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
     if self.ligand_mol2_field is not None:
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
+    if self.user_specified_features is not None:
+      log("Aggregating User-Specified Features", self.verbose)
+      self._add_user_specified_features(df)
     return df
 
 
@@ -277,15 +279,15 @@ class DataFeaturizer(object):
       into final features dataframe
     """
     if self.user_specified_features is not None:
-      log("Adding user-defined features.", self.verbose)
+      #log("Adding user-defined features.", self.verbose)
       features_data = []
       for _, row in df.iterrows():
         # pandas rows are tuples (row_num, row_data)
         feature_list = []
         for feature_name in self.user_specified_features:
           feature_list.append(row[feature_name])
-        features_data.append({"user-specified-features": np.array(feature_list)})
-      df["user-specified-features"] = pd.DataFrame(features_data)
+        features_data.append(np.array(feature_list))
+      df["user-specified-features"] = features_data
 
 
 def map_function(data_tuple, featurizer):

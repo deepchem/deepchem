@@ -77,7 +77,7 @@ class Model(object):
     """
     Factory method that initializes model of requested type.
     """
-    if model_instance.__class__ in non_sklearn_models:
+    if model_instance.__class__ in Model.non_sklearn_models:
       model = model_instance(task_types, model_params, initialize_raw_model)
     else:
       model = Model.registered_model_classes["SklearnModel"](model_instance, 
