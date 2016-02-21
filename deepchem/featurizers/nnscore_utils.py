@@ -79,8 +79,8 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
   hyd_conversion.SetInAndOutFormats(str(input_format), str("pdb"))
   mol = openbabel.OBMol()
   hyd_conversion.ReadFile(mol, str(input_file))
-  # AddHydrogens(polaronly, correctForPH, pH)
-  mol.AddHydrogens(True, True, 7.4)
+  # AddHydrogens(not-polaronly, correctForPH, pH)
+  mol.AddHydrogens(False, True, 7.4)
   hyd_conversion.WriteFile(mol, str(hyd_output))
 
   if verbose:

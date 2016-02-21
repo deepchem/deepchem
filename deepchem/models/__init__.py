@@ -80,23 +80,6 @@ class Model(object):
     else:
       return "regression"
 
-  #@staticmethod
-  #def load(model_dir):
-  #  """Dispatcher function for loading."""
-  #  params = load_from_disk(Model.get_params_filename(model_dir))
-  #  model_class = params["model_class"]
-  #  if model_class in Model.registered_model_classes:
-  #    model = Model.registered_model_classes[model_class](
-  #        task_types=params["task_types"],
-  #        model_params=params["model_params"])
-  #    model.load(model_dir)
-  #  else:
-  #    model = Model.registered_model_classes["SklearnModel"](model_instance=model_class,
-  #                         task_types=params["task_types"],
-  #                         model_params=params["model_params"])
-  #    model.load(model_dir)
-  #  return model
-
   def save(self, out_dir):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
@@ -149,7 +132,8 @@ class Model(object):
       y_preds = []
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
-        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape((len(indices),len(task_names)))
+        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape(
+            (len(indices),len(task_names)))
         y_preds.append(y_pred_on_batch)
 
       y_pred = np.concatenate(y_preds)

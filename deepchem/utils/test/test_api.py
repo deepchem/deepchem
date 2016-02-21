@@ -91,6 +91,7 @@ class TestAPI(unittest.TestCase):
                                 user_specified_features=user_specified_features,
                                 split_field=split_field,
                                 verbose=True)
+    
 
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.
     #returns an instance of class FeaturizedSamples()
@@ -246,6 +247,38 @@ class TestAPI(unittest.TestCase):
     
     model = SingleTaskDNN(task_types, model_params)
     self._create_model(train_dataset, test_dataset, model, transformers)
+
+
+  def test_singletask_mlp_USF_regression_API(self):
+    """Test of singletask MLP User Specified Features regression API."""
+    splittype = "scaffold"
+    compound_featurizers = []
+    complex_featurizers = []
+    input_transforms = ["normalize", "truncate"]
+    output_transforms = ["normalize"]
+    feature_types = ["user_specified_features"]
+    user_specified_features = ["evals"]
+    task_types = {"u0": "regression"}
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "nb_layers": 1, "batchnorm": False}
+
+    input_file = "gbd3k.pkl.gz"
+    protein_pdb_field = None
+    ligand_pdb_field = None
+    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers,
+                                                    complex_featurizers, input_transforms,
+                                                    output_transforms, input_file, task_types.keys(),
+                                                    protein_pdb_field=protein_pdb_field,
+                                                    ligand_pdb_field=ligand_pdb_field,
+                                                    user_specified_features=user_specified_features)
+    model_params["data_shape"] = train_dataset.get_data_shape()
+
+    model = SingleTaskDNN(task_types, model_params)
+    self._create_model(train_dataset, test_dataset, model)
 
 
     #TODO(enf/rbharath): 3D CNN's are broken and must be fixed.
