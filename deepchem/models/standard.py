@@ -48,7 +48,7 @@ class SklearnModel(Model):
     """
     return self.raw_model.predict(X)
 
-  def predict(self, X):
+  def predict(self, X, transformers):
     """
     Makes predictions on dataset.
     """
@@ -56,7 +56,7 @@ class SklearnModel(Model):
     #TODO(enf/rbharath): This is kludgy. Fix later.
     if "batch_size" not in self.model_params.keys():
       self.model_params["batch_size"] = 32
-    return super(SklearnModel, self).predict(X)
+    return super(SklearnModel, self).predict(X, transformers)
 
   def save(self, out_dir):
     """Saves sklearn model to disk using joblib."""

@@ -171,8 +171,6 @@ class MultiTaskDNN(KerasModel):
     y_pred = np.squeeze(y_pred)
     return y_pred
 
-Model.register_model_type(MultiTaskDNN)
-
 class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
@@ -181,8 +179,6 @@ class SingleTaskDNN(MultiTaskDNN):
     super(SingleTaskDNN, self).__init__(task_types, model_params,
                                         initialize_raw_model=initialize_raw_model,
                                         verbosity=verbosity)
-
-Model.register_model_type(SingleTaskDNN)
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.

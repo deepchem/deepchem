@@ -14,6 +14,13 @@ from deepchem.utils.dataset import load_from_disk
 from deepchem.utils.dataset import save_to_disk
 from deepchem.utils.save import log
 
+def undo_transforms(y, transformers):
+  """Undoes all transformations applied."""
+  # Note that transformers have to be undone in reversed order
+  for transformer in reversed(transformers):
+    y = transformer.untransform(y)
+  return y
+
 class Model(object):
   """
   Abstract base class for different ML models.
@@ -113,7 +120,7 @@ class Model(object):
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
-  def predict(self, dataset):
+  def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
     """
@@ -138,6 +145,10 @@ class Model(object):
 
       y_pred = np.concatenate(y_preds)
       y_pred = np.reshape(y_pred, np.shape(y))
+
+      # Now undo transformations on y, y_pred
+      y = undo_transforms(y, transformers)
+      y_pred = undo_transforms(y_pred, transformers)
 
       shard_df = pd.DataFrame(columns=column_names)
       shard_df['ids'] = ids
