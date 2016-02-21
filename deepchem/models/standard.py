@@ -66,17 +66,3 @@ class SklearnModel(Model):
   def load(self, model_dir):
     """Loads sklearn model from joblib file on disk."""
     self.raw_model = load_from_disk(Model.get_model_filename(model_dir))
-
-Model.register_model_type(SklearnModel)
-
-#TODO(enf/rbharath): deprecate the following if __init__.py functions as planned.
-'''
-Model.register_model_type("logistic", SklearnModel)
-Model.register_model_type("rf_classifier", SklearnModel)
-Model.register_model_type("rf_regressor", SklearnModel)
-Model.register_model_type("linear", SklearnModel)
-Model.register_model_type("ridge", SklearnModel)
-Model.register_model_type("lasso", SklearnModel)
-Model.register_model_type("lasso_lars", SklearnModel)
-Model.register_model_type("elastic_net", SklearnModel)
-'''
