@@ -8,7 +8,7 @@ Requirements
 * [rdkit](http://www.rdkit.org/docs/Install.html)
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
-* [keras](keras.io)
+* [keras](http://keras.io)
 
 Linux (64-bit) Installation 
 ------------------
