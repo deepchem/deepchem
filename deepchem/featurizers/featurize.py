@@ -252,7 +252,7 @@ class DataFeaturizer(object):
         features.append(featurizer.featurize([mol]))
     else:
       def featurize_wrapper(smiles, dilled_featurizer):
-      	print("Featurizing %s" % smiles)
+        print("Featurizing %s" % smiles)
         mol = Chem.MolFromSmiles(smiles)
         featurizer = dill.loads(dilled_featurizer)
         feature = featurizer.featurize([mol])
