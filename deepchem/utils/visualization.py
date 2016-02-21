@@ -26,10 +26,10 @@ def visualize_complex(complex_mdtraj):
   "sele": "protein", "color": "residueindex"
   } },
   { "type": "licorice", "params": {
-  "sele": "(not hydrogen) and (resi (%s))" %  binding_pocket_residues
+  "sele": "(not hydrogen) and (%s)" %  binding_pocket_residues
   } },
   { "type": "ball+stick", "params": {
-  "sele": "resn LIG"
+  "sele": "LIG"
   } }
   ]
   return ngltraj
