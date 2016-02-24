@@ -220,11 +220,7 @@ def _df_to_numpy(df, feature_types, tasks):
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   tensors = []
-  print("n_samples")
-  print(n_samples)
   for ind in range(n_samples):
-    print("ind")
-    print(ind)
     datapoint = df.iloc[ind]
     feature_list = []
     for feature_type in feature_types:
@@ -255,14 +251,6 @@ def _df_to_numpy(df, feature_types, tasks):
         y[ind, task] = 0.
         w[ind, task] = 0.
 
-  print("x")
-  print(x)
-  print("w")
-  print(w)
-  print("missing")
-  print(missing)
-  print("y")
-  print(y)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 def compute_mean_and_std(df):
