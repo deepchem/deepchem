@@ -19,7 +19,7 @@ class HyperparamOpt(object):
     self.task_types = task_types
 
   def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
-                        output_transformers, metric):
+                        output_transformers, metric, verbosity=None):
     """Perform hyperparams search according to params_dict.
     
     Each key to hyperparams_dict is a model_param. The values should be a list
@@ -44,7 +44,7 @@ class HyperparamOpt(object):
         model_params[hyperparam] = hyperparam_val
 
       model_dir = tempfile.mkdtemp()
-      model = self.model_class(self.task_types, model_params, verbosity=None)
+      model = self.model_class(self.task_types, model_params, verbosity=verbosity)
       model.fit(train_dataset)
       model.save(model_dir)
     
@@ -54,6 +54,7 @@ class HyperparamOpt(object):
       valid_score = score.iloc[0][metric]
       print("Model %d/%d, Metric %s, Validation set %s: %f" %
             (ind, number_combinations, metric, ind, valid_score))
+      print("\tbest_validation_score so  far: %f" % best_validation_score)
       all_scores[hyperparameter_tuple] = valid_score
     
       if valid_score > best_validation_score:
@@ -66,6 +67,13 @@ class HyperparamOpt(object):
       else:
         shutil.rmtree(model_dir)
 
+    train_csv_out = tempfile.NamedTemporaryFile()
+    train_stats_out = tempfile.NamedTemporaryFile()
+    train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
+    train_df, train_score = train_evaluator.compute_model_performance(
+        train_csv_out, train_stats_out)
+    train_score = train_score.iloc[0][metric]
     print("Best hyperparameters: %s" % str(zip(hyperparams, best_hyperparams)))
-    print("best_validation_score: %f" % best_validation_score)
+    print("train_score: %f" % train_score)
+    print("validation_score: %f" % best_validation_score)
     return best_model, best_hyperparams, all_scores

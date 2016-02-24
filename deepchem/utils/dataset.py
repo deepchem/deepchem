@@ -214,11 +214,14 @@ def _df_to_numpy(df, feature_types, tasks):
   n_samples = df.shape[0]
   sorted_tasks = sorted(tasks)
   n_tasks = len(sorted_tasks)
+  n_features = None
   y = df[sorted_tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
+  missing = np.ones_like(y)
   tensors = []
-  for ind , datapoint in df.iterrows():
+  for ind in range(n_samples):
+    datapoint = df.iloc[ind]
     feature_list = []
     for feature_type in feature_types:
       feature_list.append(datapoint[feature_type])
@@ -229,15 +232,16 @@ def _df_to_numpy(df, feature_types, tasks):
         if features[ind] == "":
           features[ind] = 0.
       features = features.astype(float)
+      n_features = features.shape[0]
     except ValueError:
-      y[ind] = ""
+      missing[ind] = 0
       continue
     tensors.append(features)
   x = np.stack(tensors)
   sorted_ids = df["mol_id"]
 
   # Set missing data to have weight zero
-  missing = (y.astype(object) == "")
+  #missing = (y.astype(object) == "")
   y[missing] = 0.
   w[missing] = 0.
 

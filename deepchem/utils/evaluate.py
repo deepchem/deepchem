@@ -20,6 +20,12 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def threshold_predictions(y, threshold):
+  y_out = np.zeros_like(y)
+  for ind, pred in enumerate(y):
+    y_out[ind] = 1 if pred > threshold else 0
+  return y_out
+
 def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
 
@@ -50,28 +56,42 @@ class Evaluator(object):
     self.task_type = model.task_types.itervalues().next()
     self.verbose = verbose
 
-  def compute_model_performance(self, csv_out, stats_file):
+  def compute_model_performance(self, csv_out, stats_file, threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
     """
     pred_y_df = self.model.predict(self.dataset, self.transformers)
 
-    if self.task_type == "classification":
+    task_type = self.task_type
+    if threshold is not None:
+      task_type = "classification"
+
+    if task_type == "classification":
       colnames = ["task_name", "roc_auc_score", "matthews_corrcoef",
                   "recall_score", "accuracy_score"]
-    elif self.task_type == "regression":
+    elif task_type == "regression":
       colnames = ["task_name", "r2_score", "rms_error"]
     else:
-      raise ValueError("Unrecognized task type: %s" % self.task_type)
+      raise ValueError("Unrecognized task type: %s" % task_type)
 
     performance_df = pd.DataFrame(columns=colnames)
 
     for i, task_name in enumerate(self.task_names):
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
+      if threshold is not None:
+        # TODO(rbharath): This is a hack. More structured approach?
+        y = pred_y_df[task_name+"_raw"].values
+        #print("y")
+        #print(y)
+        #print("y_pred_orig")
+        #print(y_pred)
+        y_pred = threshold_predictions(y_pred, threshold)
+        #print("y_pred")
+        #print(y_pred)
       w = pred_y_df["%s_weight" % task_name].values
 
-      if self.task_type == "classification":
+      if task_type == "classification":
         y, y_pred = y[w.nonzero()].astype(int), y_pred[w.nonzero()].astype(int)
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
@@ -82,7 +102,7 @@ class Evaluator(object):
         accuracy = accuracy_score(y, y_pred)
         performance_df.loc[i] = [task_name, auc, mcc, recall, accuracy]
 
-      elif self.task_type == "regression":
+      elif task_type == "regression":
         try:
           r2s = r2_score(y, y_pred)
           rms = np.sqrt(mean_squared_error(y, y_pred))

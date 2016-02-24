@@ -1,3 +1,4 @@
+import nglview
 import tempfile
 import os
 import mdtraj as md
@@ -26,12 +27,19 @@ def visualize_complex(complex_mdtraj):
   "sele": "protein", "color": "residueindex"
   } },
   { "type": "licorice", "params": {
-  "sele": "(not hydrogen) and (resi (%s))" %  binding_pocket_residues
+  "sele": "(not hydrogen) and (%s)" %  binding_pocket_residues
   } },
   { "type": "ball+stick", "params": {
-  "sele": "resn LIG"
+  "sele": "LIG"
   } }
   ]
+  return ngltraj
+
+def visualize_ligand(ligand_mdtraj):
+  traj = nglview.MDTrajTrajectory( ligand_mdtraj ) # load file from RCSB PDB
+  ngltraj = nglview.NGLWidget( traj )
+  ngltraj.representations = [
+    { "type": "ball+stick", "params": {"sele": "all" } } ]
   return ngltraj
 
 def convert_lines_to_mdtraj(molecule_lines):

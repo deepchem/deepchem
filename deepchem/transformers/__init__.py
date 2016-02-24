@@ -103,18 +103,9 @@ class NormalizationTransformer(Transformer):
     Undo transformation on provided data.
     """
     if self.transform_X:
-      print("z.shape")
-      print(z.shape)
-      print("self.X_stds.shape")
-      print(self.X_stds.shape)
-      print("self.X_means.shape")
-      print(self.X_means.shape)
-      print("self.y_means.shape")
-      print(self.y_means.shape)
-      print("self.y_stds.shape")
-      print(self.y_stds.shape)
       return z * self.X_stds + self.X_means
     elif self.transform_y:
+      out = z * self.y_stds + self.y_means
       return z * self.y_stds + self.y_means
 
 class ClippingTransformer(Transformer):

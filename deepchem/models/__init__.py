@@ -127,7 +127,10 @@ class Model(object):
     task_names = dataset.get_task_names()
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
-    column_names = (['ids'] + task_names + pred_task_names + w_task_names
+    raw_task_names = [task_name+"_raw" for task_name in task_names]
+    raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
+    column_names = (['ids'] + raw_task_names + task_names
+                    + raw_pred_task_names + pred_task_names + w_task_names
                     + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
@@ -147,12 +150,15 @@ class Model(object):
       y_pred = np.reshape(y_pred, np.shape(y))
 
       # Now undo transformations on y, y_pred
+      y_raw, y_pred_raw = y, y_pred
       y = undo_transforms(y, transformers)
       y_pred = undo_transforms(y_pred, transformers)
 
       shard_df = pd.DataFrame(columns=column_names)
       shard_df['ids'] = ids
+      shard_df[raw_task_names] = y_raw
       shard_df[task_names] = y
+      shard_df[raw_pred_task_names] = y_pred_raw
       shard_df[pred_task_names] = y_pred
       shard_df[w_task_names] = w
       pred_y_df = pd.concat([pred_y_df, shard_df])

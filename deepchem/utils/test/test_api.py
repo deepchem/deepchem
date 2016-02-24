@@ -254,8 +254,8 @@ class TestAPI(unittest.TestCase):
     splittype = "scaffold"
     compound_featurizers = []
     complex_featurizers = []
-    input_transforms = ["normalize", "truncate"]
-    output_transforms = ["normalize"]
+    input_transformers = [NormalizationTransformer, ClippingTransformer]
+    output_transformers = [NormalizationTransformer]
     feature_types = ["user_specified_features"]
     user_specified_features = ["evals"]
     task_types = {"u0": "regression"}
@@ -269,16 +269,17 @@ class TestAPI(unittest.TestCase):
     input_file = "gbd3k.pkl.gz"
     protein_pdb_field = None
     ligand_pdb_field = None
-    train_dataset, test_dataset = self._featurize_train_test_split(splittype, compound_featurizers,
-                                                    complex_featurizers, input_transforms,
-                                                    output_transforms, input_file, task_types.keys(),
-                                                    protein_pdb_field=protein_pdb_field,
-                                                    ligand_pdb_field=ligand_pdb_field,
-                                                    user_specified_features=user_specified_features)
+    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers,
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, task_types.keys(),
+        protein_pdb_field=protein_pdb_field,
+        ligand_pdb_field=ligand_pdb_field,
+        user_specified_features=user_specified_features)
     model_params["data_shape"] = train_dataset.get_data_shape()
 
     model = SingleTaskDNN(task_types, model_params)
-    self._create_model(train_dataset, test_dataset, model)
+    self._create_model(train_dataset, test_dataset, model, transformers)
 
 
     #TODO(enf/rbharath): 3D CNN's are broken and must be fixed.

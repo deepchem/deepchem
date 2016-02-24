@@ -714,32 +714,39 @@ class NNScoreComplexFeaturizer(ComplexFeaturizer):
     """
     Compute Binana fingerprint for complex.
     """
+    print("In _featurize_complex")
     mol_pdb_file = tempfile.NamedTemporaryFile(suffix="pdb")
     with open(mol_pdb_file.name, "w") as mol_f:
       mol_f.writelines(mol_pdb)
     protein_pdb_file = tempfile.NamedTemporaryFile(suffix="pdb")
     with open(protein_pdb_file.name, "w") as protein_f:
       protein_f.writelines(protein_pdb)
+    print("Written temp pdb files")
 
     mol_hyd_file = tempfile.NamedTemporaryFile(suffix="pdb")
     mol_pdbqt_file = tempfile.NamedTemporaryFile(suffix="pdbqt")
     hydrogenate_and_compute_partial_charges(
         mol_pdb_file.name, "pdb", mol_hyd_file.name,
         mol_pdbqt_file.name)
+    print("Hydrogenated mol file")
 
     protein_hyd_file = tempfile.NamedTemporaryFile(suffix="pdb")
     protein_pdbqt_file = tempfile.NamedTemporaryFile(suffix="pdbqt")
     hydrogenate_and_compute_partial_charges(
         protein_pdb_file.name, "pdb", protein_hyd_file.name,
         protein_pdbqt_file.name)
+    print("Hydrogenated protein file")
 
     mol_pdb_obj = PDB()
     mol_pdb_obj.load_from_files(mol_pdb_file.name, mol_pdbqt_file.name)
+    print("Loaded mol pdb object")
 
     protein_pdb_obj = PDB()
     protein_pdb_obj.load_from_files(
         protein_pdb_file.name, protein_pdbqt_file.name)
+    print("Loaded protein pdb object")
 
     features = self.binana.compute_input_vector(mol_pdb_obj, protein_pdb_obj)
+    print("Computed binana features.")
 
     return features
