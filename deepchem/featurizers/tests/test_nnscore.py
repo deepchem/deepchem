@@ -19,6 +19,7 @@ class TestNNScoreComplexFeaturizer(unittest.TestCase):
     """
     Create internal featurizer.
     """
+    print("Doing setup")
     self.nnscore_featurizer = NNScoreComplexFeaturizer()
     ### 3zso comes from PDBBind-CN
     _3zso_protein_pdb_file = os.path.join(data_dir(), "3zso_protein.pdb")
@@ -31,6 +32,7 @@ class TestNNScoreComplexFeaturizer(unittest.TestCase):
       _3zso_ligand_pdb = f.readlines()
 
     self.test_cases = [("3zso", _3zso_ligand_pdb, _3zso_protein_pdb)]
+    print("Done with setup")
 
   def testNNScore(self):
     """

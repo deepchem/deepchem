@@ -14,15 +14,20 @@ from deepchem.utils.dataset import load_from_disk
 from deepchem.utils.dataset import save_to_disk
 from deepchem.utils.save import log
 
+def undo_transforms(y, transformers):
+  """Undoes all transformations applied."""
+  # Note that transformers have to be undone in reversed order
+  for transformer in reversed(transformers):
+    y = transformer.untransform(y)
+  return y
+
 class Model(object):
   """
   Abstract base class for different ML models.
   """
-  # List of registered models
-  registered_model_classes = {}
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity="low"):
+               initialize_raw_model=True, verbosity="low", **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
@@ -72,27 +77,6 @@ class Model(object):
     return os.path.join(out_dir, "model_params.joblib")
 
   @staticmethod
-  def model_builder(model_instance, task_types, model_params,
-                    initialize_raw_model=True):
-    """
-    Factory method that initializes model of requested type.
-    """
-    if model_instance.__class__ in Model.non_sklearn_models:
-      model = model_instance(task_types, model_params, initialize_raw_model)
-    else:
-      model = Model.registered_model_classes["SklearnModel"](model_instance, 
-                                                       task_types, model_params,
-                                                       initialize_raw_model)
-    return model
-
-  @staticmethod
-  def register_model_type(model_class):
-    """
-    Registers model types in static variable for factory/dispatchers to use.
-    """
-    Model.registered_model_classes[model_class.__class__] = model_class
-
-  @staticmethod
   def get_task_type(model_name):
     """
     Given model type, determine if classifier or regressor.
@@ -102,23 +86,6 @@ class Model(object):
       return "classification"
     else:
       return "regression"
-
-  @staticmethod
-  def load(model_dir):
-    """Dispatcher function for loading."""
-    params = load_from_disk(Model.get_params_filename(model_dir))
-    model_class = params["model_class"]
-    if model_class in Model.registered_model_classes:
-      model = Model.registered_model_classes[model_class](
-          task_types=params["task_types"],
-          model_params=params["model_params"])
-      model.load(model_dir)
-    else:
-      model = Model.registered_model_classes["SklearnModel"](model_instance=model_class,
-                           task_types=params["task_types"],
-                           model_params=params["model_params"])
-      model.load(model_dir)
-    return model
 
   def save(self, out_dir):
     """Dispatcher function for saving."""
@@ -153,14 +120,17 @@ class Model(object):
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
-  def predict(self, dataset):
+  def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
     """
     task_names = dataset.get_task_names()
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
-    column_names = (['ids'] + task_names + pred_task_names + w_task_names
+    raw_task_names = [task_name+"_raw" for task_name in task_names]
+    raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
+    column_names = (['ids'] + raw_task_names + task_names
+                    + raw_pred_task_names + pred_task_names + w_task_names
                     + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
@@ -172,21 +142,25 @@ class Model(object):
       y_preds = []
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
-        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape((len(indices),len(task_names)))
+        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape(
+            (len(indices),len(task_names)))
         y_preds.append(y_pred_on_batch)
 
       y_pred = np.concatenate(y_preds)
       y_pred = np.reshape(y_pred, np.shape(y))
 
+      # Now undo transformations on y, y_pred
+      y_raw, y_pred_raw = y, y_pred
+      y = undo_transforms(y, transformers)
+      y_pred = undo_transforms(y_pred, transformers)
+
       shard_df = pd.DataFrame(columns=column_names)
       shard_df['ids'] = ids
+      shard_df[raw_task_names] = y_raw
       shard_df[task_names] = y
+      shard_df[raw_pred_task_names] = y_pred_raw
       shard_df[pred_task_names] = y_pred
       shard_df[w_task_names] = w
-      # TODO(rbharath): This feels like a total hack. Is there a structured way
-      # to deal with this instead?
-      shard_df["y_means"] = list(dataset.get_label_means())[0] * np.ones(np.shape(y))
-      shard_df["y_stds"] = list(dataset.get_label_stds())[0]  * np.ones(np.shape(y))
       pred_y_df = pd.concat([pred_y_df, shard_df])
 
     return pred_y_df

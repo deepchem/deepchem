@@ -19,10 +19,8 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
-from pathos.multiprocessing import ProcessingPool
 import multiprocessing as mp
 from functools import partial
-import multiprocess
 import dill
 
 def generate_scaffold(smiles, include_chirality=False):
@@ -116,7 +114,8 @@ class DataFeaturizer(object):
     self.verbose = verbose
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, feature_dir, samples_dir, shard_size=128, worker_pool=None):
+  def featurize(self, input_file, feature_dir, samples_dir,
+                shard_size=128, worker_pool=None):
     """Featurize provided file and write to specified location."""
     input_type = _get_input_type(input_file)
 
@@ -138,9 +137,11 @@ class DataFeaturizer(object):
         0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
     shard_files = []
     for j in range(len(interval_points)-1):
-      log("Sharding and standardizing into shard-%s / %s shards" % (str(j+1), len(interval_points)-1), self.verbose)
+      log("Sharding and standardizing into shard-%s / %s shards"
+          % (str(j+1), len(interval_points)-1), self.verbose)
       raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-      df = self._standardize_df(raw_df_shard)
+      
+      df = self._standardize_df(raw_df_shard) 
 
       for compound_featurizer in self.compound_featurizers:
         log("Currently featurizing feature_type: %s"
@@ -199,11 +200,8 @@ class DataFeaturizer(object):
       df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
     if self.ligand_mol2_field is not None:
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
-    if self.user_specified_features is not None:
-      log("Aggregating User-Specified Features", self.verbose)
-      self._add_user_specified_features(df)
+    self._add_user_specified_features(df, ori_df)
     return df
-
 
   def _featurize_complexes(self, df, featurizer, parallel=True,
                            worker_pool=None):
@@ -223,13 +221,8 @@ class DataFeaturizer(object):
       for ligand_protein_pdb_tuple in zip(ligand_pdbs, protein_pdbs):
         features.append(featurize_wrapper(ligand_protein_pdb_tuple))
     else:
-      if worker_pool is None:
-        worker_pool = ProcessingPool(mp.cpu_count())
-        features = worker_pool.map(featurize_wrapper, 
-                                   zip(ligand_pdbs, protein_pdbs))
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        zip(ligand_pdbs, protein_pdbs))
+      features = worker_pool.map_sync(featurize_wrapper, 
+                                      zip(ligand_pdbs, protein_pdbs))
       #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
@@ -258,30 +251,22 @@ class DataFeaturizer(object):
         feature = featurizer.featurize([mol])
         return feature
 
-      if worker_pool is None:
-        dilled_featurizer = dill.dumps(featurizer)
-        worker_pool = ProcessingPool(mp.cpu_count())
-        featurize_wrapper_partial = partial(featurize_wrapper,
-                                            dilled_featurizer=dilled_featurizer)
-        features = []
-        for smiles in sample_smiles:
-          features.append(featurize_wrapper_partial(smiles))
-      else:
-        features = worker_pool.map_sync(featurize_wrapper, 
-                                        sample_smiles)
+      features = worker_pool.map_sync(featurize_wrapper, 
+                                      sample_smiles)
 
     df[featurizer.__class__.__name__] = features
 
-  def _add_user_specified_features(self, df):
+  def _add_user_specified_features(self, df, ori_df):
     """Merge user specified features. 
 
       Merge features included in dataset provided by user
       into final features dataframe
     """
     if self.user_specified_features is not None:
+      log("Aggregating User-Specified Features", self.verbose)
       #log("Adding user-defined features.", self.verbose)
       features_data = []
-      for _, row in df.iterrows():
+      for ind, row in ori_df.iterrows():
         # pandas rows are tuples (row_num, row_data)
         feature_list = []
         for feature_name in self.user_specified_features:
@@ -294,7 +279,8 @@ def map_function(data_tuple, featurizer):
   featurizer = NNScoreComplexFeaturizer()
   ind, ligand_pdb, protein_pdb = data_tuple
   print("Mapping on ind %d" % ind)
-  print("ind, type(ligand_pdb), type(protein_pdb): %s " % str((ind, type(ligand_pdb), type(protein_pdb))))
+  print("ind, type(ligand_pdb), type(protein_pdb): %s " %
+        str((ind, type(ligand_pdb), type(protein_pdb))))
   return featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
 
 class FeaturizedSamples(object):
@@ -517,7 +503,7 @@ class FeaturizedSamples(object):
     for ind, row in self.compounds_df.iterrows():
       if row["split"].lower() == "train":
         train_inds.append(ind)
-      elif row["split"].lower() == "validation":
+      elif row["split"].lower() in ["valid", "validation"]:
         valid_inds.append(ind)
       elif row["split"].lower() == "test":
         test_inds.append(ind)

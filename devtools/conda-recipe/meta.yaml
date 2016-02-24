@@ -28,6 +28,7 @@ requirements:
     - joblib
     - pbr
     - h5py
+    - dill
   run:
     - python
     - setuptools
@@ -42,10 +43,12 @@ requirements:
     - joblib
     - pbr
     - h5py
+    - dill
 
 test:
   requires:
     - nose
+    - runipy
 
   imports:
     - deepchem

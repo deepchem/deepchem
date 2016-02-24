@@ -59,9 +59,10 @@ class MultiTaskDNN(KerasModel):
   Model for multitask MLP in keras.
   """
   def __init__(self, task_types, model_params,
-               initialize_raw_model=True):
+               initialize_raw_model=True, verbosity="low"):
     super(MultiTaskDNN, self).__init__(task_types, model_params,
-                                       initialize_raw_model=initialize_raw_model)
+                                       initialize_raw_model=initialize_raw_model,
+                                       verbosity=verbosity)
     if initialize_raw_model:
       sorted_tasks = sorted(task_types.keys())
       (n_inputs,) = model_params["data_shape"]
@@ -170,17 +171,14 @@ class MultiTaskDNN(KerasModel):
     y_pred = np.squeeze(y_pred)
     return y_pred
 
-Model.register_model_type(MultiTaskDNN)
-
 class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, initialize_raw_model=True):
+  def __init__(self, task_types, model_params, initialize_raw_model=True, verbosity="low"):
     super(SingleTaskDNN, self).__init__(task_types, model_params,
-                                        initialize_raw_model=initialize_raw_model)
-
-Model.register_model_type(SingleTaskDNN)
+                                        initialize_raw_model=initialize_raw_model,
+                                        verbosity=verbosity)
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
