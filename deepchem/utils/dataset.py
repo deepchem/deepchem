@@ -218,9 +218,13 @@ def _df_to_numpy(df, feature_types, tasks):
   y = df[sorted_tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
-  missing = np.ones_like(y).astype(int)
+  missing = np.zeros_like(y).astype(int)
   tensors = []
+  print("n_samples")
+  print(n_samples)
   for ind in range(n_samples):
+    print("ind")
+    print(ind)
     datapoint = df.iloc[ind]
     feature_list = []
     for feature_type in feature_types:
@@ -228,22 +232,37 @@ def _df_to_numpy(df, feature_types, tasks):
     # TODO(rbharath): Total hack. Fix before merge!!!
     try:
       features = np.squeeze(np.concatenate(feature_list))
-      for ind, val in enumerate(features):
-        if features[ind] == "":
-          features[ind] = 0.
+      for feature_ind, val in enumerate(features):
+        if features[feature_ind] == "":
+          features[feature_ind] = 0.
       features = features.astype(float)
       n_features = features.shape[0]
     except ValueError:
-      missing[ind] = 0
+      missing[ind, :] = 1
       continue
+    for task in range(n_tasks):
+      if y[ind, task] == "":
+        missing[ind, task] = 1
     tensors.append(features)
   x = np.stack(tensors)
   sorted_ids = df["mol_id"]
 
   # Set missing data to have weight zero
-  y[missing] = 0.
-  w[missing] = 0.
+  # TODO(rbharath): There's a better way to do this with numpy indexing
+  for ind in range(n_samples):
+    for task in range(n_tasks):
+      if missing[ind, task]:
+        y[ind, task] = 0.
+        w[ind, task] = 0.
 
+  print("x")
+  print(x)
+  print("w")
+  print(w)
+  print("missing")
+  print(missing)
+  print("y")
+  print(y)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 def compute_mean_and_std(df):
