@@ -28,7 +28,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import googletest
 from tensorflow.python.training import checkpoint_state_pb2
 
-from biology import utils
+from deepchem.models.tensorflow_models import utils
 
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102

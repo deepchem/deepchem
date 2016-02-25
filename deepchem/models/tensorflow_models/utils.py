@@ -18,6 +18,7 @@
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.ops import math_ops
 
 from google.protobuf import text_format
 
@@ -171,7 +172,7 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   if mask is not None:
     delta = Mask(delta, mask)
   moment = tf.div(
-      tf.reduce_sum(tf.math_ops.pow(delta, k),
+      tf.reduce_sum(math_ops.pow(delta, k),
                     reduction_indices=reduction_indices,
                     keep_dims=True),
       divisor)
@@ -179,7 +180,7 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   if standardize:
     moment = tf.mul(
         moment,
-        tf.math_ops.pow(
+        math_ops.pow(
             tf.rsqrt(Moment(2,
                             tensor,
                             reduction_indices=reduction_indices)[1]),

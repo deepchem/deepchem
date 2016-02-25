@@ -20,7 +20,7 @@ import re
 from google.protobuf import text_format
 from tensorflow.python.platform import gfile
 
-from biology import model_config_pb2
+from deepchem.models.tensorflow_models import model_config_pb2
 
 
 class ModelConfig(object):

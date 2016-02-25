@@ -20,8 +20,8 @@ import numpy as np
 
 from tensorflow.python.platform import googletest
 
-from biology import model
-from biology import model_config
+from deepchem.models.tensorflow_models import model
+from deepchem.models.tensorflow_models import model_config
 
 
 class ClassifierTest(googletest.TestCase):

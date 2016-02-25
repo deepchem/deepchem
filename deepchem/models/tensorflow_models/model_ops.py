@@ -23,7 +23,7 @@ from google.protobuf import text_format
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import logging
 
-from biology import utils as model_utils
+from deepchem.models.tensorflow_models import utils as model_utils
 
 
 def AddBias(tensor, init=None, name=None):

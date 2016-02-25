@@ -20,7 +20,7 @@ import numpy as np
 
 from tensorflow.python.platform import googletest
 
-from biology import metrics
+from deepchem.utils import metrics
 
 
 class MetricsTest(googletest.TestCase):

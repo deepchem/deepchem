@@ -22,7 +22,7 @@ from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import googletest
 
-from biology import model_config
+from deepchem.models.tensorflow_models import model_config
 
 EXAMPLE_DICT = {
     'hello': 'world',

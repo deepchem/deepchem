@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 syntax = "proto2";
 
-package biology;
+package deepchem.models.tensorflow_models;
 
 // Neural network model configuration, used mostly for
 // de/serializing model parameters for a given execution from/to disk.

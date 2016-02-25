@@ -30,7 +30,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.platform import googletest
 from tensorflow.python.training import checkpoint_state_pb2 as cspb
 
-from biology import model_ops
+from deepchem.models.tensorflow_models import model_ops
 
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102
