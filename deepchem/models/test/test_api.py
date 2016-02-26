@@ -22,12 +22,15 @@ from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.utils.dataset import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
-from deepchem.models.deep import SingleTaskDNN
-from deepchem.models.deep import MultiTaskDNN
-from deepchem.models.standard import SklearnModel
+from deepchem.models.keras_models.fcnet import SingleTaskDNN
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
+from deepchem.models.sklearn_models import SklearnModel
+from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.models.tensorflow_models.model_config import ModelConfig
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
+from sklearn.ensemble import RandomForestRegressor
 
 class TestAPI(unittest.TestCase):
   """
@@ -131,7 +134,7 @@ class TestAPI(unittest.TestCase):
 
     return train_dataset, test_dataset, input_transformers, output_transformers
 
-  def test_singletask_rf_ECFP_regression_API(self):
+  def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
@@ -147,11 +150,10 @@ class TestAPI(unittest.TestCase):
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_user_specified_regression_API(self):
+  def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "specified"
     split_field = "split"
@@ -171,11 +173,10 @@ class TestAPI(unittest.TestCase):
         split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_ECFP_regression_sharded_API(self):
+  def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
@@ -195,11 +196,10 @@ class TestAPI(unittest.TestCase):
 
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_RDKIT_descriptor_regression_API(self):
+  def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
     compound_featurizers = [RDKitDescriptors()]
@@ -215,11 +215,10 @@ class TestAPI(unittest.TestCase):
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_mlp_NNScore_regression_API(self):
+  def test_singletask_keras_mlp_NNScore_regression_API(self):
     """Test of singletask MLP NNScore regression API."""
     splittype = "scaffold"
     compound_featurizers = []
@@ -249,7 +248,7 @@ class TestAPI(unittest.TestCase):
     self._create_model(train_dataset, test_dataset, model, transformers)
 
 
-  def test_singletask_mlp_USF_regression_API(self):
+  def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
     splittype = "scaffold"
     compound_featurizers = []
@@ -315,8 +314,8 @@ class TestAPI(unittest.TestCase):
                        tasks=tasks)
     '''
 
-  def test_multitask_mlp_ECFP_classification_API(self):
-    """Straightforward test of multitask deepchem classification API."""
+  def test_multitask_keras_mlp_ECFP_classification_API(self):
+    """Straightforward test of Keras multitask deepchem classification API."""
     splittype = "scaffold"
     output_transformers = []
     input_transformers = []
@@ -347,3 +346,33 @@ class TestAPI(unittest.TestCase):
     
     model = MultiTaskDNN(task_types, model_params)
     self._create_model(train_dataset, test_dataset, model, transformers)
+
+  def test_singletask_tf_mlp_ECFP_classificatioN_API(self):
+    """Straightforward test of Tensorflow singletask deepchem classification API."""
+    splittype = "scaffold"
+    output_transformers = []
+    input_transformers = []
+    task_type = "classification"
+
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+
+
+    model_params = {}
+    task_types = {"log-solubility": "regression"}
+    input_file = "example.csv"
+    input_transformers = []
+    output_transformers = [NormalizationTransformer]
+
+    #train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+    #    splittype, compound_featurizers, 
+    #    complex_featurizers, input_transformers,
+    #    output_transformers, input_file, task_types.keys())
+    #model_params["data_shape"] = train_dataset.get_data_shape()
+    config = ModelConfig()
+    config.AddParam("batch_size", 32, "allowed")
+    config.AddParam("num_classification_tasks", 1, "allowed")
+    train = True
+    logdir = self.model_dir
+    model = TensorflowModel(task_types, model_params, config, train, logdir)
+    #self._create_model(train_dataset, test_dataset, model, transformers)

@@ -70,58 +70,6 @@ def kfold_pattern(input_pattern, num_folds, fold=None):
     yield train, test
 
 
-def Run(input_data_types=None):
-  """Trains the model with specified parameters.
-
-  Args:
-    input_data_types: List of legacy_types_pb2 constants or None.
-  """
-  config = model_config.ModelConfig({
-      'input_pattern': '',  # Should have %d for fold index substitution.
-      'num_classification_tasks': 259,
-      'tasks_in_input': 259,  # Dimensionality of sstables
-      'max_steps': 50000000,
-      'summaries': False,
-      'batch_size': 128,
-      'learning_rate': 0.0003,
-      'num_classes': 2,
-      'optimizer': 'sgd',
-      'penalty': 0.0,
-      'num_features': 1024,
-      'layer_sizes': [1200],
-      'weight_init_stddevs': [0.01],
-      'bias_init_consts': [0.5],
-      'dropouts': [0.0],
-  })
-  config.ReadFromFile(FLAGS.config,
-                      overwrite='required')
-
-  if FLAGS.replica_id == 0:
-    gfile.MakeDirs(FLAGS.logdir)
-    config.WriteToFile(os.path.join(FLAGS.logdir, 'config.pbtxt'))
-
-  model = icml_models.IcmlModel(config,
-                                train=True,
-                                logdir=FLAGS.logdir,
-                                master=FLAGS.master)
-
-  if FLAGS.num_folds is not None and FLAGS.fold is not None:
-    folds = kfold_pattern(config.input_pattern, FLAGS.num_folds,
-                          FLAGS.fold)
-    train_pattern, _ = folds.next()
-    train_pattern = ','.join(train_pattern)
-  else:
-    train_pattern = config.input_pattern
-
-  with model.graph.as_default():
-    model.Train(model.ReadInput(train_pattern,
-                                input_data_types=input_data_types),
-                max_steps=config.max_steps,
-                summaries=config.summaries,
-                replica_id=FLAGS.replica_id,
-                ps_tasks=FLAGS.ps_tasks)
-
-
 def main(unused_argv=None):
   Run()
 
