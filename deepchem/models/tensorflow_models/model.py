@@ -34,9 +34,9 @@ from tensorflow.python.platform import logging
 
 from tensorflow.python.platform import gfile
 
-from biology import metrics as biology_metrics
-from biology import model_ops
-from biology import utils as biology_utils
+from deepchem.utils import metrics
+from deepchem.models.tensorflow_models import model_ops
+from deepchem.models.tensorflow_models import utils as tf_utils
 
 
 class Model(object):
@@ -457,7 +457,7 @@ class Model(object):
       self.AddOutputOps()  # add softmax heads
       saver = tf.train.Saver(tf.variables.all_variables())
       saver.restore(self._SharedSession(),
-                    biology_utils.ParseCheckpoint(checkpoint))
+                    tf_utils.ParseCheckpoint(checkpoint))
       self.global_step_number = int(self._SharedSession().run(self.global_step))
 
     self._restored_model = True
@@ -501,7 +501,7 @@ class Model(object):
       y_true: A list of arrays containing true values for each task.
       y_pred: A list of arrays containing predicted values for each task.
       metric_str: String description of the metric to compute. Must be in
-        biology_metrics.METRICS.
+        metrics.METRICS.
       threshold: Float threshold to apply to probabilities for positive/negative
         class assignment.
 
@@ -513,7 +513,7 @@ class Model(object):
       yt = y_true[task]
       yp = y_pred[task]
       try:
-        metric_value = biology_metrics.compute_metric(yt, yp, metric_str,
+        metric_value = metrics.compute_metric(yt, yp, metric_str,
                                                       threshold=threshold)
       except (AssertionError, ValueError) as e:
         warnings.warn('Error calculating metric %s for task %d: %s'

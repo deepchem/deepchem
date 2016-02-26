@@ -90,7 +90,7 @@ class ModelConfigTest(googletest.TestCase):
 
   def setUp(self):
     super(ModelConfigTest, self).setUp()
-    self.root = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    self.root = tempfile.mkdtemp()
 
   def _assertMatchesExample(self, config):
     self.assertEqual(config.hello, 'world')
