@@ -74,21 +74,16 @@ from __future__ import unicode_literals
 # limitations under the License.
 
 import numpy as np
-import tensorflow.google as tf
+import tensorflow as tf
 from tensorflow.python.platform import logging
 
-from deepchem.models.tensorflow_models import model
+from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import model_ops
-from nowhere.mustreimplement import input_ops
-from nowhere.mustreimplement import label_ops
-from nowhere.learning.dist_belief import input_example_pb2
-from nowhere.learning.dist_belief import types_pb2 as legacy_types_pb2
 
-
-class TensorflowMultiTaskDNN(model.Classifier):
+class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
 
-  def Build(self):
+  def build(self):
     """Constructs the graph architecture as specified in its config.
 
     This method creates the following Placeholders:
@@ -353,9 +348,9 @@ class TensorflowMultiTaskDNN(model.Classifier):
       train_pattern = config.input_pattern
 
     with model.graph.as_default():
-      model.Train(model.ReadInput(train_pattern,
-                                  input_data_types=input_data_types),
-                  max_steps=config.max_steps,
-                  summaries=config.summaries,
-                  replica_id=FLAGS.replica_id,
-                  ps_tasks=FLAGS.ps_tasks)
+      model.fit(model.read_input(train_pattern,
+                                 input_data_types=input_data_types),
+                max_steps=config.max_steps,
+                summaries=config.summaries,
+                replica_id=FLAGS.replica_id,
+                ps_tasks=FLAGS.ps_tasks)

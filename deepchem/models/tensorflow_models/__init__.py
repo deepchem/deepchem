@@ -17,6 +17,9 @@
 
 These methods are generally dependent on ModelConfig.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 
 import collections
 import cPickle as pickle
@@ -49,7 +52,7 @@ class TensorflowModel(Model):
     AddOutputOps
     Build
     Eval
-    ReadInput / _ReadInputGenerator
+    read_input / _read_input_generator
     BatchInputGenerator (if you want to use mr_eval/EvalBatch)
     TrainingCost
 
@@ -80,7 +83,6 @@ class TensorflowModel(Model):
     train: If True, model is in training mode.
     logdir: Directory for output files.
     graph: Default graph.
-    master: BNS name of TensorFlow master.
     summary_writer: SummaryWriter to use for writing summaries. If None, a new
       SummaryWriter will be created.
   """
@@ -95,18 +97,16 @@ class TensorflowModel(Model):
                train,
                logdir,
                graph=None,
-               master='local',
                summary_writer=None):
     self.config = config
     self.graph = graph if graph is not None else tf.Graph()
     self.logdir = logdir
-    self.master = master
 
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
 
-    # batches. Lazily created by _SharedSession().
+    # batches. Lazily created by _get_shared_session().
     self._shared_session = None
 
     # Guard variable to make sure we don't Restore() this model
@@ -118,7 +118,6 @@ class TensorflowModel(Model):
     self._name_scopes = {}
 
     with self.graph.as_default():
-      model_ops.SetTraining(train)
       self.placeholder_root = 'placeholders'
       with tf.name_scope(self.placeholder_root) as scope:
         self.placeholder_scope = scope
@@ -141,7 +140,7 @@ class TensorflowModel(Model):
       summary_writer = tf.train.SummaryWriter(logdir)
     self.summary_writer = summary_writer
 
-  def Build(self):
+  def build(self):
     """Define the core model.
 
     NOTE(user): Operations defined here should be in their own name scope to
@@ -152,7 +151,7 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def LabelPlaceholders(self):
+  def label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -165,7 +164,7 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def WeightPlaceholders(self):
+  def weight_placeholders(self):
     """Add Placeholders for example weights for each task.
 
     This method creates the following Placeholders for each task:
@@ -182,7 +181,7 @@ class TensorflowModel(Model):
                            name='weights_%d' % task)))
     self.weights = weights
 
-  def LabelsAndWeights(self):
+  def labels_and_weights(self):
     """Add Placeholders for labels and weights.
 
     This method results in the creation of the following Placeholders for each
@@ -192,13 +191,13 @@ class TensorflowModel(Model):
         will have shape batch_size.
       weights_%d: Label tensor with shape batch_size.
 
-    This method calls self.LabelPlaceholders and self.WeightPlaceholders; the
+    This method calls self.label_placeholders and self.weight_placeholders; the
     former method must be implemented by a concrete subclass.
     """
-    self.LabelPlaceholders()
-    self.WeightPlaceholders()
+    self.label_placeholders()
+    self.weight_placeholders()
 
-  def ReadInput(self, input_pattern):
+  def read_input(self, input_pattern):
     """Read input data and return a generator for minibatches.
 
     Args:
@@ -213,11 +212,11 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def _ReadInputGenerator(self, names, tensors):
+  def _read_input_generator(self, names, tensors):
     """Generator that constructs feed_dict for minibatches.
 
-    ReadInput cannot be a generator because any reading ops will not be added to
-    the graph until .next() is called (which is too late). Instead, ReadInput
+    read_input cannot be a generator because any reading ops will not be added to
+    the graph until .next() is called (which is too late). Instead, read_input
     should perform any necessary graph construction and then return this
     generator.
 
@@ -233,7 +232,7 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def _SharedNameScope(self, name):
+  def _shared_name_scope(self, name):
     """Returns a singleton TensorFlow scope with the given name.
 
     Used to prevent '_1'-appended scopes when sharing scopes with child classes.
@@ -249,7 +248,7 @@ class TensorflowModel(Model):
 
     return tf.name_scope(self._name_scopes[name])
 
-  def Cost(self, output, labels, weights):
+  def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
 
     Args:
@@ -273,12 +272,12 @@ class TensorflowModel(Model):
     gradient_costs = []  # costs used for gradient calculation
     old_costs = []  # old-style cost
 
-    with self._SharedNameScope('costs'):
+    with self._shared_name_scope('costs'):
       for task in xrange(self.num_tasks):
         task_str = str(task).zfill(len(str(self.num_tasks)))
-        with self._SharedNameScope('cost_{}'.format(task_str)):
+        with self._shared_name_scope('cost_{}'.format(task_str)):
           with tf.name_scope('weighted'):
-            weighted_cost = self.Cost(self.output[task], self.labels[task],
+            weighted_cost = self.cost(self.output[task], self.labels[task],
                                       self.weights[task])
             weighted_costs.append(weighted_cost)
 
@@ -304,7 +303,7 @@ class TensorflowModel(Model):
             old_costs.append(old_cost)
 
       # aggregated costs
-      with self._SharedNameScope('aggregated'):
+      with self._shared_name_scope('aggregated'):
         with tf.name_scope('gradient'):
           loss = tf.add_n(gradient_costs)
         with tf.name_scope('old_cost'):
@@ -330,8 +329,8 @@ class TensorflowModel(Model):
   def Setup(self):
     """Add ops common to training/eval to the graph."""
     with tf.name_scope('core_model'):
-      self.Build()
-    self.LabelsAndWeights()
+      self.build()
+    self.labels_and_weights()
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
   def MergeUpdates(self):
@@ -362,19 +361,17 @@ class TensorflowModel(Model):
     """
     return tf.merge_all_summaries()
 
-  def Train(self,
-            input_generator,
-            max_steps=None,
-            summaries=False,
-            save_model_secs=60,
-            save_summary_secs=30,
-            max_checkpoints_to_keep=5):
-    """Train the model.
+  def fit(self,
+          dataset,
+          max_steps=None,
+          summaries=False,
+          save_model_secs=60,
+          save_summary_secs=30,
+          max_checkpoints_to_keep=5):
+    """Fit the model.
 
     Args:
-      input_generator: Generator that returns a feed_dict for feeding
-        Placeholders in the model graph. Usually this will be ReadInput with a
-        provided input pattern.
+      dataset: Dataset object that represents data on disk.
       max_steps: Maximum number of training steps. If not provided, will
         train indefinitely.
       summaries: If True, add summaries for model parameters.
@@ -387,7 +384,8 @@ class TensorflowModel(Model):
     Raises:
       AssertionError: If model is not in training mode.
     """
-    assert model_ops.IsTraining()
+    model_ops.SetTraining(True)
+    #assert model_ops.IsTraining()
     self.Setup()
     self.TrainingCost()
     self.MergeUpdates()
@@ -397,12 +395,12 @@ class TensorflowModel(Model):
     train_op = self.TrainingOp()
     summary_op = self.SummaryOp()
     no_op = tf.no_op()
-    tf.train.write_graph(
-        tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
+    #tf.train.write_graph(
+    #    tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
     self.summary_writer.add_graph(tf.get_default_graph().as_graph_def())
     last_checkpoint_time = time.time()
     last_summary_time = time.time()
-    with self._SharedSession() as sess:
+    with self._get_shared_session() as sess:
       sess.run(tf.initialize_all_variables())
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       # Save an initial checkpoint.
@@ -439,12 +437,12 @@ class TensorflowModel(Model):
     """
     pass
 
-  def _SharedSession(self):
+  def _get_shared_session(self):
     if not self._shared_session:
       # allow_soft_placement=True allows ops without a GPU implementation
       # to run on the CPU instead.
       config = tf.ConfigProto(allow_soft_placement=True)
-      self._shared_session = tf.Session(self.master, config=config)
+      self._shared_session = tf.Session(config=config)
     return self._shared_session
 
   def CloseSharedSession(self):
@@ -464,9 +462,9 @@ class TensorflowModel(Model):
       self.Setup()
       self.AddOutputOps()  # add softmax heads
       saver = tf.train.Saver(tf.variables.all_variables())
-      saver.restore(self._SharedSession(),
+      saver.restore(self._get_shared_session(),
                     tf_utils.ParseCheckpoint(checkpoint))
-      self.global_step_number = int(self._SharedSession().run(self.global_step))
+      self.global_step_number = int(self._get_shared_session().run(self.global_step))
 
     self._restored_model = True
 
@@ -574,14 +572,14 @@ class TensorflowModel(Model):
     num_tasks = self.num_tasks
     output, labels, weights = [], [], []
     start = time.time()
-    with self._SharedSession().as_default():
+    with self._get_shared_session().as_default():
       batches_per_summary = 1000
       seconds_per_summary = 0
       batch_count = -1.0
       for feed_dict in input_generator:
         batch_start = time.time()
         batch_count += 1
-        data = self._SharedSession().run(
+        data = self._get_shared_session().run(
             self.output + self.labels + self.weights,
             feed_dict=feed_dict)
         batch_output = np.asarray(data[:num_tasks], dtype=float)
@@ -650,8 +648,8 @@ class TensorflowModel(Model):
                    for group, values in counts.iteritems()})
     data.update(metrics)
     df = pd.DataFrame(data)
-    print 'Eval at step: %d' % global_step
-    print df
+    print('Eval at step: %d' % global_step)
+    print(df)
     # add global step to df
     df['step'] = global_step
 
@@ -714,7 +712,7 @@ class TensorflowClassifier(TensorflowModel):
 
   default_metrics = ['auc']
 
-  def Cost(self, logits, labels, weights):
+  def cost(self, logits, labels, weights):
     """Calculate single-task training cost for a batch of examples.
 
     Args:
@@ -736,16 +734,16 @@ class TensorflowClassifier(TensorflowModel):
     Returns:
       A list of tensors with shape batch_size containing costs for each task.
     """
-    weighted_costs = super(Classifier, self).TrainingCost()  # calculate loss
+    weighted_costs = super(TensorflowClassifier, self).TrainingCost()  # calculate loss
     epsilon = 1e-3  # small float to avoid dividing by zero
     config = self.config
     num_tasks = config.num_classification_tasks
     cond_costs = collections.defaultdict(list)
 
-    with self._SharedNameScope('costs'):
+    with self._shared_name_scope('costs'):
       for task in xrange(num_tasks):
         task_str = str(task).zfill(len(str(num_tasks)))
-        with self._SharedNameScope('cost_{}'.format(task_str)):
+        with self._shared_name_scope('cost_{}'.format(task_str)):
           with tf.name_scope('conditional'):
             # pos/neg costs: mean over pos/neg examples
             for name, label in [('neg', 0), ('pos', 1)]:
@@ -759,7 +757,7 @@ class TensorflowClassifier(TensorflowModel):
               cond_costs[name].append(cond_cost)
 
       # aggregated costs
-      with self._SharedNameScope('aggregated'):
+      with self._shared_name_scope('aggregated'):
         with tf.name_scope('pos_cost'):
           pos_cost = tf.add_n(cond_costs['pos'])
         with tf.name_scope('neg_cost'):
@@ -809,7 +807,7 @@ class TensorflowClassifier(TensorflowModel):
         counts[klass][task] = np.count_nonzero(y_true[task] == klass)
     return counts
 
-  def LabelPlaceholders(self):
+  def label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -824,6 +822,10 @@ class TensorflowClassifier(TensorflowModel):
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
+        print("batch_size")
+        print(batch_size)
+        print("num_classes")
+        print(num_classes)
         labels.append(tf.identity(
             tf.placeholder(tf.float32, shape=[batch_size, num_classes],
                            name='labels_%d' % task)))
@@ -869,7 +871,7 @@ class TensorflowRegressor(TensorflowModel):
 
   default_metrics = ['r2']
 
-  def Cost(self, output, labels, weights):
+  def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
 
     Args:
@@ -895,7 +897,7 @@ class TensorflowRegressor(TensorflowModel):
     return {'all': np.asarray([len(y_true[task])
                                for task in xrange(self.num_tasks)])}
 
-  def LabelPlaceholders(self):
+  def label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:

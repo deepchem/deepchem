@@ -19,13 +19,15 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
-from deepchem.utils.dataset import Dataset
+from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
+# TODO(rbharath): These need to be uncommented before merge
 from deepchem.models.keras_models.fcnet import SingleTaskDNN
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.model_config import ModelConfig
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
@@ -347,7 +349,7 @@ class TestAPI(unittest.TestCase):
     model = MultiTaskDNN(task_types, model_params)
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_tf_mlp_ECFP_classificatioN_API(self):
+  def test_singletask_tf_mlp_ECFP_classification_API(self):
     """Straightforward test of Tensorflow singletask deepchem classification API."""
     splittype = "scaffold"
     output_transformers = []
@@ -359,20 +361,30 @@ class TestAPI(unittest.TestCase):
 
 
     model_params = {}
-    task_types = {"log-solubility": "regression"}
-    input_file = "example.csv"
+    task_types = {"outcome": "classification"}
+    input_file = "example_classification.csv"
     input_transformers = []
     output_transformers = [NormalizationTransformer]
 
-    #train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-    #    splittype, compound_featurizers, 
-    #    complex_featurizers, input_transformers,
-    #    output_transformers, input_file, task_types.keys())
-    #model_params["data_shape"] = train_dataset.get_data_shape()
+    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, task_types.keys())
+    model_params["data_shape"] = train_dataset.get_data_shape()
     config = ModelConfig()
     config.AddParam("batch_size", 32, "allowed")
     config.AddParam("num_classification_tasks", 1, "allowed")
+    config.AddParam("num_features", 1024, "allowed")
+    config.AddParam("layer_sizes", [1024], "allowed")
+    config.AddParam("weight_init_stddevs", [1.], "allowed")
+    config.AddParam("bias_init_consts", [0.], "allowed")
+    config.AddParam("dropouts", [.5], "allowed")
+    config.AddParam("num_classes", 2, "allowed")
+    config.AddParam("penalty", 0.0, "allowed")
+    config.AddParam("optimizer", "adam", "allowed")
+    config.AddParam("learning_rate", .001, "allowed")
     train = True
     logdir = self.model_dir
-    model = TensorflowModel(task_types, model_params, config, train, logdir)
-    #self._create_model(train_dataset, test_dataset, model, transformers)
+    model = TensorflowMultiTaskClassifier(
+        task_types, model_params, config, train, logdir)
+    self._create_model(train_dataset, test_dataset, model, transformers)
