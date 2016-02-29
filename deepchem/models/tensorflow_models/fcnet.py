@@ -128,21 +128,38 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     self.output = model_ops.MultitaskLogits(
         layer, self.config.num_classification_tasks)
 
-  def LabelsAndWeights(self):
-    """Parse Label protos and create tensors for labels and weights.
+  # TODO(rbharath): Copying this out for now. Ensure this isn't harmful
+  #def add_labels_and_weights(self):
+  #  """Parse Label protos and create tensors for labels and weights.
 
-    This method creates the following Placeholders in the graph:
-      labels: Tensor with shape batch_size x num_tasks containing serialized
-        Label protos.
-    """
-    config = self.config
-    with tf.name_scope(self.placeholder_scope):
-      labels = tf.placeholder(
-          tf.string,
-          shape=[config.batch_size, config.num_classification_tasks],
-          name='labels')
-    self.labels = label_ops.MultitaskLabelClasses(labels, config.num_classes)
-    self.weights = label_ops.MultitaskLabelWeights(labels)
+  #  This method creates the following Placeholders in the graph:
+  #    labels: Tensor with shape batch_size x num_tasks containing serialized
+  #      Label protos.
+  #  """
+  #  config = self.config
+  #  with tf.name_scope(self.placeholder_scope):
+  #    labels = tf.placeholder(
+  #        tf.string,
+  #        shape=[config.batch_size, config.num_classification_tasks],
+  #        name='labels')
+  #  self.labels = label_ops.MultitaskLabelClasses(labels, config.num_classes)
+  #  self.weights = label_ops.MultitaskLabelWeights(labels)
+
+  def construct_feed_dict(self, X_b, y_b, w_b, ids_b):
+    """Construct a feed dictionary from minibatch data.
+
+    Args:
+      X_b: np.ndarray of shape (batch_size, num_features)
+      y_b: np.ndarray of shape (batch_size, num_tasks)
+      w_b: np.ndarray of shape (batch_size, num_tasks)
+      ids_b: List of length (batch_size) with datapoint identifiers.
+    """ 
+    feed_dict = {}
+    feed_dict[self.mol_features] = X_b
+    for task in xrange(self.num_tasks):
+      feed_dict[self.labels[task]] = y_b[:, task]
+      feed_dict[self.weights[task]] = w_b[:, task]
+    return feed_dict
 
   def ReadInput(self, input_pattern, input_data_types=None):
     """Read input data and return a generator for minibatches.

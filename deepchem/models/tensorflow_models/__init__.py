@@ -50,11 +50,11 @@ class TensorflowModel(Model):
 
   Subclasses must implement the following methods:
     AddOutputOps
-    Build
+    build
     Eval
     read_input / _read_input_generator
     BatchInputGenerator (if you want to use mr_eval/EvalBatch)
-    TrainingCost
+    training_cost 
 
   Subclasses must set the following attributes:
     loss: Op to calculate training cost used for gradient calculation.
@@ -151,7 +151,15 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def label_placeholders(self):
+  def construct_feed_dict(self, X_b, y_b, w_b, ids_b):
+    """Transform a minibatch of data into a feed_dict.
+
+    Raises:
+      NotImplementedError: if not overridden by concrete subclass.
+    """
+    raise NotImplementedError('Must be overridden by concrete subclass')
+
+  def add_label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -164,7 +172,7 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def weight_placeholders(self):
+  def add_weight_placeholders(self):
     """Add Placeholders for example weights for each task.
 
     This method creates the following Placeholders for each task:
@@ -181,7 +189,7 @@ class TensorflowModel(Model):
                            name='weights_%d' % task)))
     self.weights = weights
 
-  def labels_and_weights(self):
+  def add_labels_and_weights(self):
     """Add Placeholders for labels and weights.
 
     This method results in the creation of the following Placeholders for each
@@ -191,11 +199,11 @@ class TensorflowModel(Model):
         will have shape batch_size.
       weights_%d: Label tensor with shape batch_size.
 
-    This method calls self.label_placeholders and self.weight_placeholders; the
+    This method calls self.add_label_placeholders and self.add_weight_placeholders; the
     former method must be implemented by a concrete subclass.
     """
-    self.label_placeholders()
-    self.weight_placeholders()
+    self.add_label_placeholders()
+    self.add_weight_placeholders()
 
   def read_input(self, input_pattern):
     """Read input data and return a generator for minibatches.
@@ -264,7 +272,7 @@ class TensorflowModel(Model):
     # index to control the cost calculation
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def TrainingCost(self):
+  def training_cost(self):
     self.RequireAttributes(['output', 'labels', 'weights'])
     epsilon = 1e-3  # small float to avoid dividing by zero
     config = self.config
@@ -326,11 +334,11 @@ class TensorflowModel(Model):
 
     return weighted_costs
 
-  def Setup(self):
+  def _setup(self):
     """Add ops common to training/eval to the graph."""
     with tf.name_scope('core_model'):
       self.build()
-    self.labels_and_weights()
+    self.add_labels_and_weights()
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
   def MergeUpdates(self):
@@ -341,7 +349,7 @@ class TensorflowModel(Model):
     else:
       self.updates = tf.no_op(name='updates')
 
-  def TrainingOp(self):
+  def get_training_op(self):
     """Get training op for applying gradients to variables.
 
     Subclasses that need to do anything fancy with gradients should override
@@ -353,13 +361,14 @@ class TensorflowModel(Model):
     opt = Optimizer(self.config)
     return opt.minimize(self.loss, global_step=self.global_step, name='train')
 
-  def SummaryOp(self):
+  def get_summary_op(self):
     """Get summary op for computing all summaries during training.
 
     Returns:
     A summary op.
     """
     return tf.merge_all_summaries()
+
 
   def fit(self,
           dataset,
@@ -386,15 +395,16 @@ class TensorflowModel(Model):
     """
     model_ops.SetTraining(True)
     #assert model_ops.IsTraining()
-    self.Setup()
-    self.TrainingCost()
+    self._setup()
+    self.training_cost()
     self.MergeUpdates()
     self.RequireAttributes(['loss', 'global_step', 'updates'])
     if summaries:
       self.AddSummaries()
-    train_op = self.TrainingOp()
-    summary_op = self.SummaryOp()
+    train_op = self.get_training_op()
+    summary_op = self.get_summary_op()
     no_op = tf.no_op()
+    # TODO(rbharath): This should probably be uncommented!
     #tf.train.write_graph(
     #    tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
     self.summary_writer.add_graph(tf.get_default_graph().as_graph_def())
@@ -405,8 +415,9 @@ class TensorflowModel(Model):
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       # Save an initial checkpoint.
       saver.save(sess, self._save_path, global_step=self.global_step)
-      for feed_dict in input_generator:
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.config.batch_size):
         # Run training op and compute summaries.
+        feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
         secs_since_summary = time.time() - last_summary_time
         if secs_since_summary > save_summary_secs:
           this_summary_op = summary_op
@@ -459,7 +470,7 @@ class TensorflowModel(Model):
       return
 
     with self.graph.as_default():
-      self.Setup()
+      self._setup()
       self.AddOutputOps()  # add softmax heads
       saver = tf.train.Saver(tf.variables.all_variables())
       saver.restore(self._get_shared_session(),
@@ -728,13 +739,13 @@ class TensorflowClassifier(TensorflowModel):
     return tf.mul(tf.nn.softmax_cross_entropy_with_logits(logits, labels),
                   weights)
 
-  def TrainingCost(self):
+  def training_cost(self):
     """Calculate additional classifier-specific costs.
 
     Returns:
       A list of tensors with shape batch_size containing costs for each task.
     """
-    weighted_costs = super(TensorflowClassifier, self).TrainingCost()  # calculate loss
+    weighted_costs = super(TensorflowClassifier, self).training_cost()  # calculate loss
     epsilon = 1e-3  # small float to avoid dividing by zero
     config = self.config
     num_tasks = config.num_classification_tasks
@@ -782,6 +793,7 @@ class TensorflowClassifier(TensorflowModel):
 
     return weighted_costs
 
+
   def AddOutputOps(self):
     """Replace logits with softmax outputs."""
     softmax = []
@@ -807,7 +819,7 @@ class TensorflowClassifier(TensorflowModel):
         counts[klass][task] = np.count_nonzero(y_true[task] == klass)
     return counts
 
-  def label_placeholders(self):
+  def add_label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -822,10 +834,6 @@ class TensorflowClassifier(TensorflowModel):
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
-        print("batch_size")
-        print(batch_size)
-        print("num_classes")
-        print(num_classes)
         labels.append(tf.identity(
             tf.placeholder(tf.float32, shape=[batch_size, num_classes],
                            name='labels_%d' % task)))
@@ -897,7 +905,7 @@ class TensorflowRegressor(TensorflowModel):
     return {'all': np.asarray([len(y_true[task])
                                for task in xrange(self.num_tasks)])}
 
-  def label_placeholders(self):
+  def add_label_placeholders(self):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:

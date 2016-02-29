@@ -22,9 +22,6 @@ from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
-# TODO(rbharath): These need to be uncommented before merge
-from deepchem.models.keras_models.fcnet import SingleTaskDNN
-from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
@@ -222,6 +219,7 @@ class TestAPI(unittest.TestCase):
 
   def test_singletask_keras_mlp_NNScore_regression_API(self):
     """Test of singletask MLP NNScore regression API."""
+    from deepchem.models.keras_models.fcnet import SingleTaskDNN
     splittype = "scaffold"
     compound_featurizers = []
     complex_featurizers = [NNScoreComplexFeaturizer()]
@@ -252,6 +250,7 @@ class TestAPI(unittest.TestCase):
 
   def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
+    from deepchem.models.keras_models.fcnet import SingleTaskDNN
     splittype = "scaffold"
     compound_featurizers = []
     complex_featurizers = []
@@ -318,6 +317,7 @@ class TestAPI(unittest.TestCase):
 
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
+    from deepchem.models.keras_models.fcnet import MultiTaskDNN
     splittype = "scaffold"
     output_transformers = []
     input_transformers = []
@@ -372,7 +372,7 @@ class TestAPI(unittest.TestCase):
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
     config = ModelConfig()
-    config.AddParam("batch_size", 32, "allowed")
+    config.AddParam("batch_size", 4, "allowed")
     config.AddParam("num_classification_tasks", 1, "allowed")
     config.AddParam("num_features", 1024, "allowed")
     config.AddParam("layer_sizes", [1024], "allowed")
