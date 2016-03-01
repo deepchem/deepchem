@@ -13,6 +13,7 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.normalization import BatchNormalization 
 from keras.optimizers import SGD
 from deepchem.models.keras_models import KerasModel
+from deepchem.utils.evaluate import to_one_hot
 
 class MultiTaskDNN(KerasModel):
   """
@@ -139,20 +140,3 @@ class SingleTaskDNN(MultiTaskDNN):
     super(SingleTaskDNN, self).__init__(task_types, model_params,
                                         initialize_raw_model=initialize_raw_model,
                                         verbosity=verbosity)
-
-def to_one_hot(y):
-  """Transforms label vector into one-hot encoding.
-
-  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
-
-  y: np.ndarray
-    A vector of shape [n_samples, 1]
-  """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
-  return y_hot

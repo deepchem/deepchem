@@ -79,6 +79,7 @@ from tensorflow.python.platform import logging
 
 from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import model_ops
+from deepchem.utils.evaluate import to_one_hot
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
@@ -157,7 +158,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     feed_dict = {}
     feed_dict[self.mol_features] = X_b
     for task in xrange(self.num_tasks):
-      feed_dict[self.labels[task]] = y_b[:, task]
+      feed_dict[self.labels[task]] = to_one_hot(y_b[:, task])
       feed_dict[self.weights[task]] = w_b[:, task]
     return feed_dict
 

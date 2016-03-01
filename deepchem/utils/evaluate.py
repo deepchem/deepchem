@@ -20,6 +20,23 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def to_one_hot(y):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+
+  y: np.ndarray
+    A vector of shape [n_samples, 1]
+  """
+  n_samples = np.shape(y)[0]
+  y_hot = np.zeros((n_samples, 2))
+  for index, val in enumerate(y):
+    if val == 0:
+      y_hot[index] = np.array([1, 0])
+    elif val == 1:
+      y_hot[index] = np.array([0, 1])
+  return y_hot
+
 def threshold_predictions(y, threshold):
   y_out = np.zeros_like(y)
   for ind, pred in enumerate(y):
