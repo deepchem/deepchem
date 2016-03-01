@@ -141,3 +141,11 @@ class Model(object):
       pred_y_df = pd.concat([pred_y_df, batch_df])
 
     return pred_y_df
+
+  def get_task_type(self):
+    """
+    Currently models can only be classifiers or regressors.
+    """
+    # TODO(rbharath): This is a hack based on fact that multi-tasktype models
+    # aren't supported.
+    return model.task_types.itervalues().next()

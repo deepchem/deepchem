@@ -49,7 +49,7 @@ class TensorflowModel(Model):
   Generic base class for defining, training, and evaluating models.
 
   Subclasses must implement the following methods:
-    AddOutputOps
+    add_output_ops
     build
     Eval
     read_input / _read_input_generator
@@ -66,7 +66,7 @@ class TensorflowModel(Model):
       normalization. Should be set to tf.no_op() if no updates are required.
 
   This base class provides the following attributes:
-    config: ModelConfig containing model configuration parameters.
+    model_params: ModelConfig containing model configuration parameters.
     graph: TensorFlow graph object.
     logdir: Path to the file output directory to store checkpoints etc.
     master: TensorFlow session master specification string.
@@ -79,7 +79,7 @@ class TensorflowModel(Model):
       mask when calculating gradient costs.
 
   Args:
-    config: ModelConfig.
+    model_params: ModelConfig.
     train: If True, model is in training mode.
     logdir: Directory for output files.
     graph: Default graph.
@@ -93,12 +93,11 @@ class TensorflowModel(Model):
   def __init__(self,
                task_types,
                model_params,
-               config,
                train,
                logdir,
                graph=None,
                summary_writer=None):
-    self.config = config
+    self.model_params = model_params 
     self.graph = graph if graph is not None else tf.Graph()
     self.logdir = logdir
 
@@ -122,12 +121,12 @@ class TensorflowModel(Model):
       with tf.name_scope(self.placeholder_root) as scope:
         self.placeholder_scope = scope
         self.valid = tf.placeholder(tf.bool,
-                                    shape=[config.batch_size],
+                                    shape=[model_params.batch_size],
                                     name='valid')
 
-    num_classification_tasks = config.GetOptionalParam(
+    num_classification_tasks = model_params.GetOptionalParam(
         'num_classification_tasks', 0)
-    num_regression_tasks = config.GetOptionalParam('num_regression_tasks', 0)
+    num_regression_tasks = model_params.GetOptionalParam('num_regression_tasks', 0)
     if num_classification_tasks and num_regression_tasks:
       raise AssertionError(
           'Dual classification/regression models are not supported.')
@@ -185,7 +184,7 @@ class TensorflowModel(Model):
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
         weights.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[self.config.batch_size],
+            tf.placeholder(tf.float32, shape=[self.model_params.batch_size],
                            name='weights_%d' % task)))
     self.weights = weights
 
@@ -275,7 +274,7 @@ class TensorflowModel(Model):
   def training_cost(self):
     self.RequireAttributes(['output', 'labels', 'weights'])
     epsilon = 1e-3  # small float to avoid dividing by zero
-    config = self.config
+    model_params = self.model_params
     weighted_costs = []  # weighted costs for each example
     gradient_costs = []  # costs used for gradient calculation
     old_costs = []  # old-style cost
@@ -295,7 +294,7 @@ class TensorflowModel(Model):
             # tf.reduce_mean (which can put ops on the CPU) we explicitly
             # calculate with div/sum so it stays on the GPU.
             gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                   config.batch_size)
+                                   model_params.batch_size)
             tf.scalar_summary('cost' + task_str,
                               model_ops.MovingAverage(gradient_cost,
                                                       self.global_step))
@@ -318,8 +317,8 @@ class TensorflowModel(Model):
           old_loss = tf.add_n(old_costs)
 
         # weight decay
-        if config.penalty != 0.0:
-          penalty = WeightDecay(config)
+        if model_params.penalty != 0.0:
+          penalty = WeightDecay(model_params)
           loss += penalty
           old_loss += penalty
 
@@ -334,7 +333,7 @@ class TensorflowModel(Model):
 
     return weighted_costs
 
-  def _setup(self):
+  def setup(self):
     """Add ops common to training/eval to the graph."""
     with tf.name_scope('core_model'):
       self.build()
@@ -358,7 +357,7 @@ class TensorflowModel(Model):
     Returns:
     A training op.
     """
-    opt = Optimizer(self.config)
+    opt = Optimizer(self.model_params)
     return opt.minimize(self.loss, global_step=self.global_step, name='train')
 
   def get_summary_op(self):
@@ -395,7 +394,7 @@ class TensorflowModel(Model):
     """
     model_ops.SetTraining(True)
     #assert model_ops.IsTraining()
-    self._setup()
+    self.setup()
     self.training_cost()
     self.MergeUpdates()
     self.RequireAttributes(['loss', 'global_step', 'updates'])
@@ -415,7 +414,7 @@ class TensorflowModel(Model):
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       # Save an initial checkpoint.
       saver.save(sess, self._save_path, global_step=self.global_step)
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.config.batch_size):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params.batch_size):
         # Run training op and compute summaries.
         feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
         secs_since_summary = time.time() - last_summary_time
@@ -441,7 +440,14 @@ class TensorflowModel(Model):
       # Always save a final checkpoint when complete.
       saver.save(sess, self._save_path, global_step=self.global_step)
 
-  def AddOutputOps(self):
+  def save(self, out_dir):
+    """
+    No-op since tf models save themselves during fit()
+    """
+    pass
+  
+
+  def add_output_ops(self):
     """Add ops for inference.
 
     Default implementation is pass, derived classes can override as needed.
@@ -460,7 +466,7 @@ class TensorflowModel(Model):
     if self._shared_session:
       self._shared_session.close()
 
-  def Restore(self, checkpoint):
+  def restore(self, checkpoint):
     """Restores the model from the provided training checkpoint.
 
     Args:
@@ -470,14 +476,38 @@ class TensorflowModel(Model):
       return
 
     with self.graph.as_default():
-      self._setup()
-      self.AddOutputOps()  # add softmax heads
+      self.setup()
+      self.add_output_ops()  # add softmax heads
       saver = tf.train.Saver(tf.variables.all_variables())
       saver.restore(self._get_shared_session(),
                     tf_utils.ParseCheckpoint(checkpoint))
       self.global_step_number = int(self._get_shared_session().run(self.global_step))
 
     self._restored_model = True
+
+  def load(self, model_dir):
+    """
+    Loads model from disk. Thin wrapper around restore() for consistency.
+    """
+    if model_dir != self.logdir:
+      raise ValueError("Cannot load from directory that is not logdir.")
+    last_checkpoint = self._find_last_checkpoint()
+    self.restore(last_checkpoint)
+
+  def _find_last_checkpoint(self):
+    """Finds last saved checkpoint."""
+    highest_num, last_checkpoint = -np.inf, None
+    for filename in os.listdir(self.logdir):
+      # checkpoints look like logdir/model.ckpt-N
+      # self._save_path is "logdir/model.ckpt"
+      if self._save_path in filename:
+        N = int(filename.split("-")[-1])
+        if N > highest_num:
+          highest_num = N
+          last_checkpoint = filename
+    return last_checkpoint
+          
+        
 
   def Eval(self, input_generator, checkpoint, metrics=None):
     """Evaluate the model.
@@ -543,7 +573,7 @@ class TensorflowModel(Model):
     """Runs inference on the provided batch of input.
 
     Args:
-      input_batch: iterator of input with len self.config.batch_size.
+      input_batch: iterator of input with len self.model_params.batch_size.
 
     Returns:
       Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
@@ -723,6 +753,9 @@ class TensorflowClassifier(TensorflowModel):
 
   default_metrics = ['auc']
 
+  def get_task_type(self):
+    return "classifier"
+
   def cost(self, logits, labels, weights):
     """Calculate single-task training cost for a batch of examples.
 
@@ -747,8 +780,8 @@ class TensorflowClassifier(TensorflowModel):
     """
     weighted_costs = super(TensorflowClassifier, self).training_cost()  # calculate loss
     epsilon = 1e-3  # small float to avoid dividing by zero
-    config = self.config
-    num_tasks = config.num_classification_tasks
+    model_params = self.model_params
+    num_tasks = model_params.num_classification_tasks
     cond_costs = collections.defaultdict(list)
 
     with self._shared_name_scope('costs'):
@@ -758,7 +791,7 @@ class TensorflowClassifier(TensorflowModel):
           with tf.name_scope('conditional'):
             # pos/neg costs: mean over pos/neg examples
             for name, label in [('neg', 0), ('pos', 1)]:
-              cond_weights = self.labels[task][:config.batch_size, label]
+              cond_weights = self.labels[task][:model_params.batch_size, label]
               cond_cost = tf.div(
                   tf.reduce_sum(tf.mul(weighted_costs[task], cond_weights)),
                   tf.reduce_sum(cond_weights) + epsilon)
@@ -788,13 +821,13 @@ class TensorflowClassifier(TensorflowModel):
         with tf.device(num_pos.device):
           tf.get_default_graph().add_to_collection(
               'updates', num_pos.assign_add(
-                  tf.reduce_sum(self.labels[task][:config.batch_size, 1])))
+                  tf.reduce_sum(self.labels[task][:model_params.batch_size, 1])))
         tf.scalar_summary(num_pos.name, num_pos)
 
     return weighted_costs
 
 
-  def AddOutputOps(self):
+  def add_output_ops(self):
     """Replace logits with softmax outputs."""
     softmax = []
     with tf.name_scope('inference'):
@@ -828,9 +861,9 @@ class TensorflowClassifier(TensorflowModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    config = self.config
-    batch_size = config.batch_size
-    num_classes = config.num_classes
+    model_params = self.model_params
+    batch_size = model_params.batch_size
+    num_classes = model_params.num_classes
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
@@ -856,7 +889,7 @@ class TensorflowClassifier(TensorflowModel):
         task.
     """
     y_true, y_pred = [], []
-    for task in xrange(self.config.num_classification_tasks):
+    for task in xrange(self.model_params.num_classification_tasks):
       # mask examples with zero weight
       mask = weights[:, task] > 0
       # get true class labels
@@ -878,6 +911,9 @@ class TensorflowRegressor(TensorflowModel):
   """
 
   default_metrics = ['r2']
+
+  def get_task_type(self):
+    return "regressor"
 
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
@@ -914,7 +950,7 @@ class TensorflowRegressor(TensorflowModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    batch_size = self.config.batch_size
+    batch_size = self.model_params.batch_size
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
@@ -941,18 +977,18 @@ class TensorflowRegressor(TensorflowModel):
     """
     # build arrays of true and predicted values for R-squared calculation
     y_true, y_pred = [], []
-    for task in xrange(self.config.num_regression_tasks):
+    for task in xrange(self.model_params.num_regression_tasks):
       mask = weights[:, task] > 0  # ignore examples with zero weight
       y_true.append(labels[mask, task])
       y_pred.append(output[mask, task])
     return y_true, y_pred
 
 
-def Optimizer(config):
+def Optimizer(model_params):
   """Create model optimizer.
 
   Args:
-    config: ModelConfig.
+    model_params: ModelConfig.
 
   Returns:
     A training Optimizer.
@@ -961,26 +997,28 @@ def Optimizer(config):
     NotImplementedError: If an unsupported optimizer is requested.
   """
   # TODO(user): gradient clipping (see Minimize)
-  if config.optimizer == 'adagrad':
-    train_op = tf.train.AdagradOptimizer(config.learning_rate)
-  elif config.optimizer == 'adam':
-    train_op = tf.train.AdamOptimizer(config.learning_rate)
-  elif config.optimizer == 'momentum':
-    train_op = tf.train.MomentumOptimizer(config.learning_rate, config.memory)
-  elif config.optimizer == 'rmsprop':
-    train_op = tf.train.RMSPropOptimizer(config.learning_rate, config.memory)
-  elif config.optimizer == 'sgd':
-    train_op = tf.train.GradientDescentOptimizer(config.learning_rate)
+  if model_params.optimizer == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(model_params.learning_rate)
+  elif model_params.optimizer == 'adam':
+    train_op = tf.train.AdamOptimizer(model_params.learning_rate)
+  elif model_params.optimizer == 'momentum':
+    train_op = tf.train.MomentumOptimizer(model_params.learning_rate,
+                                          model_params.memory)
+  elif model_params.optimizer == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(model_params.learning_rate,
+                                         model_params.memory)
+  elif model_params.optimizer == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(model_params.learning_rate)
   else:
-    raise NotImplementedError('Unsupported optimizer %s' % config.optimizer)
+    raise NotImplementedError('Unsupported optimizer %s' % model_params.optimizer)
   return train_op
 
 
-def WeightDecay(config):
+def WeightDecay(model_params):
   """Add weight decay.
 
   Args:
-    config: ModelConfig.
+    model_params: ModelConfig.
 
   Returns:
     A scalar tensor containing the weight decay cost.
@@ -995,13 +1033,13 @@ def WeightDecay(config):
       variables.append(v)
 
   with tf.name_scope('weight_decay'):
-    if config.penalty_type == 'l1':
+    if model_params.penalty_type == 'l1':
       cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
-    elif config.penalty_type == 'l2':
+    elif model_params.penalty_type == 'l2':
       cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
     else:
       raise NotImplementedError('Unsupported penalty_type %s' %
-                                config.penalty_type)
-    cost *= config.penalty
+                                model_params.penalty_type)
+    cost *= model_params.penalty
     tf.scalar_summary('Weight Decay Cost', cost)
   return cost

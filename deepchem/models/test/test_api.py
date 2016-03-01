@@ -360,7 +360,7 @@ class TestAPI(unittest.TestCase):
     complex_featurizers = []
 
 
-    model_params = {}
+    #model_params = {}
     task_types = {"outcome": "classification"}
     input_file = "example_classification.csv"
     input_transformers = []
@@ -370,21 +370,21 @@ class TestAPI(unittest.TestCase):
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, task_types.keys())
-    model_params["data_shape"] = train_dataset.get_data_shape()
-    config = ModelConfig()
-    config.AddParam("batch_size", 4, "allowed")
-    config.AddParam("num_classification_tasks", 1, "allowed")
-    config.AddParam("num_features", 1024, "allowed")
-    config.AddParam("layer_sizes", [1024], "allowed")
-    config.AddParam("weight_init_stddevs", [1.], "allowed")
-    config.AddParam("bias_init_consts", [0.], "allowed")
-    config.AddParam("dropouts", [.5], "allowed")
-    config.AddParam("num_classes", 2, "allowed")
-    config.AddParam("penalty", 0.0, "allowed")
-    config.AddParam("optimizer", "adam", "allowed")
-    config.AddParam("learning_rate", .001, "allowed")
+    #model_params["data_shape"] = train_dataset.get_data_shape()
+    model_params = ModelConfig()
+    model_params.AddParam("batch_size", 4, "allowed")
+    model_params.AddParam("num_classification_tasks", 1, "allowed")
+    model_params.AddParam("num_features", 1024, "allowed")
+    model_params.AddParam("layer_sizes", [1024], "allowed")
+    model_params.AddParam("weight_init_stddevs", [1.], "allowed")
+    model_params.AddParam("bias_init_consts", [0.], "allowed")
+    model_params.AddParam("dropouts", [.5], "allowed")
+    model_params.AddParam("num_classes", 2, "allowed")
+    model_params.AddParam("penalty", 0.0, "allowed")
+    model_params.AddParam("optimizer", "adam", "allowed")
+    model_params.AddParam("learning_rate", .001, "allowed")
     train = True
     logdir = self.model_dir
     model = TensorflowMultiTaskClassifier(
-        task_types, model_params, config, train, logdir)
+        task_types, model_params, train, logdir)
     self._create_model(train_dataset, test_dataset, model, transformers)

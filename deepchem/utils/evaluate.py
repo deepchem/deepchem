@@ -68,9 +68,7 @@ class Evaluator(object):
     self.dataset = dataset
     self.transformers = transformers
     self.task_names = dataset.get_task_names()
-    # TODO(rbharath): This is a hack based on fact that multi-tasktype models
-    # aren't supported.
-    self.task_type = model.task_types.itervalues().next()
+    self.task_type = model.get_task_type()
     self.verbose = verbose
 
   def compute_model_performance(self, csv_out, stats_file, threshold=None):
