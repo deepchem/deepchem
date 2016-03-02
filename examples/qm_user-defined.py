@@ -20,12 +20,12 @@ from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
 
 # List of models available to imported into model_builder
-#import deepchem.models.deep
-#import deepchem.models.standard
-#import deepchem.models.deep3d
+import deepchem.models.deep
+import deepchem.models.standard
+import deepchem.models.deep3d
 from deepchem.models.deep import SingleTaskDNN
-#from deepchem.models.deep import MultiTaskDNN
-#from deepchem.models.standard import SklearnModel
+from deepchem.models.deep import MultiTaskDNN
+from deepchem.models.standard import SklearnModel
 
 def featurize_train_test_split(splittype, compound_featurizers, 
                                 complex_featurizers, input_transforms,
@@ -33,7 +33,7 @@ def featurize_train_test_split(splittype, compound_featurizers,
                                 feature_dir, samples_dir, train_dir, 
                                 test_dir, smiles_field,
                                 protein_pdb_field=None, ligand_pdb_field=None,
-                                user_specified_features=None, shard_size=100):
+                                user_specified_features=None, shard_size=2):
   # Featurize input
   featurizers = compound_featurizers + complex_featurizers
 
@@ -46,7 +46,7 @@ def featurize_train_test_split(splittype, compound_featurizers,
                               compound_featurizers=compound_featurizers,
                               complex_featurizers=complex_featurizers,
                               user_specified_features=user_specified_features,
-                              verbose=True)
+                              verbose=False)
   
 
   #Featurizes samples and transforms them into NumPy arrays suitable for ML.
@@ -80,6 +80,7 @@ def create_and_eval_model(train_dataset, test_dataset, model, model_dir):
 
   # Fit model
 
+  
   model.fit(train_dataset)
   model.save(model_dir)
 
@@ -94,11 +95,13 @@ def create_and_eval_model(train_dataset, test_dataset, model, model_dir):
 
   # Eval model on test
   evaluator = Evaluator(model, test_dataset, verbose=True)
+  print("test_evaluator")
+  print(evaluator.__dict__)
   with tempfile.NamedTemporaryFile() as test_csv_out:
     with tempfile.NamedTemporaryFile() as test_stats_out:
       _, performance_df = evaluator.compute_model_performance(
           test_csv_out, test_stats_out)
-  print("train_performance_df")
+  print("test_performance_df")
   print(performance_df)
   
 def main():
@@ -124,7 +127,8 @@ def main():
                   "nb_epoch": 2, "init": "glorot_uniform",
                   "nb_layers": 1, "batchnorm": False}
 
-  input_file = "../datasets/gbd3k.pkl.gz"
+  input_file = "../datasets/gbd4.pkl.gz"
+  #input_file = "../datasets/gbd3k.pkl.gz"
   smiles_field = "smiles"
   protein_pdb_field = None
   ligand_pdb_field = None
