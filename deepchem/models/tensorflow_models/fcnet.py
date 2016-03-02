@@ -94,13 +94,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     with tf.name_scope(self.placeholder_scope):
       self.mol_features = tf.placeholder(
           tf.float32,
-          shape=[self.model_params.batch_size, self.model_params.num_features],
+          shape=[self.model_params["batch_size"],
+                 self.model_params["num_features"]],
           name='mol_features')
 
-    layer_sizes = self.model_params.layer_sizes
-    weight_init_stddevs = self.model_params.weight_init_stddevs
-    bias_init_consts = self.model_params.bias_init_consts
-    dropouts = self.model_params.dropouts
+    layer_sizes = self.model_params["layer_sizes"]
+    weight_init_stddevs = self.model_params["weight_init_stddevs"]
+    bias_init_consts = self.model_params["bias_init_consts"]
+    dropouts = self.model_params["dropouts"]
     lengths_set = {
         len(layer_sizes),
         len(weight_init_stddevs),
@@ -112,7 +113,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     assert num_layers > 0, 'Must have some layers defined.'
 
     prev_layer = self.mol_features
-    prev_layer_size = self.model_params.num_features
+    prev_layer_size = self.model_params["num_features"]
     for i in xrange(num_layers):
       layer = tf.nn.relu(model_ops.FullyConnectedLayer(
           tensor=prev_layer,
@@ -127,7 +128,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       prev_layer_size = layer_sizes[i]
 
     self.output = model_ops.MultitaskLogits(
-        layer, self.model_params.num_classification_tasks)
+        layer, self.model_params["num_classification_tasks"])
 
   # TODO(rbharath): Copying this out for now. Ensure this isn't harmful
   #def add_labels_and_weights(self):
@@ -186,17 +187,17 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       randomize = False
       num_iterations = 1
 
-    num_tasks = self.model_params.num_classification_tasks
-    tasks_in_input = self.model_params.tasks_in_input
+    num_tasks = self.model_params["num_classification_tasks"]
+    tasks_in_input = self.model_params["tasks_in_input"]
     if input_data_types is None:
       input_data_types = ([legacy_types_pb2.DF_FLOAT] +
                           [legacy_types_pb2.DF_LABEL_PROTO] * tasks_in_input)
     features, labels = input_ops.InputExampleInputReader(
         input_pattern=input_pattern,
-        batch_size=self.model_params.batch_size,
+        batch_size=self.model_params["batch_size"],
         num_tasks=num_tasks,
         input_data_types=input_data_types,
-        num_features=self.model_params.num_features,
+        num_features=self.model_params["num_features"],
         randomize=randomize,
         shuffling=randomize,
         num_iterations=num_iterations)
@@ -214,7 +215,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     """Runs inference on the provided batch of input.
 
     Args:
-      input_batch: iterator of input with len self.model_params.batch_size.
+      input_batch: iterator of input with len self.model_params["batch_size"].
 
     Returns:
       Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
@@ -239,7 +240,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
 
     Args:
       serialized_batch: List of tuples: (_, value) where value is
-          a serialized InputExample proto. Must have self.model_params.batch_size
+          a serialized InputExample proto. Must have self.model_params["batch_size"]
           length or smaller. If smaller, we'll pad up to batch_size
           and mark the padding as invalid so it's ignored in eval metrics.
     Yields:
@@ -248,11 +249,11 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     Raises:
       ValueError: If the batch is larger than the batch_size.
     """
-    if len(serialized_batch) > self.model_params.batch_size:
+    if len(serialized_batch) > self.model_params["batch_size"]:
       raise ValueError(
           'serialized_batch length {} must be <= batch_size {}'.format(
-              len(serialized_batch), self.model_params.batch_size))
-    for _ in xrange(self.model_params.batch_size - len(serialized_batch)):
+              len(serialized_batch), self.model_params["batch_size"]))
+    for _ in xrange(self.model_params["batch_size"] - len(serialized_batch)):
       serialized_batch.append((None, ''))
 
     features = []
@@ -264,19 +265,19 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         features.append([f for f in input_example.endpoint[0].float_value])
         label_protos = [endpoint.label
                         for endpoint in input_example.endpoint[1:]]
-        assert len(label_protos) == self.model_params.num_classification_tasks
+        assert len(label_protos) == self.model_params["num_classification_tasks"]
         labels.append([l.SerializeToString() for l in label_protos])
       else:
         # This was a padded value to reach the batch size.
-        features.append([0.0 for _ in xrange(self.model_params.num_features)])
+        features.append([0.0 for _ in xrange(self.model_params["num_features"])])
         labels.append(
-            ['' for _ in xrange(self.model_params.num_classification_tasks)])
+            ['' for _ in xrange(self.model_params["num_classification_tasks"])])
 
     valid = np.asarray([(np.sum(f) > 0) for f in features])
 
-    assert len(features) == self.model_params.batch_size
-    assert len(labels) == self.model_params.batch_size
-    assert len(valid) == self.model_params.batch_size
+    assert len(features) == self.model_params["batch_size"]
+    assert len(labels) == self.model_params["batch_size"]
+    assert len(valid) == self.model_params["batch_size"]
     yield self._GetFeedDict({
         'mol_features': features,
         'labels': labels,
@@ -345,12 +346,12 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         'bias_init_consts': [0.5],
         'dropouts': [0.0],
     })
-    model_params.ReadFromFile(FLAGS.config,
-                              overwrite='required')
+    #model_params.ReadFromFile(FLAGS.config,
+    #                          overwrite='required')
 
     if FLAGS.replica_id == 0:
       gfile.MakeDirs(FLAGS.logdir)
-      model_params.WriteToFile(os.path.join(FLAGS.logdir, 'config.pbtxt'))
+      #model_params.WriteToFile(os.path.join(FLAGS.logdir, 'config.pbtxt'))
 
 #    model = icml_models.IcmlModel(config,
 #                                  train=True,

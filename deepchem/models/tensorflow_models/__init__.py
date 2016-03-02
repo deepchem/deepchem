@@ -121,12 +121,17 @@ class TensorflowModel(Model):
       with tf.name_scope(self.placeholder_root) as scope:
         self.placeholder_scope = scope
         self.valid = tf.placeholder(tf.bool,
-                                    shape=[model_params.batch_size],
+                                    shape=[model_params["batch_size"]],
                                     name='valid')
 
-    num_classification_tasks = model_params.GetOptionalParam(
-        'num_classification_tasks', 0)
-    num_regression_tasks = model_params.GetOptionalParam('num_regression_tasks', 0)
+    if "num_classification_tasks" in model_params:
+      num_classification_tasks = model_params["num_classification_tasks"]
+    else:
+      num_classification_tasks = 0
+    if "num_regression_tasks" in model_params:
+      num_regression_tasks = model_params["num_regression_tasks"]
+    else:
+      num_regression_tasks = 0
     if num_classification_tasks and num_regression_tasks:
       raise AssertionError(
           'Dual classification/regression models are not supported.')
@@ -184,7 +189,7 @@ class TensorflowModel(Model):
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
         weights.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[self.model_params.batch_size],
+            tf.placeholder(tf.float32, shape=[self.model_params["batch_size"]],
                            name='weights_%d' % task)))
     self.weights = weights
 
@@ -294,7 +299,7 @@ class TensorflowModel(Model):
             # tf.reduce_mean (which can put ops on the CPU) we explicitly
             # calculate with div/sum so it stays on the GPU.
             gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                   model_params.batch_size)
+                                   model_params["batch_size"])
             tf.scalar_summary('cost' + task_str,
                               model_ops.MovingAverage(gradient_cost,
                                                       self.global_step))
@@ -317,7 +322,7 @@ class TensorflowModel(Model):
           old_loss = tf.add_n(old_costs)
 
         # weight decay
-        if model_params.penalty != 0.0:
+        if model_params["penalty"] != 0.0:
           penalty = WeightDecay(model_params)
           loss += penalty
           old_loss += penalty
@@ -414,7 +419,7 @@ class TensorflowModel(Model):
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       # Save an initial checkpoint.
       saver.save(sess, self._save_path, global_step=self.global_step)
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params.batch_size):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
         # Run training op and compute summaries.
         feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
         secs_since_summary = time.time() - last_summary_time
@@ -781,7 +786,7 @@ class TensorflowClassifier(TensorflowModel):
     weighted_costs = super(TensorflowClassifier, self).training_cost()  # calculate loss
     epsilon = 1e-3  # small float to avoid dividing by zero
     model_params = self.model_params
-    num_tasks = model_params.num_classification_tasks
+    num_tasks = model_params["num_classification_tasks"]
     cond_costs = collections.defaultdict(list)
 
     with self._shared_name_scope('costs'):
@@ -791,7 +796,7 @@ class TensorflowClassifier(TensorflowModel):
           with tf.name_scope('conditional'):
             # pos/neg costs: mean over pos/neg examples
             for name, label in [('neg', 0), ('pos', 1)]:
-              cond_weights = self.labels[task][:model_params.batch_size, label]
+              cond_weights = self.labels[task][:model_params["batch_size"], label]
               cond_cost = tf.div(
                   tf.reduce_sum(tf.mul(weighted_costs[task], cond_weights)),
                   tf.reduce_sum(cond_weights) + epsilon)
@@ -821,7 +826,7 @@ class TensorflowClassifier(TensorflowModel):
         with tf.device(num_pos.device):
           tf.get_default_graph().add_to_collection(
               'updates', num_pos.assign_add(
-                  tf.reduce_sum(self.labels[task][:model_params.batch_size, 1])))
+                  tf.reduce_sum(self.labels[task][:model_params["batch_size"], 1])))
         tf.scalar_summary(num_pos.name, num_pos)
 
     return weighted_costs
@@ -862,8 +867,8 @@ class TensorflowClassifier(TensorflowModel):
     feeding and fetching the same tensor.
     """
     model_params = self.model_params
-    batch_size = model_params.batch_size
-    num_classes = model_params.num_classes
+    batch_size = model_params["batch_size"]
+    num_classes = model_params["num_classes"]
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
@@ -889,7 +894,7 @@ class TensorflowClassifier(TensorflowModel):
         task.
     """
     y_true, y_pred = [], []
-    for task in xrange(self.model_params.num_classification_tasks):
+    for task in xrange(self.model_params["num_classification_tasks"]):
       # mask examples with zero weight
       mask = weights[:, task] > 0
       # get true class labels
@@ -950,7 +955,7 @@ class TensorflowRegressor(TensorflowModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    batch_size = self.model_params.batch_size
+    batch_size = self.model_params["batch_size"]
     labels = []
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
@@ -977,7 +982,7 @@ class TensorflowRegressor(TensorflowModel):
     """
     # build arrays of true and predicted values for R-squared calculation
     y_true, y_pred = [], []
-    for task in xrange(self.model_params.num_regression_tasks):
+    for task in xrange(self.model_params["num_regression_tasks"]):
       mask = weights[:, task] > 0  # ignore examples with zero weight
       y_true.append(labels[mask, task])
       y_pred.append(output[mask, task])
@@ -997,20 +1002,20 @@ def Optimizer(model_params):
     NotImplementedError: If an unsupported optimizer is requested.
   """
   # TODO(user): gradient clipping (see Minimize)
-  if model_params.optimizer == 'adagrad':
-    train_op = tf.train.AdagradOptimizer(model_params.learning_rate)
-  elif model_params.optimizer == 'adam':
-    train_op = tf.train.AdamOptimizer(model_params.learning_rate)
-  elif model_params.optimizer == 'momentum':
-    train_op = tf.train.MomentumOptimizer(model_params.learning_rate,
-                                          model_params.memory)
-  elif model_params.optimizer == 'rmsprop':
-    train_op = tf.train.RMSPropOptimizer(model_params.learning_rate,
-                                         model_params.memory)
-  elif model_params.optimizer == 'sgd':
-    train_op = tf.train.GradientDescentOptimizer(model_params.learning_rate)
+  if model_params["optimizer"] == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'adam':
+    train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'momentum':
+    train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
+                                          model_params["memory"])
+  elif model_params["optimizer"] == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
+                                         model_params["memory"])
+  elif model_params["optimizer"] == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
   else:
-    raise NotImplementedError('Unsupported optimizer %s' % model_params.optimizer)
+    raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
   return train_op
 
 
@@ -1033,13 +1038,13 @@ def WeightDecay(model_params):
       variables.append(v)
 
   with tf.name_scope('weight_decay'):
-    if model_params.penalty_type == 'l1':
+    if model_params["penalty_type"] == 'l1':
       cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
-    elif model_params.penalty_type == 'l2':
+    elif model_params["penalty_type"] == 'l2':
       cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
     else:
       raise NotImplementedError('Unsupported penalty_type %s' %
-                                model_params.penalty_type)
-    cost *= model_params.penalty
+                                model_params["penalty_type"])
+    cost *= model_params["penalty"]
     tf.scalar_summary('Weight Decay Cost', cost)
   return cost
