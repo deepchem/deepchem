@@ -42,21 +42,31 @@ class TestAPI(unittest.TestCase):
     self.samples_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
-    self.model_dir = tempfile.mkdtemp()
+    #self.model_dir = tempfile.mkdtemp()
+    self.model_dir = "/home/rbharath/model_dir" 
+    if not os.path.exists(self.model_dir):
+      os.makedirs(self.model_dir)
 
   def tearDown(self):
     shutil.rmtree(self.feature_dir)
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)
     shutil.rmtree(self.test_dir)
-    shutil.rmtree(self.model_dir)
+    #shutil.rmtree(self.model_dir)
 
-  def _create_model(self, train_dataset, test_dataset, model, transformers):
+  def _create_model(self, train_dataset, test_dataset, model, transformers,
+                    test_model_creator=None):
     """Helper method to create model for test."""
 
-    # Fit model
+    # Fit trained model
     model.fit(train_dataset)
     model.save(self.model_dir)
+
+    # Now create test model
+    if test_model_creator is not None:
+      test_model = test_model_creator()
+      test_model.load(self.model_dir)
+      model = test_model
 
     # Eval model on train
     evaluator = Evaluator(model, train_dataset, transformers, verbose=True)
@@ -383,8 +393,10 @@ class TestAPI(unittest.TestCase):
       "learning_rate": .001,
       "data_shape": train_dataset.get_data_shape()
     }
-    train = True
-    logdir = self.model_dir
     model = TensorflowMultiTaskClassifier(
-        task_types, model_params, train, logdir)
-    self._create_model(train_dataset, test_dataset, model, transformers)
+        task_types, model_params, train=True, logdir=self.model_dir)
+    def test_model_creator():
+      return TensorflowMultiTaskClassifier(
+          task_types, model_params, train=False, logdir=self.model_dir)
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       test_model_creator=test_model_creator)

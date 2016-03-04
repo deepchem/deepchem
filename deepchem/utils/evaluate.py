@@ -92,18 +92,16 @@ class Evaluator(object):
     performance_df = pd.DataFrame(columns=colnames)
 
     for i, task_name in enumerate(self.task_names):
+      print("task_name")
+      print(task_name)
+      print("pred_y_df.keys()")
+      print(pred_y_df.keys())
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       if threshold is not None:
         # TODO(rbharath): This is a hack. More structured approach?
         y = pred_y_df[task_name+"_raw"].values
-        #print("y")
-        #print(y)
-        #print("y_pred_orig")
-        #print(y_pred)
         y_pred = threshold_predictions(y_pred, threshold)
-        #print("y_pred")
-        #print(y_pred)
       w = pred_y_df["%s_weight" % task_name].values
 
       if task_type == "classification":

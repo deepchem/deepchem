@@ -91,44 +91,45 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
-    with tf.name_scope(self.placeholder_scope):
-      self.mol_features = tf.placeholder(
-          tf.float32,
-          shape=[self.model_params["batch_size"],
-                 self.model_params["num_features"]],
-          name='mol_features')
+    with self.graph.as_default():
+      with tf.name_scope(self.placeholder_scope):
+        self.mol_features = tf.placeholder(
+            tf.float32,
+            shape=[self.model_params["batch_size"],
+                   self.model_params["num_features"]],
+            name='mol_features')
 
-    layer_sizes = self.model_params["layer_sizes"]
-    weight_init_stddevs = self.model_params["weight_init_stddevs"]
-    bias_init_consts = self.model_params["bias_init_consts"]
-    dropouts = self.model_params["dropouts"]
-    lengths_set = {
-        len(layer_sizes),
-        len(weight_init_stddevs),
-        len(bias_init_consts),
-        len(dropouts),
-        }
-    assert len(lengths_set) == 1, 'All layer params must have same length.'
-    num_layers = lengths_set.pop()
-    assert num_layers > 0, 'Must have some layers defined.'
+      layer_sizes = self.model_params["layer_sizes"]
+      weight_init_stddevs = self.model_params["weight_init_stddevs"]
+      bias_init_consts = self.model_params["bias_init_consts"]
+      dropouts = self.model_params["dropouts"]
+      lengths_set = {
+          len(layer_sizes),
+          len(weight_init_stddevs),
+          len(bias_init_consts),
+          len(dropouts),
+          }
+      assert len(lengths_set) == 1, 'All layer params must have same length.'
+      num_layers = lengths_set.pop()
+      assert num_layers > 0, 'Must have some layers defined.'
 
-    prev_layer = self.mol_features
-    prev_layer_size = self.model_params["num_features"]
-    for i in xrange(num_layers):
-      layer = tf.nn.relu(model_ops.FullyConnectedLayer(
-          tensor=prev_layer,
-          size=layer_sizes[i],
-          weight_init=tf.truncated_normal(
-              shape=[prev_layer_size, layer_sizes[i]],
-              stddev=weight_init_stddevs[i]),
-          bias_init=tf.constant(value=bias_init_consts[i],
-                                shape=[layer_sizes[i]])))
-      layer = model_ops.Dropout(layer, dropouts[i])
-      prev_layer = layer
-      prev_layer_size = layer_sizes[i]
+      prev_layer = self.mol_features
+      prev_layer_size = self.model_params["num_features"]
+      for i in xrange(num_layers):
+        layer = tf.nn.relu(model_ops.FullyConnectedLayer(
+            tensor=prev_layer,
+            size=layer_sizes[i],
+            weight_init=tf.truncated_normal(
+                shape=[prev_layer_size, layer_sizes[i]],
+                stddev=weight_init_stddevs[i]),
+            bias_init=tf.constant(value=bias_init_consts[i],
+                                  shape=[layer_sizes[i]])))
+        layer = model_ops.Dropout(layer, dropouts[i])
+        prev_layer = layer
+        prev_layer_size = layer_sizes[i]
 
-    self.output = model_ops.MultitaskLogits(
-        layer, self.model_params["num_classification_tasks"])
+      self.output = model_ops.MultitaskLogits(
+          layer, self.model_params["num_classification_tasks"])
 
   # TODO(rbharath): Copying this out for now. Ensure this isn't harmful
   #def add_labels_and_weights(self):
@@ -156,11 +157,20 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       w_b: np.ndarray of shape (batch_size, num_tasks)
       ids_b: List of length (batch_size) with datapoint identifiers.
     """ 
-    feed_dict = {}
-    feed_dict[self.mol_features] = X_b
+    orig_dict = {}
+    orig_dict["mol_features"] = X_b
     for task in xrange(self.num_tasks):
-      feed_dict[self.labels[task]] = to_one_hot(y_b[:, task])
-      feed_dict[self.weights[task]] = w_b[:, task]
+      orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
+      orig_dict["weights_%d" % task] = w_b[:, task]
+    orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
+    return self._get_feed_dict(orig_dict)
+
+  # TODO(rbharath): This explicit manipulation of scopes is ugly. Is there a
+  # better design here?
+  def _get_feed_dict(self, named_values):
+    feed_dict = {}
+    for name, value in named_values.iteritems():
+      feed_dict['{}/{}:0'.format(self.placeholder_root, name)] = value
     return feed_dict
 
   def ReadInput(self, input_pattern, input_data_types=None):

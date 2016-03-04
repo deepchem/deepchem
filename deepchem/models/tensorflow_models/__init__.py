@@ -52,8 +52,6 @@ class TensorflowModel(Model):
     add_output_ops
     build
     Eval
-    read_input / _read_input_generator
-    BatchInputGenerator (if you want to use mr_eval/EvalBatch)
     training_cost 
 
   Subclasses must set the following attributes:
@@ -93,14 +91,14 @@ class TensorflowModel(Model):
   def __init__(self,
                task_types,
                model_params,
-               train,
-               logdir,
+               train=False,
+               logdir=None,
                graph=None,
                summary_writer=None):
     self.model_params = model_params 
     self.graph = graph if graph is not None else tf.Graph()
     self.logdir = logdir
-
+    
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
@@ -117,12 +115,16 @@ class TensorflowModel(Model):
     self._name_scopes = {}
 
     with self.graph.as_default():
+      model_ops.set_training(train)
       self.placeholder_root = 'placeholders'
       with tf.name_scope(self.placeholder_root) as scope:
         self.placeholder_scope = scope
         self.valid = tf.placeholder(tf.bool,
                                     shape=[model_params["batch_size"]],
                                     name='valid')
+      print("TensorflowModel.__init__")
+      print("self.valid")
+      print(self.valid)
 
     if "num_classification_tasks" in model_params:
       num_classification_tasks = model_params["num_classification_tasks"]
@@ -192,6 +194,9 @@ class TensorflowModel(Model):
             tf.placeholder(tf.float32, shape=[self.model_params["batch_size"]],
                            name='weights_%d' % task)))
     self.weights = weights
+    print("TensorflowClassiifer.add_weight_placeholders")
+    print("self.weights")
+    print(self.weights)
 
   def add_labels_and_weights(self):
     """Add Placeholders for labels and weights.
@@ -209,41 +214,6 @@ class TensorflowModel(Model):
     self.add_label_placeholders()
     self.add_weight_placeholders()
 
-  def read_input(self, input_pattern):
-    """Read input data and return a generator for minibatches.
-
-    Args:
-      input_pattern: Input file pattern.
-
-    Returns:
-      A generator that yields a dict for feeding a single batch to Placeholders
-      in the graph.
-
-    Raises:
-      NotImplementedError: if not overridden by concrete subclass.
-    """
-    raise NotImplementedError('Must be overridden by concrete subclass')
-
-  def _read_input_generator(self, names, tensors):
-    """Generator that constructs feed_dict for minibatches.
-
-    read_input cannot be a generator because any reading ops will not be added to
-    the graph until .next() is called (which is too late). Instead, read_input
-    should perform any necessary graph construction and then return this
-    generator.
-
-    Args:
-      names: A list of tensor names.
-      tensors: A list of tensors to evaluate.
-
-    Yields:
-      A dict for feeding a single batch to Placeholders in the graph.
-
-    Raises:
-      NotImplementedError: if not overridden by concrete subclass.
-    """
-    raise NotImplementedError('Must be overridden by concrete subclass')
-
   def _shared_name_scope(self, name):
     """Returns a singleton TensorFlow scope with the given name.
 
@@ -255,8 +225,9 @@ class TensorflowModel(Model):
       tf.name_scope with the provided name.
     """
     if name not in self._name_scopes:
-      with tf.name_scope(name) as scope:
-        self._name_scopes[name] = scope
+      with self.graph.as_default():
+        with tf.name_scope(name) as scope:
+          self._name_scopes[name] = scope
 
     return tf.name_scope(self._name_scopes[name])
 
@@ -277,81 +248,84 @@ class TensorflowModel(Model):
     raise NotImplementedError('Must be overridden by concrete subclass')
 
   def training_cost(self):
-    self.RequireAttributes(['output', 'labels', 'weights'])
-    epsilon = 1e-3  # small float to avoid dividing by zero
-    model_params = self.model_params
-    weighted_costs = []  # weighted costs for each example
-    gradient_costs = []  # costs used for gradient calculation
-    old_costs = []  # old-style cost
+    with self.graph.as_default():
+      self.require_attributes(['output', 'labels', 'weights'])
+      epsilon = 1e-3  # small float to avoid dividing by zero
+      model_params = self.model_params
+      weighted_costs = []  # weighted costs for each example
+      gradient_costs = []  # costs used for gradient calculation
+      old_costs = []  # old-style cost
 
-    with self._shared_name_scope('costs'):
-      for task in xrange(self.num_tasks):
-        task_str = str(task).zfill(len(str(self.num_tasks)))
-        with self._shared_name_scope('cost_{}'.format(task_str)):
-          with tf.name_scope('weighted'):
-            weighted_cost = self.cost(self.output[task], self.labels[task],
-                                      self.weights[task])
-            weighted_costs.append(weighted_cost)
+      with self._shared_name_scope('costs'):
+        for task in xrange(self.num_tasks):
+          task_str = str(task).zfill(len(str(self.num_tasks)))
+          with self._shared_name_scope('cost_{}'.format(task_str)):
+            with tf.name_scope('weighted'):
+              weighted_cost = self.cost(self.output[task], self.labels[task],
+                                        self.weights[task])
+              weighted_costs.append(weighted_cost)
 
+            with tf.name_scope('gradient'):
+              # Note that we divide by the batch size and not the number of
+              # non-zero weight examples in the batch.  Also, instead of using
+              # tf.reduce_mean (which can put ops on the CPU) we explicitly
+              # calculate with div/sum so it stays on the GPU.
+              gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
+                                     model_params["batch_size"])
+              tf.scalar_summary('cost' + task_str,
+                                model_ops.MovingAverage(gradient_cost,
+                                                        self.global_step))
+              gradient_costs.append(gradient_cost)
+
+            with tf.name_scope('old_cost'):
+              old_cost = tf.div(
+                  tf.reduce_sum(weighted_cost),
+                  tf.reduce_sum(self.weights[task]) + epsilon)
+              tf.scalar_summary('old-cost' + task_str,
+                                model_ops.MovingAverage(old_cost,
+                                                        self.global_step))
+              old_costs.append(old_cost)
+
+        # aggregated costs
+        with self._shared_name_scope('aggregated'):
           with tf.name_scope('gradient'):
-            # Note that we divide by the batch size and not the number of
-            # non-zero weight examples in the batch.  Also, instead of using
-            # tf.reduce_mean (which can put ops on the CPU) we explicitly
-            # calculate with div/sum so it stays on the GPU.
-            gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                   model_params["batch_size"])
-            tf.scalar_summary('cost' + task_str,
-                              model_ops.MovingAverage(gradient_cost,
-                                                      self.global_step))
-            gradient_costs.append(gradient_cost)
-
+            loss = tf.add_n(gradient_costs)
           with tf.name_scope('old_cost'):
-            old_cost = tf.div(
-                tf.reduce_sum(weighted_cost),
-                tf.reduce_sum(self.weights[task]) + epsilon)
-            tf.scalar_summary('old-cost' + task_str,
-                              model_ops.MovingAverage(old_cost,
-                                                      self.global_step))
-            old_costs.append(old_cost)
+            old_loss = tf.add_n(old_costs)
 
-      # aggregated costs
-      with self._shared_name_scope('aggregated'):
-        with tf.name_scope('gradient'):
-          loss = tf.add_n(gradient_costs)
-        with tf.name_scope('old_cost'):
-          old_loss = tf.add_n(old_costs)
+          # weight decay
+          if model_params["penalty"] != 0.0:
+            penalty = WeightDecay(model_params)
+            loss += penalty
+            old_loss += penalty
 
-        # weight decay
-        if model_params["penalty"] != 0.0:
-          penalty = WeightDecay(model_params)
-          loss += penalty
-          old_loss += penalty
+        # loss used for gradient calculation
+        self.loss = loss
 
-      # loss used for gradient calculation
-      self.loss = loss
+        # (smoothed) summaries
+        tf.scalar_summary('Total Cost',
+                          model_ops.MovingAverage(loss, self.global_step))
+        tf.scalar_summary('Total Old-Style Cost',
+                          model_ops.MovingAverage(old_loss, self.global_step))
 
-      # (smoothed) summaries
-      tf.scalar_summary('Total Cost',
-                        model_ops.MovingAverage(loss, self.global_step))
-      tf.scalar_summary('Total Old-Style Cost',
-                        model_ops.MovingAverage(old_loss, self.global_step))
-
-    return weighted_costs
+      return weighted_costs
 
   def setup(self):
     """Add ops common to training/eval to the graph."""
-    with tf.name_scope('core_model'):
-      self.build()
-    self.add_labels_and_weights()
-    self.global_step = tf.Variable(0, name='global_step', trainable=False)
+    with self.graph.as_default():
+      with tf.name_scope('core_model'):
+        self.build()
+      self.add_labels_and_weights()
+      self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
-  def MergeUpdates(self):
+  def merge_updates(self):
     """Group updates into a single op."""
-    updates = tf.get_default_graph().get_collection('updates')
-    if updates:
-      self.updates = tf.group(*updates, name='updates')
-    else:
-      self.updates = tf.no_op(name='updates')
+    with self.graph.as_default():
+      updates = tf.get_default_graph().get_collection('updates')
+      if updates:
+        self.updates = tf.group(*updates, name='updates')
+      else:
+        self.updates = tf.no_op(name='updates')
 
   def get_training_op(self):
     """Get training op for applying gradients to variables.
@@ -371,7 +345,8 @@ class TensorflowModel(Model):
     Returns:
     A summary op.
     """
-    return tf.merge_all_summaries()
+    with self.graph.as_default():
+      return tf.merge_all_summaries()
 
 
   def fit(self,
@@ -397,53 +372,53 @@ class TensorflowModel(Model):
     Raises:
       AssertionError: If model is not in training mode.
     """
-    model_ops.SetTraining(True)
-    #assert model_ops.IsTraining()
-    self.setup()
-    self.training_cost()
-    self.MergeUpdates()
-    self.RequireAttributes(['loss', 'global_step', 'updates'])
-    if summaries:
-      self.AddSummaries()
-    train_op = self.get_training_op()
-    summary_op = self.get_summary_op()
-    no_op = tf.no_op()
-    # TODO(rbharath): This should probably be uncommented!
-    #tf.train.write_graph(
-    #    tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
-    self.summary_writer.add_graph(tf.get_default_graph().as_graph_def())
-    last_checkpoint_time = time.time()
-    last_summary_time = time.time()
-    with self._get_shared_session() as sess:
-      sess.run(tf.initialize_all_variables())
-      saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-      # Save an initial checkpoint.
-      saver.save(sess, self._save_path, global_step=self.global_step)
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
-        # Run training op and compute summaries.
-        feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-        secs_since_summary = time.time() - last_summary_time
-        if secs_since_summary > save_summary_secs:
-          this_summary_op = summary_op
-        else:
-          this_summary_op = no_op
-        step, loss, _, summary = sess.run(
-            [train_op.values()[0], self.loss, self.updates, this_summary_op],
-            feed_dict=feed_dict)
-        if summary is not None:
-          self.summary_writer.add_summary(summary, global_step=step)
-          last_summary_time = time.time()
-        # Save model checkpoints.
-        secs_since_checkpoint = time.time() - last_checkpoint_time
-        if secs_since_checkpoint > save_model_secs:
-          logging.info('step %d: %g', step, loss)
-          saver.save(sess, self._save_path, global_step=self.global_step)
-          last_checkpoint_time = time.time()
-        # Quit when we reach max_steps.
-        if max_steps is not None and step >= max_steps:
-          break
-      # Always save a final checkpoint when complete.
-      saver.save(sess, self._save_path, global_step=self.global_step)
+    with self.graph.as_default():
+      assert model_ops.is_training()
+      self.setup()
+      self.training_cost()
+      self.merge_updates()
+      self.require_attributes(['loss', 'global_step', 'updates'])
+      if summaries:
+        self.add_summaries()
+      train_op = self.get_training_op()
+      summary_op = self.get_summary_op()
+      no_op = tf.no_op()
+      # TODO(rbharath): This should probably be uncommented!
+      tf.train.write_graph(
+          tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
+      self.summary_writer.add_graph(tf.get_default_graph().as_graph_def())
+      last_checkpoint_time = time.time()
+      last_summary_time = time.time()
+      with self._get_shared_session() as sess:
+        sess.run(tf.initialize_all_variables())
+        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        # Save an initial checkpoint.
+        saver.save(sess, self._save_path, global_step=self.global_step)
+        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
+          # Run training op and compute summaries.
+          feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+          secs_since_summary = time.time() - last_summary_time
+          if secs_since_summary > save_summary_secs:
+            this_summary_op = summary_op
+          else:
+            this_summary_op = no_op
+          step, loss, _, summary = sess.run(
+              [train_op.values()[0], self.loss, self.updates, this_summary_op],
+              feed_dict=feed_dict)
+          if summary is not None:
+            self.summary_writer.add_summary(summary, global_step=step)
+            last_summary_time = time.time()
+          # Save model checkpoints.
+          secs_since_checkpoint = time.time() - last_checkpoint_time
+          if secs_since_checkpoint > save_model_secs:
+            logging.info('step %d: %g', step, loss)
+            saver.save(sess, self._save_path, global_step=self.global_step)
+            last_checkpoint_time = time.time()
+          # Quit when we reach max_steps.
+          if max_steps is not None and step >= max_steps:
+            break
+        # Always save a final checkpoint when complete.
+        saver.save(sess, self._save_path, global_step=self.global_step)
 
   def save(self, out_dir):
     """
@@ -477,27 +452,30 @@ class TensorflowModel(Model):
     Args:
       checkpoint: string. Path to checkpoint file.
     """
-    if self._restored_model:
-      return
-
     with self.graph.as_default():
+      if self._restored_model:
+        return
+
       self.setup()
       self.add_output_ops()  # add softmax heads
-      saver = tf.train.Saver(tf.variables.all_variables())
+      #saver = tf.train.Saver(tf.variables.all_variables())
+      saver = tf.train.Saver()
       saver.restore(self._get_shared_session(),
                     tf_utils.ParseCheckpoint(checkpoint))
       self.global_step_number = int(self._get_shared_session().run(self.global_step))
 
-    self._restored_model = True
+      self._restored_model = True
 
   def load(self, model_dir):
     """
     Loads model from disk. Thin wrapper around restore() for consistency.
     """
-    if model_dir != self.logdir:
-      raise ValueError("Cannot load from directory that is not logdir.")
-    last_checkpoint = self._find_last_checkpoint()
-    self.restore(last_checkpoint)
+    with self.graph.as_default():
+      assert not model_ops.is_training()
+      if model_dir != self.logdir:
+        raise ValueError("Cannot load from directory that is not logdir.")
+      last_checkpoint = self._find_last_checkpoint()
+      self.restore(last_checkpoint)
 
   def _find_last_checkpoint(self):
     """Finds last saved checkpoint."""
@@ -505,14 +483,16 @@ class TensorflowModel(Model):
     for filename in os.listdir(self.logdir):
       # checkpoints look like logdir/model.ckpt-N
       # self._save_path is "logdir/model.ckpt"
-      if self._save_path in filename:
-        N = int(filename.split("-")[-1])
-        if N > highest_num:
-          highest_num = N
-          last_checkpoint = filename
-    return last_checkpoint
+      if os.path.basename(self._save_path) in filename:
+        try:
+          N = int(filename.split("-")[-1])
+          if N > highest_num:
+            highest_num = N
+            last_checkpoint = filename
+        except ValueError:
+          pass
+    return os.path.join(self.logdir, last_checkpoint)
           
-        
 
   def Eval(self, input_generator, checkpoint, metrics=None):
     """Evaluate the model.
@@ -530,7 +510,7 @@ class TensorflowModel(Model):
         values for each task.
     """
     self.Restore(checkpoint)
-    output, labels, weights = self.ModelOutput(input_generator)
+    output, labels, weights = self.get_model_output(input_generator)
     y_true, y_pred = self.ParseModelOutput(output, labels, weights)
 
     # keep counts for each class as a sanity check
@@ -574,29 +554,13 @@ class TensorflowModel(Model):
       computed_metrics.append(metric_value)
     return computed_metrics
 
-  def EvalBatch(self, input_batch):
-    """Runs inference on the provided batch of input.
-
-    Args:
-      input_batch: iterator of input with len self.model_params.batch_size.
-
-    Returns:
-      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
-        output: Model predictions.
-        labels: True labels.
-        weights: Example weights.
-    """
-    with self.graph.as_default():
-      return self.ModelOutput(self.BatchInputGenerator(input_batch))
-
-  def ModelOutput(self, input_generator):
+  def predict(self, dataset, transformers):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
 
     Args:
-      input_generator: Generator that returns a feed_dict for feeding
-        Placeholders in the model graph.
+      dataset: deepchem.datasets.dataset object.
 
     Returns:
       Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
@@ -610,71 +574,76 @@ class TensorflowModel(Model):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    assert not model_ops.IsTraining()
-    assert self._restored_model
-    self.RequireAttributes(['output', 'labels', 'weights'])
+    with self.graph.as_default():
+      assert not model_ops.is_training()
+      assert self._restored_model
+      self.require_attributes(['output', 'labels', 'weights'])
 
-    # run eval data through the model
-    num_tasks = self.num_tasks
-    output, labels, weights = [], [], []
-    start = time.time()
-    with self._get_shared_session().as_default():
-      batches_per_summary = 1000
-      seconds_per_summary = 0
-      batch_count = -1.0
-      for feed_dict in input_generator:
-        batch_start = time.time()
-        batch_count += 1
-        data = self._get_shared_session().run(
-            self.output + self.labels + self.weights,
-            feed_dict=feed_dict)
-        batch_output = np.asarray(data[:num_tasks], dtype=float)
-        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
-        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
-                                   dtype=float)
-        # reshape to batch_size x num_tasks x ...
-        if batch_output.ndim == 3 and batch_labels.ndim == 3:
-          batch_output = batch_output.transpose((1, 0, 2))
-          batch_labels = batch_labels.transpose((1, 0, 2))
-        elif batch_output.ndim == 2 and batch_labels.ndim == 2:
-          batch_output = batch_output.transpose((1, 0))
-          batch_labels = batch_labels.transpose((1, 0))
-        else:
-          raise ValueError(
-              'Unrecognized rank combination for output and labels: %s %s' %
-              (batch_output.shape, batch_labels.shape))
-        batch_weights = batch_weights.transpose((1, 0))
-        valid = feed_dict[self.valid.name]
-        # only take valid outputs
-        if np.count_nonzero(~valid):
-          batch_output = batch_output[valid]
-          batch_labels = batch_labels[valid]
-          batch_weights = batch_weights[valid]
-        output.append(batch_output)
-        labels.append(batch_labels)
-        weights.append(batch_weights)
+      # run eval data through the model
+      num_tasks = self.num_tasks
+      output, labels, weights = [], [], []
+      start = time.time()
+      with self._get_shared_session().as_default():
+        batches_per_summary = 1000
+        seconds_per_summary = 0
+        batch_count = -1.0
+        #for feed_dict in input_generator:
+        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
+          feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+          batch_start = time.time()
+          batch_count += 1
+          data = self._get_shared_session().run(
+              self.output + self.labels + self.weights,
+              feed_dict=feed_dict)
+          batch_output = np.asarray(data[:num_tasks], dtype=float)
+          batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
+          batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
+                                     dtype=float)
+          # reshape to batch_size x num_tasks x ...
+          if batch_output.ndim == 3 and batch_labels.ndim == 3:
+            batch_output = batch_output.transpose((1, 0, 2))
+            batch_labels = batch_labels.transpose((1, 0, 2))
+          elif batch_output.ndim == 2 and batch_labels.ndim == 2:
+            batch_output = batch_output.transpose((1, 0))
+            batch_labels = batch_labels.transpose((1, 0))
+          else:
+            raise ValueError(
+                'Unrecognized rank combination for output and labels: %s %s' %
+                (batch_output.shape, batch_labels.shape))
+          batch_weights = batch_weights.transpose((1, 0))
+          valid = feed_dict[self.valid.name]
+          print("valid")
+          print(valid)
+          # only take valid outputs
+          if np.count_nonzero(~valid):
+            batch_output = batch_output[valid]
+            batch_labels = batch_labels[valid]
+            batch_weights = batch_weights[valid]
+          output.append(batch_output)
+          labels.append(batch_labels)
+          weights.append(batch_weights)
 
-        # Writes summary for tracking eval progress.
-        seconds_per_summary += (time.time() - batch_start)
-        self.RequireAttributes(['summary_writer'])
-        if batch_count % batches_per_summary == 0:
-          mean_seconds_per_batch = seconds_per_summary / batches_per_summary
-          seconds_per_summary = 0
-          summaries = [
-              tf.scalar_summary('secs/batch', mean_seconds_per_batch),
-              tf.scalar_summary('batches_evaluated', batch_count)
-          ]
-          self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
-                                          global_step=self.global_step_number)
-          self.summary_writer.flush()
+          # Writes summary for tracking eval progress.
+          seconds_per_summary += (time.time() - batch_start)
+          self.require_attributes(['summary_writer'])
+          if batch_count % batches_per_summary == 0:
+            mean_seconds_per_batch = seconds_per_summary / batches_per_summary
+            seconds_per_summary = 0
+            summaries = [
+                tf.scalar_summary('secs/batch', mean_seconds_per_batch),
+                tf.scalar_summary('batches_evaluated', batch_count)
+            ]
+            self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
+                                            global_step=self.global_step_number)
+            self.summary_writer.flush()
 
-      logging.info('Eval took %g seconds', time.time() - start)
+        logging.info('Eval took %g seconds', time.time() - start)
 
-      output = np.concatenate(output)
-      labels = np.concatenate(labels)
-      weights = np.concatenate(weights)
+        output = np.concatenate(output)
+        labels = np.concatenate(labels)
+        weights = np.concatenate(weights)
 
-    return output, labels, weights
+      return output, labels, weights
 
   def ReportEval(self, metrics, global_step, counts=None, name=None):
     """Write Eval summaries.
@@ -687,43 +656,44 @@ class TensorflowModel(Model):
       name: String name for this group of metrics. Useful for organizing
         metrics calculated using different subsets of the data.
     """
-    # create a DataFrame to hold results
-    data = dict()
-    if counts is not None:
-      data.update({'count_%s' % group: values
-                   for group, values in counts.iteritems()})
-    data.update(metrics)
-    df = pd.DataFrame(data)
-    print('Eval at step: %d' % global_step)
-    print(df)
-    # add global step to df
-    df['step'] = global_step
+    with self.graph.as_default():
+      # create a DataFrame to hold results
+      data = dict()
+      if counts is not None:
+        data.update({'count_%s' % group: values
+                     for group, values in counts.iteritems()})
+      data.update(metrics)
+      df = pd.DataFrame(data)
+      print('Eval at step: %d' % global_step)
+      print(df)
+      # add global step to df
+      df['step'] = global_step
 
-    # save an update to disk
-    filename = os.path.join(self.logdir, 'eval-%d.pkl' % global_step)
-    with open(filename, 'w') as f:
-      pickle.dump(df, f, pickle.HIGHEST_PROTOCOL)
+      # save an update to disk
+      filename = os.path.join(self.logdir, 'eval-%d.pkl' % global_step)
+      with open(filename, 'w') as f:
+        pickle.dump(df, f, pickle.HIGHEST_PROTOCOL)
 
-    # write a summary for each metric
-    self.RequireAttributes(['summary_writer'])
-    with tf.Session(self.master):
-      summaries = []
-      prefix = '' if name is None else '%s - ' % name
-      for metric_name, results in metrics.iteritems():
-        for task in xrange(self.num_tasks):
-          task_str = str(task).zfill(len(str(self.num_tasks)))
-          summaries.append(
-              tf.scalar_summary('%s%s_%s' % (prefix, metric_name, task_str),
-                                results[task]))
-        summaries.append(tf.scalar_summary(
-            '%sMean %s' % (prefix, metric_name), np.mean(results)))
-        summaries.append(tf.scalar_summary(
-            '%sMedian %s' % (prefix, metric_name), np.median(results)))
-      self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
-                                      global_step=global_step)
-      self.summary_writer.flush()
+      # write a summary for each metric
+      self.require_attributes(['summary_writer'])
+      with tf.Session(self.master):
+        summaries = []
+        prefix = '' if name is None else '%s - ' % name
+        for metric_name, results in metrics.iteritems():
+          for task in xrange(self.num_tasks):
+            task_str = str(task).zfill(len(str(self.num_tasks)))
+            summaries.append(
+                tf.scalar_summary('%s%s_%s' % (prefix, metric_name, task_str),
+                                  results[task]))
+          summaries.append(tf.scalar_summary(
+              '%sMean %s' % (prefix, metric_name), np.mean(results)))
+          summaries.append(tf.scalar_summary(
+              '%sMedian %s' % (prefix, metric_name), np.median(results)))
+        self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
+                                        global_step=global_step)
+        self.summary_writer.flush()
 
-  def RequireAttributes(self, attrs):
+  def require_attributes(self, attrs):
     """Require class attributes to be defined.
 
     Args:
@@ -737,12 +707,13 @@ class TensorflowModel(Model):
         raise AssertionError(
             'self.%s must be defined by a concrete subclass' % attr)
 
-  def AddSummaries(self):
+  def add_summaries(self):
     """Add summaries for model parameters."""
-    for var in tf.trainable_variables():
-      if 'BatchNormalize' in var.name:
-        continue
-      tf.histogram_summary(var.name, var)
+    with self.graph.as_default():
+      for var in tf.trainable_variables():
+        if 'BatchNormalize' in var.name:
+          continue
+        tf.histogram_summary(var.name, var)
 
 
 class TensorflowClassifier(TensorflowModel):
@@ -759,7 +730,7 @@ class TensorflowClassifier(TensorflowModel):
   default_metrics = ['auc']
 
   def get_task_type(self):
-    return "classifier"
+    return "classification"
 
   def cost(self, logits, labels, weights):
     """Calculate single-task training cost for a batch of examples.
@@ -783,62 +754,64 @@ class TensorflowClassifier(TensorflowModel):
     Returns:
       A list of tensors with shape batch_size containing costs for each task.
     """
-    weighted_costs = super(TensorflowClassifier, self).training_cost()  # calculate loss
-    epsilon = 1e-3  # small float to avoid dividing by zero
-    model_params = self.model_params
-    num_tasks = model_params["num_classification_tasks"]
-    cond_costs = collections.defaultdict(list)
+    with self.graph.as_default():
+      weighted_costs = super(TensorflowClassifier, self).training_cost()  # calculate loss
+      epsilon = 1e-3  # small float to avoid dividing by zero
+      model_params = self.model_params
+      num_tasks = model_params["num_classification_tasks"]
+      cond_costs = collections.defaultdict(list)
 
-    with self._shared_name_scope('costs'):
-      for task in xrange(num_tasks):
-        task_str = str(task).zfill(len(str(num_tasks)))
-        with self._shared_name_scope('cost_{}'.format(task_str)):
-          with tf.name_scope('conditional'):
-            # pos/neg costs: mean over pos/neg examples
-            for name, label in [('neg', 0), ('pos', 1)]:
-              cond_weights = self.labels[task][:model_params["batch_size"], label]
-              cond_cost = tf.div(
-                  tf.reduce_sum(tf.mul(weighted_costs[task], cond_weights)),
-                  tf.reduce_sum(cond_weights) + epsilon)
-              tf.scalar_summary('%s_%s' % (name, task_str),
-                                model_ops.MovingAverage(cond_cost,
-                                                        self.global_step))
-              cond_costs[name].append(cond_cost)
+      with self._shared_name_scope('costs'):
+        for task in xrange(num_tasks):
+          task_str = str(task).zfill(len(str(num_tasks)))
+          with self._shared_name_scope('cost_{}'.format(task_str)):
+            with tf.name_scope('conditional'):
+              # pos/neg costs: mean over pos/neg examples
+              for name, label in [('neg', 0), ('pos', 1)]:
+                cond_weights = self.labels[task][:model_params["batch_size"], label]
+                cond_cost = tf.div(
+                    tf.reduce_sum(tf.mul(weighted_costs[task], cond_weights)),
+                    tf.reduce_sum(cond_weights) + epsilon)
+                tf.scalar_summary('%s_%s' % (name, task_str),
+                                  model_ops.MovingAverage(cond_cost,
+                                                          self.global_step))
+                cond_costs[name].append(cond_cost)
 
-      # aggregated costs
-      with self._shared_name_scope('aggregated'):
-        with tf.name_scope('pos_cost'):
-          pos_cost = tf.add_n(cond_costs['pos'])
-        with tf.name_scope('neg_cost'):
-          neg_cost = tf.add_n(cond_costs['neg'])
+        # aggregated costs
+        with self._shared_name_scope('aggregated'):
+          with tf.name_scope('pos_cost'):
+            pos_cost = tf.add_n(cond_costs['pos'])
+          with tf.name_scope('neg_cost'):
+            neg_cost = tf.add_n(cond_costs['neg'])
 
-      # (smoothed) summaries
-      tf.scalar_summary('Total Neg Cost',
-                        model_ops.MovingAverage(neg_cost, self.global_step))
-      tf.scalar_summary('Total Pos Cost',
-                        model_ops.MovingAverage(pos_cost, self.global_step))
+        # (smoothed) summaries
+        tf.scalar_summary('Total Neg Cost',
+                          model_ops.MovingAverage(neg_cost, self.global_step))
+        tf.scalar_summary('Total Pos Cost',
+                          model_ops.MovingAverage(pos_cost, self.global_step))
 
-    # keep track of the number of positive examples seen by each task
-    with tf.name_scope('counts'):
-      for task in xrange(num_tasks):
-        num_pos = tf.Variable(0.0, name='num_pos_%d' % task, trainable=False)
-        # the assignment must occur on the same device as the variable
-        with tf.device(num_pos.device):
-          tf.get_default_graph().add_to_collection(
-              'updates', num_pos.assign_add(
-                  tf.reduce_sum(self.labels[task][:model_params["batch_size"], 1])))
-        tf.scalar_summary(num_pos.name, num_pos)
+      # keep track of the number of positive examples seen by each task
+      with tf.name_scope('counts'):
+        for task in xrange(num_tasks):
+          num_pos = tf.Variable(0.0, name='num_pos_%d' % task, trainable=False)
+          # the assignment must occur on the same device as the variable
+          with tf.device(num_pos.device):
+            tf.get_default_graph().add_to_collection(
+                'updates', num_pos.assign_add(
+                    tf.reduce_sum(self.labels[task][:model_params["batch_size"], 1])))
+          tf.scalar_summary(num_pos.name, num_pos)
 
-    return weighted_costs
+      return weighted_costs
 
 
   def add_output_ops(self):
     """Replace logits with softmax outputs."""
-    softmax = []
-    with tf.name_scope('inference'):
-      for i, logits in enumerate(self.output):
-        softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
-    self.output = softmax
+    with self.graph.as_default():
+      softmax = []
+      with tf.name_scope('inference'):
+        for i, logits in enumerate(self.output):
+          softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
+      self.output = softmax
 
   def ExampleCounts(self, y_true):
     """Get counts of examples in each class.
@@ -866,16 +839,20 @@ class TensorflowClassifier(TensorflowModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    model_params = self.model_params
-    batch_size = model_params["batch_size"]
-    num_classes = model_params["num_classes"]
-    labels = []
-    for task in xrange(self.num_tasks):
-      with tf.name_scope(self.placeholder_scope):
-        labels.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[batch_size, num_classes],
-                           name='labels_%d' % task)))
-    self.labels = labels
+    with self.graph.as_default():
+      model_params = self.model_params
+      batch_size = model_params["batch_size"]
+      num_classes = model_params["num_classes"]
+      labels = []
+      for task in xrange(self.num_tasks):
+        with tf.name_scope(self.placeholder_scope):
+          labels.append(tf.identity(
+              tf.placeholder(tf.float32, shape=[batch_size, num_classes],
+                             name='labels_%d' % task)))
+      self.labels = labels
+      print("TensorflowClassiifer.add_label_placeholders")
+      print("self.labels")
+      print(self.labels)
 
   def ParseModelOutput(self, output, labels, weights):
     """Parse model output to get true and predicted values for each task.
@@ -955,14 +932,15 @@ class TensorflowRegressor(TensorflowModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    batch_size = self.model_params["batch_size"]
-    labels = []
-    for task in xrange(self.num_tasks):
-      with tf.name_scope(self.placeholder_scope):
-        labels.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[batch_size],
-                           name='labels_%d' % task)))
-    self.labels = labels
+    with self.graph.as_default():
+      batch_size = self.model_params["batch_size"]
+      labels = []
+      for task in xrange(self.num_tasks):
+        with tf.name_scope(self.placeholder_scope):
+          labels.append(tf.identity(
+              tf.placeholder(tf.float32, shape=[batch_size],
+                             name='labels_%d' % task)))
+      self.labels = labels
 
   def ParseModelOutput(self, output, labels, weights):
     """Parse model output to get true and predicted values for each task.

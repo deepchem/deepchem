@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Ops for graph construction."""
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 
 
 import tensorflow as tf
@@ -24,6 +27,8 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.platform import logging
 
 from deepchem.models.tensorflow_models import utils as model_utils
+import sys
+import traceback
 
 
 def AddBias(tensor, init=None, name=None):
@@ -97,7 +102,7 @@ def BatchNormalize(tensor, convolution, mask=None, epsilon=0.001,
     # moving averages from training.
     mean_moving_average = MovingAverage(mean, global_step, decay)
     variance_moving_average = MovingAverage(variance, global_step, decay)
-    if not IsTraining():
+    if not is_training():
       mean = mean_moving_average
       variance = variance_moving_average
 
@@ -168,7 +173,7 @@ def Dropout(tensor, dropout_prob, training_only=True):
   if not dropout_prob:
     return tensor  # do nothing
   keep_prob = 1.0 - dropout_prob
-  if IsTraining() or not training_only:
+  if is_training() or not training_only:
     tensor = tf.nn.dropout(tensor, keep_prob)
   return tensor
 
@@ -204,8 +209,7 @@ def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
     b = tf.Variable(bias_init, name='b')
     return tf.nn.xw_plus_b(tensor, w, b)
 
-
-def IsTraining():
+def is_training():
   """Determine whether the default graph is in training mode.
 
   Returns:
@@ -215,20 +219,25 @@ def IsTraining():
     ValueError: If the 'train' collection in the default graph does not contain
       exactly one element.
   """
-  train = tf.get_collection('train')
+  #traceback.print_stack(file=sys.stdout) 
+  train = tf.get_collection("train")
+  print("is_training()")
+  print("train")
+  print(train)
   if not train:
-    raise ValueError('Training mode is not set. Please call SetTraining.')
+    raise ValueError('Training mode is not set. Please call set_training.')
   elif len(train) > 1:
     raise ValueError('Training mode has more than one setting.')
   return train[0]
 
 
-def SetTraining(train):
+def set_training(train):
   """Set the training mode of the default graph.
 
   This operation may only be called once for a given graph.
 
   Args:
+    graph: Tensorflow graph. 
     train: If True, graph is in training mode.
 
   Raises:
@@ -236,7 +245,7 @@ def SetTraining(train):
   """
   if tf.get_collection('train'):
     raise AssertionError('Training mode already set: %s' %
-                         tf.get_collection('train'))
+                         graph.get_collection('train'))
   tf.add_to_collection('train', train)
 
 
