@@ -34,7 +34,7 @@ class HyperparamOpt(object):
 
     valid_csv_out = tempfile.NamedTemporaryFile()
     valid_stats_out = tempfile.NamedTemporaryFile()
-    if use_max == True:
+    if use_max:
       best_validation_score = -np.inf
     else:
       best_validation_score = np.inf
@@ -56,8 +56,8 @@ class HyperparamOpt(object):
           valid_csv_out, valid_stats_out)
       valid_score = score.iloc[0][metric]
       all_scores[hyperparameter_tuple] = valid_score
-      if (use_max == True and valid_score > best_validation_score) or (
-            use_max == False and valid_score < best_validation_score):
+      if (use_max and valid_score > best_validation_score) or (
+            not use_max and valid_score < best_validation_score):
         best_validation_score = valid_score
         best_hyperparams = hyperparameter_tuple
         if best_model_dir is not None:
