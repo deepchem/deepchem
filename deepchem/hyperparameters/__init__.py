@@ -19,7 +19,7 @@ class HyperparamOpt(object):
     self.task_types = task_types
 
   def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
-                        output_transformers, metric, verbosity=None):
+                        output_transformers, metric, use_max=True, verbosity=None):
     """Perform hyperparams search according to params_dict.
     
     Each key to hyperparams_dict is a model_param. The values should be a list
@@ -34,7 +34,10 @@ class HyperparamOpt(object):
 
     valid_csv_out = tempfile.NamedTemporaryFile()
     valid_stats_out = tempfile.NamedTemporaryFile()
-    best_validation_score = -np.inf
+    if use_max == True:
+      best_validation_score = -np.inf
+    else:
+      best_validation_score = np.inf
     best_hyperparams = None
     best_model, best_model_dir = None, None
     all_scores = {}
@@ -52,12 +55,9 @@ class HyperparamOpt(object):
       df, score = evaluator.compute_model_performance(
           valid_csv_out, valid_stats_out)
       valid_score = score.iloc[0][metric]
-      print("Model %d/%d, Metric %s, Validation set %s: %f" %
-            (ind, number_combinations, metric, ind, valid_score))
-      print("\tbest_validation_score so  far: %f" % best_validation_score)
       all_scores[hyperparameter_tuple] = valid_score
-    
-      if valid_score > best_validation_score:
+      if (use_max == True and valid_score > best_validation_score) or (
+            use_max == False and valid_score < best_validation_score):
         best_validation_score = valid_score
         best_hyperparams = hyperparameter_tuple
         if best_model_dir is not None:
@@ -66,6 +66,11 @@ class HyperparamOpt(object):
         best_model = model
       else:
         shutil.rmtree(model_dir)
+
+      print("Model %d/%d, Metric %s, Validation set %s: %f" %
+            (ind, number_combinations, metric, ind, valid_score))
+      print("\tbest_validation_score so  far: %f" % best_validation_score)
+
 
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
