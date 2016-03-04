@@ -20,7 +20,12 @@ install:
 - conda install -c omnia keras
 - conda install seaborn
 - conda install six
-- pip install --user git+https://github.com/uqfoundation/pathos
+- conda install dill
+- conda install runipy
+- conda install ipyparallel
+- pip install runipy
+- pip install nglview
+- conda install -c omnia mdtraj 
 - python setup.py install
 script:
 - nosetests -v deepchem
