@@ -143,6 +143,19 @@ def dock_ligand_to_receptor(ligand_file, receptor_filename, protein_centroid,
   log_filename = os.path.join(subdir, "%s_log.txt" % ligand_name)
   out_filename = os.path.join(subdir, "%s_docked.pdbqt" % ligand_name)
   subprocess.call("/scratch/users/enf/software/autodock_vina_1_1_2_linux_x86/bin/vina --config %s --log %s --out %s" % (conf_filename, log_filename, out_filename), shell=True)
+  return out_filename
+
+def get_molecule_data(pybel_molecule):
+  atom_positions = []
+  for atom in pybel_molecule:
+    atom_positions.append(atom.coords)
+  num_atoms = len(atom_positions)
+  protein_xyz = np.asarray(atom_positions)
+  protein_centroid = np.mean(protein_xyz, axis=0)
+  protein_max = np.max(protein_xyz, axis=0)
+  protein_min = np.min(protein_xyz, axis=0)
+  protein_range = protein_max - protein_min
+  return protein_centroid, protein_range
 
 def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=1, chosen_receptor=None, restrict_box=True):
   subdirs = glob.glob(os.path.join(docking_dir, '*/'))
@@ -161,21 +174,17 @@ def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=1, 
 
     receptor_pybel = pybel.readfile("pdb", 
         os.path.join(subdir, "%s.pdb" % receptor_name)).next()
-
-    atom_positions = []
-    for atom in receptor_pybel:
-      atom_positions.append(atom.coords)
-    num_atoms = len(atom_positions)
-    protein_xyz = np.asarray(atom_positions)
-    protein_centroid = np.mean(protein_xyz, axis=0)
-    protein_max = np.max(protein_xyz, axis=0)
-    protein_min = np.min(protein_xyz, axis=0)
-    protein_range = protein_max - protein_min
+    protein_centroid, protein_range = get_molecule_data(receptor_pybel)
 
     box_dims = protein_range + 5.0
 
     ligands = sorted(glob.glob(os.path.join(subdir, '*_prepared.pdbqt')))
     print("Num ligands = %d" % len(ligands))
+
+
+    dock_ligand_to_receptor_partial = partial(dock_ligand_to_receptor, receptor_filename=receptor_filename,
+                                              protein_centroid=protein_centroid, box_dims=box_dims,
+                                              subdir=subdir, exhaustiveness=exhaustiveness)
 
     if restrict_box:
       active_ligand = ""
@@ -184,21 +193,26 @@ def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=1, 
           active_ligand = ligand
           break
 
+      print("Docking to %s first to ascertain centroid and box dimensions" % active_ligand)
 
-    dock_ligand_to_receptor_partial = partial(dock_ligand_to_receptor, receptor_filename=receptor_filename,
-                                              protein_centroid=protein_centroid, box_dims=box_dims,
-                                              subdir=subdir, exhaustiveness=exhaustiveness)
+      out_pdb_qt = dock_ligand_to_receptor_partial(active_ligand)
+      ligand_pybel = pybel.readfile("pdbqt", 
+                                    out_pdb_qt).next()
+      ligand_centroid, _ = get_molecule_data(ligand_pybel)
+      print("Protein centroid = %s" %(str(protein_centroid)))
+      print("Ligand centroid = %s" %(str(ligand_centroid)))
+      box_dims = np.array([20., 20., 20.])
+      dock_ligand_to_receptor_partial = partial(dock_ligand_to_receptor, receptor_filename=receptor_filename,
+                                          protein_centroid=ligand_centroid, box_dims=box_dims,
+                                          subdir=subdir, exhaustiveness=exhaustiveness)
+
+      print("Finished docking to %s, docking to remainder of ligands now." % active_ligand)
 
     if worker_pool is False:
       for i, ligand_file in enumerate(ligands):
-        head, tail = os.path.split(ligand_file)
-        ligand_name = os.path.splitext(tail)[0]
-        conf_filename = os.path.join(subdir, "%s_conf.txt" % ligand_name)
-        write_conf(receptor_filename, ligand_file, protein_centroid,
-                   box_dims, conf_filename, exhaustiveness=1)
-
-        log_filename = os.path.join(subdir, "%s_log.txt" % ligand_name)
-        subprocess.call("/scratch/users/enf/software/autodock_vina_1_1_2_linux_x86/bin/vina --config %s --log %s" % (conf_filename, log_filename), shell=True)
+        a = time.time()
+        dock_ligand_to_receptor_partial(ligand)
+        print("took %f seconds to dock single ligand." %(time.time() - a))
     else:
       c = Client()
       dview = c[:]
@@ -216,3 +230,7 @@ def prepare_ligands_and_dock_ligands_to_receptors(dude_dir, docking_dir, worker_
     time.sleep(10)
     dock_ligands_to_receptors(docking_dir, worker_pool, chosen_receptor=receptor_name)
     break
+
+def prepare_receptors_prepare_ligands_dock_ligands_to_receptors(dude_dir, docking_dir, worker_pool):
+  prepare_receptors(dude_dir, docking_dir)
+  prepare_ligands_and_dock_ligands_to_receptors(dude_dir, docking_dir, worker_pool)
