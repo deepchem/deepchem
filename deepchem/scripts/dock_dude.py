@@ -142,6 +142,14 @@ def dock_ligand_to_receptor(ligand_file, receptor_filename, protein_centroid,
 
   log_filename = os.path.join(subdir, "%s_log.txt" % ligand_name)
   out_filename = os.path.join(subdir, "%s_docked.pdbqt" % ligand_name)
+  if os.path.exists(out_filename):
+    try:
+      receptor_pybel = pybel.readfile("pdb", 
+        os.path.join(subdir, "%s.pdb" % receptor_name)).next()
+      return out_filename
+    except:
+      pass
+
   subprocess.call("/scratch/users/enf/software/autodock_vina_1_1_2_linux_x86/bin/vina --config %s --log %s --out %s" % (conf_filename, log_filename, out_filename), shell=True)
   return out_filename
 
