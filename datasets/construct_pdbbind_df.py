@@ -2,6 +2,7 @@
 Contains methods for generating a pdbbind dataset mapping
   complexes (protein + ligand) to experimental binding measurement.
 """
+from __future__ import print_function
 import pickle
 import os
 import pandas as pd
@@ -44,7 +45,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
   pdb_directories = [pdb.replace('/', '') for pdb in glob('*/')]
 
   for pdb_dir in pdb_directories:
-    print "About to extract ligand and protein input files"
+    print("About to extract ligand and protein input files")
     pdb_id = os.path.basename(pdb_dir)
     ligand_pdb = None
     protein_pdb = None
@@ -56,7 +57,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
       elif re.search("_ligand.mol2$", f):
         ligand_mol2 = f
 
-    print "Extracted Input Files:"
+    print("Extracted Input Files:")
     print (ligand_pdb, protein_pdb, ligand_mol2)
     if not ligand_pdb or not protein_pdb or not ligand_mol2:
       raise ValueError("Required files not present for %s" % pdb_dir)
@@ -76,7 +77,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
     except:
       ligand_mol2_lines = []
 
-    print "About to compute ligand smiles string."
+    print("About to compute ligand smiles string.")
     ligand_mol = Chem.MolFromPDBFile(ligand_pdb_path)
     if ligand_mol is None:
       continue
