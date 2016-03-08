@@ -47,6 +47,9 @@ def prepare_receptors(dude_dir, new_dir):
     prepared_filename = os.path.join(save_dir, "%s.pdb" % receptor_name)
     prepared_pdbqt = os.path.join(save_dir, "%s.pdbqt" % receptor_name)
 
+    if os.path.exists(prepared_pdbqt):
+      continue
+
     hydrogenate_and_compute_partial_charges(receptor_filename, ".pdb",
                                             hyd_output=prepared_filename,
                                             pdbqt_output=prepared_pdbqt,
@@ -150,7 +153,7 @@ def dock_ligand_to_receptor(ligand_file, receptor_filename, protein_centroid,
     except:
       pass
 
-  subprocess.call("/scratch/users/enf/software/autodock_vina_1_1_2_linux_x86/bin/vina --config %s --log %s --out %s" % (conf_filename, log_filename, out_filename), shell=True)
+  subprocess.call("$VINA --config %s --log %s --out %s" % (conf_filename, log_filename, out_filename), shell=True)
   return out_filename
 
 def get_molecule_data(pybel_molecule):
@@ -222,11 +225,9 @@ def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=1, 
         dock_ligand_to_receptor_partial(ligand)
         print("took %f seconds to dock single ligand." %(time.time() - a))
     else:
-      c = Client()
-      dview = c[:]
       print("parallelizing docking over worker pool")
 
-      dview.map_sync(dock_ligand_to_receptor_partial, ligands)
+      worker_pool.map_sync(dock_ligand_to_receptor_partial, ligands)
 
 def prepare_ligands_and_dock_ligands_to_receptors(dude_dir, docking_dir, worker_pool):
   subdirs = sorted(glob.glob(os.path.join(docking_dir, '*/')))
