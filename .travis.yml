@@ -2,8 +2,12 @@ language: python
 python:
 - '2.7'
 sudo: required
+dist: trusty
 install:
-- sudo apt-get update
+#- sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+#- sudo apt-get update
+#- sudo apt-get install gcc-4.9
+#- sudo apt-get upgrade libstdc++6
 - wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
@@ -28,10 +32,6 @@ install:
 - conda install -c omnia mdtraj 
 - python setup.py install
 - conda install -c https://conda.anaconda.org/jjhelmus tensorflow
-- sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-- sudo apt-get update
-- sudo apt-get install gcc-4.9
-- sudo apt-get upgrade libstdc++6
 script:
 - nosetests -v deepchem
 after_success:
