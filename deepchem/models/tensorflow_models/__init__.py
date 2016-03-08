@@ -39,6 +39,7 @@ from tensorflow.python.platform import gfile
 
 from deepchem.models import Model
 from deepchem.utils import metrics
+from deepchem.utils.evaluate import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 
@@ -157,7 +158,7 @@ class TensorflowModel(Model):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def construct_feed_dict(self, X_b, y_b, w_b, ids_b):
+  def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Transform a minibatch of data into a feed_dict.
 
     Raises:
@@ -554,7 +555,7 @@ class TensorflowModel(Model):
       computed_metrics.append(metric_value)
     return computed_metrics
 
-  def predict(self, dataset, transformers):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -588,62 +589,64 @@ class TensorflowModel(Model):
         seconds_per_summary = 0
         batch_count = -1.0
         #for feed_dict in input_generator:
-        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
-          feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-          batch_start = time.time()
-          batch_count += 1
-          data = self._get_shared_session().run(
-              self.output + self.labels + self.weights,
-              feed_dict=feed_dict)
-          batch_output = np.asarray(data[:num_tasks], dtype=float)
-          batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
-          batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
-                                     dtype=float)
-          # reshape to batch_size x num_tasks x ...
-          if batch_output.ndim == 3 and batch_labels.ndim == 3:
-            batch_output = batch_output.transpose((1, 0, 2))
-            batch_labels = batch_labels.transpose((1, 0, 2))
-          elif batch_output.ndim == 2 and batch_labels.ndim == 2:
-            batch_output = batch_output.transpose((1, 0))
-            batch_labels = batch_labels.transpose((1, 0))
-          else:
-            raise ValueError(
-                'Unrecognized rank combination for output and labels: %s %s' %
-                (batch_output.shape, batch_labels.shape))
-          batch_weights = batch_weights.transpose((1, 0))
-          valid = feed_dict[self.valid.name]
-          print("valid")
-          print(valid)
-          # only take valid outputs
-          if np.count_nonzero(~valid):
-            batch_output = batch_output[valid]
-            batch_labels = batch_labels[valid]
-            batch_weights = batch_weights[valid]
-          output.append(batch_output)
-          labels.append(batch_labels)
-          weights.append(batch_weights)
 
-          # Writes summary for tracking eval progress.
-          seconds_per_summary += (time.time() - batch_start)
-          self.require_attributes(['summary_writer'])
-          if batch_count % batches_per_summary == 0:
-            mean_seconds_per_batch = seconds_per_summary / batches_per_summary
-            seconds_per_summary = 0
-            summaries = [
-                tf.scalar_summary('secs/batch', mean_seconds_per_batch),
-                tf.scalar_summary('batches_evaluated', batch_count)
-            ]
-            self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
-                                            global_step=self.global_step_number)
-            self.summary_writer.flush()
+        feed_dict = self.construct_feed_dict(X)
+        batch_start = time.time()
+        batch_count += 1
+        data = self._get_shared_session().run(
+            self.output + self.labels + self.weights,
+            feed_dict=feed_dict)
+        batch_output = np.asarray(data[:num_tasks], dtype=float)
+        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
+        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
+                                   dtype=float)
+        # reshape to batch_size x num_tasks x ...
+        if batch_output.ndim == 3 and batch_labels.ndim == 3:
+          batch_output = batch_output.transpose((1, 0, 2))
+          batch_labels = batch_labels.transpose((1, 0, 2))
+        elif batch_output.ndim == 2 and batch_labels.ndim == 2:
+          batch_output = batch_output.transpose((1, 0))
+          batch_labels = batch_labels.transpose((1, 0))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output and labels: %s %s' %
+              (batch_output.shape, batch_labels.shape))
+        batch_weights = batch_weights.transpose((1, 0))
+        valid = feed_dict[self.valid.name]
+        # only take valid outputs
+        if np.count_nonzero(~valid):
+          batch_output = batch_output[valid]
+          batch_labels = batch_labels[valid]
+          batch_weights = batch_weights[valid]
+        output.append(batch_output)
+        labels.append(batch_labels)
+        weights.append(batch_weights)
 
-        logging.info('Eval took %g seconds', time.time() - start)
+        # Writes summary for tracking eval progress.
+        seconds_per_summary += (time.time() - batch_start)
+        self.require_attributes(['summary_writer'])
+        if batch_count % batches_per_summary == 0:
+          mean_seconds_per_batch = seconds_per_summary / batches_per_summary
+          seconds_per_summary = 0
+          summaries = [
+              tf.scalar_summary('secs/batch', mean_seconds_per_batch),
+              tf.scalar_summary('batches_evaluated', batch_count)
+          ]
+          self.summary_writer.add_summary(tf.merge_summary(summaries).eval(),
+                                          global_step=self.global_step_number)
+          self.summary_writer.flush()
 
-        output = np.concatenate(output)
-        labels = np.concatenate(labels)
-        weights = np.concatenate(weights)
+        logging.info('Eval batch took %g seconds', time.time() - start)
 
-      return output, labels, weights
+        #output = np.concatenate(output)
+        print("tf.predict_on_batch()")
+        labels = from_one_hot(np.squeeze(np.concatenate(labels)))
+        print("labels")
+        print(labels)
+        #weights = np.concatenate(weights)
+
+      #return output, labels, weights
+      return labels
 
   def ReportEval(self, metrics, global_step, counts=None, name=None):
     """Write Eval summaries.

@@ -12,6 +12,7 @@ import os
 from deepchem.datasets import Dataset
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
+from deepchem.utils.save import log
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -124,6 +125,9 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred = self.predict_on_batch(X_batch)
+      print("predict()")
+      print("y_pred.shape")
+      print(y_pred.shape)
       y_pred = np.reshape(y_pred, np.shape(y_batch))
 
       # Now undo transformations on y, y_pred
@@ -148,4 +152,4 @@ class Model(object):
     """
     # TODO(rbharath): This is a hack based on fact that multi-tasktype models
     # aren't supported.
-    return model.task_types.itervalues().next()
+    return self.task_types.itervalues().next()

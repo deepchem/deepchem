@@ -148,8 +148,10 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
   #  self.labels = label_ops.MultitaskLabelClasses(labels, config.num_classes)
   #  self.weights = label_ops.MultitaskLabelWeights(labels)
 
-  def construct_feed_dict(self, X_b, y_b, w_b, ids_b):
+  def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
+
+    TODO(rbharath): ids_b is not used here. Can we remove it?
 
     Args:
       X_b: np.ndarray of shape (batch_size, num_features)
@@ -160,8 +162,18 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     orig_dict = {}
     orig_dict["mol_features"] = X_b
     for task in xrange(self.num_tasks):
-      orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
-      orig_dict["weights_%d" % task] = w_b[:, task]
+      if y_b is not None:
+        orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
+      else:
+        # Dummy placeholders
+        orig_dict["labels_%d" % task] = np.squeeze(to_one_hot(
+            np.zeros((self.model_params["batch_size"],))))
+      if w_b is not None:
+        orig_dict["weights_%d" % task] = w_b[:, task]
+      else:
+        # Dummy placeholders
+        orig_dict["weights_%d" % task] = np.ones(
+            (self.model_params["batch_size"],)) 
     orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
     return self._get_feed_dict(orig_dict)
 

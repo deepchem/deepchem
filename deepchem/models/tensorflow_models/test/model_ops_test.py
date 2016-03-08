@@ -84,14 +84,14 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
         self.assertAllClose(logits[i], expected, rtol=1e-5, atol=1e-5)
 
   def GetModel(self, train=True):
-    model_ops.SetTraining(train)
+    model_ops.set_training(train)
 
     # dummy variable for testing Restore
     tf.Variable(tf.constant(10.0, shape=[1]), name='v0')
 
   def _CheckBatchNormalization(self, features, convolution, mean, variance,
                                mask=None):
-    model_ops.SetTraining(True)
+    model_ops.set_training(True)
     epsilon = 0.001
     with self.test_session() as sess:
       features_t = tf.constant(features, dtype=tf.float32)
@@ -145,7 +145,7 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
 
   def testBatchNormalizationInference(self):
     # create a simple batch-normalized model
-    model_ops.SetTraining(True)
+    model_ops.set_training(True)
     epsilon = 0.001
     decay = 0.95
     checkpoint = os.path.join(self.root, 'my-checkpoint')
@@ -170,7 +170,7 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
 
     # check that the moving mean and variance are used for evaluation
     # get a new set of features to verify that the correct mean and var are used
-    model_ops.SetTraining(False)
+    model_ops.set_training(False)
     with self.test_session() as sess:
       new_features = np.random.random((2, 3, 2, 3))
       new_features_t = tf.constant(new_features, dtype=tf.float32)
