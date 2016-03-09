@@ -12,6 +12,7 @@ from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.featurize import FeaturizedSamples
+from deepchem.utils.save import log
 
 # TODO(rbharath): The semantics of this class are very difficult to debug.
 # Multiple transformations of the data are performed on disk, and computations
@@ -22,13 +23,15 @@ class Dataset(object):
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
   def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
-               use_user_specified_features=False):
+               use_user_specified_features=False,
+               high_verbosity=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)
     self.data_dir = data_dir
+    self.high_verbosity = high_verbosity
 
     if featurizers is not None:
       feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
@@ -102,10 +105,7 @@ class Dataset(object):
     """
     return self.metadata_df.shape[0]
 
-  # TODO(rbharath): There is a dangerous mixup in semantics. If itershards() is
-  # called without calling transform(), it will explode. Maybe have a separate
-  # initialization function to avoid this problem.
-  def itershards(self):
+  def _itershards(self):
     """
     Iterates over all shards in dataset.
     """
@@ -115,6 +115,26 @@ class Dataset(object):
       w = load_from_disk(row['w'])
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
+
+  def iterbatches(self, batch_size, epoch=1):
+    """
+    Returns minibatches from dataset.
+    """
+    for i, (X, y, w, ids) in enumerate(self._itershards()):
+      log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
+          self.high_verbosity)
+      nb_sample = np.shape(X)[0]
+      interval_points = np.linspace(
+          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
+      for j in range(len(interval_points)-1):
+        log("Iterating on batch-%s/shard-%s/epoch-%s" %
+            (str(j+1), str(i+1), str(epoch+1)), self.high_verbosity)
+        indices = range(interval_points[j], interval_points[j+1])
+        X_batch = X[indices, :]
+        y_batch = y[indices]
+        w_batch = w[indices]
+        ids_batch = ids[indices]
+        yield (X_batch, y_batch, w_batch, ids_batch)
 
   def __len__(self):
     """

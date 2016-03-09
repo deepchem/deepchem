@@ -11,8 +11,8 @@ from sklearn.linear_model import LassoCV
 from sklearn.linear_model import ElasticNetCV
 from sklearn.linear_model import LassoLarsCV
 from deepchem.models import Model
-from deepchem.utils.dataset import load_from_disk
-from deepchem.utils.dataset import save_to_disk
+from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import save_to_disk
 
 class SklearnModel(Model):
   """
@@ -30,14 +30,15 @@ class SklearnModel(Model):
   # TODO(rbharath): This does not work with very large datasets! sklearn does
   # support partial_fit, but only for some models. Might make sense to make
   # PartialSklearnModel subclass at some point to support large data models.
+  # Also, use of batch_size=32 is arbitrary and kludgey
   def fit(self, numpy_dataset):
     """
     Fits SKLearn model to data.
     """
     Xs, ys = [], []
-    for (X, y, _, _) in numpy_dataset.itershards():
-      Xs.append(X)
-      ys.append(y)
+    for (X_batch, y_batch, _, _) in numpy_dataset.iterbatches(batch_size=32):
+      Xs.append(X_batch)
+      ys.append(y_batch)
     X = np.concatenate(Xs)
     y = np.concatenate(ys).ravel()
     self.raw_model.fit(X, y)

@@ -12,47 +12,8 @@ from keras.models import model_from_json
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.normalization import BatchNormalization 
 from keras.optimizers import SGD
-from deepchem.models import Model
-
-class KerasModel(Model):
-  """
-  Abstract base class shared across all Keras models.
-  """
-
-  def save(self, out_dir):
-    """
-    Saves underlying keras model to disk.
-    """
-    super(KerasModel, self).save(out_dir)
-    model = self.get_raw_model()
-    filename, _ = os.path.splitext(Model.get_model_filename(out_dir))
-
-    # Note that keras requires the model architecture and weights to be stored
-    # separately. A json file is generated that specifies the model architecture.
-    # The weights will be stored in an h5 file. The pkl.gz file with store the
-    # target name.
-    json_filename = "%s.%s" % (filename, "json")
-    h5_filename = "%s.%s" % (filename, "h5")
-    # Save architecture
-    json_string = model.to_json()
-    with open(json_filename, "wb") as file_obj:
-      file_obj.write(json_string)
-    model.save_weights(h5_filename, overwrite=True)
-
-  def load(self, model_dir):
-    """
-    Load keras multitask DNN from disk.
-    """
-    filename = Model.get_model_filename(model_dir)
-    filename, _ = os.path.splitext(filename)
-
-    json_filename = "%s.%s" % (filename, "json")
-    h5_filename = "%s.%s" % (filename, "h5")
-
-    with open(json_filename) as file_obj:
-      model = model_from_json(file_obj.read())
-    model.load_weights(h5_filename)
-    self.raw_model = model
+from deepchem.models.keras_models import KerasModel
+from deepchem.utils.evaluate import to_one_hot
 
 class MultiTaskDNN(KerasModel):
   """
@@ -179,20 +140,3 @@ class SingleTaskDNN(MultiTaskDNN):
     super(SingleTaskDNN, self).__init__(task_types, model_params,
                                         initialize_raw_model=initialize_raw_model,
                                         verbosity=verbosity)
-
-def to_one_hot(y):
-  """Transforms label vector into one-hot encoding.
-
-  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
-
-  y: np.ndarray
-    A vector of shape [n_samples, 1]
-  """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
-  return y_hot
