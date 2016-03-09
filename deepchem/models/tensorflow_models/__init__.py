@@ -86,9 +86,6 @@ class TensorflowModel(Model):
       SummaryWriter will be created.
   """
 
-  # TODO(rbharath): config and model_params overlap significantly. Maybe just
-  # get rid of config? Protos are much better for
-  # documentation than dictionaries. They're also more overhead though.
   def __init__(self,
                task_types,
                model_params,
@@ -494,40 +491,8 @@ class TensorflowModel(Model):
           pass
     return os.path.join(self.logdir, last_checkpoint)
           
-
-  def Eval(self, input_generator, checkpoint, metrics=None):
-    """Evaluate the model.
-
-    Args:
-      input_generator: Generator that returns a feed_dict for feeding
-        Placeholders in the model graph.
-      checkpoint: Checkpoint filename.
-      metrics: List of metrics to compute. Defaults to self.default_metrics,
-        which is set in subclasses.
-
-    Returns:
-      step: Global step for this eval.
-      results: A dict mapping metric names to numpy arrays containing metric
-        values for each task.
-    """
-    self.Restore(checkpoint)
-    output, labels, weights = self.get_model_output(input_generator)
-    y_true, y_pred = self.ParseModelOutput(output, labels, weights)
-
-    # keep counts for each class as a sanity check
-    counts = self.ExampleCounts(y_true)
-
-    # compute metrics
-    if metrics is None:
-      metrics = self.default_metrics
-    metric_values = {}
-    for metric in metrics:
-      metric_values[metric] = self.ComputeMetric(y_true, y_pred, metric)
-    self.ReportEval(metric_values, counts=counts,
-                    global_step=self.global_step_number)
-    return self.global_step_number, metric_values
-
-  def ComputeMetric(self, y_true, y_pred, metric_str, threshold=0.5):
+  # TODO(rbharath): Integrate this with default metrics calculation in the code.
+  def compute_metric(self, y_true, y_pred, metric_str, threshold=0.5):
     """Compute a performance metric for each task.
 
     Args:
@@ -638,17 +603,12 @@ class TensorflowModel(Model):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        #output = np.concatenate(output)
-        print("tf.predict_on_batch()")
         labels = from_one_hot(np.squeeze(np.concatenate(labels)))
-        print("labels")
-        print(labels)
-        #weights = np.concatenate(weights)
 
-      #return output, labels, weights
       return labels
 
-  def ReportEval(self, metrics, global_step, counts=None, name=None):
+  # TODO(rbharath): Can this be removed?
+  def report_eval(self, metrics, global_step, counts=None, name=None):
     """Write Eval summaries.
 
     Args:
@@ -816,7 +776,7 @@ class TensorflowClassifier(TensorflowModel):
           softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
       self.output = softmax
 
-  def ExampleCounts(self, y_true):
+  def example_counts(self, y_true):
     """Get counts of examples in each class.
 
     Args:
@@ -857,32 +817,6 @@ class TensorflowClassifier(TensorflowModel):
       print("self.labels")
       print(self.labels)
 
-  def ParseModelOutput(self, output, labels, weights):
-    """Parse model output to get true and predicted values for each task.
-
-    Args:
-      output: Numpy array containing model output with shape
-        batch_size x num_tasks x num_classes.
-      labels: Numpy array containing one-hot example labels with shape
-        batch_size x num_tasks x num_classes.
-      weights: Numpy array containing example weights with shape
-        batch_size x num_tasks.
-
-    Returns:
-      y_true: List of numpy arrays containing true labels, one for each task.
-      y_pred: List of numpy arrays containing predicted labels, one for each
-        task.
-    """
-    y_true, y_pred = [], []
-    for task in xrange(self.model_params["num_classification_tasks"]):
-      # mask examples with zero weight
-      mask = weights[:, task] > 0
-      # get true class labels
-      y_true.append(labels[mask, task, 1])
-      # get positive class probabilities for predictions
-      y_pred.append(output[mask, task, 1])
-    return y_true, y_pred
-
 
 class TensorflowRegressor(TensorflowModel):
   """Regression model.
@@ -914,7 +848,7 @@ class TensorflowRegressor(TensorflowModel):
     """
     return tf.mul(tf.nn.l2_loss(output - labels), weights)
 
-  def ExampleCounts(self, y_true):
+  def example_counts(self, y_true):
     """Get counts of examples in each class.
 
     Args:
@@ -944,31 +878,6 @@ class TensorflowRegressor(TensorflowModel):
               tf.placeholder(tf.float32, shape=[batch_size],
                              name='labels_%d' % task)))
       self.labels = labels
-
-  def ParseModelOutput(self, output, labels, weights):
-    """Parse model output to get true and predicted values for each task.
-
-    Args:
-      output: Numpy array containing model output with shape
-        batch_size x num_tasks x num_classes.
-      labels: Numpy array containing one-hot example labels with shape
-        batch_size x num_tasks x num_classes.
-      weights: Numpy array containing example weights with shape
-        batch_size x num_tasks.
-
-    Returns:
-      y_true: List of numpy arrays containing true labels, one for each task.
-      y_pred: List of numpy arrays containing predicted labels, one for each
-        task.
-    """
-    # build arrays of true and predicted values for R-squared calculation
-    y_true, y_pred = [], []
-    for task in xrange(self.model_params["num_regression_tasks"]):
-      mask = weights[:, task] > 0  # ignore examples with zero weight
-      y_true.append(labels[mask, task])
-      y_pred.append(output[mask, task])
-    return y_true, y_pred
-
 
 def Optimizer(model_params):
   """Create model optimizer.
