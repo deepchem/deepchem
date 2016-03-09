@@ -15,7 +15,6 @@
 # limitations under the License.
 """Helper operations and classes for general model building.
 
-These methods are generally dependent on ModelConfig.
 """
 from __future__ import print_function
 from __future__ import division
@@ -65,7 +64,7 @@ class TensorflowModel(Model):
       normalization. Should be set to tf.no_op() if no updates are required.
 
   This base class provides the following attributes:
-    model_params: ModelConfig containing model configuration parameters.
+    model_params: dictionary containing model configuration parameters.
     graph: TensorFlow graph object.
     logdir: Path to the file output directory to store checkpoints etc.
     master: TensorFlow session master specification string.
@@ -78,7 +77,7 @@ class TensorflowModel(Model):
       mask when calculating gradient costs.
 
   Args:
-    model_params: ModelConfig.
+    model_params: dictionary.
     train: If True, model is in training mode.
     logdir: Directory for output files.
     graph: Default graph.
@@ -883,7 +882,7 @@ def Optimizer(model_params):
   """Create model optimizer.
 
   Args:
-    model_params: ModelConfig.
+    model_params: dictionary.
 
   Returns:
     A training Optimizer.
@@ -913,7 +912,7 @@ def WeightDecay(model_params):
   """Add weight decay.
 
   Args:
-    model_params: ModelConfig.
+    model_params: dictionary.
 
   Returns:
     A scalar tensor containing the weight decay cost.

@@ -25,7 +25,6 @@ from deepchem.models import Model
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.models.tensorflow_models.model_config import ModelConfig
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
