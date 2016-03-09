@@ -39,8 +39,7 @@ class TestAPI(unittest.TestCase):
     self.samples_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
-    #self.model_dir = tempfile.mkdtemp()
-    self.model_dir = "/home/rbharath/model_dir" 
+    self.model_dir = tempfile.mkdtemp()
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
 
