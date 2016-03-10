@@ -9,6 +9,7 @@ import numpy as np
 import warnings
 from deepchem.utils.save import log
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import matthews_corrcoef
@@ -70,7 +71,7 @@ class Evaluator(object):
       colnames = ["task_name", "roc_auc_score", "matthews_corrcoef",
                   "recall_score", "accuracy_score"]
     elif task_type == "regression":
-      colnames = ["task_name", "r2_score", "rms_error"]
+      colnames = ["task_name", "r2_score", "rms_error", "mae"]
     else:
       raise ValueError("Unrecognized task type: %s" % task_type)
 
@@ -106,10 +107,12 @@ class Evaluator(object):
         try:
           r2s = r2_score(y, y_pred)
           rms = np.sqrt(mean_squared_error(y, y_pred))
+          mae = mean_absolute_error(y, y_pred)
         except ValueError:
           r2s = np.nan
           rms = np.nan
-        performance_df.loc[i] = [task_name, r2s, rms]
+          mae = np.nan
+        performance_df.loc[i] = [task_name, r2s, rms, mae]
 
     log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)
