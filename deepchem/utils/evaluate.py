@@ -21,6 +21,32 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def to_one_hot(y):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+
+  y: np.ndarray
+    A vector of shape [n_samples, 1]
+  """
+  n_samples = np.shape(y)[0]
+  y_hot = np.zeros((n_samples, 2))
+  for index, val in enumerate(y):
+    if val == 0:
+      y_hot[index] = np.array([1, 0])
+    elif val == 1:
+      y_hot[index] = np.array([0, 1])
+  return y_hot
+
+
+def from_one_hot(y):
+  """Transorms label vector from one-hot encoding.
+
+  y: np.ndarray
+    A vector of shape [n_samples, num_classes]
+  """
+  return np.argmax(y, axis=1)
+
 def threshold_predictions(y, threshold):
   y_out = np.zeros_like(y)
   for ind, pred in enumerate(y):
@@ -52,9 +78,7 @@ class Evaluator(object):
     self.dataset = dataset
     self.transformers = transformers
     self.task_names = dataset.get_task_names()
-    # TODO(rbharath): This is a hack based on fact that multi-tasktype models
-    # aren't supported.
-    self.task_type = model.task_types.itervalues().next()
+    self.task_type = model.get_task_type()
     self.verbose = verbose
 
   def compute_model_performance(self, csv_out, stats_file, threshold=None):
@@ -78,18 +102,16 @@ class Evaluator(object):
     performance_df = pd.DataFrame(columns=colnames)
 
     for i, task_name in enumerate(self.task_names):
+      print("task_name")
+      print(task_name)
+      print("pred_y_df.keys()")
+      print(pred_y_df.keys())
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       if threshold is not None:
         # TODO(rbharath): This is a hack. More structured approach?
         y = pred_y_df[task_name+"_raw"].values
-        #print("y")
-        #print(y)
-        #print("y_pred_orig")
-        #print(y_pred)
         y_pred = threshold_predictions(y_pred, threshold)
-        #print("y_pred")
-        #print(y_pred)
       w = pred_y_df["%s_weight" % task_name].values
 
       if task_type == "classification":

@@ -69,7 +69,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     output_transforms = ["normalize"]
     model_params = {}
     task_types = {"log-solubility": "regression"}
-    input_file = "../../utils/test/example.csv"
+    input_file = "../../models/test/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, task_types.keys(), frac_train=.8,
@@ -85,7 +85,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     output_transforms = ["normalize"]
     model_params = {}
     task_types = {"log-solubility": "regression"}
-    input_file = "../../utils/test/example.csv"
+    input_file = "../../models/test/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, task_types.keys(), frac_train=.8,
@@ -100,7 +100,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     output_transforms = ["normalize"]
     model_params = {}
     task_types = {"log-solubility": "regression"}
-    input_file = "../../utils/test/example.csv"
+    input_file = "../../models/test/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, task_types.keys(), frac_train=.8,
@@ -116,7 +116,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     output_transforms = ["normalize"]
     model_params = {}
     task_types = {"log-solubility": "regression"}
-    input_file = "../../utils/test/example.csv"
+    input_file = "../../models/test/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, task_types.keys(), frac_train=.8,

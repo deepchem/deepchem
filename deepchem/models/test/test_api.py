@@ -17,17 +17,16 @@ from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
-from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
+#from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
-from deepchem.utils.dataset import Dataset
+from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
-from deepchem.models.deep import SingleTaskDNN
-from deepchem.models.deep import MultiTaskDNN
-from deepchem.models.standard import SklearnModel
+from deepchem.models.sklearn_models import SklearnModel
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
+from sklearn.ensemble import RandomForestRegressor
 
 class TestAPI(unittest.TestCase):
   """
@@ -41,20 +40,29 @@ class TestAPI(unittest.TestCase):
     self.train_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
     self.model_dir = tempfile.mkdtemp()
+    if not os.path.exists(self.model_dir):
+      os.makedirs(self.model_dir)
 
   def tearDown(self):
     shutil.rmtree(self.feature_dir)
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)
     shutil.rmtree(self.test_dir)
-    shutil.rmtree(self.model_dir)
+    #shutil.rmtree(self.model_dir)
 
-  def _create_model(self, train_dataset, test_dataset, model, transformers):
+  def _create_model(self, train_dataset, test_dataset, model, transformers,
+                    test_model_creator=None):
     """Helper method to create model for test."""
 
-    # Fit model
+    # Fit trained model
     model.fit(train_dataset)
     model.save(self.model_dir)
+
+    # Now create test model
+    if test_model_creator is not None:
+      test_model = test_model_creator()
+      test_model.load(self.model_dir)
+      model = test_model
 
     # Eval model on train
     evaluator = Evaluator(model, train_dataset, transformers, verbose=True)
@@ -131,7 +139,7 @@ class TestAPI(unittest.TestCase):
 
     return train_dataset, test_dataset, input_transformers, output_transformers
 
-  def test_singletask_rf_ECFP_regression_API(self):
+  def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
@@ -147,11 +155,10 @@ class TestAPI(unittest.TestCase):
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_user_specified_regression_API(self):
+  def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "specified"
     split_field = "split"
@@ -171,11 +178,10 @@ class TestAPI(unittest.TestCase):
         split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_ECFP_regression_sharded_API(self):
+  def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
@@ -195,11 +201,10 @@ class TestAPI(unittest.TestCase):
 
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_rf_RDKIT_descriptor_regression_API(self):
+  def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
     compound_featurizers = [RDKitDescriptors()]
@@ -215,12 +220,15 @@ class TestAPI(unittest.TestCase):
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
 
-    from sklearn.ensemble import RandomForestRegressor
     model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers)
 
-  def test_singletask_mlp_NNScore_regression_API(self):
+  '''
+  # TODO(rbharath): This fails on many systems with an Illegal Instruction
+  # error. Need to debug.
+  def test_singletask_keras_mlp_NNScore_regression_API(self):
     """Test of singletask MLP NNScore regression API."""
+    from deepchem.models.keras_models.fcnet import SingleTaskDNN
     splittype = "scaffold"
     compound_featurizers = []
     complex_featurizers = [NNScoreComplexFeaturizer()]
@@ -247,10 +255,12 @@ class TestAPI(unittest.TestCase):
     
     model = SingleTaskDNN(task_types, model_params)
     self._create_model(train_dataset, test_dataset, model, transformers)
+  '''
 
 
-  def test_singletask_mlp_USF_regression_API(self):
+  def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
+    from deepchem.models.keras_models.fcnet import SingleTaskDNN
     splittype = "scaffold"
     compound_featurizers = []
     complex_featurizers = []
@@ -315,8 +325,9 @@ class TestAPI(unittest.TestCase):
                        tasks=tasks)
     '''
 
-  def test_multitask_mlp_ECFP_classification_API(self):
-    """Straightforward test of multitask deepchem classification API."""
+  def test_multitask_keras_mlp_ECFP_classification_API(self):
+    """Straightforward test of Keras multitask deepchem classification API."""
+    from deepchem.models.keras_models.fcnet import MultiTaskDNN
     splittype = "scaffold"
     output_transformers = []
     input_transformers = []

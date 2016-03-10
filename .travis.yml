@@ -2,8 +2,8 @@ language: python
 python:
 - '2.7'
 sudo: required
+dist: trusty
 install:
-- sudo apt-get update
 - wget http://repo.continuum.io/archive/Anaconda2-2.4.1-Linux-x86_64.sh -O anaconda.sh;
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
@@ -27,8 +27,9 @@ install:
 - pip install nglview
 - conda install -c omnia mdtraj 
 - python setup.py install
+- conda install -c https://conda.anaconda.org/jjhelmus tensorflow
 script:
-- nosetests -v deepchem
+- nosetests -v deepchem --nologcapture
 after_success:
 - source devtools/travis-ci/after_sucess.sh
 # AWS access_key and secret key secured through travis secure var api.

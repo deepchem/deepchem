@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from deepchem.utils.dataset import Dataset
-from deepchem.utils.dataset import load_from_disk
-from deepchem.utils.dataset import save_to_disk
+from deepchem.datasets import Dataset
+from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
 
 def undo_transforms(y, transformers):
@@ -103,20 +103,8 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.low_verbosity)
-      for i, (X, y, w, _) in enumerate(dataset.itershards()):
-        log("Training on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
-        self.high_verbosity)
-        nb_sample = np.shape(X)[0]
-        interval_points = np.linspace(
-            0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
-        for j in range(len(interval_points)-1):
-          log("Training on batch-%s/shard-%s/epoch-%s" %
-              (str(j+1), str(i+1), str(epoch+1)), self.high_verbosity)
-          indices = range(interval_points[j], interval_points[j+1])
-          X_batch = X[indices, :]
-          y_batch = y[indices]
-          w_batch = w[indices]
-          self.fit_on_batch(X_batch, y_batch, w_batch)
+      for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
+        self.fit_on_batch(X_batch, y_batch, w_batch)
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
@@ -135,32 +123,33 @@ class Model(object):
     pred_y_df = pd.DataFrame(columns=column_names)
 
     batch_size = self.model_params["batch_size"]
-    for (X, y, w, ids) in dataset.itershards():
-      nb_sample = np.shape(X)[0]
-      interval_points = np.linspace(
-          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
-      y_preds = []
-      for j in range(len(interval_points)-1):
-        indices = range(interval_points[j], interval_points[j+1])
-        y_pred_on_batch = self.predict_on_batch(X[indices, :]).reshape(
-            (len(indices),len(task_names)))
-        y_preds.append(y_pred_on_batch)
-
-      y_pred = np.concatenate(y_preds)
-      y_pred = np.reshape(y_pred, np.shape(y))
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+      y_pred = self.predict_on_batch(X_batch)
+      print("predict()")
+      print("y_pred.shape")
+      print(y_pred.shape)
+      y_pred = np.reshape(y_pred, np.shape(y_batch))
 
       # Now undo transformations on y, y_pred
-      y_raw, y_pred_raw = y, y_pred
-      y = undo_transforms(y, transformers)
+      y_raw, y_pred_raw = y_batch, y_pred
+      y_batch = undo_transforms(y_batch, transformers)
       y_pred = undo_transforms(y_pred, transformers)
 
-      shard_df = pd.DataFrame(columns=column_names)
-      shard_df['ids'] = ids
-      shard_df[raw_task_names] = y_raw
-      shard_df[task_names] = y
-      shard_df[raw_pred_task_names] = y_pred_raw
-      shard_df[pred_task_names] = y_pred
-      shard_df[w_task_names] = w
-      pred_y_df = pd.concat([pred_y_df, shard_df])
+      batch_df = pd.DataFrame(columns=column_names)
+      batch_df['ids'] = ids_batch
+      batch_df[raw_task_names] = y_raw
+      batch_df[task_names] = y_batch
+      batch_df[raw_pred_task_names] = y_pred_raw
+      batch_df[pred_task_names] = y_pred
+      batch_df[w_task_names] = w_batch
+      pred_y_df = pd.concat([pred_y_df, batch_df])
 
     return pred_y_df
+
+  def get_task_type(self):
+    """
+    Currently models can only be classifiers or regressors.
+    """
+    # TODO(rbharath): This is a hack based on fact that multi-tasktype models
+    # aren't supported.
+    return self.task_types.itervalues().next()
