@@ -37,7 +37,7 @@ from tensorflow.python.platform import logging
 from tensorflow.python.platform import gfile
 
 from deepchem.models import Model
-from deepchem.utils import metrics
+import deepchem.metrics as met 
 from deepchem.utils.evaluate import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
@@ -91,7 +91,11 @@ class TensorflowModel(Model):
                train=False,
                logdir=None,
                graph=None,
-               summary_writer=None):
+               summary_writer=None,
+               verbosity=None):
+    
+    assert verbosity in [None, "low", "high"]
+    self.verbosity = verbosity
     self.model_params = model_params 
     self.graph = graph if graph is not None else tf.Graph()
     self.logdir = logdir
@@ -119,9 +123,8 @@ class TensorflowModel(Model):
         self.valid = tf.placeholder(tf.bool,
                                     shape=[model_params["batch_size"]],
                                     name='valid')
-      print("TensorflowModel.__init__")
-      print("self.valid")
-      print(self.valid)
+
+    self.num_tasks = len(task_types)
 
     if "num_classification_tasks" in model_params:
       num_classification_tasks = model_params["num_classification_tasks"]
@@ -391,14 +394,29 @@ class TensorflowModel(Model):
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=self.global_step)
+        print("len(dataset)")
+        print(len(dataset))
+        print("batch_size")
+        print(self.model_params["batch_size"])
         for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
           # Run training op and compute summaries.
+          #print("np.shape(X_b)")
+          #print(np.shape(X_b))
+          #print("np.shape(y_b)")
+          #print(np.shape(y_b))
+          #print("np.shape(w_b)")
+          #print(np.shape(w_b))
           feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
           secs_since_summary = time.time() - last_summary_time
           if secs_since_summary > save_summary_secs:
             this_summary_op = summary_op
           else:
             this_summary_op = no_op
+          #for tensor, val in feed_dict.iteritems():
+          #  print("tensor")
+          #  print(tensor)
+          #  print("val.shape")
+          #  print(val.shape)
           step, loss, _, summary = sess.run(
               [train_op.values()[0], self.loss, self.updates, this_summary_op],
               feed_dict=feed_dict)
@@ -510,8 +528,8 @@ class TensorflowModel(Model):
       yt = y_true[task]
       yp = y_pred[task]
       try:
-        metric_value = metrics.compute_metric(yt, yp, metric_str,
-                                                      threshold=threshold)
+        metric_value = met.compute_metric(yt, yp, metric_str,
+                                          threshold=threshold)
       except (AssertionError, ValueError) as e:
         warnings.warn('Error calculating metric %s for task %d: %s'
                       % (metric_str, task, e))
@@ -812,9 +830,6 @@ class TensorflowClassifier(TensorflowModel):
               tf.placeholder(tf.float32, shape=[batch_size, num_classes],
                              name='labels_%d' % task)))
       self.labels = labels
-      print("TensorflowClassiifer.add_label_placeholders")
-      print("self.labels")
-      print(self.labels)
 
 
 class TensorflowRegressor(TensorflowModel):

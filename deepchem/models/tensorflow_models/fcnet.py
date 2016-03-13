@@ -91,12 +91,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
+    assert len(self.model_params["data_shape"]) == 1
+    num_features = self.model_params["data_shape"][0]
     with self.graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
             shape=[self.model_params["batch_size"],
-                   self.model_params["num_features"]],
+                   num_features],
             name='mol_features')
 
       layer_sizes = self.model_params["layer_sizes"]
@@ -114,7 +116,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       assert num_layers > 0, 'Must have some layers defined.'
 
       prev_layer = self.mol_features
-      prev_layer_size = self.model_params["num_features"]
+      prev_layer_size = num_features 
       for i in xrange(num_layers):
         layer = tf.nn.relu(model_ops.FullyConnectedLayer(
             tensor=prev_layer,

@@ -93,10 +93,12 @@ class DataFeaturizer(object):
                protein_pdb_field=None, ligand_pdb_field=None,
                ligand_mol2_field=None, 
                compound_featurizers=[], complex_featurizers=[],
-               verbose=False, log_every_n=1000):
+               verbosity=None, log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
     if not isinstance(tasks, list):
       raise ValueError("tasks must be a list.")
+    assert verbosity in [None, "low", "high"]
+    self.verbosity = verbosity
     self.tasks = tasks
     self.smiles_field = smiles_field
     self.split_field = split_field
@@ -111,55 +113,70 @@ class DataFeaturizer(object):
     self.user_specified_features = user_specified_features
     self.compound_featurizers = compound_featurizers
     self.complex_featurizers = complex_featurizers
-    self.verbose = verbose
     self.log_every_n = log_every_n
 
   def featurize(self, input_file, feature_dir, samples_dir,
-                shard_size=128, worker_pool=None):
+                shard_size=1024, worker_pool=None,
+                reload=False):
     """Featurize provided file and write to specified location."""
-    input_type = _get_input_type(input_file)
+    # If we are not to reload data, or data has not already been featurized.
+    if not reload or not os.path.exists(feature_dir):
+      if not os.path.exists(feature_dir):
+        os.makedirs(feature_dir)
+      input_type = _get_input_type(input_file)
 
-    log("Loading raw samples now.", self.verbose)
-    raw_df = load_pandas_from_disk(input_file)
-    fields = raw_df.keys()
-    log("Loaded raw data frame from file.", self.verbose)
+      log("Loading raw samples now.", self.verbosity)
+      raw_df = load_pandas_from_disk(input_file)
+      fields = raw_df.keys()
+      log("Loaded raw data frame from file.", self.verbosity)
+      log("About to preprocess samples.", self.verbosity)
 
-    def process_raw_sample_helper(row, fields, input_type):
-      return self._process_raw_sample(input_type, row, fields)
-    process_raw_sample_helper_partial = partial(process_raw_sample_helper,
-                                                fields=fields,
-                                                input_type=input_type)
+      def process_raw_sample_helper(row, fields, input_type):
+        return self._process_raw_sample(input_type, row, fields)
+      process_raw_sample_helper_partial = partial(process_raw_sample_helper,
+                                                  fields=fields,
+                                                  input_type=input_type)
 
 
-    raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
-    nb_sample = raw_df.shape[0]
-    interval_points = np.linspace(
-        0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
-    shard_files = []
-    for j in range(len(interval_points)-1):
-      log("Sharding and standardizing into shard-%s / %s shards"
-          % (str(j+1), len(interval_points)-1), self.verbose)
-      raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-      
-      df = self._standardize_df(raw_df_shard) 
+      raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
+      nb_sample = raw_df.shape[0]
+      interval_points = np.linspace(
+          0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
+      shard_files = []
+      for j in range(len(interval_points)-1):
+        log("Sharding and standardizing into shard-%s / %s shards"
+            % (str(j+1), len(interval_points)-1), self.verbosity)
+        raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
+        
+        df = self._standardize_df(raw_df_shard) 
 
-      for compound_featurizer in self.compound_featurizers:
-        log("Currently featurizing feature_type: %s"
-            % compound_featurizer.__class__.__name__, self.verbose)
-        self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
+        for compound_featurizer in self.compound_featurizers:
+          log("Currently featurizing feature_type: %s"
+              % compound_featurizer.__class__.__name__, self.verbosity)
+          self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
 
-      for complex_featurizer in self.complex_featurizers:
-        log("Currently featurizing feature_type: %s"
-            % complex_featurizer.__class__.__name__, self.verbose)
-        self._featurize_complexes(df, complex_featurizer, worker_pool=worker_pool)
+        for complex_featurizer in self.complex_featurizers:
+          log("Currently featurizing feature_type: %s"
+              % complex_featurizer.__class__.__name__, self.verbosity)
+          self._featurize_complexes(df, complex_featurizer, worker_pool=worker_pool)
 
-      shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
-      save_to_disk(df, shard_out)
-      shard_files.append(shard_out)
+        shard_out = os.path.join(feature_dir, "features_shard%d.joblib" % j)
+        save_to_disk(df, shard_out)
+        shard_files.append(shard_out)
+    else:
+      # Reload should automatically find required files
+      shard_files = None
+      #shard_files = []
+      #feature_dir_files = os.listdir(feature_dir)
+      #for feature_dir_file in feature_dir_files:
+      #  basename, extension = os.path.splitext(feature_dir_file)
+      #  if extension == ".joblib" and "shard" in basename:
+      #    shard_files.append(os.path.join(feature_dir, feature_dir_file))
 
     featurizers = self.compound_featurizers + self.complex_featurizers
     samples = FeaturizedSamples(samples_dir=samples_dir, featurizers=featurizers, 
-                                dataset_files=shard_files, reload_data=False)
+                                dataset_files=shard_files, reload=reload,
+                                verbosity=self.verbosity)
 
     return samples
 
@@ -213,7 +230,8 @@ class DataFeaturizer(object):
     def featurize_wrapper(ligand_protein_pdb_tuple):
       ligand_pdb, protein_pdb = ligand_protein_pdb_tuple
       print("Featurizing %s" % ligand_pdb[0:2])
-      molecule_features = featurizer.featurize_complexes([ligand_pdb], [protein_pdb])
+      molecule_features = featurizer.featurize_complexes(
+          [ligand_pdb], [protein_pdb], verbosity=self.verbosity)
       return molecule_features
 
     if worker_pool is None:
@@ -240,15 +258,15 @@ class DataFeaturizer(object):
       features = []
       for ind, smiles in enumerate(sample_smiles):
         if ind % self.log_every_n == 0:
-          log("Featurizing sample %d" % ind, self.verbose)
+          log("Featurizing sample %d" % ind, self.verbosity)
         mol = Chem.MolFromSmiles(smiles)
-        features.append(featurizer.featurize([mol]))
+        features.append(featurizer.featurize([mol], verbosity=self.verbosity))
     else:
       def featurize_wrapper(smiles, dilled_featurizer):
         print("Featurizing %s" % smiles)
         mol = Chem.MolFromSmiles(smiles)
         featurizer = dill.loads(dilled_featurizer)
-        feature = featurizer.featurize([mol])
+        feature = featurizer.featurize([mol], verbosity=self.verbosity)
         return feature
 
       features = worker_pool.map_sync(featurize_wrapper, 
@@ -263,8 +281,7 @@ class DataFeaturizer(object):
       into final features dataframe
     """
     if self.user_specified_features is not None:
-      log("Aggregating User-Specified Features", self.verbose)
-      #log("Adding user-defined features.", self.verbose)
+      log("Aggregating User-Specified Features", self.verbosity)
       features_data = []
       for ind, row in ori_df.iterrows():
         # pandas rows are tuples (row_num, row_data)
@@ -292,16 +309,18 @@ class FeaturizedSamples(object):
   optional_colnames = ["protein_pdb", "ligand_pdb", "ligand_mol2"]
 
   def __init__(self, samples_dir, featurizers, dataset_files=None, 
-               overwrite=True, reload_data=False):
+               reload=False, verbosity=None):
     """
     Initialiize FeaturizedSamples
 
     If samples_dir does not exist, must specify dataset_files. Then samples_dir
     is created and populated. If samples_dir exists (created by previous call to
-    FeaturizedSamples), then dataset_files cannot be specified. If overwrite is
-    set and dataset_files is provided, will overwrite old dataset_files with
+    FeaturizedSamples), then dataset_files cannot be specified. If reload is
+    False and dataset_files is provided, will overwrite old dataset_files with
     new.
     """
+    assert verbosity in [None, "low", "high"]
+    self.verbosity = verbosity
     self.dataset_files = dataset_files
     self.feature_types = (
         ["user-specified-features"] + 
@@ -312,7 +331,18 @@ class FeaturizedSamples(object):
     if not os.path.exists(samples_dir):
       os.makedirs(samples_dir)
     self.samples_dir = samples_dir
-    if os.path.exists(self._get_compounds_filename()) and reload_data:
+
+    if os.path.exists(self._get_dataset_paths_filename()):
+      if dataset_files is not None:
+        if not reload:
+          save_to_disk(dataset_files, self._get_dataset_paths_filename())
+        else:
+          raise ValueError("Can't change dataset_files already stored on disk")
+    else:
+      save_to_disk(dataset_files, self._get_dataset_paths_filename())
+    self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
+
+    if os.path.exists(self._get_compounds_filename()) and reload:
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
       compounds_df = self._get_compounds()
@@ -323,15 +353,6 @@ class FeaturizedSamples(object):
     self.compounds_df = compounds_df
     self.num_samples = len(compounds_df)
 
-    if os.path.exists(self._get_dataset_paths_filename()):
-      if dataset_files is not None:
-        if overwrite:
-          save_to_disk(dataset_files, self._get_dataset_paths_filename())
-        else:
-          raise ValueError("Can't change dataset_files already stored on disk")
-      self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
-    else:
-      save_to_disk(dataset_files, self._get_dataset_paths_filename())
 
   def _get_compounds_filename(self):
     """
@@ -405,45 +426,60 @@ class FeaturizedSamples(object):
 
   def train_valid_test_split(self, splittype, train_dir=None,
                              valid_dir=None, test_dir=None, frac_train=.8,
-                             frac_valid=.1, frac_test=.1, seed=None):
+                             frac_valid=.1, frac_test=.1, seed=None,
+                             log_every_n=1000, reload=False):
     """
     Splits self into train/validation/test sets.
 
     Returns FeaturizedDataset objects.
     """
-    if splittype == "random":
-      train_inds, valid_inds, test_inds = self._random_split(
-          seed=seed, frac_train=frac_train, frac_test=frac_test,
-          frac_valid=frac_valid)
-    elif splittype == "scaffold":
-      train_inds, valid_inds, test_inds = self._scaffold_split(
-          frac_train=frac_train, frac_test=frac_test,
-          frac_valid=frac_valid)
-    elif splittype == "specified":
-      train_inds, valid_inds, test_inds = self._specified_split()
-    else:
-      raise ValueError("improper splittype.")
+    if not reload:
+      if splittype == "random":
+        train_inds, valid_inds, test_inds = self._random_split(
+            seed=seed, frac_train=frac_train, frac_test=frac_test,
+            frac_valid=frac_valid)
+      elif splittype == "scaffold":
+        train_inds, valid_inds, test_inds = self._scaffold_split(
+            frac_train=frac_train, frac_test=frac_test,
+            frac_valid=frac_valid, log_every_n=log_every_n)
+      elif splittype == "specified":
+        train_inds, valid_inds, test_inds = self._specified_split()
+      else:
+        raise ValueError("improper splittype.")
     train_samples, valid_samples, test_samples = None, None, None
+    dataset_files = self.dataset_files
+    print("FeaturizedSamples.train_valid_test_split")
+    print("dataset_files")
+    print(dataset_files)
     if train_dir is not None:
       train_samples = FeaturizedSamples(samples_dir=train_dir, 
-                                        dataset_files=self.dataset_files,
-                                        featurizers=self.featurizers)
-      train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
+                                        dataset_files=dataset_files,
+                                        featurizers=self.featurizers,
+                                        verbosity=self.verbosity,
+                                        reload=False)
+      if not reload:
+        train_samples._set_compound_df(self.compounds_df.iloc[train_inds])
     if test_dir is not None:
       test_samples = FeaturizedSamples(samples_dir=test_dir, 
-                                       dataset_files=self.dataset_files,
-                                       featurizers=self.featurizers)
-      test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
+                                       dataset_files=dataset_files,
+                                       featurizers=self.featurizers,
+                                       verbosity=self.verbosity,
+                                       reload=False)
+      if not reload:
+        test_samples._set_compound_df(self.compounds_df.iloc[test_inds])
     if valid_dir is not None:
       valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
-                                       dataset_files=self.dataset_files,
-                                       featurizers=self.featurizers)
-      valid_samples._set_compound_df(self.compounds_df.iloc[valid_inds])
+                                       dataset_files=dataset_files,
+                                       featurizers=self.featurizers,
+                                       verbosity=self.verbosity,
+                                       reload=False)
+      if not reload:
+        valid_samples._set_compound_df(self.compounds_df.iloc[valid_inds])
 
     return train_samples, valid_samples, test_samples
 
   def train_test_split(self, splittype, train_dir, test_dir, seed=None,
-                       frac_train=.8):
+                       frac_train=.8, reload=False):
     """
     Splits self into train/test sets.
 
@@ -451,7 +487,8 @@ class FeaturizedSamples(object):
     """
     train_samples, _, test_samples = self.train_valid_test_split(
         splittype, train_dir, valid_dir=None, test_dir=test_dir,
-        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
+        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.,
+        reload=False)
     return train_samples, test_samples
 
   def _random_split(self, seed=None, frac_train=.8, frac_valid=.1,
@@ -467,13 +504,17 @@ class FeaturizedSamples(object):
     return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
             shuffled[valid_cutoff:])
 
-  def _scaffold_split(self, frac_train=.8, frac_valid=.1, frac_test=.1):
+  def _scaffold_split(self, frac_train=.8, frac_valid=.1, frac_test=.1, log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by scaffold.
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     scaffolds = {}
+    log("About to generate scaffolds", self.verbosity)
     for ind, row in self.compounds_df.iterrows():
+      if self.verbosity is not None and ind % log_every_n == 0:
+        log("Generating scaffold %d/%d" % (ind, len(self.compounds_df)),
+            self.verbosity)
       scaffold = generate_scaffold(row["smiles"])
       if scaffold not in scaffolds:
         scaffolds[scaffold] = [ind]
@@ -485,6 +526,7 @@ class FeaturizedSamples(object):
     train_cutoff = frac_train * len(self.compounds_df)
     valid_cutoff = (frac_train+frac_valid) * len(self.compounds_df)
     train_inds, valid_inds, test_inds = [], [], []
+    log("About to sort in scaffold sets", self.verbosity)
     for scaffold_set in scaffold_sets:
       if len(train_inds) + len(scaffold_set) > train_cutoff:
         if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:

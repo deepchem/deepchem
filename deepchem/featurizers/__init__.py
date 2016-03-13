@@ -33,7 +33,7 @@ class ComplexFeaturizer(object):
   """
   name = None
 
-  def featurize_complexes(self, mol_pdbs, protein_pdbs, log_every_n=1000):
+  def featurize_complexes(self, mol_pdbs, protein_pdbs, verbosity=None, log_every_n=1000):
     """
     Calculate features for mol/protein complexes.
 
@@ -49,7 +49,7 @@ class ComplexFeaturizer(object):
 
     features = []
     for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
-      if i % log_every_n == 0:
+      if verbosity is not None and i % log_every_n == 0:
         log("Featurizing %d / %d" % (i, len(mol_pdbs)))
       features.append(self._featurize_complex(mol_pdb, protein_pdb))
     features = np.asarray(features)
@@ -99,7 +99,7 @@ class Featurizer(object):
   topo_view = False
 
   def featurize(self, mols, parallel=False, client_kwargs=None,
-                view_flags=None):
+                view_flags=None, verbosity=None, log_every_n=1000):
     """
     Calculate features for molecules.
 
@@ -117,6 +117,7 @@ class Featurizer(object):
     """
     if self.conformers and isinstance(mols, types.GeneratorType):
       mols = list(mols)
+    assert verbosity in [None, "low", "high"]
 
     if parallel:
       from IPython.parallel import Client
@@ -136,7 +137,11 @@ class Featurizer(object):
       call.display_outputs()
 
     else:
-      features = [self._featurize(mol) for mol in mols]
+      features = []
+      for i, mol in enumerate(mols):
+        if verbosity is not None and i % log_every_n == 0:
+          log("Featurizing %d / %d" % (i, len(mols)))
+        features = [self._featurize(mol) for mol in mols]
 
     if self.conformers:
       features = self.conformer_container(mols, features)

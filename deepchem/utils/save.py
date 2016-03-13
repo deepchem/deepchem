@@ -14,9 +14,9 @@ import pandas as pd
 import numpy as np
 import os
 
-def log(string, verbose=False):
+def log(string, verbosity=None):
   """Print string if verbose."""
-  if verbose:
+  if verbosity is not None:
     print(string)
 
 def save_to_disk(dataset, filename):

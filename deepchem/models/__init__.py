@@ -27,14 +27,13 @@ class Model(object):
   """
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity="low", **kwargs):
+               initialize_raw_model=True, verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
-    self.low_verbosity = (verbosity == "low")
-    self.high_verbosity = (verbosity == "high")
+    self.verbosity = verbosity
 
   def fit_on_batch(self, X, y, w):
     """
@@ -102,7 +101,7 @@ class Model(object):
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
-      log("Starting epoch %s" % str(epoch+1), self.low_verbosity)
+      log("Starting epoch %s" % str(epoch+1), self.verbosity)
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
         self.fit_on_batch(X_batch, y_batch, w_batch)
 

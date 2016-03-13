@@ -102,10 +102,6 @@ class Evaluator(object):
     performance_df = pd.DataFrame(columns=colnames)
 
     for i, task_name in enumerate(self.task_names):
-      print("task_name")
-      print(task_name)
-      print("pred_y_df.keys()")
-      print(pred_y_df.keys())
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       if threshold is not None:
