@@ -14,6 +14,7 @@ install:
 - conda info -a
 - conda install pandas
 - conda install -c omnia rdkit
+- conda install -c omnia boost=1.59.0
 - conda install -c omnia openbabel
 - conda install joblib
 - conda install -c omnia theano
