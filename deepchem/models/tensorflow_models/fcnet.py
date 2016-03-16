@@ -84,27 +84,27 @@ from deepchem.utils.evaluate import to_one_hot
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
 
-  def build(self):
+  def build(self, tf_graph):
     """Constructs the graph architecture as specified in its config.
 
     This method creates the following Placeholders:
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
-    assert len(self.model_params["data_shape"]) == 1
-    num_features = self.model_params["data_shape"][0]
-    with self.graph.as_default():
-      with tf.name_scope(self.placeholder_scope):
-        self.mol_features = tf.placeholder(
+    assert len(tf_graph.model_params["data_shape"]) == 1
+    num_features = tf_graph.model_params["data_shape"][0]
+    with tf_graph.graph.as_default():
+      with tf.name_scope(tf_graph.placeholder_scope):
+        tf_graph.mol_features = tf.placeholder(
             tf.float32,
-            shape=[self.model_params["batch_size"],
+            shape=[tf_graph.model_params["batch_size"],
                    num_features],
             name='mol_features')
 
-      layer_sizes = self.model_params["layer_sizes"]
-      weight_init_stddevs = self.model_params["weight_init_stddevs"]
-      bias_init_consts = self.model_params["bias_init_consts"]
-      dropouts = self.model_params["dropouts"]
+      layer_sizes = tf_graph.model_params["layer_sizes"]
+      weight_init_stddevs = tf_graph.model_params["weight_init_stddevs"]
+      bias_init_consts = tf_graph.model_params["bias_init_consts"]
+      dropouts = tf_graph.model_params["dropouts"]
       lengths_set = {
           len(layer_sizes),
           len(weight_init_stddevs),
@@ -115,7 +115,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       num_layers = lengths_set.pop()
       assert num_layers > 0, 'Must have some layers defined.'
 
-      prev_layer = self.mol_features
+      prev_layer = tf_graph.mol_features
       prev_layer_size = num_features 
       for i in xrange(num_layers):
         layer = tf.nn.relu(model_ops.FullyConnectedLayer(
@@ -130,25 +130,8 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
-      self.output = model_ops.MultitaskLogits(
-          layer, self.model_params["num_classification_tasks"])
-
-  # TODO(rbharath): Copying this out for now. Ensure this isn't harmful
-  #def add_labels_and_weights(self):
-  #  """Parse Label protos and create tensors for labels and weights.
-
-  #  This method creates the following Placeholders in the graph:
-  #    labels: Tensor with shape batch_size x num_tasks containing serialized
-  #      Label protos.
-  #  """
-  #  config = self.config
-  #  with tf.name_scope(self.placeholder_scope):
-  #    labels = tf.placeholder(
-  #        tf.string,
-  #        shape=[config.batch_size, config.num_classification_tasks],
-  #        name='labels')
-  #  self.labels = label_ops.MultitaskLabelClasses(labels, config.num_classes)
-  #  self.weights = label_ops.MultitaskLabelWeights(labels)
+      tf_graph.output = model_ops.MultitaskLogits(
+          layer, tf_graph.model_params["num_classification_tasks"])
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.

@@ -221,32 +221,58 @@ def is_training():
   """
   #traceback.print_stack(file=sys.stdout) 
   train = tf.get_collection("train")
-  print("is_training()")
-  print("train")
-  print(train)
   if not train:
     raise ValueError('Training mode is not set. Please call set_training.')
   elif len(train) > 1:
     raise ValueError('Training mode has more than one setting.')
   return train[0]
 
-
-def set_training(train):
-  """Set the training mode of the default graph.
-
-  This operation may only be called once for a given graph.
+def WeightDecay(model_params):
+  """Add weight decay.
 
   Args:
-    graph: Tensorflow graph. 
-    train: If True, graph is in training mode.
+    model_params: dictionary.
+
+  Returns:
+    A scalar tensor containing the weight decay cost.
 
   Raises:
-    AssertionError: If the default graph already has this value set.
+    NotImplementedError: If an unsupported penalty type is requested.
   """
-  if tf.get_collection('train'):
-    raise AssertionError('Training mode already set: %s' %
-                         graph.get_collection('train'))
-  tf.add_to_collection('train', train)
+  variables = []
+  # exclude bias variables
+  for v in tf.trainable_variables():
+    if v.get_shape().ndims == 2:
+      variables.append(v)
+
+  with tf.name_scope('weight_decay'):
+    if model_params["penalty_type"] == 'l1':
+      cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
+    elif model_params["penalty_type"] == 'l2':
+      cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
+    else:
+      raise NotImplementedError('Unsupported penalty_type %s' %
+                                model_params["penalty_type"])
+    cost *= model_params["penalty"]
+    tf.scalar_summary('Weight Decay Cost', cost)
+  return cost
+
+#def set_training(train):
+#  """Set the training mode of the default graph.
+#
+#  This operation may only be called once for a given graph.
+#
+#  Args:
+#    graph: Tensorflow graph. 
+#    train: If True, graph is in training mode.
+#
+#  Raises:
+#    AssertionError: If the default graph already has this value set.
+#  """
+#  if tf.get_collection('train'):
+#    raise AssertionError('Training mode already set: %s' %
+#                         graph.get_collection('train'))
+#  tf.add_to_collection('train', train)
 
 
 def MultitaskLogits(features, num_tasks, num_classes=2, weight_init=None,

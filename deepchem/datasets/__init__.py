@@ -129,17 +129,9 @@ class Dataset(object):
     for i, (X, y, w, ids) in enumerate(self._itershards()):
       log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
           self.verbosity)
-      print("np.shape(X)")
-      print(np.shape(X))
-      print("np.shape(y)")
-      print(np.shape(y))
-      print("np.shape(w)")
-      print(np.shape(w))
       nb_sample = np.shape(X)[0]
       interval_points = np.linspace(
           0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
-      print("interval_points")
-      print(interval_points)
       for j in range(len(interval_points)-1):
         log("Iterating on batch-%s/shard-%s/epoch-%s" %
             (str(j+1), str(i+1), str(epoch+1)), self.verbosity)
@@ -158,9 +150,6 @@ class Dataset(object):
     Due to rounding issues, some batches will not have exactly batch_size
     elements. Handle these batches by zero padding all arrays.
     """
-    print("_pad_batch")
-    print("np.shape(X_b)")
-    print(np.shape(X_b))
     n, feature_shape = np.shape(X_b)[0], np.shape(X_b)[1:]
     _, num_tasks = np.shape(y_b)
     if n == batch_size:
