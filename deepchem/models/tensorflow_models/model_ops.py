@@ -257,22 +257,22 @@ def WeightDecay(model_params):
     tf.scalar_summary('Weight Decay Cost', cost)
   return cost
 
-#def set_training(train):
-#  """Set the training mode of the default graph.
-#
-#  This operation may only be called once for a given graph.
-#
-#  Args:
-#    graph: Tensorflow graph. 
-#    train: If True, graph is in training mode.
-#
-#  Raises:
-#    AssertionError: If the default graph already has this value set.
-#  """
-#  if tf.get_collection('train'):
-#    raise AssertionError('Training mode already set: %s' %
-#                         graph.get_collection('train'))
-#  tf.add_to_collection('train', train)
+def set_training(train):
+  """Set the training mode of the default graph.
+
+  This operation may only be called once for a given graph.
+
+  Args:
+    graph: Tensorflow graph. 
+    train: If True, graph is in training mode.
+
+  Raises:
+    AssertionError: If the default graph already has this value set.
+  """
+  if tf.get_collection('train'):
+    raise AssertionError('Training mode already set: %s' %
+                         graph.get_collection('train'))
+  tf.add_to_collection('train', train)
 
 
 def MultitaskLogits(features, num_tasks, num_classes=2, weight_init=None,
@@ -347,7 +347,6 @@ def SoftmaxN(tensor, name=None):
                                 reduction_indices=reduction_indices,
                                 keep_dims=True))
 
-
 def Transform(tensor, transform, convolution=True, mask=None):
   """Apply a transform to a tensor.
 
@@ -393,3 +392,32 @@ def Transform(tensor, transform, convolution=True, mask=None):
       if mask is not None:
         tensor = model_utils.Mask(tensor, mask)
   return tensor
+
+def Optimizer(model_params):
+  """Create model optimizer.
+
+  Args:
+    model_params: dictionary.
+
+  Returns:
+    A training Optimizer.
+
+  Raises:
+    NotImplementedError: If an unsupported optimizer is requested.
+  """
+  # TODO(user): gradient clipping (see Minimize)
+  if model_params["optimizer"] == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'adam':
+    train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'momentum':
+    train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
+                                          model_params["memory"])
+  elif model_params["optimizer"] == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
+                                         model_params["memory"])
+  elif model_params["optimizer"] == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
+  else:
+    raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
+  return train_op

@@ -19,7 +19,7 @@ class SklearnModel(Model):
   Abstract base class for different ML models.
   """
   def __init__(self, task_types, model_params, 
-               model_instance=RandomForestRegressor(),
+               model_instance=None,
                initialize_raw_model=True):
     super(SklearnModel, self).__init__(
         task_types, model_params, initialize_raw_model)
@@ -31,12 +31,12 @@ class SklearnModel(Model):
   # support partial_fit, but only for some models. Might make sense to make
   # PartialSklearnModel subclass at some point to support large data models.
   # Also, use of batch_size=32 is arbitrary and kludgey
-  def fit(self, numpy_dataset):
+  def fit(self, dataset):
     """
     Fits SKLearn model to data.
     """
     Xs, ys = [], []
-    for (X_batch, y_batch, _, _) in numpy_dataset.iterbatches(batch_size=32):
+    for (X_batch, y_batch, _, _) in dataset.iterbatches(batch_size=32):
       Xs.append(X_batch)
       ys.append(y_batch)
     X = np.concatenate(Xs)
