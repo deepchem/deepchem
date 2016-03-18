@@ -334,9 +334,9 @@ class TensorflowGraph(object):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        labels = from_one_hot(np.squeeze(np.concatenate(labels)))
+        labels = np.array(from_one_hot(np.squeeze(np.concatenate(labels))))
 
-      return labels
+    return np.copy(labels)
 
   def add_output_ops(self):
     """Replace logits with softmax outputs."""
@@ -727,7 +727,7 @@ class TensorflowModel(Model):
     """
     Makes predictions on batch of data.
     """
-    self.eval_model.predict_on_batch(X)
+    return self.eval_model.predict_on_batch(X)
 
   def save(self, logdir):
     """

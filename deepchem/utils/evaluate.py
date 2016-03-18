@@ -38,7 +38,6 @@ def to_one_hot(y):
       y_hot[index] = np.array([0, 1])
   return y_hot
 
-
 def from_one_hot(y):
   """Transorms label vector from one-hot encoding.
 
