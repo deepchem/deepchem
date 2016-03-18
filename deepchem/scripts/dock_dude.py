@@ -22,7 +22,7 @@ in between: make a pandas data frame with all ligand-protein combinations.
       skip docking if that new docked pose already exists. 
 
 """
-
+from __future__ import print_function
 import os
 import subprocess
 from deepchem.featurizers.nnscore_utils import hydrogenate_and_compute_partial_charges
@@ -55,68 +55,95 @@ def prepare_receptors(dude_dir, new_dir):
                                             pdbqt_output=prepared_pdbqt,
                                             verbose=False)
 
-def prepare_ligands(mol2_file, save_dir):
+def generate_ligand_mol2(mol, save_dir):
+  mol_name = str(mol.OBMol.GetTitle())
+  #print("Preparing ligand %s" % mol_name)
+  filename = mol_name + ".mol2"
+  filename = os.path.join(save_dir, filename)
+  prepared_filename = os.path.join(save_dir, "%s_prepared.pdb" %mol_name)
+  prepared_pdbqt = os.path.join(save_dir, "%s_prepared.pdbqt" %mol_name)
+  if os.path.exists(prepared_pdbqt):
+    return mol_name    
+  output = open(filename,"w") # erase existing file, if any
+  output.write(mol.write("mol2"))
+  output.close()
+
+  return mol_name
+
+def prepare_ligand(mol_name, save_dir):
+  #print("Preparing ligand %s" % mol_name)
+  outfile = "/home/enf/deep-docking/shallow/test_output.txt"
+  filename = str(mol_name) + ".mol2"
+  filename = os.path.join(save_dir, filename)
+  prepared_filename = os.path.join(save_dir, "%s_prepared.pdb" %mol_name)
+  prepared_pdbqt = os.path.join(save_dir, "%s_prepared.pdbqt" %mol_name)
+  if os.path.exists(prepared_pdbqt):
+    return    
+
+  hydrogenate_and_compute_partial_charges(filename, "mol2",
+                                          hyd_output=prepared_filename,
+                                          pdbqt_output=prepared_pdbqt,
+                                          verbose=False, protein=False)
+
+def prepare_ligands(mol2_file, save_dir, worker_pool=None):
   print("mol2_file")
   print(mol2_file)
-  for i, mol in enumerate(pybel.readfile("mol2", mol2_file)):
-    mol_name = mol.OBMol.GetTitle()
-    #print("Preparing ligand %s" % mol_name)
-    filename = mol_name + ".mol2"
-    filename = os.path.join(save_dir, filename)
-    prepared_filename = os.path.join(save_dir, "%s_prepared.pdb" %mol_name)
-    prepared_pdbqt = os.path.join(save_dir, "%s_prepared.pdbqt" %mol_name)
-    if os.path.exists(prepared_pdbqt):
-      continue    
-    output = open(filename,"w") # erase existing file, if any
-    output.write(mol.write("mol2"))
-    output.close()
 
+  mol_names = []
+  for mol in pybel.readfile("mol2", mol2_file):
+    mol_names.append(str(generate_ligand_mol2(mol, save_dir)))
 
-    hydrogenate_and_compute_partial_charges(filename, "mol2",
-                                            hyd_output=prepared_filename,
-                                            pdbqt_output=prepared_pdbqt,
-                                            verbose=False, protein=False)
+  prepare_ligand_partial = partial(prepare_ligand, save_dir=save_dir)
 
+  if worker_pool is not None:
+    worker_pool.map_sync(prepare_ligand_partial, mol_names)
+  else:
+    for mol_name in mol_names:
+      prepare_ligand_partial(mol_name)
 
-def prepare_ligands_in_directory(dude_dir, new_dir, receptor_name=None):
-  subdirs = glob.glob(os.path.join(dude_dir, '*/'))
+def prepare_ligands_in_directory(dude_dir, new_dir, receptor_name=None, worker_pool=None):
+  subdirs = sorted(glob.glob(os.path.join(dude_dir, '*/')))
+  print("Searching for receptor %s" %receptor_name)
   for subdir in subdirs:
+    print("subdir: %s" %subdir)
     subdir = subdir.rstrip('/')
-    if receptor_name is not None and receptor_name not in subdir:
-      continue
-    receptor_name = os.path.basename(subdir)
-    print("Currently examining receptor %s " % receptor_name)
-    save_dir = os.path.join(new_dir, receptor_name)
-    input_mol2gz = os.path.join(subdir, "actives_final.mol2.gz")
-    output_mol2 = os.path.join(subdir, "actives_final.mol2")
-    try:
-      subprocess.call("gunzip < %s > %s" %(input_mol2gz, output_mol2), shell=True)
-    except:
-      pass
+    if receptor_name == os.path.basename(subdir):
+      print("Found receptor %s in subdirectory %s" %(receptor_name, subdir))
+      break
+  
+  receptor_name = os.path.basename(subdir)
+  print("Currently examining receptor %s " % receptor_name)
+  save_dir = os.path.join(new_dir, receptor_name)
+  input_mol2gz = os.path.join(subdir, "actives_final.mol2.gz")
+  output_mol2 = os.path.join(subdir, "actives_final.mol2")
+  try:
+    subprocess.call("gunzip < %s > %s" %(input_mol2gz, output_mol2), shell=True)
+  except:
+    pass
 
-    print("output_mol2")
-    print(output_mol2)
+  print("output_mol2")
+  print(output_mol2)
 
-    if not os.path.exists(output_mol2):
-      continue
+  if not os.path.exists(output_mol2):
+    return
 
-    prepare_ligands(output_mol2, save_dir)
+  prepare_ligands(output_mol2, save_dir, worker_pool=worker_pool)
 
-    input_mol2gz = os.path.join(subdir, "decoys_final.mol2.gz")
-    output_mol2 = os.path.join(subdir, "decoys_final.mol2")
-    try:
-      subprocess.call("gunzip < %s > %s" %(input_mol2gz, output_mol2), shell=True)
-    except:
-      pass
+  input_mol2gz = os.path.join(subdir, "decoys_final.mol2.gz")
+  output_mol2 = os.path.join(subdir, "decoys_final.mol2")
+  try:
+    subprocess.call("gunzip < %s > %s" %(input_mol2gz, output_mol2), shell=True)
+  except:
+    pass
 
-    prepare_ligands(output_mol2, save_dir)
+  prepare_ligands(output_mol2, save_dir, worker_pool=worker_pool)
 
 def write_conf(receptor_filename, 
                ligand_filename,
                centroid,
                box_dims,
                conf_filename,
-               exhaustiveness=1):
+               exhaustiveness=None):
   
   with open(conf_filename, "wb") as f:
     f.write("receptor = %s\n" % receptor_filename)
@@ -130,7 +157,10 @@ def write_conf(receptor_filename,
     f.write("size_y = %f\n" % box_dims[1])
     f.write("size_z = %f\n\n" % box_dims[2])
 
-    f.write("exhaustiveness = %d" % exhaustiveness)
+    if exhaustiveness is not None:
+      f.write("exhaustiveness = %d\n" % exhaustiveness)
+
+    #f.write("cpu = 8")
 
   return
 
@@ -141,19 +171,24 @@ def dock_ligand_to_receptor(ligand_file, receptor_filename, protein_centroid,
   print("Docking ligand %s to receptor %s" %(ligand_name, receptor_filename))
   conf_filename = os.path.join(subdir, "%s_conf.txt" % ligand_name)
   write_conf(receptor_filename, ligand_file, protein_centroid,
-             box_dims, conf_filename, exhaustiveness=1)
+             box_dims, conf_filename, exhaustiveness=exhaustiveness)
 
   log_filename = os.path.join(subdir, "%s_log.txt" % ligand_name)
   out_filename = os.path.join(subdir, "%s_docked.pdbqt" % ligand_name)
   if os.path.exists(out_filename):
     try:
-      receptor_pybel = pybel.readfile("pdb", 
-        os.path.join(subdir, "%s.pdb" % receptor_name)).next()
+      receptor_pybel = pybel.readfile("pdbqt", 
+        out_filename).next()
       return out_filename
     except:
       pass
 
+  start = time.time()
   subprocess.call("$VINA --config %s --log %s --out %s" % (conf_filename, log_filename, out_filename), shell=True)
+  total_time = time.time()-start
+  with open(log_filename, "a") as f:
+    f.write("total time = %s" %(str(total_time)))
+
   return out_filename
 
 def get_molecule_data(pybel_molecule):
@@ -168,13 +203,12 @@ def get_molecule_data(pybel_molecule):
   protein_range = protein_max - protein_min
   return protein_centroid, protein_range
 
-def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=1, chosen_receptor=None, restrict_box=True):
+def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=None, chosen_receptor=None, restrict_box=True):
   subdirs = glob.glob(os.path.join(docking_dir, '*/'))
   for subdir in subdirs:
     subdir = subdir.rstrip('/')
     receptor_name = os.path.basename(subdir)
-    if chosen_receptor is not None:
-      if chosen_receptor != receptor_name:
+    if chosen_receptor is not None and chosen_receptor != receptor_name:
         continue
     print("receptor name = %s" % receptor_name)
     receptor_filename = os.path.join(subdir, "%s.pdbqt" % receptor_name)
@@ -235,10 +269,8 @@ def prepare_ligands_and_dock_ligands_to_receptors(dude_dir, docking_dir, worker_
     subdir = subdir.rstrip('/')
     receptor_name = os.path.basename(subdir)
     print("Preparing ligands and then docking to %s" % receptor_name)
-    prepare_ligands_in_directory(dude_dir, docking_dir, receptor_name)
-    time.sleep(10)
+    prepare_ligands_in_directory(dude_dir, docking_dir, receptor_name, None)
     dock_ligands_to_receptors(docking_dir, worker_pool, chosen_receptor=receptor_name)
-    break
 
 def prepare_receptors_prepare_ligands_dock_ligands_to_receptors(dude_dir, docking_dir, worker_pool):
   prepare_receptors(dude_dir, docking_dir)
