@@ -166,12 +166,6 @@ class DataFeaturizer(object):
     else:
       # Reload should automatically find required files
       shard_files = None
-      #shard_files = []
-      #feature_dir_files = os.listdir(feature_dir)
-      #for feature_dir_file in feature_dir_files:
-      #  basename, extension = os.path.splitext(feature_dir_file)
-      #  if extension == ".joblib" and "shard" in basename:
-      #    shard_files.append(os.path.join(feature_dir, feature_dir_file))
 
     featurizers = self.compound_featurizers + self.complex_featurizers
     samples = FeaturizedSamples(samples_dir=samples_dir, featurizers=featurizers, 

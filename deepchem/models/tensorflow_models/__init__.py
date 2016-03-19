@@ -290,7 +290,6 @@ class TensorflowGraph(object):
       self.restore()
     with self.graph.as_default():
       assert not model_ops.is_training()
-      #assert self._restored_model
       self.require_attributes(['output', 'labels', 'weights'])
 
       # run eval data through the model
