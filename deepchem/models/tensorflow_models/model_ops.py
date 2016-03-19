@@ -221,15 +221,41 @@ def is_training():
   """
   #traceback.print_stack(file=sys.stdout) 
   train = tf.get_collection("train")
-  print("is_training()")
-  print("train")
-  print(train)
   if not train:
     raise ValueError('Training mode is not set. Please call set_training.')
   elif len(train) > 1:
     raise ValueError('Training mode has more than one setting.')
   return train[0]
 
+def WeightDecay(model_params):
+  """Add weight decay.
+
+  Args:
+    model_params: dictionary.
+
+  Returns:
+    A scalar tensor containing the weight decay cost.
+
+  Raises:
+    NotImplementedError: If an unsupported penalty type is requested.
+  """
+  variables = []
+  # exclude bias variables
+  for v in tf.trainable_variables():
+    if v.get_shape().ndims == 2:
+      variables.append(v)
+
+  with tf.name_scope('weight_decay'):
+    if model_params["penalty_type"] == 'l1':
+      cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
+    elif model_params["penalty_type"] == 'l2':
+      cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
+    else:
+      raise NotImplementedError('Unsupported penalty_type %s' %
+                                model_params["penalty_type"])
+    cost *= model_params["penalty"]
+    tf.scalar_summary('Weight Decay Cost', cost)
+  return cost
 
 def set_training(train):
   """Set the training mode of the default graph.
@@ -321,7 +347,6 @@ def SoftmaxN(tensor, name=None):
                                 reduction_indices=reduction_indices,
                                 keep_dims=True))
 
-
 def Transform(tensor, transform, convolution=True, mask=None):
   """Apply a transform to a tensor.
 
@@ -367,3 +392,32 @@ def Transform(tensor, transform, convolution=True, mask=None):
       if mask is not None:
         tensor = model_utils.Mask(tensor, mask)
   return tensor
+
+def Optimizer(model_params):
+  """Create model optimizer.
+
+  Args:
+    model_params: dictionary.
+
+  Returns:
+    A training Optimizer.
+
+  Raises:
+    NotImplementedError: If an unsupported optimizer is requested.
+  """
+  # TODO(user): gradient clipping (see Minimize)
+  if model_params["optimizer"] == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'adam':
+    train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
+  elif model_params["optimizer"] == 'momentum':
+    train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
+                                          model_params["memory"])
+  elif model_params["optimizer"] == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
+                                         model_params["memory"])
+  elif model_params["optimizer"] == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
+  else:
+    raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
+  return train_op

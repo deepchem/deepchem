@@ -91,12 +91,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
+    assert len(self.model_params["data_shape"]) == 1
+    num_features = self.model_params["data_shape"][0]
     with self.graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
             shape=[self.model_params["batch_size"],
-                   self.model_params["num_features"]],
+                   num_features],
             name='mol_features')
 
       layer_sizes = self.model_params["layer_sizes"]
@@ -114,7 +116,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       assert num_layers > 0, 'Must have some layers defined.'
 
       prev_layer = self.mol_features
-      prev_layer_size = self.model_params["num_features"]
+      prev_layer_size = num_features 
       for i in xrange(num_layers):
         layer = tf.nn.relu(model_ops.FullyConnectedLayer(
             tensor=prev_layer,
@@ -130,23 +132,6 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
 
       self.output = model_ops.MultitaskLogits(
           layer, self.model_params["num_classification_tasks"])
-
-  # TODO(rbharath): Copying this out for now. Ensure this isn't harmful
-  #def add_labels_and_weights(self):
-  #  """Parse Label protos and create tensors for labels and weights.
-
-  #  This method creates the following Placeholders in the graph:
-  #    labels: Tensor with shape batch_size x num_tasks containing serialized
-  #      Label protos.
-  #  """
-  #  config = self.config
-  #  with tf.name_scope(self.placeholder_scope):
-  #    labels = tf.placeholder(
-  #        tf.string,
-  #        shape=[config.batch_size, config.num_classification_tasks],
-  #        name='labels')
-  #  self.labels = label_ops.MultitaskLabelClasses(labels, config.num_classes)
-  #  self.weights = label_ops.MultitaskLabelWeights(labels)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -177,10 +162,3 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
     return self._get_feed_dict(orig_dict)
 
-  # TODO(rbharath): This explicit manipulation of scopes is ugly. Is there a
-  # better design here?
-  def _get_feed_dict(self, named_values):
-    feed_dict = {}
-    for name, value in named_values.iteritems():
-      feed_dict['{}/{}:0'.format(self.placeholder_root, name)] = value
-    return feed_dict

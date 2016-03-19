@@ -72,10 +72,7 @@ class TestTensorflowAPI(TestAPI):
       "learning_rate": .001,
       "data_shape": train_dataset.get_data_shape()
     }
-    model = TensorflowMultiTaskClassifier(
-        task_types, model_params, train=True, logdir=self.model_dir)
-    def test_model_creator():
-      return TensorflowMultiTaskClassifier(
-          task_types, model_params, train=False, logdir=self.model_dir)
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       test_model_creator=test_model_creator)
+    model = TensorflowModel(
+        task_types, model_params, self.model_dir,
+        tf_class=TensorflowMultiTaskClassifier)
+    self._create_model(train_dataset, test_dataset, model, transformers)

@@ -20,7 +20,7 @@ import numpy as np
 
 from tensorflow.python.platform import googletest
 
-from deepchem.utils import metrics
+from deepchem.metrics import kappa_score 
 
 
 class MetricsTest(googletest.TestCase):
@@ -28,7 +28,7 @@ class MetricsTest(googletest.TestCase):
   def test_kappa_score(self):
     y_true = [1, 0, 1, 0]
     y_pred = [0.8, 0.2, 0.3, 0.4]  # [1, 0, 0, 0] with 0.5 threshold
-    kappa = metrics.kappa_score(y_true, np.greater(y_pred, 0.5))
+    kappa = kappa_score(y_true, np.greater(y_pred, 0.5))
     observed_agreement = 3.0 / 4.0
     expected_agreement = ((2 * 1) + (2 * 3)) / 4.0 ** 2
     expected_kappa = np.true_divide(observed_agreement - expected_agreement,

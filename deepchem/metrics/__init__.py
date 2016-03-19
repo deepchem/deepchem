@@ -21,6 +21,33 @@ import collections
 import numpy as np
 from sklearn import metrics
 
+def compute_metric(num_tasks, y_true, y_pred, metric_str, threshold=0.5):
+  """Compute a performance metric for each task.
+
+  Args:
+    y_true: A list of arrays containing true values for each task.
+    y_pred: A list of arrays containing predicted values for each task.
+    metric_str: String description of the metric to compute. Must be in
+      metrics.METRICS.
+    threshold: Float threshold to apply to probabilities for positive/negative
+      class assignment.
+
+  Returns:
+    A numpy array containing metric values for each task.
+  """
+  computed_metrics = []
+  for task in xrange(num_tasks):
+    yt = y_true[task]
+    yp = y_pred[task]
+    try:
+      metric_value = compute_metric(yt, yp, metric_str,
+                                    threshold=threshold)
+    except (AssertionError, ValueError) as e:
+      warnings.warn('Error calculating metric %s for task %d: %s'
+                    % (metric_str, task, e))
+      metric_value = np.nan
+    computed_metrics.append(metric_value)
+  return computed_metrics
 
 def kappa_score(y_true, y_pred):
   """Calculate Cohen's kappa for classification tasks.

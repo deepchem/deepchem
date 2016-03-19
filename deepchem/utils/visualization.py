@@ -3,6 +3,11 @@ import tempfile
 import os
 import mdtraj as md
 import numpy as np
+import tempfile
+from rdkit import Chem
+from rdkit.Chem import Draw
+from itertools import islice
+from IPython.display import Image, HTML, display
 
 def combine_mdtraj(protein, ligand):
   chain = protein.topology.add_chain()
@@ -49,3 +54,19 @@ def convert_lines_to_mdtraj(molecule_lines):
     f.writelines(molecule_lines)
   molecule_mdtraj = md.load(molecule_file)
   return molecule_mdtraj
+
+def display_images(filenames):
+    """Helper to pretty-print images."""
+    imagesList=''.join(
+        ["<img style='width: 140px; margin: 0px; float: left; border: 1px solid black;' src='%s' />"
+         % str(s) for s in sorted(filenames)])
+    display(HTML(imagesList))
+
+def mols_to_pngs(mols, basename="test"):
+    """Helper to write RDKit mols to png files."""
+    filenames = []
+    for i, mol in enumerate(mols):
+        filename = "%s%d.png" % (basename, i)
+        Draw.MolToFile(mol, filename)
+        filenames.append(filename)
+    return filenames

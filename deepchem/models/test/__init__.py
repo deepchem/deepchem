@@ -98,7 +98,7 @@ class TestAPI(unittest.TestCase):
                                 complex_featurizers=complex_featurizers,
                                 user_specified_features=user_specified_features,
                                 split_field=split_field,
-                                verbose=True)
+                                verbosity="low")
     
 
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.

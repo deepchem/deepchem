@@ -27,14 +27,13 @@ class Model(object):
   """
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity="low", **kwargs):
+               initialize_raw_model=True, verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
-    self.low_verbosity = (verbosity == "low")
-    self.high_verbosity = (verbosity == "high")
+    self.verbosity = verbosity
 
   def fit_on_batch(self, X, y, w):
     """
@@ -76,17 +75,6 @@ class Model(object):
     """
     return os.path.join(out_dir, "model_params.joblib")
 
-  @staticmethod
-  def get_task_type(model_name):
-    """
-    Given model type, determine if classifier or regressor.
-    """
-    if model_name in ["logistic", "rf_classifier", "singletask_deep_classifier",
-                      "multitask_deep_classifier"]:
-      return "classification"
-    else:
-      return "regression"
-
   def save(self, out_dir):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
@@ -102,7 +90,7 @@ class Model(object):
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
-      log("Starting epoch %s" % str(epoch+1), self.low_verbosity)
+      log("Starting epoch %s" % str(epoch+1), self.verbosity)
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
         self.fit_on_batch(X_batch, y_batch, w_batch)
 
@@ -125,9 +113,6 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred = self.predict_on_batch(X_batch)
-      print("predict()")
-      print("y_pred.shape")
-      print(y_pred.shape)
       y_pred = np.reshape(y_pred, np.shape(y_batch))
 
       # Now undo transformations on y, y_pred

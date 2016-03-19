@@ -24,46 +24,52 @@ class Dataset(object):
   """
   def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
                use_user_specified_features=False,
-               high_verbosity=False):
+               verbosity=None, reload=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)
     self.data_dir = data_dir
-    self.high_verbosity = high_verbosity
+    assert verbosity in [None, "low", "high"]
+    self.verbosity = verbosity
 
     if featurizers is not None:
       feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
     else:
       feature_types = None
 
-    if use_user_specified_features:
-      feature_types = ["user-specified-features"]
+    if not reload or not os.path.exists(self._get_metadata_filename()):
+      log("About to start initializing dataset", self.verbosity)
+      if use_user_specified_features:
+        feature_types = ["user-specified-features"]
 
-    if samples is not None and feature_types is not None:
-      if not isinstance(feature_types, list):
-        raise ValueError("feature_types must be a list or None.")
+      if samples is not None and feature_types is not None:
+        if not isinstance(feature_types, list):
+          raise ValueError("feature_types must be a list or None.")
 
-      write_dataset_single_partial = partial(
-          write_dataset_single, data_dir=self.data_dir,
-          feature_types=feature_types, tasks=tasks)
+        write_dataset_single_partial = partial(
+            write_dataset_single, data_dir=self.data_dir,
+            feature_types=feature_types, tasks=tasks)
 
-      metadata_rows = []
-      # TODO(rbharath): Still a bit of information leakage.
-      for df_file, df in zip(samples.dataset_files, samples.iterdataframes()):
-        retval = write_dataset_single_partial((df_file, df))
-        if retval is not None:
-          metadata_rows.append(retval)
+        metadata_rows = []
+        # TODO(rbharath): Still a bit of information leakage.
+        for ind, (df_file, df) in enumerate(
+            zip(samples.dataset_files, samples.iterdataframes())):
+          log("Writing data from file %s, number %d/%d"
+              % (df_file, ind, len(samples.dataset_files)), self.verbosity)
+          retval = write_dataset_single_partial((df_file, df))
+          if retval is not None:
+            metadata_rows.append(retval)
 
-      self.metadata_df = pd.DataFrame(
-          metadata_rows,
-          columns=('df_file', 'task_names', 'ids',
-                   'X', 'X-transformed', 'y', 'y-transformed',
-                   'w',
-                   'X_sums', 'X_sum_squares', 'X_n',
-                   'y_sums', 'y_sum_squares', 'y_n'))
-      self.save_to_disk()
+        self.metadata_df = pd.DataFrame(
+            metadata_rows,
+            columns=('df_file', 'task_names', 'ids',
+                     'X', 'X-transformed', 'y', 'y-transformed',
+                     'w',
+                     'X_sums', 'X_sum_squares', 'X_n',
+                     'y_sums', 'y_sum_squares', 'y_n'))
+        self.save_to_disk()
     else:
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
@@ -122,19 +128,42 @@ class Dataset(object):
     """
     for i, (X, y, w, ids) in enumerate(self._itershards()):
       log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
-          self.high_verbosity)
+          self.verbosity)
       nb_sample = np.shape(X)[0]
       interval_points = np.linspace(
           0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
       for j in range(len(interval_points)-1):
         log("Iterating on batch-%s/shard-%s/epoch-%s" %
-            (str(j+1), str(i+1), str(epoch+1)), self.high_verbosity)
+            (str(j+1), str(i+1), str(epoch+1)), self.verbosity)
         indices = range(interval_points[j], interval_points[j+1])
         X_batch = X[indices, :]
         y_batch = y[indices]
         w_batch = w[indices]
         ids_batch = ids[indices]
+        (X_batch, y_batch, w_batch, ids_batch) = self._pad_batch(
+            X_batch, y_batch, w_batch, ids_batch, batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
+
+  def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):
+    """Fix batch to have exactly batch_size elements.
+ 
+    Due to rounding issues, some batches will not have exactly batch_size
+    elements. Handle these batches by zero padding all arrays.
+    """
+    n, feature_shape = np.shape(X_b)[0], np.shape(X_b)[1:]
+    _, num_tasks = np.shape(y_b)
+    if n == batch_size:
+      return (X_b, y_b, w_b, ids_b)
+    else:
+      X_batch = np.zeros((batch_size,) + feature_shape)
+      y_batch = np.zeros((batch_size, num_tasks))
+      w_batch = np.zeros((batch_size, num_tasks))
+      ids_batch = np.zeros((batch_size,), dtype=object)
+      X_batch[:n] = X_b
+      y_batch[:n] = y_b
+      w_batch[:n] = w_b
+      ids_batch[:n] = ids_b
+    return X_batch, y_batch, w_batch, ids_batch
 
   def __len__(self):
     """
