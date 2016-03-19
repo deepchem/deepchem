@@ -1,8 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=arrayJob
-#SBATCH --output=arrayJob_%A_%a.out
-#SBATCH --error=arrayJob_%A_%a.err
-#SBATCH -n 1
-#SBATCH --time=24:00:00
-#SBATCH --partition=owners
-srun ipengine
+#PBS -N controller
+#PBS -l nodes=1:ppn=24
+#PBS -l walltime=24:00:00
+##PBS -q lp
+module load compat-openmpi-x86_64 
+for i in {0..24}; do
+    echo $i;
+    mpirun -np 1 --bind-to-socket ipengine &
+    sleep 5s
+done
+sleep 24h
