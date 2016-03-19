@@ -41,7 +41,7 @@ class TestFeaturizedSamples(unittest.TestCase):
                                 smiles_field=self.smiles_field,
                                 compound_featurizers=compound_featurizers,
                                 complex_featurizers=complex_featurizers,
-                                verbose=True)
+                                verbosity="low")
 
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.
     #returns an instance of class FeaturizedSamples()
