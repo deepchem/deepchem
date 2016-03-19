@@ -50,6 +50,7 @@ def pdbqt_to_pdb(input_file, output_directory):
 def hydrogenate_and_compute_partial_charges(input_file, input_format,
                                             hyd_output=None,
                                             pdbqt_output=None,
+                                            protein=True,
                                             verbose=False):
   """Outputs a hydrogenated pdb and a pdbqt with partial charges.
 
@@ -88,10 +89,11 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
   charge_conversion = openbabel.OBConversion()
   charge_conversion.SetInAndOutFormats(str("pdb"), str("pdbqt"))
 
-  if verbose:
+  if protein and verbose:
     print("Make protein rigid.")
-  charge_conversion.AddOption(str("c"), charge_conversion.OUTOPTIONS)
-  charge_conversion.AddOption(str("r"), charge_conversion.OUTOPTIONS)
+  if protein:
+    charge_conversion.AddOption(str("c"), charge_conversion.OUTOPTIONS)
+    charge_conversion.AddOption(str("r"), charge_conversion.OUTOPTIONS)
   if verbose:
     print("Preserve hydrogens")
   charge_conversion.AddOption(str("h"), charge_conversion.OUTOPTIONS)
