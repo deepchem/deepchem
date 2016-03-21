@@ -26,8 +26,10 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
-from sklearn.ensemble import RandomForestRegressor
 from deepchem.models.test import TestAPI
+from deepchem import metrics
+from deepchem.metrics import Metric
+from sklearn.ensemble import RandomForestRegressor
 
 class TestKerasSklearnAPI(TestAPI):
   """
@@ -48,9 +50,14 @@ class TestKerasSklearnAPI(TestAPI):
         complex_featurizers, input_transformers,
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
+    regression_metrics = [Metric(metrics.r2_score),
+                          Metric(metrics.mean_squared_error),
+                          Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    model = SklearnModel(task_types, model_params,
+                         model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       regression_metrics)
 
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF ECFP regression API."""
@@ -71,9 +78,14 @@ class TestKerasSklearnAPI(TestAPI):
         user_specified_features=user_specified_features,
         split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
+    regression_metrics = [Metric(metrics.r2_score),
+                          Metric(metrics.mean_squared_error),
+                          Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    model = SklearnModel(task_types, model_params,
+                         model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       regression_metrics)
 
   def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
@@ -92,11 +104,15 @@ class TestKerasSklearnAPI(TestAPI):
         shard_size=50)
     # We set shard size above to force the creation of multiple shards of the data.
     # pdbbind_core has ~200 examples.
-
     model_params["data_shape"] = train_dataset.get_data_shape()
+    regression_metrics = [Metric(metrics.r2_score),
+                          Metric(metrics.mean_squared_error),
+                          Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    model = SklearnModel(task_types, model_params,
+                         model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       regression_metrics)
 
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
@@ -113,9 +129,14 @@ class TestKerasSklearnAPI(TestAPI):
         complex_featurizers, input_transformers,
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
+    regression_metrics = [Metric(metrics.r2_score),
+                          Metric(metrics.mean_squared_error),
+                          Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    model = SklearnModel(task_types, model_params,
+                         model_instance=RandomForestRegressor())
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       regression_metrics)
 
   '''
   # TODO(rbharath): This fails on many systems with an Illegal Instruction
@@ -181,12 +202,18 @@ class TestKerasSklearnAPI(TestAPI):
         ligand_pdb_field=ligand_pdb_field,
         user_specified_features=user_specified_features)
     model_params["data_shape"] = train_dataset.get_data_shape()
+    regression_metrics = [Metric(metrics.r2_score),
+                          Metric(metrics.mean_squared_error),
+                          Metric(metrics.mean_absolute_error)]
 
     model = SingleTaskDNN(task_types, model_params)
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       regression_metrics)
 
 
-    #TODO(enf/rbharath): 3D CNN's are broken and must be fixed.
+    #TODO(enf/rbharath): This should be uncommented now that 3D CNNs are in
+    #                    keras. Need to upgrade the base version of keras for
+    #                    deepchem.
     '''
   def test_singletask_cnn_GridFeaturizer_regression_API(self):
     """Test of singletask 3D ConvNet regression API."""
@@ -249,6 +276,11 @@ class TestKerasSklearnAPI(TestAPI):
         complex_featurizers, input_transformers,
         output_transformers, input_file, task_types.keys())
     model_params["data_shape"] = train_dataset.get_data_shape()
+    classification_metrics = [Metric(metrics.roc_auc_score),
+                              Metric(metrics.matthews_corrcoef),
+                              Metric(metrics.recall_score),
+                              Metric(metrics.accuracy_score)]
     
     model = MultiTaskDNN(task_types, model_params)
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       classification_metrics)

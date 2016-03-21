@@ -19,18 +19,22 @@ import collections
 
 
 import numpy as np
-from sklearn import metrics
+import warnings
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import matthews_corrcoef
+from sklearn.metrics import recall_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 
-def compute_metric(num_tasks, y_true, y_pred, metric_str, threshold=0.5):
+def compute_metrics(num_tasks, y_true, y_pred, metric):
   """Compute a performance metric for each task.
 
   Args:
     y_true: A list of arrays containing true values for each task.
     y_pred: A list of arrays containing predicted values for each task.
-    metric_str: String description of the metric to compute. Must be in
-      metrics.METRICS.
-    threshold: Float threshold to apply to probabilities for positive/negative
-      class assignment.
+    metric: Must be a class that inherits from Metric 
 
   Returns:
     A numpy array containing metric values for each task.
@@ -40,14 +44,30 @@ def compute_metric(num_tasks, y_true, y_pred, metric_str, threshold=0.5):
     yt = y_true[task]
     yp = y_pred[task]
     try:
-      metric_value = compute_metric(yt, yp, metric_str,
-                                    threshold=threshold)
+      metric_value = metric.compute(yt, yp)
     except (AssertionError, ValueError) as e:
-      warnings.warn('Error calculating metric %s for task %d: %s'
+      warnings.warn("Error calculating metric %s for task %d: %s"
                     % (metric_str, task, e))
       metric_value = np.nan
     computed_metrics.append(metric_value)
   return computed_metrics
+
+def compute_roc_auc_scores(y, y_pred):
+  """Transforms the results dict into roc-auc-scores and prints scores.
+
+  Parameters
+  ----------
+  results: dict
+  task_types: dict
+    dict mapping task names to output type. Each output type must be either
+    "classification" or "regression".
+  """
+  try:
+    score = roc_auc_score(y, y_pred)
+  except ValueError:
+    warnings.warn("ROC AUC score calculation failed.")
+    score = 0.5
+  return score
 
 def kappa_score(y_true, y_pred):
   """Calculate Cohen's kappa for classification tasks.
@@ -82,45 +102,41 @@ def kappa_score(y_true, y_pred):
                          1.0 - expected_agreement)
   return kappa
 
+class Metric(object):
+  """Wrapper class for computing user-defined metrics."""
 
-def compute_metric(y_true, y_pred, metric_str, threshold=0.5):
-  """Compute a metric value.
+  def __init__(self, metric, name=None, threshold=None):
+    """
+    Args:
+      metric: function that takes args y_true, y_pred (in that order) and
+              computes desired score.
+    """
+    self.metric = metric
+    if name is None:
+      self.name = self.metric.__name__
+    else:
+      self.name = name
+    self.threshold = threshold
 
-  Args:
-    y_true: A list of arrays containing true values for each task.
-    y_pred: A list of arrays containing predicted values for each task.
-    metric_str: String description of the metric to compute. Must be in
-      biology_metrics.METRICS.
-    threshold: Float threshold to apply to probabilities for positive/negative
-      class assignment.
+  def compute_metric(self, y_true, y_pred):
+    """Compute a metric value.
 
-  Returns:
-    Float metric value.
+    Args:
+      y_true: A list of arrays containing true values for each task.
+      y_pred: A list of arrays containing predicted values for each task.
 
-  Raises:
-    NotImplementedError: If metric_str is not in METRICS.
-  """
-  if metric_str not in METRICS:
-    raise NotImplementedError('Unsupported metric %s' % metric_str)
-  metric_tuple = METRICS[metric_str]
-  if metric_tuple.threshold:
-    y_pred = np.greater(y_pred, threshold)
-  return metric_tuple.func(y_true, y_pred)
+    Returns:
+      Float metric value.
 
-
-class Metric(collections.namedtuple('MetricTuple', ['func', 'threshold'])):
-  """A named tuple used to organize model evaluation metrics.
-
-  Args:
-    func: Function to call. Should take true and predicted values (in that
-      order) and compute the metric.
-    threshold: Boolean indicating whether float values should be converted to
-      binary labels prior to computing the metric, e.g. accuracy.
-  """
-
-METRICS = {
-  'accuracy': Metric(metrics.accuracy_score, True),
-  'auc': Metric(metrics.roc_auc_score, False),
-  'kappa': Metric(kappa_score, True),
-  'r2': Metric(metrics.r2_score, False),
-}
+    Raises:
+      NotImplementedError: If metric_str is not in METRICS.
+    """
+    if self.threshold is not None:
+      y_pred = np.greater(y_pred, threshold)
+    try:
+      metric_value = self.metric(y_true, y_pred)
+    except (AssertionError, ValueError) as e:
+      warnings.warn("Error calculating metric %s: %s"
+                    % (self.name, e))
+      metric_value = np.nan
+    return metric_value 

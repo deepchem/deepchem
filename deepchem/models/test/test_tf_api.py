@@ -28,8 +28,10 @@ from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifie
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
-from sklearn.ensemble import RandomForestRegressor
 from deepchem.models.test import TestAPI
+from deepchem import metrics
+from deepchem.metrics import Metric
+from sklearn.ensemble import RandomForestRegressor
 
 class TestTensorflowAPI(TestAPI):
   """
@@ -72,7 +74,13 @@ class TestTensorflowAPI(TestAPI):
       "learning_rate": .001,
       "data_shape": train_dataset.get_data_shape()
     }
+    classification_metrics = [Metric(metrics.roc_auc_score),
+                              Metric(metrics.matthews_corrcoef),
+                              Metric(metrics.recall_score),
+                              Metric(metrics.accuracy_score)]
+
     model = TensorflowModel(
         task_types, model_params, self.model_dir,
         tf_class=TensorflowMultiTaskClassifier)
-    self._create_model(train_dataset, test_dataset, model, transformers)
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       classification_metrics)
