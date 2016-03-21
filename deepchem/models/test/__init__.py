@@ -56,7 +56,7 @@ class TestAPI(unittest.TestCase):
   def _hyperparam_opt(self, model_builder, params_dict, train_dataset,
                       valid_dataset, output_transformers, task_types, metric):
 
-    optimizer = HyperparamOpt(model_builder, task_types)
+    optimizer = HyperparamOpt(model_builder, task_types, verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, output_transformers,
       metric)
