@@ -26,6 +26,7 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
+from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
 
 class TestAPI(unittest.TestCase):
@@ -51,6 +52,14 @@ class TestAPI(unittest.TestCase):
     # TODO(rbharath): Removing this causes crashes for some reason. Need to
     # debug.
     #shutil.rmtree(self.model_dir)
+
+  def _hyperparam_opt(self, model_builder, params_dict, train_dataset,
+                      valid_dataset, output_transformers, task_types, metric):
+
+    optimizer = HyperparamOpt(model_builder, task_types, verbosity="low")
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+      params_dict, train_dataset, valid_dataset, output_transformers,
+      metric)
 
   def _create_model(self, train_dataset, test_dataset, model, transformers,
                     metrics):
