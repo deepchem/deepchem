@@ -14,13 +14,15 @@ class HyperparamOpt(object):
   Provides simple hyperparameter search capabilities.
   """
 
-  def __init__(self, model_class, task_types):
+  def __init__(self, model_class, task_types, verbosity=None):
     self.model_class = model_class
     self.task_types = task_types
+    assert verbosity in [None, "low", "high"]
+    self.verbosity = verbosity
 
   def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
                         output_transformers, metric, use_max=True,
-                        verbosity=None, logdir=None):
+                        logdir=None):
     """Perform hyperparams search according to params_dict.
     
     Each key to hyperparams_dict is a model_param. The values should be a list
@@ -55,8 +57,8 @@ class HyperparamOpt(object):
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       df, score = evaluator.compute_model_performance(
-          valid_csv_out, valid_stats_out)
-      valid_score = score.iloc[0][metric]
+          [metric], valid_csv_out, valid_stats_out)
+      valid_score = score.iloc[0][metric.name]
       all_scores[hyperparameter_tuple] = valid_score
     
       if (use_max and valid_score > best_validation_score) or (
@@ -71,15 +73,15 @@ class HyperparamOpt(object):
         shutil.rmtree(model_dir)
   
       print("Model %d/%d, Metric %s, Validation set %s: %f" %
-            (ind, number_combinations, metric, ind, valid_score))
+            (ind, number_combinations, metric.name, ind, valid_score))
       print("\tbest_validation_score so  far: %f" % best_validation_score)
 
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     train_df, train_score = train_evaluator.compute_model_performance(
-        train_csv_out, train_stats_out)
-    train_score = train_score.iloc[0][metric]
+        [metric], train_csv_out, train_stats_out)
+    train_score = train_score.iloc[0][metric.name]
     print("Best hyperparameters: %s" % str(zip(hyperparams, best_hyperparams)))
     print("train_score: %f" % train_score)
     print("validation_score: %f" % best_validation_score)

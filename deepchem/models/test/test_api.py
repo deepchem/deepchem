@@ -33,7 +33,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 class TestKerasSklearnAPI(TestAPI):
   """
-  Test top-level API for ML models."
+  Test top-level API for ML models.
   """
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
