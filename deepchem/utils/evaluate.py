@@ -8,13 +8,6 @@ from __future__ import unicode_literals
 import numpy as np
 import warnings
 from deepchem.utils.save import log
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import r2_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import recall_score
-from sklearn.metrics import accuracy_score
 import pandas as pd
 
 __author__ = "Bharath Ramsundar"
@@ -52,23 +45,6 @@ def threshold_predictions(y, threshold):
     y_out[ind] = 1 if pred > threshold else 0
   return y_out
 
-def compute_roc_auc_scores(y, y_pred):
-  """Transforms the results dict into roc-auc-scores and prints scores.
-
-  Parameters
-  ----------
-  results: dict
-  task_types: dict
-    dict mapping task names to output type. Each output type must be either
-    "classification" or "regression".
-  """
-  try:
-    score = roc_auc_score(y, y_pred)
-  except ValueError:
-    warnings.warn("ROC AUC score calculation failed.")
-    score = 0.5
-  return score
-
 class Evaluator(object):
   """Class that evaluates a model on a given dataset."""
 
@@ -80,24 +56,14 @@ class Evaluator(object):
     self.task_type = model.get_task_type()
     self.verbose = verbose
 
-  def compute_model_performance(self, csv_out, stats_file, threshold=None):
+  def compute_model_performance(self, metrics, csv_out, stats_file, threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
     """
     pred_y_df = self.model.predict(self.dataset, self.transformers)
 
     task_type = self.task_type
-    if threshold is not None:
-      task_type = "classification"
-
-    if task_type == "classification":
-      colnames = ["task_name", "roc_auc_score", "matthews_corrcoef",
-                  "recall_score", "accuracy_score"]
-    elif task_type == "regression":
-      colnames = ["task_name", "r2_score", "rms_error", "mae"]
-    else:
-      raise ValueError("Unrecognized task type: %s" % task_type)
-
+    colnames = ["task_name"] + [metric.name for metric in metrics]
     performance_df = pd.DataFrame(columns=colnames)
 
     for i, task_name in enumerate(self.task_names):
@@ -114,22 +80,11 @@ class Evaluator(object):
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
           continue
-        auc = compute_roc_auc_scores(y, y_pred)
-        mcc = matthews_corrcoef(y, y_pred)
-        recall = recall_score(y, y_pred)
-        accuracy = accuracy_score(y, y_pred)
-        performance_df.loc[i] = [task_name, auc, mcc, recall, accuracy]
 
-      elif task_type == "regression":
-        try:
-          r2s = r2_score(y, y_pred)
-          rms = np.sqrt(mean_squared_error(y, y_pred))
-          mae = mean_absolute_error(y, y_pred)
-        except ValueError:
-          r2s = np.nan
-          rms = np.nan
-          mae = np.nan
-        performance_df.loc[i] = [task_name, r2s, rms, mae]
+      scores = []
+      for metric in metrics:
+        scores.append(metric.compute_metric(y, y_pred))
+      performance_df.loc[i] = [task_name] + scores
 
     log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)

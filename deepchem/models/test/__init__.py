@@ -48,35 +48,31 @@ class TestAPI(unittest.TestCase):
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)
     shutil.rmtree(self.test_dir)
+    # TODO(rbharath): Removing this causes crashes for some reason. Need to
+    # debug.
     #shutil.rmtree(self.model_dir)
 
   def _create_model(self, train_dataset, test_dataset, model, transformers,
-                    test_model_creator=None):
+                    metrics):
     """Helper method to create model for test."""
 
     # Fit trained model
     model.fit(train_dataset)
     model.save(self.model_dir)
 
-    # Now create test model
-    if test_model_creator is not None:
-      test_model = test_model_creator()
-      test_model.load(self.model_dir)
-      model = test_model
-
     # Eval model on train
     evaluator = Evaluator(model, train_dataset, transformers, verbose=True)
     with tempfile.NamedTemporaryFile() as train_csv_out:
       with tempfile.NamedTemporaryFile() as train_stats_out:
         _, _ = evaluator.compute_model_performance(
-            train_csv_out, train_stats_out)
+            metrics, train_csv_out, train_stats_out)
 
     # Eval model on test
     evaluator = Evaluator(model, test_dataset, transformers, verbose=True)
     with tempfile.NamedTemporaryFile() as test_csv_out:
       with tempfile.NamedTemporaryFile() as test_stats_out:
         _, _ = evaluator.compute_model_performance(
-            test_csv_out, test_stats_out)
+            metrics, test_csv_out, test_stats_out)
 
   def _featurize_train_test_split(self, splittype, compound_featurizers, 
                                   complex_featurizers,
