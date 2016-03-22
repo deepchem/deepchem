@@ -12,6 +12,19 @@ import os
 import csv
 from rdkit import Chem
 import cPickle as pickle
+import warnings
+from multiprocessing import Pool
+from functools import partial
+
+def merge_dicts(*dict_args):
+  '''
+  Given any number of dicts, shallow copy and merge into a new dict,
+  precedence goes to key value pairs in latter dicts.
+  '''
+  result = {}
+  for dictionary in dict_args:
+    result.update(dictionary)
+  return result
 
 def parse_args(input_args=None):
   parser = argparse.ArgumentParser()
@@ -22,23 +35,38 @@ def parse_args(input_args=None):
       "--out", required=1,
       help="Location to write output csv file.")
   parser.add_argument(
+      "--num-cores", required=1,
+      help="Number of cores to use for multiprocessing.")
+  parser.add_argument(
       "--id-prefix", default="CID",
       help="Location to write output csv file.")
   return parser.parse_args(input_args)
 
-def load_shards(shards_dir):
+def load_shard(shard, shards_dir, id_prefix):
+  if "sdf.gz" not in shard:
+    return  
+  print("Processing shard %s" % shard)
+  shard = os.path.join(shards_dir, shard)
+  with gzip.open(shard) as f:
+    supp = Chem.ForwardSDMolSupplier(f)
+    mols = [mol for mol in supp if mol is not None]
+  mol_dict = mols_to_dict(mols, id_prefix)
+  return mol_dict
+
+def load_shards(shards_dir, id_prefix, worker_pool=None):
   all_mols = []
   shards = os.listdir(shards_dir)
-  for shard in shards:
-    if "sdf.gz" not in shard:
-      continue
-    print("Processing shard %s" % shard)
-    shard = os.path.join(shards_dir, shard)
-    with gzip.open(shard) as f:
-      supp = Chem.ForwardSDMolSupplier(f)
-      mols = [mol for mol in supp if mol is not None]
-      all_mols += mols
-  return all_mols
+  if worker_pool is None:
+    for shard in shards:
+      mol_dict = load_shard(shard, id_prefix)
+      if mol_dict is not None: 
+        all_mols.append(mol_dict)
+  else:
+    load_shard_partial = partial(
+        load_shard, shards_dir=shards_dir, id_prefix=id_prefix)
+    all_mols = worker_pool.map(load_shard_partial, shards)
+  all_mols_dict = merge_dicts(*all_mols)
+  return all_mols_dict
 
 def mols_to_dict(mols, id_prefix):
   print("About to process molecules")
@@ -61,18 +89,30 @@ def get_target_names(targets_dir):
   # Remove the .pkl.gz
   return [os.path.splitext(os.path.splitext(target)[0])[0] for target in targets]
 
-def load_targets(targets_dir):
-  dfs = []
+def load_target(target, targets_dir):
+  if "pkl.gz" not in target:
+    return 
+  print("Processing target %s" % target)
+  target = os.path.join(targets_dir, target)
+  with gzip.open(target) as f:
+    df = pickle.load(f)
+    data_dict = targets_to_dict(targets_dir, [df])
+  return data_dict
+
+def load_targets(targets_dir, worker_pool=None):
+  data_dicts = []
   targets = os.listdir(targets_dir)
-  for target in targets:
-    if "pkl.gz" not in target:
-      continue
-    print("Processing target %s" % target)
-    target = os.path.join(targets_dir, target)
-    with gzip.open(target) as f:
-      df = pickle.load(f)
-      dfs.append(df)
-  return dfs
+  if worker_pool is None:
+    for target in targets:
+      data_dict = load_target(target)
+      if data_dict is not None:
+        data_dicts.append(data_dict)
+  else:
+    load_target_partial = partial(
+        load_target, targets_dir=targets_dir)
+    data_dicts = worker_pool.map(load_target, targets)
+  all_data_dict = merge_dicts(*data_dicts)
+  return all_data_dict
 
 def targets_to_dict(targets_dir, dfs):
   data_dict = {}
@@ -94,7 +134,8 @@ def targets_to_dict(targets_dir, dfs):
       elif row["outcome"] == "inactive":
         outcome = 0
       else:
-        raise ValueError("Invalid outcome on row %s" % str(row))
+        warnings.warn("Invalid outcome on row %s" % str(row))
+        continue
       data[target] = outcome
       data[str("mol_id")] = mol_id
       for target in target_names:
@@ -139,7 +180,7 @@ def write_csv(targets_dir, merged_dict, out):
         row.append(data[colname])
       writer.writerow(row)
 
-def generate_csv(data_dir, id_prefix, out):
+def generate_csv(data_dir, id_prefix, out, worker_pool=None):
   """Transforms a vs-dataset into a CSV file.
 
   Args:
@@ -153,14 +194,12 @@ def generate_csv(data_dir, id_prefix, out):
   shards_dir = os.path.join(data_dir, "shards")
   targets_dir = os.path.join(data_dir, "targets")
 
-  mols = load_shards(shards_dir)
-  dfs = load_targets(targets_dir)
-
-  mol_dict = mols_to_dict(mols, id_prefix)
+  mol_dict = load_shards(shards_dir, id_prefix, worker_pool)
   print("About to print mol_dict")
   print(mol_dict.items()[:10])
+
   print("About to print data_dict")
-  data_dict = targets_to_dict(targets_dir, dfs)
+  data_dict = load_targets(targets_dir, worker_pool)
   print(data_dict.items()[:10])
 
   merged_dict = merge_mol_data_dicts(mol_dict, data_dict)
@@ -170,8 +209,12 @@ def main():
   args = parse_args()
   data_dir = args.data_dir
   id_prefix = args.id_prefix
-  generate_csv(data_dir, id_prefix, out)
+  num_cores = args.num_cores
+  out = args.out
 
-  
+  # Connect to running ipython server
+  p = Pool(num_cores)
+  generate_csv(data_dir, id_prefix, out, worker_pool=p)
+
 if __name__ == "__main__":
   main()
