@@ -15,9 +15,6 @@
 # limitations under the License.
 """Evaluation metrics."""
 
-import collections
-
-
 import numpy as np
 import warnings
 from sklearn.metrics import roc_auc_score
