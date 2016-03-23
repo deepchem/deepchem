@@ -51,8 +51,10 @@ class HyperparamOpt(object):
         model_params[hyperparam] = hyperparam_val
 
       model_dir = tempfile.mkdtemp()
-      model = self.model_class(self.task_types, model_params, logdir=logdir,
-                               train=True)
+      if not logdir:
+        model = self.model_class(self.task_types, model_params)
+      else:
+        model = self.model_class(self.task_types, model_params, logdir=logdir)
       model.fit(train_dataset)
       model.save(model_dir)
     
