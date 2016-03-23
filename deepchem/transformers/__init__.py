@@ -90,12 +90,12 @@ class NormalizationTransformer(Transformer):
     row = df.iloc[i]
 
     if self.transform_X:
-      X = load_from_disk(row['X'])
+      X = load_from_disk(row['X-transformed'])
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
       save_to_disk(X, row['X-transformed'])
 
     if self.transform_y:
-      y = load_from_disk(row['y'])
+      y = load_from_disk(row['y-transformed'])
       y = np.nan_to_num((y - self.y_means) / self.y_stds)
       save_to_disk(y, row['y-transformed'])
 
@@ -125,12 +125,12 @@ class ClippingTransformer(Transformer):
     """
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X'])
+      X = load_from_disk(row['X-transformed'])
       X[X > self.max_val] = self.max_val
       X[X < (-1.0*self.max_val)] = -1.0 * self.max_val
       save_to_disk(X, row['X-transformed'])
     if self.transform_y:
-      y = load_from_disk(row['y'])
+      y = load_from_disk(row['y-transformed'])
       y[y > trunc] = trunc
       y[y < (-1.0*trunc)] = -1.0 * trunc
       save_to_disk(y, row['y-transformed'])
@@ -145,12 +145,12 @@ class LogTransformer(Transformer):
     """Logarithmically transforms data in dataset."""
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X'])
+      X = load_from_disk(row['X-transformed'])
       X = np.log(X)
       save_to_disk(X, row['X-transformed'])
 
     if self.transform_y:
-      y = load_from_disk(row['y'])
+      y = load_from_disk(row['y-transformed'])
       y = np.log(y)
       save_to_disk(y, row['y-transformed'])
 
@@ -213,7 +213,7 @@ class CoulombRandomizationTransformer(Transformer):
     """
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X'])
+      X = load_from_disk(row['X-transformed'])
       for j in xrange(len(X)):
         cm = self.construct_cm_from_triu(X[j])
         X[j] = self.unpad_randomize_and_flatten(cm)
@@ -244,7 +244,7 @@ class CoulombBinarizationTransformer(Transformer):
     row = df.iloc[i]
     X_bin = []
     if self.transform_X:
-      X = load_from_disk(row['X'])
+      X = load_from_disk(row['X-transformed'])
       d = X[0].shape[0]
       for i in xrange(len(X)):
         for j in np.arange(0,self.max+self.theta,self.theta):
