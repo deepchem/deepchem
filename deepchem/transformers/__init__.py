@@ -10,6 +10,7 @@ import warnings
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
+from deepchem.utils import pad_array
 
 # TODO(rbharath): The handling of X/y transforms in the same class is
 # awkward. Is there a better way to handle this work. 
@@ -72,11 +73,11 @@ def _transform_row(i, df, transformer):
 class NormalizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None):
-    """Initialize clipping transformation."""
+    """Initialize normalization transformation."""
     super(NormalizationTransformer, self).__init__(transform_X=transform_X,
                                                    transform_y=transform_y,
                                                    dataset=dataset)
-    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
+    X_means, X_stds, y_means, y_stds = dataset.update_moments()
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
@@ -156,3 +157,106 @@ class LogTransformer(Transformer):
   def untransform(self, z):
     """Undoes the logarithmic transformation."""
     return np.exp(z)
+
+class CoulombRandomizationTransformer(Transformer):
+
+  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+               seed=None):
+    """Iniitialize coulomb matrix randomization transformation. """
+    super(CoulombRandomizationTransformer, self).__init__(transform_X=transform_X,
+                                                          transform_y=transform_y,
+                                                          dataset=dataset)
+    self.seed = seed
+
+  def construct_cm_from_triu(self, x):
+    """
+    Constructs the unpadded coulomb matrix from the upper triangular portion.
+    """
+    d = int((np.sqrt(8*len(x)+1)-1)/2)
+    cm = np.zeros([d,d])
+    cm[np.triu_indices_from(cm)] = x
+    for i in xrange(len(cm)):
+      for j in xrange(i+1,len(cm)):
+        cm[j,i] = cm[i,j]
+    return cm
+
+  def unpad_randomize_and_flatten(self, cm):
+    """
+    1. Remove zero padding on Coulomb Matrix
+    2. Randomly permute the rows and columns for n_samples
+    3. Flatten each sample to upper triangular portion
+
+    Returns list of feature vectors
+    """
+    max_atom_number = len(cm) 
+    atom_number = 0
+    for i in cm[0]:
+        if atom_number == max_atom_number: break
+        elif i != 0.: atom_number += 1
+        else: break
+
+    upcm = cm[0:atom_number,0:atom_number]
+
+    row_norms = np.asarray([np.linalg.norm(row) for row in upcm], dtype=float)
+    rng = np.random.RandomState(self.seed)
+    e = rng.normal(size=row_norms.size)
+    p = np.argsort(row_norms+e)
+    rcm = upcm[p][:,p]
+    rcm = pad_array(rcm, len(cm))
+    rcm = rcm[np.triu_indices_from(rcm)]
+
+    return rcm
+
+  def transform_row(self, i, df):
+    """
+    Randomly permute a Coulomb Matrix in a dataset
+    """
+    row = df.iloc[i]
+    if self.transform_X:
+      X = load_from_disk(row['X'])
+      for j in xrange(len(X)):
+        cm = self.construct_cm_from_triu(X[j])
+        X[j] = self.unpad_randomize_and_flatten(cm)
+      save_to_disk(X, row['X-transformed'])
+
+    if self.transform_y:
+      print("y will not be transformed by CoulombRandomizationTransformer.")
+
+  def untransform(self, z):
+    print("Cannot undo CoulombRandomizationTransformer.")
+
+class CoulombBinarizationTransformer(Transformer):
+
+  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+               theta=1):
+    """Initialize binarization transformation."""
+    super(CoulombBinarizationTransformer, self).__init__(transform_X=transform_X,
+                                                         transform_y=transform_y,
+                                                         dataset=dataset)
+    self.theta = theta
+    self.max = 2 
+
+  def transform_row(self, i, df):
+    """
+    Binarizes data in dataset with sigmoid function
+    """
+
+    row = df.iloc[i]
+    X_bin = []
+    if self.transform_X:
+      X = load_from_disk(row['X'])
+      d = X[0].shape[0]
+      for i in xrange(len(X)):
+        for j in np.arange(0,self.max+self.theta,self.theta):
+          if j == 0: Xi = np.tanh((X[i])/self.theta).reshape(d,1)
+          else: Xi = np.vstack([Xi,np.tanh((X[i]-j)/self.theta).reshape(d,1)])
+        X_bin.append(Xi)
+      X_bin = np.array(np.squeeze(X_bin))
+      save_to_disk(X_bin, row['X-transformed'])
+
+    if self.transform_y:
+      print("y will not be transformed by CoulombBinarizationTransformer.")
+
+  def untranform(self, z):
+    print("Cannot undo CoulombBinarizationTransformer.")
+

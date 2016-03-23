@@ -73,14 +73,14 @@ class TestAPI(unittest.TestCase):
     evaluator = Evaluator(model, train_dataset, transformers, verbose=True)
     with tempfile.NamedTemporaryFile() as train_csv_out:
       with tempfile.NamedTemporaryFile() as train_stats_out:
-        _, _ = evaluator.compute_model_performance(
+        _, _, _ = evaluator.compute_model_performance(
             metrics, train_csv_out, train_stats_out)
 
     # Eval model on test
     evaluator = Evaluator(model, test_dataset, transformers, verbose=True)
     with tempfile.NamedTemporaryFile() as test_csv_out:
       with tempfile.NamedTemporaryFile() as test_stats_out:
-        _, _ = evaluator.compute_model_performance(
+        _, _, _ = evaluator.compute_model_performance(
             metrics, test_csv_out, test_stats_out)
 
   def _featurize_train_test_split(self, splittype, compound_featurizers, 
