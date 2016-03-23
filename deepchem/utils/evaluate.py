@@ -102,11 +102,6 @@ class Evaluator(object):
       for i, task_name in enumerate(self.task_names):
         performance_df.loc[i] = [task_name] + list(all_scores[i])
 
-    #  scores = []
-    #  for metric in metrics:
-    #    scores.append(metric.compute_metric(y, y_pred))
-    #  performance_df.loc[i] = [task_name] + scores
-
     log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)
     log("Saving model performance scores to %s" % stats_file, self.verbose)
