@@ -67,7 +67,7 @@ class Evaluator(object):
     colnames = ["task_name"] + [metric.name for metric in metrics]
     performance_df = pd.DataFrame(columns=colnames)
 
-    ys, y_preds, ws = [], [], []
+    nonempty_tasks, ys, y_preds, ws = [], [], [], []
     for i, task_name in enumerate(self.task_names):
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
@@ -82,6 +82,7 @@ class Evaluator(object):
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
           continue
+      nonempty_tasks.append(task_name)
       ys.append(y)
       y_preds.append(y_pred)
       ws.append(w)
@@ -99,8 +100,11 @@ class Evaluator(object):
     all_scores = np.array(all_scores)
     # If there are any singletask_metrics
     if all_scores.shape[0] > 0:
+      nonzero_ind = 0
       for i, task_name in enumerate(self.task_names):
-        performance_df.loc[i] = [task_name] + list(all_scores[i])
+        if task_name in nonempty_tasks:
+          performance_df.loc[i] = [task_name] + list(all_scores[:, nonzero_ind])
+          nonzero_ind += 1
 
     log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)
