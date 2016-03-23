@@ -51,19 +51,24 @@ class HyperparamOpt(object):
         model_params[hyperparam] = hyperparam_val
 
       model_dir = tempfile.mkdtemp()
-      model = self.model_class(self.task_types, model_params, logdir=logdir,
-                               train=True)
+      if logdir is not None:
+        model = self.model_class(self.task_types, model_params, logdir=logdir)
+      else:
+        model = self.model_class(self.task_types, model_params)
       model.fit(train_dataset)
       model.save(model_dir)
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
-      df, score = evaluator.compute_model_performance(
+      df, scores_df, multitask_scores = evaluator.compute_model_performance(
           [metric], valid_csv_out, valid_stats_out)
-      valid_score = score.iloc[0][metric.name]
+      if not metric.is_multitask:
+        valid_score = scores_df.iloc[0][metric.name]
+      else:
+        valid_score = multitask_scores[metric.name]
       all_scores[hyperparameter_tuple] = valid_score
     
-      if (use_max and valid_score > best_validation_score) or (
-          not use_max and valid_score < best_validation_score):
+      if (use_max and valid_score >= best_validation_score) or (
+          not use_max and valid_score <= best_validation_score):
         best_validation_score = valid_score
         best_hyperparams = hyperparameter_tuple
         if best_model_dir is not None:
@@ -82,9 +87,12 @@ class HyperparamOpt(object):
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
-    train_df, train_score = train_evaluator.compute_model_performance(
+    train_df, train_score, multitask_scores = train_evaluator.compute_model_performance(
         [metric], train_csv_out, train_stats_out)
-    train_score = train_score.iloc[0][metric.name]
+    if not metric.is_multitask:
+      train_score = train_score.iloc[0][metric.name]
+    else:
+      train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(zip(hyperparams, best_hyperparams)),
         self.verbosity)
     log("train_score: %f" % train_score, self.verbosity)

@@ -61,11 +61,13 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     pred_y_df = self.model.predict(self.dataset, self.transformers)
+    multitask_scores = {}
 
     task_type = self.task_type
     colnames = ["task_name"] + [metric.name for metric in metrics]
     performance_df = pd.DataFrame(columns=colnames)
 
+    ys, y_preds, ws = [], [], []
     for i, task_name in enumerate(self.task_names):
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
@@ -80,15 +82,34 @@ class Evaluator(object):
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
           continue
+      ys.append(y)
+      y_preds.append(y_pred)
+      ws.append(w)
 
-      scores = []
-      for metric in metrics:
-        scores.append(metric.compute_metric(y, y_pred))
-      performance_df.loc[i] = [task_name] + scores
+    # Compute multitask metrics
+    for metric in metrics:
+      if metric.is_multitask:
+        multitask_scores[metric.name] = metric.compute_metric(ys, y_preds)
+
+    all_scores = []
+    for metric in metrics:
+      if not metric.is_multitask:
+        all_scores.append(metric.compute_metric(ys, y_preds))
+    # Note that all_scores will be of shape num_singletask_metrics x num_tasks
+    all_scores = np.array(all_scores)
+    # If there are any singletask_metrics
+    if all_scores.shape[0] > 0:
+      for i, task_name in enumerate(self.task_names):
+        performance_df.loc[i] = [task_name] + list(all_scores[i])
+
+    #  scores = []
+    #  for metric in metrics:
+    #    scores.append(metric.compute_metric(y, y_pred))
+    #  performance_df.loc[i] = [task_name] + scores
 
     log("Saving predictions to %s" % csv_out, self.verbose)
     pred_y_df.to_csv(csv_out)
     log("Saving model performance scores to %s" % stats_file, self.verbose)
     performance_df.to_csv(stats_file)
 
-    return pred_y_df, performance_df
+    return pred_y_df, performance_df, multitask_scores
