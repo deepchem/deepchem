@@ -14,19 +14,17 @@ from rdkit import Chem
 import cPickle as pickle
 import warnings
 from multiprocessing import Pool
+import itertools
 from functools import partial
 import pandas as pd
 
 def merge_dicts(*dict_args):
-  '''
+  """
   Given any number of dicts, shallow copy and merge into a new dict,
   precedence goes to key value pairs in latter dicts.
-  '''
+  """
   result = {}
   for dictionary in dict_args:
-    if isinstance(dictionary, list):
-      print("dictionary[:100]")
-      print(dictionary[:100])
     result.update(dictionary)
   return result
 
@@ -75,7 +73,7 @@ def load_shards(shards_dir, id_prefix, worker_pool=None):
   all_mols_dict = merge_dicts(*all_mols)
   return all_mols_dict
 
-def mols_to_dict(mols, id_prefix, log_every_n=2000):
+def mols_to_dict(mols, id_prefix, log_every_n=5000):
   print("About to process molecules")
   mol_dict = {}
   for ind, mol in enumerate(mols):
@@ -92,11 +90,10 @@ def mols_to_dict(mols, id_prefix, log_every_n=2000):
   return mol_dict
 
 def get_target_names(targets_dir):
+  """Read list of targets in collection from disk."""
   targets = [target for target in os.listdir(targets_dir)
              if "pkl.gz" in target]
-  # Remove the .pkl.gz
-  return [os.path.splitext(os.path.splitext(target)[0])[0]
-          for target in targets]
+  return [remove_extensions(target) for target in targets]
 
 def process_target(target, targets_dir, overwrite):
   if "pkl.gz" not in target:
@@ -121,6 +118,7 @@ def process_targets(targets_dir, overwrite, worker_pool=None):
     process_target_partial = partial(
         process_target, targets_dir=targets_dir, overwrite=overwrite)
     csv_files = worker_pool.map(process_target_partial, targets)
+    csv_files = [csv_file for csv_file in csv_files if csv_file is not None]
   return csv_files
 
 def remove_extensions(target_name):
@@ -132,14 +130,15 @@ def remove_extensions(target_name):
 
 def target_to_csv(targets_dir, df, target_name, log_every_n=50000,
                   overwrite=False):
-  csv_file = os.path.join(
-      targets_dir, remove_extensions(target_name) + ".csv")
+  """Converts the data in a target dataframe to a csv."""
+  target = remove_extensions(target_name) 
+  csv_file = os.path.join(targets_dir, target + ".csv")
   if not overwrite and os.path.isfile(csv_file):
     return csv_file
   target_names = get_target_names(targets_dir) 
   data_df = pd.DataFrame(columns=(["mol_id"] + target_names))
   data_df["mol_id"] = df["mol_id"]
-  data_targets = df["target"]
+  #data_targets = df["target"]
   def get_outcome(row):
     if row["outcome"] == "active":
       return "1"
@@ -148,17 +147,17 @@ def target_to_csv(targets_dir, df, target_name, log_every_n=50000,
     else:
       return "" 
   data_outcomes = df.apply(get_outcome, axis=1)
-  for ind, (target, outcome) in enumerate(zip(data_targets, data_outcomes)):
+  for ind, outcome in enumerate(data_outcomes):
     data_df.set_value(ind, target, outcome)
     for other_target in target_names:
       if other_target != target:
         data_df.set_value(ind, other_target, "")
   
+  #iterator = data_df.iterrows()
   data_df.fillna("")
   with open(csv_file, "wb") as f:
     data_df.to_csv(f)
   return csv_file
-  #return data_df.to_dict("records")
 
 def join_datapoints(old_record, new_record, target_names):
   """Merge two datapoints together."""
@@ -177,6 +176,7 @@ def join_datapoints(old_record, new_record, target_names):
   return out_record
 
 def merge_mol_data_dicts(mol_dict, csv_files, target_names):
+  """Merge data from target and molecule listings."""
   print("len(mol_dict) = %d" % len(mol_dict))
   num_missing = 0
   merged_data = {}
@@ -223,17 +223,13 @@ def generate_csv(data_dir, id_prefix, out, overwrite, worker_pool=None):
   csv_files = process_targets(targets_dir, overwrite, worker_pool)
 
   merged_dict = merge_mol_data_dicts(mol_dict, csv_files, target_names)
-  print("merged_dict.values()[0]")
-  print(merged_dict.values()[0])
   merged_df = pd.DataFrame(merged_dict.values())
-  print("merged_df.iterrows().next()[1]")
-  print(merged_df.iterrows().next()[1])
   merged_df.fillna("")
 
   with open(out, "wb") as f:
-    merged_df.to_csv(f)
-
-  #write_csv(targets_dir, merged_dict, out)
+    print("out")
+    print(out)
+    merged_df.to_csv(f, index=False)
 
 def main():
   args = parse_args()
