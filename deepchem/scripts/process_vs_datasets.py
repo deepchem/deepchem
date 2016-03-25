@@ -39,11 +39,14 @@ def parse_args(input_args=None):
       "--out", required=1,
       help="Location to write output csv file.")
   parser.add_argument(
-      "--num-cores", required=1, type=int,
+      "--num-cores", default=0, type=int,
       help="Number of cores to use for multiprocessing.")
   parser.add_argument(
       "--id-prefix", default="CID",
       help="Location to write output csv file.")
+  parser.add_argument(
+      "--overwrite", action="store_true",
+      help="Overwrite partially processed files.")
   return parser.parse_args(input_args)
 
 def load_shard(shard, shards_dir, id_prefix):
@@ -62,7 +65,7 @@ def load_shards(shards_dir, id_prefix, worker_pool=None):
   shards = os.listdir(shards_dir)
   if worker_pool is None:
     for shard in shards:
-      mol_dict = load_shard(shard, id_prefix)
+      mol_dict = load_shard(shard, shards_dir=shards_dir, id_prefix=id_prefix)
       if mol_dict is not None: 
         all_mols.append(mol_dict)
   else:
@@ -89,140 +92,118 @@ def mols_to_dict(mols, id_prefix, log_every_n=2000):
   return mol_dict
 
 def get_target_names(targets_dir):
-  targets = [target for target in os.listdir(targets_dir) if "pkl.gz" in target]
+  targets = [target for target in os.listdir(targets_dir)
+             if "pkl.gz" in target]
   # Remove the .pkl.gz
-  return [os.path.splitext(os.path.splitext(target)[0])[0] for target in targets]
+  return [os.path.splitext(os.path.splitext(target)[0])[0]
+          for target in targets]
 
-def load_target(target, targets_dir):
+def process_target(target, targets_dir, overwrite):
   if "pkl.gz" not in target:
     return 
   print("Processing target %s" % target)
-  target = os.path.join(targets_dir, target)
-  with gzip.open(target) as f:
+  target_file = os.path.join(targets_dir, target)
+  with gzip.open(target_file) as f:
     df = pickle.load(f)
-    data_dicts = targets_to_dicts(targets_dir, df, os.path.basename(target))
-  return data_dicts
+    csv_file = target_to_csv(
+        targets_dir, df, os.path.basename(target), overwrite=overwrite)
+  return csv_file
 
-def load_targets(targets_dir, worker_pool=None):
-  all_data_dicts = []
+def process_targets(targets_dir, overwrite, worker_pool=None):
+  csv_files = []
   targets = os.listdir(targets_dir)
   if worker_pool is None:
     for target in targets:
-      data_dicts = load_target(target, targets_dir)
-      if data_dict is not None:
-        all_data_dicts += data_dicts
+      csv_file = process_target(target, targets_dir, overwrite)
+      if csv_file is not None:
+        csv_files.append(csv_file)
   else:
-    load_target_partial = partial(
-        load_target, targets_dir=targets_dir)
-    all_data_dicts = worker_pool.map(load_target_partial, targets)
-  #all_data_dict = merge_dicts(*data_dicts)
-  all_data_dicts = [data_dict for data_dicts in all_data_dicts for data_dict in data_dicts]
-  return all_data_dicts
+    process_target_partial = partial(
+        process_target, targets_dir=targets_dir, overwrite=overwrite)
+    csv_files = worker_pool.map(process_target_partial, targets)
+  return csv_files
 
-# TODO(rbharath): This step is now the bottleneck. Is there a good way to speed this u]p?
-def targets_to_dicts(targets_dir, df, target_name, log_every_n=50000):
+def remove_extensions(target_name):
+  """Removes file extensions from given name"""
+  target_name = os.path.basename(target_name)
+  while "." in target_name:
+    target_name = os.path.splitext(target_name)[0]
+  return target_name
+
+def target_to_csv(targets_dir, df, target_name, log_every_n=50000,
+                  overwrite=False):
+  csv_file = os.path.join(
+      targets_dir, remove_extensions(target_name) + ".csv")
+  if not overwrite and os.path.isfile(csv_file):
+    return csv_file
   target_names = get_target_names(targets_dir) 
-  data_df = pd.DataFrame(columns=(["mol_id", "outcome"] + target_names))
-  #print("df['mol_id']")
-  #print(df['mol_id'])
+  data_df = pd.DataFrame(columns=(["mol_id"] + target_names))
   data_df["mol_id"] = df["mol_id"]
-  #print("data_df['mol_id']")
-  #print(data_df['mol_id'])
-  data_targets = df["target"].tolist()
+  data_targets = df["target"]
   def get_outcome(row):
     if row["outcome"] == "active":
-      return 1
+      return "1"
     elif row["outcome"] == "inactive":
-      return 0
-    elif row["outcome"] == "inconclusive":
+      return "0"
+    else:
       return "" 
-  data_outcomes = df.apply(get_outcome, axis=1).tolist()
+  data_outcomes = df.apply(get_outcome, axis=1)
   for ind, (target, outcome) in enumerate(zip(data_targets, data_outcomes)):
     data_df.set_value(ind, target, outcome)
     for other_target in target_names:
       if other_target != target:
         data_df.set_value(ind, other_target, "")
-  #for target in target_names:
-  #  data_df[target] = df[[target]]
+  
   data_df.fillna("")
-  #print("data_df.iterrows().next()[1]")
-  #print(data_df.iterrows().next()[1])
-  return data_df.to_dict("records")
-  #print("Handling dataframe for %s" % (target_name))
-  #data_dict = {}
-  #target_names = get_target_names(targets_dir) 
-  #for index, row in df.iterrows():
-  #  row = row.to_dict()
-  #  mol_id = row[str("mol_id")]
-  #  if index % log_every_n == 0:
-  #    print("Handling index %d in dataframe for %s" % (index, target_name))
-  #  if mol_id in data_dict:
-  #    data = data_dict[mol_id]
-  #  else:
-  #    data = {}
-  #  target = row["target"]
-  #  if row["outcome"] == "active":
-  #    outcome = 1
-  #  elif row["outcome"] == "inactive":
-  #    outcome = 0
-  #  elif row["outcome"] == "inconclusive":
-  #    continue
-  #  else:
-  #    #warnings.warn("Unknown outcome on row %s" % str(row))
-  #    continue
-  #  data[target] = outcome
-  #  data[str("mol_id")] = mol_id
-  #  for target in target_names:
-  #    if target not in data:
-  #      # Encode missing data with an empty string.
-  #      data[target] = ""
-  #  data_dict[mol_id] = data 
-  #return data_dict
+  with open(csv_file, "wb") as f:
+    data_df.to_csv(f)
+  return csv_file
+  #return data_df.to_dict("records")
 
-def merge_mol_data_dicts(mol_dict, data_dicts):
+def join_datapoints(old_record, new_record, target_names):
+  """Merge two datapoints together."""
+  assert old_record is not None
+  # TODO(rbharath): BROKEN!
+  assert new_record is not None
+  assert old_record["mol_id"] == new_record["mol_id"]
+  out_record = {"mol_id": old_record["mol_id"]}
+  for target in target_names:
+    if old_record[target] != "":
+      out_record[target] = old_record[target]
+    elif new_record[target] != "":
+      out_record[target] = new_record[target]
+    else:
+      out_record[target] = ""
+  return out_record
+
+def merge_mol_data_dicts(mol_dict, csv_files, target_names):
   print("len(mol_dict) = %d" % len(mol_dict))
-  print("len(data_dicts) = %d" % len(data_dicts))
   num_missing = 0
   merged_data = {}
-  #print("mol_dict.keys()[:100]")
-  #print(mol_dict.keys()[:100])
-  #print("data_dicts[:100]")
-  #print(data_dicts[:100])
-  for ind, data_dict in enumerate(data_dicts):
-    mol_id = data_dict["mol_id"]
-    if mol_id not in mol_dict:
-      num_missing += 1
-      continue
-    mol_smiles = mol_dict[mol_id]
-    data_dict["smiles"] = mol_smiles
-    merged_data[mol_id] = data_dict
-  #for ind, mol_id in enumerate(mol_dict.keys()):
-  #  mol_smiles = mol_dict[mol_id]
-  #  if mol_id not in data_dict:
-  #    num_missing += 1
-  #    continue
-  #  data = data_dict[mol_id]
-  #  data[str("smiles")] = mol_smiles
-  #  merged_data[mol_id] = data
+  fields = ["mol_id"] + target_names
+  for ind, csv_file in enumerate(csv_files):
+    data_df = pd.read_csv(csv_file, na_filter=False)
+    data_df.fillna("")
+    data_dicts = data_df.to_dict("records")
+    for data_dict in data_dicts:
+      # Trim unwanted indexing fields
+      data_dict = {field: data_dict[field] for field in fields}
+      mol_id = data_dict["mol_id"]
+      if mol_id not in mol_dict:
+        num_missing += 1
+        continue
+      mol_smiles = mol_dict[mol_id]
+      data_dict["smiles"] = mol_smiles
+      if mol_id not in merged_data:
+        assert data_dict is not None
+        merged_data[mol_id] = data_dict
+      else:
+        merged_data[mol_id] = join_datapoints(
+            merged_data[mol_id], data_dict, target_names)
   print("Number of mismatched compounds: %d" % num_missing)
   return merged_data
 
-def write_csv(targets_dir, merged_dict, out):
-  targets = get_target_names(targets_dir)
-  colnames = [str("mol_id"), str("smiles")] + targets
-  with open(out, "wb") as csvfile:
-    writer = csv.writer(csvfile, delimiter=str(","))
-    writer.writerow(colnames)
-    for index, mol_id in enumerate(merged_dict):
-      if index % 1000 == 0:
-        print("Writing row %d of csv" % index)
-      row = []
-      data = merged_dict[mol_id]
-      for colname in colnames:
-        row.append(data[colname])
-      writer.writerow(row)
-
-def generate_csv(data_dir, id_prefix, out, worker_pool=None):
+def generate_csv(data_dir, id_prefix, out, overwrite, worker_pool=None):
   """Transforms a vs-dataset into a CSV file.
 
   Args:
@@ -235,17 +216,24 @@ def generate_csv(data_dir, id_prefix, out, worker_pool=None):
   """
   shards_dir = os.path.join(data_dir, "shards")
   targets_dir = os.path.join(data_dir, "targets")
+  target_names = get_target_names(targets_dir)
 
   mol_dict = load_shards(shards_dir, id_prefix, worker_pool)
-  #print("About to print mol_dict")
-  #print(mol_dict.items()[:10])
 
-  data_dicts = load_targets(targets_dir, worker_pool)
-  #print("About to print data_dicts")
-  #print(data_dicts[:10])
+  csv_files = process_targets(targets_dir, overwrite, worker_pool)
 
-  merged_dict = merge_mol_data_dicts(mol_dict, data_dicts)
-  write_csv(targets_dir, merged_dict, out)
+  merged_dict = merge_mol_data_dicts(mol_dict, csv_files, target_names)
+  print("merged_dict.values()[0]")
+  print(merged_dict.values()[0])
+  merged_df = pd.DataFrame(merged_dict.values())
+  print("merged_df.iterrows().next()[1]")
+  print(merged_df.iterrows().next()[1])
+  merged_df.fillna("")
+
+  with open(out, "wb") as f:
+    merged_df.to_csv(f)
+
+  #write_csv(targets_dir, merged_dict, out)
 
 def main():
   args = parse_args()
@@ -253,10 +241,14 @@ def main():
   id_prefix = args.id_prefix
   num_cores = args.num_cores
   out = args.out
+  overwrite = args.overwrite
 
   # Connect to running ipython server
-  p = Pool(processes=num_cores)
-  generate_csv(data_dir, id_prefix, out, worker_pool=p)
+  if num_cores > 0:
+    p = Pool(processes=num_cores)
+    generate_csv(data_dir, id_prefix, out, overwrite, worker_pool=p)
+  else:
+    generate_csv(data_dir, id_prefix, out, overwrite)
 
 if __name__ == "__main__":
   main()
