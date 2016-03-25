@@ -95,7 +95,8 @@ class Dataset(object):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    sample_X = load_from_disk(self.metadata_df.iterrows().next()[1]['X'])[0]
+    sample_X = load_from_disk(
+        self.metadata_df.iterrows().next()[1]['X-transformed'])[0]
     return np.shape(sample_X)
 
   def _get_metadata_filename(self):
@@ -188,7 +189,14 @@ class Dataset(object):
     df = self.metadata_df
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
     return X_means, X_stds, y_means, y_stds
-    
+  
+  def update_moments(self):
+    """Re-compute statistics of this dataset during transformation"""
+    df = self.metadata_df
+    X_means, X_stds, y_means, y_stds = update_mean_and_std(df)
+    return X_means, X_stds, y_means, y_stds
+ 
+ 
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
@@ -323,6 +331,55 @@ def compute_mean_and_std(df):
                                 list(df['y_sum_squares']),
                                 list(df['y_n']))
   # Note y_n is a list of arrays of shape (n_tasks,)
+  y_n = np.sum(y_n, axis=0)
+  y_sums = np.vstack(y_sums)
+  y_sum_squares = np.vstack(y_sum_squares)
+  y_means = np.sum(y_sums, axis=0)/y_n
+  y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
+  return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
+
+def update_mean_and_std(df):
+  """
+  Compute means/stds of X/y from sums/sum_squares of tensors.
+  """
+  X_n = list(df['X_n']) 
+  X_transform = []
+  for _, row in df.iterrows():
+    Xt = load_from_disk(row['X-transformed'])
+    X_transform.append(np.array(Xt))
+
+  # Re-calculate X_sums and X_sum_squares 
+  X_sums = []
+  X_sum_squares = []
+  for i, row in df.iterrows():
+    Xs = np.sum(X_transform[i],axis=0)
+    Xss = np.sum(np.square(X_transform[i]),axis=0)
+    X_sums.append(Xs)
+    X_sum_squares.append(Xss)
+
+  n = float(np.sum(X_n))
+  X_sums = np.vstack(X_sums)
+  X_sum_squares = np.vstack(X_sum_squares)
+  overall_X_sums = np.sum(X_sums, axis=0)
+  overall_X_means = overall_X_sums / n
+  overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
+
+  X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
+
+  y_n = list(df['y_n'])
+  y_transform = []
+  for _, row in df.iterrows():
+    yt = load_from_disk(row['y-transformed'])
+    y_transform.append(np.array(yt))
+
+  y_sums = []
+  y_sum_squares = []
+  for i, row in df.iterrows():
+    ys = np.sum(y_transform[i],axis=0)
+    yss = np.sum(np.square(y_transform[i]),axis=0)
+    y_sums.append(ys)
+    y_sum_squares.append(yss)
+
   y_n = np.sum(y_n, axis=0)
   y_sums = np.vstack(y_sums)
   y_sum_squares = np.vstack(y_sum_squares)
