@@ -70,10 +70,12 @@ def load_shards(shards_dir, id_prefix, worker_pool=None):
     load_shard_partial = partial(
         load_shard, shards_dir=shards_dir, id_prefix=id_prefix)
     all_mols = worker_pool.map(load_shard_partial, shards)
+  all_mols = [mol_dict for mol_dict in all_mols if mol_dict is not None]
   all_mols_dict = merge_dicts(*all_mols)
   return all_mols_dict
 
 def mols_to_dict(mols, id_prefix, log_every_n=5000):
+  """Turn list of rdkit mols to large dictionary."""
   print("About to process molecules")
   mol_dict = {}
   for ind, mol in enumerate(mols):
@@ -85,7 +87,12 @@ def mols_to_dict(mols, id_prefix, log_every_n=5000):
       if "CID" in str(prop):
         CID_name = str(prop)
         break
-    mol_id = mol.GetProp(CID_name)
+    if CID_name is not None:
+      mol_id = mol.GetProp(CID_name)
+    else:
+      # If mol_id is not set, then use isomeric smiles as unique identifier
+      #mol_id = Chem.MolToSmiles(mol, isomericSmiles=True)
+      mol_id = Chem.MolToSmiles(mol)
     mol_dict[id_prefix + mol_id] = Chem.MolToSmiles(mol, isomericSmiles=True)
   return mol_dict
 
@@ -138,7 +145,6 @@ def target_to_csv(targets_dir, df, target_name, log_every_n=50000,
   target_names = get_target_names(targets_dir) 
   data_df = pd.DataFrame(columns=(["mol_id"] + target_names))
   data_df["mol_id"] = df["mol_id"]
-  #data_targets = df["target"]
   def get_outcome(row):
     if row["outcome"] == "active":
       return "1"
@@ -159,21 +165,70 @@ def target_to_csv(targets_dir, df, target_name, log_every_n=50000,
     data_df.to_csv(f)
   return csv_file
 
-def join_datapoints(old_record, new_record, target_names):
+def join_dict_datapoints(old_record, new_record, target_names):
   """Merge two datapoints together."""
   assert old_record is not None
   # TODO(rbharath): BROKEN!
   assert new_record is not None
   assert old_record["mol_id"] == new_record["mol_id"]
-  out_record = {"mol_id": old_record["mol_id"]}
   for target in target_names:
     if old_record[target] != "":
-      out_record[target] = old_record[target]
+      continue 
     elif new_record[target] != "":
-      out_record[target] = new_record[target]
-    else:
-      out_record[target] = ""
-  return out_record
+      old_record[target] = new_record[target]
+  return old_record
+
+def associate_smiles_to_csv(csv_file, mol_dict, target_names):
+  """Add smiles fields to targets."""
+  data_df = pd.read_csv(csv_file, na_filter=False)
+  data_df.fillna("")
+  data_dicts = data_df.to_dict("records")
+  fields = ["mol_id"] + target_names
+  final_fields = ["mol_id", "smiles"] + target_names
+  smiles_df = pd.DataFrame(columns=final_fields)
+  for data_dict in data_dicts:
+    # Trim unwanted indexing fields
+    data_dict = {field: data_dict[field] for field in fields}
+    mol_id = data_dict["mol_id"]
+    # For now, not doing anything with num_missing
+    if mol_id not in mol_dict:
+      num_missing += 1
+      continue
+    mol_smiles = mol_dict[mol_id]
+    data_dict["smiles"] = mol_smiles
+    smiles_df[mol_id] = data_dict
+  return smiles_df
+
+def associate_smiles(mol_dict, csv_files, target_names, worker_pool=None):
+  """Add smiles fields to all targets."""
+  all_smiles_dfs = []
+  if worker_pool is None:
+    for csv_file in csv_files:
+      smiles_df = associate_smiles_to_csv(csv_file, mol_dict, target_names)
+      all_smiles_dfs.append(smiles_df)
+  else:
+    associate_smiles_partial = partial(
+        associate_smiles_to_csv, mol_dict=mol_dict, target_names=target_names)
+    all_smiles_dfs = worker_poolmap(associate_smiles_partial, csv_files)
+  return all_smiles_dfs
+
+# TODO(rbharath): This step is now the roadblock
+def merge_smiles_dfs(smiles_dfs, target_names):
+  """Merge data from target and molecule listings."""
+  #print("len(mol_dict) = %d" % len(mol_dict))
+  merged_data = {}
+  merge_pos, merge_map = 0, {}
+  for ind, smiles_df in enumerate(smiles_dfs):
+    print("Merging %d/%d targets" % (ind, len(smiles_dfs)))
+    data_dicts = smiles_df.to_dict("records")
+    for data_dict in data_dicts:
+      mol_id = data_dict["mol_id"]
+      if mol_id not in merged_data:
+        merged_data[mol_id] = data_dict
+      else:
+        merged_data[mol_id] = join_dict_datapoints(
+            merged_data[mol_id], data_dict, target_names)
+  return merged_data
 
 def merge_mol_data_dicts(mol_dict, csv_files, target_names):
   """Merge data from target and molecule listings."""
@@ -181,7 +236,11 @@ def merge_mol_data_dicts(mol_dict, csv_files, target_names):
   num_missing = 0
   merged_data = {}
   fields = ["mol_id"] + target_names
+  final_fields = ["mol_id", "smiles"] + target_names
+  merged_df = pd.DataFrame(columns=final_fields)
+  merge_pos, merge_map = 0, {}
   for ind, csv_file in enumerate(csv_files):
+    print("Merging %d/%d targets" % (ind+1, len(csv_files)))
     data_df = pd.read_csv(csv_file, na_filter=False)
     data_df.fillna("")
     data_dicts = data_df.to_dict("records")
@@ -195,10 +254,9 @@ def merge_mol_data_dicts(mol_dict, csv_files, target_names):
       mol_smiles = mol_dict[mol_id]
       data_dict["smiles"] = mol_smiles
       if mol_id not in merged_data:
-        assert data_dict is not None
         merged_data[mol_id] = data_dict
       else:
-        merged_data[mol_id] = join_datapoints(
+        merged_data[mol_id] = join_dict_datapoints(
             merged_data[mol_id], data_dict, target_names)
   print("Number of mismatched compounds: %d" % num_missing)
   return merged_data
@@ -222,13 +280,14 @@ def generate_csv(data_dir, id_prefix, out, overwrite, worker_pool=None):
 
   csv_files = process_targets(targets_dir, overwrite, worker_pool)
 
+  #smiles_dfs = associate_smiles(mol_dict, csv_files, target_names, worker_pool)
+  #merged_dict = merge_smiles_dfs(smiles_dfs, target_names)
   merged_dict = merge_mol_data_dicts(mol_dict, csv_files, target_names)
   merged_df = pd.DataFrame(merged_dict.values())
   merged_df.fillna("")
 
   with open(out, "wb") as f:
-    print("out")
-    print(out)
+    print("Writing csv file to %s" % out)
     merged_df.to_csv(f, index=False)
 
 def main():
