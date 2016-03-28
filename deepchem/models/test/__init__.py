@@ -54,12 +54,13 @@ class TestAPI(unittest.TestCase):
     #shutil.rmtree(self.model_dir)
 
   def _hyperparam_opt(self, model_builder, params_dict, train_dataset,
-                      valid_dataset, output_transformers, task_types, metric):
+                      valid_dataset, output_transformers, task_types, metric,
+                      logdir=None):
 
     optimizer = HyperparamOpt(model_builder, task_types, verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, output_transformers,
-      metric)
+      metric, logdir=logdir)
 
   def _create_model(self, train_dataset, test_dataset, model, transformers,
                     metrics):

@@ -22,7 +22,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from sklearn.ensemble import RandomForestRegressor
 
-def rf_model_builder(task_types, params_dict, logdir=None):
+def rf_model_builder(task_types, params_dict, logdir=None, verbosity=None):
     """Builds random forests given hyperparameters.
 
     Last two arguments only for tensorflow models and ignored.

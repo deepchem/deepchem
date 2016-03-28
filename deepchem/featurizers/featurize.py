@@ -442,9 +442,6 @@ class FeaturizedSamples(object):
         raise ValueError("improper splittype.")
     train_samples, valid_samples, test_samples = None, None, None
     dataset_files = self.dataset_files
-    print("FeaturizedSamples.train_valid_test_split")
-    print("dataset_files")
-    print(dataset_files)
     if train_dir is not None:
       train_samples = FeaturizedSamples(samples_dir=train_dir, 
                                         dataset_files=dataset_files,
