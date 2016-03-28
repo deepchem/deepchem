@@ -41,6 +41,7 @@ import deepchem.metrics as met
 from deepchem.utils.evaluate import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
+from deepchem.utils.save import log
 
 class TensorflowGraph(object):
   """Thin wrapper holding a tensorflow graph and a few vars.
@@ -82,7 +83,8 @@ class TensorflowGraph(object):
     logdir: Directory for output files.
   """
 
-  def __init__(self, model_params, logdir, task_types, train=True):
+  def __init__(self, model_params, logdir, task_types, train=True,
+               verbosity=None):
     """Constructs the computational graph.
 
     Args:
@@ -98,6 +100,7 @@ class TensorflowGraph(object):
     self.logdir = logdir
     self.task_types = task_types
     self.num_tasks = len(task_types)
+    self.verbosity = verbosity
 
     # Lazily created by _get_shared_session().
     self._shared_session = None
@@ -217,24 +220,24 @@ class TensorflowGraph(object):
 
   def fit(self,
           dataset,
-          max_steps=None,
           summaries=False,
-          save_model_secs=60,
           max_checkpoints_to_keep=5):
     """Fit the model.
 
     Args:
       dataset: Dataset object that represents data on disk.
-      max_steps: Maximum number of training steps. If not provided, will
-        train indefinitely.
       summaries: If True, add summaries for model parameters.
-      save_model_secs: Integer. Saves a checkpoint at this interval in seconds.
       max_checkpoints_to_keep: Integer. Maximum number of checkpoints to keep;
         older checkpoints will be deleted.
 
     Raises:
       AssertionError: If model is not in training mode.
     """
+    num_datapoints = len(dataset)
+    batch_size = self.model_params["batch_size"]
+    step_per_epoch = np.ceil(float(num_datapoints)/batch_size)
+    nb_epoch = self.model_params["nb_epoch"]
+    log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.graph.as_default():
       assert model_ops.is_training()
       self.require_attributes(['loss', 'global_step', 'updates'])
@@ -242,27 +245,21 @@ class TensorflowGraph(object):
       no_op = tf.no_op()
       tf.train.write_graph(
           tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
-      last_checkpoint_time = time.time()
       with self._get_shared_session() as sess:
         sess.run(tf.initialize_all_variables())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=self.global_step)
-        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(self.model_params["batch_size"]):
-          # Run training op and compute summaries.
-          feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-          step, loss, _ = sess.run(
-              [train_op.values()[0], self.loss, self.updates],
-              feed_dict=feed_dict)
-          # Save model checkpoints.
-          secs_since_checkpoint = time.time() - last_checkpoint_time
-          if secs_since_checkpoint > save_model_secs:
-            logging.info('step %d: %g', step, loss)
-            saver.save(sess, self._save_path, global_step=self.global_step)
-            last_checkpoint_time = time.time()
-          # Quit when we reach max_steps.
-          if max_steps is not None and step >= max_steps:
-            break
+        for epoch in range(nb_epoch):
+          for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
+            # Run training op and compute summaries.
+            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+            step, loss, _ = sess.run(
+                [train_op.values()[0], self.loss, self.updates],
+                feed_dict=feed_dict)
+          # Save model checkpoints at end of epoch
+          saver.save(sess, self._save_path, global_step=self.global_step)
+          log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=self.global_step)
 
@@ -333,7 +330,8 @@ class TensorflowGraph(object):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        labels = np.array(from_one_hot(np.squeeze(np.concatenate(labels))))
+        labels = np.array(from_one_hot(
+            np.squeeze(np.concatenate(labels)), axis=2))
 
     return np.copy(labels)
 
@@ -712,8 +710,10 @@ class TensorflowModel(Model):
       tf_class = TensorflowGraph
     self.model_params = model_params
     self.task_types = task_types
-    self.train_model = tf_class(model_params, logdir, task_types, train=True)
-    self.eval_model = tf_class(model_params, logdir, task_types, train=False)
+    self.train_model = tf_class(model_params, logdir, task_types, train=True,
+                                verbosity=verbosity)
+    self.eval_model = tf_class(model_params, logdir, task_types, train=False,
+                               verbosity=verbosity)
     self.num_tasks = len(task_types)
 
   def fit(self, dataset):
@@ -734,7 +734,7 @@ class TensorflowModel(Model):
     """
     if logdir != self.train_model.logdir:
       raise ValueError("Cannot save to directory "
-                       "that was not specifed during initialization")
+                       "that was not specified during initialization")
 
   def load(self, model_dir):
     """

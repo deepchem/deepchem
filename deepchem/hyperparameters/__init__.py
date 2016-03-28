@@ -50,11 +50,16 @@ class HyperparamOpt(object):
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
 
-      model_dir = tempfile.mkdtemp()
       if logdir is not None:
-        model = self.model_class(self.task_types, model_params, logdir=logdir)
+        model_dir = logdir
       else:
-        model = self.model_class(self.task_types, model_params)
+        model_dir = tempfile.mkdtemp()
+      if logdir is not None:
+        model = self.model_class(self.task_types, model_params, model_dir,
+                                 verbosity=self.verbosity)
+      else:
+        model = self.model_class(self.task_types, model_params,
+                                 verbosity=self.verbosity)
       model.fit(train_dataset)
       model.save(model_dir)
     
@@ -65,6 +70,11 @@ class HyperparamOpt(object):
         valid_score = scores_df.iloc[0][metric.name]
       else:
         valid_score = multitask_scores[metric.name]
+      print("hyperparameters.compute")
+      print("valid_score")
+      print(valid_score)
+      print("hyperparameter_tuple")
+      print(hyperparameter_tuple)
       all_scores[hyperparameter_tuple] = valid_score
     
       if (use_max and valid_score >= best_validation_score) or (
@@ -81,9 +91,12 @@ class HyperparamOpt(object):
       log("Model %d/%d, Metric %s, Validation set %s: %f" %
           (ind, number_combinations, metric.name, ind, valid_score),
           self.verbosity)
-      log("\tbest_validation_score so  far: %f" % best_validation_score,
+      log("\tbest_validation_score so far: %f" % best_validation_score,
           self.verbosity)
 
+    if best_model is None:
+      log("No models trained correctly.", self.verbosity)
+      return best_model, best_hyperparams, all_scores
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
