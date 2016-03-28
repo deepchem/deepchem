@@ -70,11 +70,6 @@ class HyperparamOpt(object):
         valid_score = scores_df.iloc[0][metric.name]
       else:
         valid_score = multitask_scores[metric.name]
-      print("hyperparameters.compute")
-      print("valid_score")
-      print(valid_score)
-      print("hyperparameter_tuple")
-      print(hyperparameter_tuple)
       all_scores[hyperparameter_tuple] = valid_score
     
       if (use_max and valid_score >= best_validation_score) or (
