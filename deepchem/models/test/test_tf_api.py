@@ -69,6 +69,7 @@ class TestTensorflowAPI(TestAPI):
       "bias_init_consts": [0.],
       "dropouts": [.5],
       "num_classes": 2,
+      "nb_epoch": 1,
       "penalty": 0.0,
       "optimizer": "adam",
       "learning_rate": .001,
