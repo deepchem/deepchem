@@ -265,7 +265,6 @@ class CoulombBinarizationTransformer(Transformer):
       Xt.append(np.array(X_t))
 
     X = np.vstack(Xt)
-    print(X.shape)
     X_means = X.mean(axis=0)
     X_stds = (X-X_means).std()
 
