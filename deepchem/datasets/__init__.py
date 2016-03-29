@@ -186,6 +186,7 @@ class Dataset(object):
 
   def compute_statistics(self):
     """Computes statistics of this dataset"""
+    self.update_moments()
     df = self.metadata_df
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
     return X_means, X_stds, y_means, y_stds
@@ -193,8 +194,7 @@ class Dataset(object):
   def update_moments(self):
     """Re-compute statistics of this dataset during transformation"""
     df = self.metadata_df
-    X_means, X_stds, y_means, y_stds = update_mean_and_std(df)
-    return X_means, X_stds, y_means, y_stds
+    update_mean_and_std(df)
  
  
 def compute_sums_and_nb_sample(tensor, W=None):
@@ -327,6 +327,7 @@ def compute_mean_and_std(df):
   """
   Compute means/stds of X/y from sums/sum_squares of tensors.
   """
+
   X_sums = []
   X_sum_squares = []
   X_n = []
@@ -371,55 +372,19 @@ def update_mean_and_std(df):
   """
   Compute means/stds of X/y from sums/sum_squares of tensors.
   """
-  X_n = [] 
   X_transform = []
   for _, row in df.iterrows():
     Xt = load_from_disk(row['X-transformed'])
-    Xn = load_from_disk(row['X_n'])
-    X_transform.append(np.array(Xt))
-    X_n.append(np.array(Xn))
-
-  # Re-calculate X_sums and X_sum_squares and save to disk 
-  X_sums = []
-  X_sum_squares = []
-  for i, row in df.iterrows():
-    Xs = np.sum(X_transform[i],axis=0)
-    Xss = np.sum(np.square(X_transform[i]),axis=0)
-    X_sums.append(Xs)
-    X_sum_squares.append(Xss)
+    Xs = np.sum(Xt,axis=0)
+    Xss = np.sum(np.square(Xt),axis=0)
     save_to_disk(Xs, row['X_sums'])
     save_to_disk(Xss, row['X_sum_squares'])
 
-  n = float(np.sum(X_n))
-  X_sums = np.vstack(X_sums)
-  X_sum_squares = np.vstack(X_sum_squares)
-  overall_X_sums = np.sum(X_sums, axis=0)
-  overall_X_means = overall_X_sums / n
-  overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
-
-  X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
-
-  y_n = []
   y_transform = []
   for _, row in df.iterrows():
     yt = load_from_disk(row['y-transformed'])
-    yn = load_from_disk(row['y_n'])
-    y_transform.append(np.array(yt))
-    y_n.append(np.array(yn))
-
-  y_sums = []
-  y_sum_squares = []
-  for i, row in df.iterrows():
-    ys = np.sum(y_transform[i],axis=0)
-    yss = np.sum(np.square(y_transform[i]),axis=0)
-    y_sums.append(ys)
-    y_sum_squares.append(yss)
+    ys = np.sum(yt,axis=0)
+    yss = np.sum(np.square(yt),axis=0)
     save_to_disk(ys, row['y_sums'])
     save_to_disk(yss, row['y_sum_squares'])
 
-  y_n = np.sum(y_n, axis=0)
-  y_sums = np.vstack(y_sums)
-  y_sum_squares = np.vstack(y_sum_squares)
-  y_means = np.sum(y_sums, axis=0)/y_n
-  y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
-  return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
