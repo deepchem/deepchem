@@ -205,6 +205,7 @@ class Dataset(object):
 
   def get_statistics(self):
     """Computes and returns statistics of this dataset"""
+    self.update_moments()
     df = self.metadata_df
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
     return X_means, X_stds, y_means, y_stds
@@ -212,8 +213,7 @@ class Dataset(object):
   def update_moments(self):
     """Re-compute statistics of this dataset during transformation"""
     df = self.metadata_df
-    X_means, X_stds, y_means, y_stds = update_mean_and_std(df)
-    return X_means, X_stds, y_means, y_stds
+    update_mean_and_std(df)
  
  
 def compute_sums_and_nb_sample(tensor, W=None):
@@ -262,13 +262,26 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   basename = os.path.splitext(os.path.basename(df_file))[0]
   out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
   out_X_transformed = os.path.join(data_dir, "%s-X-transformed.joblib" % basename)
+  out_X_sums = os.path.join(data_dir, "%s-X_sums.joblib" % basename)
+  out_X_sum_squares = os.path.join(data_dir, "%s-X_sum_squares.joblib" % basename)
+  out_X_n = os.path.join(data_dir, "%s-X_n.joblib" % basename)
   out_y = os.path.join(data_dir, "%s-y.joblib" % basename)
   out_y_transformed = os.path.join(data_dir, "%s-y-transformed.joblib" % basename)
+  out_y_sums = os.path.join(data_dir, "%s-y_sums.joblib" % basename)
+  out_y_sum_squares = os.path.join(data_dir, "%s-y_sum_squares.joblib" % basename)
+  out_y_n = os.path.join(data_dir, "%s-y_n.joblib" % basename)
   out_w = os.path.join(data_dir, "%s-w.joblib" % basename)
   out_ids = os.path.join(data_dir, "%s-ids.joblib" % basename)
 
   save_to_disk(X, out_X)
   save_to_disk(y, out_y)
+  # Write moments to disk
+  save_to_disk(X_sums, out_X_sums)
+  save_to_disk(X_sum_squares, out_X_sum_squares)
+  save_to_disk(X_n, out_X_n)
+  save_to_disk(y_sums, out_y_sums)
+  save_to_disk(y_sum_squares, out_y_sum_squares)
+  save_to_disk(y_n, out_y_n)
   # Write X, y as transformed versions
   save_to_disk(X, out_X_transformed)
   save_to_disk(y, out_y_transformed)
@@ -278,8 +291,8 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   # itershards expects to loop over X-transformed? (Ditto for y/w)
   return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y,
           out_y_transformed, out_w,
-          X_sums, X_sum_squares, X_n,
-          y_sums, y_sum_squares, y_n])
+          out_X_sums, out_X_sum_squares, out_X_n,
+          out_y_sums, out_y_sum_squares, out_y_n])
 
 def _df_to_numpy(df, feature_types, tasks):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
@@ -333,9 +346,18 @@ def compute_mean_and_std(df):
   """
   Compute means/stds of X/y from sums/sum_squares of tensors.
   """
-  X_sums, X_sum_squares, X_n = (list(df['X_sums']),
-                                list(df['X_sum_squares']),
-                                list(df['X_n']))
+
+  X_sums = []
+  X_sum_squares = []
+  X_n = []
+  for _, row in df.iterrows():
+    Xs = load_from_disk(row['X_sums'])
+    Xss = load_from_disk(row['X_sum_squares'])
+    Xn = load_from_disk(row['X_n'])
+    X_sums.append(np.array(Xs))
+    X_sum_squares.append(np.array(Xss))
+    X_n.append(np.array(Xn))
+
   # Note that X_n is a list of floats
   n = float(np.sum(X_n))
   X_sums = np.vstack(X_sums)
@@ -346,9 +368,17 @@ def compute_mean_and_std(df):
 
   X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
 
-  y_sums, y_sum_squares, y_n = (list(df['y_sums']),
-                                list(df['y_sum_squares']),
-                                list(df['y_n']))
+  y_sums = []
+  y_sum_squares = []
+  y_n = []
+  for _, row in df.iterrows():
+    ys = load_from_disk(row['y_sums'])
+    yss = load_from_disk(row['y_sum_squares'])
+    yn = load_from_disk(row['y_n'])
+    y_sums.append(np.array(ys))
+    y_sum_squares.append(np.array(yss))
+    y_n.append(np.array(yn))
+
   # Note y_n is a list of arrays of shape (n_tasks,)
   y_n = np.sum(y_n, axis=0)
   y_sums = np.vstack(y_sums)
@@ -361,47 +391,19 @@ def update_mean_and_std(df):
   """
   Compute means/stds of X/y from sums/sum_squares of tensors.
   """
-  X_n = list(df['X_n']) 
   X_transform = []
   for _, row in df.iterrows():
     Xt = load_from_disk(row['X-transformed'])
-    X_transform.append(np.array(Xt))
+    Xs = np.sum(Xt,axis=0)
+    Xss = np.sum(np.square(Xt),axis=0)
+    save_to_disk(Xs, row['X_sums'])
+    save_to_disk(Xss, row['X_sum_squares'])
 
-  # Re-calculate X_sums and X_sum_squares 
-  X_sums = []
-  X_sum_squares = []
-  for i, row in df.iterrows():
-    Xs = np.sum(X_transform[i],axis=0)
-    Xss = np.sum(np.square(X_transform[i]),axis=0)
-    X_sums.append(Xs)
-    X_sum_squares.append(Xss)
-
-  n = float(np.sum(X_n))
-  X_sums = np.vstack(X_sums)
-  X_sum_squares = np.vstack(X_sum_squares)
-  overall_X_sums = np.sum(X_sums, axis=0)
-  overall_X_means = overall_X_sums / n
-  overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
-
-  X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
-
-  y_n = list(df['y_n'])
   y_transform = []
   for _, row in df.iterrows():
     yt = load_from_disk(row['y-transformed'])
-    y_transform.append(np.array(yt))
+    ys = np.sum(yt,axis=0)
+    yss = np.sum(np.square(yt),axis=0)
+    save_to_disk(ys, row['y_sums'])
+    save_to_disk(yss, row['y_sum_squares'])
 
-  y_sums = []
-  y_sum_squares = []
-  for i, row in df.iterrows():
-    ys = np.sum(y_transform[i],axis=0)
-    yss = np.sum(np.square(y_transform[i]),axis=0)
-    y_sums.append(ys)
-    y_sum_squares.append(yss)
-
-  y_n = np.sum(y_n, axis=0)
-  y_sums = np.vstack(y_sums)
-  y_sum_squares = np.vstack(y_sum_squares)
-  y_means = np.sum(y_sums, axis=0)/y_n
-  y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
-  return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
