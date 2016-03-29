@@ -13,6 +13,7 @@ import unittest
 import tempfile
 import os
 import shutil
+import numpy as np
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
@@ -105,3 +106,30 @@ class TestAPI(unittest.TestCase):
       assert y_b.shape == (batch_size,) + (len(tasks),)
       assert w_b.shape == (batch_size,) + (len(tasks),)
       assert ids_b.shape == (batch_size,)
+
+  def test_to_numpy(self):
+    """Test that transformation to numpy arrays is sensible."""
+    solubility_dataset = self._load_solubility_data()
+    data_shape = solubility_dataset.get_data_shape()
+    tasks = solubility_dataset.get_task_names()
+    X, y, w, ids = solubility_dataset.to_numpy()
+    N_samples = len(solubility_dataset)
+    N_tasks = len(tasks)
+    
+    assert X.shape == (N_samples,) + data_shape
+    assert y.shape == (N_samples, N_tasks)
+    assert w.shape == (N_samples, N_tasks)
+    assert ids.shape == (N_samples,)
+
+  def test_get_statistics(self):
+    """Test statistics computation of this dataset."""
+    solubility_dataset = self._load_solubility_data()
+    X, y, _, _ = solubility_dataset.to_numpy()
+    X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
+    X_stds, y_stds = np.std(X, axis=0), np.std(y, axis=0)
+    comp_X_means, comp_X_stds, comp_y_means, comp_y_stds = \
+        solubility_dataset.get_statistics()
+    np.testing.assert_allclose(comp_X_means, X_means)
+    np.testing.assert_allclose(comp_y_means, y_means)
+    np.testing.assert_allclose(comp_X_stds, X_stds)
+    np.testing.assert_allclose(comp_y_stds, y_stds)
