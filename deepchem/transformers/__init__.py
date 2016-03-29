@@ -235,7 +235,7 @@ class CoulombRandomizationTransformer(Transformer):
   def untransform(self, z):
     print("Cannot undo CoulombRandomizationTransformer.")
 
-class CoulombBinarizationTransformer(Transformer):
+class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
                theta=1):
@@ -244,7 +244,13 @@ class CoulombBinarizationTransformer(Transformer):
                                                          transform_y=transform_y,
                                                          dataset=dataset)
     self.theta = theta
-    self.max = 2 
+    self.feature_max = np.zeros(dataset.get_data_shape()) 
+
+  def set_max(self, df):
+    
+    for _, row in df.iterrows(): # Iterate over entire df by rows
+      X = load_from_disk(row['X-transformed'])
+      self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
 
   def transform_row(self, i, df):
     """
@@ -253,15 +259,14 @@ class CoulombBinarizationTransformer(Transformer):
 
     row = df.iloc[i]
     X_bin = []
+    if i == 0: self.set_max(df)
     if self.transform_X:
       X = load_from_disk(row['X-transformed'])
-      d = X[0].shape[0]
-      for i in xrange(len(X)):
-        for j in np.arange(0,self.max+self.theta,self.theta):
-          if j == 0: Xi = np.tanh((X[i])/self.theta).reshape(d,1)
-          else: Xi = np.vstack([Xi,np.tanh((X[i]-j)/self.theta).reshape(d,1)])
-        X_bin.append(Xi)
-      X_bin = np.array(np.squeeze(X_bin))
+      for i in range(X.shape[1]):
+        for k in np.arange(0,self.feature_max[i]+self.theta,self.theta):
+          X_bin += [np.tanh((X[:,i]-k)/self.theta)]
+
+      X_bin = np.array(X_bin).T
       save_to_disk(X_bin, row['X-transformed'])
 
     if self.transform_y:
