@@ -50,6 +50,7 @@ class Transformer(object):
 
     Adds X-transform, y-transform columns to metadata.
     """
+    dataset.update_moments()
     df = dataset.metadata_df
     indices = range(0, df.shape[0])
     transform_row_partial = partial(_transform_row, df=df, transformer=self)
@@ -77,11 +78,20 @@ class NormalizationTransformer(Transformer):
     super(NormalizationTransformer, self).__init__(transform_X=transform_X,
                                                    transform_y=transform_y,
                                                    dataset=dataset)
-    X_means, X_stds, y_means, y_stds = dataset.update_moments()
+    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
     self.y_stds = y_stds
+
+  def transform(self, dataset, parallel=False):
+    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
+    self.X_means = X_means 
+    self.X_stds = X_stds
+    self.y_means = y_means 
+    self.y_stds = y_stds
+    super(NormalizationTransformer, self).transform(dataset, parallel=parallel)
+    
 
   def transform_row(self, i, df):
     """
