@@ -26,11 +26,13 @@ class Model(object):
   Abstract base class for different ML models.
   """
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
-  def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity=None, **kwargs):
+  def __init__(self, task_types, model_params, fit_transformers=None,
+               model_instance=None, initialize_raw_model=True, 
+               verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
+    self.fit_transformers = fit_transformers
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
@@ -92,7 +94,17 @@ class Model(object):
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
+        if self.fit_transformers:
+          X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch, w_batch)
         self.fit_on_batch(X_batch, y_batch, w_batch)
+
+  def transform_on_batch(self, X, y, w):
+    """
+    Transforms data in a Dataset object with Transformer objects.
+    """
+    # Create dataset 
+    for transformer in self.fit_transformers:
+      transformer.transform(batch_dataset)
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
