@@ -71,8 +71,9 @@ class Dataset(object):
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
 
-      if samples is None and feature_types is not None:  # Create an empty metadata dataframe to be filled at a later time
+      if samples is None and feature_types is not None:  
 
+        # Create an empty metadata dataframe to be filled at a later time
         basename = "metadata"
         df_file = "metadata.joblib"
         out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
