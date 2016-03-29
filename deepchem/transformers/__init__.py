@@ -235,7 +235,7 @@ class CoulombRandomizationTransformer(Transformer):
   def untransform(self, z):
     print("Cannot undo CoulombRandomizationTransformer.")
 
-class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
+class CoulombBinarizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
                theta=1):
@@ -251,6 +251,27 @@ class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
     for _, row in df.iterrows(): # Iterate over entire df by rows
       X = load_from_disk(row['X-transformed'])
       self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
+
+  def transform(self, dataset, parallel=False):
+
+    super(CoulombBinarizationTransformer, self).transform(dataset,
+          parallel=parallel)
+
+    df = dataset.metadata_df
+    Xt = []
+
+    for _, row in df.iterrows():
+      X_t = load_from_disk(row['X-transformed'])
+      Xt.append(np.array(X_t))
+
+    X = np.vstack(Xt)
+    print(X.shape)
+    X_means = X.mean(axis=0)
+    X_stds = (X-X_means).std()
+
+    for i, row in df.iterrows():
+      X_t = (Xt[i]-X_means)/X_stds
+      save_to_disk(X_t, row['X-transformed'])
 
   def transform_row(self, i, df):
     """
