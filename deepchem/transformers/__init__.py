@@ -50,7 +50,6 @@ class Transformer(object):
 
     Adds X-transform, y-transform columns to metadata.
     """
-    dataset.update_moments()
     df = dataset.metadata_df
     indices = range(0, df.shape[0])
     transform_row_partial = partial(_transform_row, df=df, transformer=self)
