@@ -123,10 +123,12 @@ class Dataset(object):
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
 
-  def iterbatches(self, batch_size, epoch=1):
+  def iterbatches(self, batch_size=None, epoch=1):
     """
     Returns minibatches from dataset.
     """
+    if batch_size == None:
+      batch_size = len(self)
     for i, (X, y, w, ids) in enumerate(self._itershards()):
       log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
           self.verbosity)
@@ -144,6 +146,23 @@ class Dataset(object):
         (X_batch, y_batch, w_batch, ids_batch) = self._pad_batch(
             X_batch, y_batch, w_batch, ids_batch, batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
+
+  def to_numpy(self):
+    """
+    Transforms internal data into arrays X, y, w
+
+    Creates three arrays containing all data in this object. This operation is
+    dangerous (!) for large datasets which don't fit into memory.
+    """
+    Xs, ys, ws, ids = [], [], [], []
+    for (X_b, y_b, w_b, ids_b) in self.iterbatches():
+      Xs.append(X_b)
+      ys.append(y_b)
+      ws.append(w_b)
+      ids.append(np.squeeze(ids_b))
+    # ids_b should be 1-d. Squeeze to make sure
+    return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
+            np.squeeze(np.vstack(ids)))
 
   def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):
     """Fix batch to have exactly batch_size elements.
@@ -184,8 +203,8 @@ class Dataset(object):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
 
-  def compute_statistics(self):
-    """Computes statistics of this dataset"""
+  def get_statistics(self):
+    """Computes and returns statistics of this dataset"""
     self.update_moments()
     df = self.metadata_df
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)

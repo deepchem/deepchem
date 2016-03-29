@@ -78,14 +78,14 @@ class NormalizationTransformer(Transformer):
     super(NormalizationTransformer, self).__init__(transform_X=transform_X,
                                                    transform_y=transform_y,
                                                    dataset=dataset)
-    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
+    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
     self.y_stds = y_stds
 
   def transform(self, dataset, parallel=False):
-    X_means, X_stds, y_means, y_stds = dataset.compute_statistics()
+    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
