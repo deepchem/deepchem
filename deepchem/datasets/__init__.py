@@ -70,6 +70,41 @@ class Dataset(object):
                      'X_sums', 'X_sum_squares', 'X_n',
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
+
+      if samples is None and feature_types is not None:  # Create an empty metadata dataframe to be filled at a later time
+
+        basename = "metadata"
+        df_file = "metadata.joblib"
+        out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
+        out_X_transformed = os.path.join(data_dir, "%s-X-transformed.joblib" % basename)
+        out_X_sums = os.path.join(data_dir, "%s-X_sums.joblib" % basename)
+        out_X_sum_squares = os.path.join(data_dir, "%s-X_sum_squares.joblib" % basename)
+        out_X_n = os.path.join(data_dir, "%s-X_n.joblib" % basename)
+        out_y = os.path.join(data_dir, "%s-y.joblib" % basename)
+        out_y_transformed = os.path.join(data_dir, "%s-y-transformed.joblib" % basename)
+        out_y_sums = os.path.join(data_dir, "%s-y_sums.joblib" % basename)
+        out_y_sum_squares = os.path.join(data_dir, "%s-y_sum_squares.joblib" % basename)
+        out_y_n = os.path.join(data_dir, "%s-y_n.joblib" % basename)
+        out_w = os.path.join(data_dir, "%s-w.joblib" % basename)
+        out_ids = os.path.join(data_dir, "%s-ids.joblib" % basename)
+
+        metadata_rows = []
+        retval = ([df_file, tasks, out_ids, out_X, 
+                         out_X_transformed, out_y,
+                         out_y_transformed, out_w,
+                         out_X_sums, out_X_sum_squares, out_X_n,
+                         out_y_sums, out_y_sum_squares, out_y_n])
+        metadata_rows.append(retval)
+
+        self.metadata_df = pd.DataFrame(
+            metadata_rows,
+            columns=('df_file','task_names', 'ids',
+                     'X', 'X-transformed', 'y', 'y-transformed',
+                     'w',
+                     'X_sums', 'X_sum_squares', 'X_n',
+                     'y_sums', 'y_sum_squares', 'y_n'))
+        self.save_to_disk()
+
     else:
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())

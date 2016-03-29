@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
+import tempfile
 from deepchem.datasets import Dataset
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
@@ -103,8 +104,30 @@ class Model(object):
     Transforms data in a Dataset object with Transformer objects.
     """
     # Create dataset 
+    batch_dataset = self.create_batch_dataset(X, y, w)
     for transformer in self.fit_transformers:
       transformer.transform(batch_dataset)
+
+  def create_batch_dataset(self, X, y, w):
+    """
+    Creates a new Dataset object from a batch of X, y and w
+    """
+    # Create empty dataset
+    data_dir = tempfile.mkdtemp() 
+    featurizers = None
+    tasks = self.task_types.keys()
+    batch_dataset = Dataset(data_dir=data_dir, samples=None,
+                            featurizers=featurizers, tasks=tasks,
+                            use_user_specified_features=True)
+
+    # Save X, y, and w to batch_dataset
+    df = batch_dataset.metadata_df
+    for _, row in df.iterrows():
+      save_to_disk(X, row['X-transformed'])
+      save_to_disk(y, row['y-transformed'])
+      save_to_disk(w, row['w'])
+
+    return batch_dataset
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
