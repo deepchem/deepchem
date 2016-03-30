@@ -60,7 +60,7 @@ class HyperparamOpt(object):
         model = self.model_class(self.task_types, model_params, model_dir,
                                  verbosity=self.verbosity)
       else:
-        if not self.fit_transformers:
+        if self.fit_transformers:
           model = self.model_class(self.task_types, model_params,
                                    fit_transformers=self.fit_transformers,
                                    verbosity=self.verbosity)
