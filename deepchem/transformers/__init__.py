@@ -237,13 +237,14 @@ class CoulombRandomizationTransformer(Transformer):
 class CoulombBinarizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
-               theta=1):
+               theta=1, update_state=True):
     """Initialize binarization transformation."""
     super(CoulombBinarizationTransformer, self).__init__(transform_X=transform_X,
                                                          transform_y=transform_y,
                                                          dataset=dataset)
     self.theta = theta
     self.feature_max = np.zeros(dataset.get_data_shape()) 
+    self.update_state = update_state
 
   def set_max(self, df):
     
@@ -278,7 +279,9 @@ class CoulombBinarizationTransformer(Transformer):
 
     row = df.iloc[i]
     X_bin = []
-    if i == 0: self.set_max(df)
+    if self.update_state: 
+      self.set_max(df)
+      self.update_state = False
     if self.transform_X:
       X = load_from_disk(row['X-transformed'])
       for i in range(X.shape[1]):

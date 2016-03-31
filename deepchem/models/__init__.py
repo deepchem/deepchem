@@ -34,6 +34,14 @@ class Model(object):
     self.task_types = task_types
     self.model_params = model_params
     self.fit_transformers = fit_transformers
+    if self.fit_transformers:
+
+      # Initialize batch_dataset
+      self.batch_dataset = self.create_batch_dataset()
+
+    else:
+      self.batch_dataset = None
+
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
@@ -96,21 +104,38 @@ class Model(object):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
         if self.fit_transformers:
-          X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch, w_batch)
+          X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
+                                            w_batch, self.batch_dataset)
         self.fit_on_batch(X_batch, y_batch, w_batch)
 
-  def transform_on_batch(self, X, y, w):
+
+  def transform_on_batch(self, X, y, w, batch_dataset):
     """
-    Transforms data in a Dataset object with Transformer objects.
+    Transforms data in a 1-shard Dataset object with Transformer objects.
     """
-    # Create dataset 
-    batch_dataset = self.create_batch_dataset(X, y, w)
+    # Save X, y, and w to batch_dataset
+    # The save/load operations work correctly with 1-shard dataframe
+    df = batch_dataset.metadata_df
+    for _, row in df.iterrows():
+      save_to_disk(X, row['X-transformed'])
+      save_to_disk(y, row['y-transformed'])
+      save_to_disk(w, row['w'])
+
+    # Transform batch_dataset
     for transformer in self.fit_transformers:
       transformer.transform(batch_dataset)
 
-  def create_batch_dataset(self, X, y, w):
+    # Return numpy arrays from batch_dataset
+    for _, row in df.iterrows(): 
+      X = load_from_disk(row['X-transformed'])
+      y = load_from_disk(row['y-transformed'])
+      w = load_from_disk(row['w'])
+
+    return X, y, w
+
+  def create_batch_dataset(self):
     """
-    Creates a new Dataset object from a batch of X, y and w
+    Creates an empty 1-shard Dataset object
     """
     # Create empty dataset
     data_dir = tempfile.mkdtemp() 
@@ -119,13 +144,6 @@ class Model(object):
     batch_dataset = Dataset(data_dir=data_dir, samples=None,
                             featurizers=featurizers, tasks=tasks,
                             use_user_specified_features=True)
-
-    # Save X, y, and w to batch_dataset
-    df = batch_dataset.metadata_df
-    for _, row in df.iterrows():
-      save_to_disk(X, row['X-transformed'])
-      save_to_disk(y, row['y-transformed'])
-      save_to_disk(w, row['w'])
 
     return batch_dataset
 
