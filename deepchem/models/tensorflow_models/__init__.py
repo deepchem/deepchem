@@ -715,6 +715,7 @@ class TensorflowModel(Model):
     self.eval_model = tf_class(model_params, logdir, task_types, train=False,
                                verbosity=verbosity)
     self.num_tasks = len(task_types)
+    self.fit_transformers = None
 
   def fit(self, dataset):
     """

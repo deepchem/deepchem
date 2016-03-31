@@ -102,11 +102,13 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
+      losses = []
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
         if self.fit_transformers:
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
                                             w_batch, self.batch_dataset)
-        self.fit_on_batch(X_batch, y_batch, w_batch)
+        losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
+      log("Avg loss for epoch %d: %f" % (epoch+1,np.array(losses).mean()),self.verbosity)
 
 
   def transform_on_batch(self, X, y, w, batch_dataset):
@@ -165,6 +167,12 @@ class Model(object):
 
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+
+      # Apply fit_transformers if needed
+      if self.fit_transformers:
+        X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
+                                        w_batch, self.batch_dataset)
+
       y_pred = self.predict_on_batch(X_batch)
       y_pred = np.reshape(y_pred, np.shape(y_batch))
 
