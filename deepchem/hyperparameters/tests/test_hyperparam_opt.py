@@ -39,7 +39,7 @@ class TestHyperparamOptAPI(TestAPI):
   Test hyperparameter optimization API.
   """
   def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
-    """Test of singletask RF ECFP regression API."""
+    """Test of hyperparam_opt with singletask RF ECFP regression API."""
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []

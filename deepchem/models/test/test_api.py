@@ -60,7 +60,7 @@ class TestKerasSklearnAPI(TestAPI):
                        regression_metrics)
 
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
-    """Test of singletask RF ECFP regression API."""
+    """Test of singletask RF USF regression API."""
     splittype = "specified"
     split_field = "split"
     compound_featurizers = []
