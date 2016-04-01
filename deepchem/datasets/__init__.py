@@ -148,9 +148,13 @@ class Dataset(object):
     """
     return self.metadata_df.shape[0]
 
-  def _itershards(self):
+  def itershards(self):
     """
     Iterates over all shards in dataset.
+
+    Datasets are stored in sharded fashion on disk. Each call to next() for the
+    generator defined by this function returns the data from a particular shard.
+    The order of shards returned is guaranteed to remain fixed.
     """
     for _, row in self.metadata_df.iterrows():
       X = load_from_disk(row['X-transformed'])
@@ -165,7 +169,7 @@ class Dataset(object):
     """
     if batch_size == None:
       batch_size = len(self)
-    for i, (X, y, w, ids) in enumerate(self._itershards()):
+    for i, (X, y, w, ids) in enumerate(self.itershards()):
       log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
           self.verbosity)
       nb_sample = np.shape(X)[0]
@@ -199,6 +203,15 @@ class Dataset(object):
     # ids_b should be 1-d. Squeeze to make sure
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.squeeze(np.vstack(ids)))
+
+  def get_labels(self):
+    """
+    Returns all labels for this dataset.
+    """
+    ys = []
+    for (_, y_b, _, _) in self.itershards():
+      ys.append(y_b)
+    return np.vstack(ys)
 
   def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):
     """Fix batch to have exactly batch_size elements.
@@ -251,7 +264,26 @@ class Dataset(object):
     df = self.metadata_df
     update_mean_and_std(df)
  
- 
+  def balance_positives_and_negatives(self):
+    """For binary datasets, balance pos and neg examples."""
+    labels = self.get_labels()
+    # Ensure dataset is binary
+    np.testing.assert_allclose(sorted(np.unique(labels)), np.array([0., 1.]))
+    weights = []
+    # TODO(rbharath): This doesn't deal with zeroed out labels.
+    for ind, task in enumerate(self.get_task_names()):
+      task_labels = labels[:, ind]
+      num_positives = np.count_nonzero(task_labels)
+      num_negatives = len(task_labels) - num_positives
+      if num_positives > 0:
+        pos_weight = float(num_negatives)/num_positives
+      else:
+        pos_weight = 1
+      neg_weight = 1
+      weights.append((pos_weight, neg_weight))
+    return weights
+    
+
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
