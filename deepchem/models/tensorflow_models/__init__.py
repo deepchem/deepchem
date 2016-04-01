@@ -655,7 +655,7 @@ class TensorflowRegressor(TensorflowGraph):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    return tf.mul(tf.nn.l2_loss(output - labels), weights)
+    return tf.mul(0.5 * tf.square(output - labels), weights)
 
   def example_counts(self, y_true):
     """Get counts of examples in each class.
