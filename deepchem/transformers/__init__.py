@@ -50,7 +50,6 @@ class Transformer(object):
 
     Adds X-transform, y-transform columns to metadata.
     """
-    dataset.update_moments()
     df = dataset.metadata_df
     indices = range(0, df.shape[0])
     transform_row_partial = partial(
@@ -237,21 +236,42 @@ class CoulombRandomizationTransformer(Transformer):
   def untransform(self, z):
     print("Cannot undo CoulombRandomizationTransformer.")
 
-class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
+class CoulombBinarizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
-               theta=1):
+               theta=1, update_state=True):
     """Initialize binarization transformation."""
     super(CoulombBinarizationTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y, dataset=dataset)
     self.theta = theta
     self.feature_max = np.zeros(dataset.get_data_shape()) 
+    self.update_state = update_state
 
   def set_max(self, df):
     
-    for _, row in df.iterrows(): # Iterate over entire df by rows
+    for _, row in df.iterrows(): 
       X = load_from_disk(row['X-transformed'])
       self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
+
+  def transform(self, dataset, parallel=False):
+
+    super(CoulombBinarizationTransformer, self).transform(dataset,
+          parallel=parallel)
+
+    df = dataset.metadata_df
+    Xt = []
+
+    for _, row in df.iterrows():
+      X_t = load_from_disk(row['X-transformed'])
+      Xt.append(np.array(X_t))
+
+    X = np.vstack(Xt)
+    X_means = X.mean(axis=0)
+    X_stds = (X-X_means).std()
+
+    for i, row in df.iterrows():
+      X_t = (Xt[i]-X_means)/X_stds
+      save_to_disk(X_t, row['X-transformed'])
 
   def transform_row(self, i, df):
     """
@@ -260,7 +280,9 @@ class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
 
     row = df.iloc[i]
     X_bin = []
-    if i == 0: self.set_max(df)
+    if self.update_state: 
+      self.set_max(df)
+      self.update_state = False
     if self.transform_X:
       X = load_from_disk(row['X-transformed'])
       for i in range(X.shape[1]):

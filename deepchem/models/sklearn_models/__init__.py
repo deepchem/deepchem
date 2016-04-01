@@ -18,11 +18,11 @@ class SklearnModel(Model):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, 
-               model_instance=None,
-               initialize_raw_model=True):
+  def __init__(self, task_types, model_params, fit_transformers=None,
+               model_instance=None, initialize_raw_model=True):
     super(SklearnModel, self).__init__(
-        task_types, model_params, initialize_raw_model)
+        task_types, model_params, fit_transformers=fit_transformers, 
+        initialize_raw_model=initialize_raw_model)
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = model_instance

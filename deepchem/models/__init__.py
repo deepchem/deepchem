@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
+import tempfile
 from deepchem.datasets import Dataset
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
@@ -26,11 +27,21 @@ class Model(object):
   Abstract base class for different ML models.
   """
   non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
-  def __init__(self, task_types, model_params, model_instance=None,
-               initialize_raw_model=True, verbosity=None, **kwargs):
+  def __init__(self, task_types, model_params, fit_transformers=None,
+               model_instance=None, initialize_raw_model=True, 
+               verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
     self.task_types = task_types
     self.model_params = model_params
+    self.fit_transformers = fit_transformers
+    if self.fit_transformers:
+
+      # Initialize batch_dataset
+      self.batch_dataset = self.create_batch_dataset()
+
+    else:
+      self.batch_dataset = None
+
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
@@ -91,8 +102,52 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
+      losses = []
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
-        self.fit_on_batch(X_batch, y_batch, w_batch)
+        if self.fit_transformers:
+          X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
+                                            w_batch, self.batch_dataset)
+        losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
+      log("Avg loss for epoch %d: %f" % (epoch+1,np.array(losses).mean()),self.verbosity)
+
+
+  def transform_on_batch(self, X, y, w, batch_dataset):
+    """
+    Transforms data in a 1-shard Dataset object with Transformer objects.
+    """
+    # Save X, y, and w to batch_dataset
+    # The save/load operations work correctly with 1-shard dataframe
+    df = batch_dataset.metadata_df
+    for _, row in df.iterrows():
+      save_to_disk(X, row['X-transformed'])
+      save_to_disk(y, row['y-transformed'])
+      save_to_disk(w, row['w'])
+
+    # Transform batch_dataset
+    for transformer in self.fit_transformers:
+      transformer.transform(batch_dataset)
+
+    # Return numpy arrays from batch_dataset
+    for _, row in df.iterrows(): 
+      X = load_from_disk(row['X-transformed'])
+      y = load_from_disk(row['y-transformed'])
+      w = load_from_disk(row['w'])
+
+    return X, y, w
+
+  def create_batch_dataset(self):
+    """
+    Creates an empty 1-shard Dataset object
+    """
+    # Create empty dataset
+    data_dir = tempfile.mkdtemp() 
+    featurizers = None
+    tasks = self.task_types.keys()
+    batch_dataset = Dataset(data_dir=data_dir, samples=None,
+                            featurizers=featurizers, tasks=tasks,
+                            use_user_specified_features=True)
+
+    return batch_dataset
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
@@ -112,6 +167,12 @@ class Model(object):
 
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+
+      # Apply fit_transformers if needed
+      if self.fit_transformers:
+        X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
+                                        w_batch, self.batch_dataset)
+
       y_pred = self.predict_on_batch(X_batch)
       y_pred = np.reshape(y_pred, np.shape(y_batch))
 
