@@ -53,7 +53,8 @@ class Transformer(object):
     dataset.update_moments()
     df = dataset.metadata_df
     indices = range(0, df.shape[0])
-    transform_row_partial = partial(_transform_row, df=df, transformer=self)
+    transform_row_partial = partial(
+        _transform_row, df=df, transformer=self)
     if parallel:
       pool = mp.Pool(int(mp.cpu_count()/4))
       pool.map(transform_row_partial, indices)
@@ -75,9 +76,8 @@ class NormalizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, dataset=None):
     """Initialize normalization transformation."""
-    super(NormalizationTransformer, self).__init__(transform_X=transform_X,
-                                                   transform_y=transform_y,
-                                                   dataset=dataset)
+    super(NormalizationTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
     X_means, X_stds, y_means, y_stds = dataset.get_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
@@ -90,7 +90,8 @@ class NormalizationTransformer(Transformer):
     self.X_stds = X_stds
     self.y_means = y_means 
     self.y_stds = y_stds
-    super(NormalizationTransformer, self).transform(dataset, parallel=parallel)
+    super(NormalizationTransformer, self).transform(
+        dataset, parallel=parallel)
     
 
   def transform_row(self, i, df):
@@ -151,7 +152,7 @@ class ClippingTransformer(Transformer):
 
 class LogTransformer(Transformer):
 
-  def transform_row(i, df):
+  def transform_row(self, i, df):
     """Logarithmically transforms data in dataset."""
     row = df.iloc[i]
     if self.transform_X:
@@ -173,14 +174,13 @@ class CoulombRandomizationTransformer(Transformer):
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
                seed=None):
     """Iniitialize coulomb matrix randomization transformation. """
-    super(CoulombRandomizationTransformer, self).__init__(transform_X=transform_X,
-                                                          transform_y=transform_y,
-                                                          dataset=dataset)
+    super(CoulombRandomizationTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
     self.seed = seed
 
   def construct_cm_from_triu(self, x):
     """
-    Constructs the unpadded coulomb matrix from the upper triangular portion.
+    Constructs unpadded coulomb matrix from upper triangular portion.
     """
     d = int((np.sqrt(8*len(x)+1)-1)/2)
     cm = np.zeros([d,d])
@@ -207,7 +207,8 @@ class CoulombRandomizationTransformer(Transformer):
 
     upcm = cm[0:atom_number,0:atom_number]
 
-    row_norms = np.asarray([np.linalg.norm(row) for row in upcm], dtype=float)
+    row_norms = np.asarray(
+        [np.linalg.norm(row) for row in upcm], dtype=float)
     rng = np.random.RandomState(self.seed)
     e = rng.normal(size=row_norms.size)
     p = np.argsort(row_norms+e)
@@ -230,7 +231,8 @@ class CoulombRandomizationTransformer(Transformer):
       save_to_disk(X, row['X-transformed'])
 
     if self.transform_y:
-      print("y will not be transformed by CoulombRandomizationTransformer.")
+      print("y will not be transformed by "
+            "CoulombRandomizationTransformer.")
 
   def untransform(self, z):
     print("Cannot undo CoulombRandomizationTransformer.")
@@ -240,9 +242,8 @@ class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
   def __init__(self, transform_X=False, transform_y=False, dataset=None,
                theta=1):
     """Initialize binarization transformation."""
-    super(CoulombBinarizationTransformer, self).__init__(transform_X=transform_X,
-                                                         transform_y=transform_y,
-                                                         dataset=dataset)
+    super(CoulombBinarizationTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
     self.theta = theta
     self.feature_max = np.zeros(dataset.get_data_shape()) 
 
@@ -270,8 +271,8 @@ class CoulombBinarizationTransformer(CoulombRandomizationTransformer):
       save_to_disk(X_bin, row['X-transformed'])
 
     if self.transform_y:
-      print("y will not be transformed by CoulombBinarizationTransformer.")
+      print("y will not be transformed by "
+            "CoulombBinarizationTransformer.")
 
   def untranform(self, z):
     print("Cannot undo CoulombBinarizationTransformer.")
-
