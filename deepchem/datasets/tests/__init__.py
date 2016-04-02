@@ -80,6 +80,20 @@ class TestDatasetAPI(unittest.TestCase):
         input_transformer_classes, output_transformer_classes,
         input_file, task_types.keys())
 
+  def _load_classification_data(self):
+    """Loads classification data from example.csv"""
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+    input_transformer_classes = []
+    output_transformer_classes = []
+    task_types = {"outcome": "classification"}
+    input_file = "example_classification.csv"
+    return self._create_dataset(
+        compound_featurizers, complex_featurizers,
+        input_transformer_classes, output_transformer_classes,
+        input_file, task_types.keys())
+
+
   def _load_multitask_data(self):
     """Load example multitask data."""
     compound_featurizers = [CircularFingerprint(size=1024)]

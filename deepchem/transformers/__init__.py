@@ -21,14 +21,17 @@ class Transformer(object):
   # Hack to allow for easy unpickling:
   # http://stefaanlippens.net/pickleproblem
   __module__ = os.path.splitext(os.path.basename(__file__))[0]
-  def __init__(self, transform_X=False, transform_y=False, dataset=None):
+  def __init__(self, transform_X=False, transform_y=False, transform_w=False,
+               dataset=None):
     """Initializes transformation based on dataset statistics."""
     self.dataset = dataset
     self.transform_X = transform_X
     self.transform_y = transform_y
+    self.transform_w = transform_w
     # One, but not both, transform_X or tranform_y is true
-    assert transform_X or transform_y
-    assert not (transform_X and transform_y)
+    assert transform_X or transform_y or transform_w
+    # Use fact that bools add as ints in python
+    assert (transform_X + transform_y + transform_w) == 1 
 
   def transform_row(self, i, df):
     """
@@ -73,10 +76,12 @@ def _transform_row(i, df, transformer):
 
 class NormalizationTransformer(Transformer):
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None):
+  def __init__(self, transform_X=False, transform_y=False, transform_w=False,
+               dataset=None):
     """Initialize normalization transformation."""
     super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+        transform_X=transform_X, transform_y=transform_y,
+        transform_w=transform_w, dataset=dataset)
     X_means, X_stds, y_means, y_stds = dataset.get_statistics()
     self.X_means = X_means 
     self.X_stds = X_stds
@@ -121,11 +126,12 @@ class NormalizationTransformer(Transformer):
 
 class ClippingTransformer(Transformer):
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None,
-               max_val=5.):
+  def __init__(self, transform_X=False, transform_y=False,
+               transform_w=False, dataset=None, max_val=5.):
     """Initialize clipping transformation."""
     super(ClippingTransformer, self).__init__(transform_X=transform_X,
                                               transform_y=transform_y,
+                                              transform_w=transform_w,
                                               dataset=dataset)
     self.max_val = max_val
 
@@ -168,13 +174,62 @@ class LogTransformer(Transformer):
     """Undoes the logarithmic transformation."""
     return np.exp(z)
 
+class BalancingTransformer(Transformer):
+  """Balance positive and negative examples for weights."""
+  def __init__(self, transform_X=False, transform_y=False,
+               transform_w=False, dataset=None, seed=None):
+    super(BalancingTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y,
+        transform_w=transform_w, dataset=dataset)
+    # BalancingTransformer can only transform weights.
+    assert not transform_X
+    assert not transform_y
+    assert transform_w
+
+    # Compute weighting factors from dataset.
+    y = self.dataset.get_labels()
+    w = self.dataset.get_weights()
+    # Ensure dataset is binary
+    np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
+    weights = []
+    for ind, task in enumerate(self.dataset.get_task_names()):
+      task_w = w[:, ind]
+      task_y = y[:, ind]
+      # Remove labels with zero weights
+      task_y = task_y[task_w != 0]
+      num_positives = np.count_nonzero(task_y)
+      num_negatives = len(task_y) - num_positives
+      if num_positives > 0:
+        pos_weight = float(num_negatives)/num_positives
+      else:
+        pos_weight = 1
+      neg_weight = 1
+      weights.append((neg_weight, pos_weight))
+    self.weights = weights
+
+  def transform_row(self, i, df):
+    """Reweight the labels for this data."""
+    row = df.iloc[i]
+    y = load_from_disk(row['y-transformed'])
+    w = load_from_disk(row['w-transformed'])
+    w_balanced = np.zeros_like(w)
+    for ind, task in enumerate(self.dataset.get_task_names()):
+      task_y = y[:, ind]
+      task_w = w[:, ind]
+      zero_indices = np.logical_and(task_y==0, task_w != 0)
+      one_indices = np.logical_and(task_y==1, task_w != 0)
+      w_balanced[zero_indices, ind] = self.weights[ind][0]
+      w_balanced[one_indices, ind] = self.weights[ind][1]
+    save_to_disk(w_balanced, row['w-transformed'])
+
 class CoulombRandomizationTransformer(Transformer):
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None,
-               seed=None):
+  def __init__(self, transform_X=False, transform_y=False,
+               transform_w=False, dataset=None, seed=None):
     """Iniitialize coulomb matrix randomization transformation. """
     super(CoulombRandomizationTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+        transform_X=transform_X, transform_y=transform_y,
+        transform_w=transform_w, dataset=dataset)
     self.seed = seed
 
   def construct_cm_from_triu(self, x):
@@ -238,7 +293,8 @@ class CoulombRandomizationTransformer(Transformer):
 
 class CoulombBinarizationTransformer(Transformer):
 
-  def __init__(self, transform_X=False, transform_y=False, dataset=None,
+  def __init__(self, transform_X=False, transform_y=False,
+               transform_w=False, dataset=None,
                theta=1, update_state=True):
     """Initialize binarization transformation."""
     super(CoulombBinarizationTransformer, self).__init__(
@@ -277,7 +333,6 @@ class CoulombBinarizationTransformer(Transformer):
     """
     Binarizes data in dataset with sigmoid function
     """
-
     row = df.iloc[i]
     X_bin = []
     if self.update_state: 
