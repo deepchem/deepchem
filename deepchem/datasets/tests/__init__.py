@@ -33,6 +33,7 @@ class TestDatasetAPI(TestSplitAPI):
                       user_specified_features=None,
                       split_field=None,
                       shard_size=100):
+    featurizers = compound_featurizers + complex_featurizers
     samples = self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,

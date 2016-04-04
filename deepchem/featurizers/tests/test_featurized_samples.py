@@ -13,6 +13,9 @@ import os
 import unittest
 import tempfile
 import shutil
+from deepchem.splits import RandomSplitter
+from deepchem.splits import ScaffoldSplitter
+from deepchem.splits import SpecifiedSplitter
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 
@@ -49,16 +52,23 @@ class TestFeaturizedSamples(unittest.TestCase):
     samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir)
 
     # Splits featurized samples into train/test
+    assert splittype in ["random", "specified", "scaffold"]
+    if splittype == "random":
+      splitter = RandomSplitter()
+    elif splittype == "specified":
+      splitter = SpecifiedSplitter()
+    elif splittype == "scaffold":
+      splitter = ScaffoldSplitter()
     if frac_valid > 0:
-      train_samples, valid_samples, test_samples = samples.train_valid_test_split(
-          splittype, train_dir=self.train_dir, valid_dir=self.valid_dir,
+      train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
+          samples, train_dir=self.train_dir, valid_dir=self.valid_dir,
           test_dir=self.test_dir, frac_train=frac_train,
           frac_valid=frac_valid, frac_test=frac_test)
 
       return train_samples, valid_samples, test_samples
     else:
-      train_samples, test_samples = samples.train_test_split(
-          splittype, train_dir=self.train_dir, test_dir=self.test_dir,
+      train_samples, test_samples = splitter.train_test_split(
+          samples, train_dir=self.train_dir, test_dir=self.test_dir,
           frac_train=frac_train)
       return train_samples, test_samples
 
