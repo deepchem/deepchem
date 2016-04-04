@@ -70,8 +70,6 @@ class HyperparamOpt(object):
         
       model.fit(train_dataset)
       model.save(model_dir)
-      ## TODO(rbharath): DEBUG!!!! DON'T MERGE
-      ##best_model = model
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       df, scores_df, multitask_scores = evaluator.compute_model_performance(

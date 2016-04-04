@@ -51,15 +51,16 @@ class TestSplitAPI(unittest.TestCase):
     featurizers = compound_featurizers + complex_featurizers
 
     input_file = os.path.join(self.test_data_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                protein_pdb_field=protein_pdb_field,
-                                ligand_pdb_field=ligand_pdb_field,
-                                compound_featurizers=compound_featurizers,
-                                complex_featurizers=complex_featurizers,
-                                user_specified_features=user_specified_features,
-                                split_field=split_field,
-                                verbosity="low")
+    featurizer = DataFeaturizer(
+        tasks=tasks,
+        smiles_field=self.smiles_field,
+        protein_pdb_field=protein_pdb_field,
+        ligand_pdb_field=ligand_pdb_field,
+        compound_featurizers=compound_featurizers,
+        complex_featurizers=complex_featurizers,
+        user_specified_features=user_specified_features,
+        split_field=split_field,
+        verbosity="low")
 
     samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir,
                                    shard_size=shard_size)

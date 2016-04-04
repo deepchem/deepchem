@@ -82,7 +82,6 @@ class Evaluator(object):
         # Sometimes all samples have zero weight. In this case, continue.
         if not len(y):
           continue
-      from deepchem.metrics import roc_auc_score
       nonempty_tasks.append(task_name)
       ys.append(y)
       y_preds.append(y_pred)
