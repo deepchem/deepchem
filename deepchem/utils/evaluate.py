@@ -53,7 +53,7 @@ class Evaluator(object):
     self.dataset = dataset
     self.transformers = transformers
     self.task_names = dataset.get_task_names()
-    self.task_type = model.get_task_type()
+    self.task_type = model.get_task_type().lower()
     self.verbose = verbose
 
   def compute_model_performance(self, metrics, csv_out, stats_file, threshold=None):

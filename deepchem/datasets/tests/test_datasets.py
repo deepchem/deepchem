@@ -87,15 +87,3 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     np.testing.assert_allclose(comp_y_means, y_means)
     np.testing.assert_allclose(comp_X_stds, X_stds)
     np.testing.assert_allclose(comp_y_stds, y_stds)
-
-  def test_balance_positives_and_negatives(self):
-    """Test balancing of positive and negative examples."""
-    multitask_dataset = self._load_multitask_data()
-    weights = multitask_dataset.balance_positives_and_negatives()
-    X, y, w, ids = multitask_dataset.to_numpy()
-    for ind, task in enumerate(multitask_dataset.get_task_names()):
-      task_labels = y[:, ind]
-      num_positives = np.count_nonzero(task_labels)
-      num_negatives = len(task_labels) - num_positives
-      pos_weight, neg_weight = weights[ind]
-      assert np.isclose(num_positives * pos_weight, num_negatives * neg_weight)

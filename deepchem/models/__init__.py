@@ -19,7 +19,8 @@ def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
   # Note that transformers have to be undone in reversed order
   for transformer in reversed(transformers):
-    y = transformer.untransform(y)
+    if transformer.transform_y:
+      y = transformer.untransform(y)
   return y
 
 class Model(object):
