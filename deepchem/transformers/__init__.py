@@ -12,8 +12,6 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils import pad_array
 
-# TODO(rbharath): The handling of X/y transforms in the same class is
-# awkward. Is there a better way to handle this work. 
 class Transformer(object):
   """
   Abstract base class for different ML models.

@@ -70,6 +70,8 @@ class HyperparamOpt(object):
         
       model.fit(train_dataset)
       model.save(model_dir)
+      ## TODO(rbharath): DEBUG!!!! DON'T MERGE
+      ##best_model = model
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       df, scores_df, multitask_scores = evaluator.compute_model_performance(
@@ -85,7 +87,7 @@ class HyperparamOpt(object):
         best_validation_score = valid_score
         best_hyperparams = hyperparameter_tuple
         if best_model_dir is not None:
-            shutil.rmtree(best_model_dir)
+          shutil.rmtree(best_model_dir)
         best_model_dir = model_dir
         best_model = model
       else:
@@ -109,7 +111,7 @@ class HyperparamOpt(object):
       train_score = train_score.iloc[0][metric.name]
     else:
       train_score = multitask_scores[metric.name]
-    log("Best hyperparameters: %s" % str(zip(hyperparams, best_hyperparams)),
+    log("Best hyperparameters: %s" % str(best_hyperparams),
         self.verbosity)
     log("train_score: %f" % train_score, self.verbosity)
     log("validation_score: %f" % best_validation_score, self.verbosity)

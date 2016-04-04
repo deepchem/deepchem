@@ -18,24 +18,12 @@ from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
+from deepchem.splits.tests import TestSplitAPI
 
-class TestDatasetAPI(unittest.TestCase):
+class TestDatasetAPI(TestSplitAPI):
   """
   Shared API for testing with dataset objects. 
   """
-  def setUp(self):
-    self.current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.test_data_dir = os.path.join(self.current_dir, "../../models/test")
-    self.smiles_field = "smiles"
-    self.feature_dir = tempfile.mkdtemp()
-    self.samples_dir = tempfile.mkdtemp()
-    self.data_dir = tempfile.mkdtemp()
-
-  def tearDown(self):
-    shutil.rmtree(self.feature_dir)
-    shutil.rmtree(self.samples_dir)
-    shutil.rmtree(self.data_dir)
-
   # TODO(rbharath): There should be a more natural way to create a dataset
   # object, perhaps just starting from (Xs, ys, ws)
   def _create_dataset(self, compound_featurizers, complex_featurizers,
@@ -45,22 +33,15 @@ class TestDatasetAPI(unittest.TestCase):
                       user_specified_features=None,
                       split_field=None,
                       shard_size=100):
-    # Featurize input
-    featurizers = compound_featurizers + complex_featurizers
-
-    input_file = os.path.join(self.test_data_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                protein_pdb_field=protein_pdb_field,
-                                ligand_pdb_field=ligand_pdb_field,
-                                compound_featurizers=compound_featurizers,
-                                complex_featurizers=complex_featurizers,
-                                user_specified_features=user_specified_features,
-                                split_field=split_field,
-                                verbosity="low")
-
-    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir,
-                                   shard_size=shard_size)
+    samples = self._gen_samples(
+        compound_featurizers, complex_featurizers,
+        input_transformer_classes, output_transformer_classes,
+        input_file, tasks,
+        protein_pdb_field=protein_pdb_field,
+        ligand_pdb_field=ligand_pdb_field,
+        user_specified_features=user_specified_features,
+        split_field=split_field,
+        shard_size=shard_size)
     use_user_specified_features = (user_specified_features is not None)
     dataset = Dataset(data_dir=self.data_dir, samples=samples, 
                       featurizers=featurizers, tasks=tasks,
@@ -92,7 +73,6 @@ class TestDatasetAPI(unittest.TestCase):
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
         input_file, task_types.keys())
-
 
   def _load_multitask_data(self):
     """Load example multitask data."""

@@ -275,25 +275,6 @@ class Dataset(object):
     df = self.metadata_df
     update_mean_and_std(df)
  
-  def balance_positives_and_negatives(self):
-    """For binary datasets, balance pos and neg examples."""
-    labels = self.get_labels()
-    # Ensure dataset is binary
-    np.testing.assert_allclose(sorted(np.unique(labels)), np.array([0., 1.]))
-    weights = []
-    # TODO(rbharath): This doesn't deal with zeroed out labels.
-    for ind, task in enumerate(self.get_task_names()):
-      task_labels = labels[:, ind]
-      num_positives = np.count_nonzero(task_labels)
-      num_negatives = len(task_labels) - num_positives
-      if num_positives > 0:
-        pos_weight = float(num_negatives)/num_positives
-      else:
-        pos_weight = 1
-      neg_weight = 1
-      weights.append((pos_weight, neg_weight))
-    return weights
-    
 
 def compute_sums_and_nb_sample(tensor, W=None):
   """
