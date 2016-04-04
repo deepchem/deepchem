@@ -27,7 +27,6 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, fit_transformers=None,
                model_instance=None, initialize_raw_model=True, 
                verbosity=None, **kwargs):

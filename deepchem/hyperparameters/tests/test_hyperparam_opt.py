@@ -20,7 +20,8 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 from deepchem import metrics
 from deepchem.metrics import Metric
-from sklearn.ensemble import RandomForestRegressor
+from deepchem.models.multitask import SingletaskToMultitask 
+from sklearn.linear_model import LogisticRegression
 
 def rf_model_builder(task_types, params_dict, logdir=None, verbosity=None):
     """Builds random forests given hyperparameters.
@@ -62,6 +63,38 @@ class TestHyperparamOptAPI(TestAPI):
     self._hyperparam_opt(rf_model_builder, params_dict, train_dataset,
                          valid_dataset, output_transformers, task_types,
                          metric)
+
+  def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
+    """Test of hyperparam_opt with singletask_to_multitask."""
+    splittype = "scaffold"
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+    output_transformer_classes = []
+    input_transformer_classes = []
+    tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
+             "task7", "task8", "task9", "task10", "task11", "task12",
+             "task13", "task14", "task15", "task16"]
+    task_types = {task: "classification" for task in tasks}
+    input_file = "multitask_example.csv"
+    train_dataset, valid_dataset, _, output_transformers, = \
+        self._featurize_train_test_split(
+            splittype, compound_featurizers, 
+            complex_featurizers, input_transformer_classes,
+            output_transformer_classes, input_file, task_types.keys())
+    params_dict = {
+        "batch_size": [32],
+        "data_shape": [train_dataset.get_data_shape()],
+    }
+    classification_metric = Metric(metrics.matthews_corrcoef, np.mean)
+    def model_builder(task_types, model_params, verbosity=None):
+      return SklearnModel(task_types, model_params,
+                          model_instance=LogisticRegression())
+    def multitask_model_builder(task_types, params_dict, logdir=None,
+                                verbosity=None):
+      return SingletaskToMultitask(task_types, params_dict, model_builder)
+    self._hyperparam_opt(multitask_model_builder, params_dict, train_dataset,
+                         valid_dataset, output_transformers, task_types,
+                         classification_metric)
 
   def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Keras multitask deepchem classification API."""
