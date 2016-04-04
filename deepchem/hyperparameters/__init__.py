@@ -22,6 +22,8 @@ class HyperparamOpt(object):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
+  # TODO(rbharath): This function is complicated and monolithic. Is there a nice
+  # way to refactor this?
   def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
                         output_transformers, metric, use_max=True,
                         logdir=None):
