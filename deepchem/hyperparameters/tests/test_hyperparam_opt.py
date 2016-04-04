@@ -22,6 +22,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.multitask import SingletaskToMultitask 
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor 
 
 def rf_model_builder(task_types, params_dict, logdir=None, verbosity=None):
     """Builds random forests given hyperparameters.
