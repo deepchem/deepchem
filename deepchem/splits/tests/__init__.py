@@ -91,7 +91,7 @@ class TestSplitAPI(unittest.TestCase):
         input_transformer_classes, output_transformer_classes,
         input_file, task_types.keys())
 
-  def _load_multitask_data(self):
+  def _load_multitask_samples(self):
     """Load example multitask data."""
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []
@@ -102,7 +102,7 @@ class TestSplitAPI(unittest.TestCase):
              "task13", "task14", "task15", "task16"]
     task_types = {task: "classification" for task in tasks}
     input_file = "multitask_example.csv"
-    return self._create_dataset(
+    return self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
         input_file, task_types.keys())

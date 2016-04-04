@@ -12,6 +12,8 @@ __license__ = "LGPL"
 import os
 import numpy as np
 from rdkit import Chem
+from deepchem.utils import ScaffoldGenerator
+from deepchem.utils.save import log
 from deepchem.featurizers.featurize import FeaturizedSamples
 
 def generate_scaffold(smiles, include_chirality=False):
@@ -73,7 +75,7 @@ class Splitter(object):
 
     return train_samples, valid_samples, test_samples
 
-  def train_test_split(self, samples, splittype, train_dir, test_dir, seed=None,
+  def train_test_split(self, samples, train_dir, test_dir, seed=None,
                        frac_train=.8, reload=False):
     """
     Splits self into train/test sets.
@@ -81,7 +83,7 @@ class Splitter(object):
     Returns FeaturizedDataset objects.
     """
     train_samples, _, test_samples = self.train_valid_test_split(
-        samples, splittype, train_dir, valid_dir=None, test_dir=test_dir,
+        samples, train_dir, valid_dir=None, test_dir=test_dir,
         frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.,
         reload=False)
     return train_samples, test_samples
@@ -114,7 +116,8 @@ class ScaffoldSplitter(Splitter):
   """
   Class for doing data splits based on the scaffold of small molecules.
   """
-  def split(self, samples, frac_train=.8, frac_valid=.1, frac_test=.1, log_every_n=1000):
+  def split(self, samples, frac_train=.8, frac_valid=.1, frac_test=.1,
+            log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by scaffold.
     """
@@ -147,7 +150,7 @@ class ScaffoldSplitter(Splitter):
         train_inds += scaffold_set
     return train_inds, valid_inds, test_inds
 
-class SpecifiedSplit(Splitter):
+class SpecifiedSplitter(Splitter):
   """
   Class that splits data according to user specification.
   """

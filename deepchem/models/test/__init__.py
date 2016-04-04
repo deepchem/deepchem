@@ -28,6 +28,9 @@ from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
 from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
+from deepchem.splits import RandomSplitter
+from deepchem.splits import ScaffoldSplitter
+from deepchem.splits import SpecifiedSplitter
 
 class TestAPI(unittest.TestCase):
   """
@@ -114,8 +117,15 @@ class TestAPI(unittest.TestCase):
                                    shard_size=shard_size)
 
     # Splits featurized samples into train/test
-    train_samples, test_samples = samples.train_test_split(
-        splittype, self.train_dir, self.test_dir)
+    assert splittype in ["random", "specified", "scaffold"]
+    if splittype == "random":
+      splitter = RandomSplitter()
+    elif splittype == "specified":
+      splitter = SpecifiedSplitter()
+    elif splittype == "scaffold":
+      splitter = ScaffoldSplitter()
+    train_samples, test_samples = splitter.train_test_split(
+        samples, self.train_dir, self.test_dir)
 
     use_user_specified_features = (user_specified_features is not None)
     train_dataset = Dataset(data_dir=self.train_dir, samples=train_samples, 

@@ -17,7 +17,6 @@ from deepchem.utils.save import log
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
-from deepchem.utils import ScaffoldGenerator
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 import multiprocessing as mp
 from functools import partial
