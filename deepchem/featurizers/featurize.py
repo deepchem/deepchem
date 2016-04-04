@@ -322,8 +322,6 @@ class FeaturizedSamples(object):
       if dataset_files is not None:
         if not reload:
           save_to_disk(dataset_files, self._get_dataset_paths_filename())
-        else:
-          raise ValueError("Can't change dataset_files already stored on disk")
     else:
       save_to_disk(dataset_files, self._get_dataset_paths_filename())
     self.dataset_files = load_from_disk(self._get_dataset_paths_filename())

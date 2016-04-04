@@ -53,7 +53,7 @@ class Splitter(object):
                                         dataset_files=dataset_files,
                                         featurizers=samples.featurizers,
                                         verbosity=self.verbosity,
-                                        reload=False)
+                                        reload=reload)
       if not reload:
         train_samples._set_compound_df(samples.compounds_df.iloc[train_inds])
     if test_dir is not None:
@@ -61,15 +61,15 @@ class Splitter(object):
                                        dataset_files=dataset_files,
                                        featurizers=samples.featurizers,
                                        verbosity=self.verbosity,
-                                       reload=False)
+                                       reload=reload)
       if not reload:
         test_samples._set_compound_df(samples.compounds_df.iloc[test_inds])
     if valid_dir is not None:
       valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
-                                       dataset_files=dataset_files,
-                                       featurizers=samples.featurizers,
-                                       verbosity=self.verbosity,
-                                       reload=False)
+                                        dataset_files=dataset_files,
+                                        featurizers=samples.featurizers,
+                                        verbosity=self.verbosity,
+                                        reload=reload)
       if not reload:
         valid_samples._set_compound_df(samples.compounds_df.iloc[valid_inds])
 
