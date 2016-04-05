@@ -27,10 +27,7 @@ class MultiTaskDNN(KerasModel):
                                        verbosity=verbosity)
     if initialize_raw_model:
       sorted_tasks = sorted(task_types.keys())
-      if fit_transformers:
-        (n_inputs,) = model_params["init_data_shape"]
-      else:
-        (n_inputs,) = model_params["data_shape"]
+      (n_inputs,) = model_params["data_shape"]
       model = Graph()
       model.add_input(name="input", input_shape=(n_inputs,))
       prev_layer = "input"

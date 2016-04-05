@@ -36,7 +36,11 @@ class Transformer(object):
     Transforms the data (X, y, w, ...) in a single row).
     """
     raise NotImplementedError(
-      "Each Transformer is responsible for its own tranform_row method.")
+      "Each Transformer is responsible for its own transform_row method.")
+
+  def transform_array(self, X, y, w):
+    raise NotImplementedError(
+      "Each Transformer is responsible for its own transform_array method.")
 
   def untransform(self, z):
     """Reverses stored transformation on provided data."""
@@ -63,6 +67,13 @@ class Transformer(object):
       for index in indices:
         transform_row_partial(index)
     dataset.save_to_disk()
+
+  def transform_on_array(self, X, y, w):
+    """
+    Transforms numpy arrays X, y, and w
+    """
+    X, y, w = self.transform_array(X, y, w)    
+    return X, y, w
 
 def _transform_row(i, df, transformer):
   """
@@ -286,6 +297,20 @@ class CoulombRandomizationTransformer(Transformer):
       print("y will not be transformed by "
             "CoulombRandomizationTransformer.")
 
+  def transform_array(self, X, y, w):
+    """
+    Randomly permute a Coulomb Matrix passed as an array
+    """
+    if self.transform_X:
+      for j in xrange(len(X)):
+        cm = self.construct_cm_from_triu(X[j])
+        X[j] = self.unpad_randomize_and_flatten(cm)
+
+    if self.transform_y:
+      print("y will not be transformed by CoulombRandomizationTransformer.")
+
+    return X, y, w
+
   def untransform(self, z):
     print("Cannot undo CoulombRandomizationTransformer.")
 
@@ -298,7 +323,7 @@ class CoulombBinarizationTransformer(Transformer):
     super(CoulombBinarizationTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y, dataset=dataset)
     self.theta = theta
-    self.feature_max = np.zeros(dataset.get_data_shape()) 
+    self.feature_max = np.zeros(dataset.get_data_shape())
     self.update_state = update_state
 
   def set_max(self, df):
@@ -348,6 +373,30 @@ class CoulombBinarizationTransformer(Transformer):
     if self.transform_y:
       print("y will not be transformed by "
             "CoulombBinarizationTransformer.")
+
+  def transform_array(self,X, y, w):
+    """
+    Binarizes data passed as arrays with sigmoid function
+    """
+
+    X_bin = []
+    if self.update_state: 
+      self.set_max(df)
+      self.update_state = False
+    if self.transform_X:
+      for i in range(X.shape[1]):
+        for k in np.arange(0,self.feature_max[i]+self.theta,self.theta):
+          X_bin += [np.tanh((X[:,i]-k)/self.theta)]
+
+      X = np.array(X_bin).T
+      X_means = X.mean(axis=0)
+      X_stds = (X-X_means).std()
+      X = (X-X_means)/X_stds
+
+    if self.transform_y:
+      print("y will not be transformed by CoulombBinarizationTransformer.")
+
+    return X, y, w
 
   def untranform(self, z):
     print("Cannot undo CoulombBinarizationTransformer.")

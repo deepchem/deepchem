@@ -37,13 +37,6 @@ class Model(object):
     self.task_types = task_types
     self.model_params = model_params
     self.fit_transformers = fit_transformers
-    if self.fit_transformers:
-
-      # Initialize batch_dataset
-      self.batch_dataset = self.create_batch_dataset()
-
-    else:
-      self.batch_dataset = None
 
     self.raw_model = None
     assert verbosity in [None, "low", "high"]
@@ -109,32 +102,18 @@ class Model(object):
       for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
         if self.fit_transformers:
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
-                                            w_batch, self.batch_dataset)
+                                            w_batch)
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
       log("Avg loss for epoch %d: %f" % (epoch+1,np.array(losses).mean()),self.verbosity)
 
 
-  def transform_on_batch(self, X, y, w, batch_dataset):
+  def transform_on_batch(self, X, y, w):
     """
     Transforms data in a 1-shard Dataset object with Transformer objects.
     """
-    # Save X, y, and w to batch_dataset
-    # The save/load operations work correctly with 1-shard dataframe
-    df = batch_dataset.metadata_df
-    for _, row in df.iterrows():
-      save_to_disk(X, row['X-transformed'])
-      save_to_disk(y, row['y-transformed'])
-      save_to_disk(w, row['w'])
-
-    # Transform batch_dataset
+    # Transform X, y, and w
     for transformer in self.fit_transformers:
-      transformer.transform(batch_dataset)
-
-    # Return numpy arrays from batch_dataset
-    for _, row in df.iterrows(): 
-      X = load_from_disk(row['X-transformed'])
-      y = load_from_disk(row['y-transformed'])
-      w = load_from_disk(row['w'])
+      X, y, w = transformer.transform_on_array(X, y, w)
 
     return X, y, w
 
@@ -171,15 +150,30 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
-      # Apply fit_transformers if needed
-      if self.fit_transformers:
-        X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
-                                        w_batch, self.batch_dataset)
+      # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
+      # a given X_batch.  If fit_transformers exist, we will apply them to
+      # X_batch 1 times and average the resulting y_pred before we undo 
+      # transforms on y_pred and y.  In the future the averaging will be
+      # performed n_sample times, where n_sample can be user-specified.
 
-      y_pred = self.predict_on_batch(X_batch)
-      y_pred = np.reshape(y_pred, np.shape(y_batch))
+      if self.fit_transformers:
+
+        y_preds = []
+        for i in xrange(1):
+          X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
+          y_pred = self.predict_on_batch(X_b)
+          y_pred = np.reshape(y_pred, np.shape(y_b))
+          y_preds.append(y_pred)
+
+        y_pred = np.array(y_preds).mean(axis=0)
+
+      else:
+
+        y_pred = self.predict_on_batch(X_batch)
+        y_pred = np.reshape(y_pred, np.shape(y_batch))
 
       # Now undo transformations on y, y_pred
+
       y_raw, y_pred_raw = y_batch, y_pred
       y_batch = undo_transforms(y_batch, transformers)
       y_pred = undo_transforms(y_pred, transformers)
