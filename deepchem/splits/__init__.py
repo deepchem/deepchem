@@ -105,28 +105,26 @@ class MolecularWeightSplitter(Splitter):
     Splits internal compounds into train/validation/test using the MW calculated
     by SMILES string.
     """
+
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
 
-    smiles_df = samples.compounds_df['smiles']
-    mw = []
-    for idx, row in smiles_df.iterrows():
-        smiles = Chem.Mol
+    df = samples.compounds_df
+    mws = []
+    for _, row in smiles_df.iterrows():
+        mol = Chem.MolFromSmiles(row['smiles'])
+        mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
+        mws.append(mw)
 
-    # create new array that contains IDs sorted by MW
+    # Sort by increasing MW
+    mws = np.array(mws)
+    sortidx = np.argsort(mws)
 
-    # split based on frac_train/frac_valid+frac_test
+    train_cutoff = frac_train * len(sortidx)
+    valid_cutoff = (frac_train+frac_valid) * len(sortidx)
 
-    # random split frac_valid/frac_test
-
-    train_cutoff = frac_train * len(samples.compounds_df)
-    valid_cutoff = (frac_train+frac_valid) * len(samples.compounds_df)
-    shuffled = np.random.permutation(range(len(samples.compounds_df)))
-
-    # log stats on MW in each dataset
-
-    return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
-            shuffled[valid_cutoff:])
+    return (sortidx[:train_cutoff], sortidx[train_cutoff:valid_cutoff],
+            sortidx[valid_cutoff:])
 
 class RandomSplitter(Splitter):
   """
