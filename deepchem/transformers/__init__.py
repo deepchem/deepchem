@@ -39,7 +39,7 @@ class Transformer(object):
 
   def transform_array(self, X, y, w):
     raise NotImplementedError(
-      "Each Transformer is responsible for its own transform_row method.")
+      "Each Transformer is responsible for its own transform_array method.")
 
   def untransform(self, z):
     """Reverses stored transformation on provided data."""
@@ -70,15 +70,8 @@ class Transformer(object):
     """
     Transforms numpy arrays X, y, and w
     """
-    X, y, w = _transform_array(X=X, y=y, w=w, transformer=self)    
+    X, y, w = self.transform_array(X, y, w)    
     return X, y, w
-
-def _transform_array(X, y, w, transformer):
-  """
-  Performs the numpy array transformation with a given transformer
-  """
-  X, y, w = transformer.transform_array(X, y, w)
-  return X, y, w
 
 def _transform_row(i, df, transformer):
   """
@@ -275,14 +268,14 @@ class CoulombBinarizationTransformer(Transformer):
                                                          transform_y=transform_y,
                                                          dataset=dataset)
     self.theta = theta
-    self.feature_max = np.zeros(dataset.get_data_shape()) 
+    self.feature_max = np.zeros(dataset.get_data_shape())
     self.update_state = update_state
 
   def set_max(self, df):
     
     for _, row in df.iterrows(): 
       X = load_from_disk(row['X-transformed'])
-      self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
+      #self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
 
   def transform(self, dataset, parallel=False):
 
@@ -303,16 +296,6 @@ class CoulombBinarizationTransformer(Transformer):
     for i, row in df.iterrows():
       X_t = (Xt[i]-X_means)/X_stds
       save_to_disk(X_t, row['X-transformed'])
-
-  def transform_on_array(self, X, y, w):
-
-    X, y, w = super(CoulombBinarizationTransformer, self).transform_on_array(X, y, w)
-
-    X_means = X.mean(axis=0)
-    X_stds = (X-X_means).std()
-    X = (X-X_means)/X_stds
-
-    return X, y, w
 
   def transform_row(self, i, df):
     """
@@ -343,7 +326,7 @@ class CoulombBinarizationTransformer(Transformer):
 
     X_bin = []
     if self.update_state: 
-      self.set_max(df)
+      #self.set_max(df)
       self.update_state = False
     if self.transform_X:
       for i in range(X.shape[1]):
@@ -351,6 +334,9 @@ class CoulombBinarizationTransformer(Transformer):
           X_bin += [np.tanh((X[:,i]-k)/self.theta)]
 
       X = np.array(X_bin).T
+      X_means = X.mean(axis=0)
+      X_stds = (X-X_means).std()
+      X = (X-X_means)/X_stds
 
     if self.transform_y:
       print("y will not be transformed by CoulombBinarizationTransformer.")

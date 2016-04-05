@@ -147,15 +147,36 @@ class Model(object):
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
-      # Apply fit_transformers if needed
-      if self.fit_transformers:
-        X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
-                                        w_batch, self.batch_dataset)
+      # HACK(JG): This is a hack to perform 10-fold averaging of y_pred on
+      # a given X_batch.  If fit_transformers exist, we will apply them to
+      # X_batch 10 times and average the resulting y_pred before we undo 
+      # transforms on y_pred and y
 
-      y_pred = self.predict_on_batch(X_batch)
-      y_pred = np.reshape(y_pred, np.shape(y_batch))
+      if self.fit_transformers:
+
+        y_preds = []
+        for i in xrange(1):
+          X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
+          y_pred = self.predict_on_batch(X_b)
+          y_pred = np.reshape(y_pred, np.shape(y_b))
+          y_preds.append(y_pred)
+
+        #print(y_batch)
+        #print(y_b)
+        #print(y_preds)
+        y_pred = np.array(y_preds).mean(axis=0)
+        #print(y_pred)
+        #break
+
+      else:
+
+        #print(y_batch)
+        y_pred = self.predict_on_batch(X_batch)
+        y_pred = np.reshape(y_pred, np.shape(y_batch))
+        #print(y_pred)
 
       # Now undo transformations on y, y_pred
+
       y_raw, y_pred_raw = y_batch, y_pred
       y_batch = undo_transforms(y_batch, transformers)
       y_pred = undo_transforms(y_pred, transformers)
