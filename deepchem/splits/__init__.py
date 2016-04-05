@@ -111,7 +111,7 @@ class MolecularWeightSplitter(Splitter):
 
     df = samples.compounds_df
     mws = []
-    for _, row in smiles_df.iterrows():
+    for _, row in df.iterrows():
         mol = Chem.MolFromSmiles(row['smiles'])
         mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
         mws.append(mw)
