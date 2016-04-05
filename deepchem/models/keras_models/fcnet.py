@@ -140,8 +140,9 @@ class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, fit_transformers=None, initialize_raw_model=True, verbosity="low"):
-    super(SingleTaskDNN, self).__init__(task_types, model_params,
+  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
+               initialize_raw_model=True, verbosity="low"):
+    super(SingleTaskDNN, self).__init__(task_types, model_params, model_dir,
                                         fit_transformers=fit_transformers,
                                         initialize_raw_model=initialize_raw_model,
                                         verbosity=verbosity)
