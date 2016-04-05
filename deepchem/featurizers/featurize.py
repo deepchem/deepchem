@@ -112,7 +112,11 @@ class DataFeaturizer(object):
                 reload=False):
     """Featurize provided file and write to specified location."""
     # If we are not to reload data, or data has not already been featurized.
-    if not reload or not os.path.exists(feature_dir):
+    perform_featurization = (not os.path.exists(feature_dir)
+                             or not self._shard_files_exist(feature_dir)
+                             or not reload)
+                             
+    if perform_featurization:
       if not os.path.exists(feature_dir):
         os.makedirs(feature_dir)
       input_type = _get_input_type(input_file)
@@ -165,6 +169,13 @@ class DataFeaturizer(object):
                                 verbosity=self.verbosity)
 
     return samples
+
+  def _shard_files_exist(self, feature_dir):
+    """Checks if data shard files already exist."""
+    for filename in os.listdir(feature_dir):
+      if "features_shard" in filename:
+        return True
+    return False
 
   def _process_raw_sample(self, input_type, row, fields):
     """Extract information from row data."""
@@ -327,8 +338,10 @@ class FeaturizedSamples(object):
     self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
 
     if os.path.exists(self._get_compounds_filename()) and reload:
+      log("Loading prexisting compounds from disk", self.verbosity)
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
+      log("Saving compounds to disk", self.verbosity)
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.

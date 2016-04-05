@@ -27,10 +27,13 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, fit_transformers=None,
+  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
                model_instance=None, initialize_raw_model=True, 
                verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
+    self.model_dir = model_dir
+    if not os.path.exists(self.model_dir):
+      os.makedirs(self.model_dir)
     self.task_types = task_types
     self.model_params = model_params
     self.fit_transformers = fit_transformers
@@ -73,25 +76,25 @@ class Model(object):
     return self.raw_model
 
   @staticmethod
-  def get_model_filename(out_dir):
+  def get_model_filename(model_dir):
     """
     Given model directory, obtain filename for the model itself.
     """
-    return os.path.join(out_dir, "model.joblib")
+    return os.path.join(model_dir, "model.joblib")
 
   @staticmethod
-  def get_params_filename(out_dir):
+  def get_params_filename(model_dir):
     """
     Given model directory, obtain filename for the model itself.
     """
-    return os.path.join(out_dir, "model_params.joblib")
+    return os.path.join(model_dir, "model_params.joblib")
 
-  def save(self, out_dir):
+  def save(self):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
               "task_types" : self.task_types,
               "model_class": self.__class__}
-    save_to_disk(params, Model.get_params_filename(out_dir))
+    save_to_disk(params, Model.get_params_filename(self.model_dir))
 
   def fit(self, dataset):
     """

@@ -24,7 +24,7 @@ from deepchem.models.multitask import SingletaskToMultitask
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor 
 
-def rf_model_builder(task_types, params_dict, logdir=None, verbosity=None):
+def rf_model_builder(task_types, params_dict, model_dir, verbosity=None):
     """Builds random forests given hyperparameters.
 
     Last two arguments only for tensorflow models and ignored.
@@ -32,7 +32,7 @@ def rf_model_builder(task_types, params_dict, logdir=None, verbosity=None):
     n_estimators = params_dict["n_estimators"]
     max_features = params_dict["max_features"]
     return SklearnModel(
-        task_types, params_dict,
+        task_types, params_dict, model_dir,
         model_instance=RandomForestRegressor(n_estimators=n_estimators,
                                              max_features=max_features))
 
@@ -87,12 +87,13 @@ class TestHyperparamOptAPI(TestAPI):
         "data_shape": [train_dataset.get_data_shape()],
     }
     classification_metric = Metric(metrics.matthews_corrcoef, np.mean)
-    def model_builder(task_types, model_params, verbosity=None):
-      return SklearnModel(task_types, model_params,
+    def model_builder(task_types, model_params, task_model_dir, verbosity=None):
+      return SklearnModel(task_types, model_params, task_model_dir,
                           model_instance=LogisticRegression())
     def multitask_model_builder(task_types, params_dict, logdir=None,
                                 verbosity=None):
-      return SingletaskToMultitask(task_types, params_dict, model_builder)
+      return SingletaskToMultitask(task_types, params_dict, self.model_dir,
+                                   model_builder)
     self._hyperparam_opt(multitask_model_builder, params_dict, train_dataset,
                          valid_dataset, output_transformers, task_types,
                          classification_metric)

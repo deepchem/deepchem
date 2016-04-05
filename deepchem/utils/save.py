@@ -14,10 +14,12 @@ import pandas as pd
 import numpy as np
 import os
 
-def log(string, verbosity=None):
+def log(string, verbosity=None, level="low"):
   """Print string if verbose."""
+  assert level in ["low", "high"]
   if verbosity is not None:
-    print(string)
+    if verbosity == "high" or level == verbosity:
+      print(string)
 
 def save_to_disk(dataset, filename):
   """Save a dataset to file."""
