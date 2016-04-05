@@ -33,48 +33,23 @@ class TestReload(TestAPI):
   """
   Test reload for datasets.
   """
-  #def setUp(self):
-  #  self.current_dir = os.path.dirname(os.path.abspath(__file__))
-  #  self.smiles_field = "smiles"
-  #  sys_temp = tempfile.gettempdir()
-  #  self.base_dir = os.path.join(sys_temp, "base_dir")
-  #  # Make sure to remove an alternate instance of this dir if it exists.
-  #  if os.path.exists(self.base_dir):
-  #    shutil.rmtree(self.base_dir)
-  #  os.makedirs(self.base_dir)
-  #  self.feature_dir = os.path.join(self.base_dir, "features")
-  #  #if not os.path.exists(self.feature_dir):
-  #  #  os.makedirs(self.feature_dir)
-  #  self.samples_dir = os.path.join(self.base_dir, "samples")
-  #  #if not os.path.exists(self.samples_dir):
-  #  #  os.makedirs(self.samples_dir)
-  #  self.train_dir = os.path.join(self.base_dir, "train_dataset")
-  #  #if not os.path.exists(self.train_dir):
-  #  #  os.makedirs(self.train_dir)
-  #  self.valid_dir = os.path.join(self.base_dir, "valid_dataset")
-  #  #if not os.path.exists(self.valid_dir):
-  #  #  os.makedirs(self.valid_dir)
-  #  self.test_dir = os.path.join(self.base_dir, "test_dataset")
-  #  #if not os.path.exists(self.test_dir):
-  #  #  os.makedirs(self.test_dir)
-  #  print("self.base_dir")
-  #  print(self.base_dir)
-  #  print("self.feature_dir")
-  #  print(self.feature_dir)
-  #  print("self.samples_dir")
-  #  print(self.samples_dir)
-  #  print("self.train_dir")
-  #  print(self.train_dir)
-  #  print("self.valid_dir")
-  #  print(self.valid_dir)
-  #  print("self.test_dir")
-  #  print(self.test_dir)
+  def setUp(self):
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.smiles_field = "smiles"
+    sys_temp = tempfile.gettempdir()
+    self.base_dir = os.path.join(sys_temp, "base_dir")
+    # Make sure to remove an alternate instance of this dir if it exists.
+    if os.path.exists(self.base_dir):
+      shutil.rmtree(self.base_dir)
+    os.makedirs(self.base_dir)
+    self.feature_dir = os.path.join(self.base_dir, "features")
+    self.samples_dir = os.path.join(self.base_dir, "samples")
+    self.train_dir = os.path.join(self.base_dir, "train_dataset")
+    self.valid_dir = os.path.join(self.base_dir, "valid_dataset")
+    self.test_dir = os.path.join(self.base_dir, "test_dataset")
 
-  #def tearDown(self):
-  #  shutil.rmtree(self.base_dir)
-  #  # TODO(rbharath): Removing this causes crashes for some reason. Need to
-  #  # debug.
-  #  #shutil.rmtree(self.model_dir)
+  def tearDown(self):
+    shutil.rmtree(self.base_dir)
 
   def _run_muv_experiment(self, dataset_file, reload=False, verbosity=None):
     """Loads or reloads a small version of MUV dataset."""
@@ -106,9 +81,8 @@ class TestReload(TestAPI):
             featurized_samples, self.train_dir, self.valid_dir, self.test_dir,
             log_every_n=1000, reload=reload, frac_train=frac_train,
             frac_test=frac_test, frac_valid=frac_valid)
-    #assert len(train_samples) == frac_train * len(featurized_samples)
-    #assert len(valid_samples) == frac_valid * len(featurized_samples)
-    #assert len(test_samples) == frac_test * len(featurized_samples)
+    # Do an approximate comparison since splits are sometimes slightly off from
+    # the exact fraction.
     assert relative_difference(
         len(train_samples), frac_train * len(featurized_samples)) < 1e-3
     assert relative_difference(
@@ -137,7 +111,7 @@ class TestReload(TestAPI):
     assert len(valid_samples) == len(valid_dataset)
     assert len(test_samples) == len(test_dataset)
 
-    # TODO(rbharath): TRANSFORMERS DON'T PLAY NICE WITH RELOAD! Namely,
+    # TODO(rbharath): Transformers don't play nice with reload! Namely,
     # reloading will cause the transform to be reapplied. This is undesirable in
     # almost all cases. Need to understand a method to fix this.
     input_transformers = []
@@ -206,27 +180,3 @@ class TestReload(TestAPI):
     assert len_train_dataset == len_reload_train_dataset
     assert len_valid_dataset == len_reload_valid_dataset
     assert len_test_dataset == len_reload_valid_dataset
-
-#  def test_reload_twice_large(self):
-#    """Check ability to repeatedly run experiments with reload set True."""
-#    reload = True 
-#    verbosity = "high"
-#    dataset_file = os.path.join(
-#        self.current_dir, "../../../datasets/medium_muv.csv.gz")
-#    print("Running experiment for first time with reload.")
-#    (len_train_samples, len_valid_samples, len_test_samples,
-#     len_train_dataset, len_valid_dataset, len_test_dataset) = \
-#        self._run_muv_experiment(dataset_file, reload, verbosity)
-#
-#    print("Running experiment for second time with reload.")
-#    (len_reload_train_samples, len_reload_valid_samples, len_reload_test_samples,
-#     len_reload_train_dataset, len_reload_valid_dataset, len_reload_test_dataset) = \
-#        self._run_muv_experiment(dataset_file, reload, verbosity)
-#    print("len_train_samples, len_reload_train_samples")
-#    print(len_train_samples, len_reload_train_samples)
-#    assert len_train_samples == len_reload_train_samples
-#    assert len_valid_samples == len_reload_valid_samples
-#    assert len_test_samples == len_reload_valid_samples
-#    assert len_train_dataset == len_reload_train_dataset
-#    assert len_valid_dataset == len_reload_valid_dataset
-#    assert len_test_dataset == len_reload_valid_dataset

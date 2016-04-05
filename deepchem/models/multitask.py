@@ -18,16 +18,11 @@ class SingletaskToMultitask(Model):
   """
   def __init__(self, task_types, model_params, model_dir, model_builder,
                verbosity=None):
-    print("ENTERING SingletaskToMultitask")
-    print("verbosity")
-    print(verbosity)
     self.task_types = task_types
     self.model_params = model_params
     self.models = {}
     self.model_dir = model_dir
     self.verbosity = verbosity
-    print("verbosity")
-    print(verbosity)
     log("About to initialize singletask to multitask model",
         self.verbosity, "high")
     if not os.path.exists(self.model_dir):

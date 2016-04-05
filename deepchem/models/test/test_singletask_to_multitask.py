@@ -45,6 +45,7 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     def model_builder(task_types, model_params, verbosity=None):
       return SklearnModel(task_types, model_params,
                           model_instance=LogisticRegression())
-    multitask_model = SingletaskToMultitask(task_types, params_dict, model_builder)
+    multitask_model = SingletaskToMultitask(task_types, params_dict,
+                                            self.model_dir, model_builder)
     self._create_model(train_dataset, test_dataset, multitask_model,
                        output_transformers, classification_metrics)
