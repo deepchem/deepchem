@@ -28,6 +28,9 @@ from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
 from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
+from deepchem.splits import RandomSplitter
+from deepchem.splits import ScaffoldSplitter
+from deepchem.splits import SpecifiedSplitter
 
 class TestAPI(unittest.TestCase):
   """
@@ -39,6 +42,7 @@ class TestAPI(unittest.TestCase):
     self.feature_dir = tempfile.mkdtemp()
     self.samples_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
+    self.valid_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
     self.model_dir = tempfile.mkdtemp()
     if not os.path.exists(self.model_dir):
@@ -48,6 +52,7 @@ class TestAPI(unittest.TestCase):
     shutil.rmtree(self.feature_dir)
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)
+    shutil.rmtree(self.valid_dir)
     shutil.rmtree(self.test_dir)
     # TODO(rbharath): Removing this causes crashes for some reason. Need to
     # debug.
@@ -114,8 +119,15 @@ class TestAPI(unittest.TestCase):
                                    shard_size=shard_size)
 
     # Splits featurized samples into train/test
-    train_samples, test_samples = samples.train_test_split(
-        splittype, self.train_dir, self.test_dir)
+    assert splittype in ["random", "specified", "scaffold"]
+    if splittype == "random":
+      splitter = RandomSplitter()
+    elif splittype == "specified":
+      splitter = SpecifiedSplitter()
+    elif splittype == "scaffold":
+      splitter = ScaffoldSplitter()
+    train_samples, test_samples = splitter.train_test_split(
+        samples, self.train_dir, self.test_dir)
 
     use_user_specified_features = (user_specified_features is not None)
     train_dataset = Dataset(data_dir=self.train_dir, samples=train_samples, 

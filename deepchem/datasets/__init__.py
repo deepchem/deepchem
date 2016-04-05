@@ -66,7 +66,7 @@ class Dataset(object):
             metadata_rows,
             columns=('df_file', 'task_names', 'ids',
                      'X', 'X-transformed', 'y', 'y-transformed',
-                     'w',
+                     'w', 'w-transformed',
                      'X_sums', 'X_sum_squares', 'X_n',
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
@@ -87,21 +87,23 @@ class Dataset(object):
         out_y_sum_squares = os.path.join(data_dir, "%s-y_sum_squares.joblib" % basename)
         out_y_n = os.path.join(data_dir, "%s-y_n.joblib" % basename)
         out_w = os.path.join(data_dir, "%s-w.joblib" % basename)
+        out_w_transformed = os.path.join(data_dir, "%s-w-transformed.joblib" % basename)
         out_ids = os.path.join(data_dir, "%s-ids.joblib" % basename)
 
         metadata_rows = []
-        retval = ([df_file, tasks, out_ids, out_X, 
-                         out_X_transformed, out_y,
-                         out_y_transformed, out_w,
-                         out_X_sums, out_X_sum_squares, out_X_n,
-                         out_y_sums, out_y_sum_squares, out_y_n])
+        retval = ([df_file, tasks, out_ids,
+                   out_X, out_X_transformed,
+                   out_y, out_y_transformed,
+                   out_w, out_w_transformed,
+                   out_X_sums, out_X_sum_squares, out_X_n,
+                   out_y_sums, out_y_sum_squares, out_y_n])
         metadata_rows.append(retval)
 
         self.metadata_df = pd.DataFrame(
             metadata_rows,
             columns=('df_file','task_names', 'ids',
                      'X', 'X-transformed', 'y', 'y-transformed',
-                     'w',
+                     'w', 'w-transformed',
                      'X_sums', 'X_sum_squares', 'X_n',
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
@@ -148,14 +150,18 @@ class Dataset(object):
     """
     return self.metadata_df.shape[0]
 
-  def _itershards(self):
+  def itershards(self):
     """
     Iterates over all shards in dataset.
+
+    Datasets are stored in sharded fashion on disk. Each call to next() for the
+    generator defined by this function returns the data from a particular shard.
+    The order of shards returned is guaranteed to remain fixed.
     """
     for _, row in self.metadata_df.iterrows():
       X = load_from_disk(row['X-transformed'])
       y = load_from_disk(row['y-transformed'])
-      w = load_from_disk(row['w'])
+      w = load_from_disk(row['w-transformed'])
       ids = load_from_disk(row['ids'])
       yield (X, y, w, ids)
 
@@ -165,7 +171,7 @@ class Dataset(object):
     """
     if batch_size == None:
       batch_size = len(self)
-    for i, (X, y, w, ids) in enumerate(self._itershards()):
+    for i, (X, y, w, ids) in enumerate(self.itershards()):
       log("Iterating on shard-%s/epoch-%s" % (str(i+1), str(epoch+1)),
           self.verbosity)
       nb_sample = np.shape(X)[0]
@@ -199,6 +205,24 @@ class Dataset(object):
     # ids_b should be 1-d. Squeeze to make sure
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.squeeze(np.vstack(ids)))
+
+  def get_labels(self):
+    """
+    Returns all labels for this dataset.
+    """
+    ys = []
+    for (_, y_b, _, _) in self.itershards():
+      ys.append(y_b)
+    return np.vstack(ys)
+
+  def get_weights(self):
+    """
+    Returns all weights for this dataset.
+    """
+    ws = []
+    for (_, _, w_b, _) in self.itershards():
+      ws.append(w_b)
+    return np.vstack(ws)
 
   def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):
     """Fix batch to have exactly batch_size elements.
@@ -251,7 +275,7 @@ class Dataset(object):
     df = self.metadata_df
     update_mean_and_std(df)
  
- 
+
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
@@ -307,10 +331,12 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   out_y_sum_squares = os.path.join(data_dir, "%s-y_sum_squares.joblib" % basename)
   out_y_n = os.path.join(data_dir, "%s-y_n.joblib" % basename)
   out_w = os.path.join(data_dir, "%s-w.joblib" % basename)
+  out_w_transformed = os.path.join(data_dir, "%s-w-transformed.joblib" % basename)
   out_ids = os.path.join(data_dir, "%s-ids.joblib" % basename)
 
   save_to_disk(X, out_X)
   save_to_disk(y, out_y)
+  save_to_disk(w, out_w)
   # Write moments to disk
   save_to_disk(X_sums, out_X_sums)
   save_to_disk(X_sum_squares, out_X_sum_squares)
@@ -321,12 +347,12 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   # Write X, y as transformed versions
   save_to_disk(X, out_X_transformed)
   save_to_disk(y, out_y_transformed)
-  save_to_disk(w, out_w)
+  save_to_disk(w, out_w_transformed)
   save_to_disk(ids, out_ids)
   # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
   # itershards expects to loop over X-transformed? (Ditto for y/w)
   return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y,
-          out_y_transformed, out_w,
+          out_y_transformed, out_w, out_w_transformed,
           out_X_sums, out_X_sum_squares, out_X_n,
           out_y_sums, out_y_sum_squares, out_y_n])
 

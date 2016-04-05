@@ -22,6 +22,8 @@ class HyperparamOpt(object):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
+  # TODO(rbharath): This function is complicated and monolithic. Is there a nice
+  # way to refactor this?
   def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
                         output_transformers, metric, use_max=True,
                         logdir=None):
@@ -85,7 +87,7 @@ class HyperparamOpt(object):
         best_validation_score = valid_score
         best_hyperparams = hyperparameter_tuple
         if best_model_dir is not None:
-            shutil.rmtree(best_model_dir)
+          shutil.rmtree(best_model_dir)
         best_model_dir = model_dir
         best_model = model
       else:
@@ -109,7 +111,7 @@ class HyperparamOpt(object):
       train_score = train_score.iloc[0][metric.name]
     else:
       train_score = multitask_scores[metric.name]
-    log("Best hyperparameters: %s" % str(zip(hyperparams, best_hyperparams)),
+    log("Best hyperparameters: %s" % str(best_hyperparams),
         self.verbosity)
     log("train_score: %f" % train_score, self.verbosity)
     log("validation_score: %f" % best_validation_score, self.verbosity)

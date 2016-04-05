@@ -19,14 +19,14 @@ def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
   # Note that transformers have to be undone in reversed order
   for transformer in reversed(transformers):
-    y = transformer.untransform(y)
+    if transformer.transform_y:
+      y = transformer.untransform(y)
   return y
 
 class Model(object):
   """
   Abstract base class for different ML models.
   """
-  non_sklearn_models = ["SingleTaskDNN", "MultiTaskDNN", "DockingDNN"]
   def __init__(self, task_types, model_params, fit_transformers=None,
                model_instance=None, initialize_raw_model=True, 
                verbosity=None, **kwargs):
