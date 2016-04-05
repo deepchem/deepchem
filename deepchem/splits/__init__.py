@@ -95,6 +95,39 @@ class Splitter(object):
     """
     raise NotImplementedError
 
+class MolecularWeightSplitter(Splitter):
+  """
+  Class for doing data splits by molecular weight.
+  """
+  def split(self, samples, seed=None, frac_train=.8, frac_valid=.1,
+            frac_test=.1, log_every_n=None):
+    """
+    Splits internal compounds into train/validation/test using the MW calculated
+    by SMILES string.
+    """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+    np.random.seed(seed)
+
+    smiles_df = samples.compounds_df['smiles']
+    mw = []
+    for idx, row in smiles_df.iterrows():
+        smiles = Chem.Mol
+
+    # create new array that contains IDs sorted by MW
+
+    # split based on frac_train/frac_valid+frac_test
+
+    # random split frac_valid/frac_test
+
+    train_cutoff = frac_train * len(samples.compounds_df)
+    valid_cutoff = (frac_train+frac_valid) * len(samples.compounds_df)
+    shuffled = np.random.permutation(range(len(samples.compounds_df)))
+
+    # log stats on MW in each dataset
+
+    return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
+            shuffled[valid_cutoff:])
+
 class RandomSplitter(Splitter):
   """
   Class for doing random data splits.
