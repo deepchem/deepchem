@@ -32,8 +32,23 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def train_valid_test_split(self, samples, train_dir=None,
-                             valid_dir=None, test_dir=None, frac_train=.8,
+  def _check_populated(self, sample_dirs):
+    """Check that the provided sample directories are valid."""
+    for given_dir in sample_dirs:
+      if given_dir is None:
+        continue
+        
+      # TODO(rbharath): This is uncomfortably tied to the internal
+      # implementation of FeaturizedSamples. Disentangle Splitter and
+      # FeaturizedSamples in a future refactoring.
+      compounds_filename = os.path.join(given_dir, "datasets.joblib")
+      if not os.path.exists(compounds_filename):
+        return False
+    return True
+
+
+  def train_valid_test_split(self, samples, train_dir,
+                             valid_dir, test_dir, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
                              log_every_n=1000, reload=False):
     """
@@ -41,36 +56,42 @@ class Splitter(object):
 
     Returns FeaturizedDataset objects.
     """
-    if not reload:
+    compute_split = (
+        not reload
+        or not self._check_populated([train_dir, test_dir, valid_dir]))
+    if compute_split:
+      log("Computing train/valid/test indices", self.verbosity)
       train_inds, valid_inds, test_inds = self.split(
           samples,
           frac_train=frac_train, frac_test=frac_test,
           frac_valid=frac_valid, log_every_n=log_every_n)
     train_samples, valid_samples, test_samples = None, None, None
     dataset_files = samples.dataset_files
-    if train_dir is not None:
-      train_samples = FeaturizedSamples(samples_dir=train_dir, 
-                                        dataset_files=dataset_files,
-                                        featurizers=samples.featurizers,
-                                        verbosity=self.verbosity,
-                                        reload=reload)
-      if not reload:
-        train_samples._set_compound_df(samples.compounds_df.iloc[train_inds])
-    if test_dir is not None:
-      test_samples = FeaturizedSamples(samples_dir=test_dir, 
-                                       dataset_files=dataset_files,
-                                       featurizers=samples.featurizers,
-                                       verbosity=self.verbosity,
-                                       reload=reload)
-      if not reload:
-        test_samples._set_compound_df(samples.compounds_df.iloc[test_inds])
+
+    # Generate train dir
+    train_samples = FeaturizedSamples(samples_dir=train_dir, 
+                                      dataset_files=dataset_files,
+                                      featurizers=samples.featurizers,
+                                      verbosity=self.verbosity,
+                                      reload=reload)
+    if compute_split:
+      train_samples._set_compound_df(samples.compounds_df.iloc[train_inds])
+    # Generate test dir
+    test_samples = FeaturizedSamples(samples_dir=test_dir, 
+                                     dataset_files=dataset_files,
+                                     featurizers=samples.featurizers,
+                                     verbosity=self.verbosity,
+                                     reload=reload)
+    if compute_split:
+      test_samples._set_compound_df(samples.compounds_df.iloc[test_inds])
+    # if requested, generated valid_dir
     if valid_dir is not None:
       valid_samples = FeaturizedSamples(samples_dir=valid_dir, 
                                         dataset_files=dataset_files,
                                         featurizers=samples.featurizers,
                                         verbosity=self.verbosity,
                                         reload=reload)
-      if not reload:
+      if compute_split:
         valid_samples._set_compound_df(samples.compounds_df.iloc[valid_inds])
 
     return train_samples, valid_samples, test_samples
@@ -82,8 +103,9 @@ class Splitter(object):
 
     Returns FeaturizedDataset objects.
     """
+    valid_dir = None
     train_samples, _, test_samples = self.train_valid_test_split(
-        samples, train_dir, valid_dir=None, test_dir=test_dir,
+        samples, train_dir, valid_dir, test_dir,
         frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.,
         reload=False)
     return train_samples, test_samples

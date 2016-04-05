@@ -31,7 +31,7 @@ class HyperparamOpt(object):
     
     Each key to hyperparams_dict is a model_param. The values should be a list
     of potential values for that hyperparam. 
-    """
+    """ 
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values() 
     for hyperparam_list in params_dict.itervalues():
@@ -50,28 +50,28 @@ class HyperparamOpt(object):
     all_scores = {}
     for ind, hyperparameter_tuple in enumerate(itertools.product(*hyperparam_vals)):
       model_params = {}
+      log("Fitting model %d/%d" % (ind+1, number_combinations),
+          self.verbosity, "high")
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
+      log("hyperparameters: %s" % str(model_params),
+          self.verbosity, "high")
 
       if logdir is not None:
         model_dir = logdir
       else:
         model_dir = tempfile.mkdtemp()
-      if logdir is not None:
-        #TODO(JG) Fit transformers for TF models
+      #TODO(JG) Fit transformers for TF models
+      if self.fit_transformers:
         model = self.model_class(self.task_types, model_params, model_dir,
+                                 fit_transformers=self.fit_transformers,
                                  verbosity=self.verbosity)
       else:
-        if self.fit_transformers:
-          model = self.model_class(self.task_types, model_params,
-                                   fit_transformers=self.fit_transformers,
-                                   verbosity=self.verbosity)
-        else:
-          model = self.model_class(self.task_types, model_params,
-                                   verbosity=self.verbosity)
+        model = self.model_class(self.task_types, model_params, model_dir,
+                                 verbosity=self.verbosity)
         
       model.fit(train_dataset)
-      model.save(model_dir)
+      model.save()
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       df, scores_df, multitask_scores = evaluator.compute_model_performance(
@@ -94,13 +94,13 @@ class HyperparamOpt(object):
         shutil.rmtree(model_dir)
   
       log("Model %d/%d, Metric %s, Validation set %s: %f" %
-          (ind, number_combinations, metric.name, ind, valid_score),
-          self.verbosity)
+          (ind+1, number_combinations, metric.name, ind, valid_score),
+          self.verbosity, "low")
       log("\tbest_validation_score so far: %f" % best_validation_score,
-          self.verbosity)
+          self.verbosity, "low")
 
     if best_model is None:
-      log("No models trained correctly.", self.verbosity)
+      log("No models trained correctly.", self.verbosity, "low")
       return best_model, best_hyperparams, all_scores
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
@@ -112,7 +112,7 @@ class HyperparamOpt(object):
     else:
       train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(best_hyperparams),
-        self.verbosity)
-    log("train_score: %f" % train_score, self.verbosity)
-    log("validation_score: %f" % best_validation_score, self.verbosity)
+        self.verbosity, "low")
+    log("train_score: %f" % train_score, self.verbosity, "low")
+    log("validation_score: %f" % best_validation_score, self.verbosity, "low")
     return best_model, best_hyperparams, all_scores

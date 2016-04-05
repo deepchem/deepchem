@@ -729,13 +729,11 @@ class TensorflowModel(Model):
     """
     return self.eval_model.predict_on_batch(X)
 
-  def save(self, logdir):
+  def save(self):
     """
     No-op since tf models save themselves during fit()
     """
-    if logdir != self.train_model.logdir:
-      raise ValueError("Cannot save to directory "
-                       "that was not specified during initialization")
+    pass
 
   def load(self, model_dir):
     """

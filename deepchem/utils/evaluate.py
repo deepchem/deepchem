@@ -14,6 +14,10 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
 __license__ = "LGPL"
 
+def relative_difference(x, y):
+  """Compute the relative difference between x and y"""
+  return np.abs(x-y)/np.abs(max(x, y))
+
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
 

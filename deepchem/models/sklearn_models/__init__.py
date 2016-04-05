@@ -18,14 +18,16 @@ class SklearnModel(Model):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True):
+  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
+               model_instance=None, initialize_raw_model=True, verbosity=None):
     super(SklearnModel, self).__init__(
-        task_types, model_params, fit_transformers=fit_transformers, 
+        task_types, model_params, model_dir, fit_transformers=fit_transformers, 
         initialize_raw_model=initialize_raw_model)
+    self.model_dir = model_dir
     self.task_types = task_types
     self.model_params = model_params
     self.raw_model = model_instance
+    self.verbosity = verbosity
 
   # TODO(rbharath): This does not work with very large datasets! sklearn does
   # support partial_fit, but only for some models. Might make sense to make
@@ -59,11 +61,11 @@ class SklearnModel(Model):
       self.model_params["batch_size"] = 32
     return super(SklearnModel, self).predict(X, transformers)
 
-  def save(self, out_dir):
+  def save(self):
     """Saves sklearn model to disk using joblib."""
-    super(SklearnModel, self).save(out_dir)
-    save_to_disk(self.raw_model, self.get_model_filename(out_dir))
+    super(SklearnModel, self).save()
+    save_to_disk(self.raw_model, self.get_model_filename(self.model_dir))
 
-  def load(self, model_dir):
+  def load(self):
     """Loads sklearn model from joblib file on disk."""
-    self.raw_model = load_from_disk(Model.get_model_filename(model_dir))
+    self.raw_model = load_from_disk(Model.get_model_filename(self.model_dir))

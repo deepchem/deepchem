@@ -73,7 +73,7 @@ class TestAPI(unittest.TestCase):
 
     # Fit trained model
     model.fit(train_dataset)
-    model.save(self.model_dir)
+    model.save()
 
     # Eval model on train
     evaluator = Evaluator(model, train_dataset, transformers, verbose=True)

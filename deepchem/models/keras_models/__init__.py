@@ -19,13 +19,13 @@ class KerasModel(Model):
   Abstract base class shared across all Keras models.
   """
 
-  def save(self, out_dir):
+  def save(self):
     """
     Saves underlying keras model to disk.
     """
-    super(KerasModel, self).save(out_dir)
+    super(KerasModel, self).save()
     model = self.get_raw_model()
-    filename, _ = os.path.splitext(Model.get_model_filename(out_dir))
+    filename, _ = os.path.splitext(Model.get_model_filename(self.model_dir))
 
     # Note that keras requires the model architecture and weights to be stored
     # separately. A json file is generated that specifies the model architecture.
