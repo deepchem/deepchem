@@ -330,7 +330,7 @@ class CoulombBinarizationTransformer(Transformer):
     
     for _, row in df.iterrows(): 
       X = load_from_disk(row['X-transformed'])
-      #self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
+      self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
 
   def transform(self, dataset, parallel=False):
 
@@ -381,7 +381,7 @@ class CoulombBinarizationTransformer(Transformer):
 
     X_bin = []
     if self.update_state: 
-      #self.set_max(df)
+      self.set_max(df)
       self.update_state = False
     if self.transform_X:
       for i in range(X.shape[1]):
