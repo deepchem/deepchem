@@ -42,6 +42,7 @@ class TestAPI(unittest.TestCase):
     self.feature_dir = tempfile.mkdtemp()
     self.samples_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
+    self.valid_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
     self.model_dir = tempfile.mkdtemp()
     if not os.path.exists(self.model_dir):
@@ -51,6 +52,7 @@ class TestAPI(unittest.TestCase):
     shutil.rmtree(self.feature_dir)
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)
+    shutil.rmtree(self.valid_dir)
     shutil.rmtree(self.test_dir)
     # TODO(rbharath): Removing this causes crashes for some reason. Need to
     # debug.
