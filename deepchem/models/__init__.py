@@ -124,12 +124,13 @@ class Model(object):
     # Create empty dataset
     data_dir = tempfile.mkdtemp() 
     featurizers = None
-    tasks = self.task_types.keys()
+    tasks = sorted(self.task_types.keys())
     batch_dataset = Dataset(data_dir=data_dir, samples=None,
                             featurizers=featurizers, tasks=tasks,
                             use_user_specified_features=True)
 
     return batch_dataset
+
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
@@ -137,7 +138,7 @@ class Model(object):
     """
     Uses self to make predictions on provided Dataset object.
     """
-    task_names = dataset.get_task_names()
+    task_names = sorted(dataset.get_task_names())
     pred_task_names = ["%s_pred" % task_name for task_name in task_names]
     w_task_names = ["%s_weight" % task_name for task_name in task_names]
     raw_task_names = [task_name+"_raw" for task_name in task_names]
@@ -147,8 +148,9 @@ class Model(object):
                     + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
-    batch_size = self.model_params["batch_size"]
-    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+    #batch_size = self.model_params["batch_size"]
+    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.itershards():
 
       # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
       # a given X_batch.  If fit_transformers exist, we will apply them to

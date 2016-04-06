@@ -91,7 +91,7 @@ class DataFeaturizer(object):
       raise ValueError("tasks must be a list.")
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
-    self.tasks = tasks
+    self.sorted_tasks = sorted(tasks)
     self.smiles_field = smiles_field
     self.split_field = split_field
     if id_field is None:
@@ -189,7 +189,7 @@ class DataFeaturizer(object):
     else:
       raise ValueError("Unrecognized input_type")
     if self.threshold is not None:
-      for task in self.tasks:
+      for task in self.sorted_tasks:
         raw = _process_field(data[task])
         if not isinstance(raw, float):
           raise ValueError("Cannot threshold non-float fields.")
@@ -201,7 +201,7 @@ class DataFeaturizer(object):
     df = pd.DataFrame(ori_df[[self.id_field]])
     df.columns = ["mol_id"]
     df["smiles"] = ori_df[[self.smiles_field]]
-    for task in self.tasks:
+    for task in self.sorted_tasks:
       df[task] = ori_df[[task]]
     if self.user_specified_features is not None:
       for feature in self.user_specified_features:
@@ -338,10 +338,10 @@ class FeaturizedSamples(object):
     self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
 
     if os.path.exists(self._get_compounds_filename()) and reload:
-      log("Loading prexisting compounds from disk", self.verbosity)
+      log("Loading prexisting compounds from disk", self.verbosity, "high")
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
-      log("Saving compounds to disk", self.verbosity)
+      log("Saving compounds to disk", self.verbosity, "high")
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.

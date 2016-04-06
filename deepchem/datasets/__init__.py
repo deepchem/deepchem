@@ -125,7 +125,7 @@ class Dataset(object):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    return self.metadata_df.iterrows().next()[1]['task_names']
+    return sorted(self.metadata_df.iterrows().next()[1]['task_names'])
 
   def get_data_shape(self):
     """
@@ -193,14 +193,13 @@ class Dataset(object):
     dangerous (!) for large datasets which don't fit into memory.
     """
     Xs, ys, ws, ids = [], [], [], []
-    for (X_b, y_b, w_b, ids_b) in self.iterbatches():
+    for (X_b, y_b, w_b, ids_b) in self.itershards():
       Xs.append(X_b)
       ys.append(y_b)
       ws.append(w_b)
       ids.append(np.squeeze(ids_b))
-    # ids_b should be 1-d. Squeeze to make sure
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
-            np.squeeze(np.vstack(ids)))
+            np.concatenate(ids))
 
   def get_labels(self):
     """
@@ -310,8 +309,8 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   # TODO(rbharath): This is a hack. clean up.
   if not len(df):
     return None
-  task_names = sorted(tasks)
-  ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+  sorted_tasks = sorted(tasks)
+  ids, X, y, w = _df_to_numpy(df, feature_types, sorted_tasks)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
@@ -347,11 +346,13 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   save_to_disk(ids, out_ids)
   # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
   # itershards expects to loop over X-transformed? (Ditto for y/w)
-  return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y,
+  return([df_file, sorted_tasks, out_ids, out_X, out_X_transformed, out_y,
           out_y_transformed, out_w, out_w_transformed,
           out_X_sums, out_X_sum_squares, out_X_n,
           out_y_sums, out_y_sum_squares, out_y_n])
 
+# TODO(rbharath): This function is complicated enough that it should have unit
+# tests.
 def _df_to_numpy(df, feature_types, tasks):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   if not set(feature_types).issubset(df.keys()):
@@ -372,7 +373,6 @@ def _df_to_numpy(df, feature_types, tasks):
     feature_list = []
     for feature_type in feature_types:
       feature_list.append(datapoint[feature_type])
-    # TODO(rbharath): Total hack. Fix before merge!!!
     try:
       features = np.squeeze(np.concatenate(feature_list))
       for feature_ind, val in enumerate(features):

@@ -19,6 +19,7 @@ class SingletaskToMultitask(Model):
   def __init__(self, task_types, model_params, model_dir, model_builder,
                verbosity=None):
     self.task_types = task_types
+    self.sorted_tasks = sorted(self.task_types.keys())
     self.model_params = model_params
     self.models = {}
     self.model_dir = model_dir
@@ -45,7 +46,7 @@ class SingletaskToMultitask(Model):
     Warning: This current implementation is only functional for sklearn models. 
     """
     X, y, _, _ = dataset.to_numpy()
-    for ind, task in enumerate(self.task_types.keys()):
+    for ind, task in enumerate(self.sorted_tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       y_task = y[:, ind]
       self.models[task].raw_model.fit(X, y_task)
@@ -54,21 +55,28 @@ class SingletaskToMultitask(Model):
     """
     Concatenates results from all singletask models.
     """
-    N_tasks = len(self.task_types.keys())
+    N_tasks = len(self.sorted_tasks)
     N_samples = X.shape[0]
     y_pred = np.zeros((N_samples, N_tasks))
-    for ind, task in enumerate(self.task_types.keys()):
+    for ind, task in enumerate(self.sorted_tasks):
       y_pred[:, ind] = self.models[task].predict_on_batch(X)
     return y_pred
 
+#  def predict(self, dataset, transformers):
+#    """
+#    Generate predictions of models on dataset.
+#    """
+#    task_names = sorted(dataset.get_task_names())
+#    pred_y_df = self._create_prediction_datafram(dataset) 
+#
   def save(self):
     """Save all models"""
-    for task in self.task_types.keys():
+    for task in self.sorted_tasks:
       log("Saving model for task %s" % task, self.verbosity, "high")
       self.models[task].save()
 
   def load(self):
     """Load all models"""
-    for task in self.task_types.keys():
+    for task in self.sorted_tasks:
       log("Loading model for task %s" % task, self.verbosity, "high")
       self.models[task].load()
