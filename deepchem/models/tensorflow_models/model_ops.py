@@ -452,13 +452,8 @@ def RadialSymmetryFunction(R):
   K = GaussianDistanceMatrix(R)
   FC = RadialCutoff(R)
   N = tf.slice(tf.shape(R),[0],[1])
-  G = []
-  for i in range(N):
-    K_vec = tf.slice(K,[i,0], [i,N])
-    FC_vec = tf.slice(FC, [i,0], [i,N])
-    G.append(tf.matmul(K_vec, FC_vec, transpose_b=True))
-
-  return tf.concat(0, G)
+  return tf.reduce_sum(tf.mul(K, FC), 1)
+ 
 
 
 

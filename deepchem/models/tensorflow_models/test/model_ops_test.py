@@ -50,10 +50,7 @@ def _numpy_radial_symmetry_function(R):
   K = _numpy_gaussian_distance_matrix(R)
   FC = _numpy_radial_cutoff(R)
   N = R.shape[0]
-  G = np.zeros(N)
-  for i in range(N):
-    G[i] = np.dot(K[i],FC[i])
-  return G
+  return np.sum(K * FC, axis=1)
 
 class ModelOpsTest(test_util.TensorFlowTestCase):
 
@@ -78,15 +75,26 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
       FC_large_test_T = model_ops.RadialCutoff(R_large)
       FC_test, FC_large_test = sess.run([FC_test_T, FC_large_test_T])
       self.assertAllClose(
-          FC_test, numpy_radial_cutoff(np.array([[0.0, 1.0],[1.0, 0.0]])))
+          FC_test, _numpy_radial_cutoff(np.array([[0.0, 1.0],[1.0, 0.0]])))
       self.assertAllClose(
-          FC_large_test, numpy_radial_cutoff(np.array([[0.0, 7.0],[7.0, 0.0]])))
+          FC_large_test, _numpy_radial_cutoff(np.array([[0.0, 7.0],[7.0, 0.0]])))
 
   def testRadialSymmetryFunction(self):
-    def numpy_radialsymmetryfunction(R):
-      
 
     with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      R_large = tf.constant([[0.0, 7.0], [7.0, 0.0]], shape=[2, 2])
+      G_test_T = model_ops.RadialSymmetryFunction(R)
+      G_large_test_T = model_ops.RadialSymmetryFunction(R_large)
+      sess.run(tf.initialize_all_variables())
+      print(len(tf.trainable_variables()))
+      G_test, G_large_test, eta1, Rs1, eta2, Rs2 = \
+        sess.run([G_test_T, G_large_test_T] +
+                 tf.trainable_variables())
+      self.assertAllClose(
+          G_test, _numpy_radial_symmetry_function(np.array([[0.0, 1.0],[1.0, 0.0]])))
+      self.assertAllClose(
+          G_large_test, _numpy_radial_symmetry_function(np.array([[0.0, 7.0],[7.0, 0.0]])))
 
   def testAddBias(self):
     with self.test_session() as sess:
