@@ -35,12 +35,58 @@ from deepchem.models.tensorflow_models import model_ops
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102
 
+def _numpy_radial_cutoff(R):
+  Rc = 6.
+  FC = 0.5*(np.cos(np.pi*R/Rc)+1)*(R<=Rc)
+  N = R.shape[0]
+  for i in range(N):
+    FC[i,i] = 0
+  return FC
+
+def _numpy_gaussian_distance_matrix(R):
+  return np.exp(-1.*R**2)
+
+def _numpy_radial_symmetry_function(R):
+  K = _numpy_gaussian_distance_matrix(R)
+  FC = _numpy_radial_cutoff(R)
+  N = R.shape[0]
+  G = np.zeros(N)
+  for i in range(N):
+    G[i] = np.dot(K[i],FC[i])
+  return G
 
 class ModelOpsTest(test_util.TensorFlowTestCase):
 
   def setUp(self):
     super(ModelOpsTest, self).setUp()
     self.root = '/tmp'
+
+  def testGaussianDistanceMatrix(self):
+    with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      K_test_T = model_ops.GaussianDistanceMatrix(R)
+      sess.run(tf.initialize_all_variables())
+      K_test, eta, Rs = sess.run([K_test_T] + tf.trainable_variables()) 
+      self.assertAllClose(K_test, [[1., 1/np.e], [1/np.e, 1.]])
+
+  def testRadialCutoff(self):
+    
+    with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      R_large = tf.constant([[0.0, 7.0], [7.0, 0.0]], shape=[2, 2])
+      FC_test_T = model_ops.RadialCutoff(R)
+      FC_large_test_T = model_ops.RadialCutoff(R_large)
+      FC_test, FC_large_test = sess.run([FC_test_T, FC_large_test_T])
+      self.assertAllClose(
+          FC_test, numpy_radial_cutoff(np.array([[0.0, 1.0],[1.0, 0.0]])))
+      self.assertAllClose(
+          FC_large_test, numpy_radial_cutoff(np.array([[0.0, 7.0],[7.0, 0.0]])))
+
+  def testRadialSymmetryFunction(self):
+    def numpy_radialsymmetryfunction(R):
+      
+
+    with self.test_session() as sess:
 
   def testAddBias(self):
     with self.test_session() as sess:

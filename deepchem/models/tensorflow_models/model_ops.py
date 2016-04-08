@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 
 
 import tensorflow as tf
+import numpy as np
 
 from google.protobuf import text_format
 
@@ -421,3 +422,45 @@ def Optimizer(model_params):
   else:
     raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
   return train_op
+
+def GaussianDistanceMatrix(R):
+  """ exp(-eta*(R-Rs)**2 """
+  with tf.op_scope([R], None, "GaussianDistanceMatrix"):
+    eta = tf.Variable(tf.constant(1.0), name="eta")
+    Rs = tf.Variable(tf.constant(0.0), name="Rs")
+
+    return tf.exp(-eta*(R-Rs)**2)
+
+def RadialCutoff(R):
+  """ 0.5*[cos(pi/Rc*R)+1] """
+
+  epsilon = 1e-6
+  with tf.op_scope([R], None, "RadialCutoff"):
+    Rc = tf.constant(6.0)
+    T = 0.5*(tf.cos(np.pi*R/Rc)+1)
+    E = tf.zeros_like(T)
+
+    cond = tf.less_equal(R,Rc)
+    T = tf.select(cond,T, E)
+
+    cond_identity = tf.less(R,epsilon)
+    return tf.select(cond_identity, E, T)
+
+def RadialSymmetryFunction(R):
+  """ GaussianDistanceMatrix*RadialCutoff """
+  
+  K = GaussianDistanceMatrix(R)
+  FC = RadialCutoff(R)
+  N = tf.slice(tf.shape(R),[0],[1])
+  G = []
+  for i in range(N):
+    K_vec = tf.slice(K,[i,0], [i,N])
+    FC_vec = tf.slice(FC, [i,0], [i,N])
+    G.append(tf.matmul(K_vec, FC_vec, transpose_b=True))
+
+  return tf.concat(0, G)
+
+
+
+
+
