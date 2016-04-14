@@ -56,7 +56,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -86,7 +86,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -115,7 +115,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -141,7 +141,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -218,7 +218,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SingleTaskDNN(task_types, model_params, self.model_dir)
+    model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
 
@@ -293,6 +293,6 @@ class TestKerasSklearnAPI(TestAPI):
                               Metric(metrics.recall_score),
                               Metric(metrics.accuracy_score)]
     
-    model = MultiTaskDNN(task_types, model_params, self.model_dir)
+    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        classification_metrics)

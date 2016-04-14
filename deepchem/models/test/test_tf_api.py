@@ -83,7 +83,7 @@ class TestTensorflowAPI(TestAPI):
                               Metric(metrics.accuracy_score)]
 
     model = TensorflowModel(
-        task_types, model_params, self.model_dir,
+        tasks, task_types, model_params, self.model_dir,
         tf_class=TensorflowMultiTaskClassifier)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        classification_metrics)

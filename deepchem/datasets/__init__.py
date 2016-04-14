@@ -24,7 +24,7 @@ class Dataset(object):
   """
   def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
                use_user_specified_features=False,
-               verbosity=None, reload=False):
+               raw_data=None, verbosity=None, reload=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
@@ -70,9 +70,21 @@ class Dataset(object):
                      'X_sums', 'X_sum_squares', 'X_n',
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
-
-      if samples is None and feature_types is not None:  
-
+      elif raw_data is not None:
+        metadata_rows = []
+        metadata_rows.append(
+            write_dataset_single(val=None, data_dir=self.data_dir, raw_data=raw_data,
+                                 basename="data"))
+        self.metadata_df = pd.DataFrame(
+            metadata_rows,
+            columns=('df_file', 'task_names', 'ids',
+                     'X', 'X-transformed', 'y', 'y-transformed',
+                     'w', 'w-transformed',
+                     'X_sums', 'X_sum_squares', 'X_n',
+                     'y_sums', 'y_sum_squares', 'y_n'))
+        self.save_to_disk()
+      #if samples is None and feature_types is not None:  
+      else:
         # Create an empty metadata dataframe to be filled at a later time
         basename = "metadata"
         df_file = "metadata.joblib"
@@ -185,6 +197,11 @@ class Dataset(object):
             X_batch, y_batch, w_batch, ids_batch, batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
+  @staticmethod
+  def from_numpy(data_dir, tasks, X, y, w, ids):
+    raw_data = (ids, X, y, w)
+    return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
+    
   def to_numpy(self):
     """
     Transforms internal data into arrays X, y, w
@@ -303,17 +320,37 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
 
-def write_dataset_single(val, data_dir, feature_types, tasks):
+def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
+                         raw_data=None, basename=None):
   """Writes files for single row (X, y, w, X-transformed, ...) to disk."""
-  (df_file, df) = val
-  # TODO(rbharath): This is a hack. clean up.
-  if not len(df):
-    return None
-  ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+  if feature_types is not None and tasks is not None:
+    (df_file, df) = val
+    # TODO(rbharath): This is a hack. clean up.
+    if not len(df):
+      return None
+    ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+  else:
+    ids, X, y, w = raw_data
+    df_file = ""
+    # Some shape sanity checks
+    print("write_dataset_single")
+    print("X.shape")
+    print(X.shape)
+    print("y.shape")
+    print(y.shape)
+    print("w.shape")
+    print(w.shape)
+    print("ids.shape")
+    print(ids.shape)
+    print("-------------")
+    assert X.shape[0] == y.shape[0]
+    assert y.shape == w.shape
+    assert len(ids) == X.shape[0]
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
-  basename = os.path.splitext(os.path.basename(df_file))[0]
+  if feature_types is not None and tasks is not None:
+    basename = os.path.splitext(os.path.basename(df_file))[0]
   out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
   out_X_transformed = os.path.join(data_dir, "%s-X-transformed.joblib" % basename)
   out_X_sums = os.path.join(data_dir, "%s-X_sums.joblib" % basename)
@@ -343,8 +380,6 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   save_to_disk(y, out_y_transformed)
   save_to_disk(w, out_w_transformed)
   save_to_disk(ids, out_ids)
-  # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
-  # itershards expects to loop over X-transformed? (Ditto for y/w)
   return([df_file, tasks, out_ids, out_X, out_X_transformed, out_y,
           out_y_transformed, out_w, out_w_transformed,
           out_X_sums, out_X_sum_squares, out_X_n,

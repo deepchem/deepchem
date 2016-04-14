@@ -79,7 +79,7 @@ class TestSplitAPI(unittest.TestCase):
     return self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
-        input_file, tasks))
+        input_file, tasks)
 
   def _load_classification_samples(self):
     """Loads classification data from example.csv"""
