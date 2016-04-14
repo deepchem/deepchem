@@ -175,7 +175,7 @@ print("About to fit logistic regression models")
 MUV_task_types = {task: "Classification" for task in MUV_tasks}
 
 params_dict = { 
-    "batch_size": [32],
+    "batch_size": [None],
     "data_shape": [train_dataset.get_data_shape()],
 }   
 

@@ -148,9 +148,8 @@ class Model(object):
                     + ["y_means", "y_stds"])
     pred_y_df = pd.DataFrame(columns=column_names)
 
-    #batch_size = self.model_params["batch_size"]
-    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-    for (X_batch, y_batch, w_batch, ids_batch) in dataset.itershards():
+    batch_size = self.model_params["batch_size"]
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
       # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
       # a given X_batch.  If fit_transformers exist, we will apply them to
