@@ -332,17 +332,6 @@ def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
   else:
     ids, X, y, w = raw_data
     df_file = ""
-    # Some shape sanity checks
-    print("write_dataset_single")
-    print("X.shape")
-    print(X.shape)
-    print("y.shape")
-    print(y.shape)
-    print("w.shape")
-    print(w.shape)
-    print("ids.shape")
-    print(ids.shape)
-    print("-------------")
     assert X.shape[0] == y.shape[0]
     assert y.shape == w.shape
     assert len(ids) == X.shape[0]

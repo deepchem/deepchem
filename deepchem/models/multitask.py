@@ -35,7 +35,7 @@ class SingletaskToMultitask(Model):
         os.makedirs(task_model_dir)
       log("Initializing model for task %s" % task,
           self.verbosity, "high")
-      self.models[task] = model_builder(task_types, model_params,
+      self.models[task] = model_builder([tasks], task_types, model_params,
                                         task_model_dir,
                                         verbosity=verbosity)
       
@@ -62,13 +62,6 @@ class SingletaskToMultitask(Model):
       y_pred[:, ind] = self.models[task].predict_on_batch(X)
     return y_pred
 
-#  def predict(self, dataset, transformers):
-#    """
-#    Generate predictions of models on dataset.
-#    """
-#    task_names = sorted(dataset.get_task_names())
-#    pred_y_df = self._create_prediction_datafram(dataset) 
-#
   def save(self):
     """Save all models"""
     for task in self.tasks:

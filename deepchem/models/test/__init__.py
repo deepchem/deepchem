@@ -97,9 +97,6 @@ class TestAPI(unittest.TestCase):
                                   user_specified_features=None,
                                   split_field=None,
                                   shard_size=100):
-    print("_featurize_train_test_split")
-    print("tasks")
-    print(tasks)
     # Featurize input
     featurizers = compound_featurizers + complex_featurizers
 

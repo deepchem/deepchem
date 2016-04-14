@@ -102,7 +102,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_file = "../../models/test/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
-            splittype, input_file, tasks), frac_train=.8,
+            splittype, input_file, tasks, frac_train=.8,
             frac_valid=0, frac_test=.2))
     assert len(train_samples) == 8
     assert len(test_samples) == 2
