@@ -42,7 +42,7 @@ class TestTFHyperparamOptAPI(TestAPI):
     train_dataset, valid_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys())
+        output_transformers, input_file, tests)
     metric = Metric(metrics.matthews_corrcoef, np.mean)
     params_dict = {"activation": ["relu"],
                     "momentum": [.9],

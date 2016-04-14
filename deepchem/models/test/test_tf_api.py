@@ -49,7 +49,9 @@ class TestTensorflowAPI(TestAPI):
     complex_featurizers = []
 
 
-    task_types = {"outcome": "classification"}
+    tasks = ["outcome"]
+    task_type = "classification"
+    task_types = {task: task_type for task in tasks}
     input_file = "example_classification.csv"
     input_transformers = []
     output_transformers = [NormalizationTransformer]
@@ -57,7 +59,7 @@ class TestTensorflowAPI(TestAPI):
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys())
+        output_transformers, input_file, tasks)
     # TODO(rbharath): Tensorflow doesn't elegantly handle partial batches.
     # What's the right fix here?
     model_params = {

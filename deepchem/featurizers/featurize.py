@@ -91,7 +91,7 @@ class DataFeaturizer(object):
       raise ValueError("tasks must be a list.")
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
-    self.sorted_tasks = sorted(tasks)
+    self.tasks = tasks
     self.smiles_field = smiles_field
     self.split_field = split_field
     if id_field is None:
@@ -189,7 +189,7 @@ class DataFeaturizer(object):
     else:
       raise ValueError("Unrecognized input_type")
     if self.threshold is not None:
-      for task in self.sorted_tasks:
+      for task in self.tasks:
         raw = _process_field(data[task])
         if not isinstance(raw, float):
           raise ValueError("Cannot threshold non-float fields.")
@@ -201,7 +201,7 @@ class DataFeaturizer(object):
     df = pd.DataFrame(ori_df[[self.id_field]])
     df.columns = ["mol_id"]
     df["smiles"] = ori_df[[self.smiles_field]]
-    for task in self.sorted_tasks:
+    for task in self.tasks:
       df[task] = ori_df[[task]]
     if self.user_specified_features is not None:
       for feature in self.user_specified_features:

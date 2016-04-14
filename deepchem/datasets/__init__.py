@@ -125,7 +125,7 @@ class Dataset(object):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    return sorted(self.metadata_df.iterrows().next()[1]['task_names'])
+    return self.metadata_df.iterrows().next()[1]['task_names']
 
   def get_data_shape(self):
     """
@@ -309,8 +309,7 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   # TODO(rbharath): This is a hack. clean up.
   if not len(df):
     return None
-  sorted_tasks = sorted(tasks)
-  ids, X, y, w = _df_to_numpy(df, feature_types, sorted_tasks)
+  ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
@@ -346,7 +345,7 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   save_to_disk(ids, out_ids)
   # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
   # itershards expects to loop over X-transformed? (Ditto for y/w)
-  return([df_file, sorted_tasks, out_ids, out_X, out_X_transformed, out_y,
+  return([df_file, tasks, out_ids, out_X, out_X_transformed, out_y,
           out_y_transformed, out_w, out_w_transformed,
           out_X_sums, out_X_sum_squares, out_X_n,
           out_y_sums, out_y_sum_squares, out_y_n])
@@ -360,10 +359,9 @@ def _df_to_numpy(df, feature_types, tasks):
         "Featurized data does not support requested feature_types.")
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
-  sorted_tasks = sorted(tasks)
-  n_tasks = len(sorted_tasks)
+  n_tasks = len(tasks)
   n_features = None
-  y = df[sorted_tasks].values
+  y = df[tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)

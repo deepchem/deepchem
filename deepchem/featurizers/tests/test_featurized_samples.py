@@ -78,11 +78,13 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_transforms = []
     output_transforms = ["normalize"]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "../../models/test/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
-            splittype, input_file, task_types.keys(), frac_train=.8,
+            splittype, input_file, tasks, frac_train=.8,
             frac_valid=.1, frac_test=.1))
     assert len(train_samples) == 8
     assert len(valid_samples) == 1
@@ -94,11 +96,13 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_transforms = []
     output_transforms = ["normalize"]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "../../models/test/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
-            splittype, input_file, task_types.keys(), frac_train=.8,
+            splittype, input_file, tasks), frac_train=.8,
             frac_valid=0, frac_test=.2))
     assert len(train_samples) == 8
     assert len(test_samples) == 2
@@ -109,11 +113,13 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_transforms = []
     output_transforms = ["normalize"]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "../../models/test/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
-            splittype, input_file, task_types.keys(), frac_train=.8,
+            splittype, input_file, tasks, frac_train=.8,
             frac_valid=.1, frac_test=.1))
     assert len(train_samples) == 8
     assert len(valid_samples) == 1
@@ -125,11 +131,13 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_transforms = []
     output_transforms = ["normalize"]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "../../models/test/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
-            splittype, input_file, task_types.keys(), frac_train=.8,
+            splittype, input_file, tasks, frac_train=.8,
             frac_valid=0, frac_test=.2))
     assert len(train_samples) == 8
     assert len(test_samples) == 2

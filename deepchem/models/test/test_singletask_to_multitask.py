@@ -36,7 +36,7 @@ class TestSingletasktoMultitaskAPI(TestAPI):
         self._featurize_train_test_split(
             splittype, compound_featurizers, 
             complex_featurizers, input_transformer_classes,
-            output_transformer_classes, input_file, task_types.keys())
+            output_transformer_classes, input_file, tasks)
     params_dict = {
         "batch_size": 32,
         "data_shape": train_dataset.get_data_shape()
