@@ -42,7 +42,7 @@ class TestTFHyperparamOptAPI(TestAPI):
     train_dataset, valid_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, tests)
+        output_transformers, input_file, tasks)
     metric = Metric(metrics.matthews_corrcoef, np.mean)
     params_dict = {"activation": ["relu"],
                     "momentum": [.9],
@@ -66,11 +66,11 @@ class TestTFHyperparamOptAPI(TestAPI):
                     "num_classification_tasks": [len(task_types)]
                   }
 
-    def model_builder(task_types, params_dict, logdir, verbosity=None):
+    def model_builder(tasks, task_types, params_dict, logdir, verbosity=None):
         return TensorflowModel(
-            task_types, params_dict, logdir, 
+            tasks, task_types, params_dict, logdir, 
             tf_class=TensorflowMultiTaskClassifier,
             verbosity=verbosity)
     self._hyperparam_opt(model_builder, params_dict, train_dataset,
-                         valid_dataset, output_transformers, task_types,
+                         valid_dataset, output_transformers, tasks, task_types,
                          metric, logdir=self.model_dir)

@@ -42,10 +42,10 @@ class TestSingletasktoMultitaskAPI(TestAPI):
         "data_shape": train_dataset.get_data_shape()
     }
     classification_metrics = [Metric(metrics.roc_auc_score)]
-    def model_builder(task_types, model_params, model_builder, verbosity=None):
-      return SklearnModel(task_types, model_params, model_builder,
+    def model_builder(tasks, task_types, model_params, model_builder, verbosity=None):
+      return SklearnModel(tasks, task_types, model_params, model_builder,
                           model_instance=LogisticRegression())
-    multitask_model = SingletaskToMultitask(task_types, params_dict,
+    multitask_model = SingletaskToMultitask(tasks, task_types, params_dict,
                                             self.model_dir, model_builder)
     self._create_model(train_dataset, test_dataset, multitask_model,
                        output_transformers, classification_metrics)
