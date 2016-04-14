@@ -43,18 +43,20 @@ class TestKerasSklearnAPI(TestAPI):
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "example.csv"
     train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys())
+        output_transformers, input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -68,13 +70,15 @@ class TestKerasSklearnAPI(TestAPI):
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "user_specified_example.csv"
     user_specified_features = ["user-specified1", "user-specified2"]
     train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys(),
+        output_transformers, input_file, tasks,
         user_specified_features=user_specified_features,
         split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -82,7 +86,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -95,12 +99,14 @@ class TestKerasSklearnAPI(TestAPI):
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
-    task_types = {"label": "regression"}
+    tasks = ["label"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "../../../datasets/pdbbind_core_df.pkl.gz"
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys(),
+        output_transformers, input_file, tasks,
         shard_size=50)
     # We set shard size above to force the creation of multiple shards of the data.
     # pdbbind_core has ~200 examples.
@@ -109,7 +115,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -121,19 +127,21 @@ class TestKerasSklearnAPI(TestAPI):
     complex_featurizers = []
     input_transformers = [NormalizationTransformer, ClippingTransformer]
     output_transformers = [NormalizationTransformer]
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     model_params = {}
     input_file = "example.csv"
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys())
+        output_transformers, input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SklearnModel(task_types, model_params, self.model_dir,
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -149,7 +157,9 @@ class TestKerasSklearnAPI(TestAPI):
     complex_featurizers = [NNScoreComplexFeaturizer()]
     input_transformers = [NormalizationTransformer, ClippingTransformer]
     output_transformers = [NormalizationTransformer]
-    task_types = {"label": "regression"}
+    tasks = ["label"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     model_params = {"nb_hidden": 10, "activation": "relu",
                     "dropout": .5, "learning_rate": .01,
                     "momentum": .9, "nesterov": False,
@@ -163,7 +173,7 @@ class TestKerasSklearnAPI(TestAPI):
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys(),
+        output_transformers, input_file, tasks,
         protein_pdb_field=protein_pdb_field,
         ligand_pdb_field=ligand_pdb_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -183,7 +193,9 @@ class TestKerasSklearnAPI(TestAPI):
     output_transformers = [NormalizationTransformer]
     feature_types = ["user_specified_features"]
     user_specified_features = ["evals"]
-    task_types = {"u0": "regression"}
+    tasks = ["u0"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     model_params = {"nb_hidden": 10, "activation": "relu",
                     "dropout": .5, "learning_rate": .01,
                     "momentum": .9, "nesterov": False,
@@ -197,7 +209,7 @@ class TestKerasSklearnAPI(TestAPI):
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers,
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys(),
+        output_transformers, input_file, tasks,
         protein_pdb_field=protein_pdb_field,
         ligand_pdb_field=ligand_pdb_field,
         user_specified_features=user_specified_features)
@@ -206,7 +218,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_squared_error),
                           Metric(metrics.mean_absolute_error)]
 
-    model = SingleTaskDNN(task_types, model_params, self.model_dir)
+    model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
 
@@ -274,13 +286,13 @@ class TestKerasSklearnAPI(TestAPI):
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
-        output_transformers, input_file, task_types.keys())
+        output_transformers, input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     classification_metrics = [Metric(metrics.roc_auc_score),
                               Metric(metrics.matthews_corrcoef),
                               Metric(metrics.recall_score),
                               Metric(metrics.accuracy_score)]
     
-    model = MultiTaskDNN(task_types, model_params, self.model_dir)
+    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        classification_metrics)

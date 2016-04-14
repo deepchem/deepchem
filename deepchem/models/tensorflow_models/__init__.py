@@ -83,7 +83,7 @@ class TensorflowGraph(object):
     logdir: Directory for output files.
   """
 
-  def __init__(self, model_params, logdir, task_types, train=True,
+  def __init__(self, model_params, logdir, tasks, task_types, train=True,
                verbosity=None):
     """Constructs the computational graph.
 
@@ -98,6 +98,7 @@ class TensorflowGraph(object):
     self.graph = tf.Graph() 
     self.model_params = model_params
     self.logdir = logdir
+    self.tasks = tasks
     self.task_types = task_types
     self.num_tasks = len(task_types)
     self.verbosity = verbosity
@@ -694,6 +695,7 @@ class TensorflowModel(Model):
   """
 
   def __init__(self,
+               tasks,
                task_types,
                model_params,
                logdir,
@@ -709,12 +711,13 @@ class TensorflowModel(Model):
     if tf_class is None:
       tf_class = TensorflowGraph
     self.model_params = model_params
+    self.tasks = tasks
     self.task_types = task_types
-    self.train_model = tf_class(model_params, logdir, task_types, train=True,
-                                verbosity=verbosity)
-    self.eval_model = tf_class(model_params, logdir, task_types, train=False,
-                               verbosity=verbosity)
-    self.num_tasks = len(task_types)
+    self.train_model = tf_class(model_params, logdir, tasks, task_types,
+                                train=True, verbosity=verbosity)
+    self.eval_model = tf_class(model_params, logdir, tasks, task_types,
+                                train=False, verbosity=verbosity)
+    self.num_tasks = len(self.task_types)
     self.fit_transformers = None
 
   def fit(self, dataset):

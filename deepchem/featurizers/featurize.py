@@ -338,10 +338,10 @@ class FeaturizedSamples(object):
     self.dataset_files = load_from_disk(self._get_dataset_paths_filename())
 
     if os.path.exists(self._get_compounds_filename()) and reload:
-      log("Loading prexisting compounds from disk", self.verbosity)
+      log("Loading prexisting compounds from disk", self.verbosity, "high")
       compounds_df = load_from_disk(self._get_compounds_filename())
     else:
-      log("Saving compounds to disk", self.verbosity)
+      log("Saving compounds to disk", self.verbosity, "high")
       compounds_df = self._get_compounds()
       # compounds_df is not altered by any method after initialization, so it's
       # safe to keep a copy in memory and on disk.

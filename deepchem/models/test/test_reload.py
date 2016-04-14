@@ -148,8 +148,6 @@ class TestReload(TestAPI):
     (len_reload_train_samples, len_reload_valid_samples, len_reload_test_samples,
      len_reload_train_dataset, len_reload_valid_dataset, len_reload_test_dataset) = \
         self._run_muv_experiment(dataset_file, reload, verbosity)
-    print("len_train_samples, len_reload_train_samples")
-    print(len_train_samples, len_reload_train_samples)
     assert len_train_samples == len_reload_train_samples
     assert len_valid_samples == len_reload_valid_samples
     assert len_test_samples == len_reload_valid_samples
@@ -172,8 +170,6 @@ class TestReload(TestAPI):
     (len_reload_train_samples, len_reload_valid_samples, len_reload_test_samples,
      len_reload_train_dataset, len_reload_valid_dataset, len_reload_test_dataset) = \
         self._run_muv_experiment(dataset_file, reload, verbosity)
-    print("len_train_samples, len_reload_train_samples")
-    print(len_train_samples, len_reload_train_samples)
     assert len_train_samples == len_reload_train_samples
     assert len_valid_samples == len_reload_valid_samples
     assert len_test_samples == len_reload_valid_samples

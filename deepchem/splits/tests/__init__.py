@@ -72,12 +72,14 @@ class TestSplitAPI(unittest.TestCase):
     complex_featurizers = []
     input_transformer_classes = []
     output_transformer_classes = []
-    task_types = {"log-solubility": "regression"}
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
     input_file = "example.csv"
     return self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
-        input_file, task_types.keys())
+        input_file, tasks)
 
   def _load_classification_samples(self):
     """Loads classification data from example.csv"""
@@ -85,12 +87,14 @@ class TestSplitAPI(unittest.TestCase):
     complex_featurizers = []
     input_transformer_classes = []
     output_transformer_classes = []
-    task_types = {"outcome": "classification"}
+    tasks = ["outcome"]
+    task_type = "classification"
+    task_types = {task: task_type for task in tasks}
     input_file = "example_classification.csv"
     return self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
-        input_file, task_types.keys())
+        input_file, tasks)
 
   def _load_multitask_samples(self):
     """Load example multitask data."""
@@ -106,5 +110,5 @@ class TestSplitAPI(unittest.TestCase):
     return self._gen_samples(
         compound_featurizers, complex_featurizers,
         input_transformer_classes, output_transformer_classes,
-        input_file, task_types.keys())
+        input_file, tasks)
 

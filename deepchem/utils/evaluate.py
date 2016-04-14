@@ -56,7 +56,7 @@ class Evaluator(object):
     self.model = model
     self.dataset = dataset
     self.transformers = transformers
-    self.task_names = dataset.get_task_names()
+    self.sorted_task_names = sorted(dataset.get_task_names())
     self.task_type = model.get_task_type().lower()
     self.verbose = verbose
 
@@ -72,7 +72,7 @@ class Evaluator(object):
     performance_df = pd.DataFrame(columns=colnames)
 
     nonempty_tasks, ys, y_preds, ws = [], [], [], []
-    for i, task_name in enumerate(self.task_names):
+    for task_name in self.sorted_task_names:
       y = pred_y_df[task_name].values
       y_pred = pred_y_df["%s_pred" % task_name].values
       if threshold is not None:
@@ -105,7 +105,7 @@ class Evaluator(object):
     # If there are any singletask_metrics
     if all_scores.shape[0] > 0:
       nonzero_ind = 0
-      for i, task_name in enumerate(self.task_names):
+      for i, task_name in enumerate(self.sorted_task_names):
         if task_name in nonempty_tasks:
           performance_df.loc[i] = [task_name] + list(all_scores[:, nonzero_ind])
           nonzero_ind += 1

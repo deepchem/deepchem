@@ -19,14 +19,15 @@ class MultiTaskDNN(KerasModel):
   """
   Model for multitask MLP in keras.
   """
-  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
+  def __init__(self, tasks, task_types, model_params, model_dir,
+               fit_transformers=None,
                initialize_raw_model=True, verbosity="low"):
-    super(MultiTaskDNN, self).__init__(task_types, model_params, model_dir,
+    super(MultiTaskDNN, self).__init__(tasks, task_types, model_params,
+                                       model_dir,
                                        fit_transformers=fit_transformers,
                                        initialize_raw_model=initialize_raw_model,
                                        verbosity=verbosity)
     if initialize_raw_model:
-      sorted_tasks = sorted(task_types.keys())
       (n_inputs,) = model_params["data_shape"]
       model = Graph()
       model.add_input(name="input", input_shape=(n_inputs,))
@@ -52,7 +53,7 @@ class MultiTaskDNN(KerasModel):
                          name=dropout_layer_name,
                          input=prev_layer)
           prev_layer = dropout_layer_name
-      for ind, task in enumerate(sorted_tasks):
+      for ind, task in enumerate(self.tasks):
         task_type = task_types[task]
         if task_type == "classification":
           model.add_node(
@@ -65,7 +66,7 @@ class MultiTaskDNN(KerasModel):
         model.add_output(name="task%d" % ind, input="dense_head%d" % ind)
 
       loss_dict = {}
-      for ind, task in enumerate(sorted_tasks):
+      for ind, task in enumerate(self.tasks):
         task_type, taskname = task_types[task], "task%d" % ind
         if task_type == "classification":
           loss_dict[taskname] = "binary_crossentropy"
@@ -82,7 +83,7 @@ class MultiTaskDNN(KerasModel):
     """Wrap data X in dict for graph computations (Keras graph only for now)."""
     data = {}
     data["input"] = X
-    for ind, task in enumerate(sorted(self.task_types.keys())):
+    for ind, task in enumerate(self.tasks):
       task_type, taskname = self.task_types[task], "task%d" % ind
       if y is not None:
         if task_type == "classification":
@@ -94,7 +95,7 @@ class MultiTaskDNN(KerasModel):
   def get_sample_weight(self, w):
     """Get dictionaries needed to fit models"""
     sample_weight = {}
-    for ind in range(len(sorted(self.task_types.keys()))):
+    for ind in range(len(self.tasks)):
       sample_weight["task%d" % ind] = w[:, ind]
     return sample_weight
 
@@ -116,11 +117,10 @@ class MultiTaskDNN(KerasModel):
     """
     data = self.get_data_dict(X)
     y_pred_dict = self.raw_model.predict_on_batch(data)
-    sorted_tasks = sorted(self.task_types.keys())
     nb_samples = np.shape(X)[0]
-    nb_tasks = len(sorted_tasks)
+    nb_tasks = len(self.tasks)
     y_pred = np.zeros((nb_samples, nb_tasks))
-    for ind, task in enumerate(sorted_tasks):
+    for ind, task in enumerate(self.tasks):
       task_type = self.task_types[task]
       taskname = "task%d" % ind
       if task_type == "classification":
@@ -137,9 +137,10 @@ class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
-               initialize_raw_model=True, verbosity="low"):
-    super(SingleTaskDNN, self).__init__(task_types, model_params, model_dir,
-                                        fit_transformers=fit_transformers,
-                                        initialize_raw_model=initialize_raw_model,
-                                        verbosity=verbosity)
+  def __init__(self, tasks, task_types, model_params, model_dir,
+               fit_transformers=None, initialize_raw_model=True,
+               verbosity="low"):
+    super(SingleTaskDNN, self).__init__(
+        tasks, task_types, model_params, model_dir,
+        fit_transformers=fit_transformers,
+        initialize_raw_model=initialize_raw_model, verbosity=verbosity)

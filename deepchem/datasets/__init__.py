@@ -24,7 +24,7 @@ class Dataset(object):
   """
   def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
                use_user_specified_features=False,
-               verbosity=None, reload=False):
+               raw_data=None, verbosity=None, reload=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
@@ -70,9 +70,21 @@ class Dataset(object):
                      'X_sums', 'X_sum_squares', 'X_n',
                      'y_sums', 'y_sum_squares', 'y_n'))
         self.save_to_disk()
-
-      if samples is None and feature_types is not None:  
-
+      elif raw_data is not None:
+        metadata_rows = []
+        metadata_rows.append(
+            write_dataset_single(val=None, data_dir=self.data_dir, raw_data=raw_data,
+                                 basename="data"))
+        self.metadata_df = pd.DataFrame(
+            metadata_rows,
+            columns=('df_file', 'task_names', 'ids',
+                     'X', 'X-transformed', 'y', 'y-transformed',
+                     'w', 'w-transformed',
+                     'X_sums', 'X_sum_squares', 'X_n',
+                     'y_sums', 'y_sum_squares', 'y_n'))
+        self.save_to_disk()
+      #if samples is None and feature_types is not None:  
+      else:
         # Create an empty metadata dataframe to be filled at a later time
         basename = "metadata"
         df_file = "metadata.joblib"
@@ -185,6 +197,11 @@ class Dataset(object):
             X_batch, y_batch, w_batch, ids_batch, batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
+  @staticmethod
+  def from_numpy(data_dir, tasks, X, y, w, ids):
+    raw_data = (ids, X, y, w)
+    return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
+    
   def to_numpy(self):
     """
     Transforms internal data into arrays X, y, w
@@ -193,14 +210,13 @@ class Dataset(object):
     dangerous (!) for large datasets which don't fit into memory.
     """
     Xs, ys, ws, ids = [], [], [], []
-    for (X_b, y_b, w_b, ids_b) in self.iterbatches():
+    for (X_b, y_b, w_b, ids_b) in self.itershards():
       Xs.append(X_b)
       ys.append(y_b)
       ws.append(w_b)
       ids.append(np.squeeze(ids_b))
-    # ids_b should be 1-d. Squeeze to make sure
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
-            np.squeeze(np.vstack(ids)))
+            np.concatenate(ids))
 
   def get_labels(self):
     """
@@ -304,18 +320,26 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
 
-def write_dataset_single(val, data_dir, feature_types, tasks):
+def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
+                         raw_data=None, basename=None):
   """Writes files for single row (X, y, w, X-transformed, ...) to disk."""
-  (df_file, df) = val
-  # TODO(rbharath): This is a hack. clean up.
-  if not len(df):
-    return None
-  task_names = sorted(tasks)
-  ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+  if feature_types is not None and tasks is not None:
+    (df_file, df) = val
+    # TODO(rbharath): This is a hack. clean up.
+    if not len(df):
+      return None
+    ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+  else:
+    ids, X, y, w = raw_data
+    df_file = ""
+    assert X.shape[0] == y.shape[0]
+    assert y.shape == w.shape
+    assert len(ids) == X.shape[0]
   X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
   y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
 
-  basename = os.path.splitext(os.path.basename(df_file))[0]
+  if feature_types is not None and tasks is not None:
+    basename = os.path.splitext(os.path.basename(df_file))[0]
   out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
   out_X_transformed = os.path.join(data_dir, "%s-X-transformed.joblib" % basename)
   out_X_sums = os.path.join(data_dir, "%s-X_sums.joblib" % basename)
@@ -345,13 +369,13 @@ def write_dataset_single(val, data_dir, feature_types, tasks):
   save_to_disk(y, out_y_transformed)
   save_to_disk(w, out_w_transformed)
   save_to_disk(ids, out_ids)
-  # TODO(rbharath): Should X be saved to out_X_transformed as well? Since
-  # itershards expects to loop over X-transformed? (Ditto for y/w)
-  return([df_file, task_names, out_ids, out_X, out_X_transformed, out_y,
+  return([df_file, tasks, out_ids, out_X, out_X_transformed, out_y,
           out_y_transformed, out_w, out_w_transformed,
           out_X_sums, out_X_sum_squares, out_X_n,
           out_y_sums, out_y_sum_squares, out_y_n])
 
+# TODO(rbharath): This function is complicated enough that it should have unit
+# tests.
 def _df_to_numpy(df, feature_types, tasks):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   if not set(feature_types).issubset(df.keys()):
@@ -359,10 +383,9 @@ def _df_to_numpy(df, feature_types, tasks):
         "Featurized data does not support requested feature_types.")
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
-  sorted_tasks = sorted(tasks)
-  n_tasks = len(sorted_tasks)
+  n_tasks = len(tasks)
   n_features = None
-  y = df[sorted_tasks].values
+  y = df[tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
@@ -372,7 +395,6 @@ def _df_to_numpy(df, feature_types, tasks):
     feature_list = []
     for feature_type in feature_types:
       feature_list.append(datapoint[feature_type])
-    # TODO(rbharath): Total hack. Fix before merge!!!
     try:
       features = np.squeeze(np.concatenate(feature_list))
       for feature_ind, val in enumerate(features):
