@@ -52,42 +52,73 @@ def _numpy_radial_symmetry_function(R):
   N = R.shape[0]
   return np.sum(K * FC, axis=1)
 
+#def _numpy_P_matrix(KFC):
+#
+#  N = KFC.shape[0]
+#  P = np.zeros((N, N, N))
+#  for i in range(N):
+#    P[i] = np.outer(KFC[i], KFC[i]) * KFC
+#  return P
+
 def _numpy_P_matrix(KFC):
+
   N = KFC.shape[0]
   P = np.zeros((N, N, N))
-  for i in range(N):
-    P[i] = np.outer(KFC[i], KFC[i]) * KFC
+  K1  = np.repeat(KFC[:,:,np.newaxis], N, axis=2)
+  K2  = np.repeat(KFC[:,np.newaxis,:], N, axis=1)
+  K3  = np.repeat(KFC[np.newaxis,:,:], N, axis=0)
+  P = K1*K2*K3
+  #for i in range(N):
+  #  P[i] = np.outer(KFC[i], KFC[i]) * KFC
   return P
+
+#def _numpy_cos_matrix(R, D):
+#
+#  zeta = 1
+#  N = R.shape[0]
+#  lm = np.eye(N)*1e-5
+#  R += lm
+#  Rbot = np.zeros((N,N,N))
+#  Rtop = np.zeros((N,N,N)) 
+#  for i in range(N):
+#    Rbot[i] = np.outer(R[i],R[i])
+#    Rtop[i] = np.dot(D[i],D[i].T)
+#
+#  C = Rtop/Rbot
+#  C = (1+C)**zeta
+#  return C
 
 def _numpy_cos_matrix(R, D):
 
   zeta = 1
   N = R.shape[0]
-  Rbot = np.zeros((N,N,N))
-  Rtop = np.zeros((N,N,N)) 
-  for i in range(N):
-    Rbot[i] = np.outer(R[i],R[i])
-    Rtop[i] = np.dot(D[i],D[i].T)
+  lm = np.eye(N)*1e-5
+  R += lm
+  Rbot1  = np.repeat(R[:,:,np.newaxis], N, axis=2)
+  Rbot2  = np.repeat(R[:,np.newaxis,:], N, axis=1)
+  Rbot = Rbot1*Rbot2
+  l = np.arange(N)
+  Rtop = np.tensordot(D, D, axes=([2], [2]))[l,:,l,:]
 
   C = Rtop/Rbot
   C = (1+C)**zeta
   return C
 
 # D.shape == (N, N, 3)
-def __numpy_angular_symmetry_function(R, D):
-  N = R.shape[0]
-  zeta = 1.
-  eta = 1.
-  lambd = 1.
-  K = _numpy_gaussian_distance_matrix(R)
-  FC = _numpy_radial_cutoff(R)
-  KFC = K * FC
-  P = _numpy_P_matrix(KFC)
-  GE = _numpy_cos_matrix(R, D) 
-  GE = GE * P
-  G = np.sum(np.sum(GE, axis=2), axis=1)
-  G *= 2**(1-zeta)
-  return G
+#def __numpy_angular_symmetry_function(R, D):
+#  N = R.shape[0]
+#  zeta = 1.
+#  eta = 1.
+#  lambd = 1.
+#  K = _numpy_gaussian_distance_matrix(R)
+#  FC = _numpy_radial_cutoff(R)
+#  KFC = K * FC
+#  P = _numpy_P_matrix(KFC)
+#  GE = _numpy_cos_matrix(R, D) 
+#  GE = GE * P
+#  G = np.sum(np.sum(GE, axis=2), axis=1)
+#  G *= 2**(1-zeta)
+#  return G
 
 def _numpy_angular_symmetry_function(R, D):
   N = R.shape[0]
@@ -98,23 +129,19 @@ def _numpy_angular_symmetry_function(R, D):
   K = _numpy_gaussian_distance_matrix(R)
   FC = _numpy_radial_cutoff(R)
   KFC = K * FC
-  G = np.zeros(N)
+  #G = np.zeros(N)
 
   P = _numpy_P_matrix(KFC)
   C = _numpy_cos_matrix(R, D)
-  print("KFC")
-  print(KFC)
-  print("P")
-  print(P)
-  print("C")
-  print(C)
-  for i in range(N):
-    for j in range(N):
-      if i == j: continue
-      for k in range(N):
-        if i == k: continue
-        costheta = (1+np.dot(D[i,j],D[i,k]))**zeta
-        G[i] += P[i,j,k]*costheta
+  #for i in range(N):
+  #  for j in range(N):
+  #    if i == j: continue
+  #    for k in range(N):
+  #      if i == k: continue
+  #      #costheta = (1+np.dot(D[i,j],D[i,k])/(R[i,j]*R[i,k]))**zeta
+  #      costheta = C[i,j,k]
+  #      G[i] += P[i,j,k]*costheta
+  G = np.sum(P*C, axis=(1,2))
   G *= 2**(1-zeta)
   return G
         
@@ -134,7 +161,7 @@ def _numpy_unrolled_angular_symmetry_function(R, D):
       if i == j: continue
       for k in range(N):
         if i == k: continue
-        costheta = (1+np.dot(D[i,j],D[i,k]))**zeta
+        costheta = (1+np.dot(D[i,j],D[i,k])/(R[i,j]*R[i,k]))**zeta
         G[i] += KFC[i,j]*KFC[i,k]*KFC[j,k]*costheta
     G[i] *= 2**(1-zeta)
   return G
@@ -201,7 +228,6 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
       G_test_T = model_ops.AngularSymmetryFunction(R)
       G_large_test_T = model_ops.AngularSymmetryFunction(R_large)
       sess.run(tf.initialize_all_variables())
-      print(len(tf.trainable_variables()))
       G_test, G_large_test, eta1, Rs1, eta2, Rs2 = \
         sess.run([G_test_T, G_large_test_T] +
                  tf.trainable_variables())
@@ -217,9 +243,7 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
     D = _create_D_tensor(d)
 
     G_unrolled = _numpy_unrolled_angular_symmetry_function(R, D)
-    G = _numpy_angular_symmetry_function(R, D)        
-    print(G_unrolled)
-    print(G)
+    G = _numpy_angular_symmetry_function(R, D)       
     self.assertAllClose(G_unrolled, G)  
 
 

@@ -454,6 +454,20 @@ def RadialSymmetryFunction(R):
   N = tf.slice(tf.shape(R),[0],[1])
   return tf.reduce_sum(tf.mul(K, FC), 1)
  
+def CircularProduct(KFC):
+  """ Produces the angular kernal from KFC matrix """
+    
+ 
+def AngularSymmetryFunction(R, D, zeta):
+
+  K = GaussianDistanceMatrix(R)
+  FC = RadialCutoff(R)
+  KFC = K * FC 
+  P = CircularProduct(KFC)
+  C = CosKernal(R, D)
+  G = tf.reduce_sum(P*C, reduction_indices=[1,2]
+  G *= 2**(1-zeta)
+  return G
 
 
 
