@@ -27,13 +27,14 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, task_types, model_params, model_dir, fit_transformers=None,
+  def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
                model_instance=None, initialize_raw_model=True, 
                verbosity=None, **kwargs):
     self.model_class = model_instance.__class__
     self.model_dir = model_dir
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
+    self.tasks = tasks
     self.task_types = task_types
     self.model_params = model_params
     self.fit_transformers = fit_transformers
@@ -116,20 +117,6 @@ class Model(object):
       X, y, w = transformer.transform_on_array(X, y, w)
 
     return X, y, w
-
-  def create_batch_dataset(self):
-    """
-    Creates an empty 1-shard Dataset object
-    """
-    # Create empty dataset
-    data_dir = tempfile.mkdtemp() 
-    featurizers = None
-    tasks = self.task_types.keys()
-    batch_dataset = Dataset(data_dir=data_dir, samples=None,
-                            featurizers=featurizers, tasks=tasks,
-                            use_user_specified_features=True)
-
-    return batch_dataset
 
   # TODO(rbharath): The structure of the produced df might be
   # complicated. Better way to model?
