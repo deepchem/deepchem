@@ -14,6 +14,26 @@ from deepchem.datasets import Dataset
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
+import sklearn
+
+
+# DEBUG COPY!
+def to_one_hot(y):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+
+  y: np.ndarray
+    A vector of shape [n_samples, 1]
+  """
+  n_samples = np.shape(y)[0]
+  y_hot = np.zeros((n_samples, 2))
+  for index, val in enumerate(y):
+    if val == 0:
+      y_hot[index] = np.array([1, 0])
+    elif val == 1:
+      y_hot[index] = np.array([0, 1])
+  return y_hot
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -105,7 +125,8 @@ class Model(object):
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
                                             w_batch)
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
-      log("Avg loss for epoch %d: %f" % (epoch+1,np.array(losses).mean()),self.verbosity)
+      log("Avg loss for epoch %d: %f"
+          % (epoch+1,np.array(losses).mean()),self.verbosity)
 
 
   def transform_on_batch(self, X, y, w):
@@ -124,57 +145,92 @@ class Model(object):
     """
     Uses self to make predictions on provided Dataset object.
     """
-    task_names = dataset.get_task_names()
-    pred_task_names = ["%s_pred" % task_name for task_name in task_names]
-    w_task_names = ["%s_weight" % task_name for task_name in task_names]
-    raw_task_names = [task_name+"_raw" for task_name in task_names]
-    raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
-    column_names = (['ids'] + raw_task_names + task_names
-                    + raw_pred_task_names + pred_task_names + w_task_names
-                    + ["y_means", "y_stds"])
-    pred_y_df = pd.DataFrame(columns=column_names)
+    X, y, w, ids = dataset.to_numpy()
+    print("X.shape, y.shape, w.shape, ids.shape")
+    print(X.shape, y.shape, w.shape, ids.shape)
+    
+    #X = X[w.flatten() != 0, :]
 
-    batch_size = self.model_params["batch_size"]
-    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+    y_pred = self.predict_on_batch(X)
 
-      # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
-      # a given X_batch.  If fit_transformers exist, we will apply them to
-      # X_batch 1 times and average the resulting y_pred before we undo 
-      # transforms on y_pred and y.  In the future the averaging will be
-      # performed n_sample times, where n_sample can be user-specified.
+    y = y[w.flatten() != 0, :]
+    y = to_one_hot(y)
+    y_pred_d = y_pred[w.flatten() != 0, :]
 
-      if self.fit_transformers:
+    print("X.shape, y.shape, y_pred_d.shape")
+    print(X.shape, y.shape, y_pred_d.shape)
+    print("Model.predict()")
+    print("sklearn.metrics.roc_auc_score(y, y_pred_d)")
+    print(sklearn.metrics.roc_auc_score(y, y_pred_d))
 
-        y_preds = []
-        for i in xrange(1):
-          X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
-          y_pred = self.predict_on_batch(X_b)
-          y_pred = np.reshape(y_pred, np.shape(y_b))
-          y_preds.append(y_pred)
+    return y_pred
 
-        y_pred = np.array(y_preds).mean(axis=0)
+    #task_names = dataset.get_task_names()
+    #pred_task_names = ["%s_pred" % task_name for task_name in task_names]
+    #w_task_names = ["%s_weight" % task_name for task_name in task_names]
+    #raw_task_names = [task_name+"_raw" for task_name in task_names]
+    #raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
+    #column_names = (['ids'] + raw_task_names + task_names
+    #                + raw_pred_task_names + pred_task_names + w_task_names
+    #                + ["y_means", "y_stds"])
+    #pred_y_df = pd.DataFrame(columns=column_names)
 
-      else:
+    #batch_size = self.model_params["batch_size"]
+    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
-        y_pred = self.predict_on_batch(X_batch)
-        y_pred = np.reshape(y_pred, np.shape(y_batch))
+    #  # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
+    #  # a given X_batch.  If fit_transformers exist, we will apply them to
+    #  # X_batch 1 times and average the resulting y_pred before we undo 
+    #  # transforms on y_pred and y.  In the future the averaging will be
+    #  # performed n_sample times, where n_sample can be user-specified.
 
-      # Now undo transformations on y, y_pred
+    #  if self.fit_transformers:
 
-      y_raw, y_pred_raw = y_batch, y_pred
-      y_batch = undo_transforms(y_batch, transformers)
-      y_pred = undo_transforms(y_pred, transformers)
+    #    y_preds = []
+    #    for i in xrange(1):
+    #      X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
+    #      y_pred = self.predict_on_batch(X_b)
+    #      y_pred = np.reshape(y_pred, np.shape(y_b))
+    #      y_preds.append(y_pred)
 
-      batch_df = pd.DataFrame(columns=column_names)
-      batch_df['ids'] = ids_batch
-      batch_df[raw_task_names] = y_raw
-      batch_df[task_names] = y_batch
-      batch_df[raw_pred_task_names] = y_pred_raw
-      batch_df[pred_task_names] = y_pred
-      batch_df[w_task_names] = w_batch
-      pred_y_df = pd.concat([pred_y_df, batch_df])
+    #    y_pred = np.array(y_preds).mean(axis=0)
 
-    return pred_y_df
+    #  else:
+
+    #    # DEBUG
+    #    X_batch = X_batch[w_batch.flatten() != 0, :]
+    #    y_batch = y_batch[w_batch.flatten() != 0]
+
+    #    y_pred = self.predict_on_batch(X_batch)
+    #    y_pred = np.reshape(y_pred, np.shape(y_batch))
+
+    #    # DEBUG:
+    #    print("y_batch.shape, y_pred.shape")
+    #    print(y_batch.shape, y_pred.shape)
+    #    #y_batch_d = y_batch[w_batch != 0]
+    #    #y_pred_d = y_pred[w_batch != 0]
+    #    #print("y_batch_d.shape, y_pred_d.shape")
+    #    #print(y_batch_d.shape, y_pred_d.shape)
+    #    if np.count_nonzero(y_batch) > 0:
+    #      print("sklearn.metrics.roc_auc_score(y_batch, y_pred)")
+    #      print(sklearn.metrics.roc_auc_score(y_batch, y_pred))
+
+    #  # Now undo transformations on y, y_pred
+
+    #  y_raw, y_pred_raw = y_batch, y_pred
+    #  y_batch = undo_transforms(y_batch, transformers)
+    #  y_pred = undo_transforms(y_pred, transformers)
+
+    #  batch_df = pd.DataFrame(columns=column_names)
+    #  #batch_df['ids'] = ids_batch
+    #  #batch_df[raw_task_names] = y_raw
+    #  #batch_df[task_names] = y_batch
+    #  #batch_df[raw_pred_task_names] = y_pred_raw
+    #  #batch_df[pred_task_names] = y_pred
+    #  #batch_df[w_task_names] = w_batch
+    #  pred_y_df = pd.concat([pred_y_df, batch_df])
+
+    #return pred_y_df
 
   def get_task_type(self):
     """

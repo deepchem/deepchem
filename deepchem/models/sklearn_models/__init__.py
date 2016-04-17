@@ -38,19 +38,22 @@ class SklearnModel(Model):
     """
     Fits SKLearn model to data.
     """
-    Xs, ys = [], []
-    for (X_batch, y_batch, _, _) in dataset.iterbatches(batch_size=32):
+    Xs, ys, ws = [], [], []
+    for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size=32):
       Xs.append(X_batch)
       ys.append(y_batch)
+      ws.append(w_batch)
     X = np.concatenate(Xs)
     y = np.concatenate(ys).ravel()
-    self.raw_model.fit(X, y)
+    w = np.concatenate(ws).ravel()
+    self.raw_model.fit(X, y, w)
 
   def predict_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
-    return self.raw_model.predict(X)
+    #return self.raw_model.predict(X)
+    return self.raw_model.predict_proba(X)
 
   def predict(self, X, transformers):
     """
@@ -59,7 +62,7 @@ class SklearnModel(Model):
     # Sets batch_size which the default impl in Model expects
     #TODO(enf/rbharath): This is kludgy. Fix later.
     if "batch_size" not in self.model_params.keys():
-      self.model_params["batch_size"] = 32
+      self.model_params["batch_size"] = None 
     return super(SklearnModel, self).predict(X, transformers)
 
   def save(self):

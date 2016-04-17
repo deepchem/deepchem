@@ -121,6 +121,7 @@ class Dataset(object):
         self.save_to_disk()
 
     else:
+      log("Loading pre-existing metadata file.", self.verbosity)
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
       else:

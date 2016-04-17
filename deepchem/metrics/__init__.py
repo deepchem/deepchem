@@ -2,6 +2,7 @@
 
 import numpy as np
 import warnings
+from deepchem.utils.save import log
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import recall_score
@@ -9,6 +10,24 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+
+# DEBUG
+def to_one_hot(y):
+  """Transforms label vector into one-hot encoding.
+
+  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
+
+  y: np.ndarray
+    A vector of shape [n_samples, 1]
+  """
+  n_samples = np.shape(y)[0]
+  y_hot = np.zeros((n_samples, 2))
+  for index, val in enumerate(y):
+    if val == 0:
+      y_hot[index] = np.array([1, 0])
+    elif val == 1:
+      y_hot[index] = np.array([0, 1])
+  return y_hot
 
 def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
@@ -63,7 +82,8 @@ def kappa_score(y_true, y_pred):
 class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
-  def __init__(self, metric, task_averager=None, name=None, threshold=None):
+  def __init__(self, metric, task_averager=None, name=None, threshold=None,
+               verbosity=None, mode="classification"):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -82,9 +102,12 @@ class Metric(object):
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
+    self.verbosity = verbosity
     self.threshold = threshold
+    assert mode in ["classification", "regression"]
+    self.mode = mode
 
-  def compute_metric(self, y_true, y_pred):
+  def compute_metric(self, y_true, y_pred, w):
     """Compute a performance metric for each task.
 
     Args:
@@ -96,25 +119,34 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
-    assert len(y_true) == len(y_pred)
-    num_tasks = len(y_true)
+    print("y_true.shape, y_pred.shape, w.shape")
+    print(y_true.shape, y_pred.shape, w.shape)
+    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
+    num_tasks = y_true.shape[1] 
     computed_metrics = []
     for task in xrange(num_tasks):
-      yt = y_true[task]
-      yp = y_pred[task]
+      y_task = y_true[:, task]
+      y_pred_task = y_pred[:, task]
+      w_task = w[:, task]
+    
       try:
-        metric_value = self.compute_singletask_metric(yt, yp)
+        import sklearn
+        #print("sklearn.metrics.roc_auc_score(y_task, y_pred_task)")
+        #print(sklearn.metrics.roc_auc_score(y_task, y_pred_task))
+        metric_value = self.compute_singletask_metric(
+            y_task, y_pred_task, w_task)
       except (AssertionError, ValueError) as e:
-        warnings.warn("Error calculating metric %s for task %d: %s"
-                      % (metric_str, task, e))
+        warnings.warn("Error calculating metric for task %d: %s"
+                      % (task, e))
         metric_value = np.nan
       computed_metrics.append(metric_value)
+    log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
     if not self.is_multitask:
       return computed_metrics
     else:
       return self.task_averager(computed_metrics)
 
-  def compute_singletask_metric(self, y_true, y_pred):
+  def compute_singletask_metric(self, y_true, y_pred, w):
     """Compute a metric value.
 
     Args:
@@ -127,8 +159,22 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
+    print("compute_singletask_metric()")
+    print("y_true.shape, y_pred.shape, w.shape")
+    print(y_true.shape, y_pred.shape, w.shape)
+    y_true = y_true[w != 0]
+    y_pred = y_pred[w != 0]
+    if self.mode == "classification":
+      y_true = to_one_hot(y_true).astype(int)
+      y_pred = y_pred[:, np.newaxis]
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
+    print("y_true.shape, y_pred.shape")
+    print(y_true.shape, y_pred.shape)
+    import sklearn
+    print("compute_singletask_metric()")
+    print("sklearn.metrics.roc_auc_score(y_true, y_pred)")
+    print(sklearn.metrics.roc_auc_score(y_true, y_pred))
     try:
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
