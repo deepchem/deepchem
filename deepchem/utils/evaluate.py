@@ -66,9 +66,9 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     #pred_y_df = self.model.predict(self.dataset, self.transformers)
-    #y = self.dataset.get_labels()
-    #w = self.dataset.get_weights()
-    y, y_pred, w_pred = self.model.predict(self.dataset, self.transformers)
+    y = self.dataset.get_labels()
+    w = self.dataset.get_weights()
+    y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
     colnames = ["task_name"] + [metric.name for metric in metrics]
@@ -111,7 +111,7 @@ class Evaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
-      multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w_pred)
+      multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
     print("multitask_scores")
     print(multitask_scores)
 

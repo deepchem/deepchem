@@ -152,7 +152,7 @@ class Model(object):
 
     batch_size = self.model_params["batch_size"]
     # Have to include ys/ws since we might pad batches
-    ys, w_preds, y_preds = [], [], []
+    y_preds = []
     print("predict()")
     print("len(dataset)")
     print(len(dataset))
@@ -160,13 +160,13 @@ class Model(object):
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
-      ys.append(y_batch)
-      w_preds.append(w_batch)
+      #ys.append(y_batch)
+      #w_preds.append(w_batch)
       print("X_batch.shape, y_batch.shape, y_pred_batch.shape")
       print(X_batch.shape, y_batch.shape, y_pred_batch.shape)
-    y = np.vstack(ys)
+    #y = np.vstack(ys)
     y_pred = np.vstack(y_preds)
-    w_pred = np.vstack(w_preds)
+    #w_pred = np.vstack(w_preds)
   
     #X = X[w.flatten() != 0, :]
     #print("Model.predict()")
@@ -178,7 +178,11 @@ class Model(object):
     #  y_task = to_one_hot(y_task)
     #  y_pred_task = y_pred_task[w_task.flatten() != 0][:, np.newaxis]
 
-    return y, y_pred, w_pred
+    # The iterbatches does padding with zero-weight examples on the last batch.
+    # Remove padded examples.
+    y_pred = y_pred[:len(dataset)]
+
+    return y_pred
 
     #task_names = dataset.get_task_names()
     #pred_task_names = ["%s_pred" % task_name for task_name in task_names]
