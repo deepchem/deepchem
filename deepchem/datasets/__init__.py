@@ -182,12 +182,14 @@ class Dataset(object):
     """
     Returns minibatches from dataset.
     """
-    if batch_size == None:
-      batch_size = len(self)
     for i, (X, y, w, ids) in enumerate(self.itershards()):
       nb_sample = np.shape(X)[0]
+      if batch_size is None:
+        shard_batch_size = nb_sample
+      else:
+        shard_batch_size = batch_size 
       interval_points = np.linspace(
-          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
+          0, nb_sample, np.ceil(float(nb_sample)/shard_batch_size)+1, dtype=int)
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
         X_batch = X[indices, :]
@@ -195,7 +197,7 @@ class Dataset(object):
         w_batch = w[indices]
         ids_batch = ids[indices]
         (X_batch, y_batch, w_batch, ids_batch) = self._pad_batch(
-            X_batch, y_batch, w_batch, ids_batch, batch_size)
+            X_batch, y_batch, w_batch, ids_batch, shard_batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod

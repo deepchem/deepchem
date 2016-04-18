@@ -146,28 +146,32 @@ class Model(object):
     Uses self to make predictions on provided Dataset object.
     """
     X, y, w, ids = dataset.to_numpy()
-    print("X.shape, y.shape, w.shape, ids.shape")
-    print(X.shape, y.shape, w.shape, ids.shape)
     
+    #y_pred = np.reshape(self.predict_on_batch(X), y.shape)
+    #y_pred = undo_transforms(y_pred, transformers)
+
+    batch_size = self.model_params["batch_size"]
+    y_preds = []
+    print("predict()")
+    print("len(dataset)")
+    print(len(dataset))
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+      y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+      print("X_batch.shape, y_batch.shape, y_pred_batch.shape")
+      print(X_batch.shape, y_batch.shape, y_pred_batch.shape)
+    y_pred = np.vstack(y_preds)
+  
     #X = X[w.flatten() != 0, :]
-    num_tasks = y.shape[1]
-
-    y_pred = self.predict_on_batch(X)
-
-    print("Model.predict()")
-    for task in xrange(num_tasks):
-      y_task, w_task, y_pred_task = y[:, task], w[:, task], y_pred[:, task]
-      y_task = y_task[w_task.flatten() != 0]
-      y_task = to_one_hot(y_task)
-      y_pred_task = y_pred_task[w_task.flatten() != 0][:, np.newaxis]
-      #y_pred_d = y_pred[w_task.flatten() != 0][:, np.newaxis]
-
-      print("task %d" % task)
-      print("sklearn.metrics.roc_auc_score(y_task, y_pred_d)")
-      
-      print("y_task.shape, w_task.shape, y_pred_task.shape")
-      print(y_task.shape, w_task.shape, y_pred_task.shape)
-      print(sklearn.metrics.roc_auc_score(y_task, y_pred_task))
+    #print("Model.predict()")
+    #print("y.shape, w.shape, y_pred.shape")
+    #print(y.shape, w.shape, y_pred.shape)
+    #for task in xrange(num_tasks):
+    #  y_task, w_task, y_pred_task = y[:, task], w[:, task], y_pred[:, task]
+    #  y_task = y_task[w_task.flatten() != 0]
+    #  y_task = to_one_hot(y_task)
+    #  y_pred_task = y_pred_task[w_task.flatten() != 0][:, np.newaxis]
 
     return y_pred
 

@@ -23,6 +23,7 @@ from deepchem.metrics import Metric
 from deepchem.models.multitask import SingletaskToMultitask 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor 
+from deepchem.datasets import Dataset
 
 def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
     """Builds random forests given hyperparameters.
@@ -33,6 +34,7 @@ def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
     max_features = params_dict["max_features"]
     return SklearnModel(
         tasks, task_types, params_dict, model_dir,
+        mode="regression",
         model_instance=RandomForestRegressor(n_estimators=n_estimators,
                                              max_features=max_features))
 
@@ -79,11 +81,26 @@ class TestHyperparamOptAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: "classification" for task in tasks}
     input_file = "multitask_example.csv"
-    train_dataset, valid_dataset, _, output_transformers, = \
-        self._featurize_train_test_split(
-            splittype, compound_featurizers, 
-            complex_featurizers, input_transformer_classes,
-            output_transformer_classes, input_file, tasks)
+      
+    n_features = 10
+    n_tasks = len(tasks)
+    # Define train dataset
+    n_train = 100
+    X_train = np.random.rand(n_train, n_features)
+    y_train = np.random.randint(2, size=(n_train, n_tasks))
+    w_train = np.ones_like(y_train)
+    ids_train = ["C"] * n_train
+    train_dataset = Dataset.from_numpy(self.train_dir, tasks,
+                                       X_train, y_train, w_train, ids_train)
+
+    # Define validation dataset
+    n_valid = 10
+    X_valid = np.random.rand(n_valid, n_features)
+    y_valid = np.random.randint(2, size=(n_valid, n_tasks))
+    w_valid = np.ones_like(y_valid)
+    ids_valid = ["C"] * n_valid
+    valid_dataset = Dataset.from_numpy(self.valid_dir, tasks,
+                                       X_valid, y_valid, w_valid, ids_valid)
     params_dict = {
         "batch_size": [32],
         "data_shape": [train_dataset.get_data_shape()],
@@ -97,6 +114,7 @@ class TestHyperparamOptAPI(TestAPI):
                                 verbosity=None):
       return SingletaskToMultitask(tasks, task_types, params_dict,
                                    self.model_dir, model_builder)
+    output_transformers = []
     self._hyperparam_opt(multitask_model_builder, params_dict, train_dataset,
                          valid_dataset, output_transformers, tasks, task_types,
                          classification_metric)

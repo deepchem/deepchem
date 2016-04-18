@@ -141,6 +141,8 @@ class Metric(object):
         metric_value = np.nan
       computed_metrics.append(metric_value)
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
+    if num_tasks == 1:
+      computed_metrics = computed_metrics[0]
     if not self.is_multitask:
       return computed_metrics
     else:

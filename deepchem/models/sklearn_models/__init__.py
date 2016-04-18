@@ -19,7 +19,8 @@ class SklearnModel(Model):
   Abstract base class for different ML models.
   """
   def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True, verbosity=None):
+               model_instance=None, initialize_raw_model=True, verbosity=None,
+               mode="classification"):
     super(SklearnModel, self).__init__(
         tasks, task_types, model_params, model_dir,
         fit_transformers=fit_transformers, 
@@ -29,6 +30,8 @@ class SklearnModel(Model):
     self.model_params = model_params
     self.raw_model = model_instance
     self.verbosity = verbosity
+    assert mode in ["classification", "regression"]
+    self.mode = mode
 
   # TODO(rbharath): This does not work with very large datasets! sklearn does
   # support partial_fit, but only for some models. Might make sense to make
@@ -52,8 +55,10 @@ class SklearnModel(Model):
     """
     Makes predictions on batch of data.
     """
-    #return self.raw_model.predict(X)
-    return self.raw_model.predict_proba(X)
+    if self.mode == "classification":
+      return self.raw_model.predict_proba(X)
+    else:
+      return self.raw_model.predict(X)
 
   def predict(self, X, transformers):
     """
