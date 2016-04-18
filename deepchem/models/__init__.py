@@ -150,18 +150,24 @@ class Model(object):
     print(X.shape, y.shape, w.shape, ids.shape)
     
     #X = X[w.flatten() != 0, :]
+    num_tasks = y.shape[1]
 
     y_pred = self.predict_on_batch(X)
 
-    y = y[w.flatten() != 0, :]
-    y = to_one_hot(y)
-    y_pred_d = y_pred[w.flatten() != 0, :]
-
-    print("X.shape, y.shape, y_pred_d.shape")
-    print(X.shape, y.shape, y_pred_d.shape)
     print("Model.predict()")
-    print("sklearn.metrics.roc_auc_score(y, y_pred_d)")
-    print(sklearn.metrics.roc_auc_score(y, y_pred_d))
+    for task in xrange(num_tasks):
+      y_task, w_task, y_pred_task = y[:, task], w[:, task], y_pred[:, task]
+      y_task = y_task[w_task.flatten() != 0]
+      y_task = to_one_hot(y_task)
+      y_pred_task = y_pred_task[w_task.flatten() != 0][:, np.newaxis]
+      #y_pred_d = y_pred[w_task.flatten() != 0][:, np.newaxis]
+
+      print("task %d" % task)
+      print("sklearn.metrics.roc_auc_score(y_task, y_pred_d)")
+      
+      print("y_task.shape, w_task.shape, y_pred_task.shape")
+      print(y_task.shape, w_task.shape, y_pred_task.shape)
+      print(sklearn.metrics.roc_auc_score(y_task, y_pred_task))
 
     return y_pred
 

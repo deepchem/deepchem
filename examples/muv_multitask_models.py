@@ -31,8 +31,8 @@ verbosity = "high"
 
 # Create some directories for analysis
 # The base_dir holds the results of all analysis
-#base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
-base_dir = "/scratch/users/rbharath/small_muv_multitask_analysis"
+base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
+#base_dir = "/scratch/users/rbharath/small_muv_multitask_analysis"
 current_dir = os.path.dirname(os.path.realpath(__file__))
 #Make directories to store the raw and featurized datasets.
 feature_dir = os.path.join(base_dir, "features")
@@ -59,8 +59,8 @@ MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                     'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                     'MUV-466', 'MUV-832'])
 # For debugging purposes
-MUV_tasks = MUV_tasks[0:1]
-print("Only using following tasks")
+#MUV_tasks = MUV_tasks[0:1]
+print("Using following tasks")
 print(MUV_tasks)
 featurizer = DataFeaturizer(tasks=MUV_tasks,
                             smiles_field="smiles",
