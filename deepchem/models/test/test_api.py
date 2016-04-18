@@ -57,6 +57,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_absolute_error)]
 
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="regression",
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -87,6 +88,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_absolute_error)]
 
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="regression",
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -116,6 +118,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_absolute_error)]
 
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="regression",
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
@@ -142,6 +145,7 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_absolute_error)]
 
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="regression",
                          model_instance=RandomForestRegressor())
     self._create_model(train_dataset, test_dataset, model, transformers,
                        regression_metrics)
