@@ -161,9 +161,9 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    print("compute_singletask_metric()")
-    print("y_true.shape, y_pred.shape, w.shape")
-    print(y_true.shape, y_pred.shape, w.shape)
+    #print("compute_singletask_metric()")
+    #print("y_true.shape, y_pred.shape, w.shape")
+    #print(y_true.shape, y_pred.shape, w.shape)
     y_true = y_true[w != 0]
     y_pred = y_pred[w != 0]
     if self.mode == "classification":

@@ -172,10 +172,10 @@ class Dataset(object):
     The order of shards returned is guaranteed to remain fixed.
     """
     for _, row in self.metadata_df.iterrows():
-      X = load_from_disk(row['X-transformed'])
-      y = load_from_disk(row['y-transformed'])
-      w = load_from_disk(row['w-transformed'])
-      ids = load_from_disk(row['ids'])
+      X = np.array(load_from_disk(row['X-transformed']))
+      y = np.array(load_from_disk(row['y-transformed']))
+      w = np.array(load_from_disk(row['w-transformed']))
+      ids = np.array(load_from_disk(row['ids']), dtype=object)
       yield (X, y, w, ids)
 
   def iterbatches(self, batch_size=None, epoch=0):
@@ -213,11 +213,29 @@ class Dataset(object):
     dangerous (!) for large datasets which don't fit into memory.
     """
     Xs, ys, ws, ids = [], [], [], []
+    print("to_numpy()")
+    print("len(self)")
+    print(len(self))
     for (X_b, y_b, w_b, ids_b) in self.itershards():
       Xs.append(X_b)
       ys.append(y_b)
       ws.append(w_b)
       ids.append(np.squeeze(ids_b))
+    #print("to_numpy()")
+    #for y_b, ids_b in zip(ys, ids):
+    #  print("y_b.shape, ids_b.shape")
+    #  print(y_b.shape, ids_b.shape)
+    print("len(ids)")
+    print(len(ids))
+    print("[type(ids_b) for ids_b in ids]") 
+    print([type(ids_b) for ids_b in ids]) 
+    #print("[len(ids_b) for ids_b in ids]")
+    #print([len(ids_b) for ids_b in ids])
+    print("sum([len(ys_b) for ys_b in ys])")
+    print(sum([len(ys_b) for ys_b in ys]))
+    print("sum([len(ws_b) for ws_b in ws])")
+    print(sum([len(ws_b) for ws_b in ws]))
+    np.concatenate(ids)
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.concatenate(ids))
 
