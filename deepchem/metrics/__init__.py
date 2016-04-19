@@ -11,7 +11,6 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 
-# DEBUG
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
 
@@ -28,6 +27,14 @@ def to_one_hot(y):
     elif val == 1:
       y_hot[index] = np.array([0, 1])
   return y_hot
+
+def from_one_hot(y, axis=1):
+  """Transorms label vector from one-hot encoding.
+
+  y: np.ndarray
+    A vector of shape [n_samples, num_classes]
+  """
+  return np.argmax(y, axis=axis)
 
 def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
@@ -119,8 +126,6 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
-    print("y_true.shape, y_pred.shape, w.shape")
-    print(y_true.shape, y_pred.shape, w.shape)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     num_tasks = y_true.shape[1] 
     computed_metrics = []
@@ -130,9 +135,6 @@ class Metric(object):
       w_task = w[:, task]
     
       try:
-        import sklearn
-        #print("sklearn.metrics.roc_auc_score(y_task, y_pred_task)")
-        #print(sklearn.metrics.roc_auc_score(y_task, y_pred_task))
         metric_value = self.compute_singletask_metric(
             y_task, y_pred_task, w_task)
       except (AssertionError, ValueError) as e:
@@ -161,9 +163,6 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    #print("compute_singletask_metric()")
-    #print("y_true.shape, y_pred.shape, w.shape")
-    #print(y_true.shape, y_pred.shape, w.shape)
     y_true = y_true[w != 0]
     y_pred = y_pred[w != 0]
     if self.mode == "classification":
@@ -171,12 +170,6 @@ class Metric(object):
       y_pred = y_pred[:, np.newaxis]
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
-    print("y_true.shape, y_pred.shape")
-    print(y_true.shape, y_pred.shape)
-    import sklearn
-    print("compute_singletask_metric()")
-    print("sklearn.metrics.roc_auc_score(y_true, y_pred)")
-    print(sklearn.metrics.roc_auc_score(y_true, y_pred))
     try:
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:

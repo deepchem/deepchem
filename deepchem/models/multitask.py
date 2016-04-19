@@ -53,16 +53,9 @@ class SingletaskToMultitask(Model):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       y_task = y[:, ind]
       w_task = w[:, ind]
-      # DEBUG
       X_task = X[w_task != 0, :]
       y_task = y_task[w_task != 0]
-      #self.models[task].raw_model.fit(X, y_task, w_task)
       self.models[task].raw_model.fit(X_task, y_task)
-
-      y_pred_task = self.models[task].raw_model.predict(X_task)
-      print("Train ROC-AUC for %s: %f"
-            % (task, sklearn.metrics.roc_auc_score(y_task.astype(int),
-                                                   y_pred_task)))
 
   def predict_on_batch(self, X):
     """
@@ -72,16 +65,7 @@ class SingletaskToMultitask(Model):
     N_samples = X.shape[0]
     y_pred = np.zeros((N_samples, N_tasks))
     for ind, task in enumerate(self.tasks):
-      # DEBUG: ONLY FOR DEBUGGING
-      #print("ind, task")
-      #print(ind, task)
-      #print("self.models[task]")
-      #print(self.models[task])
-      #print("type(self.models[task].predict_on_batch(X))")
-      #print(type(self.models[task].predict_on_batch(X)))
       y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
-      #return self.models[task].predict_on_batch(X)[:, 0]
-      #y_pred[task] = self.models[task].predict_on_batch(X)
     return y_pred
 
   def save(self):

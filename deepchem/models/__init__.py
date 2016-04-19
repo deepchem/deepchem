@@ -17,24 +17,6 @@ from deepchem.utils.save import log
 import sklearn
 
 
-# DEBUG COPY!
-def to_one_hot(y):
-  """Transforms label vector into one-hot encoding.
-
-  Turns y into vector of shape [n_samples, 2] (assuming binary labels).
-
-  y: np.ndarray
-    A vector of shape [n_samples, 1]
-  """
-  n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
-  return y_hot
-
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
   # Note that transformers have to be undone in reversed order
@@ -139,117 +121,24 @@ class Model(object):
 
     return X, y, w
 
-  # TODO(rbharath): The structure of the produced df might be
-  # complicated. Better way to model?
   def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
     """
     X, y, w, ids = dataset.to_numpy()
-    
-    #y_pred = np.reshape(self.predict_on_batch(X), y.shape)
-    #y_pred = undo_transforms(y_pred, transformers)
-
     batch_size = self.model_params["batch_size"]
-    # Have to include ys/ws since we might pad batches
     y_preds = []
-    print("predict()")
-    print("len(dataset)")
-    print(len(dataset))
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
-      #ys.append(y_batch)
-      #w_preds.append(w_batch)
-      #print("X_batch.shape, y_batch.shape, y_pred_batch.shape")
-      #print(X_batch.shape, y_batch.shape, y_pred_batch.shape)
-    #y = np.vstack(ys)
     y_pred = np.vstack(y_preds)
-    #w_pred = np.vstack(w_preds)
   
-    #X = X[w.flatten() != 0, :]
-    #print("Model.predict()")
-    #print("y.shape, w.shape, y_pred.shape")
-    #print(y.shape, w.shape, y_pred.shape)
-    #for task in xrange(num_tasks):
-    #  y_task, w_task, y_pred_task = y[:, task], w[:, task], y_pred[:, task]
-    #  y_task = y_task[w_task.flatten() != 0]
-    #  y_task = to_one_hot(y_task)
-    #  y_pred_task = y_pred_task[w_task.flatten() != 0][:, np.newaxis]
-
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     y_pred = y_pred[:len(dataset)]
 
     return y_pred
-
-    #task_names = dataset.get_task_names()
-    #pred_task_names = ["%s_pred" % task_name for task_name in task_names]
-    #w_task_names = ["%s_weight" % task_name for task_name in task_names]
-    #raw_task_names = [task_name+"_raw" for task_name in task_names]
-    #raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
-    #column_names = (['ids'] + raw_task_names + task_names
-    #                + raw_pred_task_names + pred_task_names + w_task_names
-    #                + ["y_means", "y_stds"])
-    #pred_y_df = pd.DataFrame(columns=column_names)
-
-    #batch_size = self.model_params["batch_size"]
-    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-
-    #  # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
-    #  # a given X_batch.  If fit_transformers exist, we will apply them to
-    #  # X_batch 1 times and average the resulting y_pred before we undo 
-    #  # transforms on y_pred and y.  In the future the averaging will be
-    #  # performed n_sample times, where n_sample can be user-specified.
-
-    #  if self.fit_transformers:
-
-    #    y_preds = []
-    #    for i in xrange(1):
-    #      X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
-    #      y_pred = self.predict_on_batch(X_b)
-    #      y_pred = np.reshape(y_pred, np.shape(y_b))
-    #      y_preds.append(y_pred)
-
-    #    y_pred = np.array(y_preds).mean(axis=0)
-
-    #  else:
-
-    #    # DEBUG
-    #    X_batch = X_batch[w_batch.flatten() != 0, :]
-    #    y_batch = y_batch[w_batch.flatten() != 0]
-
-    #    y_pred = self.predict_on_batch(X_batch)
-    #    y_pred = np.reshape(y_pred, np.shape(y_batch))
-
-    #    # DEBUG:
-    #    print("y_batch.shape, y_pred.shape")
-    #    print(y_batch.shape, y_pred.shape)
-    #    #y_batch_d = y_batch[w_batch != 0]
-    #    #y_pred_d = y_pred[w_batch != 0]
-    #    #print("y_batch_d.shape, y_pred_d.shape")
-    #    #print(y_batch_d.shape, y_pred_d.shape)
-    #    if np.count_nonzero(y_batch) > 0:
-    #      print("sklearn.metrics.roc_auc_score(y_batch, y_pred)")
-    #      print(sklearn.metrics.roc_auc_score(y_batch, y_pred))
-
-    #  # Now undo transformations on y, y_pred
-
-    #  y_raw, y_pred_raw = y_batch, y_pred
-    #  y_batch = undo_transforms(y_batch, transformers)
-    #  y_pred = undo_transforms(y_pred, transformers)
-
-    #  batch_df = pd.DataFrame(columns=column_names)
-    #  #batch_df['ids'] = ids_batch
-    #  #batch_df[raw_task_names] = y_raw
-    #  #batch_df[task_names] = y_batch
-    #  #batch_df[raw_pred_task_names] = y_pred_raw
-    #  #batch_df[pred_task_names] = y_pred
-    #  #batch_df[w_task_names] = w_batch
-    #  pred_y_df = pd.concat([pred_y_df, batch_df])
-
-    #return pred_y_df
 
   def get_task_type(self):
     """
