@@ -74,8 +74,7 @@ class TestHyperparamOptAPI(TestAPI):
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []
-    output_transformer_classes = []
-    input_transformer_classes = []
+    output_transformers = []
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
@@ -114,7 +113,6 @@ class TestHyperparamOptAPI(TestAPI):
                                 verbosity=None):
       return SingletaskToMultitask(tasks, task_types, params_dict,
                                    self.model_dir, model_builder)
-    output_transformers = []
     self._hyperparam_opt(multitask_model_builder, params_dict, train_dataset,
                          valid_dataset, output_transformers, tasks, task_types,
                          classification_metric)

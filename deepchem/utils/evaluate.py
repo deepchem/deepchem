@@ -47,6 +47,8 @@ class Evaluator(object):
     y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
+    print("y.shape, y_pred.shape")
+    print(y.shape, y_pred.shape)
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)

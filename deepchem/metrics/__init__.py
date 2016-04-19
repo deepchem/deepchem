@@ -165,6 +165,9 @@ class Metric(object):
     """
     y_true = y_true[w != 0]
     y_pred = y_pred[w != 0]
+    # If there are no nonzero examples, metric is ill-defined.
+    if not len(y_true):
+      return np.nan
     if self.mode == "classification":
       y_true = to_one_hot(y_true).astype(int)
       y_pred = y_pred[:, np.newaxis]
