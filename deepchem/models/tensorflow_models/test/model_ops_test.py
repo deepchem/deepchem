@@ -88,9 +88,8 @@ def _numpy_P_matrix(KFC):
 #  C = (1+C)**zeta
 #  return C
 
-def _numpy_cos_matrix(R, D):
+def _numpy_cos_matrix(R, D, zeta=1):
 
-  zeta = 1
   N = R.shape[0]
   lm = np.eye(N)*1e-5
   R += lm
@@ -99,7 +98,6 @@ def _numpy_cos_matrix(R, D):
   Rbot = Rbot1*Rbot2
   l = np.arange(N)
   Rtop = np.tensordot(D, D, axes=([2], [2]))[l,:,l,:]
-
   C = Rtop/Rbot
   C = (1+C)**zeta
   return C
@@ -120,14 +118,14 @@ def _numpy_cos_matrix(R, D):
 #  G *= 2**(1-zeta)
 #  return G
 
-def _numpy_angular_symmetry_function(R, D):
+def _numpy_angular_symmetry_function(R, D, zeta=1):
   N = R.shape[0]
-  zeta = 1.
   eta = 1.
   lambd = 1.
 
   K = _numpy_gaussian_distance_matrix(R)
   FC = _numpy_radial_cutoff(R)
+  return FC
   KFC = K * FC
   #G = np.zeros(N)
 
@@ -245,6 +243,60 @@ class ModelOpsTest(test_util.TensorFlowTestCase):
     G_unrolled = _numpy_unrolled_angular_symmetry_function(R, D)
     G = _numpy_angular_symmetry_function(R, D)       
     self.assertAllClose(G_unrolled, G)  
+
+  def testCircularProduct(self):
+    N = 4
+    KFC = np.random.rand(N,N)
+    P_numpy = _numpy_P_matrix(KFC)
+
+    with self.test_session() as sess:
+      KFC_t = tf.convert_to_tensor(KFC)
+      P_t = model_ops.CircularProduct(KFC_t)
+      P_tensorflow = sess.run(P_t)
+
+    self.assertAllClose(P_numpy, P_tensorflow)
+
+  def testEye(self):
+    Ns = [1, 3, 5, 7]
+    for N in Ns:
+      I_numpy = np.eye(N)
+      with self.test_session() as sess:
+        I_t = model_ops.eye(N)
+        I_tensorflow = sess.run(I_t)
+      np.testing.assert_allclose(I_numpy, I_tensorflow)
+      
+  def testCosKernel(self):
+    N = 4
+    R = np.random.rand(N, N)
+    D = np.random.rand(N, N, 3)
+    C_numpy = _numpy_cos_matrix(R, D)
+
+    with self.test_session() as sess:
+      R_t = tf.convert_to_tensor(R, dtype=tf.float32)
+      D_t = tf.convert_to_tensor(D, dtype=tf.float32)
+      C_t = model_ops.CosKernel(R_t, D_t)
+      C_tensorflow = sess.run(C_t)
+
+    print(np.amax(C_numpy - C_tensorflow))
+    np.testing.assert_allclose(C_numpy, C_tensorflow, rtol=1e-3)
+
+  def testBasicAngularSymmetryFunction(self):
+    N = 4
+    R = np.random.rand(N, N)
+    D = np.random.rand(N, N, 3)
+    zeta = 1
+    A_numpy = _numpy_angular_symmetry_function(R, D, zeta)
+
+    with self.test_session() as sess:
+      R_t = tf.convert_to_tensor(R, dtype=tf.float32)
+      D_t = tf.convert_to_tensor(D, dtype=tf.float32)
+      zeta_t = tf.convert_to_tensor(zeta, dtype=tf.float32)
+      A_t = model_ops.AngularSymmetryFunction(R_t, D_t, zeta_t)
+      sess.run(tf.initialize_all_variables())
+      A_tensorflow = sess.run([A_t] + tf.trainable_variables())[0]
+
+    print(np.amax(A_numpy - A_tensorflow))
+    np.testing.assert_allclose(A_numpy, A_tensorflow)
 
 
   def testAddBias(self):

@@ -444,28 +444,54 @@ def RadialCutoff(R):
     T = tf.select(cond,T, E)
 
     cond_identity = tf.less(R,epsilon)
-    return tf.select(cond_identity, E, T)
+    FC = tf.select(cond_identity, E, T)
+    FC_diag = tf.diag(tf.diag_part(FC))
+    FC = FC - FC_diag
+    return FC
 
 def RadialSymmetryFunction(R):
   """ GaussianDistanceMatrix*RadialCutoff """
   
   K = GaussianDistanceMatrix(R)
   FC = RadialCutoff(R)
-  N = tf.slice(tf.shape(R),[0],[1])
+
   return tf.reduce_sum(tf.mul(K, FC), 1)
  
 def CircularProduct(KFC):
   """ Produces the angular kernal from KFC matrix """
-    
+  N = int(KFC.get_shape()[0])
+  K1 = tf.tile(tf.expand_dims(KFC, 2), [1, 1, N])
+  K2 = tf.tile(tf.expand_dims(KFC, 1), [1, N, 1])
+  K3 = tf.tile(tf.expand_dims(KFC, 0), [N, 1, 1])
+  P = K1*K2*K3
+  return P
+
+def eye(N):
+  """Get the NxN identity matrix."""
+  return tf.diag(tf.tile(tf.convert_to_tensor([1.]), [N])) 
+
+def CosKernel(R, D, zeta):
+  """Computes the cosine tensor for all atom triples."""
+  N = int(R.get_shape()[0])
+  lm = eye(N)*tf.constant(1e-5)
+  R += lm
+  Rbot1 = tf.tile(tf.expand_dims(R, 2), [1,1,N]) 
+  Rbot2 = tf.tile(tf.expand_dims(R, 1), [1,N,1]) 
+  Rbot = Rbot1 * Rbot2
+  Rtop = tf.batch_matmul(D, D, adj_y=True)  
+  C = Rtop/Rbot
+  C = (tf.constant(1.) + C)**zeta
+  return C
  
 def AngularSymmetryFunction(R, D, zeta):
 
   K = GaussianDistanceMatrix(R)
   FC = RadialCutoff(R)
+  return FC
   KFC = K * FC 
   P = CircularProduct(KFC)
-  C = CosKernal(R, D)
-  G = tf.reduce_sum(P*C, reduction_indices=[1,2]
+  C = CosKernel(R, D, zeta)
+  G = tf.reduce_sum(P*C, reduction_indices=[1,2])
   G *= 2**(1-zeta)
   return G
 
