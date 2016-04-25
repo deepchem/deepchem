@@ -213,28 +213,11 @@ class Dataset(object):
     dangerous (!) for large datasets which don't fit into memory.
     """
     Xs, ys, ws, ids = [], [], [], []
-    print("to_numpy()")
-    print("len(self)")
-    print(len(self))
     for (X_b, y_b, w_b, ids_b) in self.itershards():
       Xs.append(X_b)
       ys.append(y_b)
       ws.append(w_b)
-      ids.append(np.squeeze(ids_b))
-    #print("to_numpy()")
-    #for y_b, ids_b in zip(ys, ids):
-    #  print("y_b.shape, ids_b.shape")
-    #  print(y_b.shape, ids_b.shape)
-    print("len(ids)")
-    print(len(ids))
-    print("[type(ids_b) for ids_b in ids]") 
-    print([type(ids_b) for ids_b in ids]) 
-    #print("[len(ids_b) for ids_b in ids]")
-    #print([len(ids_b) for ids_b in ids])
-    print("sum([len(ys_b) for ys_b in ys])")
-    print(sum([len(ys_b) for ys_b in ys]))
-    print("sum([len(ws_b) for ws_b in ws])")
-    print(sum([len(ws_b) for ws_b in ws]))
+      ids.append(np.atleast_1d(np.squeeze(ids_b)))
     np.concatenate(ids)
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.concatenate(ids))
