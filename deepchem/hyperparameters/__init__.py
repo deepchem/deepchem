@@ -77,7 +77,7 @@ class HyperparamOpt(object):
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance(
-          [metric], valid_csv_out, valid_stats_out)
+          [metric], valid_csv_out.name, valid_stats_out)
       valid_score = multitask_scores[metric.name]
       all_scores[hyperparameter_tuple] = valid_score
     

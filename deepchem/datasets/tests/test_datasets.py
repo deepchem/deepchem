@@ -75,6 +75,15 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     assert w.shape == (N_samples, N_tasks)
     assert ids.shape == (N_samples,)
 
+  def test_consistent_ordering(self):
+    """Test that ordering of labels is consistent over time."""
+    solubility_dataset = self._load_solubility_data()
+
+    ids1 = solubility_dataset.get_ids()
+    ids2 = solubility_dataset.get_ids()
+
+    assert np.array_equal(ids1, ids2)
+
   def test_get_statistics(self):
     """Test statistics computation of this dataset."""
     solubility_dataset = self._load_solubility_data()

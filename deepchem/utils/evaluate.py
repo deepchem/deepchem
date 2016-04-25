@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import csv
 import numpy as np
 import warnings
 from deepchem.utils.save import log
@@ -38,7 +39,24 @@ class Evaluator(object):
     self.task_type = model.get_task_type().lower()
     self.verbosity = verbosity
 
-  def compute_model_performance(self, metrics, csv_out, stats_file, threshold=None):
+  def output_predictions(self, y_preds, csv_out):
+    """
+    Writes predictions to file.
+
+    Args:
+      y_preds: np.ndarray
+      csvfile: Open file object.
+    """
+    mol_ids = self.dataset.get_ids()
+    assert len(y_preds) == len(mol_ids)
+    with open(csv_out, "wb") as csvfile:
+      csvwriter = csv.writer(csvfile)
+      csvwriter.writerow(["Compound"] + self.dataset.get_task_names())
+      for mol_id, y_pred in zip(mol_ids, y_preds):
+        csvwriter.writerow([mol_id] + list(y_pred))
+
+  def compute_model_performance(self, metrics, csv_out=None, stats_file=None,
+                                threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
     """
@@ -47,8 +65,10 @@ class Evaluator(object):
     y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
-    print("y.shape, y_pred.shape")
-    print(y.shape, y_pred.shape)
+    if csv_out is not None:
+      log("Saving predictions to %s" % csv_out, self.verbosity)
+      self.output_predictions(y_pred, csv_out)
+
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)

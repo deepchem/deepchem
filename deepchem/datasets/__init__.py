@@ -222,6 +222,15 @@ class Dataset(object):
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.concatenate(ids))
 
+  def get_ids(self):
+    """
+    Returns all molecule-ids for this dataset.
+    """
+    ids = []
+    for (_, _, _, ids_b) in self.itershards():
+      ids.append(np.atleast_1d(np.squeeze(ids_b)))
+    return np.concatenate(ids)
+
   def get_labels(self):
     """
     Returns all labels for this dataset.
