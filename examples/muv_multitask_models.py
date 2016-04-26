@@ -31,7 +31,8 @@ verbosity = "high"
 
 # Create some directories for analysis
 # The base_dir holds the results of all analysis
-base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
+#base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
+base_dir = "/scratch/users/rbharath/small_muv_multitask_analysis"
 current_dir = os.path.dirname(os.path.realpath(__file__))
 #Make directories to store the raw and featurized datasets.
 feature_dir = os.path.join(base_dir, "features")
@@ -58,8 +59,8 @@ MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                     'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                     'MUV-466', 'MUV-832'])
 # For debugging purposes
-MUV_tasks = MUV_tasks[1:2]
-print("Only using following tasks")
+MUV_tasks = MUV_tasks[0:1]
+print("Using following tasks")
 print(MUV_tasks)
 featurizer = DataFeaturizer(tasks=MUV_tasks,
                             smiles_field="smiles",
@@ -70,8 +71,6 @@ featurized_samples = featurizer.featurize(
     samples_dir, shard_size=8192,
     reload=reload)
 
-print("len(featurized_samples)")
-print(len(featurized_samples))
 assert len(featurized_samples) == len(dataset)
 # Train/Valid/Test Split dataset
 print("About to perform train/valid/test split.")
@@ -84,69 +83,38 @@ train_samples, valid_samples, test_samples = \
         log_every_n=1000, reload=reload)
 len_train_samples, len_valid_samples, len_test_samples = \
   len(train_samples), len(valid_samples), len(test_samples)
-print("len(train_samples)")
-print(len(train_samples))
-print("float(len(train_samples))/len(featurized_samples)")
-print(float(len(train_samples))/len(featurized_samples))
-print("relative_difference(len(train_samples), frac_train * len(featurized_samples))")
-print(relative_difference(len(train_samples), frac_train * len(featurized_samples)))
 assert relative_difference(
     len(train_samples), frac_train * len(featurized_samples)) < 1e-3
 assert relative_difference(
     len(valid_samples), frac_valid * len(featurized_samples)) < 1e-3
 assert relative_difference(
     len(test_samples), frac_test * len(featurized_samples)) < 1e-3
-print("len(train_samples)")
-print(len(train_samples))
-print("len(valid_samples)")
-print(len(valid_samples))
-print("len(test_samples)")
-print(len(test_samples))
 
 # Generate datasets
 print("About to create datasets")
-print("Creating full dataset.")
+print("MUV_tasks")
+print(MUV_tasks)
 full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
+print("full_dataset.get_task_names()")
+print(full_dataset.get_task_names())
 y = full_dataset.get_labels()
-print("y.shape")
-print(y.shape)
-print("np.count_nonzero(y)")
-print(np.count_nonzero(y))
-print("Creating train dataset.")
 train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_train  = train_dataset.get_labels()
-print("y_train.shape")
-print(y_train.shape)
-print("np.count_nonzero(y_train)")
-print(np.count_nonzero(y_train))
-print("Creating valid dataset.")
 valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_valid = valid_dataset.get_labels()
-print("y_valid.shape")
-print(y_valid.shape)
-print("np.count_nonzero(y_valid)")
-print(np.count_nonzero(y_valid))
-print("Creating test dataset")
 test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
                        featurizers=featurizers, tasks=MUV_tasks,
                        verbosity=verbosity, reload=reload)
 y_test = test_dataset.get_labels()
-print("y_test.shape")
-print(y_test.shape)
-print("np.count_nonzero(y_test)")
-print(np.count_nonzero(y_test))
 len_train_dataset, len_valid_dataset, len_test_dataset = \
   len(train_dataset), len(valid_dataset), len(test_dataset)
 
-#assert len(train_samples) == len(train_dataset)
-#assert len(valid_samples) == len(valid_dataset)
-#assert len(test_samples) == len(test_dataset)
 assert relative_difference(
     len(train_samples), len(train_dataset)) < 1e-3
 assert relative_difference(
@@ -160,13 +128,10 @@ input_transformers = []
 output_transformers = []
 weight_transformers = [BalancingTransformer(transform_w=True, dataset=train_dataset)]
 transformers = input_transformers + output_transformers + weight_transformers
-print("Transforming train dataset")
 for transformer in transformers:
     transformer.transform(train_dataset)
-print("Transforming valid dataset")
 for transformer in transformers:
     transformer.transform(valid_dataset)
-print("Transforming test dataset")
 for transformer in transformers:
     transformer.transform(test_dataset)
 
@@ -179,18 +144,18 @@ params_dict = {
     "data_shape": [train_dataset.get_data_shape()],
 }   
 
-def model_builder(task_types, model_params, model_dir, verbosity=None):
-  return SklearnModel(task_types, model_params, model_dir,
-                      model_instance=LogisticRegression(),
+def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
+  return SklearnModel(tasks, task_types, model_params, model_dir,
+                      model_instance=LogisticRegression(class_weight="balanced"),
                       #model_instance=RandomForestClassifier(),
                       verbosity=verbosity)
-def multitask_model_builder(task_types, params_dict, model_dir, logdir=None,
+def multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
                             verbosity=None):
-  return SingletaskToMultitask(task_types, params_dict, model_dir,
+  return SingletaskToMultitask(tasks, task_types, params_dict, model_dir,
                                model_builder, verbosity=verbosity)
 
-classification_metric = Metric(metrics.roc_auc_score, np.mean)
-optimizer = HyperparamOpt(multitask_model_builder, MUV_task_types,
+classification_metric = Metric(metrics.roc_auc_score, np.mean, verbosity="low")
+optimizer = HyperparamOpt(multitask_model_builder, MUV_tasks, MUV_task_types,
                           verbosity=verbosity)
 best_logistic, best_logistic_hyperparams, all_logistic_results = \
     optimizer.hyperparam_search(

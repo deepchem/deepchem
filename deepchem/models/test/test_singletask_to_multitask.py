@@ -9,9 +9,11 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "LGPL"
 
+import numpy as np
 from deepchem.models.test import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
+from deepchem.datasets import Dataset
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.models.multitask import SingletaskToMultitask 
 from deepchem.models.sklearn_models import SklearnModel
@@ -25,18 +27,33 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     splittype = "scaffold"
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []
-    output_transformer_classes = []
-    input_transformer_classes = []
+    output_transformers = []
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
     task_types = {task: "classification" for task in tasks}
     input_file = "multitask_example.csv"
-    train_dataset, test_dataset, _, output_transformers, = \
-        self._featurize_train_test_split(
-            splittype, compound_featurizers, 
-            complex_featurizers, input_transformer_classes,
-            output_transformer_classes, input_file, tasks)
+
+    n_features = 10
+    n_tasks = len(tasks)
+    # Define train dataset
+    n_train = 100
+    X_train = np.random.rand(n_train, n_features)
+    y_train = np.random.randint(2, size=(n_train, n_tasks))
+    w_train = np.ones_like(y_train)
+    ids_train = ["C"] * n_train
+    train_dataset = Dataset.from_numpy(self.train_dir, tasks,
+                                       X_train, y_train, w_train, ids_train)
+
+    # Define test dataset
+    n_test = 10
+    X_test = np.random.rand(n_test, n_features)
+    y_test = np.random.randint(2, size=(n_test, n_tasks))
+    w_test = np.ones_like(y_test)
+    ids_test = ["C"] * n_test
+    test_dataset = Dataset.from_numpy(self.test_dir, tasks,
+                                       X_test, y_test, w_test, ids_test)
+
     params_dict = {
         "batch_size": 32,
         "data_shape": train_dataset.get_data_shape()

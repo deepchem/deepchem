@@ -14,6 +14,8 @@ from deepchem.datasets import Dataset
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
+import sklearn
+
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -105,7 +107,8 @@ class Model(object):
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
                                             w_batch)
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
-      log("Avg loss for epoch %d: %f" % (epoch+1,np.array(losses).mean()),self.verbosity)
+      log("Avg loss for epoch %d: %f"
+          % (epoch+1,np.array(losses).mean()),self.verbosity)
 
 
   def transform_on_batch(self, X, y, w):
@@ -118,63 +121,24 @@ class Model(object):
 
     return X, y, w
 
-  # TODO(rbharath): The structure of the produced df might be
-  # complicated. Better way to model?
   def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
     """
-    task_names = dataset.get_task_names()
-    pred_task_names = ["%s_pred" % task_name for task_name in task_names]
-    w_task_names = ["%s_weight" % task_name for task_name in task_names]
-    raw_task_names = [task_name+"_raw" for task_name in task_names]
-    raw_pred_task_names = [pred_task_name+"_raw" for pred_task_name in pred_task_names]
-    column_names = (['ids'] + raw_task_names + task_names
-                    + raw_pred_task_names + pred_task_names + w_task_names
-                    + ["y_means", "y_stds"])
-    pred_y_df = pd.DataFrame(columns=column_names)
-
+    X, y, w, ids = dataset.to_numpy()
     batch_size = self.model_params["batch_size"]
+    y_preds = []
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+      y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+    y_pred = np.vstack(y_preds)
+  
+    # The iterbatches does padding with zero-weight examples on the last batch.
+    # Remove padded examples.
+    y_pred = y_pred[:len(dataset)]
 
-      # HACK(JG): This was a hack to perform n-fold averaging of y_pred on
-      # a given X_batch.  If fit_transformers exist, we will apply them to
-      # X_batch 1 times and average the resulting y_pred before we undo 
-      # transforms on y_pred and y.  In the future the averaging will be
-      # performed n_sample times, where n_sample can be user-specified.
-
-      if self.fit_transformers:
-
-        y_preds = []
-        for i in xrange(1):
-          X_b, y_b, w_b = self.transform_on_batch(X_batch, y_batch, w_batch)
-          y_pred = self.predict_on_batch(X_b)
-          y_pred = np.reshape(y_pred, np.shape(y_b))
-          y_preds.append(y_pred)
-
-        y_pred = np.array(y_preds).mean(axis=0)
-
-      else:
-
-        y_pred = self.predict_on_batch(X_batch)
-        y_pred = np.reshape(y_pred, np.shape(y_batch))
-
-      # Now undo transformations on y, y_pred
-
-      y_raw, y_pred_raw = y_batch, y_pred
-      y_batch = undo_transforms(y_batch, transformers)
-      y_pred = undo_transforms(y_pred, transformers)
-
-      batch_df = pd.DataFrame(columns=column_names)
-      batch_df['ids'] = ids_batch
-      batch_df[raw_task_names] = y_raw
-      batch_df[task_names] = y_batch
-      batch_df[raw_pred_task_names] = y_pred_raw
-      batch_df[pred_task_names] = y_pred
-      batch_df[w_task_names] = w_batch
-      pred_y_df = pd.concat([pred_y_df, batch_df])
-
-    return pred_y_df
+    return y_pred
 
   def get_task_type(self):
     """

@@ -38,7 +38,7 @@ from tensorflow.python.platform import gfile
 
 from deepchem.models import Model
 import deepchem.metrics as met 
-from deepchem.utils.evaluate import from_one_hot
+from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log

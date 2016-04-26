@@ -74,7 +74,7 @@ class Dataset(object):
         metadata_rows = []
         metadata_rows.append(
             write_dataset_single(val=None, data_dir=self.data_dir, raw_data=raw_data,
-                                 basename="data"))
+                                 basename="data", tasks=tasks))
         self.metadata_df = pd.DataFrame(
             metadata_rows,
             columns=('df_file', 'task_names', 'ids',
@@ -121,6 +121,7 @@ class Dataset(object):
         self.save_to_disk()
 
     else:
+      log("Loading pre-existing metadata file.", self.verbosity)
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
       else:
@@ -171,22 +172,24 @@ class Dataset(object):
     The order of shards returned is guaranteed to remain fixed.
     """
     for _, row in self.metadata_df.iterrows():
-      X = load_from_disk(row['X-transformed'])
-      y = load_from_disk(row['y-transformed'])
-      w = load_from_disk(row['w-transformed'])
-      ids = load_from_disk(row['ids'])
+      X = np.array(load_from_disk(row['X-transformed']))
+      y = np.array(load_from_disk(row['y-transformed']))
+      w = np.array(load_from_disk(row['w-transformed']))
+      ids = np.array(load_from_disk(row['ids']), dtype=object)
       yield (X, y, w, ids)
 
   def iterbatches(self, batch_size=None, epoch=0):
     """
     Returns minibatches from dataset.
     """
-    if batch_size == None:
-      batch_size = len(self)
     for i, (X, y, w, ids) in enumerate(self.itershards()):
       nb_sample = np.shape(X)[0]
+      if batch_size is None:
+        shard_batch_size = nb_sample
+      else:
+        shard_batch_size = batch_size 
       interval_points = np.linspace(
-          0, nb_sample, np.ceil(float(nb_sample)/batch_size)+1, dtype=int)
+          0, nb_sample, np.ceil(float(nb_sample)/shard_batch_size)+1, dtype=int)
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
         X_batch = X[indices, :]
@@ -194,7 +197,7 @@ class Dataset(object):
         w_batch = w[indices]
         ids_batch = ids[indices]
         (X_batch, y_batch, w_batch, ids_batch) = self._pad_batch(
-            X_batch, y_batch, w_batch, ids_batch, batch_size)
+            X_batch, y_batch, w_batch, ids_batch, shard_batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod
@@ -214,9 +217,19 @@ class Dataset(object):
       Xs.append(X_b)
       ys.append(y_b)
       ws.append(w_b)
-      ids.append(np.squeeze(ids_b))
+      ids.append(np.atleast_1d(np.squeeze(ids_b)))
+    np.concatenate(ids)
     return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
             np.concatenate(ids))
+
+  def get_ids(self):
+    """
+    Returns all molecule-ids for this dataset.
+    """
+    ids = []
+    for (_, _, _, ids_b) in self.itershards():
+      ids.append(np.atleast_1d(np.squeeze(ids_b)))
+    return np.concatenate(ids)
 
   def get_labels(self):
     """

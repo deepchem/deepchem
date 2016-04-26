@@ -13,7 +13,7 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.normalization import BatchNormalization 
 from keras.optimizers import SGD
 from deepchem.models.keras_models import KerasModel
-from deepchem.utils.evaluate import to_one_hot
+from deepchem.metrics import to_one_hot
 
 class MultiTaskDNN(KerasModel):
   """

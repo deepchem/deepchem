@@ -9,6 +9,8 @@ import os
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
+# DEBUG
+import sklearn
 
 class SingletaskToMultitask(Model):
   """
@@ -29,7 +31,8 @@ class SingletaskToMultitask(Model):
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
     self.fit_transformers = False
-    for task, task_type in self.task_types.iteritems():
+    for task in self.tasks:
+      task_type = self.task_types[task]
       task_model_dir = os.path.join(self.model_dir, task)
       if not os.path.exists(task_model_dir):
         os.makedirs(task_model_dir)
@@ -45,11 +48,14 @@ class SingletaskToMultitask(Model):
 
     Warning: This current implementation is only functional for sklearn models. 
     """
-    X, y, _, _ = dataset.to_numpy()
+    X, y, w, _ = dataset.to_numpy()
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       y_task = y[:, ind]
-      self.models[task].raw_model.fit(X, y_task)
+      w_task = w[:, ind]
+      X_task = X[w_task != 0, :]
+      y_task = y_task[w_task != 0]
+      self.models[task].raw_model.fit(X_task, y_task)
 
   def predict_on_batch(self, X):
     """
@@ -59,7 +65,7 @@ class SingletaskToMultitask(Model):
     N_samples = X.shape[0]
     y_pred = np.zeros((N_samples, N_tasks))
     for ind, task in enumerate(self.tasks):
-      y_pred[:, ind] = self.models[task].predict_on_batch(X)
+      y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
     return y_pred
 
   def save(self):

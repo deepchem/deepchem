@@ -23,7 +23,7 @@ class TestTFHyperparamOptAPI(TestAPI):
   """
   Test hyperparameter optimization API.
   """
-  def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
+  def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Tensorflow multitask deepchem classification API."""
     splittype = "scaffold"
     output_transformers = []

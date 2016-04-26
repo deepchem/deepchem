@@ -19,7 +19,8 @@ class SklearnModel(Model):
   Abstract base class for different ML models.
   """
   def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True, verbosity=None):
+               model_instance=None, initialize_raw_model=True, verbosity=None,
+               mode="classification"):
     super(SklearnModel, self).__init__(
         tasks, task_types, model_params, model_dir,
         fit_transformers=fit_transformers, 
@@ -29,6 +30,8 @@ class SklearnModel(Model):
     self.model_params = model_params
     self.raw_model = model_instance
     self.verbosity = verbosity
+    assert mode in ["classification", "regression"]
+    self.mode = mode
 
   # TODO(rbharath): This does not work with very large datasets! sklearn does
   # support partial_fit, but only for some models. Might make sense to make
@@ -38,19 +41,24 @@ class SklearnModel(Model):
     """
     Fits SKLearn model to data.
     """
-    Xs, ys = [], []
-    for (X_batch, y_batch, _, _) in dataset.iterbatches(batch_size=32):
+    Xs, ys, ws = [], [], []
+    for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size=32):
       Xs.append(X_batch)
       ys.append(y_batch)
+      ws.append(w_batch)
     X = np.concatenate(Xs)
     y = np.concatenate(ys).ravel()
-    self.raw_model.fit(X, y)
+    w = np.concatenate(ws).ravel()
+    self.raw_model.fit(X, y, w)
 
   def predict_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
-    return self.raw_model.predict(X)
+    if self.mode == "classification":
+      return self.raw_model.predict_proba(X)
+    else:
+      return self.raw_model.predict(X)
 
   def predict(self, X, transformers):
     """
@@ -59,7 +67,7 @@ class SklearnModel(Model):
     # Sets batch_size which the default impl in Model expects
     #TODO(enf/rbharath): This is kludgy. Fix later.
     if "batch_size" not in self.model_params.keys():
-      self.model_params["batch_size"] = 32
+      self.model_params["batch_size"] = None 
     return super(SklearnModel, self).predict(X, transformers)
 
   def save(self):
