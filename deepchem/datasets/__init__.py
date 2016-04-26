@@ -74,7 +74,7 @@ class Dataset(object):
         metadata_rows = []
         metadata_rows.append(
             write_dataset_single(val=None, data_dir=self.data_dir, raw_data=raw_data,
-                                 basename="data"))
+                                 basename="data", tasks=tasks))
         self.metadata_df = pd.DataFrame(
             metadata_rows,
             columns=('df_file', 'task_names', 'ids',
