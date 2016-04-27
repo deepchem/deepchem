@@ -12,17 +12,18 @@ __license__ = "LGPL"
 import tempfile
 import numpy as np
 import unittest
+import sklearn
 from deepchem import metrics
 from deepchem.datasets import Dataset
 from deepchem.metrics import Metric
 from deepchem.models.test import TestAPI
 from deepchem.utils.evaluate import Evaluator
-from deepchem.models.tensorflow_models import TensorflowModel
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.models.sklearn_models import SklearnModel
+from sklearn.ensemble import RandomForestClassifier
 
-class TestTensorflowOverfitAPI(TestAPI):
+class TestOverfitAPI(TestAPI):
   """
-  Test tensorflow models can overfit simple datasets.
+  Test that sklearn and keras models can overfit simple datasets.
   """
 
   def test_classification_overfit(self):
@@ -44,40 +45,54 @@ class TestTensorflowOverfitAPI(TestAPI):
     dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
 
     model_params = {
-      "batch_size": 2,
-      "num_classification_tasks": 1,
-      "num_features": n_features,
-      "layer_sizes": [1024],
-      "weight_init_stddevs": [.01],
-      "bias_init_consts": [0.],
-      "dropouts": [.5],
-      "num_classes": 2,
-      "nb_epoch": 100,
-      "penalty": 0.0,
-      "optimizer": "sgd",
-      "learning_rate": .0003,
+      "batch_size": None,
       "data_shape": dataset.get_data_shape()
     }
+    np.set_printoptions(precision=5)
 
     verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score)
-    model = TensorflowModel(
-        tasks, task_types, model_params, self.model_dir,
-        tf_class=TensorflowMultiTaskClassifier,
-        verbosity=verbosity)
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="classification",
+                         model_instance=RandomForestClassifier())
+
+    cl = RandomForestClassifier()
+    y, w = y.flatten(), w.flatten()
+    cl.fit(X, y, w)
+
+    y_pred = cl.predict(X)
+    np.set_printoptions(precision=5)
+    y, y_pred = y.flatten(), y_pred.flatten()
+    np.testing.assert_array_almost_equal(y, y_pred)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
+    X_dataset, y_dataset, _, _ = dataset.to_numpy()
+    np.testing.assert_array_almost_equal(X, X_dataset)
+    np.testing.assert_array_almost_equal(y.flatten(), y_dataset.flatten())
+
+    y_pred_model = model.predict(dataset, transformers=[])
+    print("y_pred_model")
+    print(y_pred_model)
+    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
+    print("y_pred_proba_model")
+    print(y_pred_proba_model)
 
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
     with tempfile.NamedTemporaryFile() as csv_out:
       with tempfile.NamedTemporaryFile() as stats_out:
-        multitask_scores = evaluator.compute_model_performance(
+        scores = evaluator.compute_model_performance(
             [classification_metric], csv_out.name, stats_out)
 
-    print("multitask_scores")
-    print(multitask_scores)
-    assert multitask_scores[classification_metric.name] > .9
+    print("sklearn.metrics.accuracy_score(y, y_pred)")
+    print(sklearn.metrics.accuracy_score(y, y_pred))
+
+    print("metrics.compute_roc_auc_scores(y, y_pred_proba_model)")
+    print(metrics.compute_roc_auc_scores(y, y_pred_proba_model))
+
+    print("scores")
+    print(scores)
+    assert scores[classification_metric.name] > .9
