@@ -331,8 +331,10 @@ class TensorflowGraph(object):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        labels = np.array(from_one_hot(
-            np.squeeze(np.concatenate(labels)), axis=-1))
+        #labels = np.array(from_one_hot(
+        #    np.squeeze(np.concatenate(labels)), axis=-1))
+        labels = np.squeeze(np.concatenate(labels)) 
+        labels = np.array(labels)[:, 1]
 
     return np.copy(labels)
 

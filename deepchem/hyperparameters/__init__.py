@@ -79,7 +79,7 @@ class HyperparamOpt(object):
       multitask_scores = evaluator.compute_model_performance(
           [metric], valid_csv_out.name, valid_stats_out)
       valid_score = multitask_scores[metric.name]
-      all_scores[hyperparameter_tuple] = valid_score
+      all_scores[str(hyperparameter_tuple)] = valid_score
     
       if (use_max and valid_score >= best_validation_score) or (
           not use_max and valid_score <= best_validation_score):
@@ -105,7 +105,7 @@ class HyperparamOpt(object):
     train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     multitask_scores = train_evaluator.compute_model_performance(
-        [metric], train_csv_out, train_stats_out)
+        [metric], train_csv_out.name, train_stats_out)
     train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(best_hyperparams),
         self.verbosity, "low")
