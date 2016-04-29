@@ -131,6 +131,9 @@ class Model(object):
   def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
     """
     y_preds = []
     batch_size = self.model_params["batch_size"]
@@ -146,10 +149,21 @@ class Model(object):
     return y_pred
 
   def predict_proba(self, dataset, transformers):
+    """
+    TODO: Do transformers even make sense here?
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
+    """
     y_preds = []
     batch_size = self.model_params["batch_size"]
+    n_classes = None
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-      y_pred_batch = np.reshape(self.predict_proba_on_batch(X_batch), y_batch.shape)
+      y_pred_batch = self.predict_proba_on_batch(X_batch)
+      if n_classes is None:
+        n_classes = y_pred_batch.shape[1]
+      batch_size = len(y_batch)
+      y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)

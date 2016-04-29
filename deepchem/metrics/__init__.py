@@ -90,7 +90,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity=None, mode="classification"):
+               verbosity=None, mode=None):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -111,6 +111,15 @@ class Metric(object):
       self.name = name
     self.verbosity = verbosity
     self.threshold = threshold
+    if mode is None:
+      if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
+                       "accuracy_score", "kappa_score"]:
+        mode = "classification"
+      elif self.name in ["r2_score", "mean_squared_error",
+                         "mean_absolute_error"]:
+        mode = "regression"
+      else:
+        raise ValueError("Must specify mode for new metric.")
     assert mode in ["classification", "regression"]
     self.mode = mode
 
@@ -163,19 +172,12 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    print("compute_singletask_metric")
-    print("y_true")
-    print(y_true)
-    print("y_pred")
-    print(y_pred)
-    print("w")
-    print(w)
     y_true = y_true[w != 0]
     y_pred = y_pred[w != 0]
     # If there are no nonzero examples, metric is ill-defined.
     if not len(y_true):
       return np.nan
-    if self.mode == "classification":
+    if self.name == "roc_auc_score":
       y_true = to_one_hot(y_true).astype(int)
       y_pred = y_pred[:, np.newaxis]
     if self.threshold is not None:

@@ -56,13 +56,20 @@ class Evaluator(object):
         csvwriter.writerow([mol_id] + list(y_pred))
 
   def compute_model_performance(self, metrics, csv_out=None, stats_file=None,
-                                threshold=None):
+                                proba=False, threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
     """
     y = self.dataset.get_labels()
     w = self.dataset.get_weights()
-    y_pred = self.model.predict(self.dataset, self.transformers)
+    if not len(metrics):
+      return {}
+    else:
+      mode = metrics[0].mode
+    if mode == "classification":
+      y_pred = self.model.predict_proba(self.dataset, self.transformers)
+    else:
+      y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
     if csv_out is not None:

@@ -43,11 +43,6 @@ class SklearnModel(Model):
     """
     X, y, w, _ = dataset.to_numpy()
     y, w = y.flatten(), w.flatten()
-    print("fit")
-    print("X")
-    print(X)
-    print("y")
-    print(y)
     self.raw_model.fit(X, y, w)
     y_pred_raw = self.raw_model.predict(X)
 
