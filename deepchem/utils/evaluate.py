@@ -67,7 +67,6 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     if mode == "classification":
-      print("CALLING PREDICT_PROBA")
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)

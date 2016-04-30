@@ -71,11 +71,23 @@ from deepchem.metrics import to_one_hot
 def softmax(x):
     """Simple numpy softmax implementation
     """
-    tmp = np.max(x, axis = 1)
-    x -= tmp.reshape((x.shape[0], 1))
-    x = np.exp(x)
-    tmp = np.sum(x, axis = 1)
-    x /= tmp.reshape((x.shape[0], 1))
+    print("softmax()")
+    print("x.shape")
+    print(x.shape)
+    # (n_samples, n_classes)
+    if len(x.shape) == 2:
+      row_max = np.max(x, axis = 1)
+      x -= row_max.reshape((x.shape[0], 1))
+      x = np.exp(x)
+      row_sum = np.sum(x, axis = 1)
+      x /= row_sum.reshape((x.shape[0], 1))
+    # (n_samples, n_tasks, n_classes)
+    elif len(x.shape) == 3:
+      row_max = np.max(x, axis = 2)
+      x -= row_max.reshape(x.shape[:2] + (1,))
+      x = np.exp(x)
+      row_sum = np.sum(x, axis = 2)
+      x /= row_sum.reshape(x.shape[:2] + (1,))
     return x
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
@@ -224,25 +236,11 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         labels.append(batch_labels)
         weights.append(batch_weights)
 
-        print("predict_proba_on_batch()")
-        print("batch_outputs")
-        print(batch_outputs)
-        print("batch_labels")
-        print(batch_labels)
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        #labels = np.array(from_one_hot(
-        #    np.squeeze(np.concatenate(labels)), axis=-1))
-        ##labels = np.squeeze(np.concatenate(labels)) 
-        #labels = np.array(labels)[:, 1]
-
         # We apply softmax to predictions to get class probabilities.
-        #outputs = np.array(from_one_hot(softmax(np.squeeze(np.concatenate(outputs)))))
-        outputs = softmax(np.squeeze(np.concatenate(outputs)))
-        print("outputs")
-        print(outputs)
+        outputs = softmax(np.squeeze(np.hstack(outputs)))
 
-    #return np.copy(labels)
     return np.copy(outputs)
 
 class TensorflowMultiTaskRegressor(TensorflowRegressor):
@@ -255,7 +253,6 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
-    print("ENTERING TensorflowMultiTaskRegressor.build")
     assert len(self.model_params["data_shape"]) == 1
     num_features = self.model_params["data_shape"][0]
     with self.graph.as_default():

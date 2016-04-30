@@ -336,10 +336,6 @@ class TestOverfitAPI(TestAPI):
 
     y_pred_model = model.predict(dataset, transformers=[])
     y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-    print("y_pred_proba_model.shape")
-    print(y_pred_proba_model.shape)
-    print("metrics.accuracy_score(y, y_pred_model)")
-    print(metrics.accuracy_score(y, y_pred_model))
 
     # Eval model on train
     transformers = []

@@ -257,20 +257,14 @@ class TensorflowGraph(object):
             #step, loss, _ = sess.run(
             #    [train_op.values()[0], self.loss, self.updates],
             #    feed_dict=feed_dict)
-            output, step, loss, _ = sess.run(
-                self.output + [train_op.values()[0], self.loss, self.updates],
+            fetches = self.output + [train_op.values()[0], self.loss, self.updates]
+            fetched_values = sess.run(
+                fetches,
                 feed_dict=feed_dict)
-            #print("loss")
-            #print(loss)
+            output = fetched_values[:len(self.output)]
+            step, loss = fetched_values[-3], fetched_values[-2]
             y_pred = np.squeeze(np.array(output))
-            #print("y_pred")
-            #print(y_pred)
             y_b = y_b.flatten()
-            #print("y_b")
-            #print(y_b)
-            #print(".5*np.sum((y_b - y_pred)**2)/len(y_b)")
-            #print(.5*np.sum((y_b - y_pred)**2)/len(y_b))
-          # Save model checkpoints at end of epoch
           saver.save(sess, self._save_path, global_step=self.global_step)
           log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
         # Always save a final checkpoint when complete.

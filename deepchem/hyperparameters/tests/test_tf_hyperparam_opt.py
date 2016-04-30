@@ -43,7 +43,7 @@ class TestTFHyperparamOptAPI(TestAPI):
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks)
-    metric = Metric(metrics.matthews_corrcoef, np.mean)
+    metric = Metric(metrics.matthews_corrcoef, np.mean, mode="classification")
     params_dict = {"activation": ["relu"],
                     "momentum": [.9],
                     "batch_size": [50],
