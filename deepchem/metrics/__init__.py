@@ -123,7 +123,7 @@ class Metric(object):
     assert mode in ["classification", "regression"]
     self.mode = mode
 
-  def compute_metric(self, y_true, y_pred, w):
+  def compute_metric(self, y_true, y_pred, w, n_classes=2):
     """Compute a performance metric for each task.
 
     Args:
@@ -140,7 +140,10 @@ class Metric(object):
     computed_metrics = []
     for task in xrange(num_tasks):
       y_task = y_true[:, task]
-      y_pred_task = y_pred[:, task]
+      if self.mode == "regression":
+        y_pred_task = y_pred[:, task]
+      else:
+        y_pred_task = y_pred[:, task*n_classes:(task+1)*n_classes]
       w_task = w[:, task]
     
       try:
@@ -172,14 +175,22 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    y_true = y_true[w != 0]
-    y_pred = y_pred[w != 0]
+    y_true = np.squeeze(y_true[w != 0])
+    y_pred = np.squeeze(y_pred[w != 0])
     # If there are no nonzero examples, metric is ill-defined.
     if not len(y_true):
       return np.nan
-    if self.name == "roc_auc_score":
-      y_true = to_one_hot(y_true).astype(int)
-      y_pred = y_pred[:, np.newaxis]
+    print("y_pred")
+    print(y_pred)
+    if self.mode == "classification":
+      if self.name == "roc_auc_score":
+        y_true = to_one_hot(y_true).astype(int)
+      else:
+        y_true = y_true.astype(int)
+        y_pred = from_one_hot(y_pred)
+      #y_pred = from_one_hot(y_pred[:, np.newaxis])
+    print("y_pred")
+    print(y_pred)
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
     try:

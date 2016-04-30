@@ -56,7 +56,7 @@ class Evaluator(object):
         csvwriter.writerow([mol_id] + list(y_pred))
 
   def compute_model_performance(self, metrics, csv_out=None, stats_file=None,
-                                proba=False, threshold=None):
+                                threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
     """
@@ -67,6 +67,7 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     if mode == "classification":
+      print("CALLING PREDICT_PROBA")
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)

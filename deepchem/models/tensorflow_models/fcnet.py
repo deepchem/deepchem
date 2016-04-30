@@ -62,10 +62,21 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.platform import logging
 
+from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.metrics import to_one_hot
+
+def softmax(x):
+    """Simple numpy softmax implementation
+    """
+    tmp = np.max(x, axis = 1)
+    x -= tmp.reshape((x.shape[0], 1))
+    x = np.exp(x)
+    tmp = np.sum(x, axis = 1)
+    x /= tmp.reshape((x.shape[0], 1))
+    return x
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
@@ -148,6 +159,92 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
     return self._get_feed_dict(orig_dict)
 
+  def predict_proba_on_batch(self, X):
+    """Return model output for the provided input.
+
+    Restore(checkpoint) must have previously been called on this object.
+
+    Args:
+      dataset: deepchem.datasets.dataset object.
+
+    Returns:
+      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
+        output: Model outputs.
+        labels: True labels.
+        weights: Example weights.
+      Note that the output and labels arrays may be more than 2D, e.g. for
+      classifier models that return class probabilities.
+
+    Raises:
+      AssertionError: If model is not in evaluation mode.
+      ValueError: If output and labels are not both 3D or both 2D.
+    """
+    if not self._restored_model:
+      self.restore()
+    with self.graph.as_default():
+      assert not model_ops.is_training()
+      self.require_attributes(['output', 'labels', 'weights'])
+
+      # run eval data through the model
+      num_tasks = self.num_tasks
+      outputs, labels, weights = [], [], []
+      start = time.time()
+      with self._get_shared_session().as_default():
+        batch_count = -1.0
+
+        feed_dict = self.construct_feed_dict(X)
+        batch_start = time.time()
+        batch_count += 1
+        data = self._get_shared_session().run(
+            self.output + self.labels + self.weights,
+            feed_dict=feed_dict)
+        batch_outputs = np.asarray(data[:num_tasks], dtype=float)
+        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
+        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
+                                   dtype=float)
+        # reshape to batch_size x num_tasks x ...
+        if batch_outputs.ndim == 3 and batch_labels.ndim == 3:
+          batch_outputs = batch_outputs.transpose((1, 0, 2))
+          batch_labels = batch_labels.transpose((1, 0, 2))
+        elif batch_outputs.ndim == 2 and batch_labels.ndim == 2:
+          batch_outputs = batch_outputs.transpose((1, 0))
+          batch_labels = batch_labels.transpose((1, 0))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output and labels: %s %s' %
+              (batch_outputs.shape, batch_labels.shape))
+        batch_weights = batch_weights.transpose((1, 0))
+        valid = feed_dict[self.valid.name]
+        # only take valid outputs
+        if np.count_nonzero(~valid):
+          batch_outputs = batch_outputs[valid]
+          batch_labels = batch_labels[valid]
+          batch_weights = batch_weights[valid]
+        outputs.append(batch_outputs)
+        labels.append(batch_labels)
+        weights.append(batch_weights)
+
+        print("predict_proba_on_batch()")
+        print("batch_outputs")
+        print(batch_outputs)
+        print("batch_labels")
+        print(batch_labels)
+        logging.info('Eval batch took %g seconds', time.time() - start)
+
+        #labels = np.array(from_one_hot(
+        #    np.squeeze(np.concatenate(labels)), axis=-1))
+        ##labels = np.squeeze(np.concatenate(labels)) 
+        #labels = np.array(labels)[:, 1]
+
+        # We apply softmax to predictions to get class probabilities.
+        #outputs = np.array(from_one_hot(softmax(np.squeeze(np.concatenate(outputs)))))
+        outputs = softmax(np.squeeze(np.concatenate(outputs)))
+        print("outputs")
+        print(outputs)
+
+    #return np.copy(labels)
+    return np.copy(outputs)
+
 class TensorflowMultiTaskRegressor(TensorflowRegressor):
   """Implements an icml model as configured in a model_config.proto."""
 
@@ -158,6 +255,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
+    print("ENTERING TensorflowMultiTaskRegressor.build")
     assert len(self.model_params["data_shape"]) == 1
     num_features = self.model_params["data_shape"][0]
     with self.graph.as_default():
@@ -197,14 +295,17 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
-      self.output = [tf.squeeze(model_ops.FullyConnectedLayer(
-          tensor=prev_layer,
-          size=layer_sizes[i],
-          weight_init=tf.truncated_normal(
-              shape=[prev_layer_size, 1],
-              stddev=weight_init_stddevs[i]),
-          bias_init=tf.constant(value=bias_init_consts[i],
-                                shape=[1])))]
+      self.output = []
+      for task in range(self.num_tasks):
+        self.output.append(tf.squeeze(
+            model_ops.FullyConnectedLayer(
+                tensor=prev_layer,
+                size=layer_sizes[i],
+                weight_init=tf.truncated_normal(
+                    shape=[prev_layer_size, 1],
+                    stddev=weight_init_stddevs[i]),
+                bias_init=tf.constant(value=bias_init_consts[i],
+                                      shape=[1]))))
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -259,52 +360,32 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       self.restore()
     with self.graph.as_default():
       assert not model_ops.is_training()
-      self.require_attributes(['output', 'labels', 'weights'])
+      self.require_attributes(['output'])
 
       # run eval data through the model
       num_tasks = self.num_tasks
-      output, labels, weights = [], [], []
-      start = time.time()
+      outputs = []
       with self._get_shared_session().as_default():
-        batch_count = -1.0
-
         feed_dict = self.construct_feed_dict(X)
-        batch_start = time.time()
-        batch_count += 1
         data = self._get_shared_session().run(
-            self.output + self.labels + self.weights,
-            feed_dict=feed_dict)
-        batch_output = np.asarray(data[:num_tasks], dtype=float)
-        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
-        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
-                                   dtype=float)
+            self.output, feed_dict=feed_dict)
+        batch_outputs = np.asarray(data[:num_tasks], dtype=float)
         # reshape to batch_size x num_tasks x ...
-        if batch_output.ndim == 3 and batch_labels.ndim == 3:
-          batch_output = batch_output.transpose((1, 0, 2))
-          batch_labels = batch_labels.transpose((1, 0, 2))
-        elif batch_output.ndim == 2 and batch_labels.ndim == 2:
-          batch_output = batch_output.transpose((1, 0))
-          batch_labels = batch_labels.transpose((1, 0))
+        if batch_outputs.ndim == 3:
+          batch_outputs = batch_outputs.transpose((1, 0, 2))
+        elif batch_outputs.ndim == 2:
+          batch_outputs = batch_outputs.transpose((1, 0))
         else:
           raise ValueError(
-              'Unrecognized rank combination for output and labels: %s %s' %
-              (batch_output.shape, batch_labels.shape))
-        batch_weights = batch_weights.transpose((1, 0))
+              'Unrecognized rank combination for output: %s' %
+              (batch_outputs.shape))
         valid = feed_dict[self.valid.name]
         # only take valid outputs
         if np.count_nonzero(~valid):
-          batch_output = batch_output[valid]
-          batch_labels = batch_labels[valid]
-          batch_weights = batch_weights[valid]
-        output.append(batch_output)
-        labels.append(batch_labels)
-        weights.append(batch_weights)
+          batch_outputs = batch_outputs[valid]
+        outputs.append(batch_outputs)
 
-        logging.info('Eval batch took %g seconds', time.time() - start)
+        outputs = np.squeeze(np.concatenate(outputs)) 
 
-        #labels = np.array(from_one_hot(
-        #    np.squeeze(np.concatenate(labels)), axis=-1))
-        labels = np.squeeze(np.concatenate(labels)) 
-
-    return np.copy(labels)
+    return np.copy(outputs)
 

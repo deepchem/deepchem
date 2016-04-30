@@ -412,10 +412,10 @@ def Optimizer(model_params):
     train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
   elif model_params["optimizer"] == 'momentum':
     train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
-                                          model_params["memory"])
+                                          model_params["momentum"])
   elif model_params["optimizer"] == 'rmsprop':
     train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
-                                         model_params["memory"])
+                                         model_params["momentum"])
   elif model_params["optimizer"] == 'sgd':
     train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
   else:

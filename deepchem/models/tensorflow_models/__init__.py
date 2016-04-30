@@ -95,6 +95,7 @@ class TensorflowGraph(object):
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
     """
+    print("TensorflowGraph.__init__()")
     self.graph = tf.Graph() 
     self.model_params = model_params
     self.logdir = logdir
@@ -136,6 +137,7 @@ class TensorflowGraph(object):
 
   def setup(self):
     """Add ops common to training/eval to the graph."""
+    print("TensorflowGraph.setup()")
     with self.graph.as_default():
       with tf.name_scope('core_model'):
         self.build()
@@ -160,13 +162,15 @@ class TensorflowGraph(object):
     return tf.name_scope(self._name_scopes[name])
 
   def add_training_cost(self):
+    print("TensorflowGraph.add_training_cost()")
+    print("self.output")
+    print(self.output)
     with self.graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
       epsilon = 1e-3  # small float to avoid dividing by zero
       model_params = self.model_params
       weighted_costs = []  # weighted costs for each example
       gradient_costs = []  # costs used for gradient calculation
-      old_costs = []  # old-style cost
 
       with self._shared_name_scope('costs'):
         for task in xrange(self.num_tasks):
@@ -182,28 +186,23 @@ class TensorflowGraph(object):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
+              print("model_params['batch_size']")
+              print(model_params['batch_size'])
+              print("weighted_cost")
+              print(weighted_cost)
               gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
                                      model_params["batch_size"])
               gradient_costs.append(gradient_cost)
-
-            with tf.name_scope('old_cost'):
-              old_cost = tf.div(
-                  tf.reduce_sum(weighted_cost),
-                  tf.reduce_sum(self.weights[task]) + epsilon)
-              old_costs.append(old_cost)
 
         # aggregated costs
         with self._shared_name_scope('aggregated'):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
-          with tf.name_scope('old_cost'):
-            old_loss = tf.add_n(old_costs)
 
           # weight decay
           if model_params["penalty"] != 0.0:
             penalty = model_ops.WeightDecay(model_params)
             loss += penalty
-            old_loss += penalty
 
         # loss used for gradient calculation
         self.loss = loss
@@ -255,9 +254,22 @@ class TensorflowGraph(object):
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op and compute summaries.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            step, loss, _ = sess.run(
-                [train_op.values()[0], self.loss, self.updates],
+            #step, loss, _ = sess.run(
+            #    [train_op.values()[0], self.loss, self.updates],
+            #    feed_dict=feed_dict)
+            output, step, loss, _ = sess.run(
+                self.output + [train_op.values()[0], self.loss, self.updates],
                 feed_dict=feed_dict)
+            #print("loss")
+            #print(loss)
+            y_pred = np.squeeze(np.array(output))
+            #print("y_pred")
+            #print(y_pred)
+            y_b = y_b.flatten()
+            #print("y_b")
+            #print(y_b)
+            #print(".5*np.sum((y_b - y_pred)**2)/len(y_b)")
+            #print(.5*np.sum((y_b - y_pred)**2)/len(y_b))
           # Save model checkpoints at end of epoch
           saver.save(sess, self._save_path, global_step=self.global_step)
           log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
@@ -333,10 +345,13 @@ class TensorflowGraph(object):
 
         #labels = np.array(from_one_hot(
         #    np.squeeze(np.concatenate(labels)), axis=-1))
-        labels = np.squeeze(np.concatenate(labels)) 
-        labels = np.array(labels)[:, 1]
+        #labels = np.squeeze(np.concatenate(labels)) 
+        outputs = np.array(from_one_hot(
+            np.squeeze(np.concatenate(output)), axis=-1))
+        #labels = np.array(labels)[:, 1]
 
-    return np.copy(labels)
+    #return np.copy(labels)
+    return np.copy(outputs)
 
   def add_output_ops(self):
     """Replace logits with softmax outputs."""
@@ -658,7 +673,7 @@ class TensorflowRegressor(TensorflowGraph):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    #return tf.mul(0.5 * tf.square(output - labels), weights)
+    return tf.mul(0.5 * tf.square(output - labels), weights)
 
   def example_counts(self, y_true):
     """Get counts of examples in each class.
@@ -733,6 +748,13 @@ class TensorflowModel(Model):
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_on_batch(X)
+
+  def predict_proba_on_batch(self, X):
+    """
+    Makes predictions on batch of data.
+    """
+    return self.eval_model.predict_proba_on_batch(X)
+
 
   def save(self):
     """
