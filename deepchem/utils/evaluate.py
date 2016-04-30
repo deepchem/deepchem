@@ -62,7 +62,14 @@ class Evaluator(object):
     """
     y = self.dataset.get_labels()
     w = self.dataset.get_weights()
-    y_pred = self.model.predict(self.dataset, self.transformers)
+    if not len(metrics):
+      return {}
+    else:
+      mode = metrics[0].mode
+    if mode == "classification":
+      y_pred = self.model.predict_proba(self.dataset, self.transformers)
+    else:
+      y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
     if csv_out is not None:

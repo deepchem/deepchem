@@ -246,7 +246,7 @@ class Dataset(object):
     """
     ws = []
     for (_, _, w_b, _) in self.itershards():
-      ws.append(w_b)
+      ws.append(np.array(w_b))
     return np.vstack(ws)
 
   def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):

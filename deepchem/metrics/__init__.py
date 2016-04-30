@@ -90,7 +90,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity=None, mode="classification"):
+               verbosity=None, mode=None):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -111,14 +111,22 @@ class Metric(object):
       self.name = name
     self.verbosity = verbosity
     self.threshold = threshold
+    if mode is None:
+      if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
+                       "accuracy_score", "kappa_score"]:
+        mode = "classification"
+      elif self.name in ["r2_score", "mean_squared_error",
+                         "mean_absolute_error"]:
+        mode = "regression"
+      else:
+        raise ValueError("Must specify mode for new metric.")
     assert mode in ["classification", "regression"]
     self.mode = mode
 
-  def compute_metric(self, y_true, y_pred, w):
+  def compute_metric(self, y_true, y_pred, w, n_classes=2):
     """Compute a performance metric for each task.
 
     Args:
-      num_tasks: Number of tasks
       y_true: A list of arrays containing true values for each task.
       y_pred: A list of arrays containing predicted values for each task.
       metric: Must be a class that inherits from Metric 
@@ -126,24 +134,28 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
+    print("y_true.shape, y_pred.shape")
+    print(y_true.shape, y_pred.shape)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
-    num_tasks = y_true.shape[1] 
+    n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+    if self.mode == "classification":
+      y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
+    else:
+      y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     computed_metrics = []
-    for task in xrange(num_tasks):
+    for task in xrange(n_tasks):
       y_task = y_true[:, task]
-      y_pred_task = y_pred[:, task]
+      if self.mode == "regression":
+        y_pred_task = y_pred[:, task]
+      else:
+        y_pred_task = y_pred[:, task, :]
       w_task = w[:, task]
     
-      try:
-        metric_value = self.compute_singletask_metric(
-            y_task, y_pred_task, w_task)
-      except (AssertionError, ValueError) as e:
-        warnings.warn("Error calculating metric for task %d: %s"
-                      % (task, e))
-        metric_value = np.nan
+      metric_value = self.compute_singletask_metric(
+          y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
-    if num_tasks == 1:
+    if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:
       return computed_metrics
@@ -163,14 +175,30 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    y_true = y_true[w != 0]
-    y_pred = y_pred[w != 0]
+    print("compute_singletask_metric()")
+    y_true = np.array(np.squeeze(y_true[w != 0]))
+    y_pred = np.array(np.squeeze(y_pred[w != 0]))
+    if len(y_true.shape) == 0:
+      n_samples = 1
+    else:
+      n_samples = y_true.shape[0]
     # If there are no nonzero examples, metric is ill-defined.
-    if not len(y_true):
+    if not y_true.size:
       return np.nan
+    y_true = np.reshape(y_true, (n_samples,))
     if self.mode == "classification":
-      y_true = to_one_hot(y_true).astype(int)
-      y_pred = y_pred[:, np.newaxis]
+      n_classes = y_pred.shape[-1]
+      if self.name == "roc_auc_score":
+        y_true = to_one_hot(y_true).astype(int)
+        y_pred = np.reshape(y_pred, (n_samples, n_classes))
+      else:
+        y_true = y_true.astype(int)
+        # Reshape to handle 1-d edge cases
+        y_pred = np.reshape(y_pred, (n_samples, n_classes))
+        y_pred = from_one_hot(y_pred)
+    else:
+      y_pred = np.reshape(y_pred, (n_samples,))
+      
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
     try:

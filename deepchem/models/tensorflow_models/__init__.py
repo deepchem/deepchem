@@ -160,13 +160,13 @@ class TensorflowGraph(object):
     return tf.name_scope(self._name_scopes[name])
 
   def add_training_cost(self):
+    print(self.output)
     with self.graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
       epsilon = 1e-3  # small float to avoid dividing by zero
       model_params = self.model_params
       weighted_costs = []  # weighted costs for each example
       gradient_costs = []  # costs used for gradient calculation
-      old_costs = []  # old-style cost
 
       with self._shared_name_scope('costs'):
         for task in xrange(self.num_tasks):
@@ -186,24 +186,15 @@ class TensorflowGraph(object):
                                      model_params["batch_size"])
               gradient_costs.append(gradient_cost)
 
-            with tf.name_scope('old_cost'):
-              old_cost = tf.div(
-                  tf.reduce_sum(weighted_cost),
-                  tf.reduce_sum(self.weights[task]) + epsilon)
-              old_costs.append(old_cost)
-
         # aggregated costs
         with self._shared_name_scope('aggregated'):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
-          with tf.name_scope('old_cost'):
-            old_loss = tf.add_n(old_costs)
 
           # weight decay
           if model_params["penalty"] != 0.0:
             penalty = model_ops.WeightDecay(model_params)
             loss += penalty
-            old_loss += penalty
 
         # loss used for gradient calculation
         self.loss = loss
@@ -255,10 +246,15 @@ class TensorflowGraph(object):
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op and compute summaries.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            step, loss, _ = sess.run(
-                [train_op.values()[0], self.loss, self.updates],
+            fetches = self.output + [
+                train_op.values()[0], self.loss, self.updates]
+            fetched_values = sess.run(
+                fetches,
                 feed_dict=feed_dict)
-          # Save model checkpoints at end of epoch
+            output = fetched_values[:len(self.output)]
+            step, loss = fetched_values[-3], fetched_values[-2]
+            y_pred = np.squeeze(np.array(output))
+            y_b = y_b.flatten()
           saver.save(sess, self._save_path, global_step=self.global_step)
           log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
         # Always save a final checkpoint when complete.
@@ -331,10 +327,10 @@ class TensorflowGraph(object):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        labels = np.array(from_one_hot(
-            np.squeeze(np.concatenate(labels)), axis=-1))
+        outputs = np.array(from_one_hot(
+            np.squeeze(np.concatenate(output)), axis=-1))
 
-    return np.copy(labels)
+    return np.copy(outputs)
 
   def add_output_ops(self):
     """Replace logits with softmax outputs."""
@@ -731,6 +727,13 @@ class TensorflowModel(Model):
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_on_batch(X)
+
+  def predict_proba_on_batch(self, X):
+    """
+    Makes predictions on batch of data.
+    """
+    return self.eval_model.predict_proba_on_batch(X)
+
 
   def save(self):
     """

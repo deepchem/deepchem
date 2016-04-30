@@ -48,7 +48,6 @@ class TestTensorflowAPI(TestAPI):
     compound_featurizers = [CircularFingerprint(size=1024)]
     complex_featurizers = []
 
-
     tasks = ["outcome"]
     task_type = "classification"
     task_types = {task: task_type for task in tasks}
@@ -60,8 +59,7 @@ class TestTensorflowAPI(TestAPI):
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks)
-    # TODO(rbharath): Tensorflow doesn't elegantly handle partial batches.
-    # What's the right fix here?
+
     model_params = {
       "batch_size": 2,
       "num_classification_tasks": 1,

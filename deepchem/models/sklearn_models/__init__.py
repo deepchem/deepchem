@@ -41,24 +41,25 @@ class SklearnModel(Model):
     """
     Fits SKLearn model to data.
     """
-    Xs, ys, ws = [], [], []
-    for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size=32):
-      Xs.append(X_batch)
-      ys.append(y_batch)
-      ws.append(w_batch)
-    X = np.concatenate(Xs)
-    y = np.concatenate(ys).ravel()
-    w = np.concatenate(ws).ravel()
+    X, y, w, _ = dataset.to_numpy()
+    y, w = y.flatten(), w.flatten()
     self.raw_model.fit(X, y, w)
+    y_pred_raw = self.raw_model.predict(X)
 
   def predict_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
-    if self.mode == "classification":
-      return self.raw_model.predict_proba(X)
-    else:
-      return self.raw_model.predict(X)
+    return self.raw_model.predict(X)
+
+  def predict_proba_on_batch(self, X):
+    """
+    Makes per-class predictions on batch of data.
+    """
+    return self.raw_model.predict_proba(X)
+
+  def predict_proba_on_batch(self, X):
+    return self.raw_model.predict_proba(X)
 
   def predict(self, X, transformers):
     """

@@ -59,6 +59,13 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
+  def predict_proba_on_batch(self, X):
+    """
+    Makes predictions of class probabilities on given batch of new data.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own predict_on_batch method.")
+
   def set_raw_model(self, raw_model):
     """
     Set underlying raw model. Useful when loading from disk.
@@ -124,10 +131,12 @@ class Model(object):
   def predict(self, dataset, transformers):
     """
     Uses self to make predictions on provided Dataset object.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
     """
-    X, y, w, ids = dataset.to_numpy()
-    batch_size = self.model_params["batch_size"]
     y_preds = []
+    batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
@@ -137,7 +146,32 @@ class Model(object):
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     y_pred = y_pred[:len(dataset)]
+    return y_pred
 
+  def predict_proba(self, dataset, transformers):
+    """
+    TODO: Do transformers even make sense here?
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
+    """
+    y_preds = []
+    batch_size = self.model_params["batch_size"]
+    n_classes = None
+    n_tasks = len(self.tasks)
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
+      y_pred_batch = self.predict_proba_on_batch(X_batch)
+      if n_classes is None:
+        n_classes = y_pred_batch.shape[-1]
+      batch_size = len(y_batch)
+      y_pred_batch = np.squeeze(
+          np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+    y_pred = np.vstack(y_preds)
+    # The iterbatches does padding with zero-weight examples on the last batch.
+    # Remove padded examples.
+    y_pred = y_pred[:len(dataset)]
     return y_pred
 
   def get_task_type(self):
