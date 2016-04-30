@@ -324,7 +324,6 @@ class TestOverfitAPI(TestAPI):
     }
 
     verbosity = "high"
-    #classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
     model = TensorflowModel(
         tasks, task_types, model_params, self.model_dir,
