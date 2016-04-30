@@ -138,10 +138,6 @@ class Model(object):
     y_preds = []
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-      print("y_batch.shape")
-      print(y_batch.shape)
-      print("self.predict_on_batch(X_batch).shape")
-      print(self.predict_on_batch(X_batch).shape)
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
@@ -165,13 +161,15 @@ class Model(object):
     n_tasks = len(self.tasks)
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
+      print("y_pred_batch.shape")
+      print(y_pred_batch.shape)
       if n_classes is None:
         n_classes = y_pred_batch.shape[-1]
       batch_size = len(y_batch)
       print("y_pred_batch.shape")
       print(y_pred_batch.shape)
-      print("batch_size, n_tasks, n_classes")
-      print(batch_size, n_tasks, n_classes)
+      print("(batch_size, n_tasks, n_classes)")
+      print((batch_size, n_tasks, n_classes))
       y_pred_batch = np.squeeze(
           np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)

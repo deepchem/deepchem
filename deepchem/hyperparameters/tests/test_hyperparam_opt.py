@@ -104,7 +104,8 @@ class TestHyperparamOptAPI(TestAPI):
         "batch_size": [32],
         "data_shape": [train_dataset.get_data_shape()],
     }
-    classification_metric = Metric(metrics.matthews_corrcoef, np.mean)
+    classification_metric = Metric(metrics.matthews_corrcoef, np.mean,
+                                   mode="classification")
     def model_builder(tasks, task_types, model_params, task_model_dir,
                       verbosity=None):
       return SklearnModel(tasks, task_types, model_params, task_model_dir,
@@ -138,7 +139,7 @@ class TestHyperparamOptAPI(TestAPI):
         splittype, compound_featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks)
-    metric = Metric(metrics.matthews_corrcoef, np.mean)
+    metric = Metric(metrics.matthews_corrcoef, np.mean, mode="classification")
     params_dict= {"nb_hidden": [5, 10],
                   "activation": ["relu"],
                   "dropout": [.5],

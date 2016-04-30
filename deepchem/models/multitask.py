@@ -62,8 +62,8 @@ class SingletaskToMultitask(Model):
     Concatenates results from all singletask models.
     """
     N_tasks = len(self.tasks)
-    N_samples = X.shape[0]
-    y_pred = np.zeros((N_samples, N_tasks))
+    n_samples = X.shape[0]
+    y_pred = np.zeros((n_samples, N_tasks))
     for ind, task in enumerate(self.tasks):
       y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
     return y_pred
@@ -73,11 +73,10 @@ class SingletaskToMultitask(Model):
     Concatenates results from all singletask models.
     """
     n_tasks = len(self.tasks)
-    N_samples = X.shape[0]
-    y_pred = np.zeros((N_samples, n_classes*n_tasks))
+    n_samples = X.shape[0]
+    y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      y_pred[:, ind*n_classes:(ind+1)*n_classes] = \
-          self.models[task].predict_proba_on_batch(X)
+      y_pred[:, ind] = self.models[task].predict_proba_on_batch(X)
     return y_pred
 
   def save(self):

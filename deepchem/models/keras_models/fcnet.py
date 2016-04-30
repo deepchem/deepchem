@@ -139,14 +139,14 @@ class MultiTaskDNN(KerasModel):
     """
     data = self.get_data_dict(X)
     y_pred_dict = self.raw_model.predict_on_batch(data)
-    nb_samples = np.shape(X)[0]
-    nb_tasks = len(self.tasks)
-    y_pred = np.zeros((nb_samples, n_classes*nb_tasks))
+    n_samples = np.shape(X)[0]
+    n_tasks = len(self.tasks)
+    y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
       task_type = self.task_types[task]
       taskname = "task%d" % ind
       y_pred_task = np.squeeze(y_pred_dict[taskname])
-      y_pred[:, ind:ind+n_classes] = y_pred_task
+      y_pred[:, ind] = y_pred_task
     y_pred = np.squeeze(y_pred)
     return y_pred
 
