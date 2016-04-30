@@ -95,7 +95,6 @@ class TensorflowGraph(object):
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
     """
-    print("TensorflowGraph.__init__()")
     self.graph = tf.Graph() 
     self.model_params = model_params
     self.logdir = logdir
@@ -137,7 +136,6 @@ class TensorflowGraph(object):
 
   def setup(self):
     """Add ops common to training/eval to the graph."""
-    print("TensorflowGraph.setup()")
     with self.graph.as_default():
       with tf.name_scope('core_model'):
         self.build()
@@ -162,8 +160,6 @@ class TensorflowGraph(object):
     return tf.name_scope(self._name_scopes[name])
 
   def add_training_cost(self):
-    print("TensorflowGraph.add_training_cost()")
-    print("self.output")
     print(self.output)
     with self.graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
@@ -186,10 +182,6 @@ class TensorflowGraph(object):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
-              print("model_params['batch_size']")
-              print(model_params['batch_size'])
-              print("weighted_cost")
-              print(weighted_cost)
               gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
                                      model_params["batch_size"])
               gradient_costs.append(gradient_cost)
@@ -254,10 +246,8 @@ class TensorflowGraph(object):
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op and compute summaries.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            #step, loss, _ = sess.run(
-            #    [train_op.values()[0], self.loss, self.updates],
-            #    feed_dict=feed_dict)
-            fetches = self.output + [train_op.values()[0], self.loss, self.updates]
+            fetches = self.output + [
+                train_op.values()[0], self.loss, self.updates]
             fetched_values = sess.run(
                 fetches,
                 feed_dict=feed_dict)
@@ -337,14 +327,9 @@ class TensorflowGraph(object):
 
         logging.info('Eval batch took %g seconds', time.time() - start)
 
-        #labels = np.array(from_one_hot(
-        #    np.squeeze(np.concatenate(labels)), axis=-1))
-        #labels = np.squeeze(np.concatenate(labels)) 
         outputs = np.array(from_one_hot(
             np.squeeze(np.concatenate(output)), axis=-1))
-        #labels = np.array(labels)[:, 1]
 
-    #return np.copy(labels)
     return np.copy(outputs)
 
   def add_output_ops(self):

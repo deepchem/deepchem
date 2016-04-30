@@ -71,9 +71,6 @@ from deepchem.metrics import to_one_hot
 def softmax(x):
     """Simple numpy softmax implementation
     """
-    print("softmax()")
-    print("x.shape")
-    print(x.shape)
     # (n_samples, n_classes)
     if len(x.shape) == 2:
       row_max = np.max(x, axis = 1)
