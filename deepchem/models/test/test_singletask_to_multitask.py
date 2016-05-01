@@ -18,6 +18,7 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.models.multitask import SingletaskToMultitask 
 from deepchem.models.sklearn_models import SklearnModel
 from sklearn.linear_model import LogisticRegression
+from deepchem.utils.evaluate import Evaluator
 
 class TestSingletasktoMultitaskAPI(TestAPI):
   """
@@ -64,5 +65,17 @@ class TestSingletasktoMultitaskAPI(TestAPI):
                           model_instance=LogisticRegression())
     multitask_model = SingletaskToMultitask(tasks, task_types, params_dict,
                                             self.model_dir, model_builder)
-    self._create_model(train_dataset, test_dataset, multitask_model,
-                       output_transformers, classification_metrics)
+
+    # Fit trained model
+    multitask_model.fit(train_dataset)
+    multitask_model.save()
+
+    # Eval multitask_model on train
+    evaluator = Evaluator(multitask_model, train_dataset, output_transformers,
+                          verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)
+
+    # Eval multitask_model on test
+    evaluator = Evaluator(multitask_model, test_dataset, output_transformers,
+                          verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)

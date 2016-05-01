@@ -24,6 +24,10 @@ from deepchem.models.multitask import SingletaskToMultitask
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor 
 from deepchem.datasets import Dataset
+from deepchem.hyperparameters import HyperparamOpt
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
+from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 
 def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
     """Builds random forests given hyperparameters.
@@ -65,9 +69,10 @@ class TestHyperparamOptAPI(TestAPI):
     }
     metric = Metric(metrics.r2_score)
 
-    self._hyperparam_opt(rf_model_builder, params_dict, train_dataset,
-                         valid_dataset, output_transformers, tasks, task_types,
-                         metric)
+    optimizer = HyperparamOpt(rf_model_builder, tasks, task_types, verbosity="low")
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+      params_dict, train_dataset, valid_dataset, output_transformers,
+      metric, logdir=None)
 
   def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask_to_multitask."""
@@ -114,13 +119,15 @@ class TestHyperparamOptAPI(TestAPI):
                                 verbosity=None):
       return SingletaskToMultitask(tasks, task_types, params_dict,
                                    self.model_dir, model_builder)
-    self._hyperparam_opt(multitask_model_builder, params_dict, train_dataset,
-                         valid_dataset, output_transformers, tasks, task_types,
-                         classification_metric)
+
+    optimizer = HyperparamOpt(multitask_model_builder, tasks, task_types,
+                              verbosity="low")
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+      params_dict, train_dataset, valid_dataset, output_transformers,
+      classification_metric, logdir=None)
 
   def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Keras multitask deepchem classification API."""
-    from deepchem.models.keras_models.fcnet import MultiTaskDNN
     splittype = "scaffold"
     output_transformers = []
     input_transformers = []
@@ -154,6 +161,62 @@ class TestHyperparamOptAPI(TestAPI):
                   "batchnorm": [False],
                   "data_shape": [train_dataset.get_data_shape()]}
     
-    self._hyperparam_opt(MultiTaskDNN, params_dict, train_dataset,
-                         valid_dataset, output_transformers, tasks, task_types,
-                         metric)
+    optimizer = HyperparamOpt(MultiTaskDNN, tasks, task_types,
+                              verbosity="low")
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+      params_dict, train_dataset, valid_dataset, output_transformers,
+      metric, logdir=None)
+
+  def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
+    """Straightforward test of Tensorflow multitask deepchem classification API."""
+    splittype = "scaffold"
+    output_transformers = []
+    input_transformers = []
+    task_type = "classification"
+
+    input_file = os.path.join(self.current_dir, "multitask_example.csv")
+    tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
+             "task7", "task8", "task9", "task10", "task11", "task12",
+             "task13", "task14", "task15", "task16"]
+    task_types = {task: task_type for task in tasks}
+
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+
+    train_dataset, valid_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, tasks)
+    metric = Metric(metrics.matthews_corrcoef, np.mean, mode="classification")
+    params_dict = {"activation": ["relu"],
+                    "momentum": [.9],
+                    "batch_size": [50],
+                    "init": ["glorot_uniform"],
+                    "data_shape": [train_dataset.get_data_shape()],
+                    "learning_rate": [1e-3],
+                    "decay": [1e-6],
+                    "nb_hidden": [1000], 
+                    "nb_epoch": [1],
+                    "nesterov": [False],
+                    "dropouts": [(.5,)],
+                    "nb_layers": [1],
+                    "batchnorm": [False],
+                    "layer_sizes": [(1000,)],
+                    "weight_init_stddevs": [(.1,)],
+                    "bias_init_consts": [(1.,)],
+                    "num_classes": [2],
+                    "penalty": [0.], 
+                    "optimizer": ["sgd"],
+                    "num_classification_tasks": [len(task_types)]
+                  }
+
+    def model_builder(tasks, task_types, params_dict, logdir, verbosity=None):
+        return TensorflowModel(
+            tasks, task_types, params_dict, logdir, 
+            tf_class=TensorflowMultiTaskClassifier,
+            verbosity=verbosity)
+    optimizer = HyperparamOpt(model_builder, tasks, task_types,
+                              verbosity="low")
+    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+      params_dict, train_dataset, valid_dataset, output_transformers,
+      metric, logdir=None)

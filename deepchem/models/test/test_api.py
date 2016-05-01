@@ -17,7 +17,6 @@ from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
-#from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
@@ -30,8 +29,10 @@ from deepchem.models.test import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
 from sklearn.ensemble import RandomForestRegressor
+from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 
-class TestKerasSklearnAPI(TestAPI):
+class TestModelAPI(TestAPI):
   """
   Test top-level API for ML models.
   """
@@ -59,8 +60,18 @@ class TestKerasSklearnAPI(TestAPI):
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          mode="regression",
                          model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       regression_metrics)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
 
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF USF regression API."""
@@ -90,8 +101,18 @@ class TestKerasSklearnAPI(TestAPI):
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          mode="regression",
                          model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       regression_metrics)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
 
   def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
@@ -120,8 +141,18 @@ class TestKerasSklearnAPI(TestAPI):
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          mode="regression",
                          model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       regression_metrics)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
 
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
@@ -147,45 +178,18 @@ class TestKerasSklearnAPI(TestAPI):
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          mode="regression",
                          model_instance=RandomForestRegressor())
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       regression_metrics)
 
-  '''
-  # TODO(rbharath): This fails on many systems with an Illegal Instruction
-  # error. Need to debug.
-  def test_singletask_keras_mlp_NNScore_regression_API(self):
-    """Test of singletask MLP NNScore regression API."""
-    from deepchem.models.keras_models.fcnet import SingleTaskDNN
-    splittype = "scaffold"
-    compound_featurizers = []
-    complex_featurizers = [NNScoreComplexFeaturizer()]
-    input_transformers = [NormalizationTransformer, ClippingTransformer]
-    output_transformers = [NormalizationTransformer]
-    tasks = ["label"]
-    task_type = "regression"
-    task_types = {task: task_type for task in tasks}
-    model_params = {"nb_hidden": 10, "activation": "relu",
-                    "dropout": .5, "learning_rate": .01,
-                    "momentum": .9, "nesterov": False,
-                    "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform",
-                    "nb_layers": 1, "batchnorm": False}
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
 
-    input_file = "nnscore_example.pkl.gz"
-    protein_pdb_field = "protein_pdb"
-    ligand_pdb_field = "ligand_pdb"
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
-        protein_pdb_field=protein_pdb_field,
-        ligand_pdb_field=ligand_pdb_field)
-    model_params["data_shape"] = train_dataset.get_data_shape()
-    
-    model = SingleTaskDNN(task_types, model_params)
-    self._create_model(train_dataset, test_dataset, model, transformers)
-  '''
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
 
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
 
   def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
@@ -223,44 +227,19 @@ class TestKerasSklearnAPI(TestAPI):
                           Metric(metrics.mean_absolute_error)]
 
     model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       regression_metrics)
 
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
 
-    #TODO(enf/rbharath): This should be uncommented now that 3D CNNs are in
-    #                    keras. Need to upgrade the base version of keras for
-    #                    deepchem.
-    '''
-  def test_singletask_cnn_GridFeaturizer_regression_API(self):
-    """Test of singletask 3D ConvNet regression API."""
-    splittype = "scaffold"
-    compound_featurizers = []
-    complex_featurizers = [GridFeaturizer(feature_types=["voxel_combined"],
-                                          voxel_feature_types=["ecfp", "splif", "hbond",
-                                                               "pi_stack", "cation_pi",
-                                                               "salt_bridge", "charge"],
-                                          voxel_width=0.5)]
-    input_transforms = ["normalize", "truncate"]
-    output_transforms = ["normalize"]
-    task_type = "regression"
-    model_params = {"nb_hidden": 10, "activation": "relu",
-                    "dropout": .5, "learning_rate": .01,
-                    "momentum": .9, "nesterov": False,
-                    "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform",
-                    "loss_function": "mean_squared_error"}
-    model_name = "convolutional_3D_regressor"
-    protein_pdb_field = "protein_pdb"
-    ligand_pdb_field = "ligand_pdb"
-    input_file = "nnscore_example.pkl.gz"
-    tasks = ["label"]
-    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
-                       output_transforms, task_type, model_params, model_name,
-                       input_file=input_file,
-                       protein_pdb_field=protein_pdb_field,
-                       ligand_pdb_field=ligand_pdb_field,
-                       tasks=tasks)
-    '''
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(regression_metrics)
+
 
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
@@ -298,5 +277,143 @@ class TestKerasSklearnAPI(TestAPI):
                               Metric(metrics.accuracy_score)]
     
     model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir)
-    self._create_model(train_dataset, test_dataset, model, transformers,
-                       classification_metrics)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)
+
+  def test_singletask_tf_mlp_ECFP_classification_API(self):
+    """Straightforward test of Tensorflow singletask deepchem classification API."""
+    splittype = "scaffold"
+    output_transformers = []
+    input_transformers = []
+    task_type = "classification"
+
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+
+    tasks = ["outcome"]
+    task_type = "classification"
+    task_types = {task: task_type for task in tasks}
+    input_file = "example_classification.csv"
+    input_transformers = []
+    output_transformers = [NormalizationTransformer]
+
+    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, tasks)
+
+    model_params = {
+      "batch_size": 2,
+      "num_classification_tasks": 1,
+      "num_features": 1024,
+      "layer_sizes": [1024],
+      "weight_init_stddevs": [1.],
+      "bias_init_consts": [0.],
+      "dropouts": [.5],
+      "num_classes": 2,
+      "nb_epoch": 1,
+      "penalty": 0.0,
+      "optimizer": "adam",
+      "learning_rate": .001,
+      "data_shape": train_dataset.get_data_shape()
+    }
+    classification_metrics = [Metric(metrics.roc_auc_score),
+                              Metric(metrics.matthews_corrcoef),
+                              Metric(metrics.recall_score),
+                              Metric(metrics.accuracy_score)]
+
+    model = TensorflowModel(
+        tasks, task_types, model_params, self.model_dir,
+        tf_class=TensorflowMultiTaskClassifier)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train
+    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)
+
+    # Eval model on test
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+    _ = evaluator.compute_model_performance(classification_metrics)
+
+  '''
+  # TODO(rbharath): This fails on many systems with an Illegal Instruction
+  # error. Need to debug.
+  from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
+  def test_singletask_keras_mlp_NNScore_regression_API(self):
+    """Test of singletask MLP NNScore regression API."""
+    from deepchem.models.keras_models.fcnet import SingleTaskDNN
+    splittype = "scaffold"
+    compound_featurizers = []
+    complex_featurizers = [NNScoreComplexFeaturizer()]
+    input_transformers = [NormalizationTransformer, ClippingTransformer]
+    output_transformers = [NormalizationTransformer]
+    tasks = ["label"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "nb_layers": 1, "batchnorm": False}
+
+    input_file = "nnscore_example.pkl.gz"
+    protein_pdb_field = "protein_pdb"
+    ligand_pdb_field = "ligand_pdb"
+    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, tasks,
+        protein_pdb_field=protein_pdb_field,
+        ligand_pdb_field=ligand_pdb_field)
+    model_params["data_shape"] = train_dataset.get_data_shape()
+    
+    model = SingleTaskDNN(task_types, model_params)
+    self._create_model(train_dataset, test_dataset, model, transformers)
+
+  #TODO(enf/rbharath): This should be uncommented now that 3D CNNs are in
+  #                    keras. Need to upgrade the base version of keras for
+  #                    deepchem.
+  def test_singletask_cnn_GridFeaturizer_regression_API(self):
+    """Test of singletask 3D ConvNet regression API."""
+    splittype = "scaffold"
+    compound_featurizers = []
+    complex_featurizers = [GridFeaturizer(feature_types=["voxel_combined"],
+                                          voxel_feature_types=["ecfp", "splif", "hbond",
+                                                               "pi_stack", "cation_pi",
+                                                               "salt_bridge", "charge"],
+                                          voxel_width=0.5)]
+    input_transforms = ["normalize", "truncate"]
+    output_transforms = ["normalize"]
+    task_type = "regression"
+    model_params = {"nb_hidden": 10, "activation": "relu",
+                    "dropout": .5, "learning_rate": .01,
+                    "momentum": .9, "nesterov": False,
+                    "decay": 1e-4, "batch_size": 5,
+                    "nb_epoch": 2, "init": "glorot_uniform",
+                    "loss_function": "mean_squared_error"}
+    model_name = "convolutional_3D_regressor"
+    protein_pdb_field = "protein_pdb"
+    ligand_pdb_field = "ligand_pdb"
+    input_file = "nnscore_example.pkl.gz"
+    tasks = ["label"]
+    self._create_model(splittype, compound_featurizers, complex_featurizers, input_transforms,
+                       output_transforms, task_type, model_params, model_name,
+                       input_file=input_file,
+                       protein_pdb_field=protein_pdb_field,
+                       ligand_pdb_field=ligand_pdb_field,
+                       tasks=tasks)
+    '''
