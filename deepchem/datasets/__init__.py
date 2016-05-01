@@ -397,12 +397,12 @@ def _df_to_numpy(df, feature_types, tasks):
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
-  n_features = None
   y = df[tasks].values
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   tensors = []
+  feature_shape = None
   for ind in range(n_samples):
     datapoint = df.iloc[ind]
     feature_list = []
@@ -414,13 +414,17 @@ def _df_to_numpy(df, feature_types, tasks):
         if features[feature_ind] == "":
           features[feature_ind] = 0.
       features = features.astype(float)
-      n_features = features.shape[0]
+      if feature_shape is None:
+        feature_shape = features.shape
     except ValueError:
       missing[ind, :] = 1
       continue
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
+    if features.shape != feature_shape:
+      missing[ind, :] = 1
+      continue
     tensors.append(features)
   x = np.stack(tensors)
   sorted_ids = df["mol_id"]
