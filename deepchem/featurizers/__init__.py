@@ -141,7 +141,10 @@ class Featurizer(object):
       for i, mol in enumerate(mols):
         if verbosity is not None and i % log_every_n == 0:
           log("Featurizing %d / %d" % (i, len(mols)))
-        features = [self._featurize(mol) for mol in mols]
+        if mol is not None:
+          features.append(self._featurize(mol))
+        else:
+          features.append(np.array([]))
 
     if self.conformers:
       features = self.conformer_container(mols, features)

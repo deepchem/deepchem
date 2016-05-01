@@ -134,8 +134,6 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
-    print("y_true.shape, y_pred.shape")
-    print(y_true.shape, y_pred.shape)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
     if self.mode == "classification":
@@ -175,7 +173,6 @@ class Metric(object):
     Raises:
       NotImplementedError: If metric_str is not in METRICS.
     """
-    print("compute_singletask_metric()")
     y_true = np.array(np.squeeze(y_true[w != 0]))
     y_pred = np.array(np.squeeze(y_pred[w != 0]))
     if len(y_true.shape) == 0:

@@ -160,7 +160,6 @@ class TensorflowGraph(object):
     return tf.name_scope(self._name_scopes[name])
 
   def add_training_cost(self):
-    print(self.output)
     with self.graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
       epsilon = 1e-3  # small float to avoid dividing by zero
