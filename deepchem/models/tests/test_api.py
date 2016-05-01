@@ -25,7 +25,7 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import ClippingTransformer
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
 from sklearn.ensemble import RandomForestRegressor

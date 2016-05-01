@@ -14,7 +14,7 @@ import unittest
 import tempfile
 import shutil
 import numpy as np
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer

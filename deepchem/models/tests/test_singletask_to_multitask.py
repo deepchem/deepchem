@@ -10,7 +10,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "LGPL"
 
 import numpy as np
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.datasets import Dataset
