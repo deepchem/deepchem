@@ -81,7 +81,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/test/example.csv"
+    input_file = "../../models/tests/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, tasks, frac_train=.8,
@@ -99,7 +99,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/test/example.csv"
+    input_file = "../../models/tests/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, tasks, frac_train=.8,
@@ -116,7 +116,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/test/example.csv"
+    input_file = "../../models/tests/example.csv"
     train_samples, valid_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, tasks, frac_train=.8,
@@ -134,7 +134,7 @@ class TestFeaturizedSamples(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/test/example.csv"
+    input_file = "../../models/tests/example.csv"
     train_samples, test_samples = (
         self._featurize_train_valid_test_split(
             splittype, input_file, tasks, frac_train=.8,
