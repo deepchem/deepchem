@@ -175,6 +175,7 @@ class Metric(object):
     """
     y_true = np.array(np.squeeze(y_true[w != 0]))
     y_pred = np.array(np.squeeze(y_pred[w != 0]))
+
     if len(y_true.shape) == 0:
       n_samples = 1
     else:
@@ -183,9 +184,13 @@ class Metric(object):
     if not y_true.size:
       return np.nan
     y_true = np.reshape(y_true, (n_samples,))
+
     if self.mode == "classification":
       n_classes = y_pred.shape[-1]
-      if self.name == "roc_auc_score":
+      # TODO(rbharath): This has been a major source of bugs. Is there a more
+      # robust characterization of which metrics require class-probs and which
+      # don't?
+      if "roc_auc_score" in self.name:
         y_true = to_one_hot(y_true).astype(int)
         y_pred = np.reshape(y_pred, (n_samples, n_classes))
       else:
@@ -195,6 +200,7 @@ class Metric(object):
         y_pred = from_one_hot(y_pred)
     else:
       y_pred = np.reshape(y_pred, (n_samples,))
+
       
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)

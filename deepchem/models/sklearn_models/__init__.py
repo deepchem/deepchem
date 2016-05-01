@@ -58,9 +58,6 @@ class SklearnModel(Model):
     """
     return self.raw_model.predict_proba(X)
 
-  def predict_proba_on_batch(self, X):
-    return self.raw_model.predict_proba(X)
-
   def predict(self, X, transformers):
     """
     Makes predictions on dataset.

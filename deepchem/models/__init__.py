@@ -145,10 +145,12 @@ class Model(object):
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    y_pred = y_pred[:len(dataset)]
+    n_samples, n_tasks = len(dataset), len(self.tasks)
+    y_pred = y_pred[:n_samples]
+    y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     return y_pred
 
-  def predict_proba(self, dataset, transformers):
+  def predict_proba(self, dataset, transformers, n_classes=2):
     """
     TODO: Do transformers even make sense here?
 
@@ -157,12 +159,9 @@ class Model(object):
     """
     y_preds = []
     batch_size = self.model_params["batch_size"]
-    n_classes = None
     n_tasks = len(self.tasks)
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
-      if n_classes is None:
-        n_classes = y_pred_batch.shape[-1]
       batch_size = len(y_batch)
       y_pred_batch = np.squeeze(
           np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
@@ -171,7 +170,9 @@ class Model(object):
     y_pred = np.vstack(y_preds)
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    y_pred = y_pred[:len(dataset)]
+    n_samples, n_tasks = len(dataset), len(self.tasks)
+    y_pred = y_pred[:n_samples]
+    y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
 
   def get_task_type(self):

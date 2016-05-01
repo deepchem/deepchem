@@ -57,7 +57,7 @@ class Dataset(object):
         for ind, (df_file, df) in enumerate(
             zip(samples.dataset_files, samples.iterdataframes())):
           log("Writing data from file %s, number %d/%d"
-              % (df_file, ind, len(samples.dataset_files)), self.verbosity)
+              % (df_file, ind+1, len(samples.dataset_files)), self.verbosity)
           retval = write_dataset_single_partial((df_file, df))
           if retval is not None:
             metadata_rows.append(retval)
