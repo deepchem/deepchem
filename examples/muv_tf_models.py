@@ -1,5 +1,5 @@
 """
-Script that trains multitask models on MUV dataset.
+Script that trains multitask tensorflow models on MUV dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -70,7 +70,7 @@ print(MUV_tasks)
 featurizer = DataFeaturizer(tasks=MUV_tasks,
                             smiles_field="smiles",
                             compound_featurizers=featurizers,
-                            verbosity=verbosity)
+                            verbosity="low")
 featurized_samples = featurizer.featurize(
     dataset_file, feature_dir,
     samples_dir, shard_size=8192,
@@ -146,49 +146,36 @@ for transformer in transformers:
 for transformer in transformers:
     transformer.transform(test_dataset)
 
-# Fit Logistic Regression models
+# Fit tensorflow models
 MUV_task_types = {task: "Classification" for task in MUV_tasks}
-
-
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
 params_dict = { 
-    "batch_size": [None],
+    "batch_size": [64],
+    "nb_epoch": [10],
     "data_shape": [train_dataset.get_data_shape()],
+    "layer_sizes": [[1000]],
+    "weight_init_stddevs": [[.01]],
+    "bias_init_consts": [[.5]],
+    "dropouts": [[.0]],
+    "num_classification_tasks": [len(MUV_tasks)],
+    "num_classes": [2],
+    "penalty": [.0],
+    "optimizer": ["sgd"],
+    "learning_rate": [.0003],
 }   
 
-######### DEBUG
-#def build_rf(train_dataset, valid_dataset):
-#  X_train, y_train, w_train, _ = train_dataset.to_numpy()
-#  X_valid, y_valid, w_valid, _ = valid_dataset.to_numpy()
-#
-#  w_train, w_valid = w_train.flatten(), w_valid.flatten()
-#  y_train, y_valid = y_train[w_train != 0], y_valid[w_valid != 0]
-#  X_train, X_valid = X_train[w_train != 0], X_valid[w_valid != 0]
-#
-#  cl = LogisticRegression(class_weight="balanced")
-#  y_valid, y_train = y_valid.astype(int), y_train.astype(int)
-#  cl.fit(X_train, y_train)
-#  y_train_pred = cl.predict_proba(X_train)
-#  y_valid_pred = cl.predict_proba(X_valid)
-#  print("metrics.roc_auc_score(to_one_hot(y_train), y_train_pred)")
-#  print(metrics.roc_auc_score(to_one_hot(y_train), y_train_pred))
-#  print("metrics.roc_auc_score(to_one_hot(y_valid), y_valid_pred)")
-#  print(metrics.roc_auc_score(to_one_hot(y_valid), y_valid_pred))
-#build_rf(train_dataset, valid_dataset)
-######### DEBUG
-
-def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
-  return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=LogisticRegression(class_weight="balanced"),
-                      verbosity=verbosity)
-def multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
+from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.models.tensorflow_models import TensorflowModel
+def tf_multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
                             verbosity=None):
-  return SingletaskToMultitask(tasks, task_types, params_dict, model_dir,
-                               model_builder, verbosity=verbosity)
-optimizer = HyperparamOpt(multitask_model_builder, MUV_tasks, MUV_task_types,
+  return TensorflowModel(tasks, task_types, params_dict, model_dir,
+                         tf_class=TensorflowMultiTaskClassifier,
+                         verbosity=verbosity)
+optimizer = HyperparamOpt(tf_multitask_model_builder, MUV_tasks, MUV_task_types,
                           verbosity=verbosity)
-best_lgstc, best_hyperparams, all_results = optimizer.hyperparam_search(
+best_dnn, best_dnn_hyperparams, all_dnn_results = \
+    optimizer.hyperparam_search(
         params_dict, train_dataset, valid_dataset, output_transformers,
         classification_metric, logdir=model_dir, use_max=True)

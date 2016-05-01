@@ -72,6 +72,14 @@ class Evaluator(object):
       y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
 
+    ####### DEBUG
+    from deepchem.metrics import to_one_hot
+    print("y.shape, y_pred.shape")
+    print(y.shape, y_pred.shape)
+    print("sklearn.metrics.roc_auc_score(to_one_hot(y), y_pred)")
+    print(sklearn.metrics.roc_auc_score(to_one_hot(y), y_pred))
+    ####### DEBUG
+
     if csv_out is not None:
       log("Saving predictions to %s" % csv_out, self.verbosity)
       self.output_predictions(y_pred, csv_out)
