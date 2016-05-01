@@ -153,30 +153,58 @@ classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
 
+#params_dict = {
+#    "nb_hidden": [1000],
+#    "activation": ["relu"],
+#    "dropout": [.25],
+#    "learning_rate": [.001],
+#    "momentum": [.9],
+#    "nesterov": [False],
+#    "decay": [1e-4],
+#    "batch_size": [64],
+#    "nb_epoch": [100],
+#    "init": ["glorot_uniform"],
+#    "nb_layers": [1],
+#    "batchnorm": [False],
+#    "data_shape": [train_dataset.get_data_shape()]
+#}
+
 params_dict = {
-    "nb_hidden": [1000],
-    "activation": ["relu"],
-    "dropout": [.25],
-    "learning_rate": [.001],
-    "momentum": [.9],
-    "nesterov": [False],
-    "decay": [1e-4],
-    "batch_size": [64],
-    "nb_epoch": [10],
-    "init": ["glorot_uniform"],
-    "nb_layers": [1],
-    "batchnorm": [False],
-    "data_shape": [train_dataset.get_data_shape()]
+    "nb_hidden": 1000,
+    "activation": "relu",
+    "dropout": .25,
+    "learning_rate": .001,
+    "momentum": .9,
+    "nesterov": False,
+    "decay": 1e-4,
+    "batch_size": 64,
+    "nb_epoch": 100,
+    "init": "glorot_uniform",
+    "nb_layers": 1,
+    "batchnorm": False,
+    "data_shape": train_dataset.get_data_shape()
 }
 
-def keras_multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
-                                  verbosity=None):
-  return MultiTaskDNN(tasks, task_types, params_dict, model_dir,
-                      verbosity=verbosity)
-optimizer = HyperparamOpt(keras_multitask_model_builder, MUV_tasks, MUV_task_types,
-                          verbosity=verbosity)
+#def keras_multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
+#                                  verbosity=None):
+#  return MultiTaskDNN(tasks, task_types, params_dict, model_dir,
+#                      verbosity=verbosity)
+#optimizer = HyperparamOpt(keras_multitask_model_builder, MUV_tasks, MUV_task_types,
+#                          verbosity=verbosity)
+#
+#best_dnn, best_dnn_hyperparams, all_dnn_results = \
+#    optimizer.hyperparam_search(
+#        params_dict, train_dataset, valid_dataset, output_transformers,
+#        classification_metric, logdir=model_dir, use_max=True)
 
-best_dnn, best_dnn_hyperparams, all_dnn_results = \
-    optimizer.hyperparam_search(
-        params_dict, train_dataset, valid_dataset, output_transformers,
-        classification_metric, logdir=model_dir, use_max=True)
+model = MultiTaskDNN(MUV_tasks, MUV_task_types, params_dict, model_dir,
+                    verbosity=verbosity)
+
+# Fit trained model
+model.fit(train_dataset)
+model.save()
+
+evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+scores = evaluator.compute_model_performance([classification_metric])
+
+print(scores)

@@ -25,6 +25,7 @@ from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import relative_difference
+from deepchem.utils.evaluate import Evaluator
 
 
 np.random.seed(123)
@@ -153,9 +154,13 @@ MUV_task_types = {task: "Classification" for task in MUV_tasks}
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
+#params_dict = { 
+#    "batch_size": [None],
+#    "data_shape": [train_dataset.get_data_shape()],
+#}   
 params_dict = { 
-    "batch_size": [None],
-    "data_shape": [train_dataset.get_data_shape()],
+    "batch_size": None,
+    "data_shape": train_dataset.get_data_shape(),
 }   
 
 ######### DEBUG
@@ -179,16 +184,32 @@ params_dict = {
 #build_rf(train_dataset, valid_dataset)
 ######### DEBUG
 
+#def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
+#  return SklearnModel(tasks, task_types, model_params, model_dir,
+#                      model_instance=LogisticRegression(class_weight="balanced"),
+#                      verbosity=verbosity)
+#def multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
+#                            verbosity=None):
+#  return SingletaskToMultitask(tasks, task_types, params_dict, model_dir,
+#                               model_builder, verbosity=verbosity)
+#optimizer = HyperparamOpt(multitask_model_builder, MUV_tasks, MUV_task_types,
+#                          verbosity=verbosity)
+#best_lgstc, best_hyperparams, all_results = optimizer.hyperparam_search(
+#        params_dict, train_dataset, valid_dataset, output_transformers,
+#        classification_metric, logdir=model_dir, use_max=True)
+
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
                       model_instance=LogisticRegression(class_weight="balanced"),
                       verbosity=verbosity)
-def multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
-                            verbosity=None):
-  return SingletaskToMultitask(tasks, task_types, params_dict, model_dir,
-                               model_builder, verbosity=verbosity)
-optimizer = HyperparamOpt(multitask_model_builder, MUV_tasks, MUV_task_types,
-                          verbosity=verbosity)
-best_lgstc, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict, train_dataset, valid_dataset, output_transformers,
-        classification_metric, logdir=model_dir, use_max=True)
+model = SingletaskToMultitask(MUV_tasks, MUV_task_types, params_dict, model_dir,
+                              model_builder, verbosity=verbosity)
+
+# Fit trained model
+model.fit(train_dataset)
+model.save()
+
+evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
+scores = evaluator.compute_model_performance([classification_metric])
+
+print(scores)

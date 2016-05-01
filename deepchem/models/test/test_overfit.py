@@ -68,10 +68,7 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [regression_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([regression_metric])
 
     assert scores[regression_metric.name] > .7
 
@@ -113,14 +110,11 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
 
     assert scores[classification_metric.name] > .9
 
-  def test_sklearn_sparse_classification_overfit(self):
+  def test_sklearn_skewed_classification_overfit(self):
     """Test sklearn models can overfit 0/1 datasets with few actives."""
     tasks = ["task0"]
     task_types = {task: "classification" for task in tasks}
@@ -135,11 +129,6 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-  
-    ######## DEBUG
-    print("np.count_nonzero(y)")
-    print(np.count_nonzero(y))
-    ######## DEBUG
   
     dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
 
@@ -164,10 +153,7 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
 
     assert scores[classification_metric.name] > .9
 
@@ -218,10 +204,7 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [regression_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([regression_metric])
 
     assert scores[regression_metric.name] > .7
 
@@ -325,20 +308,19 @@ class TestOverfitAPI(TestAPI):
 
     y_pred_model = model.predict(dataset, transformers=[])
     y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-    print("y_pred_proba_model.shape")
-    print(y_pred_proba_model.shape)
+    ######### DEBUG
+    #print("y_pred_proba_model.shape")
+    #print(y_pred_proba_model.shape)
+    ######### DEBUG
 
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
 
     assert scores[classification_metric.name] > .9
 
-  def test_keras_sparse_classification_overfit(self):
+  def test_keras_skewed_classification_overfit(self):
     """Test keras models can overfit 0/1 datasets with few actives."""
     tasks = ["task0"]
     task_types = {task: "classification" for task in tasks}
@@ -384,16 +366,15 @@ class TestOverfitAPI(TestAPI):
 
     y_pred_model = model.predict(dataset, transformers=[])
     y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-    print("y_pred_proba_model.shape")
-    print(y_pred_proba_model.shape)
+    #print("y_pred_proba_model.shape")
+    #print(y_pred_proba_model.shape)
 
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
+
+    assert scores[classification_metric.name] > .9
 
   def test_tf_classification_overfit(self):
     """Test that tensorflow models can overfit simple classification datasets."""
@@ -448,14 +429,11 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
 
     assert scores[classification_metric.name] > .9
 
-  def test_tf_sparse_classification_overfit(self):
+  def test_tf_skewed_classification_overfit(self):
     """Test tensorflow models can overfit 0/1 datasets with few actives."""
     tasks = ["task0"]
     task_types = {task: "classification" for task in tasks}
@@ -513,4 +491,6 @@ class TestOverfitAPI(TestAPI):
         scores = evaluator.compute_model_performance(
             [classification_metric], csv_out.name, stats_out)
 
+    print("scores")
+    print(scores)
     assert scores[classification_metric.name] > .8

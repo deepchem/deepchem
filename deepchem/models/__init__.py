@@ -162,11 +162,6 @@ class Model(object):
     n_tasks = len(self.tasks)
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
-      ######## DEBUG
-      print("predict_proba()")
-      print("y_pred_batch.shape")
-      print(y_pred_batch.shape)
-      ######## DEBUG
       batch_size = len(y_batch)
       y_pred_batch = np.squeeze(
           np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
@@ -178,11 +173,6 @@ class Model(object):
     n_samples, n_tasks = len(dataset), len(self.tasks)
     y_pred = y_pred[:n_samples]
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
-    ######## DEBUG
-    print("predict_proba()")
-    print("y_pred.shape")
-    print(y_pred.shape)
-    ######## DEBUG
     return y_pred
 
   def get_task_type(self):
