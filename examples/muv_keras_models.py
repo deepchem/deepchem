@@ -25,6 +25,7 @@ from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import relative_difference
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
 
 
 np.random.seed(123)
@@ -70,7 +71,7 @@ print(MUV_tasks)
 featurizer = DataFeaturizer(tasks=MUV_tasks,
                             smiles_field="smiles",
                             compound_featurizers=featurizers,
-                            verbosity="low")
+                            verbosity=verbosity)
 featurized_samples = featurizer.featurize(
     dataset_file, feature_dir,
     samples_dir, shard_size=8192,
@@ -147,34 +148,34 @@ for transformer in transformers:
     transformer.transform(test_dataset)
 
 # Fit tensorflow models
-MUV_task_types = {task: "Classification" for task in MUV_tasks}
+MUV_task_types = {task: "classification" for task in MUV_tasks}
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
-params_dict = { 
+
+params_dict = {
+    "nb_hidden": [1000],
+    "activation": ["relu"],
+    "dropout": [.25],
+    "learning_rate": [.001],
+    "momentum": [.9],
+    "nesterov": [False],
+    "decay": [1e-4],
     "batch_size": [64],
     "nb_epoch": [10],
-    "data_shape": [train_dataset.get_data_shape()],
-    "layer_sizes": [[1000]],
-    "weight_init_stddevs": [[.1]],
-    "bias_init_consts": [[.5]],
-    "dropouts": [[.25]],
-    "num_classification_tasks": [len(MUV_tasks)],
-    "num_classes": [2],
-    "penalty": [.0],
-    "optimizer": ["adam"],
-    "learning_rate": [.0003],
-}   
+    "init": ["glorot_uniform"],
+    "nb_layers": [1],
+    "batchnorm": [False],
+    "data_shape": [train_dataset.get_data_shape()]
+}
 
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.models.tensorflow_models import TensorflowModel
-def tf_multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
-                            verbosity=None):
-  return TensorflowModel(tasks, task_types, params_dict, model_dir,
-                         tf_class=TensorflowMultiTaskClassifier,
-                         verbosity=verbosity)
-optimizer = HyperparamOpt(tf_multitask_model_builder, MUV_tasks, MUV_task_types,
+def keras_multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
+                                  verbosity=None):
+  return MultiTaskDNN(tasks, task_types, params_dict, model_dir,
+                      verbosity=verbosity)
+optimizer = HyperparamOpt(keras_multitask_model_builder, MUV_tasks, MUV_task_types,
                           verbosity=verbosity)
+
 best_dnn, best_dnn_hyperparams, all_dnn_results = \
     optimizer.hyperparam_search(
         params_dict, train_dataset, valid_dataset, output_transformers,
