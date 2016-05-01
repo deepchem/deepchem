@@ -23,7 +23,7 @@ class TestSplitAPI(unittest.TestCase):
 
   def setUp(self):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.test_data_dir = os.path.join(self.current_dir, "../../models/test")
+    self.test_data_dir = os.path.join(self.current_dir, "../../models/tests")
     self.smiles_field = "smiles"
     self.feature_dir = tempfile.mkdtemp()
     self.samples_dir = tempfile.mkdtemp()

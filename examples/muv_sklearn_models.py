@@ -154,49 +154,10 @@ MUV_task_types = {task: "Classification" for task in MUV_tasks}
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
-#params_dict = { 
-#    "batch_size": [None],
-#    "data_shape": [train_dataset.get_data_shape()],
-#}   
 params_dict = { 
     "batch_size": None,
     "data_shape": train_dataset.get_data_shape(),
 }   
-
-######### DEBUG
-#def build_rf(train_dataset, valid_dataset):
-#  X_train, y_train, w_train, _ = train_dataset.to_numpy()
-#  X_valid, y_valid, w_valid, _ = valid_dataset.to_numpy()
-#
-#  w_train, w_valid = w_train.flatten(), w_valid.flatten()
-#  y_train, y_valid = y_train[w_train != 0], y_valid[w_valid != 0]
-#  X_train, X_valid = X_train[w_train != 0], X_valid[w_valid != 0]
-#
-#  cl = LogisticRegression(class_weight="balanced")
-#  y_valid, y_train = y_valid.astype(int), y_train.astype(int)
-#  cl.fit(X_train, y_train)
-#  y_train_pred = cl.predict_proba(X_train)
-#  y_valid_pred = cl.predict_proba(X_valid)
-#  print("metrics.roc_auc_score(to_one_hot(y_train), y_train_pred)")
-#  print(metrics.roc_auc_score(to_one_hot(y_train), y_train_pred))
-#  print("metrics.roc_auc_score(to_one_hot(y_valid), y_valid_pred)")
-#  print(metrics.roc_auc_score(to_one_hot(y_valid), y_valid_pred))
-#build_rf(train_dataset, valid_dataset)
-######### DEBUG
-
-#def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
-#  return SklearnModel(tasks, task_types, model_params, model_dir,
-#                      model_instance=LogisticRegression(class_weight="balanced"),
-#                      verbosity=verbosity)
-#def multitask_model_builder(tasks, task_types, params_dict, model_dir, logdir=None,
-#                            verbosity=None):
-#  return SingletaskToMultitask(tasks, task_types, params_dict, model_dir,
-#                               model_builder, verbosity=verbosity)
-#optimizer = HyperparamOpt(multitask_model_builder, MUV_tasks, MUV_task_types,
-#                          verbosity=verbosity)
-#best_lgstc, best_hyperparams, all_results = optimizer.hyperparam_search(
-#        params_dict, train_dataset, valid_dataset, output_transformers,
-#        classification_metric, logdir=model_dir, use_max=True)
 
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,

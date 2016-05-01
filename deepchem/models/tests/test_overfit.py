@@ -18,7 +18,7 @@ from sklearn.ensemble import RandomForestRegressor
 from deepchem import metrics
 from deepchem.datasets import Dataset
 from deepchem.metrics import Metric
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.keras_models.fcnet import MultiTaskDNN

@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer

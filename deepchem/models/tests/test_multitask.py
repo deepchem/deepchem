@@ -15,7 +15,7 @@ import tempfile
 import shutil
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.datasets import Dataset
-from deepchem.models.test import TestAPI
+from deepchem.models.tests import TestAPI
 
 class TestMultitaskData(TestAPI):
   """
