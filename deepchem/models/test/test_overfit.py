@@ -120,6 +120,57 @@ class TestOverfitAPI(TestAPI):
 
     assert scores[classification_metric.name] > .9
 
+  def test_sklearn_sparse_classification_overfit(self):
+    """Test sklearn models can overfit 0/1 datasets with few actives."""
+    tasks = ["task0"]
+    task_types = {task: "classification" for task in tasks}
+    n_samples = 100
+    n_features = 3
+    n_tasks = len(tasks)
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    p = .05
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+  
+    ######## DEBUG
+    print("np.count_nonzero(y)")
+    print(np.count_nonzero(y))
+    ######## DEBUG
+  
+    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+
+    model_params = {
+      "batch_size": None,
+      "data_shape": dataset.get_data_shape()
+    }
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="classification",
+                         model_instance=RandomForestClassifier())
+
+    # Fit trained model
+    model.fit(dataset)
+    model.save()
+
+    y_pred_model = model.predict(dataset, transformers=[])
+    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    with tempfile.NamedTemporaryFile() as csv_out:
+      with tempfile.NamedTemporaryFile() as stats_out:
+        scores = evaluator.compute_model_performance(
+            [classification_metric], csv_out.name, stats_out)
+
+    assert scores[classification_metric.name] > .9
+
   def test_keras_regression_overfit(self):
     """Test that keras models can overfit simple regression datasets."""
     tasks = ["task0"]
@@ -287,6 +338,63 @@ class TestOverfitAPI(TestAPI):
 
     assert scores[classification_metric.name] > .9
 
+  def test_keras_sparse_classification_overfit(self):
+    """Test keras models can overfit 0/1 datasets with few actives."""
+    tasks = ["task0"]
+    task_types = {task: "classification" for task in tasks}
+    n_samples = 100
+    n_features = 3
+    n_tasks = len(tasks)
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    p = .05
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+  
+    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+
+    model_params = {
+        "nb_hidden": 1000,
+        "activation": "relu",
+        "dropout": .0,
+        "learning_rate": .15,
+        "momentum": .9,
+        "nesterov": False,
+        "decay": 1e-4,
+        "batch_size": n_samples,
+        "nb_epoch": 200,
+        "init": "glorot_uniform",
+        "nb_layers": 1,
+        "batchnorm": False,
+        "data_shape": dataset.get_data_shape()
+    }
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    #classification_metric = Metric(metrics.recall_score, verbosity=verbosity)
+    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                         verbosity=verbosity)
+
+    # Fit trained model
+    model.fit(dataset)
+    model.save()
+
+    y_pred_model = model.predict(dataset, transformers=[])
+    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
+    print("y_pred_proba_model.shape")
+    print(y_pred_proba_model.shape)
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    with tempfile.NamedTemporaryFile() as csv_out:
+      with tempfile.NamedTemporaryFile() as stats_out:
+        scores = evaluator.compute_model_performance(
+            [classification_metric], csv_out.name, stats_out)
+
   def test_tf_classification_overfit(self):
     """Test that tensorflow models can overfit simple classification datasets."""
     tasks = ["task0"]
@@ -346,3 +454,63 @@ class TestOverfitAPI(TestAPI):
             [classification_metric], csv_out.name, stats_out)
 
     assert scores[classification_metric.name] > .9
+
+  def test_tf_sparse_classification_overfit(self):
+    """Test tensorflow models can overfit 0/1 datasets with few actives."""
+    tasks = ["task0"]
+    task_types = {task: "classification" for task in tasks}
+    n_samples = 100
+    n_features = 3
+    n_tasks = len(tasks)
+    n_classes = 2
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    p = .05
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+  
+    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+
+    model_params = {
+      "layer_sizes": [1500],
+      "dropouts": [.0],
+      "learning_rate": 0.001,
+      "momentum": .9,
+      "batch_size": n_samples,
+      "num_classification_tasks": 1,
+      "num_classes": n_classes,
+      "num_features": n_features,
+      "weight_init_stddevs": [.3],
+      "bias_init_consts": [1.],
+      "nb_epoch": 200,
+      "penalty": 0.0,
+      "optimizer": "adam",
+      "data_shape": dataset.get_data_shape()
+    }
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    model = TensorflowModel(
+        tasks, task_types, model_params, self.model_dir,
+        tf_class=TensorflowMultiTaskClassifier,
+        verbosity=verbosity)
+
+    # Fit trained model
+    model.fit(dataset)
+    model.save()
+
+    y_pred_model = model.predict(dataset, transformers=[])
+    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    with tempfile.NamedTemporaryFile() as csv_out:
+      with tempfile.NamedTemporaryFile() as stats_out:
+        scores = evaluator.compute_model_performance(
+            [classification_metric], csv_out.name, stats_out)
+
+    assert scores[classification_metric.name] > .8

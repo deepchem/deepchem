@@ -138,9 +138,9 @@ class Metric(object):
     ######## DEBUG
     #from deepchem.metrics import to_one_hot
     #import sklearn 
-    #print("compute_metric")
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
+    print("compute_metric")
+    print("y_true.shape, y_pred.shape")
+    print(y_true.shape, y_pred.shape)
     #print("sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred)")
     #print(sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred))
     ######## DEBUG
@@ -231,16 +231,16 @@ class Metric(object):
     else:
       y_pred = np.reshape(y_pred, (n_samples,))
 
-    ######## DEBUG
-    #import sklearn 
-    #print("compute_singletask_metric after classification adjustments")
-    #print("self.mode, self.name, n_classes")
-    #print(self.mode, self.name, n_classes)
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
-    #print("sklearn.metrics.roc_auc_score(y_true, y_pred)")
-    #print(sklearn.metrics.roc_auc_score(y_true, y_pred))
-    ######## DEBUG
+    ####### DEBUG
+    import sklearn 
+    print("compute_singletask_metric after classification adjustments")
+    print("self.mode, self.name, n_classes")
+    print(self.mode, self.name, n_classes)
+    print("y_true.shape, y_pred.shape")
+    print(y_true.shape, y_pred.shape)
+    print("sklearn.metrics.roc_auc_score(y_true, y_pred)")
+    print(sklearn.metrics.roc_auc_score(y_true, y_pred))
+    ####### DEBUG
       
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
