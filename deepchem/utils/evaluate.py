@@ -48,10 +48,6 @@ class Evaluator(object):
       csvfile: Open file object.
     """
     mol_ids = self.dataset.get_ids()
-    ################ DEBUG
-    print("len(y_preds), len(mol_ids)")
-    print(len(y_preds), len(mol_ids))
-    ################ DEBUG
     assert len(y_preds) == len(mol_ids)
     with open(csv_out, "wb") as csvfile:
       csvwriter = csv.writer(csvfile)
@@ -75,14 +71,6 @@ class Evaluator(object):
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
-
-    ######### DEBUG
-    ##from deepchem.metrics import to_one_hot
-    #print("y.shape, y_pred.shape")
-    #print(y.shape, y_pred.shape)
-    ##print("sklearn.metrics.roc_auc_score(to_one_hot(y), y_pred)")
-    ##print(sklearn.metrics.roc_auc_score(to_one_hot(y), y_pred))
-    ######### DEBUG
 
     if csv_out is not None:
       log("Saving predictions to %s" % csv_out, self.verbosity)

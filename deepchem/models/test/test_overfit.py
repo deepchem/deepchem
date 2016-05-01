@@ -257,10 +257,7 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [regression_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([regression_metric])
 
     assert scores[regression_metric.name] < .1
 
@@ -308,10 +305,6 @@ class TestOverfitAPI(TestAPI):
 
     y_pred_model = model.predict(dataset, transformers=[])
     y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-    ######### DEBUG
-    #print("y_pred_proba_model.shape")
-    #print(y_pred_proba_model.shape)
-    ######### DEBUG
 
     # Eval model on train
     transformers = []
@@ -356,7 +349,6 @@ class TestOverfitAPI(TestAPI):
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-    #classification_metric = Metric(metrics.recall_score, verbosity=verbosity)
     model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
                          verbosity=verbosity)
 
@@ -366,8 +358,6 @@ class TestOverfitAPI(TestAPI):
 
     y_pred_model = model.predict(dataset, transformers=[])
     y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-    #print("y_pred_proba_model.shape")
-    #print(y_pred_proba_model.shape)
 
     # Eval model on train
     transformers = []
@@ -486,11 +476,6 @@ class TestOverfitAPI(TestAPI):
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    with tempfile.NamedTemporaryFile() as csv_out:
-      with tempfile.NamedTemporaryFile() as stats_out:
-        scores = evaluator.compute_model_performance(
-            [classification_metric], csv_out.name, stats_out)
+    scores = evaluator.compute_model_performance([classification_metric])
 
-    print("scores")
-    print(scores)
     assert scores[classification_metric.name] > .8

@@ -135,15 +135,6 @@ class Metric(object):
       A numpy array containing metric values for each task.
     """
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
-    ######### DEBUG
-    ##from deepchem.metrics import to_one_hot
-    ##import sklearn 
-    #print("compute_metric")
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
-    ##print("sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred)")
-    ##print(sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred))
-    ######### DEBUG
     n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
     if self.mode == "classification":
       y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
@@ -157,13 +148,6 @@ class Metric(object):
       else:
         y_pred_task = y_pred[:, task, :]
       w_task = w[:, task]
-      ######## DEBUG
-      #print("compute_metric")
-      #print("y_task.shape, y_pred_task.shape")
-      #print(y_task.shape, y_pred_task.shape)
-      #print("sklearn.metrics.roc_auc_score(to_one_hot(y_task), y_pred_task)")
-      #print(sklearn.metrics.roc_auc_score(to_one_hot(y_task), y_pred_task))
-      ######## DEBUG
     
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
@@ -191,14 +175,7 @@ class Metric(object):
     """
     y_true = np.array(np.squeeze(y_true[w != 0]))
     y_pred = np.array(np.squeeze(y_pred[w != 0]))
-    ######## DEBUG
-    #import sklearn 
-    #print("compute_singletask_metric")
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
-    #print("sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred)")
-    #print(sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred))
-    ######## DEBUG
+
     if len(y_true.shape) == 0:
       n_samples = 1
     else:
@@ -207,14 +184,7 @@ class Metric(object):
     if not y_true.size:
       return np.nan
     y_true = np.reshape(y_true, (n_samples,))
-    ######## DEBUG
-    #import sklearn 
-    #print("compute_singletask_metric after reshape")
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
-    #print("sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred)")
-    #print(sklearn.metrics.roc_auc_score(to_one_hot(y_true), y_pred))
-    ######## DEBUG
+
     if self.mode == "classification":
       n_classes = y_pred.shape[-1]
       # TODO(rbharath): This has been a major source of bugs. Is there a more
@@ -231,16 +201,6 @@ class Metric(object):
     else:
       y_pred = np.reshape(y_pred, (n_samples,))
 
-    ######## DEBUG
-    #import sklearn 
-    #print("compute_singletask_metric after classification adjustments")
-    #print("self.mode, self.name, n_classes")
-    #print(self.mode, self.name, n_classes)
-    #print("y_true.shape, y_pred.shape")
-    #print(y_true.shape, y_pred.shape)
-    #print("sklearn.metrics.roc_auc_score(y_true, y_pred)")
-    #print(sklearn.metrics.roc_auc_score(y_true, y_pred))
-    ######## DEBUG
       
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
