@@ -1,18 +1,3 @@
-#!/usr/bin/python
-#
-# Copyright 2015 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Helper operations and classes for general model building.
 
 """
@@ -25,19 +10,10 @@ import cPickle as pickle
 import os
 import time
 import warnings
-
-
 import numpy as np
 import pandas as pd
-from sklearn import metrics as sklearn_metrics
 import tensorflow as tf
-
-from tensorflow.python.platform import logging
-
-from tensorflow.python.platform import gfile
-
 from deepchem.models import Model
-import deepchem.metrics as met 
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
@@ -63,7 +39,6 @@ class TensorflowGraph(object):
     output: Op(s) for model output for each task.
     labels: Op(s) for true labels for each task.
     weights: Op(s) for example weights for each task.
-    global_step: Scalar variable tracking total training/eval steps.
     updates: Op(s) for running updates of e.g. moving averages for batch
       normalization. Should be set to tf.no_op() if no updates are required.
 
@@ -139,8 +114,9 @@ class TensorflowGraph(object):
     with self.graph.as_default():
       with tf.name_scope('core_model'):
         self.build()
-      self.add_labels_and_weights()
-      self.global_step = tf.Variable(0, name='global_step', trainable=False)
+      self.add_label_placeholders()
+      self.add_weight_placeholders()
+      #self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
   def _shared_name_scope(self, name):
     """Returns a singleton TensorFlow scope with the given name.
@@ -156,7 +132,6 @@ class TensorflowGraph(object):
       with self.graph.as_default():
         with tf.name_scope(name) as scope:
           self._name_scopes[name] = scope
-
     return tf.name_scope(self._name_scopes[name])
 
   def add_training_cost(self):
@@ -230,34 +205,67 @@ class TensorflowGraph(object):
     nb_epoch = self.model_params["nb_epoch"]
     log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.graph.as_default():
-      assert model_ops.is_training()
-      self.require_attributes(['loss', 'global_step', 'updates'])
+      ########### DEBUG
+      #assert model_ops.is_training()
+      ########### DEBUG
+      #self.require_attributes(['loss', 'global_step', 'updates'])
+      self.require_attributes(['loss', 'updates'])
       train_op = self.get_training_op()
-      no_op = tf.no_op()
-      tf.train.write_graph(
-          tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
+      #no_op = tf.no_op()
+      #tf.train.write_graph(
+      #    tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
       with self._get_shared_session() as sess:
         sess.run(tf.initialize_all_variables())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
-        saver.save(sess, self._save_path, global_step=self.global_step)
+        #saver.save(sess, self._save_path, global_step=self.global_step)
+        saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
+          ########## DEBUG
+          y_bs, y_preds = [], []
+          ########## DEBUG
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op and compute summaries.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+            #fetches = self.output + [
+            #    train_op.values()[0], self.loss, self.updates]
             fetches = self.output + [
-                train_op.values()[0], self.loss, self.updates]
+                train_op, self.loss, self.updates]
             fetched_values = sess.run(
                 fetches,
                 feed_dict=feed_dict)
             output = fetched_values[:len(self.output)]
-            step, loss = fetched_values[-3], fetched_values[-2]
+            #step, loss = fetched_values[-3], fetched_values[-2]
+            _, loss = fetched_values[-3], fetched_values[-2]
             y_pred = np.squeeze(np.array(output))
+            ########### DEBUG
+            y_preds.append(y_pred)
+            y_bs.append(y_b)
+            #print("y_pred.shape, y_b.shape")
+            #print(y_pred.shape, y_b.shape)
+            ########### DEBUG
             y_b = y_b.flatten()
-          saver.save(sess, self._save_path, global_step=self.global_step)
+          ########### DEBUG
+          #import sklearn
+          #from deepchem.metrics import to_one_hot
+          #y_b = np.vstack(y_bs)
+          #y_pred = np.vstack(y_preds)
+          #print("y_pred.shape, y_b.shape")
+          #print(y_pred.shape, y_b.shape)
+          #print("np.count_nonzero(y_b)")
+          #print(np.count_nonzero(y_b))
+          #np.set_printoptions(precision=5)
+          #print("sklearn.metrics.log_loss(to_one_hot(y_b), y_pred)")
+          #print(sklearn.metrics.log_loss(to_one_hot(y_b), y_pred))
+          #print("sklearn.metrics.roc_auc_score(to_one_hot(y_b), y_pred)")
+          #print(sklearn.metrics.roc_auc_score(to_one_hot(y_b), y_pred))
+          ########### DEBUG
+          #saver.save(sess, self._save_path, global_step=self.global_step)
+          saver.save(sess, self._save_path, global_step=epoch)
           log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
         # Always save a final checkpoint when complete.
-        saver.save(sess, self._save_path, global_step=self.global_step)
+        #saver.save(sess, self._save_path, global_step=self.global_step)
+        saver.save(sess, self._save_path, global_step=epoch+1)
 
   def predict_on_batch(self, X):
     """Return model output for the provided input.
@@ -279,52 +287,35 @@ class TensorflowGraph(object):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    
+    ######### DEBUG
     if not self._restored_model:
       self.restore()
+    ######### DEBUG
     with self.graph.as_default():
       assert not model_ops.is_training()
-      self.require_attributes(['output', 'labels', 'weights'])
+      self.require_attributes(['output'])
 
       # run eval data through the model
       num_tasks = self.num_tasks
-      output, labels, weights = [], [], []
+      output = []
       start = time.time()
       with self._get_shared_session().as_default():
-        batch_count = -1.0
-
         feed_dict = self.construct_feed_dict(X)
-        batch_start = time.time()
-        batch_count += 1
         data = self._get_shared_session().run(
-            self.output + self.labels + self.weights,
-            feed_dict=feed_dict)
+            self.output, feed_dict=feed_dict)
         batch_output = np.asarray(data[:num_tasks], dtype=float)
-        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
-        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
-                                   dtype=float)
         # reshape to batch_size x num_tasks x ...
-        if batch_output.ndim == 3 and batch_labels.ndim == 3:
+        if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
-          batch_labels = batch_labels.transpose((1, 0, 2))
-        elif batch_output.ndim == 2 and batch_labels.ndim == 2:
+        elif batch_output.ndim == 2:
           batch_output = batch_output.transpose((1, 0))
-          batch_labels = batch_labels.transpose((1, 0))
         else:
           raise ValueError(
-              'Unrecognized rank combination for output and labels: %s %s' %
-              (batch_output.shape, batch_labels.shape))
+              'Unrecognized rank combination for output: %s' %
+              (batch_output.shape,))
         batch_weights = batch_weights.transpose((1, 0))
-        valid = feed_dict[self.valid.name]
-        # only take valid outputs
-        if np.count_nonzero(~valid):
-          batch_output = batch_output[valid]
-          batch_labels = batch_labels[valid]
-          batch_weights = batch_weights[valid]
         output.append(batch_output)
-        labels.append(batch_labels)
-        weights.append(batch_weights)
-
-        logging.info('Eval batch took %g seconds', time.time() - start)
 
         outputs = np.array(from_one_hot(
             np.squeeze(np.concatenate(output)), axis=-1))
@@ -389,22 +380,6 @@ class TensorflowGraph(object):
                            name='weights_%d' % task)))
     self.weights = weights
 
-  def add_labels_and_weights(self):
-    """Add Placeholders for labels and weights.
-
-    This method results in the creation of the following Placeholders for each
-    task:
-      labels_%d: Float label tensor. For classification tasks, this tensor will
-        have shape batch_size x num_classes. For regression tasks, this tensor
-        will have shape batch_size.
-      weights_%d: Label tensor with shape batch_size.
-
-    This method calls self.add_label_placeholders and self.add_weight_placeholders; the
-    former method must be implemented by a concrete subclass.
-    """
-    self.add_label_placeholders()
-    self.add_weight_placeholders()
-
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
 
@@ -417,8 +392,6 @@ class TensorflowGraph(object):
       A tensor with shape batch_size containing the weighted cost for each
       example. For use in subclasses that want to calculate additional costs.
     """
-    # TODO(user): for mixed classification/regression models, pass in a task
-    # index to control the cost calculation
     raise NotImplementedError('Must be overridden by concrete subclass')
 
   def get_training_op(self):
@@ -431,14 +404,7 @@ class TensorflowGraph(object):
     A training op.
     """
     opt = model_ops.Optimizer(self.model_params)
-    return opt.minimize(self.loss, global_step=self.global_step, name='train')
-
-  def add_output_ops(self):
-    """Add ops for inference.
-
-    Default implementation is pass, derived classes can override as needed.
-    """
-    pass
+    return opt.minimize(self.loss, name='train')
 
   def _get_shared_session(self):
     if not self._shared_session:
@@ -447,10 +413,6 @@ class TensorflowGraph(object):
       config = tf.ConfigProto(allow_soft_placement=True)
       self._shared_session = tf.Session(config=config)
     return self._shared_session
-
-  def close_shared_session(self):
-    if self._shared_session:
-      self._shared_session.close()
 
   def _get_feed_dict(self, named_values):
     feed_dict = {}
@@ -467,13 +429,17 @@ class TensorflowGraph(object):
     if self._restored_model:
       return
     with self.graph.as_default():
+      print("RESTORING MODEL FROM CHECKPOINT")
       assert not model_ops.is_training()
       last_checkpoint = self._find_last_checkpoint()
+      print("last_checkpoint")
+      print(last_checkpoint)
 
       saver = tf.train.Saver()
+      #saver.restore(self._get_shared_session(),
+      #              tf_utils.ParseCheckpoint(last_checkpoint))
       saver.restore(self._get_shared_session(),
-                    tf_utils.ParseCheckpoint(last_checkpoint))
-      self.global_step_number = int(self._get_shared_session().run(self.global_step))
+                    last_checkpoint)
       self._restored_model = True
 
   def _find_last_checkpoint(self):
@@ -538,69 +504,6 @@ class TensorflowClassifier(TensorflowGraph):
     return tf.mul(tf.nn.softmax_cross_entropy_with_logits(logits, labels),
                   weights)
 
-  def add_training_cost(self):
-    """Calculate additional classifier-specific costs.
-
-    Returns:
-      A list of tensors with shape batch_size containing costs for each task.
-    """
-    with self.graph.as_default():
-      # calculate losses
-      weighted_costs = super(TensorflowClassifier, self).add_training_cost()
-      epsilon = 1e-3  # small float to avoid dividing by zero
-      model_params = self.model_params
-      num_tasks = model_params["num_classification_tasks"]
-      cond_costs = collections.defaultdict(list)
-
-      with self._shared_name_scope('costs'):
-        for task in xrange(num_tasks):
-          task_str = str(task).zfill(len(str(num_tasks)))
-          with self._shared_name_scope('cost_{}'.format(task_str)):
-            with tf.name_scope('conditional'):
-              # pos/neg costs: mean over pos/neg examples
-              for name, label in [('neg', 0), ('pos', 1)]:
-                cond_weights = self.labels[task][:model_params["batch_size"], label]
-                cond_cost = tf.div(
-                    tf.reduce_sum(tf.mul(weighted_costs[task], cond_weights)),
-                    tf.reduce_sum(cond_weights) + epsilon)
-                cond_costs[name].append(cond_cost)
-
-        # aggregated costs
-        with self._shared_name_scope('aggregated'):
-          with tf.name_scope('pos_cost'):
-            pos_cost = tf.add_n(cond_costs['pos'])
-          with tf.name_scope('neg_cost'):
-            neg_cost = tf.add_n(cond_costs['neg'])
-
-      # keep track of the number of positive examples seen by each task
-      with tf.name_scope('counts'):
-        for task in xrange(num_tasks):
-          num_pos = tf.Variable(0.0, name='num_pos_%d' % task, trainable=False)
-          # the assignment must occur on the same device as the variable
-          with tf.device(num_pos.device):
-            tf.get_default_graph().add_to_collection(
-                'updates', num_pos.assign_add(
-                    tf.reduce_sum(self.labels[task][:model_params["batch_size"], 1])))
-
-      return weighted_costs
-
-  def example_counts(self, y_true):
-    """Get counts of examples in each class.
-
-    Args:
-      y_true: List of numpy arrays containing true values, one for each task.
-
-    Returns:
-      A dict mapping class names to counts.
-    """
-    classes = np.unique(np.concatenate(y_true))
-    counts = {klass: np.zeros(self.num_tasks, dtype=int)
-              for klass in classes}
-    for task in xrange(self.num_tasks):
-      for klass in classes:
-        counts[klass][task] = np.count_nonzero(y_true[task] == klass)
-    return counts
-
   def add_label_placeholders(self):
     """Add Placeholders for labels for each task.
 
@@ -653,18 +556,6 @@ class TensorflowRegressor(TensorflowGraph):
     """
     return tf.mul(0.5 * tf.square(output - labels), weights)
 
-  def example_counts(self, y_true):
-    """Get counts of examples in each class.
-
-    Args:
-      y_true: List of numpy arrays containing true values, one for each task.
-
-    Returns:
-      A dict mapping class names to counts.
-    """
-    return {'all': np.asarray([len(y_true[task])
-                               for task in xrange(self.num_tasks)])}
-
   def add_label_placeholders(self):
     """Add Placeholders for labels for each task.
 
@@ -689,18 +580,12 @@ class TensorflowModel(Model):
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self,
-               tasks,
-               task_types,
-               model_params,
-               logdir,
-               tf_class=None,
+  def __init__(self, tasks, task_types, model_params, logdir, tf_class=None,
                verbosity=None):
     """
     Args:
       tf_class: Class that inherits from TensorflowGraph
     """ 
-    
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
     if tf_class is None:
@@ -726,13 +611,14 @@ class TensorflowModel(Model):
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_on_batch(X)
+    #return self.train_model.predict_on_batch(X)
 
   def predict_proba_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_proba_on_batch(X)
-
+    #return self.train_model.predict_proba_on_batch(X)
 
   def save(self):
     """
@@ -740,10 +626,8 @@ class TensorflowModel(Model):
     """
     pass
 
-  def load(self, model_dir):
+  def reload(self):
     """
     Loads model from disk. Thin wrapper around restore() for consistency.
     """
-    if model_dir != self.eval_model.logdir:
-      raise ValueError("Cannot load from directory that is not logdir.")
     self.eval_model.restore()

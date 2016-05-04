@@ -133,6 +133,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
         layer = model_ops.Dropout(layer, dropouts[i])
+        #layer = tf.nn.dropout(layer, dropouts[i])
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
@@ -165,7 +166,6 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         # Dummy placeholders
         orig_dict["weights_%d" % task] = np.ones(
             (self.model_params["batch_size"],)) 
-    orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
     return self._get_feed_dict(orig_dict)
 
   def predict_proba_on_batch(self, X):
@@ -179,61 +179,41 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     Returns:
       Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
         output: Model outputs.
-        labels: True labels.
-        weights: Example weights.
-      Note that the output and labels arrays may be more than 2D, e.g. for
+      Note that the output arrays may be more than 2D, e.g. for
       classifier models that return class probabilities.
 
     Raises:
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    ######### DEBUG
     if not self._restored_model:
       self.restore()
+    ######### DEBUG
     with self.graph.as_default():
-      assert not model_ops.is_training()
-      self.require_attributes(['output', 'labels', 'weights'])
+      ########### DEBUG
+      #assert not model_ops.is_training()
+      ########### DEBUG
+      self.require_attributes(['output'])
 
       # run eval data through the model
       num_tasks = self.num_tasks
-      outputs, labels, weights = [], [], []
-      start = time.time()
+      outputs = []
       with self._get_shared_session().as_default():
-        batch_count = -1.0
-
         feed_dict = self.construct_feed_dict(X)
-        batch_start = time.time()
-        batch_count += 1
         data = self._get_shared_session().run(
-            self.output + self.labels + self.weights,
-            feed_dict=feed_dict)
+            self.output, feed_dict=feed_dict)
         batch_outputs = np.asarray(data[:num_tasks], dtype=float)
-        batch_labels = np.asarray(data[num_tasks:num_tasks * 2], dtype=float)
-        batch_weights = np.asarray(data[num_tasks * 2:num_tasks * 3],
-                                   dtype=float)
         # reshape to batch_size x num_tasks x ...
-        if batch_outputs.ndim == 3 and batch_labels.ndim == 3:
+        if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
-          batch_labels = batch_labels.transpose((1, 0, 2))
-        elif batch_outputs.ndim == 2 and batch_labels.ndim == 2:
+        elif batch_outputs.ndim == 2:
           batch_outputs = batch_outputs.transpose((1, 0))
-          batch_labels = batch_labels.transpose((1, 0))
         else:
           raise ValueError(
-              'Unrecognized rank combination for output and labels: %s %s' %
-              (batch_outputs.shape, batch_labels.shape))
-        batch_weights = batch_weights.transpose((1, 0))
-        valid = feed_dict[self.valid.name]
-        # only take valid outputs
-        if np.count_nonzero(~valid):
-          batch_outputs = batch_outputs[valid]
-          batch_labels = batch_labels[valid]
-          batch_weights = batch_weights[valid]
+              'Unrecognized rank combination for output: %s ' %
+              (batch_outputs.shape,))
         outputs.append(batch_outputs)
-        labels.append(batch_labels)
-        weights.append(batch_weights)
-
-        logging.info('Eval batch took %g seconds', time.time() - start)
 
         # We apply softmax to predictions to get class probabilities.
         outputs = softmax(np.squeeze(np.hstack(outputs)))
@@ -286,6 +266,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
         layer = model_ops.Dropout(layer, dropouts[i])
+        #layer = tf.nn.dropout(layer, keep_prob)
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
@@ -327,7 +308,6 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         # Dummy placeholders
         orig_dict["weights_%d" % task] = np.ones(
             (self.model_params["batch_size"],)) 
-    orig_dict["valid"] = np.ones((self.model_params["batch_size"],), dtype=bool)
     return self._get_feed_dict(orig_dict)
 
   def predict_on_batch(self, X):
@@ -350,10 +330,14 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    ########## DEBUG
     if not self._restored_model:
       self.restore()
+    ########## DEBUG
     with self.graph.as_default():
-      assert not model_ops.is_training()
+      ########### DEBUG
+      #assert not model_ops.is_training()
+      ########### DEBUG
       self.require_attributes(['output'])
 
       # run eval data through the model
@@ -373,10 +357,6 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
           raise ValueError(
               'Unrecognized rank combination for output: %s' %
               (batch_outputs.shape))
-        valid = feed_dict[self.valid.name]
-        # only take valid outputs
-        if np.count_nonzero(~valid):
-          batch_outputs = batch_outputs[valid]
         outputs.append(batch_outputs)
 
         outputs = np.squeeze(np.concatenate(outputs)) 

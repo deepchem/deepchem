@@ -9,7 +9,6 @@ import os
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.models.test import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
@@ -104,13 +103,15 @@ print(MUV_tasks)
 full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
-print("full_dataset.get_task_names()")
-print(full_dataset.get_task_names())
 y = full_dataset.get_labels()
 train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_train  = train_dataset.get_labels()
+print("y_train.shape")
+print(y_train.shape)
+print("np.count_nonzero(y_train)")
+print(np.count_nonzero(y_train))
 valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
@@ -137,15 +138,10 @@ assert relative_difference(
 
 # Transform data
 print("About to transform data")
-input_transformers = []
-output_transformers = []
-weight_transformers = [BalancingTransformer(transform_w=True, dataset=train_dataset)]
-transformers = input_transformers + output_transformers + weight_transformers
+transformers = [BalancingTransformer(transform_w=True, dataset=train_dataset)]
 for transformer in transformers:
     transformer.transform(train_dataset)
-for transformer in transformers:
     transformer.transform(valid_dataset)
-for transformer in transformers:
     transformer.transform(test_dataset)
 
 # Fit tensorflow models
@@ -154,8 +150,8 @@ classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
 params_dict = { 
-    "batch_size": 64,
-    "nb_epoch": 15,
+    "batch_size": 128,
+    "nb_epoch": 5,
     "data_shape": train_dataset.get_data_shape(),
     "layer_sizes": [1000],
     "weight_init_stddevs": [.1],

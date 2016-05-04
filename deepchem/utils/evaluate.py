@@ -68,6 +68,18 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
+      ########## DEBUG
+      import sklearn
+      from deepchem.metrics import to_one_hot
+      print("compute_model_performance()")
+      print("y_pred.shape, y.shape")
+      print(y_pred.shape, y.shape)
+      print("sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred))")
+      print(sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred)))
+      print("sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred))")
+      print(sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred)))
+      ########## DEBUG
+  
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}

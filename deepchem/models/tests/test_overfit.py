@@ -63,8 +63,6 @@ class TestOverfitAPI(TestAPI):
     model.fit(dataset)
     model.save()
 
-    y_pred_model = model.predict(dataset, transformers=[])
-
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
@@ -103,9 +101,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []

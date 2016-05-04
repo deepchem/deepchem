@@ -78,6 +78,13 @@ class Model(object):
     """
     return self.raw_model
 
+  def reload(self):
+    """
+    Reload trained model from disk.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own reload method.")
+
   @staticmethod
   def get_model_filename(model_dir):
     """

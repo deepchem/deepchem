@@ -73,6 +73,6 @@ class SklearnModel(Model):
     super(SklearnModel, self).save()
     save_to_disk(self.raw_model, self.get_model_filename(self.model_dir))
 
-  def load(self):
+  def reload(self):
     """Loads sklearn model from joblib file on disk."""
     self.raw_model = load_from_disk(Model.get_model_filename(self.model_dir))

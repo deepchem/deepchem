@@ -39,11 +39,11 @@ class KerasModel(Model):
       file_obj.write(json_string)
     model.save_weights(h5_filename, overwrite=True)
 
-  def load(self, model_dir):
+  def reload(self):
     """
     Load keras multitask DNN from disk.
     """
-    filename = Model.get_model_filename(model_dir)
+    filename = Model.get_model_filename(self.model_dir)
     filename, _ = os.path.splitext(filename)
 
     json_filename = "%s.%s" % (filename, "json")
