@@ -135,7 +135,7 @@ class Model(object):
 
     return X, y, w
 
-  def predict(self, dataset, transformers):
+  def predict(self, dataset, transformers=[]):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -157,7 +157,7 @@ class Model(object):
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     return y_pred
 
-  def predict_proba(self, dataset, transformers, n_classes=2):
+  def predict_proba(self, dataset, transformers=[], n_classes=2):
     """
     TODO: Do transformers even make sense here?
 

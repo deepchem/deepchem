@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import os
 import numpy as np
+import shutil
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
@@ -45,9 +46,15 @@ feature_dir = os.path.join(base_dir, "features")
 samples_dir = os.path.join(base_dir, "samples")
 full_dir = os.path.join(base_dir, "full_dataset")
 train_dir = os.path.join(base_dir, "train_dataset")
+train_dir2 = os.path.join(base_dir, "train_dataset_2")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
+
+# Remove existing model directory since TF doesn't overwrite by default...
+if os.path.exists(model_dir):
+  shutil.rmtree(model_dir)
+os.makedirs(model_dir)
 
 # Load MUV dataset
 print("About to load MUV dataset.")
@@ -79,22 +86,22 @@ featurized_samples = featurizer.featurize(
 
 assert len(featurized_samples) == len(dataset)
 # Train/Valid/Test Split dataset
-print("About to perform train/valid/test split.")
-splitter = RandomSplitter(verbosity=verbosity)
-frac_train, frac_valid, frac_test = .8, .1, .1
-train_samples, valid_samples, test_samples = \
-    splitter.train_valid_test_split(
-        featurized_samples, train_dir, valid_dir, test_dir,
-        log_every_n=1000, reload=reload)
-
-len_train_samples, len_valid_samples, len_test_samples = \
-  len(train_samples), len(valid_samples), len(test_samples)
-assert relative_difference(
-    len(train_samples), frac_train * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(valid_samples), frac_valid * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(test_samples), frac_test * len(featurized_samples)) < 1e-3
+#print("About to perform train/valid/test split.")
+#splitter = RandomSplitter(verbosity=verbosity)
+#frac_train, frac_valid, frac_test = .8, .1, .1
+#train_samples, valid_samples, test_samples = \
+#    splitter.train_valid_test_split(
+#        featurized_samples, train_dir, valid_dir, test_dir,
+#        log_every_n=1000, reload=reload)
+#
+#len_train_samples, len_valid_samples, len_test_samples = \
+#  len(train_samples), len(valid_samples), len(test_samples)
+#assert relative_difference(
+#    len(train_samples), frac_train * len(featurized_samples)) < 1e-3
+#assert relative_difference(
+#    len(valid_samples), frac_valid * len(featurized_samples)) < 1e-3
+#assert relative_difference(
+#    len(test_samples), frac_test * len(featurized_samples)) < 1e-3
 
 # Generate datasets
 print("About to create datasets")
@@ -103,46 +110,84 @@ print(MUV_tasks)
 full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
-y = full_dataset.get_labels()
-train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
-                        featurizers=featurizers, tasks=MUV_tasks,
-                        verbosity=verbosity, reload=reload)
-y_train  = train_dataset.get_labels()
-print("y_train.shape")
-print(y_train.shape)
-print("np.count_nonzero(y_train)")
-print(np.count_nonzero(y_train))
-valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
-                        featurizers=featurizers, tasks=MUV_tasks,
-                        verbosity=verbosity, reload=reload)
-y_valid = valid_dataset.get_labels()
-test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
-                       featurizers=featurizers, tasks=MUV_tasks,
-                       verbosity=verbosity, reload=reload)
-y_test = test_dataset.get_labels()
-len_train_dataset, len_valid_dataset, len_test_dataset = \
-  len(train_dataset), len(valid_dataset), len(test_dataset)
+print("len(full_dataset)")
+print(len(full_dataset))
+# Do train/valid split.
+#num_train = 2048
+#num_train = 4096
+#num_train = 8192
+num_train = 12800 
+#num_train = 13000
+#num_train = 16384 ## BROKEN
+num_valid = 1024
+X, y, w, ids = full_dataset.to_numpy()
 
-print("len(train_samples), len(train_dataset)")
-print(len(train_samples), len(train_dataset))
-assert relative_difference(
-    len(train_samples), len(train_dataset)) < 1e-3
-print("len(valid_samples), len(valid_dataset)")
-print(len(valid_samples), len(valid_dataset))
-assert relative_difference(
-    len(valid_samples), len(valid_dataset)) < 1e-2
-print("len(test_samples), len(test_dataset)")
-print(len(test_samples), len(test_dataset))
-assert relative_difference(
-    len(test_samples), len(test_dataset)) < 1e-2
+w_flat = w.flatten()
+#y_flat = y.flatten()
 
-# Transform data
-print("About to transform data")
-transformers = [BalancingTransformer(transform_w=True, dataset=train_dataset)]
-for transformer in transformers:
-    transformer.transform(train_dataset)
-    transformer.transform(valid_dataset)
-    transformer.transform(test_dataset)
+
+####### DEBUG
+#    num_nonzero = np.count_nonzero(y)
+#    weight_nonzero = len(y)/num_nonzero
+#    print("weight_nonzero")
+#    print(weight_nonzero)
+#    w[y_flat != 0] = weight_nonzero
+####### DEBUG
+
+X, y, w, ids = X[w_flat != 0], y[w_flat != 0], w[w_flat != 0], ids[w_flat != 0]
+print("Shape after removing zeros")
+print("X.shape")
+print(X.shape)
+X_train, X_valid = X[:num_train], X[num_train:num_train+num_valid]
+y_train, y_valid = y[:num_train], y[num_train:num_train+num_valid]
+w_train, w_valid = w[:num_train], w[num_train:num_train+num_valid]
+ids_train, ids_valid = ids[:num_train], ids[num_train:num_train+num_valid]
+
+
+if os.path.exists(train_dir):
+  shutil.rmtree(train_dir)
+train_dataset = Dataset.from_numpy(train_dir, MUV_tasks, X_train, y_train,
+                                   w_train, ids_train)
+print("len(train_dataset)")
+print(len(train_dataset))
+if os.path.exists(valid_dir):
+  shutil.rmtree(valid_dir)
+valid_dataset = Dataset.from_numpy(valid_dir, MUV_tasks, X_valid, y_valid,
+                                   w_valid, ids_valid)
+print("len(valid_dataset)")
+print(len(valid_dataset))
+
+#y = full_dataset.get_labels()
+#train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
+#                        featurizers=featurizers, tasks=MUV_tasks,
+#                        verbosity=verbosity, reload=reload)
+#y_train  = train_dataset.get_labels()
+#
+#X_train, y_train, w_train, ids_train = train_dataset.to_numpy()
+#w_flat = w_train.flatten()
+#X_train = X_train[w_flat != 0]
+#y_train = y_train[w_flat != 0]
+#ids_train = ids_train[w_flat != 0]
+#w_train = w_train[w_flat != 0]
+######
+#w_train = np.ones_like(w_train)
+######
+#train_dataset = Dataset.from_numpy(train_dir2, MUV_tasks, X_train, y_train,
+#                                   w_train, ids_train)
+#y_train  = train_dataset.get_labels()
+#
+#valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
+#                        featurizers=featurizers, tasks=MUV_tasks,
+#                        verbosity=verbosity, reload=reload)
+#y_valid = valid_dataset.get_labels()
+#test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
+#                       featurizers=featurizers, tasks=MUV_tasks,
+#                       verbosity=verbosity, reload=reload)
+#y_test = test_dataset.get_labels()
+#len_train_dataset, len_valid_dataset, len_test_dataset = \
+#  len(train_dataset), len(valid_dataset), len(test_dataset)
+
+transformers = []
 
 # Fit tensorflow models
 MUV_task_types = {task: "Classification" for task in MUV_tasks}
@@ -151,11 +196,12 @@ classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                mode="classification")
 params_dict = { 
     "batch_size": 128,
-    "nb_epoch": 5,
+    #"batch_size": 5120,
+    "nb_epoch": 50,
     "data_shape": train_dataset.get_data_shape(),
     "layer_sizes": [1000],
-    "weight_init_stddevs": [.1],
-    "bias_init_consts": [.5],
+    "weight_init_stddevs": [1.],
+    "bias_init_consts": [1.],
     "dropouts": [.25],
     "num_classification_tasks": len(MUV_tasks),
     "num_classes": 2,
@@ -168,9 +214,23 @@ model = TensorflowModel(MUV_tasks, MUV_task_types, params_dict, model_dir,
                         tf_class=TensorflowMultiTaskClassifier,
                         verbosity=verbosity)
 
+
 # Fit trained model
 model.fit(train_dataset)
 model.save()
+
+############# DEBUG
+#import sklearn
+#y_train_pred_proba = np.squeeze(model.predict_proba(train_dataset))
+#y_train = train_dataset.get_labels()
+#w_train = train_dataset.get_weights()
+#print("y_train.shape, y_train_pred_proba.shape")
+#print(y_train.shape, y_train_pred_proba.shape)
+#print("sklearn.metrics.roc_auc_score(to_one_hot(y_train), y_train_pred_proba)")
+#print(sklearn.metrics.roc_auc_score(to_one_hot(y_train), y_train_pred_proba))
+#print("sklearn.metrics.roc_auc_score(to_one_hot(y_train), y_train_pred_proba, sample_weight=w_train)")
+#print(sklearn.metrics.roc_auc_score(to_one_hot(y_train), y_train_pred_proba, sample_weight=w_train))
+############# DEBUG
 
 train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
 train_scores = train_evaluator.compute_model_performance([classification_metric])

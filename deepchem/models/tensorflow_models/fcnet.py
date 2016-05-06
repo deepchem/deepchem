@@ -191,9 +191,9 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       self.restore()
     ######### DEBUG
     with self.graph.as_default():
-      ########### DEBUG
-      #assert not model_ops.is_training()
-      ########### DEBUG
+      ########## DEBUG
+      assert not model_ops.is_training()
+      ########## DEBUG
       self.require_attributes(['output'])
 
       # run eval data through the model

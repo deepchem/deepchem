@@ -422,6 +422,7 @@ class TestOverfitAPI(TestAPI):
     """Test tensorflow models can overfit 0/1 datasets with few actives."""
     tasks = ["task0"]
     task_types = {task: "classification" for task in tasks}
+    #n_samples = 100
     n_samples = 100
     n_features = 3
     n_tasks = len(tasks)
@@ -440,19 +441,127 @@ class TestOverfitAPI(TestAPI):
     model_params = {
       "layer_sizes": [1500],
       "dropouts": [.0],
-      "learning_rate": 0.001,
+      "learning_rate": 0.003,
       "momentum": .9,
       "batch_size": n_samples,
       "num_classification_tasks": 1,
       "num_classes": n_classes,
       "num_features": n_features,
-      "weight_init_stddevs": [.3],
+      "weight_init_stddevs": [1.],
       "bias_init_consts": [1.],
       "nb_epoch": 200,
       "penalty": 0.0,
       "optimizer": "adam",
       "data_shape": dataset.get_data_shape()
     }
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    model = TensorflowModel(
+        tasks, task_types, model_params, self.model_dir,
+        tf_class=TensorflowMultiTaskClassifier,
+        verbosity=verbosity)
+
+    # Fit trained model
+    model.fit(dataset)
+    model.save()
+
+    y_pred_model = model.predict(dataset, transformers=[])
+    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    scores = evaluator.compute_model_performance([classification_metric])
+
+    assert scores[classification_metric.name] > .8
+
+  def test_tf_skewed_missing_classification_overfit(self):
+    """TF, skewed data, few actives
+
+    Test tensorflow models overfit 0/1 datasets with missing data and few
+    actives. This is intended to be as close to singletask MUV datasets as
+    possible.
+    """
+    
+    tasks = ["task0"]
+    task_types = {task: "classification" for task in tasks}
+    #n_samples = 250
+    #n_samples = 500
+    #n_samples = 1000
+    #n_samples = 2000
+    #n_samples = 5000
+    n_samples = 5120
+    #n_features = 3
+    n_features = 6
+    n_tasks = len(tasks)
+    n_classes = 2
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    #p = .002
+    #p = .2
+    #p = .1
+    #p = .05
+    #p = .01
+    #p = .005
+    p = .002
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    print("np.count_nonzero(y)")
+    print(np.count_nonzero(y))
+    #w = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    #print("np.amin(w), np.amax(w)")
+    #print(np.amin(w), np.amax(w))
+
+    #print("y_nonzero.shape")
+    #print(y_nonzero.shape)
+    #print("np.count_nonzero(y_nonzero)")
+    #print(np.count_nonzero(y_nonzero))
+    ##### DEBUG
+    y_flat, w_flat = np.squeeze(y), np.squeeze(w)
+    y_nonzero = y_flat[w_flat != 0]
+    num_nonzero = np.count_nonzero(y_nonzero)
+    weight_nonzero = len(y_nonzero)/num_nonzero
+    print("weight_nonzero")
+    print(weight_nonzero)
+    w_flat[y_flat != 0] = weight_nonzero
+    w = np.reshape(w_flat, (n_samples, n_tasks))
+    print("np.amin(w), np.amax(w)")
+    print(np.amin(w), np.amax(w))
+    ##### DEBUG
+  
+    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+
+    model_params = {
+      "layer_sizes": [1200],
+      "dropouts": [.0],
+      "learning_rate": 0.003,
+      "momentum": .9,
+      #"batch_size": n_samples,
+      #"batch_size": n_samples/2,
+      #"batch_size": n_samples/4,
+      #"batch_size": n_samples/8,
+      #"batch_size": n_samples/16,
+      #"batch_size": n_samples/32,
+      "batch_size": n_samples/64,
+      # TODO(rbharath): Is there a bug in the padding code? Why does it fail to
+      # learn for non-multiples?
+      #"batch_size": 600,
+      "num_classification_tasks": 1,
+      "num_classes": n_classes,
+      "num_features": n_features,
+      "weight_init_stddevs": [1.],
+      "bias_init_consts": [1.],
+      "nb_epoch": 250,
+      "penalty": 0.0,
+      "optimizer": "adam",
+      "data_shape": dataset.get_data_shape()
+    }
+    print("model_params['batch_size']")
+    print(model_params['batch_size'])
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)

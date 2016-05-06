@@ -186,13 +186,11 @@ class TensorflowGraph(object):
 
   def fit(self,
           dataset,
-          summaries=False,
           max_checkpoints_to_keep=5):
     """Fit the model.
 
     Args:
       dataset: Dataset object that represents data on disk.
-      summaries: If True, add summaries for model parameters.
       max_checkpoints_to_keep: Integer. Maximum number of checkpoints to keep;
         older checkpoints will be deleted.
 
@@ -225,7 +223,7 @@ class TensorflowGraph(object):
           y_bs, y_preds = [], []
           ########## DEBUG
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
-            # Run training op and compute summaries.
+            # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             #fetches = self.output + [
             #    train_op.values()[0], self.loss, self.updates]
@@ -314,7 +312,6 @@ class TensorflowGraph(object):
           raise ValueError(
               'Unrecognized rank combination for output: %s' %
               (batch_output.shape,))
-        batch_weights = batch_weights.transpose((1, 0))
         output.append(batch_output)
 
         outputs = np.array(from_one_hot(

@@ -68,17 +68,19 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
-      ########## DEBUG
-      import sklearn
-      from deepchem.metrics import to_one_hot
-      print("compute_model_performance()")
-      print("y_pred.shape, y.shape")
-      print(y_pred.shape, y.shape)
-      print("sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred))")
-      print(sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred)))
-      print("sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred))")
-      print(sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred)))
-      ########## DEBUG
+      ############ DEBUG
+      ##import sklearn
+      ##from deepchem.metrics import to_one_hot
+      ##print("compute_model_performance()")
+      ##print("y_pred.shape, y.shape")
+      ##print(y_pred.shape, y.shape)
+      ##print("sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred))")
+      ##print(sklearn.metrics.log_loss(to_one_hot(y), np.squeeze(y_pred)))
+      ##print("sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred))")
+      ##print(sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred)))
+      ##print("sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred), sample_weight=w)")
+      ##print(sklearn.metrics.roc_auc_score(to_one_hot(y), np.squeeze(y_pred), sample_weight=w))
+      ############ DEBUG
   
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
@@ -91,5 +93,10 @@ class Evaluator(object):
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
+  
+    ########## DEBUG
+    print("multitask_scores")
+    print(multitask_scores)
+    ########## DEBUG
 
     return multitask_scores

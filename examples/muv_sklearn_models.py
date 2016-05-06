@@ -169,7 +169,14 @@ model = SingletaskToMultitask(MUV_tasks, MUV_task_types, params_dict, model_dir,
 model.fit(train_dataset)
 model.save()
 
-evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
-scores = evaluator.compute_model_performance([classification_metric])
+train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
+train_scores = train_evaluator.compute_model_performance([classification_metric])
 
-print(scores)
+print("Train scores")
+print(train_scores)
+
+valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
+valid_scores = valid_evaluator.compute_model_performance([classification_metric])
+
+print("Validation scores")
+print(valid_scores)
