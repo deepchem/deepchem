@@ -136,7 +136,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         prev_layer_size = layer_sizes[i]
 
       self.output = model_ops.MultitaskLogits(
-          layer, self.model_params["num_classification_tasks"])
+          layer, self.num_tasks)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
