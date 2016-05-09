@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 
 
 import tensorflow as tf
+import numpy as np
 
 from google.protobuf import text_format
 
@@ -421,3 +422,80 @@ def Optimizer(model_params):
   else:
     raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
   return train_op
+
+def GaussianDistanceMatrix(R):
+  """ exp(-eta*(R-Rs)**2 """
+  with tf.op_scope([R], None, "GaussianDistanceMatrix"):
+    eta = tf.Variable(tf.constant(1.0), name="eta")
+    Rs = tf.Variable(tf.constant(0.0), name="Rs")
+
+    return tf.exp(-eta*(R-Rs)**2)
+
+def RadialCutoff(R):
+  """ 0.5*[cos(pi/Rc*R)+1] """
+
+  epsilon = 1e-6
+  with tf.op_scope([R], None, "RadialCutoff"):
+    Rc = tf.constant(6.0)
+    T = 0.5*(tf.cos(np.pi*R/Rc)+1)
+    E = tf.zeros_like(T)
+
+    cond = tf.less_equal(R,Rc)
+    T = tf.select(cond,T, E)
+
+    cond_identity = tf.less(R,epsilon)
+    FC = tf.select(cond_identity, E, T)
+    FC_diag = tf.diag(tf.diag_part(FC))
+    FC = FC - FC_diag
+    return FC
+
+def RadialSymmetryFunction(R):
+  """ GaussianDistanceMatrix*RadialCutoff """
+  
+  K = GaussianDistanceMatrix(R)
+  FC = RadialCutoff(R)
+
+  return tf.reduce_sum(tf.mul(K, FC), 1)
+ 
+def CircularProduct(KFC):
+  """ Produces the angular kernal from KFC matrix """
+  N = int(KFC.get_shape()[0])
+  K1 = tf.tile(tf.expand_dims(KFC, 2), [1, 1, N])
+  K2 = tf.tile(tf.expand_dims(KFC, 1), [1, N, 1])
+  K3 = tf.tile(tf.expand_dims(KFC, 0), [N, 1, 1])
+  P = K1*K2*K3
+  return P
+
+def eye(N):
+  """Get the NxN identity matrix."""
+  return tf.diag(tf.tile(tf.convert_to_tensor([1.]), [N])) 
+
+def CosKernel(R, D, zeta):
+  """Computes the cosine tensor for all atom triples."""
+  N = int(R.get_shape()[0])
+  lm = eye(N)*tf.constant(1e-5)
+  R += lm
+  Rbot1 = tf.tile(tf.expand_dims(R, 2), [1,1,N]) 
+  Rbot2 = tf.tile(tf.expand_dims(R, 1), [1,N,1]) 
+  Rbot = Rbot1 * Rbot2
+  Rtop = tf.batch_matmul(D, D, adj_y=True)  
+  C = Rtop/Rbot
+  C = (tf.constant(1.) + C)**zeta
+  return C
+ 
+def AngularSymmetryFunction(R, D, zeta):
+
+  K = GaussianDistanceMatrix(R)
+  FC = RadialCutoff(R)
+  return FC
+  KFC = K * FC 
+  P = CircularProduct(KFC)
+  C = CosKernel(R, D, zeta)
+  G = tf.reduce_sum(P*C, reduction_indices=[1,2])
+  G *= 2**(1-zeta)
+  return G
+
+
+
+
+

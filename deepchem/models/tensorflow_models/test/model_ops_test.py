@@ -35,12 +35,269 @@ from deepchem.models.tensorflow_models import model_ops
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102
 
+def _numpy_radial_cutoff(R):
+  Rc = 6.
+  FC = 0.5*(np.cos(np.pi*R/Rc)+1)*(R<=Rc)
+  N = R.shape[0]
+  for i in range(N):
+    FC[i,i] = 0
+  return FC
+
+def _numpy_gaussian_distance_matrix(R):
+  return np.exp(-1.*R**2)
+
+def _numpy_radial_symmetry_function(R):
+  K = _numpy_gaussian_distance_matrix(R)
+  FC = _numpy_radial_cutoff(R)
+  N = R.shape[0]
+  return np.sum(K * FC, axis=1)
+
+#def _numpy_P_matrix(KFC):
+#
+#  N = KFC.shape[0]
+#  P = np.zeros((N, N, N))
+#  for i in range(N):
+#    P[i] = np.outer(KFC[i], KFC[i]) * KFC
+#  return P
+
+def _numpy_P_matrix(KFC):
+
+  N = KFC.shape[0]
+  P = np.zeros((N, N, N))
+  K1  = np.repeat(KFC[:,:,np.newaxis], N, axis=2)
+  K2  = np.repeat(KFC[:,np.newaxis,:], N, axis=1)
+  K3  = np.repeat(KFC[np.newaxis,:,:], N, axis=0)
+  P = K1*K2*K3
+  #for i in range(N):
+  #  P[i] = np.outer(KFC[i], KFC[i]) * KFC
+  return P
+
+#def _numpy_cos_matrix(R, D):
+#
+#  zeta = 1
+#  N = R.shape[0]
+#  lm = np.eye(N)*1e-5
+#  R += lm
+#  Rbot = np.zeros((N,N,N))
+#  Rtop = np.zeros((N,N,N)) 
+#  for i in range(N):
+#    Rbot[i] = np.outer(R[i],R[i])
+#    Rtop[i] = np.dot(D[i],D[i].T)
+#
+#  C = Rtop/Rbot
+#  C = (1+C)**zeta
+#  return C
+
+def _numpy_cos_matrix(R, D, zeta=1):
+
+  N = R.shape[0]
+  lm = np.eye(N)*1e-5
+  R += lm
+  Rbot1  = np.repeat(R[:,:,np.newaxis], N, axis=2)
+  Rbot2  = np.repeat(R[:,np.newaxis,:], N, axis=1)
+  Rbot = Rbot1*Rbot2
+  l = np.arange(N)
+  Rtop = np.tensordot(D, D, axes=([2], [2]))[l,:,l,:]
+  C = Rtop/Rbot
+  C = (1+C)**zeta
+  return C
+
+# D.shape == (N, N, 3)
+#def __numpy_angular_symmetry_function(R, D):
+#  N = R.shape[0]
+#  zeta = 1.
+#  eta = 1.
+#  lambd = 1.
+#  K = _numpy_gaussian_distance_matrix(R)
+#  FC = _numpy_radial_cutoff(R)
+#  KFC = K * FC
+#  P = _numpy_P_matrix(KFC)
+#  GE = _numpy_cos_matrix(R, D) 
+#  GE = GE * P
+#  G = np.sum(np.sum(GE, axis=2), axis=1)
+#  G *= 2**(1-zeta)
+#  return G
+
+def _numpy_angular_symmetry_function(R, D, zeta=1):
+  N = R.shape[0]
+  eta = 1.
+  lambd = 1.
+
+  K = _numpy_gaussian_distance_matrix(R)
+  FC = _numpy_radial_cutoff(R)
+  return FC
+  KFC = K * FC
+  #G = np.zeros(N)
+
+  P = _numpy_P_matrix(KFC)
+  C = _numpy_cos_matrix(R, D)
+  #for i in range(N):
+  #  for j in range(N):
+  #    if i == j: continue
+  #    for k in range(N):
+  #      if i == k: continue
+  #      #costheta = (1+np.dot(D[i,j],D[i,k])/(R[i,j]*R[i,k]))**zeta
+  #      costheta = C[i,j,k]
+  #      G[i] += P[i,j,k]*costheta
+  G = np.sum(P*C, axis=(1,2))
+  G *= 2**(1-zeta)
+  return G
+        
+def _numpy_unrolled_angular_symmetry_function(R, D):
+  N = R.shape[0]
+  zeta = 1.
+  eta = 1.
+  lambd = 1.
+
+  K = _numpy_gaussian_distance_matrix(R)
+  FC = _numpy_radial_cutoff(R)
+  KFC = K * FC
+  G = np.zeros(N)
+
+  for i in range(N):
+    for j in range(N):
+      if i == j: continue
+      for k in range(N):
+        if i == k: continue
+        costheta = (1+np.dot(D[i,j],D[i,k])/(R[i,j]*R[i,k]))**zeta
+        G[i] += KFC[i,j]*KFC[i,k]*KFC[j,k]*costheta
+    G[i] *= 2**(1-zeta)
+  return G
+
+
+def _create_D_tensor(d):
+  N = d.shape[0]
+  D = np.zeros((N,N,3))
+  for i in range(N):
+    for j in range(N):
+      D[i,j] = d[i]-d[j]
+  return D
 
 class ModelOpsTest(test_util.TensorFlowTestCase):
 
   def setUp(self):
     super(ModelOpsTest, self).setUp()
     self.root = '/tmp'
+
+  def testGaussianDistanceMatrix(self):
+    with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      K_test_T = model_ops.GaussianDistanceMatrix(R)
+      sess.run(tf.initialize_all_variables())
+      K_test, eta, Rs = sess.run([K_test_T] + tf.trainable_variables()) 
+      self.assertAllClose(K_test, [[1., 1/np.e], [1/np.e, 1.]])
+
+  def testRadialCutoff(self):
+    
+    with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      R_large = tf.constant([[0.0, 7.0], [7.0, 0.0]], shape=[2, 2])
+      FC_test_T = model_ops.RadialCutoff(R)
+      FC_large_test_T = model_ops.RadialCutoff(R_large)
+      FC_test, FC_large_test = sess.run([FC_test_T, FC_large_test_T])
+      self.assertAllClose(
+          FC_test, _numpy_radial_cutoff(np.array([[0.0, 1.0],[1.0, 0.0]])))
+      self.assertAllClose(
+          FC_large_test, _numpy_radial_cutoff(np.array([[0.0, 7.0],[7.0, 0.0]])))
+
+  def testRadialSymmetryFunction(self):
+
+    with self.test_session() as sess:
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      R_large = tf.constant([[0.0, 7.0], [7.0, 0.0]], shape=[2, 2])
+      G_test_T = model_ops.RadialSymmetryFunction(R)
+      G_large_test_T = model_ops.RadialSymmetryFunction(R_large)
+      sess.run(tf.initialize_all_variables())
+      print(len(tf.trainable_variables()))
+      G_test, G_large_test, eta1, Rs1, eta2, Rs2 = \
+        sess.run([G_test_T, G_large_test_T] +
+                 tf.trainable_variables())
+      self.assertAllClose(
+          G_test, _numpy_radial_symmetry_function(np.array([[0.0, 1.0],[1.0, 0.0]])))
+      self.assertAllClose(
+          G_large_test, _numpy_radial_symmetry_function(np.array([[0.0, 7.0],[7.0, 0.0]])))
+
+  def testAngularSymmetryFunction(self):
+
+    with self.test_session() as sess:
+
+      R = tf.constant([[0.0, 1.0], [1.0, 0.0]], shape=[2, 2])
+      R_large = tf.constant([[0.0, 7.0], [7.0, 0.0]], shape=[2, 2])
+      G_test_T = model_ops.AngularSymmetryFunction(R)
+      G_large_test_T = model_ops.AngularSymmetryFunction(R_large)
+      sess.run(tf.initialize_all_variables())
+      G_test, G_large_test, eta1, Rs1, eta2, Rs2 = \
+        sess.run([G_test_T, G_large_test_T] +
+                 tf.trainable_variables())
+      self.assertAllClose(
+          G_test, _numpy_angular_symmetry_function(np.array([[0.0, 1.0],[1.0, 0.0]])))
+      self.assertAllClose(
+          G_large_test, _numpy_angular_symmetry_function(np.array([[0.0, 7.0],[7.0, 0.0]])))
+
+  def testRefAngularSymmetryFunction(self):
+    
+    R = np.array([[0., 1., np.sqrt(2)],[1., 0., 1.], [np.sqrt(2), 1., 0.]])
+    d = np.array([[0., 0., 0.],[0., 1., 0.], [1., 1., 0.]])
+    D = _create_D_tensor(d)
+
+    G_unrolled = _numpy_unrolled_angular_symmetry_function(R, D)
+    G = _numpy_angular_symmetry_function(R, D)       
+    self.assertAllClose(G_unrolled, G)  
+
+  def testCircularProduct(self):
+    N = 4
+    KFC = np.random.rand(N,N)
+    P_numpy = _numpy_P_matrix(KFC)
+
+    with self.test_session() as sess:
+      KFC_t = tf.convert_to_tensor(KFC)
+      P_t = model_ops.CircularProduct(KFC_t)
+      P_tensorflow = sess.run(P_t)
+
+    self.assertAllClose(P_numpy, P_tensorflow)
+
+  def testEye(self):
+    Ns = [1, 3, 5, 7]
+    for N in Ns:
+      I_numpy = np.eye(N)
+      with self.test_session() as sess:
+        I_t = model_ops.eye(N)
+        I_tensorflow = sess.run(I_t)
+      np.testing.assert_allclose(I_numpy, I_tensorflow)
+      
+  def testCosKernel(self):
+    N = 4
+    R = np.random.rand(N, N)
+    D = np.random.rand(N, N, 3)
+    C_numpy = _numpy_cos_matrix(R, D)
+
+    with self.test_session() as sess:
+      R_t = tf.convert_to_tensor(R, dtype=tf.float32)
+      D_t = tf.convert_to_tensor(D, dtype=tf.float32)
+      C_t = model_ops.CosKernel(R_t, D_t)
+      C_tensorflow = sess.run(C_t)
+
+    print(np.amax(C_numpy - C_tensorflow))
+    np.testing.assert_allclose(C_numpy, C_tensorflow, rtol=1e-3)
+
+  def testBasicAngularSymmetryFunction(self):
+    N = 4
+    R = np.random.rand(N, N)
+    D = np.random.rand(N, N, 3)
+    zeta = 1
+    A_numpy = _numpy_angular_symmetry_function(R, D, zeta)
+
+    with self.test_session() as sess:
+      R_t = tf.convert_to_tensor(R, dtype=tf.float32)
+      D_t = tf.convert_to_tensor(D, dtype=tf.float32)
+      zeta_t = tf.convert_to_tensor(zeta, dtype=tf.float32)
+      A_t = model_ops.AngularSymmetryFunction(R_t, D_t, zeta_t)
+      sess.run(tf.initialize_all_variables())
+      A_tensorflow = sess.run([A_t] + tf.trainable_variables())[0]
+
+    print(np.amax(A_numpy - A_tensorflow))
+    np.testing.assert_allclose(A_numpy, A_tensorflow)
+
 
   def testAddBias(self):
     with self.test_session() as sess:
