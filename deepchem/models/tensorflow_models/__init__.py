@@ -116,7 +116,6 @@ class TensorflowGraph(object):
         self.build()
       self.add_label_placeholders()
       self.add_weight_placeholders()
-      #self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
   def _shared_name_scope(self, name):
     """Returns a singleton TensorFlow scope with the given name.
@@ -203,66 +202,29 @@ class TensorflowGraph(object):
     nb_epoch = self.model_params["nb_epoch"]
     log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.graph.as_default():
-      ########### DEBUG
-      #assert model_ops.is_training()
-      ########### DEBUG
-      #self.require_attributes(['loss', 'global_step', 'updates'])
       self.require_attributes(['loss', 'updates'])
       train_op = self.get_training_op()
-      #no_op = tf.no_op()
-      #tf.train.write_graph(
-      #    tf.get_default_graph().as_graph_def(), self.logdir, 'train.pbtxt')
       with self._get_shared_session() as sess:
         sess.run(tf.initialize_all_variables())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
-        #saver.save(sess, self._save_path, global_step=self.global_step)
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
-          ########## DEBUG
-          y_bs, y_preds = [], []
-          ########## DEBUG
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            #fetches = self.output + [
-            #    train_op.values()[0], self.loss, self.updates]
             fetches = self.output + [
                 train_op, self.loss, self.updates]
             fetched_values = sess.run(
                 fetches,
                 feed_dict=feed_dict)
             output = fetched_values[:len(self.output)]
-            #step, loss = fetched_values[-3], fetched_values[-2]
             _, loss = fetched_values[-3], fetched_values[-2]
             y_pred = np.squeeze(np.array(output))
-            ########### DEBUG
-            y_preds.append(y_pred)
-            y_bs.append(y_b)
-            #print("y_pred.shape, y_b.shape")
-            #print(y_pred.shape, y_b.shape)
-            ########### DEBUG
             y_b = y_b.flatten()
-          ########### DEBUG
-          #import sklearn
-          #from deepchem.metrics import to_one_hot
-          #y_b = np.vstack(y_bs)
-          #y_pred = np.vstack(y_preds)
-          #print("y_pred.shape, y_b.shape")
-          #print(y_pred.shape, y_b.shape)
-          #print("np.count_nonzero(y_b)")
-          #print(np.count_nonzero(y_b))
-          #np.set_printoptions(precision=5)
-          #print("sklearn.metrics.log_loss(to_one_hot(y_b), y_pred)")
-          #print(sklearn.metrics.log_loss(to_one_hot(y_b), y_pred))
-          #print("sklearn.metrics.roc_auc_score(to_one_hot(y_b), y_pred)")
-          #print(sklearn.metrics.roc_auc_score(to_one_hot(y_b), y_pred))
-          ########### DEBUG
-          #saver.save(sess, self._save_path, global_step=self.global_step)
           saver.save(sess, self._save_path, global_step=epoch)
           log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
         # Always save a final checkpoint when complete.
-        #saver.save(sess, self._save_path, global_step=self.global_step)
         saver.save(sess, self._save_path, global_step=epoch+1)
 
   def predict_on_batch(self, X):
@@ -538,6 +500,10 @@ class TensorflowRegressor(TensorflowGraph):
 
   def get_task_type(self):
     return "regressor"
+
+  def add_output_ops(self):
+    """No-op for regression models since no softmax."""
+    pass
 
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
