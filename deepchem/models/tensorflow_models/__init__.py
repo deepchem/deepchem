@@ -98,9 +98,6 @@ class TensorflowGraph(object):
       self.placeholder_root = 'placeholders'
       with tf.name_scope(self.placeholder_root) as scope:
         self.placeholder_scope = scope
-        self.valid = tf.placeholder(tf.bool,
-                                    shape=[model_params["batch_size"]],
-                                    name='valid')
 
     self.setup()
     if train:
@@ -333,7 +330,7 @@ class TensorflowGraph(object):
     for task in xrange(self.num_tasks):
       with tf.name_scope(self.placeholder_scope):
         weights.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[self.model_params["batch_size"]],
+            tf.placeholder(tf.float32, shape=[None],
                            name='weights_%d' % task)))
     self.weights = weights
 
@@ -473,7 +470,7 @@ class TensorflowClassifier(TensorflowGraph):
       for task in xrange(self.num_tasks):
         with tf.name_scope(self.placeholder_scope):
           labels.append(tf.identity(
-              tf.placeholder(tf.float32, shape=[batch_size, num_classes],
+              tf.placeholder(tf.float32, shape=[None, num_classes],
                              name='labels_%d' % task)))
       self.labels = labels
 
@@ -527,7 +524,7 @@ class TensorflowRegressor(TensorflowGraph):
       for task in xrange(self.num_tasks):
         with tf.name_scope(self.placeholder_scope):
           labels.append(tf.identity(
-              tf.placeholder(tf.float32, shape=[batch_size],
+              tf.placeholder(tf.float32, shape=[None],
                              name='labels_%d' % task)))
       self.labels = labels
 

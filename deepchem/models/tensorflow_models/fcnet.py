@@ -103,8 +103,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
-            shape=[self.model_params["batch_size"],
-                   num_features],
+            shape=[None, num_features],
             name='mol_features')
 
       layer_sizes = self.model_params["layer_sizes"]
@@ -231,8 +230,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
-            shape=[self.model_params["batch_size"],
-                   num_features],
+            shape=[None, num_features],
             name='mol_features')
 
       layer_sizes = self.model_params["layer_sizes"]
