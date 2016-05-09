@@ -93,15 +93,6 @@ train_samples, valid_samples, test_samples = \
         featurized_samples, train_dir, valid_dir, test_dir,
         log_every_n=1000, reload=reload)
 
-len_train_samples, len_valid_samples, len_test_samples = \
-  len(train_samples), len(valid_samples), len(test_samples)
-assert relative_difference(
-    len(train_samples), frac_train * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(valid_samples), frac_valid * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(test_samples), frac_test * len(featurized_samples)) < 1e-3
-
 # Generate datasets
 print("About to create datasets")
 print("MUV_tasks")

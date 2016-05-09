@@ -38,7 +38,6 @@ verbosity = "high"
 
 # Create some directories for analysis
 # The base_dir holds the results of all analysis
-#base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
 base_dir = "/scratch/users/rbharath/small_muv_multitask_analysis"
 current_dir = os.path.dirname(os.path.realpath(__file__))
 #Make directories to store the raw and featurized datasets.
@@ -129,81 +128,6 @@ for transformer in transformers:
     transformer.transform(valid_dataset)
 for transformer in transformers:
     transformer.transform(test_dataset)
-
-## Do train/valid split.
-##num_train = 2048
-##num_train = 4096
-##num_train = 8192
-#num_train = 12800 
-##num_train = 13000
-##num_train = 16384 ## BROKEN
-#num_valid = 1024
-#X, y, w, ids = full_dataset.to_numpy()
-#
-#w_flat = w.flatten()
-##y_flat = y.flatten()
-
-
-####### DEBUG
-#    num_nonzero = np.count_nonzero(y)
-#    weight_nonzero = len(y)/num_nonzero
-#    print("weight_nonzero")
-#    print(weight_nonzero)
-#    w[y_flat != 0] = weight_nonzero
-####### DEBUG
-#
-#X, y, w, ids = X[w_flat != 0], y[w_flat != 0], w[w_flat != 0], ids[w_flat != 0]
-#print("Shape after removing zeros")
-#print("X.shape")
-#print(X.shape)
-#X_train, X_valid = X[:num_train], X[num_train:num_train+num_valid]
-#y_train, y_valid = y[:num_train], y[num_train:num_train+num_valid]
-#w_train, w_valid = w[:num_train], w[num_train:num_train+num_valid]
-#ids_train, ids_valid = ids[:num_train], ids[num_train:num_train+num_valid]
-#
-#
-#if os.path.exists(train_dir):
-#  shutil.rmtree(train_dir)
-#train_dataset = Dataset.from_numpy(train_dir, MUV_tasks, X_train, y_train,
-#                                   w_train, ids_train)
-#print("len(train_dataset)")
-#print(len(train_dataset))
-#if os.path.exists(valid_dir):
-#  shutil.rmtree(valid_dir)
-#valid_dataset = Dataset.from_numpy(valid_dir, MUV_tasks, X_valid, y_valid,
-#                                   w_valid, ids_valid)
-#print("len(valid_dataset)")
-#print(len(valid_dataset))
-#
-#y = full_dataset.get_labels()
-#train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
-#                        featurizers=featurizers, tasks=MUV_tasks,
-#                        verbosity=verbosity, reload=reload)
-#y_train  = train_dataset.get_labels()
-#
-#X_train, y_train, w_train, ids_train = train_dataset.to_numpy()
-#w_flat = w_train.flatten()
-#X_train = X_train[w_flat != 0]
-#y_train = y_train[w_flat != 0]
-#ids_train = ids_train[w_flat != 0]
-#w_train = w_train[w_flat != 0]
-######
-#w_train = np.ones_like(w_train)
-######
-#train_dataset = Dataset.from_numpy(train_dir2, MUV_tasks, X_train, y_train,
-#                                   w_train, ids_train)
-#y_train  = train_dataset.get_labels()
-#
-#valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
-#                        featurizers=featurizers, tasks=MUV_tasks,
-#                        verbosity=verbosity, reload=reload)
-#y_valid = valid_dataset.get_labels()
-#test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
-#                       featurizers=featurizers, tasks=MUV_tasks,
-#                       verbosity=verbosity, reload=reload)
-#y_test = test_dataset.get_labels()
-#len_train_dataset, len_valid_dataset, len_test_dataset = \
-#  len(train_dataset), len(valid_dataset), len(test_dataset)
 
 transformers = []
 

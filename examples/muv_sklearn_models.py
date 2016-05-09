@@ -110,39 +110,20 @@ full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples,
 print("full_dataset.get_task_names()")
 print(full_dataset.get_task_names())
 y = full_dataset.get_labels()
-#if os.path.exists(train_dir):
-#  shutil.rmtree(train_dir)
 train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_train  = train_dataset.get_labels()
-#if os.path.exists(valid_dir):
-#  shutil.rmtree(valid_dir)
 valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_valid = valid_dataset.get_labels()
-#if os.path.exists(test_dir):
-#  shutil.rmtree(test_dir)
 test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
                        featurizers=featurizers, tasks=MUV_tasks,
                        verbosity=verbosity, reload=reload)
 y_test = test_dataset.get_labels()
 len_train_dataset, len_valid_dataset, len_test_dataset = \
   len(train_dataset), len(valid_dataset), len(test_dataset)
-
-print("len(train_samples), len(train_dataset)")
-print(len(train_samples), len(train_dataset))
-assert relative_difference(
-    len(train_samples), len(train_dataset)) < 1e-3
-print("len(valid_samples), len(valid_dataset)")
-print(len(valid_samples), len(valid_dataset))
-assert relative_difference(
-    len(valid_samples), len(valid_dataset)) < 1e-2
-print("len(test_samples), len(test_dataset)")
-print(len(test_samples), len(test_dataset))
-assert relative_difference(
-    len(test_samples), len(test_dataset)) < 1e-2
 
 # Transform data
 print("About to transform data")
@@ -171,10 +152,10 @@ params_dict = {
 
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=LogisticRegression(class_weight="balanced"),
-                      #model_instance=RandomForestClassifier(
-                      #    class_weight="balanced",
-                      #    n_estimators=500),
+                      #model_instance=LogisticRegression(class_weight="balanced"),
+                      model_instance=RandomForestClassifier(
+                          class_weight="balanced",
+                          n_estimators=500),
                       verbosity=verbosity)
 model = SingletaskToMultitask(MUV_tasks, MUV_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)
