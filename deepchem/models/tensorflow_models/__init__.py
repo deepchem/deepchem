@@ -248,10 +248,8 @@ class TensorflowGraph(object):
       ValueError: If output and labels are not both 3D or both 2D.
     """
     
-    ######### DEBUG
     if not self._restored_model:
       self.restore()
-    ######### DEBUG
     with self.graph.as_default():
       assert not model_ops.is_training()
       self.require_attributes(['output'])
@@ -388,15 +386,10 @@ class TensorflowGraph(object):
     if self._restored_model:
       return
     with self.graph.as_default():
-      print("RESTORING MODEL FROM CHECKPOINT")
       assert not model_ops.is_training()
       last_checkpoint = self._find_last_checkpoint()
-      print("last_checkpoint")
-      print(last_checkpoint)
 
       saver = tf.train.Saver()
-      #saver.restore(self._get_shared_session(),
-      #              tf_utils.ParseCheckpoint(last_checkpoint))
       saver.restore(self._get_shared_session(),
                     last_checkpoint)
       self._restored_model = True
@@ -574,14 +567,12 @@ class TensorflowModel(Model):
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_on_batch(X)
-    #return self.train_model.predict_on_batch(X)
 
   def predict_proba_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_proba_on_batch(X)
-    #return self.train_model.predict_proba_on_batch(X)
 
   def save(self):
     """

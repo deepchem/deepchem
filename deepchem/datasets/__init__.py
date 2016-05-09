@@ -397,9 +397,6 @@ def _df_to_numpy(df, feature_types, tasks):
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
-  #y = df[tasks].values
-  print("df.keys()")
-  print(df.keys())
   y = np.array([df[task].values for task in tasks])
   y = np.reshape(y, (n_samples, n_tasks))
   w = np.ones((n_samples, n_tasks))

@@ -133,7 +133,6 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
         layer = model_ops.Dropout(layer, dropouts[i])
-        #layer = tf.nn.dropout(layer, dropouts[i])
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
@@ -186,14 +185,10 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    ######### DEBUG
     if not self._restored_model:
       self.restore()
-    ######### DEBUG
     with self.graph.as_default():
-      ########## DEBUG
       assert not model_ops.is_training()
-      ########## DEBUG
       self.require_attributes(['output'])
 
       # run eval data through the model
@@ -330,14 +325,10 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    ########## DEBUG
     if not self._restored_model:
       self.restore()
-    ########## DEBUG
     with self.graph.as_default():
-      ########### DEBUG
-      #assert not model_ops.is_training()
-      ########### DEBUG
+      assert not model_ops.is_training()
       self.require_attributes(['output'])
 
       # run eval data through the model
