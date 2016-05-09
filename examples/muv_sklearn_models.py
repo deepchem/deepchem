@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import os
 import numpy as np
+import shutil
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
@@ -47,6 +48,10 @@ train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
+
+if os.path.exists(model_dir):
+  shutil.rmtree(model_dir)
+os.makedirs(model_dir)
 
 # Load MUV dataset
 print("About to load MUV dataset.")
@@ -105,14 +110,20 @@ full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples,
 print("full_dataset.get_task_names()")
 print(full_dataset.get_task_names())
 y = full_dataset.get_labels()
+#if os.path.exists(train_dir):
+#  shutil.rmtree(train_dir)
 train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_train  = train_dataset.get_labels()
+#if os.path.exists(valid_dir):
+#  shutil.rmtree(valid_dir)
 valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
                         featurizers=featurizers, tasks=MUV_tasks,
                         verbosity=verbosity, reload=reload)
 y_valid = valid_dataset.get_labels()
+#if os.path.exists(test_dir):
+#  shutil.rmtree(test_dir)
 test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
                        featurizers=featurizers, tasks=MUV_tasks,
                        verbosity=verbosity, reload=reload)
@@ -161,6 +172,9 @@ params_dict = {
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
                       model_instance=LogisticRegression(class_weight="balanced"),
+                      #model_instance=RandomForestClassifier(
+                      #    class_weight="balanced",
+                      #    n_estimators=500),
                       verbosity=verbosity)
 model = SingletaskToMultitask(MUV_tasks, MUV_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)

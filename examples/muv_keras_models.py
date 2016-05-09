@@ -50,7 +50,7 @@ valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 
-# Remove existing model directory since TF doesn't overwrite by default...
+# Remove existing model directory since keras doesn't overwrite by default...
 if os.path.exists(model_dir):
   shutil.rmtree(model_dir)
 os.makedirs(model_dir)
@@ -153,7 +153,7 @@ for transformer in transformers:
 for transformer in transformers:
     transformer.transform(test_dataset)
 
-# Fit tensorflow models
+# Fit keras models
 MUV_task_types = {task: "classification" for task in MUV_tasks}
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,

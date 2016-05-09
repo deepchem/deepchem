@@ -196,8 +196,6 @@ class Dataset(object):
         y_batch = y[indices]
         w_batch = w[indices]
         ids_batch = ids[indices]
-        #(X_batch, y_batch, w_batch, ids_batch) = self._pad_batch(
-        #    X_batch, y_batch, w_batch, ids_batch, shard_batch_size)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod
@@ -248,27 +246,6 @@ class Dataset(object):
     for (_, _, w_b, _) in self.itershards():
       ws.append(np.array(w_b))
     return np.vstack(ws)
-
-  #def _pad_batch(self, X_b, y_b, w_b, ids_b, batch_size):
-  #  """Fix batch to have exactly batch_size elements.
- 
-  #  Due to rounding issues, some batches will not have exactly batch_size
-  #  elements. Handle these batches by zero padding all arrays.
-  #  """
-  #  n, feature_shape = np.shape(X_b)[0], np.shape(X_b)[1:]
-  #  _, num_tasks = np.shape(y_b)
-  #  if n == batch_size:
-  #    return (X_b, y_b, w_b, ids_b)
-  #  else:
-  #    X_batch = np.zeros((batch_size,) + feature_shape)
-  #    y_batch = np.zeros((batch_size, num_tasks))
-  #    w_batch = np.zeros((batch_size, num_tasks))
-  #    ids_batch = np.zeros((batch_size,), dtype=object)
-  #    X_batch[:n] = X_b
-  #    y_batch[:n] = y_b
-  #    w_batch[:n] = w_b
-  #    ids_batch[:n] = ids_b
-  #  return X_batch, y_batch, w_batch, ids_batch
 
   def __len__(self):
     """
