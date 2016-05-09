@@ -58,31 +58,6 @@ class TestAPI(unittest.TestCase):
     # debug.
     #shutil.rmtree(self.model_dir)
 
-  #def _hyperparam_opt(self, model_builder, params_dict, train_dataset,
-  #                    valid_dataset, output_transformers, tasks, task_types, metric,
-  #                    logdir=None):
-
-  #  optimizer = HyperparamOpt(model_builder, tasks, task_types, verbosity="low")
-  #  best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-  #    params_dict, train_dataset, valid_dataset, output_transformers,
-  #    metric, logdir=logdir)
-
-  #def _create_model(self, train_dataset, test_dataset, model, transformers,
-  #                  metrics):
-  #  """Helper method to create model for test."""
-
-  #  # Fit trained model
-  #  model.fit(train_dataset)
-  #  model.save()
-
-  #  # Eval model on train
-  #  evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
-  #  _ = evaluator.compute_model_performance(metrics)
-
-  #  # Eval model on test
-  #  evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
-  #  _ = evaluator.compute_model_performance(metrics)
-
   def _featurize_train_test_split(self, splittype, compound_featurizers, 
                                   complex_featurizers,
                                   input_transformer_classes,

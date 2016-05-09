@@ -6,10 +6,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import shutil
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.models.test import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
@@ -49,6 +49,11 @@ train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
+
+# Remove existing model directory since TF doesn't overwrite by default...
+if os.path.exists(model_dir):
+  shutil.rmtree(model_dir)
+os.makedirs(model_dir)
 
 # Load MUV dataset
 print("About to load MUV dataset.")
@@ -163,7 +168,7 @@ params_dict = {
     "nesterov": False,
     "decay": 1e-4,
     "batch_size": 64,
-    "nb_epoch": 1,
+    "nb_epoch": 10,
     "init": "glorot_uniform",
     "nb_layers": 1,
     "batchnorm": False,

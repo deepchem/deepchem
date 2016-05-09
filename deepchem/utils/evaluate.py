@@ -68,6 +68,7 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
+  
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}
@@ -79,5 +80,5 @@ class Evaluator(object):
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
-
+  
     return multitask_scores

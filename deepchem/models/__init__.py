@@ -78,6 +78,13 @@ class Model(object):
     """
     return self.raw_model
 
+  def reload(self):
+    """
+    Reload trained model from disk.
+    """
+    raise NotImplementedError(
+        "Each model is responsible for its own reload method.")
+
   @staticmethod
   def get_model_filename(model_dir):
     """
@@ -128,7 +135,7 @@ class Model(object):
 
     return X, y, w
 
-  def predict(self, dataset, transformers):
+  def predict(self, dataset, transformers=[]):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -150,7 +157,7 @@ class Model(object):
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     return y_pred
 
-  def predict_proba(self, dataset, transformers, n_classes=2):
+  def predict_proba(self, dataset, transformers=[], n_classes=2):
     """
     TODO: Do transformers even make sense here?
 
