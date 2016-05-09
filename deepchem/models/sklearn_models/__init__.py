@@ -42,7 +42,12 @@ class SklearnModel(Model):
     Fits SKLearn model to data.
     """
     X, y, w, _ = dataset.to_numpy()
-    y, w = y.flatten(), w.flatten()
+    y, w = np.squeeze(y), np.squeeze(w)
+    ######## DEBUG
+    print("SklearnModel.fit()")
+    print("X.shape, y.shape, w.shape")
+    print(X.shape, y.shape, w.shape)
+    ######## DEBUG
     self.raw_model.fit(X, y, w)
     y_pred_raw = self.raw_model.predict(X)
 

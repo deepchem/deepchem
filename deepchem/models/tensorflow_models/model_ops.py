@@ -300,6 +300,13 @@ def MultitaskLogits(features, num_tasks, num_classes=2, weight_init=None,
         logits.append(
             Logits(features, num_classes, weight_init=weight_init,
                    bias_init=bias_init, dropout=dropout))
+  ###### DEBUG
+  print("MultitaskLogits")
+  print("num_tasks")
+  print(num_tasks)
+  print("len(logits)")
+  print(len(logits))
+  ###### DEBUG
   return logits
 
 

@@ -61,11 +61,17 @@ class SingletaskToMultitask(Model):
     """
     Concatenates results from all singletask models.
     """
-    N_tasks = len(self.tasks)
+    n_tasks = len(self.tasks)
     n_samples = X.shape[0]
-    y_pred = np.zeros((n_samples, N_tasks))
+    y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
-      y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
+      task_type = task_types[task]
+      if task_type == "classification":
+        y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
+      elif task_type == "regression":
+        y_pred[:, ind] = self.models[task].predict_on_batch(X)
+      else:
+        raise ValueError("Invalid task_type")
     return y_pred
 
   def predict_proba_on_batch(self, X, n_classes=2):
