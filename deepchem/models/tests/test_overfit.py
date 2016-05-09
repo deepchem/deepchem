@@ -546,7 +546,8 @@ class TestOverfitAPI(TestAPI):
       #"batch_size": n_samples/8,
       #"batch_size": n_samples/16,
       #"batch_size": n_samples/32,
-      "batch_size": n_samples/64,
+      #"batch_size": n_samples/64,
+      "batch_size": 75,
       # TODO(rbharath): Is there a bug in the padding code? Why does it fail to
       # learn for non-multiples?
       #"batch_size": 600,

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import os
 import numpy as np
+import shutil
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
@@ -47,6 +48,10 @@ train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
+
+if os.path.exists(model_dir):
+  shutil.rmtree(model_dir)
+os.makedirs(model_dir)
 
 # Load MUV dataset
 print("About to load MUV dataset.")
@@ -120,19 +125,6 @@ y_test = test_dataset.get_labels()
 len_train_dataset, len_valid_dataset, len_test_dataset = \
   len(train_dataset), len(valid_dataset), len(test_dataset)
 
-print("len(train_samples), len(train_dataset)")
-print(len(train_samples), len(train_dataset))
-assert relative_difference(
-    len(train_samples), len(train_dataset)) < 1e-3
-print("len(valid_samples), len(valid_dataset)")
-print(len(valid_samples), len(valid_dataset))
-assert relative_difference(
-    len(valid_samples), len(valid_dataset)) < 1e-2
-print("len(test_samples), len(test_dataset)")
-print(len(test_samples), len(test_dataset))
-assert relative_difference(
-    len(test_samples), len(test_dataset)) < 1e-2
-
 # Transform data
 print("About to transform data")
 input_transformers = []
@@ -160,7 +152,10 @@ params_dict = {
 
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=LogisticRegression(class_weight="balanced"),
+                      #model_instance=LogisticRegression(class_weight="balanced"),
+                      model_instance=RandomForestClassifier(
+                          class_weight="balanced",
+                          n_estimators=500),
                       verbosity=verbosity)
 model = SingletaskToMultitask(MUV_tasks, MUV_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)

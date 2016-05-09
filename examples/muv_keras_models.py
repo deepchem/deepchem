@@ -50,7 +50,7 @@ valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 
-# Remove existing model directory since TF doesn't overwrite by default...
+# Remove existing model directory since keras doesn't overwrite by default...
 if os.path.exists(model_dir):
   shutil.rmtree(model_dir)
 os.makedirs(model_dir)
@@ -92,15 +92,6 @@ train_samples, valid_samples, test_samples = \
     splitter.train_valid_test_split(
         featurized_samples, train_dir, valid_dir, test_dir,
         log_every_n=1000, reload=reload)
-
-len_train_samples, len_valid_samples, len_test_samples = \
-  len(train_samples), len(valid_samples), len(test_samples)
-assert relative_difference(
-    len(train_samples), frac_train * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(valid_samples), frac_valid * len(featurized_samples)) < 1e-3
-assert relative_difference(
-    len(test_samples), frac_test * len(featurized_samples)) < 1e-3
 
 # Generate datasets
 print("About to create datasets")
@@ -153,7 +144,7 @@ for transformer in transformers:
 for transformer in transformers:
     transformer.transform(test_dataset)
 
-# Fit tensorflow models
+# Fit keras models
 MUV_task_types = {task: "classification" for task in MUV_tasks}
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
