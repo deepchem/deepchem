@@ -139,12 +139,6 @@ class TensorflowGraph(object):
       gradient_costs = []  # costs used for gradient calculation
 
       with self._shared_name_scope('costs'):
-        ######## DEBUG
-        print("self.num_tasks")
-        print(self.num_tasks)
-        print("len(self.output)")
-        print(len(self.output))
-        ######## DEBUG
         for task in xrange(self.num_tasks):
           task_str = str(task).zfill(len(str(self.num_tasks)))
           with self._shared_name_scope('cost_{}'.format(task_str)):

@@ -143,9 +143,6 @@ class TestOverfitAPI(TestAPI):
     model.fit(dataset)
     model.save()
 
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
@@ -194,8 +191,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
 
     # Eval model on train
     transformers = []
@@ -248,8 +243,6 @@ class TestOverfitAPI(TestAPI):
     model.fit(dataset)
     model.save()
 
-    y_pred_model = model.predict(dataset, transformers=[])
-
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
@@ -298,9 +291,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []
@@ -351,9 +341,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []
@@ -408,9 +395,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []
@@ -467,9 +451,6 @@ class TestOverfitAPI(TestAPI):
     model.fit(dataset)
     model.save()
 
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
@@ -487,25 +468,13 @@ class TestOverfitAPI(TestAPI):
     
     tasks = ["task0"]
     task_types = {task: "classification" for task in tasks}
-    #n_samples = 250
-    #n_samples = 500
-    #n_samples = 1000
-    #n_samples = 2000
-    #n_samples = 5000
     n_samples = 5120
-    #n_features = 3
     n_features = 6
     n_tasks = len(tasks)
     n_classes = 2
     
     # Generate dummy dataset
     np.random.seed(123)
-    #p = .002
-    #p = .2
-    #p = .1
-    #p = .05
-    #p = .01
-    #p = .005
     p = .002
     ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
@@ -513,14 +482,6 @@ class TestOverfitAPI(TestAPI):
     w = np.ones((n_samples, n_tasks))
     print("np.count_nonzero(y)")
     print(np.count_nonzero(y))
-    #w = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    #print("np.amin(w), np.amax(w)")
-    #print(np.amin(w), np.amax(w))
-
-    #print("y_nonzero.shape")
-    #print(y_nonzero.shape)
-    #print("np.count_nonzero(y_nonzero)")
-    #print(np.count_nonzero(y_nonzero))
     ##### DEBUG
     y_flat, w_flat = np.squeeze(y), np.squeeze(w)
     y_nonzero = y_flat[w_flat != 0]
@@ -541,17 +502,7 @@ class TestOverfitAPI(TestAPI):
       "dropouts": [.0],
       "learning_rate": 0.003,
       "momentum": .9,
-      #"batch_size": n_samples,
-      #"batch_size": n_samples/2,
-      #"batch_size": n_samples/4,
-      #"batch_size": n_samples/8,
-      #"batch_size": n_samples/16,
-      #"batch_size": n_samples/32,
-      #"batch_size": n_samples/64,
       "batch_size": 75,
-      # TODO(rbharath): Is there a bug in the padding code? Why does it fail to
-      # learn for non-multiples?
-      #"batch_size": 600,
       "num_classification_tasks": 1,
       "num_classes": n_classes,
       "num_features": n_features,
@@ -562,8 +513,6 @@ class TestOverfitAPI(TestAPI):
       "optimizer": "adam",
       "data_shape": dataset.get_data_shape()
     }
-    print("model_params['batch_size']")
-    print(model_params['batch_size'])
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -575,9 +524,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []
@@ -671,9 +617,6 @@ class TestOverfitAPI(TestAPI):
     model.fit(dataset)
     model.save()
 
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
-
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
@@ -727,9 +670,6 @@ class TestOverfitAPI(TestAPI):
     # Fit trained model
     model.fit(dataset)
     model.save()
-
-    y_pred_model = model.predict(dataset, transformers=[])
-    y_pred_proba_model = model.predict_proba(dataset, transformers=[])
 
     # Eval model on train
     transformers = []

@@ -65,7 +65,7 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
-      task_type = task_types[task]
+      task_type = self.task_types[task]
       if task_type == "classification":
         y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
       elif task_type == "regression":
