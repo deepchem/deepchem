@@ -17,10 +17,10 @@
 
 
 import numpy as np
-
 from tensorflow.python.platform import googletest
-
 from deepchem.metrics import kappa_score 
+from deepchem.metrics import Metric
+from deepchem import metrics
 
 
 class MetricsTest(googletest.TestCase):
@@ -34,6 +34,18 @@ class MetricsTest(googletest.TestCase):
     expected_kappa = np.true_divide(observed_agreement - expected_agreement,
                                     1.0 - expected_agreement)
     self.assertAlmostEquals(kappa, expected_kappa)
+
+  def test_r2_score(self):
+    """Test that R^2 metric passes basic sanity tests"""
+    verbosity = "high"
+    np.random.seed(123)
+    n_samples = 10
+    y_true = np.random.rand(n_samples,)
+    y_pred = np.random.rand(n_samples,)
+    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    assert np.isclose(metrics.r2_score(y_true, y_pred),
+                      regression_metric.compute_metric(y_true, y_pred))
+  
 
 if __name__ == '__main__':
   googletest.main()

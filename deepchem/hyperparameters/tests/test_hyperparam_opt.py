@@ -94,8 +94,9 @@ class TestHyperparamOptAPI(TestAPI):
     y_train = np.random.randint(2, size=(n_train, n_tasks))
     w_train = np.ones_like(y_train)
     ids_train = ["C"] * n_train
-    train_dataset = Dataset.from_numpy(self.train_dir, tasks,
-                                       X_train, y_train, w_train, ids_train)
+    train_dataset = Dataset.from_numpy(self.train_dir,
+                                       X_train, y_train, w_train, ids_train,
+                                       tasks)
 
     # Define validation dataset
     n_valid = 10
@@ -103,8 +104,9 @@ class TestHyperparamOptAPI(TestAPI):
     y_valid = np.random.randint(2, size=(n_valid, n_tasks))
     w_valid = np.ones_like(y_valid)
     ids_valid = ["C"] * n_valid
-    valid_dataset = Dataset.from_numpy(self.valid_dir, tasks,
-                                       X_valid, y_valid, w_valid, ids_valid)
+    valid_dataset = Dataset.from_numpy(self.valid_dir,
+                                       X_valid, y_valid, w_valid, ids_valid,
+                                       tasks)
     params_dict = {
         "batch_size": [32],
         "data_shape": [train_dataset.get_data_shape()],

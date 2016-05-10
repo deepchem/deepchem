@@ -42,8 +42,17 @@ class SklearnModel(Model):
     Fits SKLearn model to data.
     """
     X, y, w, _ = dataset.to_numpy()
+    ###################### DEBUG
+    #print("SklearnModel.fit()")
+    #print("X.shape, y.shape, w.shape")
+    #print(X.shape, y.shape, w.shape)
+    ###################### DEBUG
     y, w = np.squeeze(y), np.squeeze(w)
-    self.raw_model.fit(X, y, w)
+    # Logistic regression doesn't support weights
+    if not isinstance(self.raw_model, LogisticRegression):
+      self.raw_model.fit(X, y, w)
+    else:
+      self.raw_model.fit(X, y)
     y_pred_raw = self.raw_model.predict(X)
 
   def predict_on_batch(self, X):

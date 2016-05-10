@@ -38,7 +38,7 @@ class TestModelReload(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -82,7 +82,7 @@ class TestModelReload(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -138,7 +138,7 @@ class TestModelReload(TestAPI):
     y = np.random.randint(n_classes, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1000],

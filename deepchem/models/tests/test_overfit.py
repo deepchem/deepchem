@@ -1,5 +1,5 @@
 """
-Tests to make sure TF models can overfit on tiny datasets.
+Tests to make sure deepchem models can overfit on tiny datasets.
 """
 from __future__ import print_function
 from __future__ import division
@@ -29,7 +29,7 @@ from deepchem.models.multitask import SingletaskToMultitask
 
 class TestOverfitAPI(TestAPI):
   """
-  Test that sklearn and keras models can overfit simple datasets.
+  Test that models can overfit simple datasets.
   """
 
   def test_sklearn_regression_overfit(self):
@@ -47,7 +47,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -86,7 +86,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -126,7 +126,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -165,7 +165,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -214,7 +214,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1000],
@@ -265,7 +265,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -315,7 +315,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -366,7 +366,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1000],
@@ -421,7 +421,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1500],
@@ -495,7 +495,7 @@ class TestOverfitAPI(TestAPI):
     print(np.amin(w), np.amax(w))
     ##### DEBUG
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1200],
@@ -547,7 +547,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -590,7 +590,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -641,7 +641,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1000],
@@ -693,7 +693,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "batch_size": None,
@@ -709,7 +709,6 @@ class TestOverfitAPI(TestAPI):
                           verbosity=verbosity)
     model = SingletaskToMultitask(tasks, task_types, model_params, self.model_dir,
                                   model_builder, verbosity=verbosity)
-
 
     # Fit trained model
     model.fit(dataset)
@@ -737,7 +736,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
         "nb_hidden": 1000,
@@ -788,7 +787,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
     model_params = {
       "layer_sizes": [1000],

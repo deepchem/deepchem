@@ -43,8 +43,9 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     y_train = np.random.randint(2, size=(n_train, n_tasks))
     w_train = np.ones_like(y_train)
     ids_train = ["C"] * n_train
-    train_dataset = Dataset.from_numpy(self.train_dir, tasks,
-                                       X_train, y_train, w_train, ids_train)
+    train_dataset = Dataset.from_numpy(self.train_dir,
+                                       X_train, y_train, w_train, ids_train,
+                                       tasks)
 
     # Define test dataset
     n_test = 10
@@ -52,8 +53,9 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     y_test = np.random.randint(2, size=(n_test, n_tasks))
     w_test = np.ones_like(y_test)
     ids_test = ["C"] * n_test
-    test_dataset = Dataset.from_numpy(self.test_dir, tasks,
-                                       X_test, y_test, w_test, ids_test)
+    test_dataset = Dataset.from_numpy(self.test_dir,
+                                      X_test, y_test, w_test, ids_test,
+                                      tasks)
 
     params_dict = {
         "batch_size": 32,

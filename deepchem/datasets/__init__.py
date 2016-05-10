@@ -199,7 +199,21 @@ class Dataset(object):
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod
-  def from_numpy(data_dir, tasks, X, y, w, ids):
+  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None):
+    n_samples = len(X)
+    # The -1 indicates that y will be reshaped to have length -1
+    y = np.reshape(y, (n_samples, -1))
+    n_tasks = y.shape[1]
+    if ids is None:
+      ids = np.arange(n_samples)
+    if w is None:
+      w = np.ones_like(y)
+    if tasks is None:
+      tasks = np.arange(n_tasks)
+    ########### DEBUG
+    #print("ids.shape, X.shape, y.shape, w.shape")
+    #print(ids.shape, X.shape, y.shape, w.shape)
+    ########### DEBUG
     raw_data = (ids, X, y, w)
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
     
