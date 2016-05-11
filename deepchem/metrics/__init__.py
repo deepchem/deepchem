@@ -134,25 +134,18 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
-    #n_samples = len(y_true)
-    #y_true = np.reshape(y_true, (n_samples, -1))
-    #y_pred = np.reshape(y_pred, (n_samples, -1))
-    ############### DEBUG
-    #print("Metric.compute_metric()")
-    #print("y_true.shape, y_pred.shape, w.shape")
-    #print(y_true.shape, y_pred.shape, w.shape)
-    #print("r2_score(y_true, y_pred)")
-    #print(r2_score(y_true, y_pred))
-    ############### DEBUG
-    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
-    n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+    if len(y_true.shape) > 1:
+      n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+    else:
+      n_samples, n_tasks = y_true.shape[0], 1
     if self.mode == "classification":
       y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     else:
       y_pred = np.reshape(y_pred, (n_samples, n_tasks))
-    #y_true = np.reshape(y_true, (n_samples, n_tasks, n_classes))
+    y_true = np.reshape(y_true, (n_samples, n_tasks))
     if w is None:
       w = np.ones_like(y_true)
+    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
     for task in xrange(n_tasks):
       y_task = y_true[:, task]
@@ -162,11 +155,6 @@ class Metric(object):
         y_pred_task = y_pred[:, task, :]
       w_task = w[:, task]
     
-      ############################## DEBUG
-      print("Metric.compute_metric()")
-      print("y_task.shape, y_pred_task.shape, w_task.shape")
-      print(y_task.shape, y_pred_task.shape, w_task.shape)
-      ############################## DEBUG
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)

@@ -67,10 +67,8 @@ class TestMultitaskData(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, tasks, X, y, w, ids)
+    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
     X_out, y_out, w_out, _ = dataset.to_numpy()
     np.testing.assert_allclose(X, X_out)
     np.testing.assert_allclose(y, y_out)
     np.testing.assert_allclose(w, w_out)
-
-    
