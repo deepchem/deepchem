@@ -113,18 +113,14 @@ class TestLoad(TestAPI):
 
     ################## Do comparison
     for ind, task in enumerate(tasks):
-      #X_multi_task = X_multi[ind]
       y_multi_task = y_multi[:, ind]
       w_multi_task = w_multi[:, ind]
-      #ids_multi_task = ids_multi[ind]
 
       #X_task = X_tasks[ind]
       y_task = y_tasks[ind]
       w_task = w_tasks[ind]
       ids_task = ids_tasks[ind]
 
-      #np.testing.assert_allclose(X_multi_task, X_task)
       np.testing.assert_allclose(y_multi_task.flatten(), y_task.flatten())
       np.testing.assert_allclose(w_multi_task.flatten(), w_task.flatten())
-      #np.testing.assert_allclose(ids_multi_task, ids_task)
     shutil.rmtree(base_dir)

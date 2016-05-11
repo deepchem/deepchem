@@ -211,13 +211,6 @@ class Dataset(object):
     if tasks is None:
       tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
-    ###################  DEBUG
-    #print("Dataset.from_numpy()")
-    #print("type(y)")
-    #print(type(y))
-    #print("type(X)")
-    #print(type(X))
-    ###################  DEBUG
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
     
   def to_numpy(self):
@@ -338,13 +331,6 @@ def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
     ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
   else:
     ids, X, y, w = raw_data
-    ###################  DEBUG
-    #print("write_dataset_single()")
-    #print("type(y)")
-    #print(type(y))
-    #print("type(X)")
-    #print(type(X))
-    ###################  DEBUG
     df_file = ""
     assert X.shape[0] == y.shape[0]
     assert y.shape == w.shape
@@ -399,22 +385,6 @@ def _df_to_numpy(df, feature_types, tasks):
   n_samples = df.shape[0]
   n_tasks = len(tasks)
   y = np.hstack([np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
-  ############ DEBUG
-  #print("Dataset._df_to_numpy()")
-  #print("tasks")
-  #print(tasks)
-  #print("y.shape")
-  #print(y.shape)
-  #print("Before reshape")
-  #print("y")
-  #print(y)
-  ########### DEBUG
-  #y = np.reshape(y, (n_samples, n_tasks))
-  ############ DEBUG
-  #print("After reshape")
-  #print("y")
-  #print(y)
-  ############ DEBUG
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   tensors = []
