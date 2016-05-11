@@ -125,8 +125,8 @@ def _numpy_angular_symmetry_function(R, D, zeta=1):
 
   K = _numpy_gaussian_distance_matrix(R)
   FC = _numpy_radial_cutoff(R)
-  return FC
   KFC = K * FC
+  #return KFC
   #G = np.zeros(N)
 
   P = _numpy_P_matrix(KFC)

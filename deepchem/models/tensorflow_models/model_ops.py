@@ -210,6 +210,37 @@ def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
     b = tf.Variable(bias_init, name='b')
     return tf.nn.xw_plus_b(tensor, w, b)
 
+def AtomicNNLayer(tensor, size, weight_init=None, bias_init=None,
+                  name=None):
+  """Fully connected layer.
+
+  Args:
+    tensor: Input tensor.
+    size: Number of nodes in this layer.
+    weight_init: Weight initializer.
+    bias_init: Bias initializer.
+    name: Name for this op. Defaults to 'fully_connected'.
+
+  Returns:
+    A new tensor representing the output of the fully connected layer.
+
+  Raises:
+    ValueError: If input tensor is not 2D.
+  """
+  if len(tensor.get_shape()) != 2:
+    raise ValueError('Dense layer input must be 2D, not %dD'
+                     % len(tensor.get_shape()))
+  if weight_init is None:
+    num_features = tensor.get_shape()[-1].value
+    weight_init = tf.truncated_normal([num_features, size], stddev=0.01)
+  if bias_init is None:
+    bias_init = tf.zeros([size])
+
+  with tf.op_scope([tensor], name, 'fully_connected'):
+    w = tf.Variable(weight_init, name='w')
+    b = tf.Variable(bias_init, name='b')
+    return tf.nn.xw_plus_b(tensor, w, b)
+
 def is_training():
   """Determine whether the default graph is in training mode.
 
@@ -435,6 +466,7 @@ def RadialCutoff(R):
   """ 0.5*[cos(pi/Rc*R)+1] """
 
   epsilon = 1e-6
+  N = int(R.get_shape()[0])
   with tf.op_scope([R], None, "RadialCutoff"):
     Rc = tf.constant(6.0)
     T = 0.5*(tf.cos(np.pi*R/Rc)+1)
@@ -445,8 +477,8 @@ def RadialCutoff(R):
 
     cond_identity = tf.less(R,epsilon)
     FC = tf.select(cond_identity, E, T)
-    FC_diag = tf.diag(tf.diag_part(FC))
-    FC = FC - FC_diag
+    FC_diag = tf.diag(tf.pack([FC[i,i] for i in range(N)]))
+    FC -= FC_diag
     return FC
 
 def RadialSymmetryFunction(R):
@@ -487,8 +519,7 @@ def AngularSymmetryFunction(R, D, zeta):
 
   K = GaussianDistanceMatrix(R)
   FC = RadialCutoff(R)
-  return FC
-  KFC = K * FC 
+  KFC = K * FC
   P = CircularProduct(KFC)
   C = CosKernel(R, D, zeta)
   G = tf.reduce_sum(P*C, reduction_indices=[1,2])

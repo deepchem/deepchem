@@ -87,3 +87,53 @@ class TestTensorflowAPI(TestAPI):
         tf_class=TensorflowMultiTaskClassifier)
     self._create_model(train_dataset, test_dataset, model, transformers,
                        classification_metrics)
+
+  def test_singletask_tf_mlp_ECFP_classification_API(self):
+    """Straightforward test of Tensorflow singletask deepchem classification API."""
+    splittype = "scaffold"
+    output_transformers = []
+    input_transformers = []
+    task_type = "classification"
+
+    compound_featurizers = [CircularFingerprint(size=1024)]
+    complex_featurizers = []
+
+
+    tasks = ["outcome"]
+    task_type = "classification"
+    task_types = {task: task_type for task in tasks}
+    input_file = "example_classification.csv"
+    input_transformers = []
+    output_transformers = [NormalizationTransformer]
+
+    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
+        splittype, compound_featurizers, 
+        complex_featurizers, input_transformers,
+        output_transformers, input_file, tasks)
+    # TODO(rbharath): Tensorflow doesn't elegantly handle partial batches.
+    # What's the right fix here?
+    model_params = {
+      "batch_size": 2,
+      "num_classification_tasks": 1,
+      "num_features": 1024,
+      "layer_sizes": [1024],
+      "weight_init_stddevs": [1.],
+      "bias_init_consts": [0.],
+      "dropouts": [.5],
+      "num_classes": 2,
+      "nb_epoch": 1,
+      "penalty": 0.0,
+      "optimizer": "adam",
+      "learning_rate": .001,
+      "data_shape": train_dataset.get_data_shape()
+    }
+    classification_metrics = [Metric(metrics.roc_auc_score),
+                              Metric(metrics.matthews_corrcoef),
+                              Metric(metrics.recall_score),
+                              Metric(metrics.accuracy_score)]
+
+    model = TensorflowModel(
+        tasks, task_types, model_params, self.model_dir,
+        tf_class=TensorflowMultiTaskClassifier)
+    self._create_model(train_dataset, test_dataset, model, transformers,
+                       classification_metrics)
