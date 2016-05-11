@@ -33,7 +33,7 @@ class SingletaskToMultitask(Model):
     self.fit_transformers = False
     for task in self.tasks:
       task_type = self.task_types[task]
-      task_model_dir = os.path.join(self.model_dir, task)
+      task_model_dir = os.path.join(self.model_dir, str(task))
       if not os.path.exists(task_model_dir):
         os.makedirs(task_model_dir)
       log("Initializing model for task %s" % task,

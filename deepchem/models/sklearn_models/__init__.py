@@ -43,7 +43,11 @@ class SklearnModel(Model):
     """
     X, y, w, _ = dataset.to_numpy()
     y, w = np.squeeze(y), np.squeeze(w)
-    self.raw_model.fit(X, y, w)
+    # Logistic regression doesn't support weights
+    if not isinstance(self.raw_model, LogisticRegression):
+      self.raw_model.fit(X, y, w)
+    else:
+      self.raw_model.fit(X, y)
     y_pred_raw = self.raw_model.predict(X)
 
   def predict_on_batch(self, X):

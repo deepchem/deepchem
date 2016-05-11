@@ -350,7 +350,6 @@ class FeaturizedSamples(object):
     self.compounds_df = compounds_df
     self.num_samples = len(compounds_df)
 
-
   def _get_compounds_filename(self):
     """
     Get standard location for file listing compounds in this dataframe.

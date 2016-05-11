@@ -199,7 +199,17 @@ class Dataset(object):
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod
-  def from_numpy(data_dir, tasks, X, y, w, ids):
+  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None):
+    n_samples = len(X)
+    # The -1 indicates that y will be reshaped to have length -1
+    y = np.reshape(y, (n_samples, -1))
+    n_tasks = y.shape[1]
+    if ids is None:
+      ids = np.arange(n_samples)
+    if w is None:
+      w = np.ones_like(y)
+    if tasks is None:
+      tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
     
@@ -374,8 +384,7 @@ def _df_to_numpy(df, feature_types, tasks):
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
-  y = np.array([df[task].values for task in tasks])
-  y = np.reshape(y, (n_samples, n_tasks))
+  y = np.hstack([np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   tensors = []

@@ -123,7 +123,7 @@ class Metric(object):
     assert mode in ["classification", "regression"]
     self.mode = mode
 
-  def compute_metric(self, y_true, y_pred, w, n_classes=2):
+  def compute_metric(self, y_true, y_pred, w=None, n_classes=2):
     """Compute a performance metric for each task.
 
     Args:
@@ -134,12 +134,18 @@ class Metric(object):
     Returns:
       A numpy array containing metric values for each task.
     """
-    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
-    n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+    if len(y_true.shape) > 1:
+      n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+    else:
+      n_samples, n_tasks = y_true.shape[0], 1
     if self.mode == "classification":
       y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     else:
       y_pred = np.reshape(y_pred, (n_samples, n_tasks))
+    y_true = np.reshape(y_true, (n_samples, n_tasks))
+    if w is None:
+      w = np.ones_like(y_true)
+    assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
     for task in xrange(n_tasks):
       y_task = y_true[:, task]
@@ -183,8 +189,8 @@ class Metric(object):
     # If there are no nonzero examples, metric is ill-defined.
     if not y_true.size:
       return np.nan
-    y_true = np.reshape(y_true, (n_samples,))
 
+    y_true = np.reshape(y_true, (n_samples,))
     if self.mode == "classification":
       n_classes = y_pred.shape[-1]
       # TODO(rbharath): This has been a major source of bugs. Is there a more
