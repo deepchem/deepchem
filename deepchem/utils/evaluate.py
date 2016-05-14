@@ -8,9 +8,10 @@ from __future__ import unicode_literals
 import csv
 import numpy as np
 import warnings
-from deepchem.utils.save import log
 import pandas as pd
 import sklearn
+from deepchem.utils.save import log
+from deepchem.transformers import undo_transforms
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2015, Stanford University"
@@ -61,14 +62,15 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     y = self.dataset.get_labels()
+    y = undo_transforms(y, self.transformers)
     w = self.dataset.get_weights()
+
     if not len(metrics):
       return {}
     else:
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
-  
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
     multitask_scores = {}

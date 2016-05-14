@@ -210,10 +210,16 @@ class Metric(object):
       
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
+    ######### DEBUG (TURN ME BACK ON!)
     try:
+      #print("np.amax(y_true), np.amin(y_true)")
+      #print(np.amax(y_true), np.amin(y_true))
+      #print("np.amax(y_pred), np.amin(y_pred)")
+      #print(np.amax(y_pred), np.amin(y_pred))
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
       warnings.warn("Error calculating metric %s: %s"
                     % (self.name, e))
       metric_value = np.nan
+    ######### DEBUG (TURN ME BACK ON!)
     return metric_value 

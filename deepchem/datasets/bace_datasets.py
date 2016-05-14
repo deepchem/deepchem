@@ -16,14 +16,19 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 
-def load_bace(mode="regression", transform=True):
+def load_bace(mode="regression", transform=True, split="20-80"):
   """Load BACE-1 dataset as regression/classification problem."""
   reload = True
   verbosity = "high"
+  assert split in ["20-80", "80-20"]
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  dataset_file = os.path.join(
-      current_dir, "../../datasets/desc_canvas_aug30.csv")
+  if split == "20-80":
+    dataset_file = os.path.join(
+        current_dir, "../../datasets/desc_canvas_aug30.csv")
+  elif split == "80-20":
+    dataset_file = os.path.join(
+        current_dir, "../../datasets/rev8020split_desc.csv")
   print("dataset_file")
   print(dataset_file)
   dataset = load_from_disk(dataset_file)
@@ -81,9 +86,15 @@ def load_bace(mode="regression", transform=True):
   train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
       featurized_samples, train_dir, valid_dir, test_dir,
       reload=reload)
+  ######################## DEBUG
+  print("bace_datasets")
+  print("len(train_samples), len(valid_samples), len(test_samples)")
+  print(len(train_samples), len(valid_samples), len(test_samples))
+  ######################## DEBUG
 
   #NOTE THE RENAMING:
-  valid_samples, test_samples = test_samples, valid_samples
+  if split == "20-80":
+    valid_samples, test_samples = test_samples, valid_samples
 
   train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
                           featurizers=[], tasks=bace_tasks,
@@ -113,8 +124,11 @@ def load_bace(mode="regression", transform=True):
         ClippingTransformer(transform_X=True, dataset=train_dataset)]
     output_transformers = []
     if mode == "regression":
-      output_transformers = [
-        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+      ######## DEBUG (TURN ME BACK ON!)
+      #output_transformers = [
+      #  NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+      ######## DEBUG (TURN ME BACK ON!)
+      output_transformers = []
     else:
       output_transformers = []
   else:
@@ -127,10 +141,11 @@ def load_bace(mode="regression", transform=True):
       transformer.transform(valid_dataset)
   for transformer in transformers:
       transformer.transform(test_dataset)
-  for transformer in transformers:
-      transformer.transform(crystal_dataset)
+  #for transformer in transformers:
+  #    transformer.transform(crystal_dataset)
 
-  return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers)
+  #return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers)
+  return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, output_transformers)
 
 #def load_classification_bace():
 #  """Load BACE-1 dataset as classification problem."""

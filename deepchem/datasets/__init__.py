@@ -277,6 +277,8 @@ class Dataset(object):
 
   def get_statistics(self):
     """Computes and returns statistics of this dataset"""
+    if len(self) == 0:
+      return None, None, None, None
     self.update_moments()
     df = self.metadata_df
     X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
