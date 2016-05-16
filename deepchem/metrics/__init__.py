@@ -53,6 +53,14 @@ def compute_roc_auc_scores(y, y_pred):
     score = 0.5
   return score
 
+def rms_score(y_true, y_pred):
+  """Computes RMS error."""
+  return np.sqrt(mean_squared_error(y_true, y_pred))
+
+def mae_score(y_true, y_pred):
+  """Computes MAE."""
+  return mean_absolute_error(y_true, y_pred)
+
 def kappa_score(y_true, y_pred):
   """Calculate Cohen's kappa for classification tasks.
 
@@ -116,7 +124,8 @@ class Metric(object):
                        "accuracy_score", "kappa_score"]:
         mode = "classification"
       elif self.name in ["r2_score", "mean_squared_error",
-                         "mean_absolute_error"]:
+                         "mean_absolute_error", "rms_score",
+                         "mae_score"]:
         mode = "regression"
       else:
         raise ValueError("Must specify mode for new metric.")
@@ -210,16 +219,10 @@ class Metric(object):
       
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
-    ######### DEBUG (TURN ME BACK ON!)
     try:
-      #print("np.amax(y_true), np.amin(y_true)")
-      #print(np.amax(y_true), np.amin(y_true))
-      #print("np.amax(y_pred), np.amin(y_pred)")
-      #print(np.amax(y_pred), np.amin(y_pred))
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
       warnings.warn("Error calculating metric %s: %s"
                     % (self.name, e))
       metric_value = np.nan
-    ######### DEBUG (TURN ME BACK ON!)
     return metric_value 

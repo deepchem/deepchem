@@ -40,6 +40,17 @@ class Evaluator(object):
     self.task_type = model.get_task_type().lower()
     self.verbosity = verbosity
 
+  def output_statistics(self, scores, stats_out):
+    """
+    Write computed stats to file.
+    """
+    ########### DEBUG
+    print("stats_out")
+    print(stats_out)
+    ########### DEBUG
+    with open(stats_out, "wb") as statsfile:
+      statsfile.write(str(scores) + "\n")
+
   def output_predictions(self, y_preds, csv_out):
     """
     Writes predictions to file.
@@ -56,7 +67,7 @@ class Evaluator(object):
       for mol_id, y_pred in zip(mol_ids, y_preds):
         csvwriter.writerow([mol_id] + list(y_pred))
 
-  def compute_model_performance(self, metrics, csv_out=None, stats_file=None,
+  def compute_model_performance(self, metrics, csv_out=None, stats_out=None,
                                 threshold=None):
     """
     Computes statistics of model on test data and saves results to csv.
@@ -71,16 +82,22 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.transformers)
+      y_pred_print = self.model.predict(self.dataset, self.transformers).astype(int)
     else:
       y_pred = self.model.predict(self.dataset, self.transformers)
+      y_pred_print = y_pred
     multitask_scores = {}
 
     if csv_out is not None:
       log("Saving predictions to %s" % csv_out, self.verbosity)
-      self.output_predictions(y_pred, csv_out)
+      self.output_predictions(y_pred_print, csv_out)
 
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
+    
+    if stats_out is not None:
+      log("Saving stats to %s" % stats_out, self.verbosity)
+      self.output_statistics(multitask_scores, stats_out)
   
     return multitask_scores
