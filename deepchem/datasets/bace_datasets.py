@@ -29,8 +29,6 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   elif split == "80-20":
     dataset_file = os.path.join(
         current_dir, "../../datasets/rev8020split_desc.csv")
-  print("dataset_file")
-  print(dataset_file)
   dataset = load_from_disk(dataset_file)
   num_display = 10
   pretty_columns = (
@@ -85,11 +83,6 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
       featurized_samples, train_dir, valid_dir, test_dir,
       reload=reload)
-  ######################### DEBUG
-  #print("bace_datasets")
-  #print("len(train_samples), len(valid_samples), len(test_samples)")
-  #print(len(train_samples), len(valid_samples), len(test_samples))
-  ######################### DEBUG
 
   #NOTE THE RENAMING:
   if split == "20-80":
@@ -137,8 +130,8 @@ def load_bace(mode="regression", transform=True, split="20-80"):
       transformer.transform(valid_dataset)
   for transformer in transformers:
       transformer.transform(test_dataset)
-  #for transformer in transformers:
-  #    transformer.transform(crystal_dataset)
+  for transformer in transformers:
+      transformer.transform(crystal_dataset)
 
-  #return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers)
-  return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, output_transformers)
+  return (bace_tasks, train_dataset, valid_dataset, test_dataset,
+          crystal_dataset, output_transformers)

@@ -29,8 +29,6 @@ install:
 - conda install -c omnia mdtraj 
 - python setup.py install
 - conda install -c https://conda.anaconda.org/jjhelmus tensorflow
-#- pip install --upgrade --no-deps theano
-#- pip install keras
 script:
 - nosetests -v deepchem --nologcapture
 after_success:

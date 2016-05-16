@@ -142,18 +142,6 @@ class Model(object):
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)
-
-    ################ DEBUG
-    #y_plain = []
-    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-    #  y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
-    #  y_plain.append(y_pred_batch)
-    #y_plain_pred = np.vstack(y_plain)
-    #y = dataset.get_labels()
-    #import sklearn
-    #print("sklearn.metrics.r2_score(y, y_plain_pred)")
-    #print(sklearn.metrics.r2_score(y, y_plain_pred))
-    ################ DEBUG
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
