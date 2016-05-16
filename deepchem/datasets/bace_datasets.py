@@ -48,7 +48,6 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   str(crystal_dataset.shape[0]))
 
   #Make directories to store the raw and featurized datasets.
-  #base_dir = "/scratch/users/rbharath/bace_20_80"
   base_dir = tempfile.mkdtemp()
   feature_dir = os.path.join(base_dir, "features")
   samples_dir = os.path.join(base_dir, "samples")
@@ -86,11 +85,11 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
       featurized_samples, train_dir, valid_dir, test_dir,
       reload=reload)
-  ######################## DEBUG
-  print("bace_datasets")
-  print("len(train_samples), len(valid_samples), len(test_samples)")
-  print(len(train_samples), len(valid_samples), len(test_samples))
-  ######################## DEBUG
+  ######################### DEBUG
+  #print("bace_datasets")
+  #print("len(train_samples), len(valid_samples), len(test_samples)")
+  #print(len(train_samples), len(valid_samples), len(test_samples))
+  ######################### DEBUG
 
   #NOTE THE RENAMING:
   if split == "20-80":
@@ -124,11 +123,8 @@ def load_bace(mode="regression", transform=True, split="20-80"):
         ClippingTransformer(transform_X=True, dataset=train_dataset)]
     output_transformers = []
     if mode == "regression":
-      ######## DEBUG (TURN ME BACK ON!)
-      #output_transformers = [
-      #  NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-      ######## DEBUG (TURN ME BACK ON!)
-      output_transformers = []
+      output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
     else:
       output_transformers = []
   else:
@@ -146,98 +142,3 @@ def load_bace(mode="regression", transform=True, split="20-80"):
 
   #return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers)
   return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, output_transformers)
-
-#def load_classification_bace():
-#  """Load BACE-1 dataset as classification problem."""
-#  reload = True
-#  verbosity = "high"
-#
-#  current_dir = os.path.dirname(os.path.realpath(__file__))
-#  dataset_file = os.path.join(
-#      current_dir, "../../datasets/desc_canvas_aug30.csv")
-#  print("dataset_file")
-#  print(dataset_file)
-#  dataset = load_from_disk(dataset_file)
-#  num_display = 10
-#  pretty_columns = (
-#      "[" + ",".join(["'%s'" % column for column in
-#  dataset.columns.values[:num_display]])
-#      + ",...]")
-#
-#  crystal_dataset_file = os.path.join(
-#      current_dir, "../../datasets/crystal_desc_canvas_aug30.csv")
-#  crystal_dataset = load_from_disk(crystal_dataset_file)
-#
-#  print("Columns of dataset: %s" % pretty_columns)
-#  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
-#  print("Number of examples in crystal dataset: %s" %
-#  str(crystal_dataset.shape[0]))
-#  #Make directories to store the raw and featurized datasets.
-#  base_dir = tempfile.mkdtemp()
-#  feature_dir = os.path.join(base_dir, "features")
-#  samples_dir = os.path.join(base_dir, "samples")
-#  full_dir = os.path.join(base_dir, "full_dataset")
-#  train_dir = os.path.join(base_dir, "train_dataset")
-#  valid_dir = os.path.join(base_dir, "valid_dataset")
-#  test_dir = os.path.join(base_dir, "test_dataset")
-#  model_dir = os.path.join(base_dir, "model")
-#  crystal_dir = os.path.join(base_dir, "crystal")
-#  crystal_feature_dir = os.path.join(base_dir, "crystal_feature")
-#  crystal_samples_dir = os.path.join(base_dir, "crystal_samples")
-#
-#  bace_tasks = ["Class"]
-#  featurizer = DataFeaturizer(tasks=bace_tasks,
-#                              smiles_field="mol",
-#                              id_field="CID",
-#                              user_specified_features=user_specified_features,
-#                              split_field="Model")
-#  featurized_samples = featurizer.featurize(
-#      dataset_file, feature_dir, samples_dir, shard_size=2000)
-#  crystal_featurized_samples = featurizer.featurize(
-#      crystal_dataset_file, crystal_feature_dir, crystal_samples_dir,
-#  shard_size=2000)
-#
-#  train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
-#      featurized_samples, train_dir, valid_dir, test_dir,
-#      reload=reload)
-#  ##NOTE THE RENAMING:
-#  valid_samples, test_samples = test_samples, valid_samples
-#
-#  train_dataset = Dataset(data_dir=train_dir, samples=train_samples, 
-#                            featurizers=[], tasks=bace_tasks,
-#                            use_user_specified_features=True)
-#  valid_dataset = Dataset(data_dir=valid_dir, samples=valid_samples, 
-#                            featurizers=[], tasks=bace_tasks,
-#                            use_user_specified_features=True)
-#  test_dataset = Dataset(data_dir=test_dir, samples=test_samples, 
-#                           featurizers=[], tasks=bace_tasks,
-#                           use_user_specified_features=True)
-#  crystal_dataset = Dataset(data_dir=crystal_dir,
-#  samples=crystal_featurized_samples, 
-#                              featurizers=[], tasks=bace_tasks,
-#                              use_user_specified_features=True)
-#  print("Number of compounds in train set")
-#  print(len(train_dataset))
-#  print("Number of compounds in validation set")
-#  print(len(valid_dataset))
-#  print("Number of compounds in test set")
-#  print(len(test_dataset))
-#  print("Number of compounds in crystal set")
-#  print(len(crystal_dataset))
-#
-#
-#  input_transformers = [
-#      NormalizationTransformer(transform_X=True, dataset=train_dataset),
-#      ClippingTransformer(transform_X=True, dataset=train_dataset)]
-#  output_transformers = []
-#  transformers = input_transformers + output_transformers
-#  for transformer in transformers:
-#      transformer.transform(train_dataset)
-#  for transformer in transformers:
-#      transformer.transform(valid_dataset)
-#  for transformer in transformers:
-#      transformer.transform(test_dataset)
-#  for transformer in transformers:
-#      transformer.transform(crystal_dataset)
-#
-#  return (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers)

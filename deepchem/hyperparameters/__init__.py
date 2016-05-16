@@ -100,6 +100,8 @@ class HyperparamOpt(object):
 
     if best_model is None:
       log("No models trained correctly.", self.verbosity, "low")
+      # arbitrarily return last model
+      best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()

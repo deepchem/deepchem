@@ -18,9 +18,6 @@ from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 from deepchem.datasets.bace_datasets import load_bace
 
-#mode = "regression"
-#mode = "classification"
-#verbosity = "high"
 
 def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
   bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers = \
