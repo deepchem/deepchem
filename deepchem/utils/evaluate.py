@@ -44,10 +44,6 @@ class Evaluator(object):
     """
     Write computed stats to file.
     """
-    ########### DEBUG
-    print("stats_out")
-    print(stats_out)
-    ########### DEBUG
     with open(stats_out, "wb") as statsfile:
       statsfile.write(str(scores) + "\n")
 

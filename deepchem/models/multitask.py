@@ -67,9 +67,6 @@ class SingletaskToMultitask(Model):
     for ind, task in enumerate(self.tasks):
       task_type = self.task_types[task]
       if task_type == "classification":
-        ################# DEBUG
-        #y_pred[:, ind] = self.models[task].predict_on_batch(X)[:, 0]
-        ################# DEBUG
         y_pred[:, ind] = self.models[task].predict_on_batch(X)
       elif task_type == "regression":
         y_pred[:, ind] = self.models[task].predict_on_batch(X)

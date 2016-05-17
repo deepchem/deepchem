@@ -107,18 +107,6 @@ class NormalizationTransformer(Transformer):
     self.y_stds = y_stds
 
   def transform(self, dataset, parallel=False):
-    ##################### DEBUG
-    #X_means, X_stds, y_means, y_stds = dataset.get_statistics()
-    #print("NormalizationTransformer.tranform()")
-    #print("y_means, y_stds")
-    #print(y_means, y_stds)
-    #import traceback
-    #traceback.print_stack()
-    #self.X_means = X_means 
-    #self.X_stds = X_stds
-    #self.y_means = y_means 
-    #self.y_stds = y_stds
-    ##################### DEBUG
     super(NormalizationTransformer, self).transform(
         dataset, parallel=parallel)
     
@@ -143,13 +131,6 @@ class NormalizationTransformer(Transformer):
     """
     Undo transformation on provided data.
     """
-    ####################### DEBUG
-    #print("NormalizationTransformer.untranform()")
-    #print("np.amax(z), np.amin(z)")
-    #print(np.amax(z), np.amin(z))
-    #print("self.y_stds, self.y_means")
-    #print(self.y_stds, self.y_means)
-    ####################### DEBUG
     if self.transform_X:
       return z * self.X_stds + self.X_means
     elif self.transform_y:
