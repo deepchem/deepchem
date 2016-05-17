@@ -10,20 +10,13 @@ import pandas as pd
 import joblib
 import os
 import tempfile
+import sklearn
 from deepchem.datasets import Dataset
+from deepchem.transformers import undo_transforms
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
-import sklearn
 
-
-def undo_transforms(y, transformers):
-  """Undoes all transformations applied."""
-  # Note that transformers have to be undone in reversed order
-  for transformer in reversed(transformers):
-    if transformer.transform_y:
-      y = transformer.untransform(y)
-  return y
 
 class Model(object):
   """

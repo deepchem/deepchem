@@ -77,7 +77,7 @@ class HyperparamOpt(object):
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance(
-          [metric], valid_csv_out.name, valid_stats_out)
+          [metric], valid_csv_out.name, valid_stats_out.name)
       valid_score = multitask_scores[metric.name]
       all_scores[str(hyperparameter_tuple)] = valid_score
     
@@ -100,12 +100,14 @@ class HyperparamOpt(object):
 
     if best_model is None:
       log("No models trained correctly.", self.verbosity, "low")
+      # arbitrarily return last model
+      best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
     train_csv_out = tempfile.NamedTemporaryFile()
     train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
     multitask_scores = train_evaluator.compute_model_performance(
-        [metric], train_csv_out.name, train_stats_out)
+        [metric], train_csv_out.name, train_stats_out.name)
     train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(best_hyperparams),
         self.verbosity, "low")

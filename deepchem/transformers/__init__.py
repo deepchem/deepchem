@@ -12,6 +12,15 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils import pad_array
 
+def undo_transforms(y, transformers):
+  """Undoes all transformations applied."""
+  # Note that transformers have to be undone in reversed order
+  for transformer in reversed(transformers):
+    if transformer.transform_y:
+      y = transformer.untransform(y)
+  return y
+
+
 class Transformer(object):
   """
   Abstract base class for different ML models.
@@ -98,11 +107,6 @@ class NormalizationTransformer(Transformer):
     self.y_stds = y_stds
 
   def transform(self, dataset, parallel=False):
-    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
-    self.X_means = X_means 
-    self.X_stds = X_stds
-    self.y_means = y_means 
-    self.y_stds = y_stds
     super(NormalizationTransformer, self).transform(
         dataset, parallel=parallel)
     
