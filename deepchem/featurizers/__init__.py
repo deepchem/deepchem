@@ -142,9 +142,7 @@ class Featurizer(object):
         if verbosity is not None and i % log_every_n == 0:
           log("Featurizing %d / %d" % (i, len(mols)))
         if mol is not None:
-          myfeatures = self._featurize(mol)
-          features.append(myfeatures)
-          #features.append(self._featurize(mol))
+          features.append(self._featurize(mol))
         else:
           features.append(np.array([]))
 
