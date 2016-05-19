@@ -38,6 +38,8 @@ def _process_field(val):
       return float(val)
     except ValueError:
       return val
+  elif isinstance(val, Chem.Mol):
+    return val
   else:
     raise ValueError("Field of unrecognized type: %s" % str(val))
 
@@ -53,6 +55,8 @@ def _get_input_type(input_file):
     return "pandas-pickle"
   elif file_extension == ".joblib":
     return "pandas-joblib"
+  elif file_extension == ".sdf":
+    return "sdf"
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
@@ -69,6 +73,12 @@ def _get_fields(input_file):
   elif input_type == "pandas-pickle":
     df = load_pickle_from_disk(input_file)
     return df.keys()
+  # If SDF input, assume that .sdf.csv file contains labels 
+  elif input_type == "sdf":
+    label_file = input_file + ".csv"
+    print("Reading labels from %s" % label_file)
+    with open(label_file, "rb") as inp_file_obj:
+      return inp_file_obj.readline()
   else:
     raise ValueError("Unrecognized extension for %s" % input_file)
 
@@ -83,7 +93,7 @@ class DataFeaturizer(object):
   def __init__(self, tasks, smiles_field, split_field=None,
                id_field=None, threshold=None, user_specified_features=None,
                protein_pdb_field=None, ligand_pdb_field=None,
-               ligand_mol2_field=None, 
+               ligand_mol2_field=None, mol_field=None,
                compound_featurizers=[], complex_featurizers=[],
                verbosity=None, log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
@@ -102,6 +112,7 @@ class DataFeaturizer(object):
     self.protein_pdb_field = protein_pdb_field
     self.ligand_pdb_field = ligand_pdb_field
     self.ligand_mol2_field = ligand_mol2_field
+    self.mol_field = mol_field
     self.user_specified_features = user_specified_features
     self.compound_featurizers = compound_featurizers
     self.complex_featurizers = complex_featurizers
@@ -115,14 +126,32 @@ class DataFeaturizer(object):
     perform_featurization = (not os.path.exists(feature_dir)
                              or not self._shard_files_exist(feature_dir)
                              or not reload)
-                             
+
+    input_type = _get_input_type(input_file)
+    read_sdf = (input_type == "sdf")
+
     if perform_featurization:
       if not os.path.exists(feature_dir):
         os.makedirs(feature_dir)
-      input_type = _get_input_type(input_file)
 
       log("Loading raw samples now.", self.verbosity)
-      raw_df = load_pandas_from_disk(input_file)
+
+      if read_sdf:
+        # Tasks are stored in .sdf.csv file
+        raw_df = load_pandas_from_disk(input_file+".csv")
+        # Structures are stored in .sdf file
+        print("Reading structures from %s." % input_file)
+        suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
+        df_rows = []
+        for ind, mol in enumerate(suppl):
+          if mol is not None:
+            smiles = Chem.MolToSmiles(mol)
+            df_rows.append([ind,smiles,mol])
+        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+        raw_df = pd.concat([mol_df, raw_df], axis=1, join='inner')
+      else:
+        raw_df = load_pandas_from_disk(input_file)
+
       fields = raw_df.keys()
       log("Loaded raw data frame from file.", self.verbosity)
       log("About to preprocess samples.", self.verbosity)
@@ -146,10 +175,17 @@ class DataFeaturizer(object):
         
         df = self._standardize_df(raw_df_shard) 
 
-        for compound_featurizer in self.compound_featurizers:
-          log("Currently featurizing feature_type: %s"
-              % compound_featurizer.__class__.__name__, self.verbosity)
-          self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
+        if read_sdf:
+          # SDF reader compatible with compound_featurizers for now
+          for compound_featurizer in self.compound_featurizers:
+            log("Currently featurizing feature_type: %s"
+                % compound_featurizer.__class__.__name__, self.verbosity)
+            self._featurize_mol(df, compound_featurizer, worker_pool=worker_pool)
+        else:
+          for compound_featurizer in self.compound_featurizers:
+            log("Currently featurizing feature_type: %s"
+                % compound_featurizer.__class__.__name__, self.verbosity)
+            self._featurize_compounds(df, compound_featurizer, worker_pool=worker_pool)
 
         for complex_featurizer in self.complex_featurizers:
           log("Currently featurizing feature_type: %s"
@@ -183,7 +219,7 @@ class DataFeaturizer(object):
     if input_type == "csv":
       for ind, field in enumerate(fields):
         data[field] = _process_field(row[ind])
-    elif input_type in ["pandas-pickle", "pandas-joblib"]:
+    elif input_type in ["pandas-pickle", "pandas-joblib", "sdf"]:
       for field in fields:
         data[field] = _process_field(row[field])
     else:
@@ -206,6 +242,8 @@ class DataFeaturizer(object):
     if self.user_specified_features is not None:
       for feature in self.user_specified_features:
         df[feature] = ori_df[[feature]]
+    if self.mol_field is not None:
+      df["mol"] = ori_df[[self.mol_field]]
     if self.split_field is not None:
       df["split"] = ori_df[[self.split_field]]
     if self.protein_pdb_field is not None:
@@ -240,6 +278,41 @@ class DataFeaturizer(object):
                                       zip(ligand_pdbs, protein_pdbs))
       #features = featurize_wrapper(zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
+
+  def _featurize_mol(self, df, featurizer, parallel=True,
+                           worker_pool=None):    
+    """Featurize individual compounds.
+
+       Given a featurizer that operates on individual chemical compounds 
+       or macromolecules, compute & add features for that compound to the 
+       features dataframe
+
+       When featurizing a .sdf file, the 3-D structure should be preserved
+       so we use the rdkit "mol" object created from .sdf instead of smiles
+       string. Some featurizers such as CoulombMatrix also require a 3-D
+       structure.  Featurizing from .sdf is currently the only way to
+       perform CM feautization.
+
+    """
+    sample_mols = df["mol"].tolist()
+
+    if worker_pool is None:
+      features = []
+      for ind, mol in enumerate(sample_mols):
+        if ind % self.log_every_n == 0:
+          log("Featurizing sample %d" % ind, self.verbosity)
+        features.append(featurizer.featurize([mol], verbosity=self.verbosity))
+    else:
+      def featurize_wrapper(mol, dilled_featurizer):
+        print("Featurizing %s" % mol)
+        featurizer = dill.loads(dilled_featurizer)
+        feature = featurizer.featurize([mol], verbosity=self.verbosity)
+        return feature
+
+      features = worker_pool.map_sync(featurize_wrapper, 
+                                      sample_mols)
+
+    df[featurizer.__class__.__name__] = features
 
   def _featurize_compounds(self, df, featurizer, parallel=True,
                            worker_pool=None):    
@@ -303,7 +376,7 @@ class FeaturizedSamples(object):
   """
   # The standard columns for featurized data.
   colnames = ["mol_id", "smiles", "split"]
-  optional_colnames = ["protein_pdb", "ligand_pdb", "ligand_mol2"]
+  optional_colnames = ["protein_pdb", "ligand_pdb", "ligand_mol2", "mol"]
 
   def __init__(self, samples_dir, featurizers, dataset_files=None, 
                reload=False, verbosity=None):
