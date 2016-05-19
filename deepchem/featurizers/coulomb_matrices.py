@@ -145,7 +145,7 @@ class CoulombMatrix(Featurizer):
         Molecule conformer.
     """
     n_atoms = conf.GetNumAtoms()
-    coords = [conf.GetAtomPosition(i) for i in xrange(n_atoms)]
+    coords = [conf.GetAtomPosition(i).__div__(0.52917721092) for i in xrange(n_atoms)]  # Convert AtomPositions from Angstrom to bohr (atomic units)
     d = np.zeros((n_atoms, n_atoms), dtype=float)
     for i in xrange(n_atoms):
       for j in xrange(n_atoms):
