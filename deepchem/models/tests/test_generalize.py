@@ -23,6 +23,8 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem import metrics
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.multitask import SingletaskToMultitask
+from deepchem.transformers import NormalizationTransformer
+from deepchem.transformers import ClippingTransformer
 
 class TestGeneralization(TestAPI):
   """
@@ -68,6 +70,67 @@ class TestGeneralization(TestAPI):
     train_scores = train_evaluator.compute_model_performance([regression_metric])
     print("train_scores")
     print(train_scores)
+
+    # Eval model on test
+    transformers = []
+    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
+    scores = evaluator.compute_model_performance([regression_metric])
+    print("scores")
+    print(scores)
+
+    assert scores[regression_metric.name] > .5
+
+  def test_sklearn_transformed_regression(self):
+    """Test that sklearn models can learn on simple transformed regression datasets."""
+    np.random.seed(123)
+    dataset = sklearn.datasets.load_diabetes()
+    X, y = dataset.data, dataset.target
+
+    frac_train = .7
+    n_samples = len(X)
+    
+    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
+    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+
+    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+
+    # Eval model on train
+    input_transformers = [
+        NormalizationTransformer(transform_X=True, dataset=train_dataset),
+        ClippingTransformer(transform_X=True, dataset=train_dataset)]
+    output_transformers = [
+      NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+    for transformer in transformers:
+        transformer.transform(train_dataset)
+    for transformer in transformers:
+        transformer.transform(test_dataset)
+
+    tasks = train_dataset.get_task_names()
+    task_types = {task: "regression" for task in tasks}
+
+    model_params = {
+      "batch_size": None,
+      "data_shape": train_dataset.get_data_shape()
+    }
+
+    verbosity = "high"
+    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
+                         mode="regression",
+                         model_instance=LinearRegression())
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
+    train_scores = train_evaluator.compute_model_performance([regression_metric])
+    print("train_scores")
+    print(train_scores)
+
+    assert train_scores[regression_metric.name] > .5
 
     # Eval model on test
     transformers = []

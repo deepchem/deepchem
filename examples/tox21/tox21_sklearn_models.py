@@ -69,7 +69,7 @@ valid_scores = {}
 
 print("Using following tasks")
 print(tox21_tasks)
-##### CHANGE IF N_TASKS IS CHANGED!
+
 ## This is for good debug (to make sure nasty state isn't being passed around)
 if os.path.exists(feature_dir):
   shutil.rmtree(feature_dir)
@@ -117,38 +117,11 @@ valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
 transformers = []
 
 # Fit models
-tox21_task_types = {task: "Classification" for task in tox21_tasks}
+tox21_task_types = {task: "classification" for task in tox21_tasks}
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
-
-####################### DEBUG
-y_train = np.reshape(y_train, (len(y_train), n_tasks))
-print("w_valid")
-print(w_valid)
-for task, _ in enumerate(tox21_tasks):
-  print("BASELINE FOR TASK %s" % str(task))
-  model = RandomForestClassifier(class_weight="balanced",
-                                 n_estimators=500)
-  y_train_task = y_train[:, task]
-  y_valid_task = y_valid[:, task]
-  w_valid_task = w_valid[:, task]
-  model.fit(X_train, y_train_task)
-  #y_valid_task = metrics.to_one_hot(y_valid_task)
-  y_valid_task = y_valid_task[:, np.newaxis]
-  y_pred_task = model.predict_proba(X_valid)
-  y_pred_task = y_pred_task[:, np.newaxis]
-  w_valid_task = w_valid_task[:, np.newaxis]
-  print("y_valid_task.shape, y_pred_task.shape, w_valid_task.shape")
-  print(y_valid_task.shape, y_pred_task.shape, w_valid_task.shape)
-  print("classification_metric.compute_metric(y_valid_task, y_pred_task, w_valid_task)")
-  print(classification_metric.compute_metric(y_valid_task, y_pred_task, w_valid_task))
-  #print("metrics.roc_auc_score(y_valid_task, y_pred_task)")
-  #print(metrics.roc_auc_score(y_valid_task, y_pred_task))
-  print("----------------------")
-####################### DEBUG
-
 
 params_dict = { 
     "batch_size": None,

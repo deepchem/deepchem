@@ -65,13 +65,8 @@ print("About to featurize Tox21 dataset.")
 featurizers = [CircularFingerprint(size=1024)]
 tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD',
                'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5', 'SR-HSE', 'SR-MMP', 'SR-p53']
-# For debugging purposes
-#tox21_tasks = tox21_tasks[0:1]
-#tox21_tasks = tox21_tasks[0:2]
 all_valid_scores = {}
 
-print("Using following tasks")
-print(tox21_tasks)
 # This is for good debug (to make sure nasty state isn't being passed around)
 if os.path.exists(feature_dir):
   shutil.rmtree(feature_dir)
@@ -86,8 +81,6 @@ featurized_samples = featurizer.featurize(
 
 # Generate datasets
 print("About to create datasets")
-print("tox21_tasks")
-print(tox21_tasks)
 
 # This is for good debug (to make sure nasty state isn't being passed around)
 if os.path.exists(full_dir):
@@ -107,11 +100,6 @@ ids_train, ids_valid = ids[:num_train], ids[num_train:]
 # Not sure if we need to constantly delete these directories...
 if os.path.exists(train_dir):
   shutil.rmtree(train_dir)
-print("tox21_tf_models.py")
-print("type(y_train)")
-print(type(y_train))
-print("type(X_train)")
-print(type(X_train))
 train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
                                    w_train, ids_train, tox21_tasks)
 
@@ -131,7 +119,6 @@ classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                mode="classification")
 params_dict = { 
     "batch_size": 32,
-    #"batch_size": 5120,
     "nb_epoch": 50,
     "data_shape": train_dataset.get_data_shape(),
     "layer_sizes": [1000],
