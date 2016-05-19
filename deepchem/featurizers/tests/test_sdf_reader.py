@@ -67,7 +67,7 @@ class TestFeaturizedSamples(unittest.TestCase):
       return train_samples, test_samples
 
   def random_test_train_valid_test_split_from_sdf(self):
-    """Test of singletask RF ECFP regression API when reading from .sdf file."""
+    """Test of singletask CoulombMatrixEig RF regression API when reading from .sdf file."""
     splittype = "random"
     input_transforms = []
     output_transforms = ["normalize"]
