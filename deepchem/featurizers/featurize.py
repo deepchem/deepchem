@@ -108,7 +108,7 @@ class DataFeaturizer(object):
     self.log_every_n = log_every_n
 
   def featurize(self, input_file, feature_dir, samples_dir,
-                shard_size=1024, worker_pool=None,
+                shard_size=8192, worker_pool=None,
                 reload=False):
     """Featurize provided file and write to specified location."""
     # If we are not to reload data, or data has not already been featurized.

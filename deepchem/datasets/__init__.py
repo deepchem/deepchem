@@ -183,6 +183,11 @@ class Dataset(object):
     Returns minibatches from dataset.
     """
     for i, (X, y, w, ids) in enumerate(self.itershards()):
+      ######################## DEBUG
+      print("Dataset.iterbatches()")
+      print("i, X.shape, y.shape")
+      print(i, X.shape, y.shape)
+      ######################## DEBUG
       nb_sample = np.shape(X)[0]
       if batch_size is None:
         shard_batch_size = nb_sample
