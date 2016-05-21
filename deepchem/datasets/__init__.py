@@ -403,6 +403,17 @@ def _df_to_numpy(df, feature_types, tasks):
       feature_list.append(datapoint[feature_type])
     try:
       features = np.squeeze(np.concatenate(feature_list))
+      ################################# DEBUG
+      #print("features.size: %s" % str(features.size))
+      #print("features.size == 0")
+      #print(features.size == 0)
+      if features.size == 0:
+        #print("CONTINUING")
+        features = np.zeros(feature_shape)
+        tensors.append(features)
+        missing[ind, :] = 1
+        continue
+      ################################# DEBUG
       for feature_ind, val in enumerate(features):
         if features[feature_ind] == "":
           features[feature_ind] = 0.

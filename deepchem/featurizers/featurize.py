@@ -257,6 +257,14 @@ class DataFeaturizer(object):
         if ind % self.log_every_n == 0:
           log("Featurizing sample %d" % ind, self.verbosity)
         mol = Chem.MolFromSmiles(smiles)
+        ################################ DEBUG
+        if mol is None:
+          #print("RDKit loading failed at %s" % smiles)
+          output = featurizer.featurize([mol], verbosity=self.verbosity)
+          #print("featurizer returned %s" % str(output))
+          #print("type(output)")
+          #print(type(output))
+        ################################ DEBUG
         features.append(featurizer.featurize([mol], verbosity=self.verbosity))
     else:
       def featurize_wrapper(smiles, dilled_featurizer):
