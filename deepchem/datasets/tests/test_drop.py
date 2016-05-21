@@ -24,7 +24,6 @@ class TestDrop(TestAPI):
     verbosity = "high"
     len_full = 25
 
-    ## This is for good debug (to make sure nasty state isn't being passed around)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     feature_dir = os.path.join(self.base_dir, "features")
     samples_dir = os.path.join(self.base_dir, "samples")
@@ -54,8 +53,6 @@ class TestDrop(TestAPI):
     dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
                       featurizers=featurizers, tasks=emols_tasks,
                       verbosity=verbosity, reload=reload)
-    print("len(dataset)")
-    print(len(dataset))
 
     X, y, w, ids = dataset.to_numpy()
     print("ids.shape, X.shape, y.shape, w.shape")

@@ -137,29 +137,15 @@ class Model(object):
     """
     y_preds = []
     batch_size = self.model_params["batch_size"]
-    ######################## DEBUG
-    print("Model.predict()")
-    print("len(dataset)")
-    print(len(dataset))
-    ######################## DEBUG
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
-      ######################## DEBUG
-      print("y_batch.shape, y_pred_batch.shape")
-      print(y_batch.shape, y_pred_batch.shape)
-      ######################## DEBUG
     y_pred = np.vstack(y_preds)
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples, n_tasks = len(dataset), len(self.tasks)
-    ######################## DEBUG
-    print("Model.predict()")
-    print("y_pred.shape, n_samples, n_tasks")
-    print(y_pred.shape, n_samples, n_tasks)
-    ######################## DEBUG
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     return y_pred
 
