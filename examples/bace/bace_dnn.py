@@ -22,6 +22,7 @@ from deepchem.models.keras_models.fcnet import SingleTaskDNN
 
 
 def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
+  """Train fully-connected DNNs on BACE dataset."""
   (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset,
    transformers) = load_bace(mode=mode, transform=True, split=split)
 
@@ -32,12 +33,13 @@ def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
     all_metrics = [r2_metric, rms_metric, mae_metric]
     metric = r2_metric
   elif mode == "classification":
+    roc_auc_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
     accuracy_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
     mcc_metric = Metric(metrics.matthews_corrcoef, verbosity=verbosity)
     # Note sensitivity = recall
     recall_metric = Metric(metrics.recall_score, verbosity=verbosity)
-    all_metrics = [accuracy_metric, mcc_metric, recall_metric]
-    metric = accuracy_metric
+    all_metrics = [accuracy_metric, mcc_metric, recall_metric, roc_auc_metric]
+    metric = roc_auc_metric 
   else:
     raise ValueError("Invalid mode %s" % mode)
 
@@ -54,8 +56,8 @@ def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
                   "batch_size": [50],
                   "init": ["glorot_uniform"],
                   "data_shape": [train_dataset.get_data_shape()],
-                  "learning_rate": np.power(10., np.random.uniform(-5, -3, size=4)),
-                  "decay": np.power(10, np.random.uniform(-6, -4, size=4)),
+                  "learning_rate": np.power(10., np.random.uniform(-5, -3, size=5)),
+                  "decay": np.power(10, np.random.uniform(-6, -4, size=5)),
                   "nb_hidden": [1000],
                   "nb_epoch": [40],
                   "nesterov": [False],

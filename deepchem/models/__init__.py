@@ -146,7 +146,6 @@ class Model(object):
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples, n_tasks = len(dataset), len(self.tasks)
-    y_pred = y_pred[:n_samples]
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     return y_pred
 

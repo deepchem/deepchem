@@ -39,6 +39,7 @@ class TestAPI(unittest.TestCase):
   def setUp(self):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.smiles_field = "smiles"
+    self.base_dir = tempfile.mkdtemp()
     self.feature_dir = tempfile.mkdtemp()
     self.samples_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
@@ -49,6 +50,7 @@ class TestAPI(unittest.TestCase):
       os.makedirs(self.model_dir)
 
   def tearDown(self):
+    shutil.rmtree(self.base_dir)
     shutil.rmtree(self.feature_dir)
     shutil.rmtree(self.samples_dir)
     shutil.rmtree(self.train_dir)

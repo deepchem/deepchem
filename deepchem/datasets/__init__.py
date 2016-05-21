@@ -398,6 +398,11 @@ def _df_to_numpy(df, feature_types, tasks):
       feature_list.append(datapoint[feature_type])
     try:
       features = np.squeeze(np.concatenate(feature_list))
+      if features.size == 0:
+        features = np.zeros(feature_shape)
+        tensors.append(features)
+        missing[ind, :] = 1
+        continue
       for feature_ind, val in enumerate(features):
         if features[feature_ind] == "":
           features[feature_ind] = 0.
@@ -425,6 +430,8 @@ def _df_to_numpy(df, feature_types, tasks):
         y[ind, task] = 0.
         w[ind, task] = 0.
 
+  # Adding this assertion in to avoid ill-formed outputs.
+  assert len(sorted_ids) == len(x) == len(y) == len(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
 
 def compute_mean_and_std(df):

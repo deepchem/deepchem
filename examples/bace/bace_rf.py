@@ -20,8 +20,9 @@ from deepchem.datasets.bace_datasets import load_bace
 
 
 def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
-  bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset, transformers = \
-    load_bace(mode=mode, transform=False, split=split)
+  """Train random forests on BACE dataset."""
+  (bace_tasks, train_dataset, valid_dataset, test_dataset, crystal_dataset,
+   transformers) = load_bace(mode=mode, transform=False, split=split)
 
   if mode == "regression":
     r2_metric = Metric(metrics.r2_score, verbosity=verbosity)
@@ -31,13 +32,14 @@ def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
     metric = r2_metric
     model_class = RandomForestRegressor
   elif mode == "classification":
+    roc_auc_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
     accuracy_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
     mcc_metric = Metric(metrics.matthews_corrcoef, verbosity=verbosity)
     # Note sensitivity = recall
     recall_metric = Metric(metrics.recall_score, verbosity=verbosity)
     model_class = RandomForestClassifier
-    all_metrics = [accuracy_metric, mcc_metric, recall_metric]
-    metric = accuracy_metric
+    all_metrics = [accuracy_metric, mcc_metric, recall_metric, roc_auc_metric]
+    metric = roc_auc_metric 
   else:
     raise ValueError("Invalid mode %s" % mode)
 
