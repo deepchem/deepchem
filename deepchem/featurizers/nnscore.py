@@ -20,7 +20,8 @@ from deepchem.featurizers.nnscore_utils import project_point_onto_plane
 from deepchem.featurizers.nnscore_utils import hydrogenate_and_compute_partial_charges
 
 __author__ = "Bharath Ramsundar"
-__license__ = "GNU General Public License"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
 
 #ELECTROSTATIC_JOULE_PER_MOL = 138.94238460104697e4 # units?
 # This is just a scaling factor, so it's set so as to keep the network
