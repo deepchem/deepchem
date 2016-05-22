@@ -49,11 +49,6 @@ class SingletaskToMultitask(Model):
     Warning: This current implementation is only functional for sklearn models. 
     """
     X, y, w, _ = dataset.to_numpy()
-    ################################### DEBUG
-    print("SingletaskToMultitask.fit()")
-    print("X.shape, y.shape, w.shape")
-    print(X.shape, y.shape, w.shape)
-    ################################### DEBUG
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       y_task = y[:, ind]
