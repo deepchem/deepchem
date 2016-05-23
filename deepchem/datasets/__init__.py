@@ -434,21 +434,6 @@ def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
 
   if feature_types is not None and tasks is not None:
     basename = os.path.splitext(os.path.basename(df_file))[0]
-  ######################################### DEBUG
-  #out_X = os.path.join(data_dir, "%s-X.joblib" % basename)
-  #out_X_transformed = os.path.join(data_dir, "%s-X-transformed.joblib" % basename)
-  #out_X_sums = os.path.join(data_dir, "%s-X_sums.joblib" % basename)
-  #out_X_sum_squares = os.path.join(data_dir, "%s-X_sum_squares.joblib" % basename)
-  #out_X_n = os.path.join(data_dir, "%s-X_n.joblib" % basename)
-  #out_y = os.path.join(data_dir, "%s-y.joblib" % basename)
-  #out_y_transformed = os.path.join(data_dir, "%s-y-transformed.joblib" % basename)
-  #out_y_sums = os.path.join(data_dir, "%s-y_sums.joblib" % basename)
-  #out_y_sum_squares = os.path.join(data_dir, "%s-y_sum_squares.joblib" % basename)
-  #out_y_n = os.path.join(data_dir, "%s-y_n.joblib" % basename)
-  #out_w = os.path.join(data_dir, "%s-w.joblib" % basename)
-  #out_w_transformed = os.path.join(data_dir, "%s-w-transformed.joblib" % basename)
-  #out_ids = os.path.join(data_dir, "%s-ids.joblib" % basename)
-  ######################################### DEBUG
   out_X = "%s-X.joblib" % basename
   out_X_transformed = "%s-X-transformed.joblib" % basename
   out_X_sums = "%s-X_sums.joblib" % basename

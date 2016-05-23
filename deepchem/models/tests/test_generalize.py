@@ -95,6 +95,7 @@ class TestGeneralization(TestAPI):
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
+
     # Eval model on train
     input_transformers = [
         NormalizationTransformer(transform_X=True, dataset=train_dataset),
