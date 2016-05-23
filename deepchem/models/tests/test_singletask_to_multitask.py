@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL"
+__license__ = "GPL"
 
 import numpy as np
 from deepchem.models.tests import TestAPI

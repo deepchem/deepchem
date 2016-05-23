@@ -14,8 +14,8 @@ from deepchem.utils.save import log
 from deepchem.transformers import undo_transforms
 
 __author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2015, Stanford University"
-__license__ = "LGPL"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
 
 def relative_difference(x, y):
   """Compute the relative difference between x and y"""

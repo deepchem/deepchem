@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar and Evan Feinberg"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL"
+__license__ = "GPL"
 
 from copy import deepcopy
 import numpy as np

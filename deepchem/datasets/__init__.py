@@ -14,6 +14,10 @@ from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.utils.save import log
 
+__author__ = "Bharath Ramsundar"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
+
 # TODO(rbharath): The semantics of this class are very difficult to debug.
 # Multiple transformations of the data are performed on disk, and computations
 # of mean/std are spread across multiple functions for efficiency. Some

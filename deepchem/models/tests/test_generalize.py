@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "LGPL"
+__license__ = "GPL"
 
 import sklearn
 import sklearn.datasets

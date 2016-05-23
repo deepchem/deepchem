@@ -22,7 +22,9 @@ from deepchem.featurizers.nnscore_utils import vector_subtraction
 from deepchem.utils.save import log
 
 __author__ = "Bharath Ramsundar and Jacob Durrant"
-__license__ = "GNU General Public License"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
+
 
 def remove_redundant_rings(rings):
   """Filters out those rings which are supersets of other rings.
