@@ -67,7 +67,7 @@ class TestLoad(TestAPI):
     np.testing.assert_allclose(X, X_moved)
     np.testing.assert_allclose(y, y_moved)
     np.testing.assert_allclose(w, w_moved)
-    np.testing.assert_allclose(ids, ids_moved)
+    np.testing.assert_array_equal(ids, ids_moved)
 
     
 
