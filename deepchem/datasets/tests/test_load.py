@@ -26,6 +26,51 @@ class TestLoad(TestAPI):
   Test singletask/multitask data loading.
   """
 
+  def test_move_load(self):
+    """Test that datasets can be moved and loaded."""
+    verbosity = "high"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    feature_dir = os.path.join(self.base_dir, "features")
+    moved_feature_dir = os.path.join(self.base_dir, "moved_features")
+    samples_dir = os.path.join(self.base_dir, "samples")
+    moved_samples_dir = os.path.join(self.base_dir, "moved_samples")
+    data_dir = os.path.join(self.base_dir, "data")
+    moved_data_dir = os.path.join(self.base_dir, "moved_data")
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/example.csv")
+
+    featurizers = [CircularFingerprint(size=1024)]
+    tasks = ["log-solubility"]
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field="smiles",
+                                compound_featurizers=featurizers,
+                                verbosity=verbosity)
+    featurized_samples = featurizer.featurize(
+        dataset_file, feature_dir,
+        samples_dir, reload=reload)
+    dataset = Dataset(data_dir=data_dir, samples=featurized_samples, 
+                      featurizers=featurizers, tasks=tasks,
+                      verbosity=verbosity, reload=reload)
+
+    X, y, w, ids = dataset.to_numpy()
+    shutil.move(feature_dir, moved_feature_dir)
+    shutil.move(samples_dir, moved_samples_dir)
+    shutil.move(data_dir, moved_data_dir)
+
+    moved_dataset = Dataset(
+        data_dir=moved_data_dir, samples=featurized_samples, 
+        featurizers=featurizers, tasks=tasks,
+        verbosity=verbosity, reload=reload)
+
+    X_moved, y_moved, w_moved, ids_moved = moved_dataset.to_numpy()
+
+    np.testing.assert_allclose(X, X_moved)
+    np.testing.assert_allclose(y, y_moved)
+    np.testing.assert_allclose(w, w_moved)
+    np.testing.assert_allclose(ids, ids_moved)
+
+    
+
   def test_multiload(self):
     """Check can re-use featurization for multiple task selections."""
     # Only for debug!

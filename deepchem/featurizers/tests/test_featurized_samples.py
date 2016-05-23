@@ -13,25 +13,18 @@ import os
 import unittest
 import tempfile
 import shutil
+from deepchem.models.tests import TestAPI
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import SpecifiedSplitter
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
+from deepchem.featurizers.featurize import FeaturizedSamples
 
-class TestFeaturizedSamples(unittest.TestCase):
+class TestFeaturizedSamples(TestAPI):
   """
   Test Featurized Samples class.
   """
-  def setUp(self):
-    self.current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.smiles_field = "smiles"
-    self.feature_dir = tempfile.mkdtemp()
-    self.samples_dir = tempfile.mkdtemp()
-    self.train_dir = tempfile.mkdtemp()
-    self.valid_dir = tempfile.mkdtemp()
-    self.test_dir = tempfile.mkdtemp()
-
   def _featurize_train_valid_test_split(self, splittype, input_file, tasks,
                                         frac_train, frac_valid, frac_test):
     # Featurize input
@@ -141,3 +134,36 @@ class TestFeaturizedSamples(unittest.TestCase):
             frac_valid=0, frac_test=.2))
     assert len(train_samples) == 8
     assert len(test_samples) == 2
+
+  def test_samples_move(self):
+    """Test that featurized samples can be moved and reloaded."""
+    verbosity = "high"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    feature_dir = os.path.join(self.base_dir, "features")
+    moved_feature_dir = os.path.join(self.base_dir, "moved_features")
+    samples_dir = os.path.join(self.base_dir, "samples")
+    moved_samples_dir = os.path.join(self.base_dir, "moved_samples")
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/example.csv")
+
+    featurizers = [CircularFingerprint(size=1024)]
+    tasks = ["log-solubility"]
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field="smiles",
+                                compound_featurizers=featurizers,
+                                verbosity=verbosity)
+    featurized_samples = featurizer.featurize(
+        dataset_file, feature_dir,
+        samples_dir, reload=reload)
+    n_samples = len(featurized_samples)
+  
+    # Now perform move
+    shutil.move(feature_dir, moved_feature_dir)
+    shutil.move(samples_dir, moved_samples_dir)
+
+    moved_featurized_samples = FeaturizedSamples(
+        samples_dir=moved_samples_dir, featurizers=featurizers,
+        reload=True)
+
+    assert len(moved_featurized_samples) == n_samples
+        
