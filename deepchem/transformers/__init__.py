@@ -35,6 +35,7 @@ class Transformer(object):
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.transform_w = transform_w
+    self.data_dir = dataset.data_dir
     # One, but not both, transform_X or tranform_y is true
     assert transform_X or transform_y or transform_w
     # Use fact that bools add as ints in python
@@ -118,14 +119,15 @@ class NormalizationTransformer(Transformer):
     row = df.iloc[i]
 
     if self.transform_X:
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(
+          os.path.join(self.data_dir, row['X-transformed']))
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
-      save_to_disk(X, row['X-transformed'])
+      save_to_disk(X, os.path.join(self.data_dir, row['X-transformed']))
 
     if self.transform_y:
-      y = load_from_disk(row['y-transformed'])
+      y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
       y = np.nan_to_num((y - self.y_means) / self.y_stds)
-      save_to_disk(y, row['y-transformed'])
+      save_to_disk(y, os.path.join(self.data_dir, row['y-transformed']))
 
   def untransform(self, z):
     """
@@ -147,6 +149,7 @@ class ClippingTransformer(Transformer):
                                               transform_w=transform_w,
                                               dataset=dataset)
     self.max_val = max_val
+    self.data_dir = dataset.data_dir
 
   def transform_row(self, i, df):
     """
@@ -154,15 +157,15 @@ class ClippingTransformer(Transformer):
     """
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       X[X > self.max_val] = self.max_val
       X[X < (-1.0*self.max_val)] = -1.0 * self.max_val
-      save_to_disk(X, row['X-transformed'])
+      save_to_disk(X, os.path.join(self.data_dir, row['X-transformed']))
     if self.transform_y:
-      y = load_from_disk(row['y-transformed'])
+      y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
       y[y > trunc] = trunc
       y[y < (-1.0*trunc)] = -1.0 * trunc
-      save_to_disk(y, row['y-transformed'])
+      save_to_disk(y, os.path.join(self.data_dir, row['y-transformed']))
 
   def untransform(self, z):
     warnings.warn("Clipping cannot be undone.")
@@ -174,14 +177,14 @@ class LogTransformer(Transformer):
     """Logarithmically transforms data in dataset."""
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       X = np.log(X)
-      save_to_disk(X, row['X-transformed'])
+      save_to_disk(X, os.path.join(self.data_dir, row['X-transformed']))
 
     if self.transform_y:
-      y = load_from_disk(row['y-transformed'])
+      y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
       y = np.log(y)
-      save_to_disk(y, row['y-transformed'])
+      save_to_disk(y, os.path.join(self.data_dir, row['y-transformed']))
 
   def untransform(self, z):
     """Undoes the logarithmic transformation."""
@@ -223,8 +226,8 @@ class BalancingTransformer(Transformer):
   def transform_row(self, i, df):
     """Reweight the labels for this data."""
     row = df.iloc[i]
-    y = load_from_disk(row['y-transformed'])
-    w = load_from_disk(row['w-transformed'])
+    y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
+    w = load_from_disk(os.path.join(self.data_dir, row['w-transformed']))
     w_balanced = np.zeros_like(w)
     for ind, task in enumerate(self.dataset.get_task_names()):
       task_y = y[:, ind]
@@ -233,7 +236,7 @@ class BalancingTransformer(Transformer):
       one_indices = np.logical_and(task_y==1, task_w != 0)
       w_balanced[zero_indices, ind] = self.weights[ind][0]
       w_balanced[one_indices, ind] = self.weights[ind][1]
-    save_to_disk(w_balanced, row['w-transformed'])
+    save_to_disk(w_balanced, os.path.join(self.data_dir, row['w-transformed']))
 
 class CoulombRandomizationTransformer(Transformer):
 
@@ -291,11 +294,11 @@ class CoulombRandomizationTransformer(Transformer):
     """
     row = df.iloc[i]
     if self.transform_X:
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       for j in xrange(len(X)):
         cm = self.construct_cm_from_triu(X[j])
         X[j] = self.unpad_randomize_and_flatten(cm)
-      save_to_disk(X, row['X-transformed'])
+      save_to_disk(X, os.path.join(self.data_dir, row['X-transformed']))
 
     if self.transform_y:
       print("y will not be transformed by "
@@ -333,7 +336,7 @@ class CoulombBinarizationTransformer(Transformer):
   def set_max(self, df):
     
     for _, row in df.iterrows(): 
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
 
   def transform(self, dataset, parallel=False):
@@ -345,7 +348,7 @@ class CoulombBinarizationTransformer(Transformer):
     Xt = []
 
     for _, row in df.iterrows():
-      X_t = load_from_disk(row['X-transformed'])
+      X_t = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       Xt.append(np.array(X_t))
 
     X = np.vstack(Xt)
@@ -354,7 +357,7 @@ class CoulombBinarizationTransformer(Transformer):
 
     for i, row in df.iterrows():
       X_t = (Xt[i]-X_means)/X_stds
-      save_to_disk(X_t, row['X-transformed'])
+      save_to_disk(X_t, os.path.join(self.data_dir, row['X-transformed']))
 
   def transform_row(self, i, df):
     """
@@ -366,13 +369,13 @@ class CoulombBinarizationTransformer(Transformer):
       self.set_max(df)
       self.update_state = False
     if self.transform_X:
-      X = load_from_disk(row['X-transformed'])
+      X = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
       for i in range(X.shape[1]):
         for k in np.arange(0,self.feature_max[i]+self.theta,self.theta):
           X_bin += [np.tanh((X[:,i]-k)/self.theta)]
 
       X_bin = np.array(X_bin).T
-      save_to_disk(X_bin, row['X-transformed'])
+      save_to_disk(X_bin, os.path.join(self.data_dir, row['X-transformed']))
 
     if self.transform_y:
       print("y will not be transformed by "

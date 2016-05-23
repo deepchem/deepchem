@@ -306,7 +306,7 @@ class Dataset(object):
       return None, None, None, None
     self.update_moments()
     df = self.metadata_df
-    X_means, X_stds, y_means, y_stds = compute_mean_and_std(df)
+    X_means, X_stds, y_means, y_stds = self._compute_mean_and_std(df)
     return X_means, X_stds, y_means, y_stds
 
   def _compute_mean_and_std(self, df):
@@ -358,7 +358,7 @@ class Dataset(object):
   def update_moments(self):
     """Re-compute statistics of this dataset during transformation"""
     df = self.metadata_df
-    update_mean_and_std(df)
+    self._update_mean_and_std(df)
 
   def _update_mean_and_std(self, df):
     """
