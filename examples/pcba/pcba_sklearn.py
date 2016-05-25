@@ -93,9 +93,6 @@ os.makedirs(model_dir)
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
                       model_instance=LogisticRegression(class_weight="balanced"),
-                      #model_instance=RandomForestClassifier(
-                      #    class_weight="balanced",
-                      #    n_estimators=500),
                       verbosity=verbosity)
 model = SingletaskToMultitask(pcba_tasks, pcba_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)

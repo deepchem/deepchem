@@ -25,10 +25,8 @@ class SingletaskToMultitask(Model):
     self.model_params = model_params
     self.models = {}
     self.model_dir = model_dir
-    ############################################### DEBUG
     self.task_model_dirs = {}
     self.model_builder = model_builder
-    ############################################### DEBUG
     self.verbosity = verbosity
     log("About to initialize singletask to multitask model",
         self.verbosity, "high")
@@ -42,13 +40,7 @@ class SingletaskToMultitask(Model):
         os.makedirs(task_model_dir)
       log("Initializing model for task %s" % task,
           self.verbosity, "high")
-      ############################################### DEBUG
       self.task_model_dirs[task] = task_model_dir
-      ############################################### DEBUG
-      #self.models[task] = model_builder([task], task_types, model_params,
-      #                                  task_model_dir,
-      #                                  verbosity=verbosity)
-      ############################################### DEBUG
       
   def fit(self, dataset):
     """
@@ -63,16 +55,11 @@ class SingletaskToMultitask(Model):
       w_task = w[:, ind]
       X_task = X[w_task != 0, :]
       y_task = y_task[w_task != 0]
-      ############################################### DEBUG
       task_model = self.model_builder([task], {task: self.task_types[task]}, self.model_params,
                                       self.task_model_dirs[task],
                                       verbosity=self.verbosity)
-      ############################################### DEBUG
-      #self.models[task].raw_model.fit(X_task, y_task)
       task_model.raw_model.fit(X_task, y_task)
-      ############################################### DEBUG
       task_model.save()
-      ############################################### DEBUG
 
   def predict_on_batch(self, X):
     """
@@ -83,18 +70,14 @@ class SingletaskToMultitask(Model):
     y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
       task_type = self.task_types[task]
-      ############################################### DEBUG
       task_model = self.model_builder([task], {task: self.task_types[task]}, self.model_params,
                                       self.task_model_dirs[task],
                                       verbosity=self.verbosity)
       task_model.reload()
 
-      ############################################### DEBUG
       if task_type == "classification":
-        #y_pred[:, ind] = self.models[task].predict_on_batch(X)
         y_pred[:, ind] = task_model.predict_on_batch(X)
       elif task_type == "regression":
-        #y_pred[:, ind] = self.models[task].predict_on_batch(X)
         y_pred[:, ind] = task_model.predict_on_batch(X)
       else:
         raise ValueError("Invalid task_type")
@@ -109,34 +92,20 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      ############################################### DEBUG
       task_model = self.model_builder([task], {task: self.task_types[task]}, self.model_params,
                                       self.task_model_dirs[task],
                                       verbosity=self.verbosity)
       task_model.reload()
 
-      ############################################### DEBUG
-      #y_pred[:, ind] = self.models[task].predict_proba_on_batch(X)
       y_pred[:, ind] = task_model.predict_proba_on_batch(X)
-      ############################################### DEBUG
     return y_pred
 
   def save(self):
     """Save all models"""
-    ############################################### DEBUG
-    #for task in self.tasks:
-    #  log("Saving model for task %s" % task, self.verbosity, "high")
-    #  self.models[task].save()
-    ############################################### DEBUG
+    # Saving is done on-the-fly
     pass
-    ############################################### DEBUG
 
-  def load(self):
+  def reload(self):
     """Load all models"""
-    ############################################### DEBUG
-    #for task in self.tasks:
-    #  log("Loading model for task %s" % task, self.verbosity, "high")
-    #  self.models[task].load()
-    ############################################### DEBUG
+    # Loading is done on-the-fly
     pass
-    ############################################### DEBUG

@@ -163,9 +163,6 @@ class DataFeaturizer(object):
                                                   input_type=input_type)
 
 
-      ################################### DEBUG
-      #raw_df = raw_df.apply(process_raw_sample_helper_partial, axis=1, reduce=False)
-      ################################### DEBUG
       nb_sample = raw_df.shape[0]
       interval_points = np.linspace(
           0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
@@ -174,10 +171,8 @@ class DataFeaturizer(object):
         log("Sharding and standardizing into shard-%s / %s shards"
             % (str(j+1), len(interval_points)-1), self.verbosity)
         raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-        ################################### DEBUG
         raw_df_shard = raw_df_shard.apply(
             process_raw_sample_helper_partial, axis=1, reduce=False)
-        ################################### DEBUG
         
         df = self._standardize_df(raw_df_shard) 
 
