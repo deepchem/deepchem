@@ -365,8 +365,6 @@ class Dataset(object):
       save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
       save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
 
- 
-
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
@@ -510,4 +508,3 @@ def _df_to_numpy(df, feature_types, tasks):
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
-

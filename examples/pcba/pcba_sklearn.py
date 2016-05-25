@@ -1,5 +1,5 @@
 """
-Script that trains Sklearn multitask models on MUV dataset.
+Script that trains Sklearn multitask models on PCBA dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -26,7 +26,7 @@ from deepchem.metrics import to_one_hot
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.muv_datasets import load_muv
+from deepchem.datasets.pcba_datasets import load_pcba
 
 
 np.random.seed(123)
@@ -36,14 +36,14 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_data_dir = "/scratch/users/rbharath/muv"
+base_data_dir = "/scratch/users/rbharath/pcba"
 
-muv_tasks, featurized_samples, dataset, transformers = load_muv(
+pcba_tasks, featurized_samples, dataset, transformers = load_pcba(
     base_data_dir, reload=reload)
 print("len(featurized_samples), len(dataset)")
 print(len(featurized_samples), len(dataset))
 
-base_dir = "/scratch/users/rbharath/muv_analysis"
+base_dir = "/scratch/users/rbharath/pcba_analysis"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 if not os.path.exists(base_dir):
@@ -56,10 +56,10 @@ model_dir = os.path.join(base_dir, "model")
 print("About to perform train/valid/test split.")
 num_train = .8 * len(featurized_samples)
 X, y, w, ids = dataset.to_numpy()
-num_tasks = 17
-muv_tasks = muv_tasks[:num_tasks]
+num_tasks = 120
+pcba_tasks = pcba_tasks[:num_tasks]
 print("Using following tasks")
-print(muv_tasks)
+print(pcba_tasks)
 X_train, X_valid = X[:num_train], X[num_train:]
 y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
 w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
@@ -68,15 +68,15 @@ ids_train, ids_valid = ids[:num_train], ids[num_train:]
 if os.path.exists(train_dir):
   shutil.rmtree(train_dir)
 train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
-                                   w_train, ids_train, muv_tasks)
+                                   w_train, ids_train, pcba_tasks)
 
 if os.path.exists(valid_dir):
   shutil.rmtree(valid_dir)
 valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
-                                   w_valid, ids_valid, muv_tasks)
+                                   w_valid, ids_valid, pcba_tasks)
 
 # Fit Logistic Regression models
-muv_task_types = {task: "classification" for task in muv_tasks}
+pcba_task_types = {task: "classification" for task in pcba_tasks}
 
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
@@ -92,12 +92,12 @@ if os.path.exists(model_dir):
 os.makedirs(model_dir)
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      #model_instance=LogisticRegression(class_weight="balanced"),
-                      model_instance=RandomForestClassifier(
-                          class_weight="balanced",
-                          n_estimators=500),
+                      model_instance=LogisticRegression(class_weight="balanced"),
+                      #model_instance=RandomForestClassifier(
+                      #    class_weight="balanced",
+                      #    n_estimators=500),
                       verbosity=verbosity)
-model = SingletaskToMultitask(muv_tasks, muv_task_types, params_dict, model_dir,
+model = SingletaskToMultitask(pcba_tasks, pcba_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)
 
 # Fit trained model

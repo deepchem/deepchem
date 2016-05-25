@@ -43,14 +43,6 @@ def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
   else:
     raise ValueError("Invalid mode %s" % mode)
 
-  def model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
-      n_estimators = params_dict["n_estimators"]
-      max_features = params_dict["max_features"]
-      return SklearnModel(
-          tasks, task_types, params_dict, model_dir, 
-          model_instance=RandomForestClassifier(n_estimators=n_estimators,
-                                                max_features=max_features))
-
   params_dict = {"activation": ["relu"],
                   "momentum": [.9],
                   "batch_size": [50],
