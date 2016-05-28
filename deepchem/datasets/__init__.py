@@ -11,7 +11,7 @@ import multiprocessing as mp
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
-from deepchem.featurizers.featurize import FeaturizedSamples
+#from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.utils.save import log
 
 __author__ = "Bharath Ramsundar"
@@ -26,8 +26,8 @@ class Dataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
-  def __init__(self, data_dir=None, tasks=[], samples=None, featurizers=None, 
-               use_user_specified_features=False,
+  def __init__(self, data_dir=None, tasks=[], metadata_rows=None, #featurizers=None, 
+               #use_user_specified_features=False,
                raw_data=None, verbosity=None, reload=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
@@ -38,90 +38,25 @@ class Dataset(object):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
-    if featurizers is not None:
-      feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
-    else:
-      feature_types = None
-
     if not reload or not os.path.exists(self._get_metadata_filename()):
       log("About to start initializing dataset", self.verbosity)
-      if use_user_specified_features:
-        feature_types = ["user-specified-features"]
 
-      if samples is not None and feature_types is not None:
-        if not isinstance(feature_types, list):
-          raise ValueError("feature_types must be a list or None.")
-
-        write_dataset_single_partial = partial(
-            write_dataset_single, data_dir=self.data_dir,
-            feature_types=feature_types, tasks=tasks)
-
-        metadata_rows = []
-        # TODO(rbharath): Still a bit of information leakage.
-        for ind, (df_file, df) in enumerate(
-            zip(samples.dataset_files, samples.iterdataframes())):
-          log("Writing data from file %s, number %d/%d"
-              % (df_file, ind+1, len(samples.dataset_files)), self.verbosity)
-          retval = write_dataset_single_partial((df_file, df))
-          if retval is not None:
-            metadata_rows.append(retval)
-
-        self.metadata_df = pd.DataFrame(
-            metadata_rows,
-            columns=('df_file', 'task_names', 'ids',
-                     'X', 'X-transformed', 'y', 'y-transformed',
-                     'w', 'w-transformed',
-                     'X_sums', 'X_sum_squares', 'X_n',
-                     'y_sums', 'y_sum_squares', 'y_n'))
+      if metadata_rows is not None:
+        self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
       elif raw_data is not None:
         metadata_rows = []
+        ids, X, y, w = raw_data
         metadata_rows.append(
-            write_dataset_single(val=None, data_dir=self.data_dir, raw_data=raw_data,
-                                 basename="data", tasks=tasks))
-        self.metadata_df = pd.DataFrame(
-            metadata_rows,
-            columns=('df_file', 'task_names', 'ids',
-                     'X', 'X-transformed', 'y', 'y-transformed',
-                     'w', 'w-transformed',
-                     'X_sums', 'X_sum_squares', 'X_n',
-                     'y_sums', 'y_sum_squares', 'y_n'))
+            Dataset.write_data_to_disk(self.data_dir, "data", X, y, w, ids))
+        self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
-      #if samples is None and feature_types is not None:  
       else:
         # Create an empty metadata dataframe to be filled at a later time
         basename = "metadata"
-        df_file = "metadata.joblib"
-        out_X = "%s-X.joblib" % basename
-        out_X_transformed = "%s-X-transformed.joblib" % basename
-        out_X_sums = "%s-X_sums.joblib" % basename
-        out_X_sum_squares = "%s-X_sum_squares.joblib" % basename
-        out_X_n = "%s-X_n.joblib" % basename
-        out_y = "%s-y.joblib" % basename
-        out_y_transformed = "%s-y-transformed.joblib" % basename
-        out_y_sums = "%s-y_sums.joblib" % basename
-        out_y_sum_squares = "%s-y_sum_squares.joblib" % basename
-        out_y_n = "%s-y_n.joblib" % basename
-        out_w = "%s-w.joblib" % basename
-        out_w_transformed = "%s-w-transformed.joblib" % basename
-        out_ids = "%s-ids.joblib" % basename
-
-        metadata_rows = []
-        retval = ([df_file, tasks, out_ids,
-                   out_X, out_X_transformed,
-                   out_y, out_y_transformed,
-                   out_w, out_w_transformed,
-                   out_X_sums, out_X_sum_squares, out_X_n,
-                   out_y_sums, out_y_sum_squares, out_y_n])
-        metadata_rows.append(retval)
-
-        self.metadata_df = pd.DataFrame(
-            metadata_rows,
-            columns=('df_file','task_names', 'ids',
-                     'X', 'X-transformed', 'y', 'y-transformed',
-                     'w', 'w-transformed',
-                     'X_sums', 'X_sum_squares', 'X_n',
-                     'y_sums', 'y_sum_squares', 'y_n'))
+        metadata_rows = [Dataset.write_data_to_disk(
+            self.data_dir, basename, tasks)]
+        self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
 
     else:
@@ -130,6 +65,82 @@ class Dataset(object):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
       else:
         raise ValueError("No metadata found.")
+
+  @staticmethod
+  def write_dataframe(val, data_dir, featurizers=None, tasks=None,
+                      raw_data=None, basename=None):
+    """Writes data from dataframe to disk."""
+    if featurizers is not None and tasks is not None:
+      feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+      (basename, df) = val
+      # TODO(rbharath): This is a hack. clean up.
+      if not len(df):
+        return None
+      ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+    else:
+      ids, X, y, w = raw_data
+      basename = ""
+      assert X.shape[0] == y.shape[0]
+      assert y.shape == w.shape
+      assert len(ids) == X.shape[0]
+    return Dataset.write_data_to_disk(data_dir, basename, tasks, X, y, w, ids)
+
+  @staticmethod
+  def construct_metadata(metadata_entries):
+    """Construct a dataframe containing metadata.
+  
+    metadata_entries should have elements returned by write_data_to_disk
+    above.
+    """
+    metadata_df = pd.DataFrame(
+        metadata_entries,
+        columns=('basename','task_names', 'ids',
+                 'X', 'X-transformed', 'y', 'y-transformed',
+                 'w', 'w-transformed',
+                 'X_sums', 'X_sum_squares', 'X_n',
+                 'y_sums', 'y_sum_squares', 'y_n'))
+    return metadata_df
+
+  @staticmethod
+  def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None):
+    out_X = "%s-X.joblib" % basename
+    out_X_transformed = "%s-X-transformed.joblib" % basename
+    out_X_sums = "%s-X_sums.joblib" % basename
+    out_X_sum_squares = "%s-X_sum_squares.joblib" % basename
+    out_X_n = "%s-X_n.joblib" % basename
+    out_y = "%s-y.joblib" % basename
+    out_y_transformed = "%s-y-transformed.joblib" % basename
+    out_y_sums = "%s-y_sums.joblib" % basename
+    out_y_sum_squares = "%s-y_sum_squares.joblib" % basename
+    out_y_n = "%s-y_n.joblib" % basename
+    out_w = "%s-w.joblib" % basename
+    out_w_transformed = "%s-w-transformed.joblib" % basename
+    out_ids = "%s-ids.joblib" % basename
+
+    if X is not None:
+      save_to_disk(X, os.path.join(data_dir, out_X))
+      save_to_disk(X, os.path.join(data_dir, out_X_transformed))
+      X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
+      save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
+      save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
+      save_to_disk(X_n, os.path.join(data_dir, out_X_n))
+    if y is not None:
+      save_to_disk(y, os.path.join(data_dir, out_y))
+      save_to_disk(y, os.path.join(data_dir, out_y_transformed))
+      y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
+      save_to_disk(y_sums, os.path.join(data_dir, out_y_sums))
+      save_to_disk(y_sum_squares, os.path.join(data_dir, out_y_sum_squares))
+      save_to_disk(y_n, os.path.join(data_dir, out_y_n))
+    if w is not None:
+      save_to_disk(w, os.path.join(data_dir, out_w))
+      save_to_disk(w, os.path.join(data_dir, out_w_transformed))
+    if ids is not None:
+      save_to_disk(ids, os.path.join(data_dir, out_ids))
+    return [basename, tasks, out_ids, out_X, out_X_transformed, out_y,
+            out_y_transformed, out_w, out_w_transformed,
+            out_X_sums, out_X_sum_squares, out_X_n,
+            out_y_sums, out_y_sum_squares, out_y_n]
+  
 
   def save_to_disk(self):
     """Save dataset to disk."""
@@ -396,63 +407,6 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
-
-def write_dataset_single(val, data_dir, feature_types=None, tasks=None,
-                         raw_data=None, basename=None):
-  """Writes files for single row (X, y, w, X-transformed, ...) to disk."""
-  if feature_types is not None and tasks is not None:
-    (df_file, df) = val
-    # TODO(rbharath): This is a hack. clean up.
-    if not len(df):
-      return None
-    ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
-  else:
-    ids, X, y, w = raw_data
-    df_file = ""
-    assert X.shape[0] == y.shape[0]
-    assert y.shape == w.shape
-    assert len(ids) == X.shape[0]
-  X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
-  y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
-
-  if feature_types is not None and tasks is not None:
-    basename = os.path.splitext(os.path.basename(df_file))[0]
-  out_X = "%s-X.joblib" % basename
-  out_X_transformed = "%s-X-transformed.joblib" % basename
-  out_X_sums = "%s-X_sums.joblib" % basename
-  out_X_sum_squares = "%s-X_sum_squares.joblib" % basename
-  out_X_n = "%s-X_n.joblib" % basename
-  out_y = "%s-y.joblib" % basename
-  out_y_transformed = "%s-y-transformed.joblib" % basename
-  out_y_sums = "%s-y_sums.joblib" % basename
-  out_y_sum_squares = "%s-y_sum_squares.joblib" % basename
-  out_y_n = "%s-y_n.joblib" % basename
-  out_w = "%s-w.joblib" % basename
-  out_w_transformed = "%s-w-transformed.joblib" % basename
-  out_ids = "%s-ids.joblib" % basename
-
-  save_to_disk(X, os.path.join(data_dir, out_X))
-  save_to_disk(y, os.path.join(data_dir, out_y))
-  save_to_disk(w, os.path.join(data_dir, out_w))
-  # Write moments to disk
-  save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
-  save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
-  save_to_disk(X_n, os.path.join(data_dir, out_X_n))
-  save_to_disk(y_sums, os.path.join(data_dir, out_y_sums))
-  save_to_disk(y_sum_squares, os.path.join(data_dir, out_y_sum_squares))
-  save_to_disk(y_n, os.path.join(data_dir, out_y_n))
-  # Write X, y as transformed versions
-  save_to_disk(X, os.path.join(data_dir, out_X_transformed))
-  save_to_disk(y, os.path.join(data_dir, out_y_transformed))
-  save_to_disk(w, os.path.join(data_dir, out_w_transformed))
-  save_to_disk(ids, os.path.join(data_dir, out_ids))
-  return([df_file, tasks, out_ids, out_X, out_X_transformed, out_y,
-          out_y_transformed, out_w, out_w_transformed,
-          out_X_sums, out_X_sum_squares, out_X_n,
-          out_y_sums, out_y_sum_squares, out_y_n])
-
-# TODO(rbharath): This function is complicated enough that it should have unit
-# tests.
 def _df_to_numpy(df, feature_types, tasks):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
   if not set(feature_types).issubset(df.keys()):

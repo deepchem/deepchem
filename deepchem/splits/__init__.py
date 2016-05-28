@@ -14,7 +14,8 @@ import numpy as np
 from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
-from deepchem.featurizers.featurize import FeaturizedSamples
+#from deepchem.featurizers.featurize import FeaturizedSamples
+from deepchem.datasets import Dataset
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""

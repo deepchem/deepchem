@@ -14,11 +14,6 @@ import unittest
 import tempfile
 import shutil
 from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.featurizers.featurize import FeaturizedSamples
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.basic import RDKitDescriptors
-from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
-from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model
@@ -40,8 +35,7 @@ class TestAPI(unittest.TestCase):
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.smiles_field = "smiles"
     self.base_dir = tempfile.mkdtemp()
-    self.feature_dir = tempfile.mkdtemp()
-    self.samples_dir = tempfile.mkdtemp()
+    self.data_dir = tempfile.mkdtemp()
     self.train_dir = tempfile.mkdtemp()
     self.valid_dir = tempfile.mkdtemp()
     self.test_dir = tempfile.mkdtemp()
@@ -51,8 +45,7 @@ class TestAPI(unittest.TestCase):
 
   def tearDown(self):
     shutil.rmtree(self.base_dir)
-    shutil.rmtree(self.feature_dir)
-    shutil.rmtree(self.samples_dir)
+    shutil.rmtree(self.data_dir)
     shutil.rmtree(self.train_dir)
     shutil.rmtree(self.valid_dir)
     shutil.rmtree(self.test_dir)
