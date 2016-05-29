@@ -114,7 +114,6 @@ class DataFeaturizer(object):
     self.mol_field = mol_field
     self.user_specified_features = user_specified_features
     self.featurizers = featurizers
-    #self.complex_featurizers = complex_featurizers
     self.log_every_n = log_every_n
 
   def _load_sdf_file(self, input_file):
