@@ -21,11 +21,6 @@ from deepchem.utils.save import load_pandas_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
 from deepchem.datasets import Dataset
 
-def _check_validity(compounds_df):
-  """Ensure that columns of compound_df contain required elements."""
-  if not set(FeaturizedSamples.colnames).issubset(compounds_df.keys()):
-    raise ValueError("Compound dataframe does not contain required columns")
-
 def _process_field(val):
   """Parse data in a field."""
   if (isinstance(val, numbers.Number) or isinstance(val, np.ndarray)):

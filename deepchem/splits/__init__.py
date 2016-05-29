@@ -32,19 +32,7 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def _check_populated(self, sample_dirs):
-    """Check that the provided sample directories are valid."""
-    for given_dir in sample_dirs:
-      if given_dir is None:
-        continue
-        
-      compounds_filename = os.path.join(given_dir, "datasets.joblib")
-      if not os.path.exists(compounds_filename):
-        return False
-    return True
-
-
-  def train_valid_test_split(self, samples, train_dir,
+  def train_valid_test_split(self, datset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
                              log_every_n=1000, reload=False):
@@ -53,17 +41,12 @@ class Splitter(object):
 
     Returns Dataset objects.
     """
-    compute_split = (
-        not reload
-        or not self._check_populated([train_dir, test_dir, valid_dir]))
-    if compute_split:
+    if not reload:
       log("Computing train/valid/test indices", self.verbosity)
       train_inds, valid_inds, test_inds = self.split(
-          samples,
+          dataset,
           frac_train=frac_train, frac_test=frac_test,
           frac_valid=frac_valid, log_every_n=log_every_n)
-    train_samples, valid_samples, test_samples = None, None, None
-    dataset_files = samples.dataset_files
 
     # Generate train dir
     train_samples = Dataset(samples_dir=train_dir, 
