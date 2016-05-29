@@ -18,7 +18,7 @@ from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
-from deepchem.splits.tests import TestSplitAPI
+from deepchem.models.tests import TestAPI
 
 class TestDatasetAPI(TestAPI):
   """
@@ -30,7 +30,7 @@ class TestDatasetAPI(TestAPI):
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["log-solubility"]
     task_type = "regression"
-    input_file = os.path.join(self.test_data_dir, "example.csv")
+    input_file = os.path.join(self.current_dir, "../../models/tests/example.csv")
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
@@ -44,7 +44,8 @@ class TestDatasetAPI(TestAPI):
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["outcome"]
     task_type = "classification"
-    input_file = os.path.join(self.test_data_dir, "example_classification.csv")
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/example_classification.csv")
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
@@ -58,7 +59,8 @@ class TestDatasetAPI(TestAPI):
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
-    input_file = os.path.join(self.test_data_dir, "multitask_example.csv")
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/multitask_example.csv")
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,

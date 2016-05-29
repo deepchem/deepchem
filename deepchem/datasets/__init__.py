@@ -233,6 +233,15 @@ class Dataset(object):
       tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
+
+  def select(self, select_dir, indices):
+    """Creates a new dataset from a selection of indices from self."""
+    indices = np.array(indices)
+    X, y, w, ids = self.to_numpy()
+    tasks = self.get_task_names()
+    X_sel, y_sel, w_sel, ids_sel = (
+        X[indices], y[indices], w[indices], ids[indices])
+    return Dataset.from_numpy(select_dir, X_sel, y_sel, w_sel, ids_sel, tasks)
     
   def to_numpy(self):
     """

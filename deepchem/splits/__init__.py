@@ -32,52 +32,31 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def train_valid_test_split(self, datset, train_dir,
+  def train_valid_test_split(self, dataset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
-                             log_every_n=1000, reload=False):
+                             log_every_n=1000):
     """
     Splits self into train/validation/test sets.
 
     Returns Dataset objects.
     """
-    if not reload:
-      log("Computing train/valid/test indices", self.verbosity)
-      train_inds, valid_inds, test_inds = self.split(
-          dataset,
-          frac_train=frac_train, frac_test=frac_test,
-          frac_valid=frac_valid, log_every_n=log_every_n)
-
-    # Generate train dir
-    train_samples = Dataset(samples_dir=train_dir, 
-                            dataset_files=dataset_files,
-                            featurizers=samples.featurizers,
-                            verbosity=self.verbosity,
-                            reload=reload)
-    if compute_split:
-      train_samples._set_compound_df(samples.compounds_df.iloc[train_inds])
-    # Generate test dir
-    test_samples = Dataset(samples_dir=test_dir, 
-                           dataset_files=dataset_files,
-                           featurizers=samples.featurizers,
-                           verbosity=self.verbosity,
-                           reload=reload)
-    if compute_split:
-      test_samples._set_compound_df(samples.compounds_df.iloc[test_inds])
-    # if requested, generated valid_dir
+    log("Computing train/valid/test indices", self.verbosity)
+    train_inds, valid_inds, test_inds = self.split(
+        dataset,
+        frac_train=frac_train, frac_test=frac_test,
+        frac_valid=frac_valid, log_every_n=log_every_n)
+    train_dataset = dataset.select(train_dir, train_inds)
     if valid_dir is not None:
-      valid_samples = Dataset(samples_dir=valid_dir, 
-                              dataset_files=dataset_files,
-                              featurizers=samples.featurizers,
-                              verbosity=self.verbosity,
-                              reload=reload)
-      if compute_split:
-        valid_samples._set_compound_df(samples.compounds_df.iloc[valid_inds])
+      valid_dataset = dataset.select(valid_dir, valid_inds)
+    else:
+      valid_dataset = None
+    test_dataset = dataset.select(test_dir, test_inds)
 
-    return train_samples, valid_samples, test_samples
+    return train_dataset, valid_dataset, test_dataset
 
   def train_test_split(self, samples, train_dir, test_dir, seed=None,
-                       frac_train=.8, reload=False):
+                       frac_train=.8):
     """
     Splits self into train/test sets.
 
@@ -157,7 +136,7 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     log("About to generate scaffolds", self.verbosity)
     data_len = len(dataset)
-    for smiles in dataset.get_ids():
+    for ind, smiles in enumerate(dataset.get_ids()):
       if self.verbosity is not None and ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
       scaffold = generate_scaffold(smiles)

@@ -53,8 +53,7 @@ class TestAPI(unittest.TestCase):
     # debug.
     #shutil.rmtree(self.model_dir)
 
-  def _featurize_train_test_split(self, splittype, compound_featurizers, 
-                                  complex_featurizers,
+  def _featurize_train_test_split(self, splittype, featurizers, 
                                   input_transformer_classes,
                                   output_transformer_classes, input_file, tasks, 
                                   protein_pdb_field=None, ligand_pdb_field=None,
@@ -62,15 +61,12 @@ class TestAPI(unittest.TestCase):
                                   split_field=None,
                                   shard_size=100):
     # Featurize input
-    featurizers = compound_featurizers + complex_featurizers
-
     input_file = os.path.join(self.current_dir, input_file)
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
                                 protein_pdb_field=protein_pdb_field,
                                 ligand_pdb_field=ligand_pdb_field,
-                                compound_featurizers=compound_featurizers,
-                                complex_featurizers=complex_featurizers,
+                                featurizers=featurizers,
                                 user_specified_features=user_specified_features,
                                 split_field=split_field,
                                 verbosity="low")
@@ -79,8 +75,7 @@ class TestAPI(unittest.TestCase):
     #Featurizes samples and transforms them into NumPy arrays suitable for ML.
     #returns an instance of class FeaturizedSamples()
 
-    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir,
-                                   shard_size=shard_size)
+    dataset = featurizer.featurize(input_file, self.data_dir, shard_size=shard_size)
 
     # Splits featurized samples into train/test
     assert splittype in ["random", "specified", "scaffold"]
@@ -90,16 +85,8 @@ class TestAPI(unittest.TestCase):
       splitter = SpecifiedSplitter()
     elif splittype == "scaffold":
       splitter = ScaffoldSplitter()
-    train_samples, test_samples = splitter.train_test_split(
+    train_dataset, test_dataset = splitter.train_test_split(
         samples, self.train_dir, self.test_dir)
-
-    use_user_specified_features = (user_specified_features is not None)
-    train_dataset = Dataset(data_dir=self.train_dir, samples=train_samples, 
-                            featurizers=featurizers, tasks=tasks,
-                            use_user_specified_features=use_user_specified_features)
-    test_dataset = Dataset(data_dir=self.test_dir, samples=test_samples, 
-                           featurizers=featurizers, tasks=tasks,
-                           use_user_specified_features=use_user_specified_features)
 
     # Initialize transformers
     input_transformers = []

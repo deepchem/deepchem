@@ -14,7 +14,6 @@ import unittest
 import tempfile
 import shutil
 from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
@@ -39,8 +38,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
@@ -49,7 +47,7 @@ class TestModelAPI(TestAPI):
     task_types = {task: task_type for task in tasks}
     input_file = "example.csv"
     train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
+        splittype, featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -77,8 +75,7 @@ class TestModelAPI(TestAPI):
     """Test of singletask RF USF regression API."""
     splittype = "specified"
     split_field = "split"
-    compound_featurizers = []
-    complex_featurizers = []
+    featurizers = []
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
@@ -88,9 +85,8 @@ class TestModelAPI(TestAPI):
     input_file = "user_specified_example.csv"
     user_specified_features = ["user-specified1", "user-specified2"]
     train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
+        splittype, featurizers, 
+        input_transformers, output_transformers, input_file, tasks,
         user_specified_features=user_specified_features,
         split_field=split_field)
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -117,8 +113,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
     input_transformers = []
     output_transformers = [NormalizationTransformer]
     model_params = {}
@@ -127,10 +122,8 @@ class TestModelAPI(TestAPI):
     task_types = {task: task_type for task in tasks}
     input_file = "../../../datasets/pdbbind_core_df.pkl.gz"
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
-        shard_size=50)
+        splittype, featurizers, input_transformers, output_transformers,
+        input_file, tasks, shard_size=50)
     # We set shard size above to force the creation of multiple shards of the data.
     # pdbbind_core has ~200 examples.
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -157,8 +150,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
-    compound_featurizers = [RDKitDescriptors()]
-    complex_featurizers = []
+    featurizers = [RDKitDescriptors()]
     input_transformers = [NormalizationTransformer, ClippingTransformer]
     output_transformers = [NormalizationTransformer]
     tasks = ["log-solubility"]
@@ -167,9 +159,8 @@ class TestModelAPI(TestAPI):
     model_params = {}
     input_file = "example.csv"
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+        splittype, featurizers, input_transformers, output_transformers,
+        input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -195,8 +186,7 @@ class TestModelAPI(TestAPI):
     """Test of singletask MLP User Specified Features regression API."""
     from deepchem.models.keras_models.fcnet import SingleTaskDNN
     splittype = "scaffold"
-    compound_featurizers = []
-    complex_featurizers = []
+    featurizers = []
     input_transformers = [NormalizationTransformer, ClippingTransformer]
     output_transformers = [NormalizationTransformer]
     feature_types = ["user_specified_features"]
@@ -215,7 +205,7 @@ class TestModelAPI(TestAPI):
     protein_pdb_field = None
     ligand_pdb_field = None
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers,
+        splittype, featurizers,
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks,
         protein_pdb_field=protein_pdb_field,
@@ -263,12 +253,10 @@ class TestModelAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
 
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
+        splittype, featurizers, input_transformers,
         output_transformers, input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     classification_metrics = [Metric(metrics.roc_auc_score),
@@ -297,8 +285,7 @@ class TestModelAPI(TestAPI):
     input_transformers = []
     task_type = "classification"
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
 
     tasks = ["outcome"]
     task_type = "classification"
@@ -308,7 +295,7 @@ class TestModelAPI(TestAPI):
     output_transformers = [NormalizationTransformer]
 
     train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
+        splittype, featurizers, 
         complex_featurizers, input_transformers,
         output_transformers, input_file, tasks)
 
