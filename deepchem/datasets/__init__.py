@@ -47,7 +47,7 @@ class Dataset(object):
         metadata_rows = []
         ids, X, y, w = raw_data
         metadata_rows.append(
-            Dataset.write_data_to_disk(self.data_dir, "data",tasks, X, y, w, ids))
+            Dataset.write_data_to_disk(self.data_dir, "data", tasks, X, y, w, ids))
         self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
       else:
