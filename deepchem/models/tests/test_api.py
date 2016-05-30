@@ -42,17 +42,25 @@ class TestModelAPI(TestAPI):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
     featurizers = [CircularFingerprint(size=1024)]
-    input_transformers = []
-    output_transformers = [NormalizationTransformer]
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "example.csv"
-    train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
-        splittype, featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -142,9 +150,6 @@ class TestModelAPI(TestAPI):
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
         dataset, self.train_dir, self.test_dir)
-    #train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-    #    splittype, featurizers, input_transformers, output_transformers,
-    #    input_file, tasks, shard_size=50)
     input_transformers = []
     output_transformers = [
         NormalizationTransformer(transform_y=True, dataset=train_dataset)]
@@ -204,9 +209,6 @@ class TestModelAPI(TestAPI):
       for transformer in transformers:
         transformer.transform(dataset)
 
-    #train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-    #    splittype, featurizers, input_transformers, output_transformers,
-    #    input_file, tasks)
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -287,9 +289,6 @@ class TestModelAPI(TestAPI):
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
     from deepchem.models.keras_models.fcnet import MultiTaskDNN
-    splittype = "scaffold"
-    output_transformers = []
-    input_transformers = []
     task_type = "classification"
     # TODO(rbharath): There should be some automatic check to ensure that all
     # required model_params are specified.
@@ -308,9 +307,16 @@ class TestModelAPI(TestAPI):
 
     featurizers = [CircularFingerprint(size=1024)]
 
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    data_featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = data_featurizer.featurize(input_file, self.data_dir)
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    transformers = []
     model_params["data_shape"] = train_dataset.get_data_shape()
     classification_metrics = [Metric(metrics.roc_auc_score),
                               Metric(metrics.matthews_corrcoef),

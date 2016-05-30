@@ -53,57 +53,57 @@ class TestAPI(unittest.TestCase):
     # debug.
     #shutil.rmtree(self.model_dir)
 
-  def _featurize_train_test_split(self, splittype, featurizers, 
-                                  input_transformer_classes,
-                                  output_transformer_classes, input_file, tasks, 
-                                  protein_pdb_field=None, ligand_pdb_field=None,
-                                  user_specified_features=None,
-                                  split_field=None,
-                                  shard_size=100):
-    # Featurize input
-    input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                protein_pdb_field=protein_pdb_field,
-                                ligand_pdb_field=ligand_pdb_field,
-                                featurizers=featurizers,
-                                user_specified_features=user_specified_features,
-                                split_field=split_field,
-                                verbosity="low")
-    
+  #def _featurize_train_test_split(self, splittype, featurizers, 
+  #                                input_transformer_classes,
+  #                                output_transformer_classes, input_file, tasks, 
+  #                                protein_pdb_field=None, ligand_pdb_field=None,
+  #                                user_specified_features=None,
+  #                                split_field=None,
+  #                                shard_size=100):
+  #  # Featurize input
+  #  input_file = os.path.join(self.current_dir, input_file)
+  #  featurizer = DataFeaturizer(tasks=tasks,
+  #                              smiles_field=self.smiles_field,
+  #                              protein_pdb_field=protein_pdb_field,
+  #                              ligand_pdb_field=ligand_pdb_field,
+  #                              featurizers=featurizers,
+  #                              user_specified_features=user_specified_features,
+  #                              split_field=split_field,
+  #                              verbosity="low")
+  #  
 
-    #Featurizes samples and transforms them into NumPy arrays suitable for ML.
-    #returns an instance of class FeaturizedSamples()
+  #  #Featurizes samples and transforms them into NumPy arrays suitable for ML.
+  #  #returns an instance of class FeaturizedSamples()
 
-    dataset = featurizer.featurize(input_file, self.data_dir, shard_size=shard_size)
+  #  dataset = featurizer.featurize(input_file, self.data_dir, shard_size=shard_size)
 
-    # Splits featurized samples into train/test
-    assert splittype in ["random", "specified", "scaffold"]
-    if splittype == "random":
-      splitter = RandomSplitter()
-    elif splittype == "specified":
-      splitter = SpecifiedSplitter()
-    elif splittype == "scaffold":
-      splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        samples, self.train_dir, self.test_dir)
+  #  # Splits featurized samples into train/test
+  #  assert splittype in ["random", "specified", "scaffold"]
+  #  if splittype == "random":
+  #    splitter = RandomSplitter()
+  #  elif splittype == "specified":
+  #    splitter = SpecifiedSplitter()
+  #  elif splittype == "scaffold":
+  #    splitter = ScaffoldSplitter()
+  #  train_dataset, test_dataset = splitter.train_test_split(
+  #      samples, self.train_dir, self.test_dir)
 
-    # Initialize transformers
-    input_transformers = []
-    for transform_class in input_transformer_classes:
-      input_transformers.append(transform_class(
-          transform_X=True, dataset=train_dataset))
-    output_transformers = []
-    for transform_class in output_transformer_classes:
-      output_transformers.append(transform_class(
-          transform_y=True, dataset=train_dataset))
-    transformers = input_transformers + output_transformers
+  #  # Initialize transformers
+  #  input_transformers = []
+  #  for transform_class in input_transformer_classes:
+  #    input_transformers.append(transform_class(
+  #        transform_X=True, dataset=train_dataset))
+  #  output_transformers = []
+  #  for transform_class in output_transformer_classes:
+  #    output_transformers.append(transform_class(
+  #        transform_y=True, dataset=train_dataset))
+  #  transformers = input_transformers + output_transformers
 
-    # Transforming train data
-    for transformer in transformers:
-      transformer.transform(train_dataset)
-    # Transforming test data
-    for transformer in transformers:
-      transformer.transform(test_dataset)
+  #  # Transforming train data
+  #  for transformer in transformers:
+  #    transformer.transform(train_dataset)
+  #  # Transforming test data
+  #  for transformer in transformers:
+  #    transformer.transform(test_dataset)
 
-    return train_dataset, test_dataset, input_transformers, output_transformers
+  #  return train_dataset, test_dataset, input_transformers, output_transformers
