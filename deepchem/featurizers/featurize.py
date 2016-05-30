@@ -19,6 +19,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import load_pandas_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
+from deepchem.featurizers import UserDefinedFeaturizer
 from deepchem.datasets import Dataset
 
 def _process_field(val):
@@ -36,6 +37,36 @@ def _process_field(val):
     return val
   else:
     raise ValueError("Field of unrecognized type: %s" % str(val))
+
+def load_data(input_file):
+  """Loads data from disk."""
+  input_type = _get_input_type(input_file)
+  if input_type == "sdf":
+    raw_df = _load_sdf_file(input_file)
+  else:
+    raw_df = _load_csv_file(input_file)
+  return raw_df
+
+def _load_sdf_file(input_file):
+  """Load SDF file into dataframe."""
+  # Tasks are stored in .sdf.csv file
+  raw_df = load_pandas_from_disk(input_file+".csv")
+  # Structures are stored in .sdf file
+  print("Reading structures from %s." % input_file)
+  suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
+  df_rows = []
+  for ind, mol in enumerate(suppl):
+    if mol is not None:
+      smiles = Chem.MolToSmiles(mol)
+      df_rows.append([ind,smiles,mol])
+  mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+  raw_df = pd.concat([mol_df, raw_df], axis=1, join='inner')
+  return raw_df
+
+def _load_csv_file(input_file):
+  """Loads CSV file into dataframe."""
+  raw_df = load_pandas_from_disk(input_file)
+  return raw_df
 
 def _get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
@@ -84,8 +115,8 @@ class DataFeaturizer(object):
   dataframe object to disk as output.
   """
 
-  def __init__(self, tasks, smiles_field, split_field=None,
-               id_field=None, threshold=None, user_specified_features=None,
+  def __init__(self, tasks, smiles_field,
+               id_field=None, threshold=None,
                protein_pdb_field=None, ligand_pdb_field=None,
                ligand_mol2_field=None, mol_field=None,
                featurizers=[],
@@ -97,7 +128,6 @@ class DataFeaturizer(object):
     self.verbosity = verbosity
     self.tasks = tasks
     self.smiles_field = smiles_field
-    self.split_field = split_field
     if id_field is None:
       self.id_field = smiles_field
     else:
@@ -107,51 +137,29 @@ class DataFeaturizer(object):
     self.ligand_pdb_field = ligand_pdb_field
     self.ligand_mol2_field = ligand_mol2_field
     self.mol_field = mol_field
-    self.user_specified_features = user_specified_features
+    self.user_specified_features = None
+    for featurizer in featurizers:
+      if isinstance(featurizer, UserDefinedFeaturizer):
+        self.user_specified_features = featurizer.feature_fields 
     self.featurizers = featurizers
     self.log_every_n = log_every_n
-
-  def _load_sdf_file(self, input_file):
-    """Load SDF file into dataframe."""
-    # Tasks are stored in .sdf.csv file
-    raw_df = load_pandas_from_disk(input_file+".csv")
-    # Structures are stored in .sdf file
-    print("Reading structures from %s." % input_file)
-    suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
-    df_rows = []
-    for ind, mol in enumerate(suppl):
-      if mol is not None:
-        smiles = Chem.MolToSmiles(mol)
-        df_rows.append([ind,smiles,mol])
-    mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
-    raw_df = pd.concat([mol_df, raw_df], axis=1, join='inner')
-    return raw_df
-
-  def _load_csv_file(self, input_file):
-    """Loads CSV file into dataframe."""
-    raw_df = load_pandas_from_disk(input_file)
-    return raw_df
 
   def featurize(self, input_file, data_dir, shard_size=8192, worker_pool=None,
                 reload=False):
     """Featurize provided file and write to specified location."""
     # If we are not to reload data, or data has not already been featurized.
-    input_type = _get_input_type(input_file)
 
     if not reload:
       log("Loading raw samples now.", self.verbosity)
 
-      if input_type == "sdf":
-        raw_df = self._load_sdf_file(input_file)
-      else:
-        raw_df = self._load_csv_file(input_file)
-
+      raw_df = load_data(input_file)
       fields = raw_df.keys()
       log("Loaded raw data frame from file.", self.verbosity)
       log("About to preprocess samples.", self.verbosity)
 
       def process_raw_sample_helper(row, fields, input_type):
         return self._process_raw_sample(input_type, row, fields)
+      input_type = _get_input_type(input_file)
       process_raw_sample_helper_partial = partial(process_raw_sample_helper,
                                                   fields=fields,
                                                   input_type=input_type)
@@ -180,7 +188,9 @@ class DataFeaturizer(object):
         for featurizer in self.featurizers:
           log("Currently featurizing feature_type: %s"
               % featurizer.__class__.__name__, self.verbosity)
-          if isinstance(featurizer, Featurizer):
+          if isinstance(featurizer, UserDefinedFeaturizer):
+            self._add_user_specified_features(df, featurizer)
+          elif isinstance(featurizer, Featurizer):
             self._featurize_mol(df, featurizer, field=field,
                                 worker_pool=worker_pool)
           elif isinstance(featurizer, ComplexFeaturizer):
@@ -224,7 +234,12 @@ class DataFeaturizer(object):
     return data
 
   def _standardize_df(self, ori_df):
-    """Copy specified columns to new df with standard column names."""
+    """Copy specified columns to new df with standard column names.
+
+    TODO(rbharath): I think think function is now unnecessary (since the
+                    dataframes are only temporary and not on disk). Should
+                    be able to remove this function.
+    """
     df = pd.DataFrame(ori_df[[self.id_field]])
     df.columns = ["mol_id"]
     df["smiles"] = ori_df[[self.smiles_field]]
@@ -235,15 +250,12 @@ class DataFeaturizer(object):
         df[feature] = ori_df[[feature]]
     if self.mol_field is not None:
       df["mol"] = ori_df[[self.mol_field]]
-    if self.split_field is not None:
-      df["split"] = ori_df[[self.split_field]]
     if self.protein_pdb_field is not None:
       df["protein_pdb"] = ori_df[[self.protein_pdb_field]]
     if self.ligand_pdb_field is not None:
       df["ligand_pdb"] = ori_df[[self.ligand_pdb_field]]
     if self.ligand_mol2_field is not None:
       df["ligand_mol2"] = ori_df[[self.ligand_mol2_field]]
-    self._add_user_specified_features(df, ori_df)
     return df
 
   def _featurize_complexes(self, df, featurizer, parallel=True,
@@ -300,9 +312,9 @@ class DataFeaturizer(object):
         if ind % self.log_every_n == 0:
           log("Featurizing sample %d" % ind, self.verbosity)
         ###################################### DEBUG
-        print("DataFeaturizer._featurize_mol")
-        print("mol, self.verbosity")
-        print(mol, self.verbosity)
+        #print("DataFeaturizer._featurize_mol")
+        #print("mol, self.verbosity")
+        #print(mol, self.verbosity)
         ###################################### DEBUG
         features.append(featurizer.featurize([mol], verbosity=self.verbosity))
     else:
@@ -321,13 +333,11 @@ class DataFeaturizer(object):
 
     df[featurizer.__class__.__name__] = features
 
-  def _add_user_specified_features(self, df, ori_df):
+  def _add_user_specified_features(self, df, featurizer):
     """Merge user specified features. 
 
       Merge features included in dataset provided by user
       into final features dataframe
-
-      TODO(rbharath): Needs to be handled consistently with other featurizations.
 
       Three types of featurization here:
 
@@ -337,15 +347,13 @@ class DataFeaturizer(object):
         2) Complex featurization
           -) PDB files for interacting molecules.
         3) User specified featurizations.
-           TODO(rbharath): These should not be passed to Dataset!
     """
-    if self.user_specified_features is not None:
-      log("Aggregating User-Specified Features", self.verbosity)
-      features_data = []
-      for ind, row in ori_df.iterrows():
-        # pandas rows are tuples (row_num, row_data)
-        feature_list = []
-        for feature_name in self.user_specified_features:
-          feature_list.append(row[feature_name])
-        features_data.append(np.array(feature_list))
-      df["user-specified-features"] = features_data
+    log("Aggregating User-Specified Features", self.verbosity)
+    features_data = []
+    for ind, row in df.iterrows():
+      # pandas rows are tuples (row_num, row_data)
+      feature_list = []
+      for feature_name in featurizer.feature_fields:
+        feature_list.append(row[feature_name])
+      features_data.append(np.array(feature_list))
+    df[featurizer.__class__.__name__] = features_data

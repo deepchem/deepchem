@@ -15,6 +15,7 @@ from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.datasets import Dataset
+from deepchem.featurizers.featurize import load_data
 
 def generate_scaffold(smiles, include_chirality=False):
   """Compute the Bemis-Murcko scaffold for a SMILES string."""
@@ -65,8 +66,7 @@ class Splitter(object):
     valid_dir = None
     train_samples, _, test_samples = self.train_valid_test_split(
         samples, train_dir, valid_dir, test_dir,
-        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.,
-        reload=False)
+        frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
     return train_samples, test_samples
 
   def split(self, samples, frac_train=None, frac_valid=None, frac_test=None,
@@ -165,18 +165,26 @@ class SpecifiedSplitter(Splitter):
   """
   Class that splits data according to user specification.
   """
+
+  def __init__(self, input_file, split_field, verbosity=None):
+    """Provide input information for splits."""
+    raw_df = load_data(input_file)
+    self.splits = raw_df[split_field].values
+    self.verbosity = verbosity
+
   def split(self, dataset, frac_train=.8, frac_valid=.1, frac_test=.1,
             log_every_n=1000):
     """
     Splits internal compounds into train/validation/test by user-specification.
     """
     train_inds, valid_inds, test_inds = [], [], []
-    for ind, row in samples.compounds_df.iterrows():
-      if row["split"].lower() == "train":
+    for ind, split in enumerate(self.splits):
+      split = split.lower()
+      if split == "train":
         train_inds.append(ind)
-      elif row["split"].lower() in ["valid", "validation"]:
+      elif split in ["valid", "validation"]:
         valid_inds.append(ind)
-      elif row["split"].lower() == "test":
+      elif split == "test":
         test_inds.append(ind)
       else:
         raise ValueError("Missing required split information.")

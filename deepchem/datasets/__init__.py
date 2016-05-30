@@ -27,7 +27,6 @@ class Dataset(object):
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
   def __init__(self, data_dir=None, tasks=[], metadata_rows=None, #featurizers=None, 
-               #use_user_specified_features=False,
                raw_data=None, verbosity=None, reload=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
@@ -424,7 +423,8 @@ def _df_to_numpy(df, feature_types, tasks):
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
-  y = np.hstack([np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+  y = np.hstack([
+      np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   tensors = []
@@ -457,6 +457,11 @@ def _df_to_numpy(df, feature_types, tasks):
       missing[ind, :] = 1
       continue
     tensors.append(features)
+  ################################################## DEBUG
+  #print("_df_to_numpy")
+  #print("tensors, n_samples, feature_types")
+  #print(tensors, n_samples, feature_types)
+  ################################################## DEBUG
   x = np.stack(tensors)
   sorted_ids = df["mol_id"]
 
