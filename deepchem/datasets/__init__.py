@@ -82,6 +82,15 @@ class Dataset(object):
       assert X.shape[0] == y.shape[0]
       assert y.shape == w.shape
       assert len(ids) == X.shape[0]
+    ############################### DEBUG
+    #print("Dataset.write_dataframe()")
+    #print("X is None, y is None, w is None")
+    #print(X is None, y is None, w is None)
+    #print("basename, data_dir")
+    #print(basename, data_dir)
+    #print("os.path.exists(data_dir)")
+    #print(os.path.exists(data_dir))
+    ############################### DEBUG
     return Dataset.write_data_to_disk(data_dir, basename, tasks, X, y, w, ids)
 
   @staticmethod
@@ -115,8 +124,22 @@ class Dataset(object):
     out_w = "%s-w.joblib" % basename
     out_w_transformed = "%s-w-transformed.joblib" % basename
     out_ids = "%s-ids.joblib" % basename
+    ############################### DEBUG
+    #print("Dataset.write_data_to_disk()")
+    #print("X is None, y is None, w is None")
+    #print(X is None, y is None, w is None)
+    ##import traceback
+    ##traceback.print_stack()
+    ############################### DEBUG
 
     if X is not None:
+      ############################### DEBUG
+      #print("Dataset.write_data_to_disk()")
+      #print("basename")
+      #print(basename)
+      #print("os.path.join(data_dir, out_X)")
+      #print(os.path.join(data_dir, out_X))
+      ############################### DEBUG
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
       X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
@@ -124,6 +147,12 @@ class Dataset(object):
       save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
       save_to_disk(X_n, os.path.join(data_dir, out_X_n))
     if y is not None:
+      ############################### DEBUG
+      #print("Dataset.write_data_to_disk()")
+      #print("Writing y to")
+      #print("os.path.join(data_dir, out_y_transformed)")
+      #print(os.path.join(data_dir, out_y_transformed))
+      ############################### DEBUG
       save_to_disk(y, os.path.join(data_dir, out_y))
       save_to_disk(y, os.path.join(data_dir, out_y_transformed))
       y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
@@ -292,6 +321,11 @@ class Dataset(object):
     """
     total = 0
     for _, row in self.metadata_df.iterrows():
+      ###################################### DEBUG
+      #print("Dataset.__len__()")
+      #print("self.data_dir, row['y-transformed']")
+      #print(self.data_dir, row['y-transformed'])
+      ###################################### DEBUG
       y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
       total += len(y)
     return total

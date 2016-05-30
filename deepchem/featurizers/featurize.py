@@ -144,63 +144,65 @@ class DataFeaturizer(object):
     self.featurizers = featurizers
     self.log_every_n = log_every_n
 
-  def featurize(self, input_file, data_dir, shard_size=8192, worker_pool=None,
-                reload=False):
+  def featurize(self, input_file, data_dir, shard_size=8192, worker_pool=None):
     """Featurize provided file and write to specified location."""
-    # If we are not to reload data, or data has not already been featurized.
+    log("Loading raw samples now.", self.verbosity)
 
-    if not reload:
-      log("Loading raw samples now.", self.verbosity)
+    raw_df = load_data(input_file)
+    fields = raw_df.keys()
+    log("Loaded raw data frame from file.", self.verbosity)
+    log("About to preprocess samples.", self.verbosity)
 
-      raw_df = load_data(input_file)
-      fields = raw_df.keys()
-      log("Loaded raw data frame from file.", self.verbosity)
-      log("About to preprocess samples.", self.verbosity)
+    if not os.path.exists(data_dir):
+      os.makedirs(data_dir)
 
-      def process_raw_sample_helper(row, fields, input_type):
-        return self._process_raw_sample(input_type, row, fields)
-      input_type = _get_input_type(input_file)
-      process_raw_sample_helper_partial = partial(process_raw_sample_helper,
-                                                  fields=fields,
-                                                  input_type=input_type)
+    def process_raw_sample_helper(row, fields, input_type):
+      return self._process_raw_sample(input_type, row, fields)
+    input_type = _get_input_type(input_file)
+    process_raw_sample_helper_partial = partial(process_raw_sample_helper,
+                                                fields=fields,
+                                                input_type=input_type)
 
 
-      nb_sample = raw_df.shape[0]
-      interval_points = np.linspace(
-          0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
+    nb_sample = raw_df.shape[0]
+    interval_points = np.linspace(
+        0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
 
-      metadata_rows = []
-      # Construct partial function to write datasets.
-      write_dataframe_partial = partial(
-          Dataset.write_dataframe, data_dir=data_dir,
-          featurizers=self.featurizers, tasks=self.tasks)
+    metadata_rows = []
+    # Construct partial function to write datasets.
+    write_dataframe_partial = partial(
+        Dataset.write_dataframe, data_dir=data_dir,
+        featurizers=self.featurizers, tasks=self.tasks)
 
-      for j in range(len(interval_points)-1):
-        log("Sharding and standardizing into shard-%s / %s shards"
-            % (str(j+1), len(interval_points)-1), self.verbosity)
-        raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-        raw_df_shard = raw_df_shard.apply(
-            process_raw_sample_helper_partial, axis=1, reduce=False)
-        
-        df = self._standardize_df(raw_df_shard) 
+    for j in range(len(interval_points)-1):
+      log("Sharding and standardizing into shard-%s / %s shards"
+          % (str(j+1), len(interval_points)-1), self.verbosity)
+      raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
+      raw_df_shard = raw_df_shard.apply(
+          process_raw_sample_helper_partial, axis=1, reduce=False)
       
-        field = "mol" if input_type == "sdf" else "smiles"
-        for featurizer in self.featurizers:
-          log("Currently featurizing feature_type: %s"
-              % featurizer.__class__.__name__, self.verbosity)
-          if isinstance(featurizer, UserDefinedFeaturizer):
-            self._add_user_specified_features(df, featurizer)
-          elif isinstance(featurizer, Featurizer):
-            self._featurize_mol(df, featurizer, field=field,
-                                worker_pool=worker_pool)
-          elif isinstance(featurizer, ComplexFeaturizer):
-            self._featurize_complexes(df, featurizer,
-                                      worker_pool=worker_pool)
-        basename = "shard-%d" % j
-        metadata_rows.append(write_dataframe_partial((basename, df)))
-    else:
-      metadata_rows = None
+      df = self._standardize_df(raw_df_shard) 
+    
+      field = "mol" if input_type == "sdf" else "smiles"
+      for featurizer in self.featurizers:
+        log("Currently featurizing feature_type: %s"
+            % featurizer.__class__.__name__, self.verbosity)
+        if isinstance(featurizer, UserDefinedFeaturizer):
+          self._add_user_specified_features(df, featurizer)
+        elif isinstance(featurizer, Featurizer):
+          self._featurize_mol(df, featurizer, field=field,
+                              worker_pool=worker_pool)
+        elif isinstance(featurizer, ComplexFeaturizer):
+          self._featurize_complexes(df, featurizer,
+                                    worker_pool=worker_pool)
+      basename = "shard-%d" % j
+      metadata_rows.append(write_dataframe_partial((basename, df)))
 
+    ################################################## DEBUG
+    print("DataFeaturizer.featurize()")
+    #print("data_dir, len(metadata_rows)")
+    #print(data_dir, len(metadata_rows))
+    ################################################## DEBUG
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
                       reload=reload, verbosity=self.verbosity)
