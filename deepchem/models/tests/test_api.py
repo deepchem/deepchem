@@ -203,7 +203,7 @@ class TestModelAPI(TestAPI):
         NormalizationTransformer(transform_X=True, dataset=train_dataset),
         ClippingTransformer(transform_X=True, dataset=train_dataset)]
     output_transformers = [
-        NormalizationTransformer(transform_X=True, dataset=train_dataset)]
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
     transformers = input_transformers + output_transformers
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:

@@ -54,6 +54,11 @@ class SklearnModel(Model):
     """
     Makes predictions on batch of data.
     """
+    ################################################ DEBUG
+    print("SklearnModel.predict_on_batch()")
+    print("X.shape, np.main(X), np.amax(X)")
+    print(X.shape, np.amin(X), np.amax(X))
+    ################################################ DEBUG
     return self.raw_model.predict(X)
 
   def predict_proba_on_batch(self, X):

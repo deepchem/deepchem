@@ -30,10 +30,6 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     assert solubility_dataset.get_task_names() == ["log-solubility"]
 
     multitask_dataset = self.load_multitask_data()
-    ############################################ DEBUG
-    print("multitask_dataset.get_task_names()")
-    print(multitask_dataset.get_task_names())
-    ############################################ DEBUG
     assert sorted(multitask_dataset.get_task_names()) == sorted(["task0",
         "task1", "task2", "task3", "task4", "task5", "task6", "task7", "task8",
         "task9", "task10", "task11", "task12", "task13", "task14", "task15",

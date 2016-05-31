@@ -56,10 +56,6 @@ class TestMultitaskData(TestAPI):
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
         dataset, self.train_dir, self.test_dir)
-    #train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-    #    splittype, compound_featurizers, 
-    #    complex_featurizers, input_transformers,
-    #    output_transformers, input_file, tasks)
   
     assert train_dataset.get_task_names() == tasks
     assert test_dataset.get_task_names() == tasks

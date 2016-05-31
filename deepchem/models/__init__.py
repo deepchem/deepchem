@@ -162,46 +162,14 @@ class Model(object):
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
       batch_size = len(y_batch)
-      ######################################################### DEBUG
-      #print("Model.predict_proba()")
-      #print("y_pred_batch.shape")
-      #print(y_pred_batch.shape)
-      ######################################################### DEBUG
-      #y_pred_batch = np.squeeze(
-      #    np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
       y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes))
-      ######################################################### DEBUG
-      #print("reshape")
-      #print("y_pred_batch.shape")
-      #print(y_pred_batch.shape)
-      ######################################################### DEBUG
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
-      ######################################################### DEBUG
-      #print("untransformed")
-      #print("y_pred_batch.shape")
-      #print(y_pred_batch.shape)
-      ######################################################### DEBUG
       y_preds.append(y_pred_batch)
-    ######################################################### DEBUG
-    #print("[y_pred.shape for y_pred in y_preds]")
-    #print([y_pred.shape for y_pred in y_preds])
-    ######################################################### DEBUG
     y_pred = np.vstack(y_preds)
-    ######################################################### DEBUG
-    #print("y_pred.shape")
-    #print(y_pred.shape)
-    ######################################################### DEBUG
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples, n_tasks = len(dataset), len(self.tasks)
     y_pred = y_pred[:n_samples]
-    ######################################################### DEBUG
-    #print("Model.predict_proba()")
-    #print("n_samples, y_pred.shape, y_batch.shape")
-    #print(n_samples, y_pred.shape, y_batch.shape)
-    #print("(n_samples, n_tasks, n_classes)")
-    #print((n_samples, n_tasks, n_classes))
-    ######################################################### DEBUG
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
 

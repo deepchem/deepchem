@@ -26,45 +26,6 @@ class TestFeaturizedSamples(TestAPI):
   """
   Test Featurized Samples class.
   """
-  #def _featurize_train_valid_test_split(self, splittype, input_file, tasks,
-  #                                      frac_train, frac_valid, frac_test):
-  #  # Featurize input
-  #  compound_featurizers = [CircularFingerprint(size=1024)]
-  #  complex_featurizers = []
-  #  featurizers = compound_featurizers + complex_featurizers
-
-  #  input_file = os.path.join(self.current_dir, input_file)
-  #  featurizer = DataFeaturizer(tasks=tasks,
-  #                              smiles_field=self.smiles_field,
-  #                              compound_featurizers=compound_featurizers,
-  #                              complex_featurizers=complex_featurizers,
-  #                              verbosity="low")
-
-  #  #Featurizes samples and transforms them into NumPy arrays suitable for ML.
-  #  #returns an instance of class FeaturizedSamples()
-
-  #  samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir)
-
-  #  # Splits featurized samples into train/test
-  #  assert splittype in ["random", "specified", "scaffold"]
-  #  if splittype == "random":
-  #    splitter = RandomSplitter()
-  #  elif splittype == "specified":
-  #    splitter = SpecifiedSplitter()
-  #  elif splittype == "scaffold":
-  #    splitter = ScaffoldSplitter()
-  #  if frac_valid > 0:
-  #    train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
-  #        samples, train_dir=self.train_dir, valid_dir=self.valid_dir,
-  #        test_dir=self.test_dir, frac_train=frac_train,
-  #        frac_valid=frac_valid, frac_test=frac_test)
-
-  #    return train_samples, valid_samples, test_samples
-  #  else:
-  #    train_samples, test_samples = splitter.train_test_split(
-  #        samples, train_dir=self.train_dir, test_dir=self.test_dir,
-  #        frac_train=frac_train)
-  #    return train_samples, test_samples
 
   def scaffold_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
@@ -168,10 +129,6 @@ class TestFeaturizedSamples(TestAPI):
     splitter = RandomSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
         dataset, self.train_dir, self.test_dir)
-    #train_samples, test_samples = (
-    #    self._featurize_train_valid_test_split(
-    #        splittype, input_file, tasks, frac_train=.8,
-    #        frac_valid=0, frac_test=.2))
     assert len(train_dataset) == 8
     assert len(test_dataset) == 2
 
@@ -180,12 +137,6 @@ class TestFeaturizedSamples(TestAPI):
     verbosity = "high"
     data_dir = os.path.join(self.base_dir, "data")
     moved_data_dir = os.path.join(self.base_dir, "moved_data")
-    ############################################## DEBUG
-    print("data_dir")
-    print(data_dir)
-    print("moved_data_dir")
-    print(moved_data_dir)
-    ############################################## DEBUG
     dataset_file = os.path.join(
         self.current_dir, "example.csv")
 

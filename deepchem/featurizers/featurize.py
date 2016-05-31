@@ -198,11 +198,6 @@ class DataFeaturizer(object):
       basename = "shard-%d" % j
       metadata_rows.append(write_dataframe_partial((basename, df)))
 
-    ################################################## DEBUG
-    print("DataFeaturizer.featurize()")
-    #print("data_dir, len(metadata_rows)")
-    #print(data_dir, len(metadata_rows))
-    ################################################## DEBUG
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
                       reload=reload, verbosity=self.verbosity)
@@ -313,11 +308,6 @@ class DataFeaturizer(object):
           mol = elem
         if ind % self.log_every_n == 0:
           log("Featurizing sample %d" % ind, self.verbosity)
-        ###################################### DEBUG
-        #print("DataFeaturizer._featurize_mol")
-        #print("mol, self.verbosity")
-        #print(mol, self.verbosity)
-        ###################################### DEBUG
         features.append(featurizer.featurize([mol], verbosity=self.verbosity))
     else:
       def featurize_wrapper(elem, dilled_featurizer):
