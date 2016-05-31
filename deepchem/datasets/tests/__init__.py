@@ -27,6 +27,8 @@ class TestDatasetAPI(TestAPI):
 
   def load_solubility_data(self):
     """Loads solubility data from example.csv"""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["log-solubility"]
     task_type = "regression"
@@ -41,6 +43,8 @@ class TestDatasetAPI(TestAPI):
 
   def load_classification_data(self):
     """Loads classification data from example.csv"""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["outcome"]
     task_type = "classification"
@@ -55,6 +59,8 @@ class TestDatasetAPI(TestAPI):
 
   def load_multitask_data(self):
     """Load example multitask data."""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
