@@ -2,17 +2,10 @@ import sys
 import os
 import deepchem
 import tempfile, shutil
-from deepchem.utils.save import load_from_disk
-from deepchem.splits import SpecifiedSplitter
-from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.datasets import Dataset
-from deepchem.transformers import NormalizationTransformer
-from deepchem.transformers import ClippingTransformer
 from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.sklearn_models import SklearnModel
-from bace_features import user_specified_features
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator

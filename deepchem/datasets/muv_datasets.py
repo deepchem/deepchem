@@ -8,24 +8,11 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import RandomSplitter
-from deepchem.datasets import Dataset
 from deepchem.transformers import BalancingTransformer
-from deepchem.hyperparameters import HyperparamOpt
-from deepchem.models.multitask import SingletaskToMultitask
-from deepchem import metrics
-from deepchem.metrics import Metric
-from deepchem.metrics import to_one_hot
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.utils.evaluate import relative_difference
-from deepchem.utils.evaluate import Evaluator
 
 def load_muv(base_dir, reload=True):
   """Load MUV datasets. Does not do train/test split"""
@@ -33,10 +20,10 @@ def load_muv(base_dir, reload=True):
   reload = True
   verbosity = "high"
   model = "logistic"
+  regen = False
 
   # Create some directories for analysis
   # The base_dir holds the results of all analysis
-  #base_dir = "/scratch/users/rbharath/muv_multitask_analysis"
   if not reload:
     if os.path.exists(base_dir):
       shutil.rmtree(base_dir)
@@ -44,8 +31,6 @@ def load_muv(base_dir, reload=True):
     os.makedirs(base_dir)
   current_dir = os.path.dirname(os.path.realpath(__file__))
   #Make directories to store the raw and featurized datasets.
-  feature_dir = os.path.join(base_dir, "features")
-  samples_dir = os.path.join(base_dir, "samples")
   data_dir = os.path.join(base_dir, "dataset")
 
   # Load MUV dataset
@@ -66,26 +51,20 @@ def load_muv(base_dir, reload=True):
 
   featurizer = DataFeaturizer(tasks=all_MUV_tasks,
                               smiles_field="smiles",
-                              compound_featurizers=featurizers,
+                              featurizers=featurizers,
                               verbosity=verbosity)
-  featurized_samples = featurizer.featurize(
-      dataset_file, feature_dir,
-      samples_dir, shard_size=8192,
-      reload=reload)
-
-  dataset = Dataset(data_dir=data_dir, samples=featurized_samples, 
-                    featurizers=featurizers, tasks=all_MUV_tasks,
-                    verbosity=verbosity, reload=reload)
+  if not reload or not os.path.exists(data_dir):
+    dataset = featurizer.featurize(dataset_file, data_dir)
+    regen = True
+  else:
+    dataset = Dataset(data_dir, reload=True)
 
   # Initialize transformers 
-  input_transformers = []
-  output_transformers = []
-  weight_transformers = [
+  transformers = [
       BalancingTransformer(transform_w=True, dataset=dataset)]
-  transformers = input_transformers + output_transformers + weight_transformers
-  if not reload:
+  if regen:
     print("About to transform data")
     for transformer in transformers:
         transformer.transform(dataset)
   
-  return all_MUV_tasks, featurized_samples, dataset, transformers
+  return all_MUV_tasks, dataset, transformers

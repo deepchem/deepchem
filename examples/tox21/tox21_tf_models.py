@@ -8,26 +8,14 @@ from __future__ import unicode_literals
 import os
 import shutil
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import RandomSplitter
-from deepchem.datasets import Dataset
-from deepchem.transformers import BalancingTransformer
-from deepchem.hyperparameters import HyperparamOpt
-from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric
-from deepchem.metrics import to_one_hot
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.datasets.tox21_datasets import load_tox21
 
 
 # Only for debug!
@@ -44,9 +32,7 @@ if not os.path.exists(base_dir):
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 #Make directories to store the raw and featurized datasets.
-feature_dir = os.path.join(base_dir, "features")
-samples_dir = os.path.join(base_dir, "samples")
-full_dir = os.path.join(base_dir, "full_dataset")
+data_dir = os.path.join(base_dir, "dataset")
 train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
@@ -60,38 +46,10 @@ dataset = load_from_disk(dataset_file)
 print("Columns of dataset: %s" % str(dataset.columns.values))
 print("Number of examples in dataset: %s" % str(dataset.shape[0]))
 
-# Featurize tox21 dataset
-print("About to featurize Tox21 dataset.")
-featurizers = [CircularFingerprint(size=1024)]
-tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER', 'NR-ER-LBD',
-               'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5', 'SR-HSE', 'SR-MMP', 'SR-p53']
-all_valid_scores = {}
-
-# This is for good debug (to make sure nasty state isn't being passed around)
-if os.path.exists(feature_dir):
-  shutil.rmtree(feature_dir)
-featurizer = DataFeaturizer(tasks=tox21_tasks,
-                            smiles_field="smiles",
-                            compound_featurizers=featurizers,
-                            verbosity=verbosity)
-featurized_samples = featurizer.featurize(
-    dataset_file, feature_dir,
-    samples_dir, shard_size=8192,
-    reload=reload)
-
-# Generate datasets
-print("About to create datasets")
-
-# This is for good debug (to make sure nasty state isn't being passed around)
-if os.path.exists(full_dir):
-  shutil.rmtree(full_dir)
-full_dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
-                        featurizers=featurizers, tasks=tox21_tasks,
-                        verbosity=verbosity, reload=reload)
-
 # Do train/valid split.
+tox21_tasks, tox21_dataset, transformers = load_tox21(data_dir, reload=reload)
 num_train = 7200
-X, y, w, ids = full_dataset.to_numpy()
+X, y, w, ids = tox21_dataset.to_numpy()
 X_train, X_valid = X[:num_train], X[num_train:]
 y_train, y_valid = y[:num_train], y[num_train:]
 w_train, w_valid = w[:num_train], w[num_train:]

@@ -10,24 +10,13 @@ import numpy as np
 import shutil
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import RandomSplitter
-from deepchem.datasets import Dataset
-from deepchem.transformers import BalancingTransformer
-from deepchem.hyperparameters import HyperparamOpt
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric
-from deepchem.metrics import to_one_hot
 from deepchem.models.sklearn_models import SklearnModel
-from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
 from deepchem.datasets.muv_datasets import load_muv
-
 
 np.random.seed(123)
 
@@ -38,10 +27,10 @@ verbosity = "high"
 
 base_data_dir = "/scratch/users/rbharath/muv"
 
-muv_tasks, featurized_samples, dataset, transformers = load_muv(
+muv_tasks, dataset, transformers = load_muv(
     base_data_dir, reload=reload)
-print("len(featurized_samples), len(dataset)")
-print(len(featurized_samples), len(dataset))
+print("len(dataset)")
+print(len(dataset))
 
 base_dir = "/scratch/users/rbharath/muv_analysis"
 if os.path.exists(base_dir):
@@ -54,7 +43,7 @@ test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 
 print("About to perform train/valid/test split.")
-num_train = .8 * len(featurized_samples)
+num_train = .8 * len(dataset)
 X, y, w, ids = dataset.to_numpy()
 num_tasks = 17
 muv_tasks = muv_tasks[:num_tasks]

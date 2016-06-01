@@ -28,10 +28,10 @@ verbosity = "high"
 
 base_data_dir = "/scratch/users/rbharath/pcba"
 
-pcba_tasks, featurized_samples, dataset, transformers = load_pcba(
+pcba_tasks, dataset, transformers = load_pcba(
     base_data_dir, reload=reload)
-print("len(featurized_samples), len(dataset)")
-print(len(featurized_samples), len(dataset))
+print("len(dataset)")
+print(len(dataset))
 
 base_dir = "/scratch/users/rbharath/pcba_analysis"
 if os.path.exists(base_dir):
@@ -44,7 +44,7 @@ test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 
 print("About to perform train/valid/test split.")
-num_train = .8 * len(featurized_samples)
+num_train = .8 * len(dataset)
 X, y, w, ids = dataset.to_numpy()
 num_tasks = 120
 pcba_tasks = pcba_tasks[:num_tasks]

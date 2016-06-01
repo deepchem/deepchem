@@ -221,7 +221,11 @@ class Dataset(object):
   def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
-    y = np.reshape(y, (n_samples, -1))
+    ######################################################### DEBUG
+    if n_samples > 0:
+      y = np.reshape(y, (n_samples, -1))
+    ######################################################### DEBUG
+    #y = np.reshape(y, (n_samples, -1))
     n_tasks = y.shape[1]
     if ids is None:
       ids = np.arange(n_samples)
@@ -234,9 +238,11 @@ class Dataset(object):
 
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
-    indices = np.array(indices)
+    ################################################### DEBUG
+    indices = np.array(indices).astype(int)
     X, y, w, ids = self.to_numpy()
     tasks = self.get_task_names()
+    ################################################### DEBUG
     X_sel, y_sel, w_sel, ids_sel = (
         X[indices], y[indices], w[indices], ids[indices])
     return Dataset.from_numpy(select_dir, X_sel, y_sel, w_sel, ids_sel, tasks)
