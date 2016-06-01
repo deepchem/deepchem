@@ -162,8 +162,7 @@ class Model(object):
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
       batch_size = len(y_batch)
-      y_pred_batch = np.squeeze(
-          np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes)))
+      y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)

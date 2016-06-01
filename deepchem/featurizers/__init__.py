@@ -233,3 +233,11 @@ class Featurizer(object):
         for j in xrange(n_confs):
           x[i, j] = mol_features[j]
     return x
+
+class UserDefinedFeaturizer(Featurizer):
+  """Directs usage of user-computed featurizations."""
+
+  def __init__(self, feature_fields):
+    """Creates user-defined-featurizer."""
+    self.feature_fields = feature_fields
+

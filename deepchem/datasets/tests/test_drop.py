@@ -25,9 +25,7 @@ class TestDrop(TestAPI):
     len_full = 25
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    feature_dir = os.path.join(self.base_dir, "features")
-    samples_dir = os.path.join(self.base_dir, "samples")
-    full_dir = os.path.join(self.base_dir, "full_dataset")
+    data_dir = os.path.join(self.base_dir, "dataset")
     model_dir = os.path.join(self.base_dir, "model")
 
     print("About to load emols dataset.")
@@ -41,18 +39,9 @@ class TestDrop(TestAPI):
 
     featurizer = DataFeaturizer(tasks=emols_tasks,
                                 smiles_field="smiles",
-                                compound_featurizers=featurizers,
+                                featurizers=featurizers,
                                 verbosity=verbosity)
-    featurized_samples = featurizer.featurize(
-        dataset_file, feature_dir,
-        samples_dir, reload=reload)
-    print("len(featurized_samples)")
-    print(len(featurized_samples))
-
-    # Generate datasets
-    dataset = Dataset(data_dir=full_dir, samples=featurized_samples, 
-                      featurizers=featurizers, tasks=emols_tasks,
-                      verbosity=verbosity, reload=reload)
+    dataset = featurizer.featurize(dataset_file, data_dir)
 
     X, y, w, ids = dataset.to_numpy()
     print("ids.shape, X.shape, y.shape, w.shape")

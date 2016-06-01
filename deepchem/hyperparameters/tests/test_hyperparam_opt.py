@@ -17,6 +17,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.featurizers.fingerprints import CircularFingerprint
+from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.transformers import NormalizationTransformer
 from deepchem import metrics
 from deepchem.metrics import Metric
@@ -28,6 +29,7 @@ from deepchem.hyperparameters import HyperparamOpt
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.splits import ScaffoldSplitter
 
 def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
     """Builds random forests given hyperparameters.
@@ -49,19 +51,28 @@ class TestHyperparamOptAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
-    input_transformer_classes = []
-    output_transformer_classes = [NormalizationTransformer]
+    featurizers = [CircularFingerprint(size=1024)]
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "example.csv"
-    train_dataset, valid_dataset, _, output_transformers, = \
-        self._featurize_train_test_split(
-            splittype, compound_featurizers, 
-            complex_featurizers, input_transformer_classes,
-            output_transformer_classes, input_file, tasks)
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset, self.train_dir, self.valid_dir, self.test_dir)
+
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
     params_dict = {
       "n_estimators": [10, 100],
       "max_features": ["auto"],
@@ -130,24 +141,25 @@ class TestHyperparamOptAPI(TestAPI):
 
   def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Keras multitask deepchem classification API."""
-    splittype = "scaffold"
-    output_transformers = []
-    input_transformers = []
     task_type = "classification"
-
     input_file = os.path.join(self.current_dir, "multitask_example.csv")
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
 
-    train_dataset, valid_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    splitter = ScaffoldSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset, self.train_dir, self.valid_dir, self.test_dir)
+
+    transformers = []
     metric = Metric(metrics.matthews_corrcoef, np.mean, mode="classification")
     params_dict= {"nb_hidden": [5, 10],
                   "activation": ["relu"],
@@ -166,14 +178,12 @@ class TestHyperparamOptAPI(TestAPI):
     optimizer = HyperparamOpt(MultiTaskDNN, tasks, task_types,
                               verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-      params_dict, train_dataset, valid_dataset, output_transformers,
+      params_dict, train_dataset, valid_dataset, transformers,
       metric, logdir=None)
 
   def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Tensorflow multitask deepchem classification API."""
     splittype = "scaffold"
-    output_transformers = []
-    input_transformers = []
     task_type = "classification"
 
     input_file = os.path.join(self.current_dir, "multitask_example.csv")
@@ -182,13 +192,20 @@ class TestHyperparamOptAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
 
-    train_dataset, valid_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset, self.train_dir, self.valid_dir, self.test_dir)
+
+    transformers = []
+
     metric = Metric(metrics.matthews_corrcoef, np.mean, mode="classification")
     params_dict = {"activation": ["relu"],
                     "momentum": [.9],
@@ -220,5 +237,5 @@ class TestHyperparamOptAPI(TestAPI):
     optimizer = HyperparamOpt(model_builder, tasks, task_types,
                               verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-      params_dict, train_dataset, valid_dataset, output_transformers,
+      params_dict, train_dataset, valid_dataset, transformers,
       metric, logdir=None)

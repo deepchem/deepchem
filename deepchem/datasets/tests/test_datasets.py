@@ -26,32 +26,31 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   """
   def test_get_task_names(self):
     """Test that get_task_names returns correct task_names"""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     assert solubility_dataset.get_task_names() == ["log-solubility"]
 
-    multitask_dataset = self._load_multitask_data()
+    multitask_dataset = self.load_multitask_data()
     assert sorted(multitask_dataset.get_task_names()) == sorted(["task0",
         "task1", "task2", "task3", "task4", "task5", "task6", "task7", "task8",
         "task9", "task10", "task11", "task12", "task13", "task14", "task15",
         "task16"])
-  
 
   def test_get_data_shape(self):
     """Test that get_data_shape returns currect data shape"""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     assert solubility_dataset.get_data_shape() == (1024,) 
     
-    multitask_dataset = self._load_multitask_data()
+    multitask_dataset = self.load_multitask_data()
     assert multitask_dataset.get_data_shape() == (1024,)
 
   def test_len(self):
     """Test that len(dataset) works."""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     assert len(solubility_dataset) == 10
   
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     batch_size = 2
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
@@ -63,7 +62,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
 
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
     X, y, w, ids = solubility_dataset.to_numpy()
@@ -77,7 +76,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
 
   def test_consistent_ordering(self):
     """Test that ordering of labels is consistent over time."""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
 
     ids1 = solubility_dataset.get_ids()
     ids2 = solubility_dataset.get_ids()
@@ -86,7 +85,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
 
   def test_get_statistics(self):
     """Test statistics computation of this dataset."""
-    solubility_dataset = self._load_solubility_data()
+    solubility_dataset = self.load_solubility_data()
     X, y, _, _ = solubility_dataset.to_numpy()
     X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
     X_stds, y_stds = np.std(X, axis=0), np.std(y, axis=0)

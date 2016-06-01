@@ -13,57 +13,19 @@ import os
 import unittest
 import tempfile
 import shutil
+from deepchem.datasets import Dataset
 from deepchem.models.tests import TestAPI
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import SpecifiedSplitter
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import FeaturizedSamples
+#from deepchem.featurizers.featurize import FeaturizedSamples
 
 class TestFeaturizedSamples(TestAPI):
   """
   Test Featurized Samples class.
   """
-  def _featurize_train_valid_test_split(self, splittype, input_file, tasks,
-                                        frac_train, frac_valid, frac_test):
-    # Featurize input
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
-    featurizers = compound_featurizers + complex_featurizers
-
-    input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                compound_featurizers=compound_featurizers,
-                                complex_featurizers=complex_featurizers,
-                                verbosity="low")
-
-    #Featurizes samples and transforms them into NumPy arrays suitable for ML.
-    #returns an instance of class FeaturizedSamples()
-
-    samples = featurizer.featurize(input_file, self.feature_dir, self.samples_dir)
-
-    # Splits featurized samples into train/test
-    assert splittype in ["random", "specified", "scaffold"]
-    if splittype == "random":
-      splitter = RandomSplitter()
-    elif splittype == "specified":
-      splitter = SpecifiedSplitter()
-    elif splittype == "scaffold":
-      splitter = ScaffoldSplitter()
-    if frac_valid > 0:
-      train_samples, valid_samples, test_samples = splitter.train_valid_test_split(
-          samples, train_dir=self.train_dir, valid_dir=self.valid_dir,
-          test_dir=self.test_dir, frac_train=frac_train,
-          frac_valid=frac_valid, frac_test=frac_test)
-
-      return train_samples, valid_samples, test_samples
-    else:
-      train_samples, test_samples = splitter.train_test_split(
-          samples, train_dir=self.train_dir, test_dir=self.test_dir,
-          frac_train=frac_train)
-      return train_samples, test_samples
 
   def scaffold_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
@@ -74,14 +36,24 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/tests/example.csv"
-    train_samples, valid_samples, test_samples = (
-        self._featurize_train_valid_test_split(
-            splittype, input_file, tasks, frac_train=.8,
-            frac_valid=.1, frac_test=.1))
-    assert len(train_samples) == 8
-    assert len(valid_samples) == 1
-    assert len(test_samples) == 1
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizers = [CircularFingerprint(size=1024)]
+
+    input_file = os.path.join(self.current_dir, input_file)
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    # Splits featurized samples into train/test
+    splitter = ScaffoldSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset, self.train_dir, self.valid_dir, self.test_dir)
+    assert len(train_dataset) == 8
+    assert len(valid_dataset) == 1
+    assert len(test_dataset) == 1
 
   def scaffold_test_train_test_split(self):
     """Test of singletask RF ECFP regression API."""
@@ -92,78 +64,96 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/tests/example.csv"
-    train_samples, test_samples = (
-        self._featurize_train_valid_test_split(
-            splittype, input_file, tasks, frac_train=.8,
-            frac_valid=0, frac_test=.2))
-    assert len(train_samples) == 8
-    assert len(test_samples) == 2
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizers = [CircularFingerprint(size=1024)]
+
+    input_file = os.path.join(self.current_dir, input_file)
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    # Splits featurized samples into train/test
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+    assert len(train_dataset) == 8
+    assert len(test_dataset) == 2
 
   def random_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
-    splittype = "random"
     input_transforms = []
     output_transforms = ["normalize"]
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/tests/example.csv"
-    train_samples, valid_samples, test_samples = (
-        self._featurize_train_valid_test_split(
-            splittype, input_file, tasks, frac_train=.8,
-            frac_valid=.1, frac_test=.1))
-    assert len(train_samples) == 8
-    assert len(valid_samples) == 1
-    assert len(test_samples) == 1
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizers = [CircularFingerprint(size=1024)]
+
+    input_file = os.path.join(self.current_dir, input_file)
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    # Splits featurized samples into train/test
+    splitter = RandomSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset, self.train_dir, self.valid_dir, self.test_dir)
+    assert len(train_dataset) == 8
+    assert len(valid_dataset) == 1
+    assert len(test_dataset) == 1
 
   def random_test_train_test_split(self):
     """Test of singletask RF ECFP regression API."""
-    splittype = "random"
-    input_transforms = []
-    output_transforms = ["normalize"]
+    #splittype = "random"
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../models/tests/example.csv"
-    train_samples, test_samples = (
-        self._featurize_train_valid_test_split(
-            splittype, input_file, tasks, frac_train=.8,
-            frac_valid=0, frac_test=.2))
-    assert len(train_samples) == 8
-    assert len(test_samples) == 2
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    # Splits featurized samples into train/test
+    splitter = RandomSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+    assert len(train_dataset) == 8
+    assert len(test_dataset) == 2
 
   def test_samples_move(self):
     """Test that featurized samples can be moved and reloaded."""
     verbosity = "high"
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    feature_dir = os.path.join(self.base_dir, "features")
-    moved_feature_dir = os.path.join(self.base_dir, "moved_features")
-    samples_dir = os.path.join(self.base_dir, "samples")
-    moved_samples_dir = os.path.join(self.base_dir, "moved_samples")
+    data_dir = os.path.join(self.base_dir, "data")
+    moved_data_dir = os.path.join(self.base_dir, "moved_data")
     dataset_file = os.path.join(
-        current_dir, "../../models/tests/example.csv")
+        self.current_dir, "example.csv")
 
     featurizers = [CircularFingerprint(size=1024)]
     tasks = ["log-solubility"]
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
-                                compound_featurizers=featurizers,
+                                featurizers=featurizers,
                                 verbosity=verbosity)
-    featurized_samples = featurizer.featurize(
-        dataset_file, feature_dir,
-        samples_dir, reload=reload)
-    n_samples = len(featurized_samples)
+    featurized_dataset = featurizer.featurize(
+        dataset_file, data_dir)
+    n_dataset = len(featurized_dataset)
   
     # Now perform move
-    shutil.move(feature_dir, moved_feature_dir)
-    shutil.move(samples_dir, moved_samples_dir)
+    shutil.move(data_dir, moved_data_dir)
 
-    moved_featurized_samples = FeaturizedSamples(
-        samples_dir=moved_samples_dir, featurizers=featurizers,
-        reload=True)
+    moved_featurized_dataset = Dataset(
+        data_dir=moved_data_dir, reload=True)
 
-    assert len(moved_featurized_samples) == n_samples
-        
+    assert len(moved_featurized_dataset) == n_dataset

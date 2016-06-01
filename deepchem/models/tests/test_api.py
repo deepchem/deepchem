@@ -13,8 +13,8 @@ import os
 import unittest
 import tempfile
 import shutil
+from deepchem.featurizers import UserDefinedFeaturizer 
 from deepchem.featurizers.featurize import DataFeaturizer
-from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
@@ -31,6 +31,8 @@ from deepchem.metrics import Metric
 from sklearn.ensemble import RandomForestRegressor
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.splits import ScaffoldSplitter
+from deepchem.splits import SpecifiedSplitter
 
 class TestModelAPI(TestAPI):
   """
@@ -39,19 +41,26 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
-    input_transformers = []
-    output_transformers = [NormalizationTransformer]
+    featurizers = [CircularFingerprint(size=1024)]
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "example.csv"
-    train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -76,23 +85,30 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF USF regression API."""
     splittype = "specified"
-    split_field = "split"
-    compound_featurizers = []
-    complex_featurizers = []
-    input_transformers = []
-    output_transformers = [NormalizationTransformer]
+    featurizers = [UserDefinedFeaturizer(["user-specified1", "user-specified2"])]
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "user_specified_example.csv"
-    user_specified_features = ["user-specified1", "user-specified2"]
-    train_dataset, test_dataset, _, transformers, = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
-        user_specified_features=user_specified_features,
-        split_field=split_field)
+    input_file = os.path.join(self.current_dir, "user_specified_example.csv")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = SpecifiedSplitter(input_file, "split")
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
+
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -117,20 +133,30 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
-    input_transformers = []
-    output_transformers = [NormalizationTransformer]
+    featurizers = [CircularFingerprint(size=1024)]
     model_params = {}
     tasks = ["label"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = "../../../datasets/pdbbind_core_df.pkl.gz"
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
-        shard_size=50)
+    input_file = os.path.join(
+        self.current_dir, "../../../datasets/pdbbind_core_df.pkl.gz")
+
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
     # We set shard size above to force the creation of multiple shards of the data.
     # pdbbind_core has ~200 examples.
     model_params["data_shape"] = train_dataset.get_data_shape()
@@ -157,19 +183,32 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
-    compound_featurizers = [RDKitDescriptors()]
-    complex_featurizers = []
-    input_transformers = [NormalizationTransformer, ClippingTransformer]
-    output_transformers = [NormalizationTransformer]
+    featurizers = [RDKitDescriptors()]
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     model_params = {}
-    input_file = "example.csv"
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    input_file = os.path.join(self.current_dir, "example.csv")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    input_transformers = [
+        NormalizationTransformer(transform_X=True, dataset=train_dataset),
+        ClippingTransformer(transform_X=True, dataset=train_dataset)]
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
+
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -194,13 +233,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
     from deepchem.models.keras_models.fcnet import SingleTaskDNN
-    splittype = "scaffold"
-    compound_featurizers = []
-    complex_featurizers = []
-    input_transformers = [NormalizationTransformer, ClippingTransformer]
-    output_transformers = [NormalizationTransformer]
-    feature_types = ["user_specified_features"]
-    user_specified_features = ["evals"]
+    featurizers = [UserDefinedFeaturizer(["evals"])]
     tasks = ["u0"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
@@ -211,16 +244,28 @@ class TestModelAPI(TestAPI):
                     "nb_epoch": 2, "init": "glorot_uniform",
                     "nb_layers": 1, "batchnorm": False}
 
-    input_file = "gbd3k.pkl.gz"
-    protein_pdb_field = None
-    ligand_pdb_field = None
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers,
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks,
-        protein_pdb_field=protein_pdb_field,
-        ligand_pdb_field=ligand_pdb_field,
-        user_specified_features=user_specified_features)
+    input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    input_transformers = [
+      NormalizationTransformer(transform_X=True, dataset=train_dataset),
+      ClippingTransformer(transform_X=True, dataset=train_dataset)]
+    output_transformers = [
+      NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
+
     model_params["data_shape"] = train_dataset.get_data_shape()
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -244,9 +289,6 @@ class TestModelAPI(TestAPI):
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
     from deepchem.models.keras_models.fcnet import MultiTaskDNN
-    splittype = "scaffold"
-    output_transformers = []
-    input_transformers = []
     task_type = "classification"
     # TODO(rbharath): There should be some automatic check to ensure that all
     # required model_params are specified.
@@ -263,13 +305,18 @@ class TestModelAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
 
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    data_featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = data_featurizer.featurize(input_file, self.data_dir)
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+
+    transformers = []
     model_params["data_shape"] = train_dataset.get_data_shape()
     classification_metrics = [Metric(metrics.roc_auc_score),
                               Metric(metrics.matthews_corrcoef),
@@ -297,20 +344,31 @@ class TestModelAPI(TestAPI):
     input_transformers = []
     task_type = "classification"
 
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
+    featurizers = [CircularFingerprint(size=1024)]
 
     tasks = ["outcome"]
     task_type = "classification"
     task_types = {task: task_type for task in tasks}
-    input_file = "example_classification.csv"
-    input_transformers = []
-    output_transformers = [NormalizationTransformer]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
 
-    train_dataset, test_dataset, _, transformers = self._featurize_train_test_split(
-        splittype, compound_featurizers, 
-        complex_featurizers, input_transformers,
-        output_transformers, input_file, tasks)
+    featurizer = DataFeaturizer(tasks=tasks,
+                                smiles_field=self.smiles_field,
+                                featurizers=featurizers,
+                                verbosity="low")
+    dataset = featurizer.featurize(input_file, self.data_dir)
+
+    splitter = ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(
+        dataset, self.train_dir, self.test_dir)
+    
+    input_transformers = []
+    output_transformers = [
+        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+    transformers = input_transformers + output_transformers
+
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        transformer.transform(dataset)
 
     model_params = {
       "batch_size": 2,
