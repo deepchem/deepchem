@@ -42,6 +42,11 @@ class SklearnModel(Model):
     Fits SKLearn model to data.
     """
     X, y, w, _ = dataset.to_numpy()
+    ########################################### DEBUG
+    print("SklearnModel.fit()")
+    print("X.shape, y.shape, w.shape")
+    print(X.shape, y.shape, w.shape)
+    ########################################### DEBUG
     y, w = np.squeeze(y), np.squeeze(w)
     # Logistic regression doesn't support weights
     if not isinstance(self.raw_model, LogisticRegression):

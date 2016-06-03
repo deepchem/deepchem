@@ -21,9 +21,9 @@ def log(string, verbosity=None, level="low"):
     if verbosity == "high" or level == verbosity:
       print(string)
 
-def save_to_disk(dataset, filename):
+def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
-  joblib.dump(dataset, filename, compress=0)
+  joblib.dump(dataset, filename, compress=compress)
 
 def load_from_disk(filename):
   """Load a dataset from file."""
@@ -51,13 +51,3 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
-
-def load_pandas_from_disk(filename):
-  """Load data as pandas dataframe."""
-  if ".csv" not in filename:
-    return load_from_disk(filename)
-  else:
-    # First line of user-specified CSV *must* be header.
-    df = pd.read_csv(filename, header=0)
-    df = df.replace(np.nan, str(""), regex=True)
-    return df

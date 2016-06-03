@@ -116,6 +116,12 @@ class Dataset(object):
     out_ids = "%s-ids.joblib" % basename
 
     if X is not None:
+      ############################################## DEBUG
+      print("X.shape")
+      print(X.shape)
+      print("os.path.join(data_dir, out_X)")
+      print(os.path.join(data_dir, out_X))
+      ############################################## DEBUG
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
       X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
@@ -221,11 +227,9 @@ class Dataset(object):
   def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
-    ######################################################### DEBUG
     if n_samples > 0:
       y = np.reshape(y, (n_samples, -1))
-    ######################################################### DEBUG
-    #y = np.reshape(y, (n_samples, -1))
+      w = np.reshape(w, (n_samples, -1))
     n_tasks = y.shape[1]
     if ids is None:
       ids = np.arange(n_samples)
@@ -238,11 +242,9 @@ class Dataset(object):
 
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
-    ################################################### DEBUG
     indices = np.array(indices).astype(int)
     X, y, w, ids = self.to_numpy()
     tasks = self.get_task_names()
-    ################################################### DEBUG
     X_sel, y_sel, w_sel, ids_sel = (
         X[indices], y[indices], w[indices], ids[indices])
     return Dataset.from_numpy(select_dir, X_sel, y_sel, w_sel, ids_sel, tasks)
