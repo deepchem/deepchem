@@ -71,7 +71,9 @@ def _load_sdf_file(input_file):
 def _load_csv_file(filename, shard_size=None):
   """Load data as pandas dataframe."""
   # First line of user-specified CSV *must* be header.
-  return pd.read_csv(filename, header=0, chunksize=shard_size)
+  for df in pd.read_csv(filename, header=0, chunksize=shard_size):
+    df = df.replace(np.nan, str(""), regex=True)
+    yield df
 
 def _get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
