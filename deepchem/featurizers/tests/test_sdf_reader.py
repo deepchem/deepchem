@@ -44,7 +44,7 @@ class TestFeaturizedSamples(TestAPI):
                                 featurizers=featurizers,
                                 verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = featurizer.featurize(input_file, self.data_dir, shard_size=None)
 
     # Splits featurized samples into train/test
     splitter = RandomSplitter()

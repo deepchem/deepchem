@@ -16,7 +16,7 @@ from functools import partial
 from rdkit import Chem
 from deepchem.utils.save import log
 from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import load_pickle_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
 from deepchem.featurizers import UserDefinedFeaturizer
 from deepchem.datasets import Dataset
@@ -47,13 +47,15 @@ def load_data(input_file, shard_size=None):
     if shard_size is not None:
       raise ValueError("shard_size must be None for sdf input.")
     return _load_sdf_file(input_file)
-  else:
+  elif input_type == "csv":
     return _load_csv_file(input_file, shard_size)
+  elif input_type == "pandas-pickle":
+    return [load_pickle_from_disk(input_file)]
 
 def _load_sdf_file(input_file):
   """Load SDF file into dataframe."""
   # Tasks are stored in .sdf.csv file
-  raw_df = load_pandas_from_disk(input_file+".csv")
+  raw_df = _load_csv_file(input_file+".csv")
   # Structures are stored in .sdf file
   print("Reading structures from %s." % input_file)
   suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
@@ -88,27 +90,27 @@ def _get_input_type(input_file):
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
-def _get_fields(input_file):
-  """Get the names of fields and field_types for input data."""
-  # If CSV input, assume that first row contains labels
-  input_type = _get_input_type(input_file)
-  if input_type == "csv":
-    with open(input_file, "rb") as inp_file_obj:
-      return csv.reader(inp_file_obj).next()
-  elif input_type == "pandas-joblib":
-    df = load_from_disk(input_file)
-    return df.keys()
-  elif input_type == "pandas-pickle":
-    df = load_pickle_from_disk(input_file)
-    return df.keys()
-  # If SDF input, assume that .sdf.csv file contains labels 
-  elif input_type == "sdf":
-    label_file = input_file + ".csv"
-    print("Reading labels from %s" % label_file)
-    with open(label_file, "rb") as inp_file_obj:
-      return inp_file_obj.readline()
-  else:
-    raise ValueError("Unrecognized extension for %s" % input_file)
+#def _get_fields(input_file):
+#  """Get the names of fields and field_types for input data."""
+#  # If CSV input, assume that first row contains labels
+#  input_type = _get_input_type(input_file)
+#  if input_type == "csv":
+#    with open(input_file, "rb") as inp_file_obj:
+#      return csv.reader(inp_file_obj).next()
+#  elif input_type == "pandas-joblib":
+#    df = load_from_disk(input_file)
+#    return df.keys()
+#  elif input_type == "pandas-pickle":
+#    df = load_pickle_from_disk(input_file)
+#    return df.keys()
+#  # If SDF input, assume that .sdf.csv file contains labels 
+#  elif input_type == "sdf":
+#    label_file = input_file + ".csv"
+#    print("Reading labels from %s" % label_file)
+#    with open(label_file, "rb") as inp_file_obj:
+#      return inp_file_obj.readline()
+#  else:
+#    raise ValueError("Unrecognized extension for %s" % input_file)
 
 class DataFeaturizer(object):
   """
@@ -162,7 +164,7 @@ class DataFeaturizer(object):
 
     metadata_rows = []
     for shard_num, raw_df_shard in enumerate(load_data(input_file, shard_size)):
-      log("Loaded shard %d of size %d from file." % (shard_num+1, shard_size),
+      log("Loaded shard %d of size %s from file." % (shard_num+1, str(shard_size)),
           self.verbosity)
       log("About to featurize shard.", self.verbosity)
 
@@ -197,11 +199,9 @@ class DataFeaturizer(object):
       if isinstance(featurizer, UserDefinedFeaturizer):
         self._add_user_specified_features(df_shard, featurizer)
       elif isinstance(featurizer, Featurizer):
-        self._featurize_mol(df_shard, featurizer, field=field,
-                            worker_pool=worker_pool)
+        self._featurize_mol(df_shard, featurizer, field=field)
       elif isinstance(featurizer, ComplexFeaturizer):
-        self._featurize_complexes(df_shard, featurizer,
-                                  worker_pool=worker_pool)
+        self._featurize_complexes(df_shard, featurizer)
     basename = "shard-%d" % shard_num 
     return write_fn((basename, df_shard))
 

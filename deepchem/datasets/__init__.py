@@ -229,7 +229,8 @@ class Dataset(object):
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
       y = np.reshape(y, (n_samples, -1))
-      w = np.reshape(w, (n_samples, -1))
+      if w is not None:
+        w = np.reshape(w, (n_samples, -1))
     n_tasks = y.shape[1]
     if ids is None:
       ids = np.arange(n_samples)
