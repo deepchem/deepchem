@@ -168,7 +168,7 @@ class SpecifiedSplitter(Splitter):
 
   def __init__(self, input_file, split_field, verbosity=None):
     """Provide input information for splits."""
-    raw_df = load_data(input_file)
+    raw_df = load_data(input_file, shard_size=None).next()
     self.splits = raw_df[split_field].values
     self.verbosity = verbosity
 

@@ -55,7 +55,7 @@ def load_data(input_file, shard_size=None):
 def _load_sdf_file(input_file):
   """Load SDF file into dataframe."""
   # Tasks are stored in .sdf.csv file
-  raw_df = _load_csv_file(input_file+".csv")
+  raw_df = _load_csv_file(input_file+".csv", shard_size=None).next()
   # Structures are stored in .sdf file
   print("Reading structures from %s." % input_file)
   suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
@@ -71,9 +71,12 @@ def _load_sdf_file(input_file):
 def _load_csv_file(filename, shard_size=None):
   """Load data as pandas dataframe."""
   # First line of user-specified CSV *must* be header.
-  for df in pd.read_csv(filename, header=0, chunksize=shard_size):
-    df = df.replace(np.nan, str(""), regex=True)
-    yield df
+  if shard_size is None:
+    yield pd.read_csv(filename)
+  else:
+    for df in pd.read_csv(filename, chunksize=shard_size):
+      df = df.replace(np.nan, str(""), regex=True)
+      yield df
 
 def _get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
