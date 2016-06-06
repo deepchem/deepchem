@@ -16,8 +16,7 @@ from functools import partial
 from rdkit import Chem
 from deepchem.utils.save import log
 from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import load_from_disk
-from deepchem.utils.save import load_pandas_from_disk
+from deepchem.utils.save import load_pickle_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
 from deepchem.featurizers import UserDefinedFeaturizer
 from deepchem.datasets import Dataset
@@ -38,19 +37,25 @@ def _process_field(val):
   else:
     raise ValueError("Field of unrecognized type: %s" % str(val))
 
-def load_data(input_file):
-  """Loads data from disk."""
+def load_data(input_file, shard_size=None):
+  """Loads data from disk.
+     
+  For CSV files, supports sharded loading for large files.
+  """
   input_type = _get_input_type(input_file)
   if input_type == "sdf":
-    raw_df = _load_sdf_file(input_file)
-  else:
-    raw_df = _load_csv_file(input_file)
-  return raw_df
+    if shard_size is not None:
+      raise ValueError("shard_size must be None for sdf input.")
+    return _load_sdf_file(input_file)
+  elif input_type == "csv":
+    return _load_csv_file(input_file, shard_size)
+  elif input_type == "pandas-pickle":
+    return [load_pickle_from_disk(input_file)]
 
 def _load_sdf_file(input_file):
   """Load SDF file into dataframe."""
   # Tasks are stored in .sdf.csv file
-  raw_df = load_pandas_from_disk(input_file+".csv")
+  raw_df = _load_csv_file(input_file+".csv", shard_size=None).next()
   # Structures are stored in .sdf file
   print("Reading structures from %s." % input_file)
   suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
@@ -61,12 +66,17 @@ def _load_sdf_file(input_file):
       df_rows.append([ind,smiles,mol])
   mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
   raw_df = pd.concat([mol_df, raw_df], axis=1, join='inner')
-  return raw_df
+  return [raw_df]
 
-def _load_csv_file(input_file):
-  """Loads CSV file into dataframe."""
-  raw_df = load_pandas_from_disk(input_file)
-  return raw_df
+def _load_csv_file(filename, shard_size=None):
+  """Load data as pandas dataframe."""
+  # First line of user-specified CSV *must* be header.
+  if shard_size is None:
+    yield pd.read_csv(filename)
+  else:
+    for df in pd.read_csv(filename, chunksize=shard_size):
+      df = df.replace(np.nan, str(""), regex=True)
+      yield df
 
 def _get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
@@ -85,28 +95,6 @@ def _get_input_type(input_file):
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
-def _get_fields(input_file):
-  """Get the names of fields and field_types for input data."""
-  # If CSV input, assume that first row contains labels
-  input_type = _get_input_type(input_file)
-  if input_type == "csv":
-    with open(input_file, "rb") as inp_file_obj:
-      return csv.reader(inp_file_obj).next()
-  elif input_type == "pandas-joblib":
-    df = load_from_disk(input_file)
-    return df.keys()
-  elif input_type == "pandas-pickle":
-    df = load_pickle_from_disk(input_file)
-    return df.keys()
-  # If SDF input, assume that .sdf.csv file contains labels 
-  elif input_type == "sdf":
-    label_file = input_file + ".csv"
-    print("Reading labels from %s" % label_file)
-    with open(label_file, "rb") as inp_file_obj:
-      return inp_file_obj.readline()
-  else:
-    raise ValueError("Unrecognized extension for %s" % input_file)
-
 class DataFeaturizer(object):
   """
   Handles loading/featurizing of chemical samples (datapoints).
@@ -115,7 +103,7 @@ class DataFeaturizer(object):
   dataframe object to disk as output.
   """
 
-  def __init__(self, tasks, smiles_field,
+  def __init__(self, tasks, smiles_field=None,
                id_field=None, threshold=None,
                protein_pdb_field=None, ligand_pdb_field=None,
                ligand_mol2_field=None, mol_field=None,
@@ -148,61 +136,57 @@ class DataFeaturizer(object):
     """Featurize provided file and write to specified location."""
     log("Loading raw samples now.", self.verbosity)
 
-    raw_df = load_data(input_file)
-    fields = raw_df.keys()
-    log("Loaded raw data frame from file.", self.verbosity)
-    log("About to preprocess samples.", self.verbosity)
-
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)
 
-    def process_raw_sample_helper(row, fields, input_type):
-      return self._process_raw_sample(input_type, row, fields)
-    input_type = _get_input_type(input_file)
-    process_raw_sample_helper_partial = partial(process_raw_sample_helper,
-                                                fields=fields,
-                                                input_type=input_type)
-
-
-    nb_sample = raw_df.shape[0]
-    interval_points = np.linspace(
-        0, nb_sample, np.ceil(float(nb_sample)/shard_size)+1, dtype=int)
-
-    metadata_rows = []
     # Construct partial function to write datasets.
-    write_dataframe_partial = partial(
+    write_fn = partial(
         Dataset.write_dataframe, data_dir=data_dir,
         featurizers=self.featurizers, tasks=self.tasks)
+    input_type = _get_input_type(input_file)
 
-    for j in range(len(interval_points)-1):
-      log("Sharding and standardizing into shard-%s / %s shards"
-          % (str(j+1), len(interval_points)-1), self.verbosity)
-      raw_df_shard = raw_df.iloc[range(interval_points[j], interval_points[j+1])]
-      raw_df_shard = raw_df_shard.apply(
-          process_raw_sample_helper_partial, axis=1, reduce=False)
-      
-      df = self._standardize_df(raw_df_shard) 
-    
-      field = "mol" if input_type == "sdf" else "smiles"
-      for featurizer in self.featurizers:
-        log("Currently featurizing feature_type: %s"
-            % featurizer.__class__.__name__, self.verbosity)
-        if isinstance(featurizer, UserDefinedFeaturizer):
-          self._add_user_specified_features(df, featurizer)
-        elif isinstance(featurizer, Featurizer):
-          self._featurize_mol(df, featurizer, field=field,
-                              worker_pool=worker_pool)
-        elif isinstance(featurizer, ComplexFeaturizer):
-          self._featurize_complexes(df, featurizer,
-                                    worker_pool=worker_pool)
-      basename = "shard-%d" % j
-      metadata_rows.append(write_dataframe_partial((basename, df)))
+    metadata_rows = []
+    for shard_num, raw_df_shard in enumerate(load_data(input_file, shard_size)):
+      log("Loaded shard %d of size %s from file." % (shard_num+1, str(shard_size)),
+          self.verbosity)
+      log("About to featurize shard.", self.verbosity)
 
+      def process_helper(row, fields, input_type):
+        return self._process_raw_sample(input_type, row, fields)
+      process_fn = partial(process_helper, fields=raw_df_shard.keys(),
+                           input_type=input_type)
+
+      metadata_rows.append(self._featurize_shard(
+          raw_df_shard, process_fn, write_fn, shard_num, input_type))
+
+    # TODO(rbharath): This whole bit with metadata_rows is an awkward way of
+    # creating a Dataset. Is there a more elegant solutions?
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
                       reload=reload, verbosity=self.verbosity)
-
     return dataset 
+
+  def _featurize_shard(self, raw_df_shard, process_fn, write_fn, shard_num, input_type):
+    """Featurizes a shard of an input dataframe."""
+    log("Applying processing transformation to shard.",
+        self.verbosity)
+    raw_df_shard = raw_df_shard.apply(
+        process_fn, axis=1, reduce=False)
+    log("About to standardize dataframe.")
+    df_shard = self._standardize_df(raw_df_shard) 
+  
+    field = "mol" if input_type == "sdf" else "smiles"
+    for featurizer in self.featurizers:
+      log("Currently featurizing feature_type: %s"
+          % featurizer.__class__.__name__, self.verbosity)
+      if isinstance(featurizer, UserDefinedFeaturizer):
+        self._add_user_specified_features(df_shard, featurizer)
+      elif isinstance(featurizer, Featurizer):
+        self._featurize_mol(df_shard, featurizer, field=field)
+      elif isinstance(featurizer, ComplexFeaturizer):
+        self._featurize_complexes(df_shard, featurizer)
+    basename = "shard-%d" % shard_num 
+    return write_fn((basename, df_shard))
 
   def _shard_files_exist(self, feature_dir):
     """Checks if data shard files already exist."""
@@ -239,7 +223,8 @@ class DataFeaturizer(object):
     """
     df = pd.DataFrame(ori_df[[self.id_field]])
     df.columns = ["mol_id"]
-    df["smiles"] = ori_df[[self.smiles_field]]
+    if self.smiles_field is not None:
+      df["smiles"] = ori_df[[self.smiles_field]]
     for task in self.tasks:
       df[task] = ori_df[[task]]
     if self.user_specified_features is not None:

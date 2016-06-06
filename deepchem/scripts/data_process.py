@@ -1,7 +1,6 @@
 """
 Manipulate CSV data files.
 """
-
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
@@ -9,7 +8,6 @@ from __future__ import absolute_import
 import pandas as pd
 import csv
 import argparse
-
 
 def parse_args(input_args=None):
   parser = argparse.ArgumentParser()

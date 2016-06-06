@@ -1,5 +1,5 @@
-from deepchem.utils.save import load_from_disk, save_to_disk
 import os
+from deepchem.utils.save import load_from_disk, save_to_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
@@ -10,11 +10,13 @@ print("About to load dataset form disk.")
 dataset = load_from_disk(dataset_file)
 print("Loaded dataset.")
 
-grid_featurizer = GridFeaturizer(voxel_width=16.0, feature_types="voxel_combined", voxel_feature_types=["ecfp",
-                                 "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"], ecfp_power=9, splif_power=9,
-                                 parallel=True, flatten=True)
-compound_featurizers = [CircularFingerprint(size=1024)]
-complex_featurizers = [grid_featurizer, NNScoreComplexFeaturizer()]
+grid_featurizer = GridFeaturizer(
+    voxel_width=16.0, feature_types="voxel_combined",
+    voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+    "salt_bridge"], ecfp_power=9, splif_power=9,
+    parallel=True, flatten=True)
+featurizers = [CircularFingerprint(size=1024)]
+featurizers += [grid_featurizer, NNScoreComplexFeaturizer()]
 
 #Make a directory in which to store the featurized complexes.
 base_dir = "../../../grid_nnscore_circular_features"

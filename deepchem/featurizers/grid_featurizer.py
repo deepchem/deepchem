@@ -22,26 +22,24 @@ import shutil
 import multiprocessing as mp
 
 
-'''
+"""
 http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
-'''
-
-
+"""
 def _merge_two_dicts(x, y):
-  '''Given two dicts, merge them into a new dict as a shallow copy.'''
+  """Given two dicts, merge them into a new dict as a shallow copy."""
   z = x.copy()
   z.update(y)
   return z
 
 def _compute_centroid(coordinates):
-  '''given molecule, an instance of class PDB, compute the x,y,z centroid of that molecule'''
+  """given molecule, an instance of class PDB, compute the x,y,z centroid of that molecule"""
 
   centroid = np.mean(coordinates, axis=0)
   return(centroid)
 
 
 def _generate_random__unit_vector():
-  '''generate a random unit vector on the 3-sphere
+  """generate a random unit vector on the 3-sphere
   citation:
   http://mathworld.wolfram.com/SpherePointPicking.html
 
@@ -49,7 +47,7 @@ def _generate_random__unit_vector():
   b. Choose random z \element [-1, 1]
   c. Compute output: (x,y,z) = (sqrt(1-z^2)*cos(theta), sqrt(1-z^2)*sin(theta),z)
   d. output u
-  '''
+  """
 
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
   z = np.random.uniform(low=-1.0, high=1.0)
@@ -59,7 +57,7 @@ def _generate_random__unit_vector():
 
 
 def _generate_random_rotation_matrix():
-  '''
+  """
    1. generate a random unit vector, i.e., randomly sampled from the unit 3-sphere
     a. see function _generate_random__unit_vector() for details
     2. Generate a second random unit vector thru the algorithm in (1), output v
@@ -67,13 +65,13 @@ def _generate_random_rotation_matrix():
       (intuition: we want them to be as linearly independent as possible or else the
       orthogonalized version of v will be much shorter in magnitude compared to u. I assume
       in Stack they took this from Gram-Schmidt orthogonalization?)
-    b. v' = v - (u \dot v)*u, i.e. subtract out the component of v that's in u's direction
-    c. normalize v' (this isn't in Stack but I assume it must be done)
-    3. find w = u \cross v'
-    4. u, v', and w will form the columns of a rotation matrix, R. The intuition is that
-      u, v' and w are, respectively, what the standard basis vectors e1, e2, and e3 will be
+    b. v" = v - (u \dot v)*u, i.e. subtract out the component of v that"s in u"s direction
+    c. normalize v" (this isn"t in Stack but I assume it must be done)
+    3. find w = u \cross v"
+    4. u, v", and w will form the columns of a rotation matrix, R. The intuition is that
+      u, v" and w are, respectively, what the standard basis vectors e1, e2, and e3 will be
       mapped to under the transformation.
-  '''
+  """
 
   u = _generate_random__unit_vector()
   v = _generate_random__unit_vector()
@@ -90,7 +88,7 @@ def _generate_random_rotation_matrix():
 
 
 def _rotate_molecules(mol_coordinates_list):
-  '''
+  """
   Pseudocode:
   1. Generate random rotation matrix. This matrix applies a random transformation to any
     3-vector such that, were the random transformation repeatedly applied, it would randomly
@@ -98,7 +96,7 @@ def _rotate_molecules(mol_coordinates_list):
     cf. _generate_random_rotation_matrix() for details
   2. Apply R to all atomic coordinatse.
   3. Return rotated molecule
-  '''
+  """
   R = _generate_random_rotation_matrix()
   rotated_coordinates_list = []
 
@@ -112,12 +110,12 @@ def _rotate_molecules(mol_coordinates_list):
 
 
 def _reflect_molecule(mol_coordinates_list):
-  '''
+  """
   Pseudocode:
   1. Generate unit vector that is randomly distributed around 3-sphere
   2. For each atom, project its coordinates onto the random unit vector from (1),
     and subtract twice the projection from the original coordinates to obtain its reflection
-  '''
+  """
 
   molecule = deepcopy(mol)
   a = _generate_random__unit_vector()
@@ -132,12 +130,12 @@ def _reflect_molecule(mol_coordinates_list):
 
 
 def _compute_pairwise_distances(protein_xyz, ligand_xyz):
-  '''
+  """
   Takes an input m x 3 and n x 3 np arrays of 3d coords of protein and ligand,
   respectively, and outputs an m x n np array of pairwise distances in Angstroms
-  between protein and ligand atoms. entry (i,j) is dist between the i'th protein
-  atom and the j'th ligand atom
-  '''
+  between protein and ligand atoms. entry (i,j) is dist between the i"th protein
+  atom and the j"th ligand atom
+  """
 
   pairwise_distances = np.zeros(
     (np.shape(protein_xyz)[0], np.shape(ligand_xyz)[0]))
@@ -148,9 +146,9 @@ def _compute_pairwise_distances(protein_xyz, ligand_xyz):
 
   return(pairwise_distances)
 
-'''following two functions adapted from:
+"""following two functions adapted from:
 http://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
-'''
+"""
 
 
 def _unit_vector(vector):
@@ -159,7 +157,7 @@ def _unit_vector(vector):
 
 
 def _angle_between(vector_i, vector_j):
-  """ Returns the angle in radians between vectors 'vector_i' and 'vector_j'::
+  """ Returns the angle in radians between vectors "vector_i" and "vector_j"::
 
       >>> _angle_between((1, 0, 0), (0, 1, 0))
       1.5707963267948966
@@ -180,10 +178,10 @@ def _angle_between(vector_i, vector_j):
 
 
 def _bfs(mol, startatom, D):
-  '''
+  """
   given openbabel molecule and a starting atom of type OBAtom,
   finds all bonds out to degree D via a breath-first search
-  '''
+  """
 
   visited_atoms = set()
   atoms_to_add = []
@@ -206,11 +204,11 @@ def _bfs(mol, startatom, D):
 
 
 def _construct_fragment_from_bonds(bonds):
-  '''
+  """
   takes as input a list of bonds of type OBBond and constructs a new
   openbabel molecule from those bonds and the atoms that constitute
   the start and end of those bonds.
-  '''
+  """
 
   fragment = ob.OBMol()
   added_atoms = []
@@ -243,14 +241,14 @@ def _construct_fragment_from_bonds(bonds):
 
 
 def _compute_ecfp(system_ob, start_atom, max_degree=2):
-  '''
+  """
   Given an openbabel molecule and a starting atom (OBAtom object),
   compute the ECFP[max_degree]-like representation for that atom.
   Returns (for now) a SMILES string representing the resulting fragment.
 
   TODO(enf): Optimize this! Try InChi key and other approaches
   to improving this representation.
-  '''
+  """
 
   fragment = ob.OBMol()
 
@@ -265,10 +263,10 @@ def _hash_sybyl(sybyl, sybyl_types):
   return(sybyl_types.index(sybyl))
 
 def _hash_ecfp(ecfp, power):
-  '''
+  """
   Returns an int of size 2^power representing that
   ECFP fragment. Input must be a string.
-  '''
+  """
 
   md5 = hashlib.md5()
   md5.update(ecfp)
@@ -278,10 +276,10 @@ def _hash_ecfp(ecfp, power):
 
 
 def _hash_ecfp_pair(ecfp_pair, power):
-  '''
+  """
   Returns an int of size 2^power representing that
   ECFP pair. Input must be a tuple of strings.
-  '''
+  """
 
   ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
   md5 = hashlib.md5()
@@ -292,12 +290,12 @@ def _hash_ecfp_pair(ecfp_pair, power):
 
 
 def _compute_all_ecfp(system_ob, indices=None, degree=2):
-  '''
+  """
   For each atom:
     Obtain molecular fragment for all atoms emanating outward to given degree.
     For each fragment, compute SMILES string (for now) and hash to an int.
     Return a dictionary mapping atom index to hashed SMILES.
-  '''
+  """
 
   ecfp_dict = {}
 
@@ -311,12 +309,12 @@ def _compute_all_ecfp(system_ob, indices=None, degree=2):
 
 
 def _compute_ecfp_features(system_ob, ecfp_degree, ecfp_power):
-  '''
+  """
   Takes as input an openbabel molecule, ECFP radius, and number of bits to store
   ECFP features (2^ecfp_power will be length of ECFP array);
   Returns an array of size 2^ecfp_power where array at index i has a 1 if that ECFP fragment
   is found in the molecule and array at index j has a 0 if ECFP fragment not in molecule.
-  '''
+  """
 
   ecfp_dict = _compute_all_ecfp(system_ob, degree=ecfp_degree)
   ecfp_vec = [_hash_ecfp(ecfp, ecfp_power)
@@ -328,9 +326,9 @@ def _compute_ecfp_features(system_ob, ecfp_degree, ecfp_power):
 
 def _featurize_binding_pocket_ecfp(protein_xyz, protein, ligand_xyz, ligand,
                   pairwise_distances=None, cutoff=4.5, ecfp_degree=2):
-  '''
+  """
   Computes ECFP dicts for both the ligand and the binding pocket region of the protein.
-  '''
+  """
 
   features_dict = {}
 
@@ -373,11 +371,11 @@ def _featurize_binding_pocket_sybyl(protein_xyz, protein, ligand_xyz, ligand,
 
 def _compute_splif_features_in_range(protein, ligand, pairwise_distances, contact_bin,
                   ecfp_degree=2):
-  '''
+  """
   Find all protein atoms that are > contact_bin[0] and < contact_bin[1] away from ligand atoms.
   Then, finds the ECFP fingerprints for the contacting atoms.
   Returns a dictionary mapping (protein_index_i, ligand_index_j) --> (protein_ecfp_i, ligand_ecfp_j)
-  '''
+  """
   contacts = np.nonzero(
     (pairwise_distances > contact_bin[0]) & (
       pairwise_distances < contact_bin[1]))
@@ -397,11 +395,11 @@ def _compute_splif_features_in_range(protein, ligand, pairwise_distances, contac
 
 def _featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins, pairwise_distances,
           ecfp_degree):
-  '''
+  """
   For each contact range (i.e. 1 A to 2 A, 2 A to 3 A, etc.) compute a dictionary mapping
   (protein_index_i, ligand_index_j) tuples --> (protein_ecfp_i, ligand_ecfp_j) tuples.
   return a list of such splif dictionaries.
-  '''
+  """
 
   if pairwise_distances is None:
     pairwise_distances = _compute_pairwise_distances(
@@ -478,7 +476,7 @@ def _update_feature_dict(feature_dict, idxs=None, indices=None):
 def _compute_pi_stack(protein_xyz, protein, ligand_xyz, ligand,
                     pairwise_distances=None, dist_cutoff=4.4, 
                     angle_cutoff=30.):
-  '''
+  """
   Pseudocode: 
 
   for each ring in ligand:
@@ -493,7 +491,7 @@ def _compute_pi_stack(protein_xyz, protein, ligand_xyz, ligand,
           if it counts as pi-T:
             for each atom in ligand and in protein:
               add to list of atom indices
-  '''
+  """
   protein_pi_parallel = {}
   protein_pi_t = {}
   ligand_pi_parallel = {}
@@ -553,7 +551,7 @@ def _compute_cation_pi(protein, ligand, protein_cation_pi, ligand_cation_pi):
       protein_ring_center = _compute_ring_center(protein, protein_ring)
       protein_ring_normal = _compute_ring_normal(protein, protein_ring)
       for atom in ob.OBMolAtomIter(ligand):
-        if np.abs(atom.GetFormalCharge() - 1.0) < 0.01 or '+' in atom.GetType():
+        if np.abs(atom.GetFormalCharge() - 1.0) < 0.01 or "+" in atom.GetType():
           cation_position = np.array([atom.x(), atom.y(), atom.z()])
           if _is_cation_pi(cation_position, protein_ring_center, protein_ring_normal):
             protein_cation_pi = _update_feature_dict(protein_cation_pi, 
@@ -573,9 +571,9 @@ def _compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
   return (protein_cation_pi, ligand_cation_pi)
 
 def _get_formal_charge(atom):
-  if '+' in atom.GetType() or np.abs(1.0-atom.GetFormalCharge()) < 0.01:
+  if "+" in atom.GetType() or np.abs(1.0-atom.GetFormalCharge()) < 0.01:
     return 1
-  elif '-' in atom.GetType() or np.abs(-1.0-atom.GetFormalCharge()) < 0.01:
+  elif "-" in atom.GetType() or np.abs(-1.0-atom.GetFormalCharge()) < 0.01:
     return -1
   else:
     return atom.GetFormalCharge()
@@ -605,10 +603,10 @@ def _is_angle_within_cutoff(vector_i, vector_j, hbond_angle_cutoff):
 
 def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
            ligand, contact, hbond_angle_cutoff):
-  '''
+  """
   Determine if a pair of atoms (contact = tuple of protein_atom_index, ligand_atom_index)
   between protein and ligand represents a hydrogen bond. Returns a boolean result.
-  '''
+  """
 
   protein_atom_index = contact[0]
   ligand_atom_index = contact[1]
@@ -638,10 +636,10 @@ def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
 def _compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                             pairwise_distances, hbond_dist_bin, 
                             hbond_angle_cutoff, ecfp_degree):
-  '''
+  """
   Find all pairs of (protein_index_i, ligand_index_j) that hydrogen bond given
   a distance bin and an angle cutoff.
-  '''
+  """
 
   contacts = np.nonzero(
     (pairwise_distances > hbond_dist_bin[0]) & (
@@ -662,10 +660,10 @@ def _compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
 def _compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand, 
                            pairwise_distances, hbond_dist_bins, 
                            hbond_angle_cutoffs, ecfp_degree):
-  '''
+  """
   Returns a list of sublists. Each sublist is a series of tuples of (protein_index_i, ligand_index_j)
   that represent a hydrogen bond. Each sublist represents a different type of hydrogen bond.
-  '''
+  """
 
   hbond_contacts = []
   for i, hbond_dist_bin in enumerate(hbond_dist_bins):
@@ -678,9 +676,9 @@ def _compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
 
 
 def _convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
-  '''
+  """
   Converts an atom to an i,j,k grid index.
-  '''
+  """
   coordinates = molecule_xyz[atom_index, :]
   indices = np.floor(np.abs(molecule_xyz[atom_index, :] +
                             np.array([box_width, box_width, box_width]) / 2.0) 
@@ -690,9 +688,9 @@ def _convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
 
 def _convert_atom_pair_to_voxel(
     molecule_xyz_tuple, atom_index_pair, box_width, voxel_width):
-  '''
+  """
   Converts a pair of atoms to a list of i,j,k tuples.
-  '''
+  """
   indices_list = []
   indices_list.append(_convert_atom_to_voxel(molecule_xyz_tuple[0],
                         atom_index_pair[0], box_width, voxel_width)[0])
@@ -701,10 +699,10 @@ def _convert_atom_pair_to_voxel(
   return(indices_list)
 
 def _merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
-  '''
+  """
   Takes as input protein and ligand objects of class PDB and adds ligand atoms to the protein,
   and returns the new instance of class PDB called system that contains both sets of atoms.
-  '''
+  """
 
   system_xyz = np.array(np.vstack(np.vstack((protein_xyz, ligand_xyz))))
   system_ob = ob.OBMol(protein_ob)
@@ -719,9 +717,9 @@ def _compute_charge_dictionary(molecule):
   return charge_dictionary
 
 def _subtract_centroid(xyz, centroid):
-  '''
+  """
   subtracts the centroid, a numpy array of dim 3, from all coordinates of all atoms in the molecule
-  '''
+  """
 
   xyz -= np.transpose(centroid)
   return(xyz)
@@ -805,21 +803,28 @@ class GridFeaturizer(ComplexFeaturizer):
     return features
 
   def _transform(self, protein_pdb, ligand_pdb):
-    '''Takes as input files (strings) for pdb of the protein, pdb of the ligand, and a directory
+    """Takes as input files (strings) for pdb of the protein, pdb of the ligand, and a directory
     to save intermediate files.
 
-    This function then computes the centroid of the ligand; decrements this centroid from the atomic coordinates of protein and
-    ligand atoms, and then merges the translated protein and ligand. This combined system/complex is then saved.
+    This function then computes the centroid of the ligand; decrements this
+    centroid from the atomic coordinates of protein and ligand atoms, and then
+    merges the translated protein and ligand. This combined system/complex is then
+    saved.
 
     This function then computes a featurization with scheme specified by the user.
-    '''
+    """
     a = time.time()
     protein_name = str(protein_pdb).split(
       "/")[len(str(protein_pdb).split("/")) - 2]
 
+    #if not self.ligand_only:
+    #  protein_xyz, protein_ob = self._load_molecule(protein_pdb, calc_charges=True)
+    #ligand_xyz, ligand_ob = self._load_molecule(ligand_pdb, calc_charges=True)
+    #################################################### DEBUG
     if not self.ligand_only:
-      protein_xyz, protein_ob = self._load_molecule(protein_pdb, calc_charges=True)
-    ligand_xyz, ligand_ob = self._load_molecule(ligand_pdb, calc_charges=True)
+      protein_xyz, protein_ob = self._load_molecule(protein_pdb, calc_charges=False)
+    ligand_xyz, ligand_ob = self._load_molecule(ligand_pdb, calc_charges=False)
+    #################################################### DEBUG
 
 
 
@@ -1035,10 +1040,10 @@ class GridFeaturizer(ComplexFeaturizer):
     return feature_vector
 
   def _get_xyz_from_ob(self, ob_mol):
-    '''
+    """
     returns an m x 3 np array of 3d coords
     of given openbabel molecule
-    '''
+    """
 
     xyz = np.zeros((ob_mol.NumAtoms(), 3))
     for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
@@ -1048,17 +1053,16 @@ class GridFeaturizer(ComplexFeaturizer):
     return(xyz)
 
   def _load_molecule(self, molecule_file, remove_hydrogens=True, calc_charges=False):
-    '''
+    """
     given molecule_file, returns a tuple of xyz coords of molecule
     and an openbabel object representing that molecule
-    '''
+    """
 
     if ".mol2" in molecule_file:
       obConversion = ob.OBConversion()
       obConversion.SetInAndOutFormats(str("mol2"), str("mol2"))
       ob_mol = ob.OBMol()
       obConversion.ReadFile(ob_mol, molecule_file)
-
     else:
       obConversion = ob.OBConversion()
       obConversion.SetInAndOutFormats(str("pdb"), str("pdb"))
@@ -1067,6 +1071,14 @@ class GridFeaturizer(ComplexFeaturizer):
 
     if calc_charges:
       gasteiger = ob.OBChargeModel.FindType(str("gasteiger"))
+      ###################################### DEBUG
+      print("molecule_file")
+      print(molecule_file)
+      print("ob_mol is None")
+      print(ob_mol is None)
+      print("gasteiger is None")
+      print(gasteiger is None)
+      ###################################### DEBUG
       gasteiger.ComputeCharges(ob_mol)
       ob_mol.UnsetImplicitValencePerceived()
       ob_mol.CorrectForPH(7.4)
@@ -1079,9 +1091,10 @@ class GridFeaturizer(ComplexFeaturizer):
     return xyz, ob_mol
 
   def _generate_box(self, mol):
-    '''
-    generate_box takes as input a molecule of class PDB and removes all atoms outside of the given box dims
-    '''
+    """
+    Generate_box takes as input a molecule of class PDB and removes all atoms
+    outside of the given box dims
+    """
 
     molecule = deepcopy(mol)
     atoms_to_keep = []
