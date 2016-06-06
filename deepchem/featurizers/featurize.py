@@ -95,28 +95,6 @@ def _get_input_type(input_file):
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
-#def _get_fields(input_file):
-#  """Get the names of fields and field_types for input data."""
-#  # If CSV input, assume that first row contains labels
-#  input_type = _get_input_type(input_file)
-#  if input_type == "csv":
-#    with open(input_file, "rb") as inp_file_obj:
-#      return csv.reader(inp_file_obj).next()
-#  elif input_type == "pandas-joblib":
-#    df = load_from_disk(input_file)
-#    return df.keys()
-#  elif input_type == "pandas-pickle":
-#    df = load_pickle_from_disk(input_file)
-#    return df.keys()
-#  # If SDF input, assume that .sdf.csv file contains labels 
-#  elif input_type == "sdf":
-#    label_file = input_file + ".csv"
-#    print("Reading labels from %s" % label_file)
-#    with open(label_file, "rb") as inp_file_obj:
-#      return inp_file_obj.readline()
-#  else:
-#    raise ValueError("Unrecognized extension for %s" % input_file)
-
 class DataFeaturizer(object):
   """
   Handles loading/featurizing of chemical samples (datapoints).

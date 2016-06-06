@@ -116,12 +116,6 @@ class Dataset(object):
     out_ids = "%s-ids.joblib" % basename
 
     if X is not None:
-      ############################################## DEBUG
-      print("X.shape")
-      print(X.shape)
-      print("os.path.join(data_dir, out_X)")
-      print(os.path.join(data_dir, out_X))
-      ############################################## DEBUG
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
       X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)

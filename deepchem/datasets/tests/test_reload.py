@@ -72,14 +72,6 @@ class TestReload(TestAPI):
     # TODO(rbharath): Transformers don't play nice with reload! Namely,
     # reloading will cause the transform to be reapplied. This is undesirable in
     # almost all cases. Need to understand a method to fix this.
-    ##################################### DEBUG
-    
-    print("_run_muv_experiment()")
-    print("train_dataset.get_labels()")
-    print(train_dataset.get_labels())
-    print("train_dataset.get_weights()")
-    print(train_dataset.get_weights())
-    ##################################### DEBUG
     transformers = [
         BalancingTransformer(transform_w=True, dataset=train_dataset)]
     print("Transforming datasets")
