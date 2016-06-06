@@ -241,6 +241,21 @@ class Dataset(object):
     raw_data = (ids, X, y, w)
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
 
+  @staticmethod
+  def merge(merge_dir, datasets):
+    """Merges provided datasets into a merged dataset."""
+    Xs, ys, ws, all_ids = [], [], [], []
+    for dataset in datasets:
+      X, y, w, ids = dataset.to_numpy()
+      Xs.append(X)
+      ys.append(y)
+      ws.append(w)
+      all_ids.append(ids)
+    tasks = dataset.get_task_names()
+    X, y, w, ids = (
+        np.vstack(Xs), np.vstack(ys), np.vstack(ws), np.concatenate(all_ids))
+    return Dataset.from_numpy(merge_dir, X, y, w, ids, tasks)
+
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
     indices = np.array(indices).astype(int)
