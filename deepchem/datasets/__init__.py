@@ -8,6 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
+from random import shuffle
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
@@ -238,17 +239,95 @@ class Dataset(object):
   @staticmethod
   def merge(merge_dir, datasets):
     """Merges provided datasets into a merged dataset."""
+    if not os.path.exists(merge_dir):
+      os.makedirs(merge_dir)
     Xs, ys, ws, all_ids = [], [], [], []
-    for dataset in datasets:
+    metadata_rows = []
+    for ind, dataset in enumerate(datasets):
       X, y, w, ids = dataset.to_numpy()
-      Xs.append(X)
-      ys.append(y)
-      ws.append(w)
-      all_ids.append(ids)
-    tasks = dataset.get_task_names()
-    X, y, w, ids = (
-        np.vstack(Xs), np.vstack(ys), np.vstack(ws), np.concatenate(all_ids))
-    return Dataset.from_numpy(merge_dir, X, y, w, ids, tasks)
+      basename = "dataset-%d" % ind
+      tasks = dataset.get_task_names()
+      metadata_rows.append(
+          Dataset.write_data_to_disk(merge_dir, basename, tasks, X, y, w, ids))
+    return Dataset(data_dir=merge_dir,
+                   metadata_rows=metadata_rows,
+                   verbosity=dataset.verbosity)
+
+  def subset(self, subset_dir, shard_nums):
+    """Creates a subset of the original dataset on disk."""
+    if not os.path.exists(subset_dir):
+      os.makedirs(subset_dir)
+    tasks = self.get_task_names()
+    metadata_rows = []
+    for shard_num, row in self.metadata_df.iterrows():
+      if shard_num not in shard_nums:
+        continue
+      X, y, w, ids = self.get_shard(shard_num)
+      basename = "dataset-%d" % shard_num
+      metadata_rows.append(Dataset.write_data_to_disk(
+          subset_dir, basename, tasks, X, y, w, ids))
+    return Dataset(data_dir=subset_dir,
+                   metadata_rows=metadata_rows,
+                   verbosity=self.verbosity)
+    
+
+  def shuffle(self, iterations=1):
+    """Shuffles this dataset on disk to have random order."""
+    #np.random.seed(9452)
+    for _ in range(iterations):
+      metadata_rows = []
+      tasks = self.get_task_names()
+      # Shuffle the arrays corresponding to each row in metadata_df
+      n_rows = len(self.metadata_df.index)
+      len_data = len(self)
+      print("ABOUT TO SHUFFLE DATA ONCE")
+      for i in range(n_rows):
+        # Select random row to swap with
+        j = np.random.randint(n_rows)
+        row_i, row_j = self.metadata_df.iloc[i], self.metadata_df.iloc[j]
+        metadata_rows.append(row_i)
+        # Useful to avoid edge cases, but perhaps there's a better solution
+        if i == j:
+          continue
+        basename_i, basename_j = row_i["basename"], row_j["basename"]
+        X_i, y_i, w_i, ids_i = self.get_shard(i)
+        X_j, y_j, w_j, ids_j = self.get_shard(j)
+        n_i, n_j = X_i.shape[0], X_j.shape[0]
+
+        # Join two shards and shuffle them at random.
+        X = np.vstack([X_i, X_j])
+        y = np.vstack([y_i, y_j])
+        w = np.vstack([w_i, w_j])
+        ids = np.concatenate([ids_i, ids_j])
+        permutation = np.random.permutation(n_i + n_j)
+        X, y, w, ids = (X[permutation], y[permutation],
+                        w[permutation], ids[permutation])
+
+        X_i, y_i, w_i, ids_i = X[:n_i], y[:n_i], w[:n_i], ids[:n_i]
+        X_j, y_j, w_j, ids_j = X[n_i:], y[n_i:], w[n_i:], ids[n_i:]
+
+        Dataset.write_data_to_disk(
+            self.data_dir, basename_i, tasks, X_i, y_i, w_i, ids_i)
+        Dataset.write_data_to_disk(
+            self.data_dir, basename_j, tasks, X_j, y_j, w_j, ids_j)
+        assert len(self) == len_data
+      # Now shuffle order of rows in metadata_df
+      shuffle(metadata_rows)
+      self.metadata_df = Dataset.construct_metadata(metadata_rows)
+      self.save_to_disk()
+
+  def get_shard(self, i):
+    """Retrieves data for the i-th shard from disk."""
+    row = self.metadata_df.iloc[i]
+    X = np.array(load_from_disk(
+        os.path.join(self.data_dir, row['X-transformed'])))
+    y = np.array(load_from_disk(
+        os.path.join(self.data_dir, row['y-transformed'])))
+    w = np.array(load_from_disk(
+        os.path.join(self.data_dir, row['w-transformed'])))
+    ids = np.array(load_from_disk(
+        os.path.join(self.data_dir, row['ids'])), dtype=object)
+    return (X, y, w, ids)
 
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
@@ -374,7 +453,6 @@ class Dataset(object):
     y_means = np.sum(y_sums, axis=0)/y_n
     y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
     return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
-
   
   def update_moments(self):
     """Re-compute statistics of this dataset during transformation"""

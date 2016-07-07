@@ -38,7 +38,7 @@ class TestTransformerAPI(TestDatasetAPI):
     # Check w is unchanged since this is a y transformer
     np.testing.assert_allclose(w, w_t)
     # Check y is now a logarithmic version of itself
-    np.testing.assert_allclose(y_t, np.log(y))
+    np.testing.assert_allclose(y_t, np.log(y+1))
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
@@ -60,7 +60,7 @@ class TestTransformerAPI(TestDatasetAPI):
     # Check w is unchanged since this is a y transformer
     np.testing.assert_allclose(w, w_t)
     # Check y is now a logarithmic version of itself
-    np.testing.assert_allclose(X_t, np.log(X))
+    np.testing.assert_allclose(X_t, np.log(X+1))
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(X_t), X)

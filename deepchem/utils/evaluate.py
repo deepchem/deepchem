@@ -70,6 +70,13 @@ class Evaluator(object):
     """
     y = self.dataset.get_labels()
     y = undo_transforms(y, self.transformers)
+    ############################################ DEBUG
+    #print("self.dataset.get_labels().shape")
+    #print(self.dataset.get_labels().shape)
+    #print("Undoing transforms.")
+    #print("y.shape")
+    #print(y.shape)
+    ############################################ DEBUG
     w = self.dataset.get_weights()
 
     if not len(metrics):
@@ -91,6 +98,13 @@ class Evaluator(object):
     # Compute multitask metrics
     for metric in metrics:
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
+      ##################################################### DEBUG
+      #print("compute_model_performance()")
+      #print("y[w != 0], y_pred[w != 0]")
+      #print(y[w != 0], y_pred[w != 0])
+      #print("multitask_scores[metric.name]")
+      #print(multitask_scores[metric.name])
+      ##################################################### DEBUG
     
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbosity)
