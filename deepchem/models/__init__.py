@@ -138,10 +138,6 @@ class Model(object):
     y_preds = []
     batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
-      ################################################ DEBUG
-      #print("y_batch.shape, self.predict_on_batch(X_batch).shape")
-      #print(y_batch.shape, self.predict_on_batch(X_batch).shape)
-      ################################################ DEBUG
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)

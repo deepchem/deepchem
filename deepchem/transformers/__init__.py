@@ -104,18 +104,9 @@ class NormalizationTransformer(Transformer):
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
-    ############################################### DEBUG
     # Control for pathological case with no variance.
     y_stds[y_stds == 0] = 1.
-    ############################################### DEBUG
     self.y_stds = y_stds
-    ########################################################## DEBUG
-    #print("NormalizationTransformer()")
-    #print("self.y_means, self.y_stds")
-    #print(self.y_means, self.y_stds)
-    #print("np.std(dataset.get_labels())")
-    #print(np.std(dataset.get_labels()))
-    ########################################################## DEBUG
 
   def transform(self, dataset, parallel=False):
     super(NormalizationTransformer, self).transform(
@@ -186,16 +177,12 @@ class LogTransformer(Transformer):
     row = df.iloc[i]
     if self.transform_X:
       X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      ########################################################## DEBUG 
       X = np.log(X+1)
-      ########################################################## DEBUG 
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
     if self.transform_y:
       y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-      ########################################################## DEBUG 
       y = np.log(y+1)
-      ########################################################## DEBUG 
       save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
 
   def untransform(self, z):

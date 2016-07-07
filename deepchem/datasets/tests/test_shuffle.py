@@ -47,29 +47,10 @@ class TestShuffle(TestAPI):
     dataset.shuffle(iterations=5)
     X_new, y_new, w_new, new_ids = dataset.to_numpy()
     
-    #print("X_orig.shape, y_orig.shape, w_orig.shape, orig_ids.shape")
-    #print(X_orig.shape, y_orig.shape, w_orig.shape, orig_ids.shape)
-    #print("X_new.shape, y_new.shape, w_new.shape, new_ids.shape")
-    #print(X_new.shape, y_new.shape, w_new.shape, new_ids.shape)
-    #print("len(dataset), orig_len")
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
     assert not np.array_equal(orig_ids, new_ids)
     # But all the same entries should still be present
-    ################################################## DEBUG
-    #print("orig_ids")
-    #print(orig_ids)
-    #print("len(orig_ids)")
-    #print(len(orig_ids))
-    #print("new_ids")
-    #print(new_ids)
-    #print("len(new_ids)")
-    #print(len(new_ids))
-    #print("sorted(orig_ids)")
-    #print(sorted(orig_ids))
-    #print("sorted(new_ids)")
-    #print(sorted(new_ids))
-    ################################################## DEBUG
     assert sorted(orig_ids) == sorted(new_ids)
     # All the data should have same shape
     assert X_orig.shape == X_new.shape
