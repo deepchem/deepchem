@@ -60,7 +60,6 @@ from __future__ import unicode_literals
 import time
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.platform import logging
 
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import TensorflowClassifier
