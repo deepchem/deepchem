@@ -65,6 +65,28 @@ def load_twofiles_from_disk(filename1, filename2):
       raise ValueError("Unrecognized filetype for %s" % filename)
   combined_df = dataframeList[0].append(dataframeList[1])
   return combined_df
+ 
+def load_multfiles_from_disk(filenameList):
+  """Load a dataset from multiple files. Each file MUST have same column headers"""
+  dataframeList = []
+  for name in filenameList:
+    placeholderName = name
+    if os.path.splitext(name)[1] == ".gz":
+      name = os.path.splitext(name)[0]
+    if os.path.splitext(name)[1] == ".csv":
+      # First line of user-specified CSV *must* be header.
+      df = pd.read_csv(placeholderName, header=0)
+      df = df.replace(np.nan, str(""), regex=True)
+      dataframeList.append(df)
+    else:
+      raise ValueError("Unrecognized filetype for %s" % filename)
+  
+  #combine dataframes
+  combined_df = dataframeList[0]
+  for i in range(0, len(dataframeList) - 1):
+    combined_df = combined_df.append(dataframeList[i+1])
+  combined_df = combined_df.reset_index(drop=True)  
+  return combined_df
 
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""
@@ -75,3 +97,4 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
+

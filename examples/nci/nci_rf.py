@@ -25,7 +25,6 @@ np.random.seed(123)
 reload = False
 verbosity = "high"
 
-#base_data_dir = "/scratch/users/rbharath/muv"
 base_data_dir = "/home/apappu/deepchem/examples/nci/dataset"
 
 nci_tasks, dataset, transformers = load_nci(
@@ -83,7 +82,6 @@ if os.path.exists(model_dir):
 os.makedirs(model_dir)
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      #model_instance=LogisticRegression(class_weight="balanced"),
                       model_instance=RandomForestClassifier(
                           class_weight="balanced",
                           n_estimators=500),
