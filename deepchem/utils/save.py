@@ -77,7 +77,7 @@ def load_sdf_files(input_files):
     dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
   return dataframes
 
-def load_csv_file(filenames, shard_size=None):
+def load_csv_files(filenames, shard_size=None):
   """Load data as pandas dataframe."""
   # First line of user-specified CSV *must* be header.
   for filename in filenames:

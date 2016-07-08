@@ -20,7 +20,6 @@ from deepchem.transformers import BalancingTransformer
 def load_nci(base_dir, reload=True):
   """Load NCI datasets. Does not do train/test split"""
   # Set some global variables up top
-  #reload = True
   verbosity = "high"
   model = "logistic"
   regen = False
@@ -29,7 +28,7 @@ def load_nci(base_dir, reload=True):
   # The base_dir holds the results of all analysis
   if not reload:
     if os.path.exists(base_dir):
-      print("deleting dir in datasets.py")
+      print("Deleting dir in nci_datasets.py")
       print(base_dir)
       shutil.rmtree(base_dir)
   if not os.path.exists(base_dir):
@@ -63,14 +62,15 @@ def load_nci(base_dir, reload=True):
                     'OVCAR-3', 'OVCAR-4', 'OVCAR-5', 'OVCAR-8', 'NCI/ADR-RES',
                     'SK-OV-3', '786-0', 'A498', 'ACHN', 'CAKI-1', 'RXF 393',
                     'SN12C', 'TK-10', 'UO-31', 'PC-3', 'DU-145', 'MCF7',
-                    'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T', 'MDA-N', 'BT-549'])
+                    'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T', 'BT-549',
+                    'T-47D'])
 
   featurizer = DataFeaturizer(tasks=all_nci_tasks,
                               smiles_field="smiles",
                               featurizers=featurizers,
                               verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    dataset = featurizer.featurize(dataset_paths, data_dir)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)

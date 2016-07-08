@@ -80,6 +80,10 @@ class DataFeaturizer(object):
     """Featurize provided files and write to specified location."""
     log("Loading raw samples now.", self.verbosity)
 
+    # Allow users to specify a single file for featurization
+    if not isinstance(input_files, list):
+      input_files = [input_files]
+
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)
 
