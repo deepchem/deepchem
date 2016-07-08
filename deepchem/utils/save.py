@@ -42,6 +42,28 @@ def load_from_disk(filename):
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
+def load_sharded_csv(filenames):
+  """Load a dataset from multiple files. Each file MUST have same column headers"""
+  dataframes = []
+  for name in filenames:
+    placeholder_name = name
+    if os.path.splitext(name)[1] == ".gz":
+      name = os.path.splitext(name)[0]
+    if os.path.splitext(name)[1] == ".csv":
+      # First line of user-specified CSV *must* be header.
+      df = pd.read_csv(placeholder_name, header=0)
+      df = df.replace(np.nan, str(""), regex=True)
+      dataframes.append(df)
+    else:
+      raise ValueError("Unrecognized filetype for %s" % filename)
+  
+  #combine dataframes
+  combined_df = dataframes[0]
+  for i in range(0, len(dataframes) - 1):
+    combined_df = combined_df.append(dataframes[i+1])
+  combined_df = combined_df.reset_index(drop=True)  
+  return combined_df
+
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""
   if ".gz" in filename:
@@ -51,3 +73,4 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
+
