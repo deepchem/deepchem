@@ -9,9 +9,8 @@ install:
 - export PATH="$HOME/anaconda/bin:$PATH"
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
-- conda config --add channels http://conda.binstar.org/omnia
 - conda update -q conda
-- conda info -a
+- conda config --add channels http://conda.binstar.org/omnia
 - conda install pandas
 - conda install -c omnia rdkit
 - conda install -c omnia boost=1.59.0

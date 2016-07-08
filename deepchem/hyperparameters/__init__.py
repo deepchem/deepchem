@@ -32,6 +32,8 @@ class HyperparamOpt(object):
     
     Each key to hyperparams_dict is a model_param. The values should be a list
     of potential values for that hyperparam. 
+
+    TODO(rbharath): This shouldn't be stored in a temporary directory.
     """ 
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values() 

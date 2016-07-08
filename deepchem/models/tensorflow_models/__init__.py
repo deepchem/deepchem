@@ -180,9 +180,7 @@ class TensorflowGraph(object):
       else:
         self.updates = tf.no_op(name='updates')
 
-  def fit(self,
-          dataset,
-          max_checkpoints_to_keep=5):
+  def fit(self, dataset, shuffle=True, max_checkpoints_to_keep=5):
     """Fit the model.
 
     Args:
@@ -207,6 +205,10 @@ class TensorflowGraph(object):
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
+          avg_loss, num_batches = 0., 0
+          if shuffle:
+            log("About to shuffle dataset before epoch start.", self.verbosity)
+            dataset.shuffle()
           for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
@@ -217,10 +219,13 @@ class TensorflowGraph(object):
                 feed_dict=feed_dict)
             output = fetched_values[:len(self.output)]
             _, loss = fetched_values[-3], fetched_values[-2]
+            avg_loss += loss
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
+            num_batches += 1
           saver.save(sess, self._save_path, global_step=epoch)
-          log('Ending epoch %d: loss %g' % (epoch, loss), self.verbosity)
+          avg_loss = float(avg_loss)/num_batches
+          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch+1)
 
@@ -553,11 +558,11 @@ class TensorflowModel(Model):
     self.num_tasks = len(self.task_types)
     self.fit_transformers = None
 
-  def fit(self, dataset):
+  def fit(self, dataset, shuffle=True):
     """
     Fits TensorflowGraph to data.
     """
-    self.train_model.fit(dataset)
+    self.train_model.fit(dataset, shuffle=shuffle)
 
   def predict_on_batch(self, X):
     """

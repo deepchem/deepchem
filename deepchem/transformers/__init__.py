@@ -104,6 +104,8 @@ class NormalizationTransformer(Transformer):
     self.X_means = X_means 
     self.X_stds = X_stds
     self.y_means = y_means 
+    # Control for pathological case with no variance.
+    y_stds[y_stds == 0] = 1.
     self.y_stds = y_stds
 
   def transform(self, dataset, parallel=False):
@@ -175,17 +177,17 @@ class LogTransformer(Transformer):
     row = df.iloc[i]
     if self.transform_X:
       X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      X = np.log(X)
+      X = np.log(X+1)
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
     if self.transform_y:
       y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-      y = np.log(y)
+      y = np.log(y+1)
       save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
 
   def untransform(self, z):
     """Undoes the logarithmic transformation."""
-    return np.exp(z)
+    return np.exp(z)-1
 
 class BalancingTransformer(Transformer):
   """Balance positive and negative examples for weights."""

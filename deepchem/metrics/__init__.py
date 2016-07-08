@@ -132,7 +132,7 @@ class Metric(object):
     assert mode in ["classification", "regression"]
     self.mode = mode
 
-  def compute_metric(self, y_true, y_pred, w=None, n_classes=2):
+  def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True):
     """Compute a performance metric for each task.
 
     Args:
@@ -173,6 +173,9 @@ class Metric(object):
     if not self.is_multitask:
       return computed_metrics
     else:
+      if filter_nans:
+        computed_metrics = np.array(computed_metrics)
+        computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
       return self.task_averager(computed_metrics)
 
   def compute_singletask_metric(self, y_true, y_pred, w):
