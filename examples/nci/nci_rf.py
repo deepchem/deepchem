@@ -25,16 +25,12 @@ np.random.seed(123)
 reload = False
 verbosity = "high"
 
-base_data_dir = "nci_data_dir"
-base_dir = "nci_analysis_dir"
+base_data_dir = "/scratch/users/rbharath/nci_data_dir"
+base_dir = "/scratch/users/rbharath/nci_analysis_dir"
 
 nci_tasks, dataset, transformers = load_nci(
     base_data_dir, reload=reload)
-print("len(dataset)")
-print(len(dataset))
 
-#base_dir = "/scratch/users/rbharath/muv_analysis"
-#base_dir = "/home/apappu/deepchem/examples/nci/"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 if not os.path.exists(base_dir):

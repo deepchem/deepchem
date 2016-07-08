@@ -64,7 +64,7 @@ def load_sdf_files(input_files):
   dataframes = []
   for input_file in input_files:
     # Tasks are stored in .sdf.csv file
-    raw_df = load_csv_file(input_file+".csv", shard_size=None).next()
+    raw_df = load_csv_files([input_file+".csv"], shard_size=None).next()
     # Structures are stored in .sdf file
     print("Reading structures from %s." % input_file)
     suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
