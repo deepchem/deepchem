@@ -11,7 +11,7 @@ import os
 import sys
 import numpy as np
 import shutil
-from deepchem.utils.save import load_multfiles_from_disk
+from deepchem.utils.save import load_sharded_csv
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
@@ -45,7 +45,7 @@ def load_nci(base_dir, reload=True):
   dataset_file2_path = os.path.join(
       current_dir, "../../datasets/nci_2.csv.gz")
   dataset_paths = [dataset_file1_path, dataset_file2_path]
-  dataset = load_multfiles_from_disk(dataset_paths)
+  dataset = load_sharded_csv(dataset_paths)
   print("Columns of dataset: %s" % str(dataset.columns.values))
   print("Number of examples in dataset: %s" % str(dataset.shape[0]))
 

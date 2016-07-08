@@ -42,49 +42,25 @@ def load_from_disk(filename):
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
-# Only handles *.csv.gz files
-def load_twofiles_from_disk(filename1, filename2):
-  """Load a dataset from file."""
-  name1 = filename1
-  name2 = filename2
-  filenameList = []
-  filenameList.append(name1)
-  filenameList.append(name2)
-  dataframeList = []
-  for name in filenameList:
-    placeholderName = name
-    if os.path.splitext(name)[1] == ".gz":
-      #pandas read_csv() method handles gzipped csv files 
-      name = os.path.splitext(name)[0]
-    if os.path.splitext(name)[1] == ".csv":
-      # First line of user-specified CSV *must* be header.
-      df = pd.read_csv(placeholderName, header=0)
-      df = df.replace(np.nan, str(""), regex=True)
-      dataframeList.append(df)
-    else:
-      raise ValueError("Unrecognized filetype for %s" % filename)
-  combined_df = dataframeList[0].append(dataframeList[1])
-  return combined_df
- 
-def load_multfiles_from_disk(filenameList):
+def load_sharded_csv(filenames):
   """Load a dataset from multiple files. Each file MUST have same column headers"""
-  dataframeList = []
-  for name in filenameList:
-    placeholderName = name
+  dataframes = []
+  for name in filenames:
+    placeholder_name = name
     if os.path.splitext(name)[1] == ".gz":
       name = os.path.splitext(name)[0]
     if os.path.splitext(name)[1] == ".csv":
       # First line of user-specified CSV *must* be header.
-      df = pd.read_csv(placeholderName, header=0)
+      df = pd.read_csv(placeholder_name, header=0)
       df = df.replace(np.nan, str(""), regex=True)
-      dataframeList.append(df)
+      dataframes.append(df)
     else:
       raise ValueError("Unrecognized filetype for %s" % filename)
   
   #combine dataframes
-  combined_df = dataframeList[0]
-  for i in range(0, len(dataframeList) - 1):
-    combined_df = combined_df.append(dataframeList[i+1])
+  combined_df = dataframes[0]
+  for i in range(0, len(dataframes) - 1):
+    combined_df = combined_df.append(dataframes[i+1])
   combined_df = combined_df.reset_index(drop=True)  
   return combined_df
 
