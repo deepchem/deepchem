@@ -42,6 +42,30 @@ def load_from_disk(filename):
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
+# Only handles *.csv.gz files
+def load_twofiles_from_disk(filename1, filename2):
+  """Load a dataset from file."""
+  name1 = filename1
+  name2 = filename2
+  filenameList = []
+  filenameList.append(name1)
+  filenameList.append(name2)
+  dataframeList = []
+  for name in filenameList:
+    placeholderName = name
+    if os.path.splitext(name)[1] == ".gz":
+      #pandas read_csv() method handles gzipped csv files 
+      name = os.path.splitext(name)[0]
+    if os.path.splitext(name)[1] == ".csv":
+      # First line of user-specified CSV *must* be header.
+      df = pd.read_csv(placeholderName, header=0)
+      df = df.replace(np.nan, str(""), regex=True)
+      dataframeList.append(df)
+    else:
+      raise ValueError("Unrecognized filetype for %s" % filename)
+  combined_df = dataframeList[0].append(dataframeList[1])
+  return combined_df
+
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""
   if ".gz" in filename:

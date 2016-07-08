@@ -11,7 +11,7 @@ import os
 import sys
 import numpy as np
 import shutil
-from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import load_twofiles_from_disk
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
@@ -40,10 +40,12 @@ def load_nci(base_dir, reload=True):
 
   # Load nci dataset
   print("About to load NCI dataset.")
-  dataset_file = os.path.join(
-      current_dir, "../../datasets/nci.csv.gz")
-  print(dataset_file)
-  dataset = load_from_disk(dataset_file)
+  dataset_file1_path = os.path.join(
+      current_dir, "../../datasets/nci_1.csv.gz")
+  dataset_file2_path = os.path.join(
+      current_dir, "../../datasets/nci_2.csv.gz")
+
+  dataset = load_twofiles_from_disk(dataset_file1_path, dataset_file2_path)
   print("Columns of dataset: %s" % str(dataset.columns.values))
   print("Number of examples in dataset: %s" % str(dataset.shape[0]))
 
