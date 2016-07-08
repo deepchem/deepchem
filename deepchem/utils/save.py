@@ -25,6 +25,69 @@ def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
   joblib.dump(dataset, filename, compress=compress)
 
+def get_input_type(input_file):
+  """Get type of input file. Must be csv/pkl.gz/sdf file."""
+  filename, file_extension = os.path.splitext(input_file)
+  # If gzipped, need to compute extension again
+  if file_extension == ".gz":
+    filename, file_extension = os.path.splitext(filename)
+  if file_extension == ".csv":
+    return "csv"
+  elif file_extension == ".pkl":
+    return "pandas-pickle"
+  elif file_extension == ".joblib":
+    return "pandas-joblib"
+  elif file_extension == ".sdf":
+    return "sdf"
+  else:
+    raise ValueError("Unrecognized extension %s" % file_extension)
+
+def load_data(input_files, shard_size=None):
+  """Loads data from disk.
+     
+  For CSV files, supports sharded loading for large files.
+  """
+  if not len(input_files):
+    return []
+  input_type = get_input_type(input_files[0])
+  if input_type == "sdf":
+    if shard_size is not None:
+      raise ValueError("shard_size must be None for sdf input.")
+    return load_sdf_files(input_files)
+  elif input_type == "csv":
+    return load_csv_files(input_files, shard_size)
+  elif input_type == "pandas-pickle":
+    return [load_pickle_from_disk(input_file) for input_file in input_files]
+
+def load_sdf_files(input_files):
+  """Load SDF file into dataframe."""
+  dataframes = []
+  for input_file in input_files:
+    # Tasks are stored in .sdf.csv file
+    raw_df = load_csv_file(input_file+".csv", shard_size=None).next()
+    # Structures are stored in .sdf file
+    print("Reading structures from %s." % input_file)
+    suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
+    df_rows = []
+    for ind, mol in enumerate(suppl):
+      if mol is not None:
+        smiles = Chem.MolToSmiles(mol)
+        df_rows.append([ind,smiles,mol])
+    mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+    dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
+  return dataframes
+
+def load_csv_file(filenames, shard_size=None):
+  """Load data as pandas dataframe."""
+  # First line of user-specified CSV *must* be header.
+  for filename in filenames:
+    if shard_size is None:
+      yield pd.read_csv(filename)
+    else:
+      for df in pd.read_csv(filename, chunksize=shard_size):
+        df = df.replace(np.nan, str(""), regex=True)
+        yield df
+
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
