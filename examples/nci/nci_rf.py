@@ -22,14 +22,15 @@ np.random.seed(123)
 
 # Set some global variables up top
 
-reload = False
+reload = True
 verbosity = "high"
+force_transform = False 
 
 base_data_dir = "/scratch/users/rbharath/nci_data_dir"
 base_dir = "/scratch/users/rbharath/nci_analysis_dir"
 
 nci_tasks, dataset, transformers = load_nci(
-    base_data_dir, reload=reload)
+    base_data_dir, reload=reload, force_transform=force_transform)
 
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

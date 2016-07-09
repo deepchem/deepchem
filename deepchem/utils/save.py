@@ -13,6 +13,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+from rdkit import Chem
 
 def log(string, verbosity=None, level="low"):
   """Print string if verbose."""

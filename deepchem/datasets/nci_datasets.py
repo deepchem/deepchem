@@ -15,9 +15,9 @@ from deepchem.utils.save import load_sharded_csv
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.transformers import BalancingTransformer
+from deepchem.transformers import NormalizationTransformer
 
-def load_nci(base_dir, reload=True):
+def load_nci(base_dir, reload=True, force_transform=False):
   """Load NCI datasets. Does not do train/test split"""
   # Set some global variables up top
   verbosity = "high"
@@ -76,10 +76,10 @@ def load_nci(base_dir, reload=True):
     dataset = Dataset(data_dir, reload=True)
 
   # Initialize transformers
-  transformers = [
-      BalancingTransformer(transform_w=True, dataset=dataset)]
-  if regen:
+  if regen or force_transform:
     print("About to transform data")
+    transformers = [
+        NormalizationTransformer(transform_y=True, dataset=dataset)]
     for transformer in transformers:
         transformer.transform(dataset)
 
