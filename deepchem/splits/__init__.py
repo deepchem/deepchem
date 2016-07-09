@@ -47,6 +47,9 @@ class Splitter(object):
         dataset,
         frac_train=frac_train, frac_test=frac_test,
         frac_valid=frac_valid, log_every_n=log_every_n)
+    ########################################################### DEBUG
+    print("Computed indices successfully!")
+    ########################################################### DEBUG
     train_dataset = dataset.select(train_dir, train_inds)
     if valid_dir is not None:
       valid_dataset = dataset.select(valid_dir, valid_inds)
@@ -117,9 +120,23 @@ class RandomSplitter(Splitter):
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
-    train_cutoff = frac_train * len(dataset)
-    valid_cutoff = (frac_train+frac_valid) * len(dataset)
-    shuffled = np.random.permutation(range(len(dataset)))
+    ########################################################### DEBUG
+    print("About to compute len!")
+    ########################################################### DEBUG
+    num_datapoints = len(dataset)
+    train_cutoff = int(frac_train * num_datapoints)
+    ########################################################### DEBUG
+    print("Successfully computed len!")
+    ########################################################### DEBUG
+    valid_cutoff = int((frac_train+frac_valid) * num_datapoints )
+    ########################################################### DEBUG
+    print("num_datapoints, train_cutoff, valid_cutoff")
+    print(num_datapoints, train_cutoff, valid_cutoff)
+    ########################################################### DEBUG
+    shuffled = np.random.permutation(range(num_datapoints))
+    ########################################################### DEBUG
+    print("Successfully computed shuffled.")
+    ########################################################### DEBUG
     return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
             shuffled[valid_cutoff:])
 
@@ -137,7 +154,7 @@ class ScaffoldSplitter(Splitter):
     log("About to generate scaffolds", self.verbosity)
     data_len = len(dataset)
     for ind, smiles in enumerate(dataset.get_ids()):
-      if self.verbosity is not None and ind % log_every_n == 0:
+      if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
       scaffold = generate_scaffold(smiles)
       if scaffold not in scaffolds:

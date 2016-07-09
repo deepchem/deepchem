@@ -76,6 +76,7 @@ def load_nci(base_dir, reload=True, force_transform=False):
     dataset = Dataset(data_dir, reload=True)
 
   # Initialize transformers
+  transformers = []
   if regen or force_transform:
     print("About to transform data")
     transformers = [

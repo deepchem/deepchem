@@ -18,10 +18,6 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-# TODO(rbharath): The semantics of this class are very difficult to debug.
-# Multiple transformations of the data are performed on disk, and computations
-# of mean/std are spread across multiple functions for efficiency. Some
-# refactoring needs to happen here.
 class Dataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
@@ -139,7 +135,6 @@ class Dataset(object):
             out_y_transformed, out_w, out_w_transformed,
             out_X_sums, out_X_sum_squares, out_X_n,
             out_y_sums, out_y_sum_squares, out_y_n]
-  
 
   def save_to_disk(self):
     """Save dataset to disk."""
@@ -269,7 +264,6 @@ class Dataset(object):
     return Dataset(data_dir=subset_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
-    
 
   def shuffle(self, iterations=1):
     """Shuffles this dataset on disk to have random order."""
@@ -332,11 +326,23 @@ class Dataset(object):
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
     indices = np.array(indices).astype(int)
-    X, y, w, ids = self.to_numpy()
+    count = 0
+    metadata_rows = []
     tasks = self.get_task_names()
-    X_sel, y_sel, w_sel, ids_sel = (
-        X[indices], y[indices], w[indices], ids[indices])
-    return Dataset.from_numpy(select_dir, X_sel, y_sel, w_sel, ids_sel, tasks)
+    for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+      shard_len = len(X)
+      X_sel = X[indices[count:count+shard_len]]
+      y_sel = y[indices[count:count+shard_len]]
+      w_sel = w[indices[count:count+shard_len]]
+      ids_sel = ids[indices[count:count+shard_len]]
+      basename = "dataset-%d" % shard_num
+      metadata_rows.append(
+          Dataset.write_data_to_disk(select_dir, basename, tasks,
+                                     X_sel, y_sel, w_sel, ids_sel))
+      count += shard_len
+    return Dataset(data_dir=select_dir,
+                   metadata_rows=metadata_rows,
+                   verbosity=self.verbosity)
     
   def to_numpy(self):
     """
