@@ -117,23 +117,10 @@ class RandomSplitter(Splitter):
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
-    ########################################################### DEBUG
-    print("About to compute len!")
-    ########################################################### DEBUG
     num_datapoints = len(dataset)
     train_cutoff = int(frac_train * num_datapoints)
-    ########################################################### DEBUG
-    print("Successfully computed len!")
-    ########################################################### DEBUG
     valid_cutoff = int((frac_train+frac_valid) * num_datapoints )
-    ########################################################### DEBUG
-    print("num_datapoints, train_cutoff, valid_cutoff")
-    print(num_datapoints, train_cutoff, valid_cutoff)
-    ########################################################### DEBUG
     shuffled = np.random.permutation(range(num_datapoints))
-    ########################################################### DEBUG
-    print("Successfully computed shuffled.")
-    ########################################################### DEBUG
     return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
             shuffled[valid_cutoff:])
 

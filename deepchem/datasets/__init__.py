@@ -328,7 +328,8 @@ class Dataset(object):
     if not os.path.exists(select_dir):
       os.makedirs(select_dir)
     if not len(indices):
-      return Dataset(data_dir=select_dir, metadata_row=[], verbosity=self.verbosity)
+      return Dataset(
+          data_dir=select_dir, metadata_row=[], verbosity=self.verbosity)
     indices = np.array(sorted(indices)).astype(int)
     count, indices_count = 0, 0
     metadata_rows = []

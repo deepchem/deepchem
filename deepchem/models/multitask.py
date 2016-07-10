@@ -90,7 +90,6 @@ class SingletaskToMultitask(Model):
         y_pred[:, ind] = task_model.predict_on_batch(X)
       else:
         raise ValueError("Invalid task_type")
-      ############################################### DEBUG
     return y_pred
 
   def predict_proba_on_batch(self, X, n_classes=2):
@@ -101,9 +100,10 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      task_model = self.model_builder([task], {task: self.task_types[task]}, self.model_params,
-                                      self.task_model_dirs[task],
-                                      verbosity=self.verbosity)
+      task_model = self.model_builder(
+          [task], {task: self.task_types[task]}, self.model_params,
+          self.task_model_dirs[task],
+          verbosity=self.verbosity)
       task_model.reload()
 
       y_pred[:, ind] = task_model.predict_proba_on_batch(X)
