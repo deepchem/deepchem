@@ -17,53 +17,43 @@ from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
 from deepchem.datasets.nci_datasets import load_nci
+from deepchem.splits import RandomSplitter
 
 np.random.seed(123)
 
 # Set some global variables up top
 
-reload = False
+reload = True
 verbosity = "high"
+force_transform = False 
 
-base_data_dir = "/home/apappu/deepchem/examples/nci/dataset"
+base_data_dir = "/scratch/users/rbharath/nci_data_dir"
+base_dir = "/scratch/users/rbharath/nci_analysis_dir"
 
-nci_tasks, dataset, transformers = load_nci(
-    base_data_dir, reload=reload)
-print("len(dataset)")
-print(len(dataset))
+nci_tasks, nci_dataset, transformers = load_nci(
+    base_data_dir, reload=reload, force_transform=force_transform)
 
-#base_dir = "/scratch/users/rbharath/muv_analysis"
-base_dir = "/home/apappu/deepchem/examples/nci/"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
-if not os.path.exists(base_dir):
-  os.makedirs(base_dir)
+os.makedirs(base_dir)
+
 train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 
 print("About to perform train/valid/test split.")
-num_train = .8 * len(dataset)
-X, y, w, ids = dataset.to_numpy()
-num_tasks = 17
-nci_tasks = nci_tasks[:num_tasks]
-print("Using following tasks")
-print(nci_tasks)
-X_train, X_valid = X[:num_train], X[num_train:]
-y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
-w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
-ids_train, ids_valid = ids[:num_train], ids[num_train:]
-
-if os.path.exists(train_dir):
-  shutil.rmtree(train_dir)
-train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
-                                   w_train, ids_train, nci_tasks)
-
-if os.path.exists(valid_dir):
-  shutil.rmtree(valid_dir)
-valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
-                                   w_valid, ids_valid, nci_tasks)
+splitter = RandomSplitter(verbosity=verbosity)
+if (reload and
+    os.path.exists(train_dir) and
+    os.path.exists(valid_dir) and
+    os.path.exists(test_dir)):
+  train_dataset = Dataset(train_dir, reload=True)
+  valid_dataset = Dataset(valid_dir, reload=True)
+  test_dataset = Dataset(test_dir, reload=True)
+else:
+  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+      nci_dataset, train_dir, valid_dir, test_dir)
 
 # Fit Logistic Regression models
 nci_task_types = {task: "classification" for task in nci_tasks}

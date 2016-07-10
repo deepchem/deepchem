@@ -47,6 +47,28 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     """Test that len(dataset) works."""
     solubility_dataset = self.load_solubility_data()
     assert len(solubility_dataset) == 10
+
+  def test_select(self):
+    """Test that dataset select works."""
+    num_datapoints = 10
+    num_features = 10
+    num_tasks = 1
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.ones((num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+
+    select_dir = tempfile.mkdtemp()
+    indices = [0, 4, 5, 8]
+    select_dataset = dataset.select(select_dir, indices)
+    X_sel, y_sel, w_sel, ids_sel = select_dataset.to_numpy()
+    np.testing.assert_array_equal(X[indices], X_sel)
+    np.testing.assert_array_equal(y[indices], y_sel)
+    np.testing.assert_array_equal(w[indices], w_sel)
+    np.testing.assert_array_equal(ids[indices], ids_sel)
+    shutil.rmtree(select_dir)
+    
   
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""

@@ -44,10 +44,8 @@ class RDKitDescriptors(Featurizer):
 
   def __init__(self):
     self.descriptors = []
-    self.functions = []
     for descriptor, function in Descriptors.descList:
       self.descriptors.append(descriptor)
-      self.functions.append(function)
 
   def _featurize(self, mol):
     """
@@ -59,6 +57,6 @@ class RDKitDescriptors(Featurizer):
         Molecule.
     """
     rval = []
-    for function in self.functions:
-        rval.append(function(mol))
+    for _, function in Descriptors.descList:
+      rval.append(function(mol))
     return rval

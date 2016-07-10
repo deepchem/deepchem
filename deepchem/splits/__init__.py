@@ -117,9 +117,10 @@ class RandomSplitter(Splitter):
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     np.random.seed(seed)
-    train_cutoff = frac_train * len(dataset)
-    valid_cutoff = (frac_train+frac_valid) * len(dataset)
-    shuffled = np.random.permutation(range(len(dataset)))
+    num_datapoints = len(dataset)
+    train_cutoff = int(frac_train * num_datapoints)
+    valid_cutoff = int((frac_train+frac_valid) * num_datapoints )
+    shuffled = np.random.permutation(range(num_datapoints))
     return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
             shuffled[valid_cutoff:])
 
@@ -137,7 +138,7 @@ class ScaffoldSplitter(Splitter):
     log("About to generate scaffolds", self.verbosity)
     data_len = len(dataset)
     for ind, smiles in enumerate(dataset.get_ids()):
-      if self.verbosity is not None and ind % log_every_n == 0:
+      if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
       scaffold = generate_scaffold(smiles)
       if scaffold not in scaffolds:
@@ -168,7 +169,7 @@ class SpecifiedSplitter(Splitter):
 
   def __init__(self, input_file, split_field, verbosity=None):
     """Provide input information for splits."""
-    raw_df = load_data(input_file, shard_size=None).next()
+    raw_df = load_data([input_file], shard_size=None).next()
     self.splits = raw_df[split_field].values
     self.verbosity = verbosity
 
