@@ -35,8 +35,8 @@ nci_tasks, nci_dataset, transformers = load_nci(
 
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
-if not os.path.exists(base_dir):
-  os.makedirs(base_dir)
+os.makedirs(base_dir)
+
 train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")

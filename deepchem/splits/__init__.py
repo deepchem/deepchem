@@ -47,9 +47,6 @@ class Splitter(object):
         dataset,
         frac_train=frac_train, frac_test=frac_test,
         frac_valid=frac_valid, log_every_n=log_every_n)
-    ########################################################### DEBUG
-    print("Computed indices successfully!")
-    ########################################################### DEBUG
     train_dataset = dataset.select(train_dir, train_inds)
     if valid_dir is not None:
       valid_dataset = dataset.select(valid_dir, valid_inds)
