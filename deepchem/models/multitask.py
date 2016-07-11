@@ -9,7 +9,6 @@ import os
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
-# DEBUG
 import sklearn
 
 class SingletaskToMultitask(Model):
@@ -75,16 +74,7 @@ class SingletaskToMultitask(Model):
           self.task_model_dirs[task],
           verbosity=self.verbosity)
       if y_task.size > 0:
-        ############################################################## DEBUG
-        print("ind, task")
-        print(ind, task)
-        print("X_task.shape, y_task.shape, w_task.shape, ids_task.shape")
-        print(X_task.shape, y_task.shape, w_task.shape, ids_task.shape)
-        print("type(X_task), type(y_task)")
-        print(type(X_task), type(y_task))
-        ############################################################## DEBUG
         task_model.raw_model.fit(X_task, np.ravel(y_task))
-        ############################################################## DEBUG
       else:
         print("No labels for task %s" % task)
         print("Fitting on dummy dataset.")

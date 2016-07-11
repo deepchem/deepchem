@@ -383,35 +383,17 @@ class Dataset(object):
         y_nonzero = np.reshape(y_task[w_task != 0], (num_datapoints, 1))
         w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
         ids_nonzero = ids[w_task != 0]
-        ########################################################## DEBUG
-        print("X_nonzero.shape, y_nonzero.shape, w_nonzero.shape, ids_nonzero.shape")
-        print(X_nonzero.shape, y_nonzero.shape, w_nonzero.shape, ids_nonzero.shape)
-        ########################################################## DEBUG
 
         task_metadata_rows[task].append(
           Dataset.write_data_to_disk(
               task_dirs[task_num], basename, [task],
               X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
-      ########################################################## DEBUG
-      if shard_num >= 0:
-        break
-      ########################################################## DEBUG
     
     task_datasets = [
         Dataset(data_dir=task_dirs[task_num],
                 metadata_rows=task_metadata_rows[task],
                 verbosity=self.verbosity)
         for (task_num, task) in enumerate(tasks)]
-    ########################################################## DEBUG
-    #for task_num, (task, task_dataset) in enumerate(zip(tasks, task_datasets)):
-    #  print("Task %s" % task)
-    #  print("task_dirs[task_num]")
-    #  print(task_dirs[task_num])
-    #  print("task_metadata_rows[task]")
-    #  print(task_metadata_rows[task])
-    #  print("task_dataset.get_shape()")
-    #  print(task_dataset.get_shape())
-    ########################################################## DEBUG
     return task_datasets
     
   def to_numpy(self):
@@ -475,11 +457,6 @@ class Dataset(object):
     y_shape = np.array((0,) + (0,))
     w_shape = np.array((0,) + (0,))
     ids_shape = np.array((0,))
-    ############################################## DEBUG
-    #print("dataset.get_shape()")
-    #print("X_shape, y_shape, w_shape, ids_shape")
-    #print(X_shape, y_shape, w_shape, ids_shape)
-    ############################################## DEBUG
     for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
       if shard_num == 0:
         X_shape += np.array(X.shape)
@@ -491,10 +468,6 @@ class Dataset(object):
         y_shape[0] += np.array(y.shape)[0]
         w_shape[0] += np.array(w.shape)[0]
         ids_shape[0] += np.array(ids.shape)[0]
-      ############################################## DEBUG
-      #print("X_shape, y_shape, w_shape, ids_shape")
-      #print(X_shape, y_shape, w_shape, ids_shape)
-      ############################################## DEBUG
     return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(ids_shape)
 
   def get_label_means(self):
