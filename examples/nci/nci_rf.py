@@ -9,7 +9,7 @@ import os
 import numpy as np
 import shutil
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from deepchem.datasets import Dataset
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
@@ -44,19 +44,15 @@ model_dir = os.path.join(base_dir, "model")
 
 print("About to perform train/valid/test split.")
 splitter = RandomSplitter(verbosity=verbosity)
-if (reload and
-    os.path.exists(train_dir) and
-    os.path.exists(valid_dir) and
-    os.path.exists(test_dir)):
-  train_dataset = Dataset(train_dir, reload=True)
-  valid_dataset = Dataset(valid_dir, reload=True)
-  test_dataset = Dataset(test_dir, reload=True)
-else:
-  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      nci_dataset, train_dir, valid_dir, test_dir)
+print("Performing new split.")
+train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+    nci_dataset, train_dir, valid_dir, test_dir)
+train_dataset.set_verbosity(verbosity)
+valid_dataset.set_verbosity(verbosity)
+test_dataset.set_verbosity(verbosity)
 
 # Fit Logistic Regression models
-nci_task_types = {task: "classification" for task in nci_tasks}
+nci_task_types = {task: "regression" for task in nci_tasks}
 
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
@@ -72,9 +68,7 @@ if os.path.exists(model_dir):
 os.makedirs(model_dir)
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=RandomForestClassifier(
-                          class_weight="balanced",
-                          n_estimators=500),
+                      model_instance=RandomForestRegressor(n_estimators=500),
                       verbosity=verbosity)
 model = SingletaskToMultitask(nci_tasks, nci_task_types, params_dict, model_dir,
                               model_builder, verbosity=verbosity)

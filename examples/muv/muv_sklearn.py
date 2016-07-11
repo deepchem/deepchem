@@ -47,8 +47,6 @@ num_train = .8 * len(dataset)
 X, y, w, ids = dataset.to_numpy()
 num_tasks = 17
 muv_tasks = muv_tasks[:num_tasks]
-print("Using following tasks")
-print(muv_tasks)
 X_train, X_valid = X[:num_train], X[num_train:]
 y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
 w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
@@ -57,12 +55,14 @@ ids_train, ids_valid = ids[:num_train], ids[num_train:]
 if os.path.exists(train_dir):
   shutil.rmtree(train_dir)
 train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
-                                   w_train, ids_train, muv_tasks)
+                                   w_train, ids_train, muv_tasks,
+                                   verbosity=verbosity)
 
 if os.path.exists(valid_dir):
   shutil.rmtree(valid_dir)
 valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
-                                   w_valid, ids_valid, muv_tasks)
+                                   w_valid, ids_valid, muv_tasks,
+                                   verbosity=verbosity)
 
 # Fit Logistic Regression models
 muv_task_types = {task: "classification" for task in muv_tasks}
@@ -81,7 +81,6 @@ if os.path.exists(model_dir):
 os.makedirs(model_dir)
 def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
   return SklearnModel(tasks, task_types, model_params, model_dir,
-                      #model_instance=LogisticRegression(class_weight="balanced"),
                       model_instance=RandomForestClassifier(
                           class_weight="balanced",
                           n_estimators=500),
