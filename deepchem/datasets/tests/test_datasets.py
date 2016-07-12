@@ -68,7 +68,65 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     np.testing.assert_array_equal(w[indices], w_sel)
     np.testing.assert_array_equal(ids[indices], ids_sel)
     shutil.rmtree(select_dir)
+
+  def test_get_shape(self):
+    """Test that get_shape works."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+    # Generate data
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
     
+    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
+
+    X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
+    print("type(X_shape), type(y_shape), type(w_shape), type(ids_shape)")
+    print(type(X_shape), type(y_shape), type(w_shape), type(ids_shape))
+    print("type(X.shape), type(y.shape), type(w.shape), type(ids.shape)")
+    print(type(X.shape), type(y.shape), type(w.shape), type(ids.shape))
+    print("X_shape, y_shape, w_shape, ids_shape")
+    print(X_shape, y_shape, w_shape, ids_shape)
+    print("X.shape, y.shape, w.shape, ids.shape")
+    print(X.shape, y.shape, w.shape, ids.shape)
+    assert X_shape == X.shape
+    assert y_shape == y.shape
+    assert w_shape == w.shape
+    assert ids_shape == ids.shape
+
+
+  def test_to_singletask(self):
+    """Test that to_singletask works."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+    # Generate data
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    
+    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
+
+    task_dirs = []
+    try:
+      for task in range(num_tasks):
+        task_dirs.append(tempfile.mkdtemp())
+      singletask_datasets = dataset.to_singletask(task_dirs)
+      for task in range(num_tasks):
+        singletask_dataset = singletask_datasets[task]
+        X_task, y_task, w_task, ids_task = singletask_dataset.to_numpy()
+        w_nonzero = w[:, task] != 0
+        np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
+        np.testing.assert_array_equal(y_task.flatten(), y[:, task][w_nonzero != 0])
+        np.testing.assert_array_equal(w_task.flatten(), w[:, task][w_nonzero != 0])
+        np.testing.assert_array_equal(ids_task, ids[w_nonzero != 0])
+    finally:
+      # Cleanup
+      for task_dir in task_dirs:
+        shutil.rmtree(task_dir)
   
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""

@@ -34,8 +34,6 @@ class Dataset(object):
     self.verbosity = verbosity
 
     if not reload or not os.path.exists(self._get_metadata_filename()):
-      log("About to start initializing dataset", self.verbosity)
-
       if metadata_rows is not None:
         self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
@@ -214,7 +212,7 @@ class Dataset(object):
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   @staticmethod
-  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None):
+  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -229,7 +227,8 @@ class Dataset(object):
     if tasks is None:
       tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
-    return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
+    return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data,
+                   verbosity=verbosity)
 
   @staticmethod
   def merge(merge_dir, datasets):
@@ -323,6 +322,10 @@ class Dataset(object):
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
 
+  def set_verbosity(self, new_verbosity):
+    """Sets verbosity."""
+    self.verbosity = new_verbosity
+
   def select(self, select_dir, indices):
     """Creates a new dataset from a selection of indices from self."""
     if not os.path.exists(select_dir):
@@ -360,6 +363,38 @@ class Dataset(object):
     return Dataset(data_dir=select_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
+
+  def to_singletask(self, task_dirs):
+    """Transforms multitask dataset in collection of singletask datasets."""
+    tasks = self.get_task_names()
+    assert len(tasks) == len(task_dirs)
+    task_metadata_rows = {task: [] for task in tasks}
+    for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+      log("Processing shard %d" % shard_num, self.verbosity)
+      basename = "dataset-%d" % shard_num
+      for task_num, task in enumerate(tasks):
+        log("\tTask %s" % task, self.verbosity)
+        w_task = w[:, task_num]
+        y_task = y[:, task_num]
+
+        # Extract those datapoints which are present for this task
+        X_nonzero = X[w_task != 0]
+        num_datapoints = X_nonzero.shape[0]
+        y_nonzero = np.reshape(y_task[w_task != 0], (num_datapoints, 1))
+        w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
+        ids_nonzero = ids[w_task != 0]
+
+        task_metadata_rows[task].append(
+          Dataset.write_data_to_disk(
+              task_dirs[task_num], basename, [task],
+              X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
+    
+    task_datasets = [
+        Dataset(data_dir=task_dirs[task_num],
+                metadata_rows=task_metadata_rows[task],
+                verbosity=self.verbosity)
+        for (task_num, task) in enumerate(tasks)]
+    return task_datasets
     
   def to_numpy(self):
     """
@@ -414,6 +449,26 @@ class Dataset(object):
       y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
       total += len(y)
     return total
+
+  def get_shape(self):
+    """Finds shape of dataset."""
+    n_tasks = len(self.get_task_names())
+    X_shape = np.array((0,) + (0,) * len(self.get_data_shape())) 
+    y_shape = np.array((0,) + (0,))
+    w_shape = np.array((0,) + (0,))
+    ids_shape = np.array((0,))
+    for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+      if shard_num == 0:
+        X_shape += np.array(X.shape)
+        y_shape += np.array(y.shape)
+        w_shape += np.array(w.shape)
+        ids_shape += np.array(ids.shape)
+      else:
+        X_shape[0] += np.array(X.shape)[0]
+        y_shape[0] += np.array(y.shape)[0]
+        w_shape[0] += np.array(w.shape)[0]
+        ids_shape[0] += np.array(ids.shape)[0]
+    return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(ids_shape)
 
   def get_label_means(self):
     """Return pandas series of label means."""

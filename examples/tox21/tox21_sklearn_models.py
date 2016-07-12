@@ -58,12 +58,14 @@ ids_train, ids_valid = ids[:num_train], ids[num_train:]
 if os.path.exists(train_dir):
   shutil.rmtree(train_dir)
 train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
-                                   w_train, ids_train, tox21_tasks)
+                                   w_train, ids_train, tox21_tasks,
+                                   verbosity=verbosity)
 
 if os.path.exists(valid_dir):
   shutil.rmtree(valid_dir)
 valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
-                                   w_valid, ids_valid, tox21_tasks)
+                                   w_valid, ids_valid, tox21_tasks,
+                                   verbosity)
 
 # Fit models
 tox21_task_types = {task: "classification" for task in tox21_tasks}

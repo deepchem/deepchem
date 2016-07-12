@@ -11,8 +11,6 @@ from deepchem.datasets import Dataset
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import ClippingTransformer
 from deepchem.hyperparameters import HyperparamOpt
-from sklearn.ensemble import RandomForestClassifier
-from deepchem.models.sklearn_models import SklearnModel
 from bace_features import user_specified_features
 from deepchem import metrics
 from deepchem.metrics import Metric

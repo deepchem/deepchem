@@ -9,7 +9,6 @@ import os
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
-# DEBUG
 import sklearn
 
 class SingletaskToMultitask(Model):
@@ -41,6 +40,24 @@ class SingletaskToMultitask(Model):
       log("Initializing model for task %s" % task,
           self.verbosity, "high")
       self.task_model_dirs[task] = task_model_dir
+
+  
+  def _create_task_datasets(self, dataset):
+    """Make directories to hold data for tasks"""
+    task_data_dirs = []
+    for task in self.tasks:
+      task_data_dir = os.path.join(self.model_dir, str(task) + "_data")
+      if os.path.exists(task_data_dir):
+        shutil.rmtree(task_data_dir)
+      os.makedirs(task_data_dir)
+      task_data_dirs.append(task_data_dir)
+    task_datasets = dataset.to_singletask(task_data_dirs)
+    if self.verbosity is not None:
+      for task, task_dataset in zip(self.tasks, task_datasets):
+        log("Dataset for task %s has shape %s"
+            % (task, str(task_dataset.get_shape())), self.verbosity)
+    return task_datasets
+   
       
   def fit(self, dataset):
     """
@@ -48,19 +65,16 @@ class SingletaskToMultitask(Model):
 
     Warning: This current implementation is only functional for sklearn models. 
     """
-    X, y, w, _ = dataset.to_numpy()
+    task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
-      y_task = y[:, ind]
-      w_task = w[:, ind]
-      X_task = X[w_task != 0, :]
-      y_task = y_task[w_task != 0]
+      X_task, y_task, w_task, ids_task = task_datasets[ind].to_numpy()
       task_model = self.model_builder(
           [task], {task: self.task_types[task]}, self.model_params,
           self.task_model_dirs[task],
           verbosity=self.verbosity)
       if y_task.size > 0:
-        task_model.raw_model.fit(X_task, y_task)
+        task_model.raw_model.fit(X_task, np.ravel(y_task))
       else:
         print("No labels for task %s" % task)
         print("Fitting on dummy dataset.")
