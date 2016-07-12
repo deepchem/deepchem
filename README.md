@@ -32,31 +32,38 @@ Linux (64-bit) Installation
 2. `openbabel`
    ```bash
    conda install -c omnia openbabel
-   ```  
-3. `pandas`  
+   ``` 
+
+3. `pandas`
    ```bash
    conda install pandas 
    ```
+
 4. `rdkit`
    ```bash
    conda install -c omnia rdkit
    ```
+
 5. `boost`
    ```bash
    conda install -c omnia boost=1.59.0
    ```
+
 6. `joblib`
    ```bash
    conda install joblib 
    ```
+
 7. `theano`
    ```bash
    conda install -c omnia theano
    ```
+
 8. `keras`
    ```bash
    conda install -c omnia keras
    ```
+
 9. `six`
    ```bash
    conda install six
