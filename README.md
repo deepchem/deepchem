@@ -86,13 +86,12 @@ Linux (64-bit) Installation
 13. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
-    version of Linux is recent, then the following command will perform the
-    installation.
+    version of Linux is recent, then the following command will work:
     ```
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-14. `deepchem`: Only installation from github is supported for the time being. Start by cloning the `deepchem` github repo:
+14. `deepchem`: Clone the `deepchem` github repo:
     ```bash
     git clone https://github.com/deepchem/deepchem.git
     ```
