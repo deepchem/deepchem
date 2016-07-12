@@ -23,7 +23,7 @@ Requirements
 Linux (64-bit) Installation 
 ---------------------------
 
-```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system version of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below. This is especially true for the `keras` library, where `deepchem` is known not to work with the latest default version.
+```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below. This is especially true for the `keras` library, where `deepchem` is known not to work with the latest default version.
 
 1. Anaconda 2.7
    Download the **64-bit Python 2.7** version of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).  
@@ -33,7 +33,7 @@ Linux (64-bit) Installation
    ```bash
    conda install -c omnia openbabel
    ```  
-3. `pandas`
+3. `pandas`  
    ```bash
    conda install pandas 
    ```
