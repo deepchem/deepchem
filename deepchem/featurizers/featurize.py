@@ -99,6 +99,8 @@ class DataFeaturizer(object):
                 num_shards_per_batch=24, worker_pool=None):
     """Featurize provided files and write to specified location."""
     log("Loading raw samples now.", self.verbosity)
+    log("shard_size: %d" % shard_size, self.verbosity)
+    log("num_shards_per_batch: %d" % num_shards_per_batch, self.verbosity)
 
     # Allow users to specify a single file for featurization
     if not isinstance(input_files, list):
@@ -125,15 +127,15 @@ class DataFeaturizer(object):
     ###### should do a better job here.
     num_batches = 0
     while True:
+      log("About to start processing next batch of shards", self.verbosity)
       batch_metadata = worker_pool.map(
           featurize_map_function,
-          itertools.islice(data_iterator, num_shards_per_batch),
-          chunksize=1)
+          itertools.islice(data_iterator, num_shards_per_batch))
       if batch_metadata:
         metadata_rows.extend(batch_metadata)
         num_batches += 1
-        log("Featurized %d datapoints"
-            % shard_size * num_shards_per_batch * num_batches, self.verbosity)
+        log("Featurized %d datapoints\n"
+            % (shard_size * num_shards_per_batch * num_batches), self.verbosity)
       else:
         break
 
