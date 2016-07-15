@@ -11,6 +11,7 @@ import numpy as np
 import csv
 import numbers
 import dill
+import itertools
 import multiprocessing as mp
 from functools import partial
 from rdkit import Chem
@@ -95,7 +96,7 @@ class DataFeaturizer(object):
     self.log_every_n = log_every_n
 
   def featurize(self, input_files, data_dir, shard_size=8192,
-                num_shards_per_batch=10, worker_pool=None):
+                num_shards_per_batch=24, worker_pool=None):
     """Featurize provided files and write to specified location."""
     log("Loading raw samples now.", self.verbosity)
 
@@ -122,6 +123,7 @@ class DataFeaturizer(object):
     ###### generator as given. Solution seems to be to to manually pull out N elements
     ###### from iterator, then to map on only those N elements. BLECH. Python
     ###### should do a better job here.
+    num_batches = 0
     while True:
       batch_metadata = worker_pool.map(
           featurize_map_function,
@@ -129,6 +131,9 @@ class DataFeaturizer(object):
           chunksize=1)
       if batch_metadata:
         metadata_rows.extend(batch_metadata)
+        num_batches += 1
+        log("Featurized %d datapoints"
+            % shard_size * num_shards_per_batch * num_batches, self.verbosity)
       else:
         break
 
