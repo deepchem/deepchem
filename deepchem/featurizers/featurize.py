@@ -94,7 +94,8 @@ class DataFeaturizer(object):
     self.featurizers = featurizers
     self.log_every_n = log_every_n
 
-  def featurize(self, input_files, data_dir, shard_size=8192, worker_pool=None):
+  def featurize(self, input_files, data_dir, shard_size=8192,
+                num_shards_per_batch=10, worker_pool=None):
     """Featurize provided files and write to specified location."""
     log("Loading raw samples now.", self.verbosity)
 
@@ -112,10 +113,24 @@ class DataFeaturizer(object):
 
     if worker_pool is None:
       worker_pool = mp.Pool(processes=1)
-    metadata_rows = worker_pool.map(
-        featurize_map_function,
-        it.izip(it.repeat((self, shard_size, input_type, data_dir)),
-                enumerate(load_data(input_files, shard_size))))
+    log("Spawning workers now.", self.verbosity)
+    metadata_rows = []
+    data_iterator = it.izip(
+        it.repeat((self, shard_size, input_type, data_dir)),
+        enumerate(load_data(input_files, shard_size, self.verbosity)))
+    ###### TODO(rbharath): Turns out python map is terrible and exhausts the
+    ###### generator as given. Solution seems to be to to manually pull out N elements
+    ###### from iterator, then to map on only those N elements. BLECH. Python
+    ###### should do a better job here.
+    while True:
+      batch_metadata = worker_pool.map(
+          featurize_map_function,
+          itertools.islice(data_iterator, num_shards_per_batch),
+          chunksize=1)
+      if batch_metadata:
+        metadata_rows.extend(batch_metadata)
+      else:
+        break
 
     # TODO(rbharath): This whole bit with metadata_rows is an awkward way of
     # creating a Dataset. Is there a more elegant solutions?
