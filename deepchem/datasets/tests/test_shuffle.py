@@ -32,13 +32,13 @@ class TestShuffle(TestAPI):
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizers=featurizers,
-                                verbosity=verbosity)
-    dataset = featurizer.featurize(
+    loader = DataFeaturizer(tasks=tasks,
+                            smiles_field="smiles",
+                            featurizer=featurizer,
+                            verbosity=verbosity)
+    dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 
     X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()

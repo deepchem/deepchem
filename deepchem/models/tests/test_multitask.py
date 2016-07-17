@@ -45,11 +45,11 @@ class TestMultitaskData(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 

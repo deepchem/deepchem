@@ -40,16 +40,16 @@ class TestReload(TestAPI):
     print("Number of examples in dataset: %s" % str(raw_dataset.shape[0]))
 
     print("About to featurize compounds")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     MUV_tasks = ['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                  'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                  'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                  'MUV-466', 'MUV-832']
-    featurizer = DataFeaturizer(tasks=MUV_tasks,
+    loader = DataFeaturizer(tasks=MUV_tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
-    dataset = featurizer.featurize(dataset_file, self.data_dir)
+    dataset = loader.featurize(dataset_file, self.data_dir)
     assert len(dataset) == len(raw_dataset)
 
     print("About to split compounds into train/valid/test")

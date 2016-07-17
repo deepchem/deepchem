@@ -41,7 +41,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
@@ -49,7 +49,7 @@ class TestModelAPI(TestAPI):
     input_file = os.path.join(self.current_dir, "example.csv")
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
@@ -85,7 +85,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF USF regression API."""
     splittype = "specified"
-    featurizers = [UserDefinedFeaturizer(["user-specified1", "user-specified2"])]
+    featurizer = UserDefinedFeaturizer(["user-specified1", "user-specified2"])
     model_params = {}
     tasks = ["log-solubility"]
     task_type = "regression"
@@ -93,7 +93,7 @@ class TestModelAPI(TestAPI):
     input_file = os.path.join(self.current_dir, "user_specified_example.csv")
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
@@ -133,7 +133,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
     """Test of singletask RF ECFP regression API: sharded edition."""
     splittype = "scaffold"
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     model_params = {}
     tasks = ["label"]
     task_type = "regression"
@@ -143,7 +143,7 @@ class TestModelAPI(TestAPI):
 
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
@@ -183,7 +183,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
-    featurizers = [RDKitDescriptors()]
+    featurizer = RDKitDescriptors()
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
@@ -191,7 +191,7 @@ class TestModelAPI(TestAPI):
     input_file = os.path.join(self.current_dir, "example.csv")
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
@@ -233,7 +233,7 @@ class TestModelAPI(TestAPI):
   def test_singletask_keras_mlp_USF_regression_API(self):
     """Test of singletask MLP User Specified Features regression API."""
     from deepchem.models.keras_models.fcnet import SingleTaskDNN
-    featurizers = [UserDefinedFeaturizer(["evals"])]
+    featurizer = UserDefinedFeaturizer(["evals"])
     tasks = ["u0"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
@@ -247,7 +247,7 @@ class TestModelAPI(TestAPI):
     input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
@@ -305,11 +305,11 @@ class TestModelAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = [CircularFingerprint(size=1024)]
 
     data_featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = data_featurizer.featurize(input_file, self.data_dir)
     splitter = ScaffoldSplitter()
@@ -344,7 +344,7 @@ class TestModelAPI(TestAPI):
     input_transformers = []
     task_type = "classification"
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
     tasks = ["outcome"]
     task_type = "classification"
@@ -353,7 +353,7 @@ class TestModelAPI(TestAPI):
 
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field=self.smiles_field,
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 

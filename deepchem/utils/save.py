@@ -53,7 +53,7 @@ def load_data(input_files, shard_size=None, verbosity=None):
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      raise ValueError("shard_size must be None for sdf input.")
+      log("Ignoring shard_size for sdf input.", verbosity)
     for value in load_sdf_files(input_files):
       yield value
   elif input_type == "csv":

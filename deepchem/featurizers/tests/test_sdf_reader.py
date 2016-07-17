@@ -35,16 +35,16 @@ class TestFeaturizedSamples(TestAPI):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "data/water.sdf")
 
-    featurizers = [CoulombMatrixEig(6, remove_hydrogens=False)]
+    featurizer = CoulombMatrixEig(6, remove_hydrogens=False)
 
     input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                mol_field="mol",
-                                featurizers=featurizers,
-                                verbosity="low")
+    loader = DataFeaturizer(tasks=tasks,
+                            smiles_field=self.smiles_field,
+                            mol_field="mol",
+                            featurizer=featurizer,
+                            verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     # Splits featurized samples into train/test
     splitter = RandomSplitter()

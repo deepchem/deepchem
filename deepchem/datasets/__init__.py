@@ -13,6 +13,9 @@ from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+####################################################### DEBUG
+import sys
+####################################################### DEBUG
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -77,6 +80,7 @@ class Dataset(object):
       ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field)
       ############################################################## DEBUG
       print("convert_df_to_numpy returned successfully")
+      sys.stdout.flush()
       ############################################################## DEBUG
     else:
       ids, X, y, w = raw_data
@@ -606,10 +610,11 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
     print("SLKFJD:LSKJF:SLFKJ:SLDFKJSD:LKFJDSLKFJSDKFJSLKFJS:LFJSDLKJ")
     print("feature_type")
     print(feature_type)
+    sys.stdout.flush()
     ############################################################## DEBUG
 
     raise ValueError(
-        "Featurized data does not support requested feature_type.")
+        "Featurized data does not support requested feature_type %s." % feature_type)
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)

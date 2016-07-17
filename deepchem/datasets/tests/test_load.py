@@ -37,12 +37,11 @@ class TestLoad(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    featurizer = DataFeaturizer(tasks=tasks,
+    loader = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
                                 featurizer=featurizer,
                                 verbosity=verbosity)
-    dataset = featurizer.featurize(
-        dataset_file, data_dir)
+    dataset = loader.featurize(dataset_file, data_dir)
 
     X, y, w, ids = dataset.to_numpy()
     shutil.move(data_dir, moved_data_dir)
@@ -89,15 +88,15 @@ class TestLoad(TestAPI):
 
     # Featurize tox21 dataset
     print("About to featurize dataset.")
-    featurizer = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     all_tasks = ["task%d"%i for i in range(17)] 
 
     ####### Do featurization
-    featurizer = DataFeaturizer(tasks=all_tasks,
+    loader = DataFeaturizer(tasks=all_tasks,
                                 smiles_field="smiles",
                                 featurizer=featurizer,
                                 verbosity=verbosity)
-    dataset = featurizer.featurize(
+    dataset = loader.featurize(
         dataset_file, data_dir)
 
     # Do train/valid split.
@@ -161,11 +160,11 @@ class TestLoad(TestAPI):
     tasks = all_tasks[0:n_tasks]
 
     ####### Do multitask load
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    loader = DataFeaturizer(tasks=tasks,
+                            smiles_field="smiles",
+                            featurizer=featurizer,
+                            verbosity=verbosity)
+    dataset = loader.featurize(dataset_file, data_dir)
 
     # Do train/valid split.
     X_multi, y_multi, w_multi, ids_multi = dataset.to_numpy()
@@ -177,11 +176,11 @@ class TestLoad(TestAPI):
       print("Processing task %s" % task)
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
-      featurizer = DataFeaturizer(tasks=[task],
-                                  smiles_field="smiles",
-                                  featurizer=featurizer,
-                                  verbosity=verbosity)
-      dataset = featurizer.featurize(dataset_file, data_dir)
+      loader = DataFeaturizer(tasks=[task],
+                              smiles_field="smiles",
+                              featurizer=featurizer,
+                              verbosity=verbosity)
+      dataset = loader.featurize(dataset_file, data_dir)
 
       X_task, y_task, w_task, ids_task = dataset.to_numpy()
       y_tasks.append(y_task)
