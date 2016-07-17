@@ -598,7 +598,16 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # make it easy to use multiprocessing.
 def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
+  ############################################################## DEBUG
+  print("SLKFJD:LSKJF:SLFKJ:SLDFKJSD:LKFJDSLKFJSDKFJSLKFJS:LFJSDLKJ")
+  ############################################################## DEBUG
   if feature_type not in df.keys():
+    ############################################################## DEBUG
+    print("SLKFJD:LSKJF:SLFKJ:SLDFKJSD:LKFJDSLKFJSDKFJSLKFJS:LFJSDLKJ")
+    print("feature_type")
+    print(feature_type)
+    ############################################################## DEBUG
+
     raise ValueError(
         "Featurized data does not support requested feature_type.")
   # perform common train/test split across all tasks

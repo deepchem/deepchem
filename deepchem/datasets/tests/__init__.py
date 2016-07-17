@@ -29,14 +29,14 @@ class TestDatasetAPI(TestAPI):
     """Loads solubility data from example.csv"""
     if os.path.exists(self.data_dir):
       shutil.rmtree(self.data_dir)
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     task_type = "regression"
     input_file = os.path.join(self.current_dir, "../../models/tests/example.csv")
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
-        featurizers=featurizers,
+        featurizer=featurizer,
         verbosity="low")
 
     return featurizer.featurize(input_file, self.data_dir)
@@ -45,7 +45,7 @@ class TestDatasetAPI(TestAPI):
     """Loads classification data from example.csv"""
     if os.path.exists(self.data_dir):
       shutil.rmtree(self.data_dir)
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = [CircularFingerprint(size=1024)]
     tasks = ["outcome"]
     task_type = "classification"
     input_file = os.path.join(
@@ -53,7 +53,7 @@ class TestDatasetAPI(TestAPI):
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
-        featurizers=featurizers,
+        featurizer=featurizer,
         verbosity="low")
     return featurizer.featurize(input_file, self.data_dir)
 
@@ -61,7 +61,7 @@ class TestDatasetAPI(TestAPI):
     """Load example multitask data."""
     if os.path.exists(self.data_dir):
       shutil.rmtree(self.data_dir)
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
@@ -70,6 +70,6 @@ class TestDatasetAPI(TestAPI):
     featurizer = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
-        featurizers=featurizers,
+        featurizer=featurizer,
         verbosity="low")
     return featurizer.featurize(input_file, self.data_dir)

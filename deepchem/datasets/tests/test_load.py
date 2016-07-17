@@ -35,11 +35,11 @@ class TestLoad(TestAPI):
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     dataset = featurizer.featurize(
         dataset_file, data_dir)
@@ -89,13 +89,13 @@ class TestLoad(TestAPI):
 
     # Featurize tox21 dataset
     print("About to featurize dataset.")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = [CircularFingerprint(size=1024)]
     all_tasks = ["task%d"%i for i in range(17)] 
 
     ####### Do featurization
     featurizer = DataFeaturizer(tasks=all_tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     dataset = featurizer.featurize(
         dataset_file, data_dir)
@@ -154,7 +154,7 @@ class TestLoad(TestAPI):
 
     # Featurize tox21 dataset
     print("About to featurize dataset.")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     all_tasks = ["task%d"%i for i in range(17)] 
     # For debugging purposes
     n_tasks = 17 
@@ -163,7 +163,7 @@ class TestLoad(TestAPI):
     ####### Do multitask load
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     dataset = featurizer.featurize(dataset_file, data_dir)
 
@@ -179,7 +179,7 @@ class TestLoad(TestAPI):
         shutil.rmtree(data_dir)
       featurizer = DataFeaturizer(tasks=[task],
                                   smiles_field="smiles",
-                                  featurizers=featurizers,
+                                  featurizer=featurizer,
                                   verbosity=verbosity)
       dataset = featurizer.featurize(dataset_file, data_dir)
 

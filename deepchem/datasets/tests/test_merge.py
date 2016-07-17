@@ -34,11 +34,11 @@ class TestMerge(TestAPI):
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     first_dataset = featurizer.featurize(
         dataset_file, first_data_dir)
@@ -60,11 +60,11 @@ class TestMerge(TestAPI):
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     featurizer = DataFeaturizer(tasks=tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     dataset = featurizer.featurize(
         dataset_file, data_dir, shard_size=2)

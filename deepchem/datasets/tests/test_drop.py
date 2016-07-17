@@ -34,12 +34,12 @@ class TestDrop(TestAPI):
 
     # Featurize emols dataset
     print("About to featurize datasets.")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
     featurizer = DataFeaturizer(tasks=emols_tasks,
                                 smiles_field="smiles",
-                                featurizers=featurizers,
+                                featurizer=featurizer,
                                 verbosity=verbosity)
     dataset = featurizer.featurize(dataset_file, data_dir)
 
