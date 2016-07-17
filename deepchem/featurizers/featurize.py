@@ -24,23 +24,47 @@ from deepchem.featurizers import UserDefinedFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.utils.save import load_data
 from deepchem.utils.save import get_input_type
+############################################################## DEBUG
+import time
+############################################################## DEBUG
 
 def _process_helper(row, loader, fields, input_type):
   return loader._process_raw_sample(input_type, row, fields)
 
 def featurize_map_function(args):
-  ((loader, shard_size, input_type, data_dir), (shard_num, raw_df_shard)) = args
-  log("Loading shard %d of size %s from file." % (shard_num+1, str(shard_size)),
-      loader.verbosity)
-  log("About to featurize shard.", loader.verbosity)
-  write_fn = partial(
-      Dataset.write_dataframe, data_dir=data_dir,
-      featurizers=loader.featurizers, tasks=loader.tasks)
-  process_fn = partial(_process_helper, loader=loader,
-                       fields=raw_df_shard.keys(),
-                       input_type=input_type)
-  return loader._featurize_shard(
-      raw_df_shard, process_fn, write_fn, shard_num, input_type)
+  try:
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
+    ((loader, shard_size, input_type, data_dir), (shard_num, raw_df_shard)) = args
+    log("Loading shard %d of size %s from file." % (shard_num+1, str(shard_size)),
+        loader.verbosity)
+    log("About to featurize shard.", loader.verbosity)
+    write_fn = partial(
+        Dataset.write_dataframe, data_dir=data_dir,
+        featurizers=loader.featurizers, tasks=loader.tasks)
+    process_fn = partial(_process_helper, loader=loader,
+                         fields=raw_df_shard.keys(),
+                         input_type=input_type)
+    ############################################################## DEBUG
+    shard_time1 = time.time()
+    ############################################################## DEBUG
+    metadata_row = loader._featurize_shard(
+        raw_df_shard, process_fn, write_fn, shard_num, input_type)
+    ############################################################## DEBUG
+    shard_time2 = time.time()
+    print("SHARD FEATURIZATION TOOK %0.3f s" % (shard_time2-shard_time1))
+    ############################################################## DEBUG
+    log("Sucessfully featurized shard %d" % shard_num, loader.verbosity)
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("FEATURIZATION MAP FUNCTION TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
+    return metadata_row
+  except:
+    print("Shard %d featurization crashed!" % shard_num)
+    return None
+
 
 def _process_field(val):
   """Parse data in a field."""
@@ -98,6 +122,9 @@ class DataFeaturizer(object):
   def featurize(self, input_files, data_dir, shard_size=8192,
                 num_shards_per_batch=24, worker_pool=None):
     """Featurize provided files and write to specified location."""
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
     log("Loading raw samples now.", self.verbosity)
     log("shard_size: %d" % shard_size, self.verbosity)
     log("num_shards_per_batch: %d" % num_shards_per_batch, self.verbosity)
@@ -126,34 +153,66 @@ class DataFeaturizer(object):
     ###### from iterator, then to map on only those N elements. BLECH. Python
     ###### should do a better job here.
     num_batches = 0
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("PRE MAP FEATURIZATION TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
     while True:
       log("About to start processing next batch of shards", self.verbosity)
+      ############################################################## DEBUG
+      time1 = time.time()
+      ############################################################## DEBUG
       batch_metadata = worker_pool.map(
           featurize_map_function,
           itertools.islice(data_iterator, num_shards_per_batch))
+      ############################################################## DEBUG
+      time2 = time.time()
+      print("MAP CALL TOOK %0.3f s" % (time2-time1))
+      ############################################################## DEBUG
       if batch_metadata:
-        metadata_rows.extend(batch_metadata)
+        metadata_rows.extend([elt for elt in batch_metadata if elt is not None])
         num_batches += 1
         log("Featurized %d datapoints\n"
             % (shard_size * num_shards_per_batch * num_batches), self.verbosity)
       else:
         break
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
 
     # TODO(rbharath): This whole bit with metadata_rows is an awkward way of
     # creating a Dataset. Is there a more elegant solutions?
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
                       reload=reload, verbosity=self.verbosity)
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("POST MAP DATASET CONSTRUCTION TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
     return dataset 
 
   def _featurize_shard(self, raw_df_shard, process_fn, write_fn, shard_num, input_type):
     """Featurizes a shard of an input dataframe."""
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
     log("Applying processing transformation to shard.",
         self.verbosity)
     raw_df_shard = raw_df_shard.apply(
         process_fn, axis=1, reduce=False)
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("PROCESSING TRANSFORMATION TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
     log("About to standardize dataframe.")
     df_shard = self._standardize_df(raw_df_shard) 
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("STANDARDIZATION TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
   
     field = "mol" if input_type == "sdf" else "smiles"
     for featurizer in self.featurizers:
@@ -166,7 +225,15 @@ class DataFeaturizer(object):
       elif isinstance(featurizer, ComplexFeaturizer):
         self._featurize_complexes(df_shard, featurizer)
     basename = "shard-%d" % shard_num 
-    return write_fn((basename, df_shard))
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
+    metadata_row = write_fn((basename, df_shard))
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("WRITING METADATA ROW TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
+    return metadata_row
 
   def _shard_files_exist(self, feature_dir):
     """Checks if data shard files already exist."""
@@ -305,6 +372,9 @@ class DataFeaturizer(object):
           -) PDB files for interacting molecules.
         3) User specified featurizations.
     """
+    ############################################################## DEBUG
+    time1 = time.time()
+    ############################################################## DEBUG
     log("Aggregating User-Specified Features", self.verbosity)
     features_data = []
     for ind, row in df.iterrows():
@@ -314,3 +384,7 @@ class DataFeaturizer(object):
         feature_list.append(row[feature_name])
       features_data.append(np.array(feature_list))
     df[featurizer.__class__.__name__] = features_data
+    ############################################################## DEBUG
+    time2 = time.time()
+    print("USER SPECIFIED PROCESSING TOOK %0.3f s" % (time2-time1))
+    ############################################################## DEBUG
