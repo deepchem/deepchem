@@ -60,16 +60,24 @@ class Dataset(object):
         raise ValueError("No metadata found.")
 
   @staticmethod
-  def write_dataframe(val, data_dir, featurizers=None, tasks=None,
-                      raw_data=None, basename=None):
+  def write_dataframe(val, data_dir, featurizer=None, tasks=None,
+                      raw_data=None, basename=None, mol_id_field="mol_id"):
     """Writes data from dataframe to disk."""
-    if featurizers is not None and tasks is not None:
-      feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+    if featurizer is not None and tasks is not None:
+      feature_type = featurizer.__class__.__name__
       (basename, df) = val
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
-      ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+      ############################################################## DEBUG
+      print("About to call convert_df_to_numpy")
+      print("mol_id_field")
+      print(mol_id_field)
+      ############################################################## DEBUG
+      ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field)
+      ############################################################## DEBUG
+      print("convert_df_to_numpy returned successfully")
+      ############################################################## DEBUG
     else:
       ids, X, y, w = raw_data
       basename = ""
@@ -588,11 +596,11 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
-def _df_to_numpy(df, feature_types, tasks):
+def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
-  if not set(feature_types).issubset(df.keys()):
+  if feature_type not in df.keys():
     raise ValueError(
-        "Featurized data does not support requested feature_types.")
+        "Featurized data does not support requested feature_type.")
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
@@ -600,38 +608,43 @@ def _df_to_numpy(df, feature_types, tasks):
       np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
-  tensors = []
+  all_features = []
   feature_shape = None
+  ############################################################## DEBUG
+  print("convert_df_to_numpy --- about to loop through data.")
+  ############################################################## DEBUG
   for ind in range(n_samples):
+    ############################################################### DEBUG
+    #print("sample %d" % ind)
+    ############################################################### DEBUG
     datapoint = df.iloc[ind]
-    feature_list = []
-    for feature_type in feature_types:
-      feature_list.append(datapoint[feature_type])
-    try:
-      features = np.squeeze(np.concatenate(feature_list))
-      if features.size == 0:
-        features = np.zeros(feature_shape)
-        tensors.append(features)
-        missing[ind, :] = 1
-        continue
-      for feature_ind, val in enumerate(features):
-        if features[feature_ind] == "":
-          features[feature_ind] = 0.
-      features = features.astype(float)
-      if feature_shape is None:
-        feature_shape = features.shape
-    except ValueError:
+    features = np.squeeze(datapoint[feature_type])
+    ############################################################### DEBUG
+    #print("features.size")
+    ############################################################### DEBUG
+    if features.size == 0:
+      features = np.zeros(feature_shape)
+      all_features.append(features)
       missing[ind, :] = 1
       continue
+    if feature_shape is None:
+      feature_shape = features.shape
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
     if features.shape != feature_shape:
       missing[ind, :] = 1
       continue
-    tensors.append(features)
-  x = np.stack(tensors)
-  sorted_ids = df["mol_id"]
+    ############################################################### DEBUG
+    #print("Done processing sample")
+    ############################################################### DEBUG
+    all_features.append(features)
+  x = np.stack(all_features)
+  ############################################################## DEBUG
+  print("mol_id_field")
+  print(mol_id_field)
+  ############################################################## DEBUG
+  sorted_ids = df[mol_id_field]
 
   # Set missing data to have weight zero
   # TODO(rbharath): There's a better way to do this with numpy indexing
