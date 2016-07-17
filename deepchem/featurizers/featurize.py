@@ -377,14 +377,16 @@ class DataFeaturizer(object):
     features_data = []
     ############################################################## DEBUG
     df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(pd.to_numeric)
+    X_shard = df.as_matrix(columns=featurizer.feature_fields)
+    df[featurizer.__class__.__name__] = X_shard.tolist()
     ############################################################## DEBUG
-    for ind, row in df.iterrows():
-      # pandas rows are tuples (row_num, row_data)
-      feature_list = []
-      for feature_name in featurizer.feature_fields:
-        feature_list.append(row[feature_name])
-      features_data.append(np.array(feature_list))
-    df[featurizer.__class__.__name__] = features_data
+    #for ind, row in df.iterrows():
+    #  # pandas rows are tuples (row_num, row_data)
+    #  feature_list = []
+    #  for feature_name in featurizer.feature_fields:
+    #    feature_list.append(row[feature_name])
+    #  features_data.append(np.array(feature_list))
+    #df[featurizer.__class__.__name__] = features_data
     ############################################################## DEBUG
     time2 = time.time()
     print("USER SPECIFIED PROCESSING TOOK %0.3f s" % (time2-time1))
