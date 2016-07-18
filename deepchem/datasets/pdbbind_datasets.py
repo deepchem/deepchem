@@ -18,7 +18,6 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
-#from deepchem.featurizers.nnscore_utils import hydrogenate_and_compute_partial_charges
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
@@ -40,10 +39,6 @@ def compute_pdbbind_feature(compound_featurizers, complex_featurizers,
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  ################################## DEBUG
-  print("ligand_file")
-  print(ligand_file)
-  ################################## DEBUG
   #rdkit_mol = Chem.MolFromMol2File(str(ligand_file))
   rdkit_mol = Chem.SDMolSupplier(str(ligand_file)).next()
 
@@ -55,8 +50,6 @@ def compute_pdbbind_feature(compound_featurizers, complex_featurizers,
   
   for compound_featurizer in compound_featurizers:
     features = np.squeeze(compound_featurizer.featurize([rdkit_mol]))
-    ########################################### DEBUG
-    ########################################### DEBUG
     all_features.append(features)
 
   features = np.concatenate(all_features)
@@ -97,9 +90,7 @@ def load_pdbbind(pdbbind_dir, base_dir, reload=True):
       "salt_bridge"], ecfp_power=9, splif_power=9,
       parallel=True, flatten=True)
   compound_featurizers = [CircularFingerprint(size=1024)]
-  #complex_featurizers = [grid_featurizer, NNScoreComplexFeaturizer()]
   complex_featurizers = [grid_featurizer]
-  #complex_featurizers = []
   
   # Featurize Dataset
   features = []
@@ -113,13 +104,6 @@ def load_pdbbind(pdbbind_dir, base_dir, reload=True):
   X = np.vstack(features)
   w = np.ones_like(y)
    
-  #from sklearn.ensemble import RandomForestRegressor
-  #rf = RandomForestRegressor(n_estimators=500)
-  #rf.fit(X, y)
-  print("About to call Dataset.from_numpy()")
-  print("X.shape, y.shape, w.shape, ids.shape")
-  print(X.shape, y.shape, w.shape, ids.shape)
-  
   dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
   transformers = []
   

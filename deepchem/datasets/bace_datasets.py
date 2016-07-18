@@ -68,18 +68,18 @@ def load_bace(mode="regression", transform=True, split="20-80"):
     bace_tasks = ["Class"]
   else:
     raise ValueError("Unknown mode %s" % mode)
-  featurizers = [UserDefinedFeaturizer(user_specified_features)]
-  featurizer = DataFeaturizer(tasks=bace_tasks,
+  featurizer = UserDefinedFeaturizer(user_specified_features)
+  loader = DataFeaturizer(tasks=bace_tasks,
                               smiles_field="mol",
                               id_field="CID",
-                              featurizers=featurizers)
+                              featurizer=featurizer)
   if not reload or not os.path.exists(data_dir):
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    dataset = loader.featurize(dataset_file, data_dir)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)
   if not reload or not os.path.exists(crystal_dir):
-    crystal_dataset = featurizer.featurize(crystal_dataset_file, crystal_dir)
+    crystal_dataset = loader.featurize(crystal_dataset_file, crystal_dir)
   else:
     crystal_dataset = Dataset(crystal_dir, reload=True)
 

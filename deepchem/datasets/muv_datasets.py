@@ -43,18 +43,18 @@ def load_muv(base_dir, reload=True):
 
   # Featurize MUV dataset
   print("About to featurize MUV dataset.")
-  featurizers = [CircularFingerprint(size=1024)]
+  featurizer = CircularFingerprint(size=1024)
   all_MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                           'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                           'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                           'MUV-466', 'MUV-832'])
 
-  featurizer = DataFeaturizer(tasks=all_MUV_tasks,
-                              smiles_field="smiles",
-                              featurizers=featurizers,
-                              verbosity=verbosity)
+  loader = DataFeaturizer(tasks=all_MUV_tasks,
+                          smiles_field="smiles",
+                          featurizer=featurizer,
+                          verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    dataset = loader.featurize(dataset_file, data_dir)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)

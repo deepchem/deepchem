@@ -42,7 +42,7 @@ def load_pcba(base_dir, reload=True):
 
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
-  featurizers = [CircularFingerprint(size=1024)]
+  featurizer = CircularFingerprint(size=1024)
   all_PCBA_tasks = [
       'PCBA-1030','PCBA-1379','PCBA-1452','PCBA-1454','PCBA-1457',
       'PCBA-1458','PCBA-1460','PCBA-1461','PCBA-1468','PCBA-1469',
@@ -70,12 +70,12 @@ def load_pcba(base_dir, reload=True):
       'PCBA-902','PCBA-903','PCBA-904','PCBA-912','PCBA-914','PCBA-915',
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
-  featurizer = DataFeaturizer(tasks=all_PCBA_tasks,
-                              smiles_field="smiles",
-                              featurizers=featurizers,
-                              verbosity=verbosity)
+  loader = DataFeaturizer(tasks=all_PCBA_tasks,
+                          smiles_field="smiles",
+                          featurizer=featurizer,
+                          verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    dataset = loader.featurize(dataset_file, data_dir)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)

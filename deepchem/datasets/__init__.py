@@ -14,6 +14,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
 ####################################################### DEBUG
+import time
 import sys
 ####################################################### DEBUG
 
@@ -73,14 +74,21 @@ class Dataset(object):
       if not len(df):
         return None
       ############################################################## DEBUG
-      print("About to call convert_df_to_numpy")
-      print("mol_id_field")
-      print(mol_id_field)
+      #print("About to call convert_df_to_numpy")
+      #print("mol_id_field")
+      #print(mol_id_field)
+      ############################################################## DEBUG
+      ############################################################## DEBUG
+      time1 = time.time()
       ############################################################## DEBUG
       ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field)
       ############################################################## DEBUG
-      print("convert_df_to_numpy returned successfully")
-      sys.stdout.flush()
+      time2 = time.time()
+      print("CONVERT_DF_TO_NUMPY TOOK %0.3f s" % (time2-time1))
+      ############################################################## DEBUG
+      ############################################################## DEBUG
+      #print("convert_df_to_numpy returned successfully")
+      #sys.stdout.flush()
       ############################################################## DEBUG
     else:
       ids, X, y, w = raw_data
@@ -602,71 +610,73 @@ def compute_sums_and_nb_sample(tensor, W=None):
 # make it easy to use multiprocessing.
 def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
   """Transforms a featurized dataset df into standard set of numpy arrays"""
-  ############################################################## DEBUG
-  print("SLKFJD:LSKJF:SLFKJ:SLDFKJSD:LKFJDSLKFJSDKFJSLKFJS:LFJSDLKJ")
-  ############################################################## DEBUG
   if feature_type not in df.keys():
-    ############################################################## DEBUG
-    print("SLKFJD:LSKJF:SLFKJ:SLDFKJSD:LKFJDSLKFJSDKFJSLKFJS:LFJSDLKJ")
-    print("feature_type")
-    print(feature_type)
-    sys.stdout.flush()
-    ############################################################## DEBUG
-
     raise ValueError(
         "Featurized data does not support requested feature_type %s." % feature_type)
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
+  ############################################################## DEBUG
+  time1 = time.time()
+  ############################################################## DEBUG
   y = np.hstack([
       np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+  ############################################################## DEBUG
+  time2 = time.time()
+  print("CONVERT_DF_TO_NUMPY Y COMP TOOK %0.3f s" % (time2-time1))
+  ############################################################## DEBUG
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
-  all_features = []
+  #all_features = []
   feature_shape = None
   ############################################################## DEBUG
-  print("convert_df_to_numpy --- about to loop through data.")
+  time1 = time.time()
   ############################################################## DEBUG
   for ind in range(n_samples):
-    ############################################################### DEBUG
-    #print("sample %d" % ind)
-    ############################################################### DEBUG
-    datapoint = df.iloc[ind]
-    features = np.squeeze(datapoint[feature_type])
-    ############################################################### DEBUG
-    #print("features.size")
-    ############################################################### DEBUG
-    if features.size == 0:
-      features = np.zeros(feature_shape)
-      all_features.append(features)
-      missing[ind, :] = 1
-      continue
-    if feature_shape is None:
-      feature_shape = features.shape
+    #datapoint = df.iloc[ind]
+    #features = np.squeeze(datapoint[feature_type])
+    #if features.size == 0:
+    #  features = np.zeros(feature_shape)
+    #  all_features.append(features)
+    #  missing[ind, :] = 1
+    #  continue
+    #if feature_shape is None:
+    #  feature_shape = features.shape
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
-    if features.shape != feature_shape:
-      missing[ind, :] = 1
-      continue
-    ############################################################### DEBUG
-    #print("Done processing sample")
-    ############################################################### DEBUG
-    all_features.append(features)
-  x = np.stack(all_features)
+    #if features.shape != feature_shape:
+    #  missing[ind, :] = 1
+    #  continue
+    #all_features.append(features)
+  #x_orig = np.stack(all_features)
+  #x = df.as_matrix(columns=[feature_type])
+  x = np.array(list(df[feature_type].values))
+  #print("x.shape")
+  #print(x.shape)
+  #print(x.shape, x_orig.shape)
+  #print("type(x)")
+  #print(type(x))
   ############################################################## DEBUG
-  print("mol_id_field")
-  print(mol_id_field)
+  time2 = time.time()
+  print("CONVERT_DF_TO_NUMPY X COMP TOOK %0.3f s" % (time2-time1))
   ############################################################## DEBUG
   sorted_ids = df[mol_id_field]
 
   # Set missing data to have weight zero
   # TODO(rbharath): There's a better way to do this with numpy indexing
+  ############################################################## DEBUG
+  time1 = time.time()
+  ############################################################## DEBUG
   for ind in range(n_samples):
     for task in range(n_tasks):
       if missing[ind, task]:
         y[ind, task] = 0.
         w[ind, task] = 0.
+  ############################################################## DEBUG
+  time2 = time.time()
+  print("CONVERT_DF_TO_NUMPY MISSING COMP TOOK %0.3f s" % (time2-time1))
+  ############################################################## DEBUG
 
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
