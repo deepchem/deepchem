@@ -388,6 +388,7 @@ class Dataset(object):
     """Transforms multitask dataset in collection of singletask datasets."""
     tasks = self.get_task_names()
     assert len(tasks) == len(task_dirs)
+    log("Splitting multitask dataset into singletask datasets", self.verbosity)
     task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
       log("Processing shard %d" % shard_num, self.verbosity)
@@ -627,36 +628,15 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
   ############################################################## DEBUG
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
-  #all_features = []
   feature_shape = None
   ############################################################## DEBUG
   time1 = time.time()
   ############################################################## DEBUG
   for ind in range(n_samples):
-    #datapoint = df.iloc[ind]
-    #features = np.squeeze(datapoint[feature_type])
-    #if features.size == 0:
-    #  features = np.zeros(feature_shape)
-    #  all_features.append(features)
-    #  missing[ind, :] = 1
-    #  continue
-    #if feature_shape is None:
-    #  feature_shape = features.shape
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
-    #if features.shape != feature_shape:
-    #  missing[ind, :] = 1
-    #  continue
-    #all_features.append(features)
-  #x_orig = np.stack(all_features)
-  #x = df.as_matrix(columns=[feature_type])
   x = np.array(list(df[feature_type].values))
-  #print("x.shape")
-  #print(x.shape)
-  #print(x.shape, x_orig.shape)
-  #print("type(x)")
-  #print(type(x))
   ############################################################## DEBUG
   time2 = time.time()
   print("CONVERT_DF_TO_NUMPY X COMP TOOK %0.3f s" % (time2-time1))
