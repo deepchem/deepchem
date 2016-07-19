@@ -636,12 +636,17 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
-  x = np.squeeze(np.array(list(df[feature_type].values)))
+  x_list = list(df[feature_type].values)
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
+  x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
+  x = np.squeeze(np.array(x_list))
   ############################################################## DEBUG
   time2 = time.time()
   print("CONVERT_DF_TO_NUMPY X COMP TOOK %0.3f s" % (time2-time1))
   ############################################################## DEBUG
-  sorted_ids = df[mol_id_field]
+  ############################################################## DEBUG
+  sorted_ids = df[mol_id_field].values
+  ############################################################## DEBUG
 
   # Set missing data to have weight zero
   # TODO(rbharath): There's a better way to do this with numpy indexing
@@ -658,6 +663,11 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
   print("CONVERT_DF_TO_NUMPY MISSING COMP TOOK %0.3f s" % (time2-time1))
   ############################################################## DEBUG
 
+  ############################################################## DEBUG
+  sorted_ids = sorted_ids[valid_inds]
+  y = y[valid_inds]
+  w = w[valid_inds]
+  ############################################################## DEBUG
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)

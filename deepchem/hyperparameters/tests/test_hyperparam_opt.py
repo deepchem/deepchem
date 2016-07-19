@@ -146,12 +146,12 @@ class TestHyperparamOptAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizer = [CircularFingerprint(size=1024)]
-    data_featurizer = DataFeaturizer(tasks=tasks,
+    featurizer = CircularFingerprint(size=1024)
+    loader = DataFeaturizer(tasks=tasks,
                                      smiles_field=self.smiles_field,
                                      featurizer=featurizer,
                                      verbosity="low")
-    dataset = data_featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

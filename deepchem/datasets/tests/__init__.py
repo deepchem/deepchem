@@ -45,17 +45,17 @@ class TestDatasetAPI(TestAPI):
     """Loads classification data from example.csv"""
     if os.path.exists(self.data_dir):
       shutil.rmtree(self.data_dir)
-    featurizer = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["outcome"]
     task_type = "classification"
     input_file = os.path.join(
         self.current_dir, "../../models/tests/example_classification.csv")
-    featurizer = DataFeaturizer(
+    loader = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
         featurizer=featurizer,
         verbosity="low")
-    return featurizer.featurize(input_file, self.data_dir)
+    return loader.featurize(input_file, self.data_dir)
 
   def load_multitask_data(self):
     """Load example multitask data."""
@@ -67,9 +67,9 @@ class TestDatasetAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     input_file = os.path.join(
         self.current_dir, "../../models/tests/multitask_example.csv")
-    featurizer = DataFeaturizer(
+    loader = DataFeaturizer(
         tasks=tasks,
         smiles_field=self.smiles_field,
         featurizer=featurizer,
         verbosity="low")
-    return featurizer.featurize(input_file, self.data_dir)
+    return loader.featurize(input_file, self.data_dir)

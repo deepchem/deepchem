@@ -37,11 +37,11 @@ class TestDrop(TestAPI):
     featurizer = CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
-    featurizer = DataFeaturizer(tasks=emols_tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
-    dataset = featurizer.featurize(dataset_file, data_dir)
+    loader = DataFeaturizer(tasks=emols_tasks,
+                            smiles_field="smiles",
+                            featurizer=featurizer,
+                            verbosity=verbosity)
+    dataset = loader.featurize(dataset_file, data_dir, debug=True, logging=False)
 
     X, y, w, ids = dataset.to_numpy()
     print("ids.shape, X.shape, y.shape, w.shape")

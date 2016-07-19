@@ -29,10 +29,10 @@ class TestDataFeaturizer(TestAPI):
 
     tasks = ["log-solubility"]
     smiles_field = "smiles"
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=[CircularFingerprint(size=1024)],
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataFeaturizer(tasks=tasks,
+                            smiles_field=self.smiles_field,
+                            featurizer=CircularFingerprint(size=1024),
+                            verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
     
     assert len(dataset) == 10

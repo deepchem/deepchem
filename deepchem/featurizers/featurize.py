@@ -16,6 +16,8 @@ import multiprocessing as mp
 from functools import partial
 from rdkit import Chem
 import itertools as it
+import traceback
+from multiprocessing.pool import Pool
 from deepchem.utils.save import log
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_pickle_from_disk
@@ -26,10 +28,47 @@ from deepchem.utils.save import load_data
 from deepchem.utils.save import get_input_type
 ############################################################## DEBUG
 import time
+import sys
 ############################################################## DEBUG
 
 #def _process_helper(row, loader, fields, input_type):
 #  return loader._process_raw_sample(input_type, row, fields)
+
+
+# Shortcut to multiprocessing's logger
+# http://stackoverflow.com/questions/6728236/exception-thrown-in-multiprocessing-pool-not-detected
+def error(msg, *args):
+  ############################################################# DEBUG
+  import sys
+  sys.stdout.flush()
+  ############################################################# DEBUG
+  return mp.get_logger().error(msg, *args)
+
+class LogExceptions(object):
+  def __init__(self, callable):
+    self.__callable = callable
+
+  def __call__(self, *args, **kwargs):
+    try:
+        result = self.__callable(*args, **kwargs)
+
+    except Exception as e:
+        # Here we add some debugging help. If multiprocessing's
+        # debugging is on, it will arrange to log the traceback
+        error(traceback.format_exc())
+        # Re-raise the original exception so the Pool worker can
+        # clean up
+        raise
+
+    # It was fine, give a normal answer
+    return result
+
+class LoggingPool(Pool):
+  def apply_async(self, func, args=(), kwds={}, callback=None):
+    return Pool.apply_async(self, LogExceptions(func), args, kwds, callback)
+
+  def map_async(self, func, iterable, chunksize=None, callback=None):
+    return Pool.map_async(self, LogExceptions(func), iterable, chunksize, callback)
 
 def featurize_map_function(args):
   #try:
@@ -117,7 +156,8 @@ class DataFeaturizer(object):
     self.log_every_n = log_every_n
 
   def featurize(self, input_files, data_dir, shard_size=8192,
-                num_shards_per_batch=24, worker_pool=None):
+                num_shards_per_batch=24, worker_pool=None,
+                logging=True, debug=False):
     """Featurize provided files and write to specified location."""
     ############################################################## DEBUG
     time1 = time.time()
@@ -138,8 +178,15 @@ class DataFeaturizer(object):
       return None
     input_type = get_input_type(input_files[0])
 
+    if logging:
+      mp.log_to_stderr()
     if worker_pool is None:
-      worker_pool = mp.Pool(processes=1)
+      ############################################################## DEBUG
+      if logging:
+        worker_pool = LoggingPool(processes=1)
+      else:
+        worker_pool = mp.Pool(processes=1)
+      ############################################################## DEBUG
     log("Spawning workers now.", self.verbosity)
     metadata_rows = []
     data_iterator = it.izip(
@@ -159,9 +206,14 @@ class DataFeaturizer(object):
       ############################################################## DEBUG
       time1 = time.time()
       ############################################################## DEBUG
-      batch_metadata = worker_pool.map(
-          featurize_map_function,
-          itertools.islice(data_iterator, num_shards_per_batch))
+      iterator = itertools.islice(data_iterator, num_shards_per_batch)
+      if not debug:
+        batch_metadata = worker_pool.map(
+            featurize_map_function, iterator)
+      else:
+        batch_metadata = []
+        for elt in iterator:
+          batch_metadata.append(featurize_map_function(elt))
       ############################################################## DEBUG
       time2 = time.time()
       print("MAP CALL TOOK %0.3f s" % (time2-time1))
