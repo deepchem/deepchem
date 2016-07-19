@@ -15,7 +15,7 @@ import os
 import shutil
 import numpy as np
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 from deepchem.models.tests import TestAPI
@@ -33,7 +33,7 @@ class TestDatasetAPI(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     input_file = os.path.join(self.current_dir, "../../models/tests/example.csv")
-    featurizer = DataFeaturizer(
+    featurizer = DataLoader(
         tasks=tasks,
         smiles_field=self.smiles_field,
         featurizer=featurizer,
@@ -50,7 +50,7 @@ class TestDatasetAPI(TestAPI):
     task_type = "classification"
     input_file = os.path.join(
         self.current_dir, "../../models/tests/example_classification.csv")
-    loader = DataFeaturizer(
+    loader = DataLoader(
         tasks=tasks,
         smiles_field=self.smiles_field,
         featurizer=featurizer,
@@ -67,7 +67,7 @@ class TestDatasetAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     input_file = os.path.join(
         self.current_dir, "../../models/tests/multitask_example.csv")
-    loader = DataFeaturizer(
+    loader = DataLoader(
         tasks=tasks,
         smiles_field=self.smiles_field,
         featurizer=featurizer,

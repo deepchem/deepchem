@@ -16,7 +16,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.datasets import Dataset
 
 class TestMerge(TestAPI):
@@ -36,13 +36,13 @@ class TestMerge(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
-    first_dataset = featurizer.featurize(
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    first_dataset = loader.featurize(
         dataset_file, first_data_dir)
-    second_dataset = featurizer.featurize(
+    second_dataset = loader.featurize(
         dataset_file, second_data_dir)
 
     merged_dataset = Dataset.merge(
@@ -62,11 +62,11 @@ class TestMerge(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
-    dataset = featurizer.featurize(
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 
     shard_nums = [1, 2]

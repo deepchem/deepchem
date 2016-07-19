@@ -16,7 +16,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.datasets import Dataset
 
 class TestShuffle(TestAPI):
@@ -34,10 +34,10 @@ class TestShuffle(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataFeaturizer(tasks=tasks,
-                            smiles_field="smiles",
-                            featurizer=featurizer,
-                            verbosity=verbosity)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 

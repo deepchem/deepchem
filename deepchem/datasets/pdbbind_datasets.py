@@ -13,7 +13,6 @@ import shutil
 from rdkit import Chem
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer

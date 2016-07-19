@@ -17,7 +17,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.transformers import NormalizationTransformer
 from deepchem import metrics
 from deepchem.metrics import Metric
@@ -56,10 +56,10 @@ class TestHyperparamOptAPI(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
@@ -147,10 +147,10 @@ class TestHyperparamOptAPI(TestAPI):
     task_types = {task: task_type for task in tasks}
 
     featurizer = CircularFingerprint(size=1024)
-    loader = DataFeaturizer(tasks=tasks,
-                                     smiles_field=self.smiles_field,
-                                     featurizer=featurizer,
-                                     verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
@@ -192,11 +192,11 @@ class TestHyperparamOptAPI(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
 
-    data_featurizer = DataFeaturizer(tasks=tasks,
-                                     smiles_field=self.smiles_field,
-                                     featurizer=featurizer,
-                                     verbosity="low")
-    dataset = data_featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

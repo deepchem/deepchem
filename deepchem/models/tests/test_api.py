@@ -14,7 +14,7 @@ import unittest
 import tempfile
 import shutil
 from deepchem.featurizers import UserDefinedFeaturizer 
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
@@ -47,10 +47,10 @@ class TestModelAPI(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
@@ -91,10 +91,10 @@ class TestModelAPI(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "user_specified_example.csv")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir, debug=True)
 
     splitter = SpecifiedSplitter(input_file, "split")
@@ -141,11 +141,11 @@ class TestModelAPI(TestAPI):
     input_file = os.path.join(
         self.current_dir, "../../../datasets/pdbbind_core_df.pkl.gz")
 
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
@@ -189,10 +189,10 @@ class TestModelAPI(TestAPI):
     task_types = {task: task_type for task in tasks}
     model_params = {}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = featurizer.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
@@ -249,10 +249,10 @@ class TestModelAPI(TestAPI):
   #                  "nb_layers": 1, "batchnorm": False}
 
   #  input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
-  #  featurizer = DataFeaturizer(tasks=tasks,
-  #                              smiles_field=self.smiles_field,
-  #                              featurizer=featurizer,
-  #                              verbosity="low")
+  #  featurizer = DataLoader(tasks=tasks,
+  #                          smiles_field=self.smiles_field,
+  #                          featurizer=featurizer,
+  #                          verbosity="low")
   #  dataset = featurizer.featurize(input_file, self.data_dir)
 
   #  splitter = ScaffoldSplitter()
@@ -311,10 +311,10 @@ class TestModelAPI(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
 
-    loader = DataFeaturizer(tasks=tasks,
-                            smiles_field=self.smiles_field,
-                            featurizer=featurizer,
-                            verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
     dataset = loader.featurize(input_file, self.data_dir)
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
@@ -355,11 +355,11 @@ class TestModelAPI(TestAPI):
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example_classification.csv")
 
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(

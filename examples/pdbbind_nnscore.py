@@ -11,7 +11,7 @@ __license__ = "LGPL"
 
 import tempfile
 import shutil
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.featurize import FeaturizedSamples
 from deepchem.utils.dataset import Dataset
 from deepchem.utils.evaluate import Evaluator
@@ -26,15 +26,15 @@ def featurize_and_split(input_file, feature_dir, samples_dir, train_dir,
                         output_transforms, tasks, feature_files=None):
   """Featurize inputs with NNScore and do train-test split."""
 
-  featurizer = DataFeaturizer(tasks=tasks,
-                              smiles_field="smiles",
-                              protein_pdb_field="protein_pdb",
-                              ligand_pdb_field="ligand_pdb",
-                              verbose=True)
+  loader = DataLoader(tasks=tasks,
+                      smiles_field="smiles",
+                      protein_pdb_field="protein_pdb",
+                      ligand_pdb_field="ligand_pdb",
+                      verbose=True)
   
   if feature_files is None:
     print("About to featurize.")
-    samples = featurizer.featurize(input_file, feature_dir,
+    samples = loader.featurize(input_file, feature_dir,
                                    samples_dir, shard_size=8)
     print("Completed Featurization")
   else:

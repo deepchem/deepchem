@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import RandomSplitter
@@ -27,7 +26,6 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
 from deepchem.datasets.pcba_datasets import load_pcba
-
 
 np.random.seed(123)
 

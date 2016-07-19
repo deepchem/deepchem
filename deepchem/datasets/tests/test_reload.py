@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression
 from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.splits import ScaffoldSplitter
 from deepchem.datasets import Dataset
@@ -45,10 +45,10 @@ class TestReload(TestAPI):
                  'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                  'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                  'MUV-466', 'MUV-832']
-    loader = DataFeaturizer(tasks=MUV_tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
+    loader = DataLoader(tasks=MUV_tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(dataset_file, self.data_dir)
     assert len(dataset) == len(raw_dataset)
 

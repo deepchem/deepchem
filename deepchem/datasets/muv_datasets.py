@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 
@@ -49,10 +49,10 @@ def load_muv(base_dir, reload=True):
                           'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                           'MUV-466', 'MUV-832'])
 
-  loader = DataFeaturizer(tasks=all_MUV_tasks,
-                          smiles_field="smiles",
-                          featurizer=featurizer,
-                          verbosity=verbosity)
+  loader = DataLoader(tasks=all_MUV_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
     dataset = loader.featurize(dataset_file, data_dir)
     regen = True

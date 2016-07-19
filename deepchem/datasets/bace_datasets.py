@@ -11,7 +11,7 @@ import tempfile, shutil
 from deepchem.utils.save import load_from_disk
 from deepchem.splits import SpecifiedSplitter
 from deepchem.featurizers import UserDefinedFeaturizer 
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.datasets import Dataset
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import ClippingTransformer
@@ -69,7 +69,7 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   else:
     raise ValueError("Unknown mode %s" % mode)
   featurizer = UserDefinedFeaturizer(user_specified_features)
-  loader = DataFeaturizer(tasks=bace_tasks,
+  loader = DataLoader(tasks=bace_tasks,
                               smiles_field="mol",
                               id_field="CID",
                               featurizer=featurizer)

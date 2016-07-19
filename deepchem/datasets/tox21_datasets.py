@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import RandomSplitter
@@ -62,10 +62,10 @@ def load_tox21(base_dir, reload=True):
                      'SR-HSE', 'SR-MMP', 'SR-p53']
 
   if not reload or not os.path.exists(data_dir):
-    loader = DataFeaturizer(tasks=all_tox21_tasks,
-                            smiles_field="smiles",
-                            featurizer=featurizer,
-                            verbosity=verbosity)
+    loader = DataLoader(tasks=all_tox21_tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=8192)
   else:

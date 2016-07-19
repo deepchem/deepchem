@@ -4,6 +4,7 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 
 dataset_file = "../../../datasets/pdbbind_full_df.pkl.gz"
 print("About to load dataset form disk.")
@@ -37,17 +38,16 @@ if not os.path.exists(samples_dir):
     os.makedirs(samples_dir)
 
 
-from deepchem.featurizers.featurize import DataFeaturizer
 
 featurizers = compound_featurizers + complex_featurizers
-featurizer = DataFeaturizer(tasks=["label"],
-                            smiles_field="smiles",
-                            protein_pdb_field="protein_pdb",
-                            ligand_pdb_field="ligand_pdb",
-                            compound_featurizers=compound_featurizers,
-                            complex_featurizers=complex_featurizers,
-                            id_field="complex_id",
-                            verbose=False)
+featurizer = DataLoader(tasks=["label"],
+                        smiles_field="smiles",
+                        protein_pdb_field="protein_pdb",
+                        ligand_pdb_field="ligand_pdb",
+                        compound_featurizers=compound_featurizers,
+                        complex_featurizers=complex_featurizers,
+                        id_field="complex_id",
+                        verbose=False)
 from ipyparallel import Client
 c = Client()
 print("c.ids")

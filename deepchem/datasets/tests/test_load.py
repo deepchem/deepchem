@@ -16,7 +16,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.datasets import Dataset
 
 ## task0: 1,1,0,-,0,-,1,-,-,1
@@ -37,10 +37,10 @@ class TestLoad(TestAPI):
 
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(dataset_file, data_dir)
 
     X, y, w, ids = dataset.to_numpy()
@@ -92,10 +92,10 @@ class TestLoad(TestAPI):
     all_tasks = ["task%d"%i for i in range(17)] 
 
     ####### Do featurization
-    loader = DataFeaturizer(tasks=all_tasks,
-                                smiles_field="smiles",
-                                featurizer=featurizer,
-                                verbosity=verbosity)
+    loader = DataLoader(tasks=all_tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(
         dataset_file, data_dir)
 
@@ -160,10 +160,10 @@ class TestLoad(TestAPI):
     tasks = all_tasks[0:n_tasks]
 
     ####### Do multitask load
-    loader = DataFeaturizer(tasks=tasks,
-                            smiles_field="smiles",
-                            featurizer=featurizer,
-                            verbosity=verbosity)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
     dataset = loader.featurize(dataset_file, data_dir)
 
     # Do train/valid split.
@@ -176,10 +176,10 @@ class TestLoad(TestAPI):
       print("Processing task %s" % task)
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
-      loader = DataFeaturizer(tasks=[task],
-                              smiles_field="smiles",
-                              featurizer=featurizer,
-                              verbosity=verbosity)
+      loader = DataLoader(tasks=[task],
+                          smiles_field="smiles",
+                          featurizer=featurizer,
+                          verbosity=verbosity)
       dataset = loader.featurize(dataset_file, data_dir)
 
       X_task, y_task, w_task, ids_task = dataset.to_numpy()

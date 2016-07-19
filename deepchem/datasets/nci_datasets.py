@@ -13,7 +13,7 @@ import numpy as np
 import shutil
 from deepchem.utils.save import load_sharded_csv
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 
@@ -65,10 +65,10 @@ def load_nci(base_dir, reload=True, force_transform=False):
                     'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T', 'BT-549',
                     'T-47D'])
 
-  loader = DataFeaturizer(tasks=all_nci_tasks,
-                          smiles_field="smiles",
-                          featurizer=featurizer,
-                          verbosity=verbosity)
+  loader = DataLoader(tasks=all_nci_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
     dataset = loader.featurize(dataset_paths, data_dir)
     regen = True

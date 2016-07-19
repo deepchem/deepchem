@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 
@@ -70,10 +70,10 @@ def load_pcba(base_dir, reload=True):
       'PCBA-902','PCBA-903','PCBA-904','PCBA-912','PCBA-914','PCBA-915',
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
-  loader = DataFeaturizer(tasks=all_PCBA_tasks,
-                          smiles_field="smiles",
-                          featurizer=featurizer,
-                          verbosity=verbosity)
+  loader = DataLoader(tasks=all_PCBA_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
     dataset = loader.featurize(dataset_file, data_dir)
     regen = True

@@ -13,7 +13,6 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models import Model

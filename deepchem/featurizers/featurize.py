@@ -124,7 +124,7 @@ def featurize_map_function(args):
 #  else:
 #    raise ValueError("Field of unrecognized type: %s" % str(val))
 
-class DataFeaturizer(object):
+class DataLoader(object):
   """
   Handles loading/featurizing of chemical samples (datapoints).
 
