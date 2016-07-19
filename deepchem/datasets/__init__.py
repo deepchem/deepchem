@@ -637,6 +637,12 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
       if y[ind, task] == "":
         missing[ind, task] = 1
   x_list = list(df[feature_type].values)
+  ############################################################## DEBUG
+  print("x_list")
+  print(x_list)
+  print("[type(elt) for elt in x_list]")
+  print([type(elt) for elt in x_list])
+  ############################################################## DEBUG
   valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
   x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
   x = np.squeeze(np.array(x_list))

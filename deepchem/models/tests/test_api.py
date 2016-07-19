@@ -95,7 +95,7 @@ class TestModelAPI(TestAPI):
                                 smiles_field=self.smiles_field,
                                 featurizer=featurizer,
                                 verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = featurizer.featurize(input_file, self.data_dir, debug=True)
 
     splitter = SpecifiedSplitter(input_file, "split")
     train_dataset, test_dataset = splitter.train_test_split(
@@ -230,60 +230,64 @@ class TestModelAPI(TestAPI):
     evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
     _ = evaluator.compute_model_performance(regression_metrics)
 
-  def test_singletask_keras_mlp_USF_regression_API(self):
-    """Test of singletask MLP User Specified Features regression API."""
-    from deepchem.models.keras_models.fcnet import SingleTaskDNN
-    featurizer = UserDefinedFeaturizer(["evals"])
-    tasks = ["u0"]
-    task_type = "regression"
-    task_types = {task: task_type for task in tasks}
-    model_params = {"nb_hidden": 10, "activation": "relu",
-                    "dropout": .5, "learning_rate": .01,
-                    "momentum": .9, "nesterov": False,
-                    "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform",
-                    "nb_layers": 1, "batchnorm": False}
 
-    input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizer=featurizer,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+  #### TODO(rbharath): This test is being disabled since deepchem no longer
+  #### accepts this format of input. Decide whether this test should be deleted
+  #### altogether or replaced.
+  #def test_singletask_keras_mlp_USF_regression_API(self):
+  #  """Test of singletask MLP User Specified Features regression API."""
+  #  from deepchem.models.keras_models.fcnet import SingleTaskDNN
+  #  featurizer = UserDefinedFeaturizer(["evals"])
+  #  tasks = ["u0"]
+  #  task_type = "regression"
+  #  task_types = {task: task_type for task in tasks}
+  #  model_params = {"nb_hidden": 10, "activation": "relu",
+  #                  "dropout": .5, "learning_rate": .01,
+  #                  "momentum": .9, "nesterov": False,
+  #                  "decay": 1e-4, "batch_size": 5,
+  #                  "nb_epoch": 2, "init": "glorot_uniform",
+  #                  "nb_layers": 1, "batchnorm": False}
 
-    splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
+  #  input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
+  #  featurizer = DataFeaturizer(tasks=tasks,
+  #                              smiles_field=self.smiles_field,
+  #                              featurizer=featurizer,
+  #                              verbosity="low")
+  #  dataset = featurizer.featurize(input_file, self.data_dir)
 
-    input_transformers = [
-      NormalizationTransformer(transform_X=True, dataset=train_dataset),
-      ClippingTransformer(transform_X=True, dataset=train_dataset)]
-    output_transformers = [
-      NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-    transformers = input_transformers + output_transformers
+  #  splitter = ScaffoldSplitter()
+  #  train_dataset, test_dataset = splitter.train_test_split(
+  #      dataset, self.train_dir, self.test_dir)
 
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        transformer.transform(dataset)
+  #  input_transformers = [
+  #    NormalizationTransformer(transform_X=True, dataset=train_dataset),
+  #    ClippingTransformer(transform_X=True, dataset=train_dataset)]
+  #  output_transformers = [
+  #    NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+  #  transformers = input_transformers + output_transformers
 
-    model_params["data_shape"] = train_dataset.get_data_shape()
-    regression_metrics = [Metric(metrics.r2_score),
-                          Metric(metrics.mean_squared_error),
-                          Metric(metrics.mean_absolute_error)]
+  #  for dataset in [train_dataset, test_dataset]:
+  #    for transformer in transformers:
+  #      transformer.transform(dataset)
 
-    model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
+  #  model_params["data_shape"] = train_dataset.get_data_shape()
+  #  regression_metrics = [Metric(metrics.r2_score),
+  #                        Metric(metrics.mean_squared_error),
+  #                        Metric(metrics.mean_absolute_error)]
 
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
+  #  model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
 
-    # Eval model on train
-    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
+  #  # Fit trained model
+  #  model.fit(train_dataset)
+  #  model.save()
 
-    # Eval model on test
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
+  #  # Eval model on train
+  #  evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+  #  _ = evaluator.compute_model_performance(regression_metrics)
+
+  #  # Eval model on test
+  #  evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+  #  _ = evaluator.compute_model_performance(regression_metrics)
 
 
   def test_multitask_keras_mlp_ECFP_classification_API(self):
