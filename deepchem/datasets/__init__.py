@@ -636,7 +636,7 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field):
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
-  x = np.array(list(df[feature_type].values))
+  x = np.squeeze(np.array(list(df[feature_type].values)))
   ############################################################## DEBUG
   time2 = time.time()
   print("CONVERT_DF_TO_NUMPY X COMP TOOK %0.3f s" % (time2-time1))
