@@ -6,7 +6,6 @@ import numpy as np
 import numpy.random
 from deepchem.utils.save import load_from_disk
 from deepchem.splits import SpecifiedSplitter
-from deepchem.featurizers.featurize import DataFeaturizer
 from deepchem.datasets import Dataset
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import ClippingTransformer

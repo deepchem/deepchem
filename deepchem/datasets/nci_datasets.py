@@ -13,7 +13,7 @@ import numpy as np
 import shutil
 from deepchem.utils.save import load_sharded_csv
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 
@@ -50,7 +50,7 @@ def load_nci(base_dir, reload=True, force_transform=False):
 
   # Featurize nci dataset
   print("About to featurize nci dataset.")
-  featurizers = [CircularFingerprint(size=1024)]
+  featurizer = CircularFingerprint(size=1024)
   #was sorted list originally in muv_datasets.py, but csv is ordered so removed
   all_nci_tasks = (['CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226',
                     'SR', 'A549/ATCC', 'EKVX', 'HOP-62', 'HOP-92', 'NCI-H226',
@@ -65,12 +65,12 @@ def load_nci(base_dir, reload=True, force_transform=False):
                     'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T', 'BT-549',
                     'T-47D'])
 
-  featurizer = DataFeaturizer(tasks=all_nci_tasks,
-                              smiles_field="smiles",
-                              featurizers=featurizers,
-                              verbosity=verbosity)
+  loader = DataLoader(tasks=all_nci_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
-    dataset = featurizer.featurize(dataset_paths, data_dir)
+    dataset = loader.featurize(dataset_paths, data_dir)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)

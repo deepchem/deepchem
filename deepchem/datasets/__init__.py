@@ -13,6 +13,7 @@ from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+import time
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -60,16 +61,25 @@ class Dataset(object):
         raise ValueError("No metadata found.")
 
   @staticmethod
-  def write_dataframe(val, data_dir, featurizers=None, tasks=None,
-                      raw_data=None, basename=None):
+  def write_dataframe(val, data_dir, featurizer=None, tasks=None,
+                      raw_data=None, basename=None, mol_id_field="mol_id",
+                      verbosity=None):
     """Writes data from dataframe to disk."""
-    if featurizers is not None and tasks is not None:
-      feature_types = [featurizer.__class__.__name__ for featurizer in featurizers]
+    if featurizer is not None and tasks is not None:
+      feature_type = featurizer.__class__.__name__
       (basename, df) = val
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
-      ids, X, y, w = _df_to_numpy(df, feature_types, tasks)
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
+      ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field,
+                                         verbosity)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbosity)
+      ############################################################## TIMING
     else:
       ids, X, y, w = raw_data
       basename = ""
@@ -368,6 +378,7 @@ class Dataset(object):
     """Transforms multitask dataset in collection of singletask datasets."""
     tasks = self.get_task_names()
     assert len(tasks) == len(task_dirs)
+    log("Splitting multitask dataset into singletask datasets", self.verbosity)
     task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
       log("Processing shard %d" % shard_num, self.verbosity)
@@ -588,59 +599,63 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
-def _df_to_numpy(df, feature_types, tasks):
-  """Transforms a featurized dataset df into standard set of numpy arrays"""
-  if not set(feature_types).issubset(df.keys()):
+def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, verbosity=None):
+  """Transforms a dataframe containing deepchem input into numpy arrays"""
+  if feature_type not in df.keys():
     raise ValueError(
-        "Featurized data does not support requested feature_types.")
+        "Featurized data does not support requested feature_type %s." % feature_type)
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
+  ############################################################## TIMING
+  time1 = time.time()
+  ############################################################## TIMING
   y = np.hstack([
       np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+  ############################################################## TIMING
+  time2 = time.time()
+  log("TIMING: convert_df_to_numpy y computation took %0.3f s" % (time2-time1),
+      verbosity)
+  ############################################################## TIMING
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
-  tensors = []
   feature_shape = None
+  ############################################################## TIMING
+  time1 = time.time()
+  ############################################################## TIMING
   for ind in range(n_samples):
-    datapoint = df.iloc[ind]
-    feature_list = []
-    for feature_type in feature_types:
-      feature_list.append(datapoint[feature_type])
-    try:
-      features = np.squeeze(np.concatenate(feature_list))
-      if features.size == 0:
-        features = np.zeros(feature_shape)
-        tensors.append(features)
-        missing[ind, :] = 1
-        continue
-      for feature_ind, val in enumerate(features):
-        if features[feature_ind] == "":
-          features[feature_ind] = 0.
-      features = features.astype(float)
-      if feature_shape is None:
-        feature_shape = features.shape
-    except ValueError:
-      missing[ind, :] = 1
-      continue
     for task in range(n_tasks):
       if y[ind, task] == "":
         missing[ind, task] = 1
-    if features.shape != feature_shape:
-      missing[ind, :] = 1
-      continue
-    tensors.append(features)
-  x = np.stack(tensors)
-  sorted_ids = df["mol_id"]
+  x_list = list(df[feature_type].values)
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
+  x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
+  x = np.squeeze(np.array(x_list))
+  ############################################################## TIMING
+  time2 = time.time()
+  log("TIMING: convert_df_to_numpy x computation took %0.3f s" % (time2-time1),
+      verbosity)
+  ############################################################## TIMING
+  sorted_ids = df[mol_id_field].values
 
   # Set missing data to have weight zero
-  # TODO(rbharath): There's a better way to do this with numpy indexing
+  ############################################################## TIMING
+  time1 = time.time()
+  ############################################################## TIMING
   for ind in range(n_samples):
     for task in range(n_tasks):
       if missing[ind, task]:
         y[ind, task] = 0.
         w[ind, task] = 0.
+  ############################################################## TIMING
+  time2 = time.time()
+  log("TIMING: convert_df_to_numpy missing elts computation took %0.3f s"
+      % (time2-time1), verbosity)
+  ############################################################## TIMING
 
+  sorted_ids = sorted_ids[valid_inds]
+  y = y[valid_inds]
+  w = w[valid_inds]
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
   return sorted_ids, x.astype(float), y.astype(float), w.astype(float)

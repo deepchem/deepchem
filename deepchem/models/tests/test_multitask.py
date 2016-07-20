@@ -14,7 +14,7 @@ import numpy as np
 import tempfile
 import shutil
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.datasets import Dataset
 from deepchem.models.tests import TestAPI
 from deepchem.splits import ScaffoldSplitter
@@ -45,13 +45,13 @@ class TestMultitaskData(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(

@@ -43,22 +43,25 @@ def get_input_type(input_file):
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
-def load_data(input_files, shard_size=None):
+def load_data(input_files, shard_size=None, verbosity=None):
   """Loads data from disk.
      
   For CSV files, supports sharded loading for large files.
   """
   if not len(input_files):
-    return []
+    return
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      raise ValueError("shard_size must be None for sdf input.")
-    return load_sdf_files(input_files)
+      log("Ignoring shard_size for sdf input.", verbosity)
+    for value in load_sdf_files(input_files):
+      yield value
   elif input_type == "csv":
-    return load_csv_files(input_files, shard_size)
+    for value in load_csv_files(input_files, shard_size, verbosity=verbosity):
+      yield value
   elif input_type == "pandas-pickle":
-    return [load_pickle_from_disk(input_file) for input_file in input_files]
+    for input_file in input_files:
+      yield load_pickle_from_disk(input_file)
 
 def load_sdf_files(input_files):
   """Load SDF file into dataframe."""
@@ -78,15 +81,20 @@ def load_sdf_files(input_files):
     dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
   return dataframes
 
-def load_csv_files(filenames, shard_size=None):
+def load_csv_files(filenames, shard_size=None, verbosity=None):
   """Load data as pandas dataframe."""
   # First line of user-specified CSV *must* be header.
+  shard_num = 1
   for filename in filenames:
     if shard_size is None:
       yield pd.read_csv(filename)
     else:
+      log("About to start loading CSV from %s" % filename, verbosity)
       for df in pd.read_csv(filename, chunksize=shard_size):
+        log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
+            verbosity)
         df = df.replace(np.nan, str(""), regex=True)
+        shard_num += 1
         yield df
 
 def load_from_disk(filename):

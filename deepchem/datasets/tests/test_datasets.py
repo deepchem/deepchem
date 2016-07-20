@@ -15,7 +15,7 @@ import os
 import shutil
 import numpy as np
 from deepchem.datasets import Dataset
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 from deepchem.datasets.tests import TestDatasetAPI

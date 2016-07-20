@@ -17,7 +17,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.transformers import NormalizationTransformer
 from deepchem import metrics
 from deepchem.metrics import Metric
@@ -51,16 +51,16 @@ class TestHyperparamOptAPI(TestAPI):
   def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     splittype = "scaffold"
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
@@ -88,8 +88,6 @@ class TestHyperparamOptAPI(TestAPI):
   def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask_to_multitask."""
     splittype = "scaffold"
-    compound_featurizers = [CircularFingerprint(size=1024)]
-    complex_featurizers = []
     output_transformers = []
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
@@ -148,12 +146,12 @@ class TestHyperparamOptAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizers = [CircularFingerprint(size=1024)]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    featurizer = CircularFingerprint(size=1024)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
@@ -192,13 +190,13 @@ class TestHyperparamOptAPI(TestAPI):
              "task13", "task14", "task15", "task16"]
     task_types = {task: task_type for task in tasks}
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

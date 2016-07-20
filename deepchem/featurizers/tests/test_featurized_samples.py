@@ -18,7 +18,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import SpecifiedSplitter
-from deepchem.featurizers.featurize import DataFeaturizer
+from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 #from deepchem.featurizers.featurize import FeaturizedSamples
 
@@ -37,15 +37,15 @@ class TestFeaturizedSamples(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     # Splits featurized samples into train/test
     splitter = ScaffoldSplitter()
@@ -65,15 +65,15 @@ class TestFeaturizedSamples(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     # Splits featurized samples into train/test
     splitter = ScaffoldSplitter()
@@ -91,15 +91,15 @@ class TestFeaturizedSamples(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     # Splits featurized samples into train/test
     splitter = RandomSplitter()
@@ -117,13 +117,13 @@ class TestFeaturizedSamples(TestAPI):
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    featurizers = [CircularFingerprint(size=1024)]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field=self.smiles_field,
-                                featurizers=featurizers,
-                                verbosity="low")
+    featurizer = CircularFingerprint(size=1024)
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
 
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     # Splits featurized samples into train/test
     splitter = RandomSplitter()
@@ -140,13 +140,13 @@ class TestFeaturizedSamples(TestAPI):
     dataset_file = os.path.join(
         self.current_dir, "example.csv")
 
-    featurizers = [CircularFingerprint(size=1024)]
+    featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    featurizer = DataFeaturizer(tasks=tasks,
-                                smiles_field="smiles",
-                                featurizers=featurizers,
-                                verbosity=verbosity)
-    featurized_dataset = featurizer.featurize(
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    featurized_dataset = loader.featurize(
         dataset_file, data_dir)
     n_dataset = len(featurized_dataset)
   
