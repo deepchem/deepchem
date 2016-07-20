@@ -38,13 +38,6 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   def test_get_data_shape(self):
     """Test that get_data_shape returns currect data shape"""
     solubility_dataset = self.load_solubility_data()
-    ################################################################# DEBUG
-    print("solubility_dataset.get_data_shape()")
-    print(solubility_dataset.get_data_shape())
-    X, y, w, ids = solubility_dataset.to_numpy()
-    print("X.shape, y.shape, w.shape, ids.shape")
-    print(X.shape, y.shape, w.shape, ids.shape)
-    ################################################################# DEBUG
     assert solubility_dataset.get_data_shape() == (1024,) 
     
     multitask_dataset = self.load_multitask_data()
