@@ -60,7 +60,7 @@ class TestHyperparamOptAPI(TestAPI):
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

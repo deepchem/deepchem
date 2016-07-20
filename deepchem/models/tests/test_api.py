@@ -51,7 +51,7 @@ class TestModelAPI(TestAPI):
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
@@ -95,7 +95,7 @@ class TestModelAPI(TestAPI):
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir, debug=True)
+    dataset = loader.featurize(input_file, self.data_dir, debug=True)
 
     splitter = SpecifiedSplitter(input_file, "split")
     train_dataset, test_dataset = splitter.train_test_split(
@@ -193,7 +193,7 @@ class TestModelAPI(TestAPI):
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
-    dataset = featurizer.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
@@ -249,11 +249,11 @@ class TestModelAPI(TestAPI):
   #                  "nb_layers": 1, "batchnorm": False}
 
   #  input_file = os.path.join(self.current_dir, "gbd3k.pkl.gz")
-  #  featurizer = DataLoader(tasks=tasks,
-  #                          smiles_field=self.smiles_field,
-  #                          featurizer=featurizer,
-  #                          verbosity="low")
-  #  dataset = featurizer.featurize(input_file, self.data_dir)
+  #  loader = DataLoader(tasks=tasks,
+  #                      smiles_field=self.smiles_field,
+  #                      featurizer=featurizer,
+  #                      verbosity="low")
+  #  dataset = loader.featurize(input_file, self.data_dir)
 
   #  splitter = ScaffoldSplitter()
   #  train_dataset, test_dataset = splitter.train_test_split(
