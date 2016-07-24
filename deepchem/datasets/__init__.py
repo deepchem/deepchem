@@ -332,6 +332,12 @@ class Dataset(object):
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
 
+  def set_shard(self, shard_num, X, y, w, ids):
+    """Writes data shard to disk"""
+    basename = "shard-%d" % shard_num 
+    tasks = self.get_task_names()
+    Dataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
+
   def set_verbosity(self, new_verbosity):
     """Sets verbosity."""
     self.verbosity = new_verbosity
