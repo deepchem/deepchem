@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
-from random import shuffle
+import random
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
@@ -315,7 +315,7 @@ class Dataset(object):
             self.data_dir, basename_j, tasks, X_j, y_j, w_j, ids_j)
         assert len(self) == len_data
       # Now shuffle order of rows in metadata_df
-      shuffle(metadata_rows)
+      random.shuffle(metadata_rows)
       self.metadata_df = Dataset.construct_metadata(metadata_rows)
       self.save_to_disk()
 
