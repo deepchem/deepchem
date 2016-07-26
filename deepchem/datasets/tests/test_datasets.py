@@ -48,6 +48,29 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     assert len(solubility_dataset) == 10
 
+  def test_reshard(self):
+    """Test that resharding the dataset works."""
+    solubility_dataset = self.load_solubility_data()
+    X, y, w, ids = solubility_dataset.to_numpy()
+    assert solubility_dataset.get_number_shards() == 1
+    solubility_dataset.reshard(shard_size=1)
+    X_r, y_r, w_r, ids_r = solubility_dataset.to_numpy()
+    assert solubility_dataset.get_number_shards() == 10
+    solubility_dataset.reshard(shard_size=10)
+    X_rr, y_rr, w_rr, ids_rr = solubility_dataset.to_numpy()
+
+    # Test first resharding worked
+    np.testing.assert_array_equal(X, X_r)
+    np.testing.assert_array_equal(y, y_r)
+    np.testing.assert_array_equal(w, w_r)
+    np.testing.assert_array_equal(ids, ids_r)
+
+    # Test second resharding worked
+    np.testing.assert_array_equal(X, X_rr)
+    np.testing.assert_array_equal(y, y_rr)
+    np.testing.assert_array_equal(w, w_rr)
+    np.testing.assert_array_equal(ids, ids_rr)
+
   def test_select(self):
     """Test that dataset select works."""
     num_datapoints = 10

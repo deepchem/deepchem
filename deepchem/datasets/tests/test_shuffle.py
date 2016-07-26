@@ -56,3 +56,69 @@ class TestShuffle(TestAPI):
     assert X_orig.shape == X_new.shape
     assert y_orig.shape == y_new.shape
     assert w_orig.shape == w_new.shape
+
+  def test_reshard_shuffle(self):
+    """Test that datasets can be merged."""
+    verbosity = "high"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data_dir = os.path.join(self.base_dir, "dataset")
+
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/example.csv")
+
+    featurizer = CircularFingerprint(size=1024)
+    tasks = ["log-solubility"]
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    dataset = loader.featurize(
+        dataset_file, data_dir, shard_size=2)
+
+    X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()
+    orig_len = len(dataset)
+
+    dataset.reshard_shuffle(reshard_size=1)
+    X_new, y_new, w_new, new_ids = dataset.to_numpy()
+    
+    assert len(dataset) == orig_len
+    # The shuffling should have switched up the ordering
+    assert not np.array_equal(orig_ids, new_ids)
+    # But all the same entries should still be present
+    assert sorted(orig_ids) == sorted(new_ids)
+    # All the data should have same shape
+    assert X_orig.shape == X_new.shape
+    assert y_orig.shape == y_new.shape
+    assert w_orig.shape == w_new.shape
+
+  def test_shuffle_shards(self):
+    """Test that shuffle_shards works."""
+    n_samples = 100
+    n_tasks = 10
+    n_features = 10
+
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.random.randint(2, size=(n_samples, n_tasks))
+    ids = np.arange(n_samples)
+    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset.reshard(shard_size=10)
+    dataset.shuffle_shards()
+
+    X_s, y_s, w_s, ids_s = dataset.to_numpy()
+
+    assert X_s.shape == X.shape
+    assert y_s.shape == y.shape
+    assert ids_s.shape == ids.shape
+    assert w_s.shape == w.shape
+
+    # The ids should now store the performed permutation. Check that the
+    # original dataset is recoverable.
+    for i in range(n_samples):
+      np.testing.assert_array_equal(X_s[i], X[ids_s[i]])
+      np.testing.assert_array_equal(y_s[i], y[ids_s[i]])
+      np.testing.assert_array_equal(w_s[i], w[ids_s[i]])
+      np.testing.assert_array_equal(ids_s[i], ids[ids_s[i]])
+      
+  
+
