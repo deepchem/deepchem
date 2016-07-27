@@ -13,6 +13,7 @@ import os
 import unittest
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
+from deepchem.splits import StratifiedSplitter
 from deepchem.datasets.tests import TestDatasetAPI
 
 class TestSplitters(TestDatasetAPI):
