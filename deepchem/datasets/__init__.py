@@ -178,7 +178,7 @@ class Dataset(object):
     sample_y = load_from_disk(
         os.path.join(
             self.data_dir,
-            self.metadata_df.iterrows().next()[1]['y-transformed']))[0]
+            self.metadata_df.iterrows().next()[1]['y-transformed']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -329,6 +329,9 @@ class Dataset(object):
 
   def reshard_shuffle(self, reshard_size=10):
     """Shuffles by resharding, shuffling shards, undoing resharding."""
+    #########################################################  TIMING
+    time1 = time.time()
+    #########################################################  TIMING
     orig_shard_size = self.get_shard_size()
     log("Resharding to shard-size %d." % reshard_size, self.verbosity)
     self.reshard(shard_size=reshard_size)
@@ -337,6 +340,11 @@ class Dataset(object):
     log("Resharding to original shard-size %d." % orig_shard_size,
         self.verbosity)
     self.reshard(shard_size=orig_shard_size)
+    #########################################################  TIMING
+    time2 = time.time()
+    log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
+        self.verbosity)
+    #########################################################  TIMING
 
   def shuffle(self, iterations=1):
     """Shuffles this dataset on disk to have random order."""

@@ -54,9 +54,11 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     X, y, w, ids = solubility_dataset.to_numpy()
     assert solubility_dataset.get_number_shards() == 1
     solubility_dataset.reshard(shard_size=1)
+    assert solubility_dataset.get_shard_size() == 1
     X_r, y_r, w_r, ids_r = solubility_dataset.to_numpy()
     assert solubility_dataset.get_number_shards() == 10
     solubility_dataset.reshard(shard_size=10)
+    assert solubility_dataset.get_shard_size() == 10
     X_rr, y_rr, w_rr, ids_rr = solubility_dataset.to_numpy()
 
     # Test first resharding worked
