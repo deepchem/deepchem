@@ -340,6 +340,7 @@ class Dataset(object):
     log("Resharding to original shard-size %d." % orig_shard_size,
         self.verbosity)
     self.reshard(shard_size=orig_shard_size)
+    self.shuffle_each_shard()
     #########################################################  TIMING
     time2 = time.time()
     log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
@@ -390,6 +391,23 @@ class Dataset(object):
       random.shuffle(metadata_rows)
       self.metadata_df = Dataset.construct_metadata(metadata_rows)
       self.save_to_disk()
+
+  def shuffle_each_shard(self):
+    """Shuffles elements within each shard of the datset."""
+    tasks = self.get_task_names()
+    # Shuffle the arrays corresponding to each row in metadata_df
+    n_rows = len(self.metadata_df.index)
+    n_rows = len(self.metadata_df.index)
+    for i in range(n_rows):
+      row = self.metadata_df.iloc[i]
+      basename = row["basename"]
+      X, y, w, ids = self.get_shard(i)
+      n = X.shape[0]
+      permutation = np.random.permutation(n)
+      X, y, w, ids = (X[permutation], y[permutation],
+                      w[permutation], ids[permutation])
+      Dataset.write_data_to_disk(
+          self.data_dir, basename, tasks, X, y, w, ids)
 
   def shuffle_shards(self):
     """Shuffles the order of the shards for this dataset."""

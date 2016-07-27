@@ -91,6 +91,34 @@ class TestShuffle(TestAPI):
     assert y_orig.shape == y_new.shape
     assert w_orig.shape == w_new.shape
 
+  def test_shuffle_each_shard(self):
+    """Test that shuffle_each_shard works."""
+    n_samples = 100
+    n_tasks = 10
+    n_features = 10
+
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.random.randint(2, size=(n_samples, n_tasks))
+    ids = np.arange(n_samples)
+    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset.reshard(shard_size=10)
+
+    dataset.shuffle_each_shard()
+    X_s, y_s, w_s, ids_s = dataset.to_numpy()
+    assert X_s.shape == X.shape
+    assert y_s.shape == y.shape
+    assert ids_s.shape == ids.shape
+    assert w_s.shape == w.shape
+
+    # The ids should now store the performed permutation. Check that the
+    # original dataset is recoverable.
+    for i in range(n_samples):
+      np.testing.assert_array_equal(X_s[i], X[ids_s[i]])
+      np.testing.assert_array_equal(y_s[i], y[ids_s[i]])
+      np.testing.assert_array_equal(w_s[i], w[ids_s[i]])
+      np.testing.assert_array_equal(ids_s[i], ids[ids_s[i]])
+
   def test_shuffle_shards(self):
     """Test that shuffle_shards works."""
     n_samples = 100
@@ -119,6 +147,3 @@ class TestShuffle(TestAPI):
       np.testing.assert_array_equal(y_s[i], y[ids_s[i]])
       np.testing.assert_array_equal(w_s[i], w[ids_s[i]])
       np.testing.assert_array_equal(ids_s[i], ids[ids_s[i]])
-      
-  
-
