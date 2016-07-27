@@ -76,6 +76,21 @@ class Splitter(object):
     """
     raise NotImplementedError
 
+class StratifiedSplitter(Splitter):
+  """
+  Class for doing stratified splits -- where data is too sparse to do regular splits
+  """
+  def train_valid_test_split(self, dataset, train_dir,
+                             valid_dir, test_dir, frac_train=.8,
+                             frac_valid=.1, frac_test=.1, seed=None,
+                             log_every_n=1000):
+   """
+   Overrides parent implementation to do stratified split
+   """
+   numpyArrayList = dataset.to_numpy();
+   print(numpyArrayList)
+   return (False, False, False) #placeholder until rest of code is written
+
 class MolecularWeightSplitter(Splitter):
   """
   Class for doing data splits by molecular weight.
