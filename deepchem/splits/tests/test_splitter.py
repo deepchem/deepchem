@@ -85,7 +85,27 @@ class TestSplitters(TestDatasetAPI):
         """
         Test multitask StratifiedSplitter class
         """
+        #ensure sparse dataset is actually sparse
         sparse_dataset = self.load_sparse_multitask_dataset()
+        sparse_np_list = sparse_dataset.to_numpy()
+        sparse_np = sparse_np_list[1]
+        sparse_df = pd.DataFrame(data = sparse_np)
+        total_rows = len(sparse_df.index)
+        sparse_flag = False
+        for col in sparse_df:
+            column = sparse_df[col]
+            NaN_count = column.isnull().sum()
+            if NaN_count == total_rows:
+                print("good -- one column doesn't have results")
+                sparse_flag = True
+                assert NaN_count == total_rows
+                break
+        if not sparse_flag:
+            print("datset isn't sparse")
+            assert sparse_flag is True
+        else:
+            print("dataset is sparse")
+
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \
             stratified_splitter.train_valid_test_split(
