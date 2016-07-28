@@ -85,12 +85,12 @@ class StratifiedSplitter(Splitter):
   Class for doing stratified splits -- where data is too sparse to do regular splits
   """
 
-  def __randomizeArrays(self, arraylist):
-    generator_state = numpy.random.get_state()
-    for array in arrayList:
-      numpy.random.shuffle(array)
-      numpy.random.set_state(generator_state)
-    return arrayList
+  def __randomizeArrays(self, array_list):
+    generator_state = np.random.get_state()
+    for array in array_list:
+      np.random.shuffle(array)
+      np.random.set_state(generator_state)
+    return array_list
 
   def __generate_required_hits(self, y_df, frac_train):
     colIndex = 0
@@ -111,7 +111,6 @@ class StratifiedSplitter(Splitter):
       column = y_df[col]
       num_hit = 0
       num_required = required_hit_dict[colIndex]
-      colIndex += 1
       for index, value in y_df[col].iteritems():
         if pd.notnull(value):
           num_hit += 1
@@ -119,6 +118,7 @@ class StratifiedSplitter(Splitter):
           if num_hit >= num_required:
             index_dict[colIndex] = index
             break
+      colIndex+=1
     return index_dict
 
   def train_valid_test_split(self, dataset, train_dir,
@@ -128,7 +128,7 @@ class StratifiedSplitter(Splitter):
    # Obtain original x, y, and w arrays
     numpyArrayList = dataset.to_numpy();
 
-    numpyArrayList = randomizeArrays(numpyArrayList)
+    numpyArrayList = self.__randomizeArrays(numpyArrayList)
     X = numpyArrayList[0]
     y = numpyArrayList[1]
     w = numpyArrayList[2]
@@ -139,14 +139,15 @@ class StratifiedSplitter(Splitter):
     """
     # find, for each task, the total number of hits and calculate the required
     # number of hits for valid split based on frac_train
-    x_df = pd.DataFrame(data=x)
+    x_df = pd.DataFrame(data=X)
     y_df = pd.DataFrame(data=y)
     w_df = pd.DataFrame(data=w)
     id_df = pd.DataFrame(data=ids)
 
-    required_hit_dict = __generate_required_hits(y_df, frac_train)
-    index_dict = __generate_required_index(y_df, required_hit_dict)
-    X_train, X_test, y_train, y_test, w_train, w_test, id_train, id_test = []
+    required_hit_dict = self.__generate_required_hits(y_df, frac_train)
+    index_dict = self.__generate_required_index(y_df, required_hit_dict)
+    print(index_dict)
+    X_train, X_test, y_train, y_test, w_train, w_test, id_train, id_test = [], [], [], [], [], [], [], []
 
     # cycle through rows in y, copy over rows as appropriate
     for rowIndex, row in y_df.iterrows():
