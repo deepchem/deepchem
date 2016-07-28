@@ -15,6 +15,8 @@ from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import StratifiedSplitter
 from deepchem.datasets.tests import TestDatasetAPI
+from deepchem.datasets import Dataset
+import pandas as pd
 
 class TestSplitters(TestDatasetAPI):
   """
@@ -90,5 +92,16 @@ class TestSplitters(TestDatasetAPI):
           self.train_dir, self.valid_dir, self.test_dir,
           frac_train = 0.8, frac_valid = 0.1, frac_test = 0.1
       )
+   train_np_list = train_data.to_numpy()
+   y = train_data[1]
+   #verify that each task in the train dataset has some hits
+   y_df = pd.DataFrame(data = y)
+   totalRows = len(y_df.index)
+   for col in y_df:
+       column = y_df[col]
+       NaN_count = column.isnull().sum()
+       numRows = len(colum)
+       if NaN_count == totalRows:
+           assert NaN_count != totalRows
    print("end of stratified test")
    assert 1 == 1

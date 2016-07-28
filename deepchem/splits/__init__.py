@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-__author__ = "Bharath Ramsundar"
+__author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
@@ -85,7 +85,7 @@ class StratifiedSplitter(Splitter):
   Class for doing stratified splits -- where data is too sparse to do regular splits
   """
 
-  def __randomizeArrays(self, array_list):
+  def __randomize_arrays(self, array_list):
     generator_state = np.random.get_state()
     for array in array_list:
       np.random.shuffle(array)
@@ -128,7 +128,7 @@ class StratifiedSplitter(Splitter):
    # Obtain original x, y, and w arrays
     numpyArrayList = dataset.to_numpy();
 
-    numpyArrayList = self.__randomizeArrays(numpyArrayList)
+    numpyArrayList = self.__randomize_arrays(numpyArrayList)
     X = numpyArrayList[0]
     y = numpyArrayList[1]
     w = numpyArrayList[2]
