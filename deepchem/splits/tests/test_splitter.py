@@ -115,6 +115,12 @@ class TestSplitters(TestDatasetAPI):
                     elif datasetIndex == 2:
                         print("test_data failed")
                     assert NaN_count != totalRows
+            if datasetIndex == 0:
+                print("train_data passed")
+            elif datasetIndex == 1:
+                print("valid_data passed")
+            elif datasetIndex == 2:
+                print("test_data passed")
             datasetIndex+=1
         print("end of stratified test")
         assert 1 == 1
