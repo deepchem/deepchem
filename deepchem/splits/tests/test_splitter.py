@@ -102,7 +102,6 @@ class TestSplitters(TestDatasetAPI):
         for col in y_df:
             column = y_df[col]
             NaN_count = column.isnull().sum()
-            numRows = len(colum)
             if NaN_count == totalRows:
                 assert NaN_count != totalRows
         print("end of stratified test")
