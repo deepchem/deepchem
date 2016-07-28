@@ -327,20 +327,21 @@ class Dataset(object):
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
-  def reshard_shuffle(self, reshard_size=10):
+  def reshard_shuffle(self, reshard_size=10, num_reshards=3):
     """Shuffles by resharding, shuffling shards, undoing resharding."""
     #########################################################  TIMING
     time1 = time.time()
     #########################################################  TIMING
-    orig_shard_size = self.get_shard_size()
-    log("Resharding to shard-size %d." % reshard_size, self.verbosity)
-    self.reshard(shard_size=reshard_size)
-    log("Shuffling shard order.", self.verbosity)
-    self.shuffle_shards()
-    log("Resharding to original shard-size %d." % orig_shard_size,
-        self.verbosity)
-    self.reshard(shard_size=orig_shard_size)
-    self.shuffle_each_shard()
+    for i in range(num_reshards):
+      orig_shard_size = self.get_shard_size()
+      log("Resharding to shard-size %d." % reshard_size, self.verbosity)
+      self.reshard(shard_size=reshard_size)
+      log("Shuffling shard order.", self.verbosity)
+      self.shuffle_shards()
+      log("Resharding to original shard-size %d." % orig_shard_size,
+          self.verbosity)
+      self.reshard(shard_size=orig_shard_size)
+      self.shuffle_each_shard()
     #########################################################  TIMING
     time2 = time.time()
     log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
