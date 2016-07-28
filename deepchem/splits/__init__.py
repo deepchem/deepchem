@@ -197,10 +197,10 @@ class StratifiedSplitter(Splitter):
         id_test_np = np.array(id_test)
 
         # make valid split - 50/50 split of test
-        X_split_list = np.vsplit(X_test_np, 2)
-        y_split_list = np.vsplit(y_test_np, 2)
-        w_split_list = np.vsplit(w_test_np, 2)
-        id_split_list = np.vsplit(id_test_np, 2)
+        X_split_list = np.array_split(X_test_np, 2)
+        y_split_list = np.array_split(y_test_np, 2)
+        w_split_list = np.array_split(w_test_np, 2)
+        id_split_list = np.array_split(id_test_np, 2)
 
         X_test_np = X_split_list[0]
         X_valid_np = X_split_list[1]
