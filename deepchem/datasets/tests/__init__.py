@@ -75,7 +75,7 @@ class TestDatasetAPI(TestAPI):
     return loader.featurize(input_file, self.data_dir)
 
   def load_sparse_multitask_dataset(self):
-    """Load sparse tox multitask data."""
+    """Load sparse tox multitask data, sample dataset."""
     if os.path.exists(self.data_dir):
       shutil.rmtree(self.data_dir)
     featurizer = CircularFingerprint(size=1024)
