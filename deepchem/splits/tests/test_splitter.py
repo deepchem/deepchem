@@ -94,16 +94,27 @@ class TestSplitters(TestDatasetAPI):
                 self.train_dir, self.valid_dir, self.test_dir,
                 frac_train=0.8, frac_valid=0.1, frac_test=0.1
             )
-        train_np_list = train_data.to_numpy()
-        y = train_np_list[1]
-        # verify that each task in the train dataset has some hits
-        y_df = pd.DataFrame(data=y)
-        totalRows = len(y_df.index)
-        for col in y_df:
-            column = y_df[col]
-            NaN_count = column.isnull().sum()
-            if NaN_count == totalRows:
-                print("fail -- one column doesn't have results")
-                assert NaN_count != totalRows
+
+        datasets = [train_data, valid_data, test_data]
+        datasetIndex = 0
+        for dataset in datasets:
+            np_list = dataset.to_numpy()
+            y = np_list[1]
+            # verify that each task in the train dataset has some hits
+            y_df = pd.DataFrame(data=y)
+            totalRows = len(y_df.index)
+            for col in y_df:
+                column = y_df[col]
+                NaN_count = column.isnull().sum()
+                if NaN_count == totalRows:
+                    print("fail -- one column doesn't have results")
+                    if datasetIndex == 0:
+                        print("train_data failed")
+                    elif datasetIndex == 1:
+                        print("valid_data failed")
+                    elif datasetIndex == 2:
+                        print("test_data failed")
+                    assert NaN_count != totalRows
+            datasetIndex+=1
         print("end of stratified test")
         assert 1 == 1
