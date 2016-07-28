@@ -146,7 +146,6 @@ class StratifiedSplitter(Splitter):
 
         required_hit_dict = self.__generate_required_hits(y_df, frac_train)
         index_dict = self.__generate_required_index(y_df, required_hit_dict)
-        print(index_dict)
         X_train, X_test, y_train, y_test, w_train, w_test, id_train, id_test = [], [], [], [], [], [], [], []
 
         # cycle through rows in y, copy over rows as appropriate

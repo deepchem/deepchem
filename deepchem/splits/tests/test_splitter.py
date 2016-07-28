@@ -1,33 +1,30 @@
 """
 Tests for splitter objects.
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-import os
-import unittest
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import StratifiedSplitter
 from deepchem.datasets.tests import TestDatasetAPI
-from deepchem.datasets import Dataset
 import pandas as pd
 
 
 class TestSplitters(TestDatasetAPI):
     """
-  Test some basic splitters.
-  """
+    Test some basic splitters.
+    """
 
     def test_singletask_random_split(self):
         """
-    Test singletask RandomSplitter class.
-    """
+        Test singletask RandomSplitter class.
+        """
         solubility_dataset = self.load_solubility_data()
         random_splitter = RandomSplitter()
         train_data, valid_data, test_data = \
@@ -41,8 +38,8 @@ class TestSplitters(TestDatasetAPI):
 
     def test_singletask_scaffold_split(self):
         """
-    Test singletask ScaffoldSplitter class.
-    """
+        Test singletask ScaffoldSplitter class.
+        """
         solubility_dataset = self.load_solubility_data()
         scaffold_splitter = ScaffoldSplitter()
         train_data, valid_data, test_data = \
@@ -56,8 +53,8 @@ class TestSplitters(TestDatasetAPI):
 
     def test_multitask_random_split(self):
         """
-    Test multitask RandomSplitter class.
-    """
+        Test multitask RandomSplitter class.
+        """
         multitask_dataset = self.load_multitask_data()
         random_splitter = RandomSplitter()
         train_data, valid_data, test_data = \
@@ -71,8 +68,8 @@ class TestSplitters(TestDatasetAPI):
 
     def test_multitask_scaffold_split(self):
         """
-    Test multitask ScaffoldSplitter class.
-    """
+        Test multitask ScaffoldSplitter class.
+        """
         multitask_dataset = self.load_multitask_data()
         scaffold_splitter = ScaffoldSplitter()
         train_data, valid_data, test_data = \
@@ -85,7 +82,9 @@ class TestSplitters(TestDatasetAPI):
         assert len(test_data) == 1
 
     def test_stratified_multitask_split(self):
-        print("In stratified tester")
+        """
+        Test multitask StratifiedSplitter class
+        """
         sparse_dataset = self.load_sparse_multitask_dataset()
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \
