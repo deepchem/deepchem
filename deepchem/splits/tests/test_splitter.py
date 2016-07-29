@@ -121,7 +121,7 @@ class TestSplitters(TestDatasetAPI):
             zero_count = column.value_counts()[0]
             if zero_count == total_rows:
                 print("good -- one column doesn't have results")
-                print("it was column %d") % (colIndex)
+                print(colIndex)
                 sparse_flag = True
                 assert zero_count == total_rows
                 break
