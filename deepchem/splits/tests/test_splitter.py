@@ -124,7 +124,7 @@ class TestSplitters(TestDatasetAPI):
                 print("good -- one column doesn't have results")
                 print(colIndex)
                 print("weight column")
-                print column
+                print(column)
                 print("corresponding y column")
                 print(y_df.iloc[:, colIndex])
                 sparse_flag = True
