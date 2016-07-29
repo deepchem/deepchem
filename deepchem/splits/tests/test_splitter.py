@@ -115,14 +115,17 @@ class TestSplitters(TestDatasetAPI):
 
         total_rows = len(sparse_df.index)
         sparse_flag = False
+        colIndex = 0
         for col in sparse_df:
             column = sparse_df[col] #get series representation
             zero_count = column.value_counts()[0]
             if zero_count == total_rows:
                 print("good -- one column doesn't have results")
+                print("it was column %d") % (colIndex)
                 sparse_flag = True
-                assert NaN_count == total_rows
+                assert zero_count == total_rows
                 break
+        colIndex+=1
         if not sparse_flag:
             print("dataset isn't sparse")
             assert sparse_flag is True
