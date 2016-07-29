@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-__author__ = "Bharath Ramsundar, Aneesh Pappu"
+__author__ = "Bharath Ramsundar, Aneesh Pappu "
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
