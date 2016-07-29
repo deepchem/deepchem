@@ -126,17 +126,18 @@ class StratifiedSplitter(Splitter):
                                frac_valid=.1, frac_test=.1, seed=None,
                                log_every_n=1000):
         # Obtain original x, y, and w arrays
-        numpyArrayList = dataset.to_numpy();
+        numpyArrayList = dataset.to_numpy()
 
         numpyArrayList = self.__randomize_arrays(numpyArrayList)
         X = numpyArrayList[0]
         y = numpyArrayList[1]
         w = numpyArrayList[2]
         ids = numpyArrayList[3]
-
+        print("this is y!")
+        print(y)
         """
-    frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
-    """
+        frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
+        """
         # find, for each task, the total number of hits and calculate the required
         # number of hits for valid split based on frac_train
         x_df = pd.DataFrame(data=X)
