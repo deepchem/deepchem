@@ -90,29 +90,44 @@ class TestSplitters(TestDatasetAPI):
 
         sparse_dataset = self.load_sparse_multitask_dataset()
         sparse_np_list = sparse_dataset.to_numpy()
-        sparse_np = sparse_np_list[1]
+
+        """
+        sparsity is determined by number of w weights that are 0 for a given task
+        structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
+        sparse task
+        """
+
+        sparse_np = sparse_np_list[2]
+        #debugging
         print(sparse_np[:, 3])
+
         frac_train = 0.5
         cutoff = int(math.floor(frac_train * len(sparse_np)))
         sparse_np = sparse_np[:cutoff, :]
+
+        #debugging
         print(sparse_np[:, 3])
+
         sparse_df = pd.DataFrame(data = sparse_np)
+
+        #debugging
         print(sparse_df.iloc[:, 3])
+
         total_rows = len(sparse_df.index)
         sparse_flag = False
-        # for col in sparse_df:
-        #     column = sparse_df[col]
-        #     NaN_count = column.isnull().sum()
-        #     if NaN_count == total_rows:
-        #         print("good -- one column doesn't have results")
-        #         sparse_flag = True
-        #         assert NaN_count == total_rows
-        #         break
-        # if not sparse_flag:
-        #     print("dataset isn't sparse")
-        #     assert sparse_flag is True
-        # else:
-        #     print("dataset is sparse")
+        for col in sparse_df:
+            column = sparse_df[col] #get series representation
+            zero_count = column.value_counts()[0]
+            if zero_count == total_rows:
+                print("good -- one column doesn't have results")
+                sparse_flag = True
+                assert NaN_count == total_rows
+                break
+        if not sparse_flag:
+            print("dataset isn't sparse")
+            assert sparse_flag is True
+        else:
+            print("dataset is sparse")
 
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \

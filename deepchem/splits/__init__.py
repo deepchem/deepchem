@@ -133,8 +133,7 @@ class StratifiedSplitter(Splitter):
         y = numpyArrayList[1]
         w = numpyArrayList[2]
         ids = numpyArrayList[3]
-        print("this is y!")
-        print(y)
+
         """
         frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
         """
