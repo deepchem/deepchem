@@ -91,13 +91,22 @@ class TestSplitters(TestDatasetAPI):
         sparse_dataset = self.load_sparse_multitask_dataset()
         sparse_np_list = sparse_dataset.to_numpy()
 
+        ############################################ DEBUG
+        X, y, w, ids = sparse_dataset.to_numpy()
+        print("y[11]")
+        print(y[11])
+        print("w[11]")
+        print(w[11])
+        ############################################ DEBUG
+        assert 0 == 1
+
         """
         sparsity is determined by number of w weights that are 0 for a given task
         structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
         sparse task
         """
         y_np = sparse_np_list[1]
-        sparse_np = sparse_np_list[2]
+        sparse_np = sparse_np_list[2] #weight np array
         #debugging
         #print(sparse_np[:, 3])
 
