@@ -14,6 +14,7 @@ from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import StratifiedSplitter
 from deepchem.datasets.tests import TestDatasetAPI
 import pandas as pd
+import math
 
 
 class TestSplitters(TestDatasetAPI):
@@ -91,7 +92,7 @@ class TestSplitters(TestDatasetAPI):
         sparse_np_list = sparse_dataset.to_numpy()
         sparse_np = sparse_np_list[1]
         frac_train = 0.5
-        cutoff = frac_train * len(sparse_np)
+        cutoff = int(math.floor(frac_train * len(sparse_np)))
         sparse_np = sparse_np[:cutoff, :]
         sparse_df = pd.DataFrame(data = sparse_np)
         total_rows = len(sparse_df.index)
