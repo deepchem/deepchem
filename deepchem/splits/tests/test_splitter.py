@@ -96,22 +96,23 @@ class TestSplitters(TestDatasetAPI):
         structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
         sparse task
         """
-
+        y_np = sparse_np_list[1]
         sparse_np = sparse_np_list[2]
         #debugging
-        print(sparse_np[:, 3])
+        #print(sparse_np[:, 3])
 
         frac_train = 0.5
         cutoff = int(math.floor(frac_train * len(sparse_np)))
         sparse_np = sparse_np[:cutoff, :]
+        y_np = y_np[:cutoff, :]
 
         #debugging
-        print(sparse_np[:, 3])
+        #print(sparse_np[:, 3])
 
         sparse_df = pd.DataFrame(data = sparse_np)
-
+        y_df = pd.DataFrame(data = y_np)
         #debugging
-        print(sparse_df.iloc[:, 3])
+        #print(sparse_df.iloc[:, 3])
 
         total_rows = len(sparse_df.index)
         sparse_flag = False
@@ -122,6 +123,10 @@ class TestSplitters(TestDatasetAPI):
             if zero_count == total_rows:
                 print("good -- one column doesn't have results")
                 print(colIndex)
+                print("weight column")
+                print column
+                print("corresponding y column")
+                print(y_df.iloc[:, colIndex])
                 sparse_flag = True
                 assert zero_count == total_rows
                 break
