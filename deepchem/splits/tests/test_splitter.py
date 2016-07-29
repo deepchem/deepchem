@@ -92,7 +92,7 @@ class TestSplitters(TestDatasetAPI):
         sparse_np = sparse_np_list[1]
         frac_train = 0.8
         cutoff = frac_train * len(sparse_np)
-        sparse_np = sparse_np[:cutoff]
+        sparse_np = sparse_np[:cutoff, :]
         sparse_df = pd.DataFrame(data = sparse_np)
         total_rows = len(sparse_df.index)
         sparse_flag = False
