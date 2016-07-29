@@ -98,7 +98,7 @@ class TestSplitters(TestDatasetAPI):
         print("w[11]")
         print(w[11])
         ############################################ DEBUG
-        assert 0 == 1
+        #assert 0 == 1
 
         """
         sparsity is determined by number of w weights that are 0 for a given task
