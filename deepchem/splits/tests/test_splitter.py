@@ -95,6 +95,7 @@ class TestSplitters(TestDatasetAPI):
         cutoff = int(math.floor(frac_train * len(sparse_np)))
         sparse_np = sparse_np[:cutoff, :]
         sparse_df = pd.DataFrame(data = sparse_np)
+        print(sparse_df.iloc[:, 3])
         total_rows = len(sparse_df.index)
         sparse_flag = False
         for col in sparse_df:
