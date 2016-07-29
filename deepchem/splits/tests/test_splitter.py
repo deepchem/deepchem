@@ -91,6 +91,7 @@ class TestSplitters(TestDatasetAPI):
         sparse_dataset = self.load_sparse_multitask_dataset()
         sparse_np_list = sparse_dataset.to_numpy()
         sparse_np = sparse_np_list[1]
+        print(sparse_np[:, 3])
         frac_train = 0.5
         cutoff = int(math.floor(frac_train * len(sparse_np)))
         sparse_np = sparse_np[:cutoff, :]
