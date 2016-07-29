@@ -257,17 +257,16 @@ class RandomSplitter(Splitter):
     def split(self, dataset, seed=None, frac_train=.8, frac_valid=.1,
               frac_test=.1, log_every_n=None):
         """
-    Splits internal compounds randomly into train/validation/test.
-    """
-<<<<<<< 0017a77551376a895531b1020b82acc9029563cd
-    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    np.random.seed(seed)
-    num_datapoints = len(dataset)
-    train_cutoff = int(frac_train * num_datapoints)
-    valid_cutoff = int((frac_train+frac_valid) * num_datapoints )
-    shuffled = np.random.permutation(range(num_datapoints))
-    return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
-            shuffled[valid_cutoff:])
+        Splits internal compounds randomly into train/validation/test.
+        """
+        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        np.random.seed(seed)
+        num_datapoints = len(dataset)
+        train_cutoff = int(frac_train * num_datapoints)
+        valid_cutoff = int((frac_train+frac_valid) * num_datapoints )
+        shuffled = np.random.permutation(range(num_datapoints))
+        return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
+                shuffled[valid_cutoff:])
 
 class ScaffoldSplitter(Splitter):
     """
@@ -277,62 +276,61 @@ class ScaffoldSplitter(Splitter):
     def split(self, dataset, frac_train=.8, frac_valid=.1, frac_test=.1,
               log_every_n=1000):
         """
-    Splits internal compounds into train/validation/test by scaffold.
-    """
-<<<<<<< 0017a77551376a895531b1020b82acc9029563cd
-    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    scaffolds = {}
-    log("About to generate scaffolds", self.verbosity)
-    data_len = len(dataset)
-    for ind, smiles in enumerate(dataset.get_ids()):
-      if ind % log_every_n == 0:
-        log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
-      scaffold = generate_scaffold(smiles)
-      if scaffold not in scaffolds:
-        scaffolds[scaffold] = [ind]
-      else:
-        scaffolds[scaffold].append(ind)
-    # Sort from largest to smallest scaffold sets
-    scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
-                     sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
-    train_cutoff = frac_train * len(dataset)
-    valid_cutoff = (frac_train+frac_valid) * len(dataset)
-    train_inds, valid_inds, test_inds = [], [], []
-    log("About to sort in scaffold sets", self.verbosity)
-    for scaffold_set in scaffold_sets:
-      if len(train_inds) + len(scaffold_set) > train_cutoff:
-        if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
-          test_inds += scaffold_set
-        else:
-          valid_inds += scaffold_set
-      else:
-        train_inds += scaffold_set
-    return train_inds, valid_inds, test_inds
+        Splits internal compounds into train/validation/test by scaffold.
+        """
+        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        scaffolds = {}
+        log("About to generate scaffolds", self.verbosity)
+        data_len = len(dataset)
+        for ind, smiles in enumerate(dataset.get_ids()):
+          if ind % log_every_n == 0:
+            log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
+          scaffold = generate_scaffold(smiles)
+          if scaffold not in scaffolds:
+            scaffolds[scaffold] = [ind]
+          else:
+            scaffolds[scaffold].append(ind)
+        # Sort from largest to smallest scaffold sets
+        scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
+                         sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
+        train_cutoff = frac_train * len(dataset)
+        valid_cutoff = (frac_train+frac_valid) * len(dataset)
+        train_inds, valid_inds, test_inds = [], [], []
+        log("About to sort in scaffold sets", self.verbosity)
+        for scaffold_set in scaffold_sets:
+          if len(train_inds) + len(scaffold_set) > train_cutoff:
+            if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
+              test_inds += scaffold_set
+            else:
+              valid_inds += scaffold_set
+          else:
+            train_inds += scaffold_set
+        return train_inds, valid_inds, test_inds
 
 class SpecifiedSplitter(Splitter):
     """
   Class that splits data according to user specification.
   """
 
-  def __init__(self, input_file, split_field, verbosity=None):
-    """Provide input information for splits."""
-    raw_df = load_data([input_file], shard_size=None).next()
-    self.splits = raw_df[split_field].values
-    self.verbosity = verbosity
-  def split(self, dataset, frac_train=.8, frac_valid=.1, frac_test=.1,
-                  log_every_n=1000):
-  """
-  Splits internal compounds into train/validation/test by user-specification.
-  """
-    train_inds, valid_inds, test_inds = [], [], []
-    for ind, split in enumerate(self.splits):
-        split = split.lower()
-        if split == "train":
-            train_inds.append(ind)
-        elif split in ["valid", "validation"]:
-            valid_inds.append(ind)
-        elif split == "test":
-            test_inds.append(ind)
-        else:
-            raise ValueError("Missing required split information.")
-    return train_inds, valid_inds, test_inds
+    def __init__(self, input_file, split_field, verbosity=None):
+      """Provide input information for splits."""
+      raw_df = load_data([input_file], shard_size=None).next()
+      self.splits = raw_df[split_field].values
+      self.verbosity = verbosity
+    def split(self, dataset, frac_train=.8, frac_valid=.1, frac_test=.1,
+                    log_every_n=1000):
+      """
+      Splits internal compounds into train/validation/test by user-specification.
+      """
+      train_inds, valid_inds, test_inds = [], [], []
+      for ind, split in enumerate(self.splits):
+          split = split.lower()
+          if split == "train":
+              train_inds.append(ind)
+          elif split in ["valid", "validation"]:
+              valid_inds.append(ind)
+          elif split == "test":
+              test_inds.append(ind)
+          else:
+              raise ValueError("Missing required split information.")
+      return train_inds, valid_inds, test_inds

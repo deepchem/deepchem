@@ -86,6 +86,6 @@ class TestDatasetAPI(TestAPI):
     loader = DataLoader(
         tasks=tasks,
         smiles_field="smiles",
-        featurizers=featurizer,
+        featurizer=featurizer,
         verbosity="low")
     return loader.featurize(input_file, self.data_dir)
