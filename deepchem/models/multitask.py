@@ -51,16 +51,7 @@ class SingletaskToMultitask(Model):
         shutil.rmtree(task_data_dir)
       os.makedirs(task_data_dir)
       task_data_dirs.append(task_data_dir)
-    ############################################################# DEBUG
-    print("_create_task_datasets")
-    print("task_data_dirs")
-    print(task_data_dirs)
-    ############################################################# DEBUG
     task_datasets = dataset.to_singletask(task_data_dirs)
-    ############################################################# DEBUG
-    print("[task_dataset.data_dir for task_dataset in task_datasets]")
-    print([task_dataset.data_dir for task_dataset in task_datasets])
-    ############################################################# DEBUG
     if self.verbosity is not None:
       for task, task_dataset in zip(self.tasks, task_datasets):
         log("Dataset for task %s has shape %s"

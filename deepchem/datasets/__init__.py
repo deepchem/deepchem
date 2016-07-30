@@ -478,9 +478,6 @@ class Dataset(object):
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
-  # TODO(rbharath): A subtle bug seems to arise with this. When splitting data,
-  # we seem to get many shards that have no data. Can we make it so that empty
-  # shards are removed?
   def to_singletask(self, task_dirs):
     """Transforms multitask dataset in collection of singletask datasets."""
     tasks = self.get_task_names()
@@ -502,10 +499,7 @@ class Dataset(object):
         w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
         ids_nonzero = ids[w_task != 0]
 
-        ######################################################################## DEBUG
-        # Control for case when this task has no data in this shard.
         if X_nonzero.size > 0: 
-        ######################################################################## DEBUG
           task_metadata_rows[task].append(
             Dataset.write_data_to_disk(
                 task_dirs[task_num], basename, [task],
