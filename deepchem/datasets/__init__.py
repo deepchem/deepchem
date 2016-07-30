@@ -8,12 +8,14 @@ import os
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
-from random import shuffle
+import random
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+import tempfile
 import time
+import shutil
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -169,6 +171,16 @@ class Dataset(object):
             self.metadata_df.iterrows().next()[1]['X-transformed']))[0]
     return np.shape(sample_X)
 
+  def get_shard_size(self):
+    """Gets size of shards on disk."""
+    if not len(self.metadata_df):
+      raise ValueError("No data in dataset.")
+    sample_y = load_from_disk(
+        os.path.join(
+            self.data_dir,
+            self.metadata_df.iterrows().next()[1]['y-transformed']))
+    return len(sample_y)
+
   def _get_metadata_filename(self):
     """
     Get standard location for metadata file.
@@ -181,6 +193,7 @@ class Dataset(object):
     Returns the number of shards for this dataset.
     """
     return self.metadata_df.shape[0]
+
 
   def itershards(self):
     """
@@ -220,6 +233,46 @@ class Dataset(object):
         w_batch = w[indices]
         ids_batch = ids[indices]
         yield (X_batch, y_batch, w_batch, ids_batch)
+
+  def reshard(self, shard_size):
+    """Reshards data to have specified shard size."""
+    # Create temp directory to store resharded version
+    reshard_dir = tempfile.mkdtemp()
+    new_metadata = []
+    # Write data in new shards
+    ind = 0
+    tasks = self.get_task_names() 
+    X_next = np.zeros((0,) + self.get_data_shape())
+    y_next = np.zeros((0,) + (len(tasks),))
+    w_next = np.zeros((0,) + (len(tasks),))
+    ids_next = np.zeros((0,), dtype=object)
+    for (X, y, w, ids) in self.itershards():
+      X_next = np.vstack([X_next, X])
+      y_next = np.vstack([y_next, y])
+      w_next = np.vstack([w_next, w])
+      ids_next = np.concatenate([ids_next, ids])
+      while len(X_next) > shard_size:
+        X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
+        y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
+        w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
+        ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
+        new_basename = "reshard-%d" % ind
+        new_metadata.append(Dataset.write_data_to_disk(
+            reshard_dir, new_basename, tasks, X_batch, y_batch, w_batch, ids_batch))
+        ind += 1
+    # Handle spillover from last shard
+    new_basename = "reshard-%d" % ind
+    new_metadata.append(Dataset.write_data_to_disk(
+        reshard_dir, new_basename, tasks, X_next, y_next, w_next, ids_next))
+    ind += 1
+    # Get new metadata rows
+    resharded_dataset = Dataset(
+        data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata,
+        verbosity=self.verbosity)
+    shutil.rmtree(self.data_dir)
+    shutil.move(reshard_dir, self.data_dir)
+    self.metadata_df = resharded_dataset.metadata_df
+    self.save_to_disk()
 
   @staticmethod
   def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None):
@@ -274,6 +327,27 @@ class Dataset(object):
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
+  def reshard_shuffle(self, reshard_size=10, num_reshards=3):
+    """Shuffles by resharding, shuffling shards, undoing resharding."""
+    #########################################################  TIMING
+    time1 = time.time()
+    #########################################################  TIMING
+    for i in range(num_reshards):
+      orig_shard_size = self.get_shard_size()
+      log("Resharding to shard-size %d." % reshard_size, self.verbosity)
+      self.reshard(shard_size=reshard_size)
+      log("Shuffling shard order.", self.verbosity)
+      self.shuffle_shards()
+      log("Resharding to original shard-size %d." % orig_shard_size,
+          self.verbosity)
+      self.reshard(shard_size=orig_shard_size)
+      self.shuffle_each_shard()
+    #########################################################  TIMING
+    time2 = time.time()
+    log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
+        self.verbosity)
+    #########################################################  TIMING
+
   def shuffle(self, iterations=1):
     """Shuffles this dataset on disk to have random order."""
     #np.random.seed(9452)
@@ -315,9 +389,33 @@ class Dataset(object):
             self.data_dir, basename_j, tasks, X_j, y_j, w_j, ids_j)
         assert len(self) == len_data
       # Now shuffle order of rows in metadata_df
-      shuffle(metadata_rows)
+      random.shuffle(metadata_rows)
       self.metadata_df = Dataset.construct_metadata(metadata_rows)
       self.save_to_disk()
+
+  def shuffle_each_shard(self):
+    """Shuffles elements within each shard of the datset."""
+    tasks = self.get_task_names()
+    # Shuffle the arrays corresponding to each row in metadata_df
+    n_rows = len(self.metadata_df.index)
+    n_rows = len(self.metadata_df.index)
+    for i in range(n_rows):
+      row = self.metadata_df.iloc[i]
+      basename = row["basename"]
+      X, y, w, ids = self.get_shard(i)
+      n = X.shape[0]
+      permutation = np.random.permutation(n)
+      X, y, w, ids = (X[permutation], y[permutation],
+                      w[permutation], ids[permutation])
+      Dataset.write_data_to_disk(
+          self.data_dir, basename, tasks, X, y, w, ids)
+
+  def shuffle_shards(self):
+    """Shuffles the order of the shards for this dataset."""
+    metadata_rows = self.metadata_df.values.tolist()
+    random.shuffle(metadata_rows)
+    self.metadata_df = Dataset.construct_metadata(metadata_rows)
+    self.save_to_disk()
 
   def get_shard(self, i):
     """Retrieves data for the i-th shard from disk."""
@@ -331,6 +429,12 @@ class Dataset(object):
     ids = np.array(load_from_disk(
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
+
+  def set_shard(self, shard_num, X, y, w, ids):
+    """Writes data shard to disk"""
+    basename = "shard-%d" % shard_num 
+    tasks = self.get_task_names()
+    Dataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
 
   def set_verbosity(self, new_verbosity):
     """Sets verbosity."""
@@ -395,10 +499,11 @@ class Dataset(object):
         w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
         ids_nonzero = ids[w_task != 0]
 
-        task_metadata_rows[task].append(
-          Dataset.write_data_to_disk(
-              task_dirs[task_num], basename, [task],
-              X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
+        if X_nonzero.size > 0: 
+          task_metadata_rows[task].append(
+            Dataset.write_data_to_disk(
+                task_dirs[task_num], basename, [task],
+                X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
     
     task_datasets = [
         Dataset(data_dir=task_dirs[task_num],

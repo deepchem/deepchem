@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+from scipy.stats import pearsonr
 
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
@@ -52,6 +53,10 @@ def compute_roc_auc_scores(y, y_pred):
     warnings.warn("ROC AUC score calculation failed.")
     score = 0.5
   return score
+
+def pearson_r2_score(y, y_pred):
+  """Computes Pearson R^2 (square of Pearson correlation)."""
+  return pearsonr(y, y_pred)[0]**2
 
 def rms_score(y_true, y_pred):
   """Computes RMS error."""
@@ -123,7 +128,7 @@ class Metric(object):
       if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
                        "accuracy_score", "kappa_score"]:
         mode = "classification"
-      elif self.name in ["r2_score", "mean_squared_error",
+      elif self.name in ["pearson_r2_score", "r2_score", "mean_squared_error",
                          "mean_absolute_error", "rms_score",
                          "mae_score"]:
         mode = "regression"
