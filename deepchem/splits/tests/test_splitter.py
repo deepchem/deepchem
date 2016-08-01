@@ -89,6 +89,7 @@ class TestSplitters(TestDatasetAPI):
         #ensure sparse dataset is actually sparse
 
         sparse_dataset = self.load_sparse_multitask_dataset()
+        """
         X, y, w, ids = sparse_dataset.to_numpy()
 
         ############################################ DEBUG
@@ -100,11 +101,11 @@ class TestSplitters(TestDatasetAPI):
         ############################################ DEBUG
         #assert 0 == 1
 
-        """
+        """"""
         sparsity is determined by number of w weights that are 0 for a given task
         structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
         sparse task
-        """
+        """"""
         y_np = y
         sparse_np = w #weight np array
         #debugging
@@ -145,7 +146,7 @@ class TestSplitters(TestDatasetAPI):
             assert sparse_flag is True
         else:
             print("dataset is sparse")
-
+        """
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \
             stratified_splitter.train_valid_test_split(

@@ -128,9 +128,7 @@ class StratifiedSplitter(Splitter):
                                log_every_n=1000):
         # Obtain original x, y, and w arrays and shuffle
         X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
-        print("numpy arrays to be printed, w and y")
-        print(w)
-        print(y)
+
         """
         frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
         """
