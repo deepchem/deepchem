@@ -79,7 +79,6 @@ class Splitter(object):
     """
         raise NotImplementedError
 
-=
 class StratifiedSplitter(Splitter):
     """
   Class for doing stratified splits -- where data is too sparse to do regular splits
