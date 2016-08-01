@@ -91,30 +91,19 @@ class TestSplitters(TestDatasetAPI):
 
         X, y, w, ids = sparse_dataset.to_numpy()
 
-        ############################################ DEBUG
-
-        print("y[11]")
-        print(y[11])
-        print("w[11]")
-        print(w[11])
-        ############################################ DEBUG
-
         """
         sparsity is determined by number of w weights that are 0 for a given task
         structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
         sparse task
         """
-
-
         frac_train = 0.5
         cutoff = int(frac_train * w.shape[0])
         w = w[:cutoff, :]
-
         sparse_flag = False
+
         colIndex = 0
-        for i in range(3):
-            print("columns")
-            print(w.T[:, i])
+        print(w)
+        print(w.T)
         for col in w.T:
             if not np.any(col): #check to see if any columns are all zero
                 print("good -- at least one column doesn't have results")
