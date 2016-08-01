@@ -86,103 +86,101 @@ class StratifiedSplitter(Splitter):
   """
 
     def __randomize_arrays(self, array_list):
-        #assumes that every array is of the same dimension
-        numRows = array_list[0].shape[0]
-        perm = np.random.permutation(numRows)
-        for array in array_list:
-            array = array[perm]
-        return array_list
+      #assumes that every array is of the same dimension
+      numRows = array_list[0].shape[0]
+      perm = np.random.permutation(numRows)
+      for array in array_list:
+          array = array[perm]
+      return array_list
 
     def __generate_required_hits(self, w, frac_split):
-        required_hits = (w != 0).sum(0)#returns list of per column sum of non zero elements
-        for colHits in required_hits:
-          colHits = int(frac_split * colHits)
-        return required_hits
+      required_hits = (w != 0).sum(0)#returns list of per column sum of non zero elements
+      for colHits in required_hits:
+        colHits = int(frac_split * colHits)
+      return required_hits
 
     def __generate_required_index(self, w, required_hit_list):
-        colIndex = 0
-        index_hits = []
-        #loop through each column and obtain index required to splice out for required fraction of hits
-        for col in w.T:
-            num_hit = 0
-            num_required = required_hit_list[colIndex]
-            for index, value in enumerate(col):
-                if value != 0:
-                  num_hit +=1
-                  if num_hit >= num_required:
-                    index_hits.append(index)
-                    break
-            colIndex += 1
-        return index_hits
-    def __split(self, X, y, w, ids, index_list):
+      colIndex = 0
+      index_hits = []
+      #loop through each column and obtain index required to splice out for required fraction of hits
+      for col in w.T:
+          num_hit = 0
+          num_required = required_hit_list[colIndex]
+          for index, value in enumerate(col):
+              if value != 0:
+                num_hit +=1
+                if num_hit >= num_required:
+                  index_hits.append(index)
+                  break
+          colIndex += 1
+      return index_hits
 
-      
+    def __split(self, X, y, w, ids, frac_split):
+      """
+      Method that does bulk of splitting dataset appropriately based on desired split percentage
+      """
+      #finds, for each task, the total number of hits and calculate the required
+      #number of hits for split based on frac_split
+      required_hits_list = self.__generate_required_hits(w, frac_split)
+      #finds index cutoff in array to get split
+      index_list = self.__generate_required_index(w, required_hits_list)
+
+      X_first_split = X_second_split = X
+      y_first_split = y_second_split = y
+      w_first_split = w_second_split = np.zeros(w.shape)
+      ids_first_split = ids_second_split = ids
+
+      # chunk appropriate values into weights matrices
+      for colIndex, index in enumerate(index_list):
+        # copy over up to required idnex for weight first_split
+        w_first_split[:index, colIndex] = w[:index, colIndex]
+        w_first_split[index:, colIndex] = np.zeros(w_first_split[index:, colIndex].shape)
+        w_second_split[:index, colIndex] = np.zeros(w_second_split[:index, colIndex].shape)
+        w_second_split[index:, colIndex] = w[index:, colIndex]
+
+      # check out if any rows in either w_first_split or w_second_split are just zeros
+      rowsToKeepTrain = w_first_split.any(axis=1)
+      rowsToKeepTest = w_second_split.any(axis=1)
+
+      # prune train sets
+      w_first_split = w_first_split[rowsToKeepTrain]
+      X_first_split = X_first_split[rowsToKeepTrain]
+      y_first_split = y_first_split[rowsToKeepTrain]
+      ids_first_split = ids_first_split[rowsToKeepTrain]
+
+      # prune test sets
+      w_second_split = w_second_split[rowsToKeepTest]
+      X_second_split = X_second_split[rowsToKeepTest]
+      y_second_split = y_second_split[rowsToKeepTest]
+      ids_second_split = ids_second_split[rowsToKeepTest]
+      return X_first_split, y_first_split, w_first_split, ids_first_split, X_second_split, \
+             y_second_split, w_second_split, ids_second_split
+
     def train_valid_test_split(self, dataset, train_dir,
                                valid_dir, test_dir, frac_train=.8,
                                frac_valid=.1, frac_test=.1, seed=None,
                                log_every_n=1000):
-        # Obtain original x, y, and w arrays and shuffle
-        X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
-        print("numpy arrays to be printed, w and y")
-        print(w)
-        print(y)
-        """
-        frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
-        """
-        # find, for each task, the total number of hits and calculate the required
-        # number of hits for valid split based on frac_train
+      # Obtain original x, y, and w arrays and shuffle
+      X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
+      print("numpy arrays to be printed, w and y")
+      print(w)
+      print(y)
+      """
+      frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
+      """
 
-        required_hits_list = self.__generate_required_hits(w, frac_train)
-        index_list = self.__generate_required_index(w, required_hits_list)
+      X_train, y_train,w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
 
-        X_train = X_test = X
-        y_train = y_test = y
-        w_train = w_test = np.zeros(w.shape)
-        ids_train = ids_test = ids
+      #calculate percent split for valid (out of test and valid)
+      valid_percentage = frac_valid/(frac_valid + frac_test)
+      #split test data into valid and test, treating sub test set also as sparse
+      X_valid, y_valid, w_valid, ids_valid, X_test, y_test, w_test, ids_test = self.__split(X_test, y_test, w_test, ids_test, valid_percentage)
 
-        #chunk appropriate values into weights matrices
-        for colIndex, index in enumerate(index_list):
-          #copy over up to required NaN for weight train
-          w_train[:index, colIndex] = w[:index, colIndex]
-          w_train[index:, colIndex] = np.zeros(w_train[index:, colIndex].shape)
-          w_test[:index, colIndex] = np.zeros(w_test[:index, colIndex].shape)
-          w_test[index:, colIndex] = w[index:, colIndex]
-
-        #check out if any rows in either w_train or w_test are just zeros
-        rowsToKeepTrain = w_train.any(axis=1)
-        rowsToKeepTest = w_test.any(axis=1)
-
-        #prune train sets
-        w_train = w_train[rowsToKeepTrain]
-        X_train = X_train[rowsToKeepTrain]
-        y_train = y_train[rowsToKeepTrain]
-        ids_train = ids_train[rowsToKeepTrain]
-
-        #prune test sets
-        w_test = w_test[rowsToKeepTest]
-        X_test = X_test[rowsToKeepTest]
-        y_test = y_test[rowsToKeepTest]
-        ids_test = ids_test[rowsToKeepTest]
-
-        #mix and match test_set and valid_set to ensure 50/50 data
-        valid_percentage = frac_valid/(frac_valid + frac_test)
-        X_test, y_test, w_test, ids_test = self.__randomize_arrays([X_test, y_test, w_test, ids_test])
-        valid_required_hits_list = self.__generate_required_hits(w_test, valid_percentage)
-        valid_index_list = self.__generate_required_index(w_test, valid_required_hits_list)
-
-
-
-        # make valid split - 50/50 split of test
-        X_test, X_valid = np.array_split(X_test, 2)
-        y_test, y_valid = np.array_split(y_test, 2)
-        w_test, w_valid = np.array_split(w_test, 2)
-        ids_test, ids_valid = np.array_split(ids_test, 2)
-
-        # turn back into dataset objects
-        train_data = Dataset.from_numpy(train_dir, X_train, y_train, w_train, ids_train)
-        valid_data = Dataset.from_numpy(valid_dir, X_valid, y_valid, w_valid, ids_valid)
-        test_data = Dataset.from_numpy(test_dir, X_test, y_test, w_test, ids_test)
-        return (train_data, valid_data, test_data)
+      # turn back into dataset objects
+      train_data = Dataset.from_numpy(train_dir, X_train, y_train, w_train, ids_train)
+      valid_data = Dataset.from_numpy(valid_dir, X_valid, y_valid, w_valid, ids_valid)
+      test_data = Dataset.from_numpy(test_dir, X_test, y_test, w_test, ids_test)
+      return (train_data, valid_data, test_data)
 
 
 class MolecularWeightSplitter(Splitter):
