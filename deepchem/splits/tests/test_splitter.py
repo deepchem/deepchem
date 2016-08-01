@@ -107,7 +107,7 @@ class TestSplitters(TestDatasetAPI):
 
 
         frac_train = 0.5
-        cutoff = int(frac_train * len(sparse_np))
+        cutoff = int(frac_train * w.shape[0])
         w = w[:cutoff, :]
 
         sparse_flag = False
