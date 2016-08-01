@@ -79,7 +79,7 @@ class Splitter(object):
     """
         raise NotImplementedError
 
-
+=
 class StratifiedSplitter(Splitter):
     """
   Class for doing stratified splits -- where data is too sparse to do regular splits
@@ -93,16 +93,16 @@ class StratifiedSplitter(Splitter):
             array = array[perm]
         return array_list
 
-    def __generate_required_hits(self, w, frac_train):
+    def __generate_required_hits(self, w, frac_split):
         required_hits = (w != 0).sum(0)#returns list of per column sum of non zero elements
         for colHits in required_hits:
-          colHits = int(frac_train * colHits)
+          colHits = int(frac_split * colHits)
         return required_hits
 
     def __generate_required_index(self, w, required_hit_list):
         colIndex = 0
         index_hits = []
-        #loop through each column and obtain index required to splice out for frac train hits
+        #loop through each column and obtain index required to splice out for required fraction of hits
         for col in w.T:
             num_hit = 0
             num_required = required_hit_list[colIndex]
@@ -114,7 +114,9 @@ class StratifiedSplitter(Splitter):
                     break
             colIndex += 1
         return index_hits
+    def __split(self, X, y, w, ids, index_list):
 
+      
     def train_valid_test_split(self, dataset, train_dir,
                                valid_dir, test_dir, frac_train=.8,
                                frac_valid=.1, frac_test=.1, seed=None,
@@ -132,6 +134,7 @@ class StratifiedSplitter(Splitter):
 
         required_hits_list = self.__generate_required_hits(w, frac_train)
         index_list = self.__generate_required_index(w, required_hits_list)
+
         X_train = X_test = X
         y_train = y_test = y
         w_train = w_test = np.zeros(w.shape)
@@ -160,6 +163,14 @@ class StratifiedSplitter(Splitter):
         X_test = X_test[rowsToKeepTest]
         y_test = y_test[rowsToKeepTest]
         ids_test = ids_test[rowsToKeepTest]
+
+        #mix and match test_set and valid_set to ensure 50/50 data
+        valid_percentage = frac_valid/(frac_valid + frac_test)
+        X_test, y_test, w_test, ids_test = self.__randomize_arrays([X_test, y_test, w_test, ids_test])
+        valid_required_hits_list = self.__generate_required_hits(w_test, valid_percentage)
+        valid_index_list = self.__generate_required_index(w_test, valid_required_hits_list)
+
+
 
         # make valid split - 50/50 split of test
         X_test, X_valid = np.array_split(X_test, 2)

@@ -141,7 +141,7 @@ class TestSplitters(TestDatasetAPI):
                         print("valid_data failed")
                     elif datasetIndex == 2:
                         print("test_data failed")
-                    assert NaN_count != totalRows
+                    assert np.any(col)
             if datasetIndex == 0:
                 print("train_data passed")
             elif datasetIndex == 1:
