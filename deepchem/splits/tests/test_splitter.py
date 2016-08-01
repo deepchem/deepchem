@@ -130,15 +130,10 @@ class TestSplitters(TestDatasetAPI):
         datasets = [train_data, valid_data, test_data]
         datasetIndex = 0
         for dataset in datasets:
-            np_list = dataset.to_numpy()
-            y = np_list[1]
+            X, y, w, ids = dataset.to_numpy()
             # verify that each task in the train dataset has some hits
-            y_df = pd.DataFrame(data=y)
-            totalRows = len(y_df.index)
-            for col in y_df:
-                column = y_df[col]
-                NaN_count = column.isnull().sum()
-                if NaN_count == totalRows:
+            for col in w.T:
+                if not np.any(col):
                     print("fail -- one column doesn't have results")
                     if datasetIndex == 0:
                         print("train_data failed")

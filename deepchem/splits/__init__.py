@@ -134,7 +134,7 @@ class StratifiedSplitter(Splitter):
         index_list = self.__generate_required_index(w, required_hits_list)
         X_train = X_test = X
         y_train = y_test = y
-        w_train = w_test = np.zeroes(w.shape)
+        w_train = w_test = np.zeros(w.shape)
         ids_train = ids_test = ids
 
         #chunk appropriate values into weights matrices
@@ -146,8 +146,8 @@ class StratifiedSplitter(Splitter):
           w_test[index:, colIndex] = w[index:, colIndex]
 
         #check out if any rows in either w_train or w_test are just zeros
-        rowsToKeepTrain = np.where(w_train.any(axis=1))[0]
-        rowsToKeepTest = np.where(w_test.any(axis=1))[0]
+        rowsToKeepTrain = w_train.any(axis=1)
+        rowsToKeepTest = w_test.any(axis=1)
 
         #prune train sets
         w_train = w_train[rowsToKeepTrain]
