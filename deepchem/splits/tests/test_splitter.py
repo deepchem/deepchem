@@ -89,9 +89,13 @@ class TestSplitters(TestDatasetAPI):
         #ensure sparse dataset is actually sparse
 
         sparse_dataset = self.load_sparse_multitask_dataset()
-        """
-        X, y, w, ids = sparse_dataset.to_numpy()
 
+        X, y, w, ids = sparse_dataset.to_numpy()
+        print("printing matrices")
+        print(X)
+        print(y)
+        print(w)
+        """
         ############################################ DEBUG
 
         print("y[11]")
