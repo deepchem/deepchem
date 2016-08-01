@@ -112,6 +112,9 @@ class TestSplitters(TestDatasetAPI):
 
         sparse_flag = False
         colIndex = 0
+        for i in range(3):
+            print("columns")
+            print w.T[:, i]
         for col in w.T:
             if not np.any(col): #check to see if any columns are all zero
                 print("good -- at least one column doesn't have results")
