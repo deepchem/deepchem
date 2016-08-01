@@ -13,8 +13,7 @@ from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import StratifiedSplitter
 from deepchem.datasets.tests import TestDatasetAPI
-import pandas as pd
-import math
+import numpy as np
 
 
 class TestSplitters(TestDatasetAPI):
@@ -91,11 +90,7 @@ class TestSplitters(TestDatasetAPI):
         sparse_dataset = self.load_sparse_multitask_dataset()
 
         X, y, w, ids = sparse_dataset.to_numpy()
-        print("printing matrices")
-        print(X)
-        print(y)
-        print(w)
-        """
+
         ############################################ DEBUG
 
         print("y[11]")
@@ -103,54 +98,37 @@ class TestSplitters(TestDatasetAPI):
         print("w[11]")
         print(w[11])
         ############################################ DEBUG
-        #assert 0 == 1
 
-        """"""
+        """
         sparsity is determined by number of w weights that are 0 for a given task
         structure of w np array is such that each row corresponds to a sample -- e.g., analyze third column for third
         sparse task
-        """"""
-        y_np = y
-        sparse_np = w #weight np array
-        #debugging
-        #print(sparse_np[:, 3])
+        """
+
 
         frac_train = 0.5
-        cutoff = int(math.floor(frac_train * len(sparse_np)))
-        sparse_np = sparse_np[:cutoff, :]
-        y_np = y_np[:cutoff, :]
+        cutoff = int(frac_train * len(sparse_np))
+        w = w[:cutoff, :]
 
-        #debugging
-        #print(sparse_np[:, 3])
-
-        sparse_df = pd.DataFrame(data = sparse_np)
-        y_df = pd.DataFrame(data = y_np)
-        #debugging
-        #print(sparse_df.iloc[:, 3])
-
-        total_rows = len(sparse_df.index)
         sparse_flag = False
         colIndex = 0
-        for col in sparse_df:
-            column = sparse_df[col] #get series representation
-            zero_count = column.value_counts()[0]
-            if zero_count == total_rows:
-                print("good -- one column doesn't have results")
+        for col in w.T:
+            if not np.any(col): #check to see if any columns are all zero
+                print("good -- at least one column doesn't have results")
                 print(colIndex)
                 print("weight column")
-                print(column)
+                print(col)
                 print("corresponding y column")
-                print(y_df.iloc[:, colIndex])
+                print(y[:, colIndex])
                 sparse_flag = True
-                assert zero_count == total_rows
                 break
-        colIndex+=1
+            colIndex+=1
         if not sparse_flag:
             print("dataset isn't sparse")
             assert sparse_flag is True
         else:
             print("dataset is sparse")
-        """
+
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \
             stratified_splitter.train_valid_test_split(

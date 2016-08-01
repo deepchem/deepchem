@@ -93,34 +93,27 @@ class StratifiedSplitter(Splitter):
             array = array[perm]
         return array_list
 
-    def __generate_required_hits(self, y_df, frac_train):
-        colIndex = 0
-        required_hit_dict = {}
-        totalCount = len(y_df.index)
-        for col in y_df:
-            NaN_count = y_df[col].isnull().sum()
-            notNaN = totalCount - NaN_count
-            requiredNotNaN = frac_train * notNaN
-            required_hit_dict[colIndex] = requiredNotNaN
-            colIndex += 1
-        return required_hit_dict
+    def __generate_required_hits(self, w, frac_train):
+        required_hits = (w != 0).sum(0)#returns list of per column sum of non zero elements
+        for colHits in required_hits:
+          colHits = int(frac_train * colHits)
+        return required_hits
 
-    def __generate_required_index(self, y_df, required_hit_dict):
-        index_dict = {}
+    def __generate_required_index(self, w, required_hit_list):
         colIndex = 0
-        for col in y_df:
-            column = y_df[col]
+        index_hits = []
+        #loop through each column and obtain index required to splice out for frac train hits
+        for col in w.T:
             num_hit = 0
-            num_required = required_hit_dict[colIndex]
-            for index, value in y_df[col].iteritems():
-                if pd.notnull(value):
-                    num_hit += 1
-                    # check to see if number of hits has been hit
-                    if num_hit >= num_required:
-                        index_dict[colIndex] = index
-                        break
+            num_required = required_hit_list[colIndex]
+            for index, value in enumerate(col):
+                if value != 0:
+                  num_hit +=1
+                  if num_hit >= num_required:
+                    index_hits.append(index)
+                    break
             colIndex += 1
-        return index_dict
+        return index_hits
 
     def train_valid_test_split(self, dataset, train_dir,
                                valid_dir, test_dir, frac_train=.8,
@@ -136,81 +129,48 @@ class StratifiedSplitter(Splitter):
         """
         # find, for each task, the total number of hits and calculate the required
         # number of hits for valid split based on frac_train
-        x_df = pd.DataFrame(data=X)
-        y_df = pd.DataFrame(data=y)
-        w_df = pd.DataFrame(data=w)
-        id_df = pd.DataFrame(data=ids)
 
-        required_hit_dict = self.__generate_required_hits(y_df, frac_train)
-        index_dict = self.__generate_required_index(y_df, required_hit_dict)
-        X_train, X_test, y_train, y_test, w_train, w_test, id_train, id_test = [], [], [], [], [], [], [], []
+        required_hits_list = self.__generate_required_hits(w, frac_train)
+        index_list = self.__generate_required_index(w, required_hits_list)
+        X_train = X_test = X
+        y_train = y_test = y
+        w_train = w_test = np.zeroes(w.shape)
+        ids_train = ids_test = ids
 
-        # cycle through rows in y, copy over rows as appropriate
-        for rowIndex, row in y_df.iterrows():
-            weight_row = w_df.iloc[rowIndex].tolist()  # get corresponding weight row as list
-            weight_train_row = []
-            weight_test_row = []
-            for index, value in row.iteritems():
-                # test if should be test or train data
-                if rowIndex <= index_dict[index]:  # train data
-                    weight_train_row.append(weight_row[index])  # add corresponding weight
-                    weight_test_row.append(0)
-                else:  # index is past test index -- this datapoint is test data
-                    weight_train_row.append(0)
-                    weight_test_row.append(weight_row[index])
-            x_row = x_df.iloc[rowIndex].tolist()
-            id_row = id_df.iloc[rowIndex].tolist()
-            # check to see if any weight vectors are just zero
-            if weight_train_row.count(0) == len(weight_train_row):  # entire example is a test example
-                # Add entire row to appropriate test arrays
-                X_test.append(x_row)  # get corresponding row from original x df
-                y_test.append(row)
-                w_test.append(weight_test_row)
-                id_test.append(id_row)
-            elif weight_test_row.count(0) == len(weight_test_row):
-                # entirely train example
-                X_train.append(x_row)
-                y_train.append(row)
-                w_train.append(weight_train_row)
-                id_train.append(id_row)
-            else:  # hybrid example -- feature X, results y, and smiles id are appended to both test and train. Weight vectors for train and row are appended as appropriately to dictate whether value is train or test
-                X_train.append(x_row)
-                X_test.append(x_row)
-                y_train.append(row)
-                y_test.append(row)
-                w_train.append(weight_train_row)
-                w_test.append(weight_test_row)
-                id_train.append(id_row)
-                id_test.append(id_row)
+        #chunk appropriate values into weights matrices
+        for colIndex, index in enumerate(index_list):
+          #copy over up to required NaN for weight train
+          w_train[:index, colIndex] = w[:index, colIndex]
+          w_train[index:, colIndex] = np.zeros(w_train[index:, colIndex].shape)
+          w_test[:index, colIndex] = np.zeros(w_test[:index, colIndex].shape)
+          w_test[index:, colIndex] = w[index:, colIndex]
 
-        X_train_np = np.array(X_train)
-        X_test_np = np.array(X_test)
-        y_train_np = np.array(y_train)
-        y_test_np = np.array(y_test)
-        w_train_np = np.array(w_train)
-        w_test_np = np.array(w_test)
-        id_train_np = np.array(id_train)
-        id_test_np = np.array(id_test)
+        #check out if any rows in either w_train or w_test are just zeros
+        rowsToKeepTrain = np.where(w_train.any(axis=1))[0]
+        rowsToKeepTest = np.where(w_test.any(axis=1))[0]
+
+        #prune train sets
+        w_train = w_train[rowsToKeepTrain]
+        X_train = X_train[rowsToKeepTrain]
+        y_train = y_train[rowsToKeepTrain]
+        ids_train = ids_train[rowsToKeepTrain]
+
+        #prune test sets
+        w_test = w_test[rowsToKeepTest]
+        X_test = X_test[rowsToKeepTest]
+        y_test = y_test[rowsToKeepTest]
+        ids_test = ids_test[rowsToKeepTest]
 
         # make valid split - 50/50 split of test
-        X_split_list = np.array_split(X_test_np, 2)
-        y_split_list = np.array_split(y_test_np, 2)
-        w_split_list = np.array_split(w_test_np, 2)
-        id_split_list = np.array_split(id_test_np, 2)
-
-        X_test_np = X_split_list[0]
-        X_valid_np = X_split_list[1]
-        y_test_np = y_split_list[0]
-        y_valid_np = y_split_list[1]
-        w_test_np = w_split_list[0]
-        w_valid_np = w_split_list[1]
-        id_test_np = id_split_list[0]
-        id_valid_np = id_split_list[1]
+        X_test, X_valid = np.array_split(X_test, 2)
+        y_test, y_valid = np.array_split(y_test, 2)
+        w_test, w_valid = np.array_split(w_test, 2)
+        ids_test, ids_valid = np.array_split(ids_test, 2)
 
         # turn back into dataset objects
-        train_data = Dataset.from_numpy(train_dir, X_train_np, y_train_np, w_train_np, id_train_np)
-        valid_data = Dataset.from_numpy(valid_dir, X_valid_np, y_valid_np, w_valid_np, id_valid_np)
-        test_data = Dataset.from_numpy(test_dir, X_test_np, y_test_np, w_test_np, id_test_np)
+        train_data = Dataset.from_numpy(train_dir, X_train, y_train, w_train, ids_train)
+        valid_data = Dataset.from_numpy(valid_dir, X_valid, y_valid, w_valid, ids_valid)
+        test_data = Dataset.from_numpy(test_dir, X_test, y_test, w_test, ids_test)
         return (train_data, valid_data, test_data)
 
 
