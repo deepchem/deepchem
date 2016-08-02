@@ -104,20 +104,14 @@ class TestSplitters(TestDatasetAPI):
         colIndex = 0
         for col in w.T:
             if not np.any(col): #check to see if any columns are all zero
-                print("good -- at least one column doesn't have results")
-                print(colIndex)
-                print("weight column")
-                print(col)
-                print("corresponding y column")
-                print(y[:, colIndex])
                 sparse_flag = True
                 break
             colIndex+=1
         if not sparse_flag:
-            print("dataset isn't sparse")
-            assert sparse_flag is True
+            print("Test dataset isn't sparse -- test failed")
         else:
-            print("dataset is sparse")
+            print("Column %d is sparse -- expected") % (colIndex)
+        assert sparse_flag is True
 
         stratified_splitter = StratifiedSplitter()
         train_data, valid_data, test_data = \
@@ -134,7 +128,7 @@ class TestSplitters(TestDatasetAPI):
             # verify that each task in the train dataset has some hits
             for col in w.T:
                 if not np.any(col):
-                    print("fail -- one column doesn't have results")
+                    print("Fail -- one column doesn't have results")
                     if datasetIndex == 0:
                         print("train_data failed")
                     elif datasetIndex == 1:

@@ -118,10 +118,10 @@ class StratifiedSplitter(Splitter):
       """
       Method that does bulk of splitting dataset appropriately based on desired split percentage
       """
-      #finds, for each task, the total number of hits and calculate the required
+      #find he total number of hits for each task and calculate the required
       #number of hits for split based on frac_split
       required_hits_list = self.__generate_required_hits(w, frac_split)
-      #finds index cutoff in array to get split
+      #finds index cutoff per task in array to get required split calculated
       index_list = self.__generate_required_index(w, required_hits_list)
 
       X_first_split = X_second_split = X
@@ -138,20 +138,20 @@ class StratifiedSplitter(Splitter):
         w_second_split[index:, colIndex] = w[index:, colIndex]
 
       # check out if any rows in either w_first_split or w_second_split are just zeros
-      rowsToKeepTrain = w_first_split.any(axis=1)
-      rowsToKeepTest = w_second_split.any(axis=1)
+      rowsToKeepFirstSplit = w_first_split.any(axis=1)
+      rowsToKeepSecondSplit = w_second_split.any(axis=1)
 
-      # prune train sets
-      w_first_split = w_first_split[rowsToKeepTrain]
-      X_first_split = X_first_split[rowsToKeepTrain]
-      y_first_split = y_first_split[rowsToKeepTrain]
-      ids_first_split = ids_first_split[rowsToKeepTrain]
+      # prune first set
+      w_first_split = w_first_split[rowsToKeepFirstSplit]
+      X_first_split = X_first_split[rowsToKeepFirstSplit]
+      y_first_split = y_first_split[rowsToKeepFirstSplit]
+      ids_first_split = ids_first_split[rowsToKeepFirstSplit]
 
-      # prune test sets
-      w_second_split = w_second_split[rowsToKeepTest]
-      X_second_split = X_second_split[rowsToKeepTest]
-      y_second_split = y_second_split[rowsToKeepTest]
-      ids_second_split = ids_second_split[rowsToKeepTest]
+      # prune second sets
+      w_second_split = w_second_split[rowsToKeepSecondSplit]
+      X_second_split = X_second_split[rowsToKeepSecondSplit]
+      y_second_split = y_second_split[rowsToKeepSecondSplit]
+      ids_second_split = ids_second_split[rowsToKeepSecondSplit]
       return X_first_split, y_first_split, w_first_split, ids_first_split, X_second_split, \
              y_second_split, w_second_split, ids_second_split
 
@@ -159,15 +159,9 @@ class StratifiedSplitter(Splitter):
                                valid_dir, test_dir, frac_train=.8,
                                frac_valid=.1, frac_test=.1, seed=None,
                                log_every_n=1000):
+
       # Obtain original x, y, and w arrays and shuffle
       X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
-      print("numpy arrays to be printed, w and y")
-      print(w)
-      print(y)
-      """
-      frac_train identifies percentage of datapoints that need to be present in split -- so 80% training data may actually be 90% of data (but 80% of actual datapoints, not NaN, will be present in split)
-      """
-
       X_train, y_train,w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
 
       #calculate percent split for valid (out of test and valid)
