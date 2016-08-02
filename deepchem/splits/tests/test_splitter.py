@@ -110,8 +110,7 @@ class TestSplitters(TestDatasetAPI):
         if not sparse_flag:
             print("Test dataset isn't sparse -- test failed")
         else:
-            print(colIndex)
-            print("Column %d is sparse -- expected") % colIndex
+            print("Column %d is sparse -- expected" % colIndex)
         assert sparse_flag is True
 
         stratified_splitter = StratifiedSplitter()
