@@ -73,7 +73,7 @@ for splitter in splitters:
   os.makedirs(model_dir)
   def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
     return SklearnModel(tasks, task_types, model_params, model_dir,
-                        model_instance=RandomForestRegressor(n_estimators=500),
+                        model_instance=RandomForestRegressor(n_estimators=500, n_jobs = -1),
                         verbosity=verbosity)
   model = SingletaskToMultitask(tox_tasks, tox_task_types, params_dict, model_dir,
                                 model_builder, verbosity=verbosity)
