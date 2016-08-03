@@ -22,7 +22,7 @@ from deepchem.models.tests import TestAPI
 
 class TestDatasetAPI(TestAPI):
   """
-  Shared API for testing with dataset objects. 
+  Shared API for testing with dataset objects.
   """
 
   def load_solubility_data(self):
@@ -70,6 +70,22 @@ class TestDatasetAPI(TestAPI):
     loader = DataLoader(
         tasks=tasks,
         smiles_field=self.smiles_field,
+        featurizer=featurizer,
+        verbosity="low")
+    return loader.featurize(input_file, self.data_dir)
+
+  def load_sparse_multitask_dataset(self):
+    """Load sparse tox multitask data, sample dataset."""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
+    featurizer = CircularFingerprint(size=1024)
+    tasks = ["task1", "task2", "task3", "task4", "task5", "task6",
+             "task7", "task8", "task9"]
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/sparse_multitask_example.csv")
+    loader = DataLoader(
+        tasks=tasks,
+        smiles_field="smiles",
         featurizer=featurizer,
         verbosity="low")
     return loader.featurize(input_file, self.data_dir)
