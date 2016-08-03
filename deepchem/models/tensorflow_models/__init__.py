@@ -180,7 +180,7 @@ class TensorflowGraph(object):
       else:
         self.updates = tf.no_op(name='updates')
 
-  def fit(self, dataset, shuffle=True, max_checkpoints_to_keep=5):
+  def fit(self, dataset, shuffle=False, max_checkpoints_to_keep=5):
     """Fit the model.
 
     Args:
@@ -558,7 +558,7 @@ class TensorflowModel(Model):
     self.num_tasks = len(self.task_types)
     self.fit_transformers = None
 
-  def fit(self, dataset, shuffle=True):
+  def fit(self, dataset, shuffle=False):
     """
     Fits TensorflowGraph to data.
     """

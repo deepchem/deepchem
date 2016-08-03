@@ -214,7 +214,7 @@ class Dataset(object):
           os.path.join(self.data_dir, row['ids'])), dtype=object)
       yield (X, y, w, ids)
 
-  def iterbatches(self, batch_size=None, epoch=0):
+  def det_iterbatches(self, batch_size=None, epoch=0):
     """
     Returns minibatches from dataset.
     """
@@ -232,6 +232,29 @@ class Dataset(object):
         y_batch = y[indices]
         w_batch = w[indices]
         ids_batch = ids[indices]
+        yield (X_batch, y_batch, w_batch, ids_batch)
+
+  def iterbatches(self, batch_size=None, epoch=0):
+    """Returns minibatches from dataset randomly."""
+    num_shards = self.get_number_shards()
+    shard_perm = np.random.permutation(num_shards)
+    for i in range(num_shards):
+      X, y, w, ids = self.get_shard(shard_perm[i])
+      n_samples = X.shape[0]
+      sample_perm = np.random.permutation(n_samples)
+      if batch_size is None:
+        shard_batch_size = n_samples
+      else:
+        shard_batch_size = batch_size 
+      interval_points = np.linspace(
+          0, n_samples, np.ceil(float(n_samples)/shard_batch_size)+1, dtype=int)
+      for j in range(len(interval_points)-1):
+        indices = range(interval_points[j], interval_points[j+1])
+        perm_indices = sample_perm[indices]
+        X_batch = X[perm_indices, :]
+        y_batch = y[perm_indices]
+        w_batch = w[perm_indices]
+        ids_batch = ids[perm_indices]
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   def reshard(self, shard_size):
