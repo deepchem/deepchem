@@ -16,7 +16,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.tox21_datasets import load_tox
+from deepchem.datasets.tox21_datasets import load_tox21
 from deepchem.splits import StratifiedSplitter
 from deepchem.splits import RandomSplitter
 
@@ -31,7 +31,7 @@ force_transform = False
 base_data_dir = "./tox_data_dir"
 base_dir = "./tox_analysis_dir"
 
-tox_tasks, tox_dataset, transformers = load_tox(
+tox_tasks, tox_dataset, transformers = load_tox21(
     base_data_dir, reload=reload, force_transform=force_transform)
 
 if os.path.exists(base_dir):
