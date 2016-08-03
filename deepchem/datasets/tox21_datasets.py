@@ -42,6 +42,7 @@ def load_tox21(base_dir, reload=True):
   if not os.path.exists(base_dir):
     os.makedirs(base_dir)
   current_dir = os.path.dirname(os.path.realpath(__file__))
+  print(current_dir)
   #Make directories to store the raw and featurized datasets.
   samples_dir = os.path.join(base_dir, "samples")
   data_dir = os.path.join(base_dir, "dataset")
