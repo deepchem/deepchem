@@ -1,5 +1,5 @@
 """
-Script that trains Sklearn multitask models on nci dataset.
+Script that trains Sklearn multitask models on tox dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -16,7 +16,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.nci_datasets import load_nci
+from deepchem.datasets.tox21_datasets import load_tox
 from deepchem.splits import StratifiedSplitter
 from deepchem.splits import RandomSplitter
 
@@ -24,14 +24,14 @@ np.random.seed(123)
 
 # Set some global variables up top
 
-reload = True
+reload = False
 verbosity = "high"
 force_transform = False 
 
-base_data_dir = "/scratch/users/rbharath/nci_data_dir"
-base_dir = "/scratch/users/rbharath/nci_analysis_dir"
+base_data_dir = "./tox_data_dir"
+base_dir = "./tox_analysis_dir"
 
-nci_tasks, nci_dataset, transformers = load_nci(
+tox_tasks, tox_dataset, transformers = load_tox(
     base_data_dir, reload=reload, force_transform=force_transform)
 
 if os.path.exists(base_dir):
@@ -51,13 +51,13 @@ train_scores = []
 valid_scores = []
 for splitter in splitters:
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-      nci_dataset, train_dir, valid_dir, test_dir)
+      tox_dataset, train_dir, valid_dir, test_dir)
   train_dataset.set_verbosity(verbosity)
   valid_dataset.set_verbosity(verbosity)
   test_dataset.set_verbosity(verbosity)
 
   # Fit Logistic Regression models
-  nci_task_types = {task: "regression" for task in nci_tasks}
+  tox_task_types = {task: "regression" for task in tox_tasks}
 
 
   classification_metric = Metric(metrics.roc_auc_score, np.mean,
@@ -75,7 +75,7 @@ for splitter in splitters:
     return SklearnModel(tasks, task_types, model_params, model_dir,
                         model_instance=RandomForestRegressor(n_estimators=500),
                         verbosity=verbosity)
-  model = SingletaskToMultitask(nci_tasks, nci_task_types, params_dict, model_dir,
+  model = SingletaskToMultitask(tox_tasks, tox_task_types, params_dict, model_dir,
                                 model_builder, verbosity=verbosity)
 
   # Fit trained model
