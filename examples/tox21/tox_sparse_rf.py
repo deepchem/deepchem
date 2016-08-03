@@ -32,7 +32,7 @@ base_data_dir = "./tox_data_dir"
 base_dir = "./tox_analysis_dir"
 
 tox_tasks, tox_dataset, transformers = load_tox21(
-    base_data_dir, reload=reload, force_transform=force_transform)
+    base_data_dir, reload=reload)
 
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
