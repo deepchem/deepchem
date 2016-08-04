@@ -77,39 +77,39 @@ class Splitter(object):
     raise NotImplementedError
 
 
+def randomize_arrays(array_list):
+  # assumes that every array is of the same dimension
+  num_rows = array_list[0].shape[0]
+  perm = np.random.permutation(num_rows)
+  array_list = [array[perm] for array in array_list]
+  return array_list
+
+
+def generate_required_hits(w, frac_split):
+  required_hits = (w != 0).sum(0)  # returns list of per column sum of non zero elements
+  required_hits = [int(col_hits * frac_split) for col_hits in required_hits]
+  return required_hits
+
+def generate_required_index(w, required_hit_list):
+  col_index = 0
+  index_hits = []
+  # loop through each column and obtain index required to splice out for required fraction of hits
+  for col in w.T:
+    num_hit = 0
+    num_required = required_hit_list[col_index]
+    for index, value in enumerate(col):
+      if value != 0:
+        num_hit += 1
+        if num_hit >= num_required:
+          index_hits.append(index)
+          break
+    col_index += 1
+  return index_hits
+
 class StratifiedSplitter(Splitter):
   """
   Class for doing stratified splits -- where data is too sparse to do regular splits
   """
-
-  def __randomize_arrays(self, array_list):
-    # assumes that every array is of the same dimension
-    num_rows = array_list[0].shape[0]
-    perm = np.random.permutation(num_rows)
-    array_list = [array[perm] for array in array_list]
-    return array_list
-  
-  def __generate_required_hits(self, w, frac_split):
-    required_hits = (w != 0).sum(0)  # returns list of per column sum of non zero elements
-    for col_hits in required_hits:
-      col_hits = int(frac_split * col_hits)
-    return required_hits
-
-  def __generate_required_index(self, w, required_hit_list):
-    col_index = 0
-    index_hits = []
-    # loop through each column and obtain index required to splice out for required fraction of hits
-    for col in w.T:
-      num_hit = 0
-      num_required = required_hit_list[col_index]
-      for index, value in enumerate(col):
-        if value != 0:
-          num_hit += 1
-          if num_hit >= num_required:
-            index_hits.append(index)
-            break
-      col_index += 1
-    return index_hits
 
   def __split(self, X, y, w, ids, frac_split):
     """
@@ -117,9 +117,9 @@ class StratifiedSplitter(Splitter):
     """
     # find the total number of hits for each task and calculate the required
     # number of hits for split based on frac_split
-    required_hits_list = self.__generate_required_hits(w, frac_split)
+    required_hits_list = generate_required_hits(w, frac_split)
     # finds index cutoff per task in array to get required split calculated
-    index_list = self.__generate_required_index(w, required_hits_list)
+    index_list = generate_required_index(w, required_hits_list)
 
     w_1 = w_2 = np.zeros(w.shape)
 
@@ -156,7 +156,7 @@ class StratifiedSplitter(Splitter):
                              log_every_n=1000):
 
     # Obtain original x, y, and w arrays and shuffle
-    X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
+    X, y, w, ids = randomize_arrays(dataset.to_numpy())
     X_train, y_train, w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
 
     # calculate percent split for valid (out of test and valid)
