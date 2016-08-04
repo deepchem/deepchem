@@ -30,7 +30,6 @@ from deepchem.utils.evaluate import Evaluator
 def load_tox21(base_dir, reload=True):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
-  reload = True
   verbosity = "high"
   model = "logistic"
 

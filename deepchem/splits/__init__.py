@@ -86,8 +86,7 @@ class StratifiedSplitter(Splitter):
     # assumes that every array is of the same dimension
     num_rows = array_list[0].shape[0]
     perm = np.random.permutation(num_rows)
-    for array in array_list:
-      array = array[perm]
+    array_list = [array[perm] for array in array_list]
     return array_list
   
   def __generate_required_hits(self, w, frac_split):
