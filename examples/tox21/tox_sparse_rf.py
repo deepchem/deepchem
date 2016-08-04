@@ -9,7 +9,7 @@ import os
 import numpy as np
 import shutil
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from deepchem.datasets import Dataset
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
@@ -73,7 +73,10 @@ for splitter in splitters:
   os.makedirs(model_dir)
   def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
     return SklearnModel(tasks, task_types, model_params, model_dir,
-                        model_instance=RandomForestRegressor(n_estimators=500, n_jobs = -1),
+                        model_instance=RandomForestClassifier(
+                          class_weight="balanced",
+                          n_estimators=500,
+                          n_jobs = -1),
                         verbosity=verbosity)
   model = SingletaskToMultitask(tox_tasks, tox_task_types, params_dict, model_dir,
                                 model_builder, verbosity=verbosity)
