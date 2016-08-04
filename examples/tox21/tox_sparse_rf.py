@@ -47,8 +47,8 @@ print("About to perform train/valid/test split for both stratified and random.")
 splitters = [RandomSplitter(verbosity=verbosity), StratifiedSplitter(verbosity=verbosity)]
 print("Performing splits")
 
-train_scores = []
-valid_scores = []
+train_scores_list = []
+valid_scores_list = []
 for splitter in splitters:
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
       tox_dataset, train_dir, valid_dir, test_dir)
@@ -92,8 +92,8 @@ for splitter in splitters:
   valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
   valid_scores = valid_evaluator.compute_model_performance([classification_metric])
 
-  train_scores.append(train_scores)
-  valid_scores.append(valid_scores)
+  train_scores_list.append(train_scores)
+  valid_scores_list.append(valid_scores)
 
 for i in range(2):
   if i == 0:
