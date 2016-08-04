@@ -135,6 +135,13 @@ class RandomStratifiedSplitter(Splitter):
   splitter classes.
   """
 
+  def __randomize_arrays(self, array_list):
+    # assumes that every array is of the same dimension
+    num_rows = array_list[0].shape[0]
+    perm = np.random.permutation(num_rows)
+    array_list = [array[perm] for array in array_list]
+    return array_list
+  
   def __generate_required_hits(self, w, frac_split):
     # returns list of per column sum of non zero elements
     required_hits = (w != 0).sum(axis=0)  
