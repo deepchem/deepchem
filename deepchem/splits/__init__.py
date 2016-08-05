@@ -106,49 +106,44 @@ def generate_required_index(w, required_hit_list):
     col_index += 1
   return index_hits
 
+
+def stratified_split(X, y, w, ids, frac_split):
+  """
+  Method that does bulk of splitting dataset appropriately based on desired split percentage
+  """
+  # find the total number of hits for each task and calculate the required
+  # number of hits for split based on frac_split
+  required_hits_list = generate_required_hits(w, frac_split)
+  # finds index cutoff per task in array to get required split calculated
+  index_list = generate_required_index(w, required_hits_list)
+
+  w_1 = w_2 = np.zeros(w.shape)
+
+  # chunk appropriate values into weights matrices
+  for col_index, index in enumerate(index_list):
+    # copy over up to required index for weight first_split
+    w_1[:index, col_index] = w[:index, col_index]
+    w_1[index:, col_index] = np.zeros(w_1[index:, col_index].shape)
+    w_2[:index, col_index] = np.zeros(w_2[:index, col_index].shape)
+    w_2[index:, col_index] = w[index:, col_index]
+
+  # check out if any rows in either w_1 or w_2 are just zeros
+  rows_1 = w_1.any(axis=1)
+  rows_2 = w_2.any(axis=1)
+
+  # prune first set
+  X_1, y_1, w_1, ids_1 = X[rows_1], y[rows_1], w_1[rows_1], ids[rows_1]
+
+  # prune second sets
+  X_2, y_2, w_2, ids_2 = X[rows_2], y[rows_2], w_2[rows_2], ids[rows_2]
+
+  return X_1, y_1, w_1, ids_1, X_2, \
+         y_2, w_2, ids_2
+
 class StratifiedSplitter(Splitter):
   """
   Class for doing stratified splits -- where data is too sparse to do regular splits
   """
-
-  def __split(self, X, y, w, ids, frac_split):
-    """
-    Method that does bulk of splitting dataset appropriately based on desired split percentage
-    """
-    # find the total number of hits for each task and calculate the required
-    # number of hits for split based on frac_split
-    required_hits_list = generate_required_hits(w, frac_split)
-    # finds index cutoff per task in array to get required split calculated
-    index_list = generate_required_index(w, required_hits_list)
-
-    w_1 = w_2 = np.zeros(w.shape)
-
-    # chunk appropriate values into weights matrices
-    for col_index, index in enumerate(index_list):
-      # copy over up to required index for weight first_split
-      w_1[:index, col_index] = w[:index, col_index]
-      w_1[index:, col_index] = np.zeros(w_1[index:, col_index].shape)
-      w_2[:index, col_index] = np.zeros(w_2[:index, col_index].shape)
-      w_2[index:, col_index] = w[index:, col_index]
-
-    # check out if any rows in either w_1 or w_2 are just zeros
-    rows_to_keep_1 = w_1.any(axis=1)
-    rows_to_keep_2 = w_2.any(axis=1)
-
-    # prune first set
-    w_1 = w_1[rows_to_keep_1]
-    X_1 = X[rows_to_keep_1]
-    y_1 = y[rows_to_keep_1]
-    ids_1 = ids[rows_to_keep_1]
-
-    # prune second sets
-    w_2 = w_2[rows_to_keep_2]
-    X_2 = X[rows_to_keep_2]
-    y_2 = y[rows_to_keep_2]
-    ids_2 = ids[rows_to_keep_2]
-
-    return X_1, y_1, w_1, ids_1, X_2, \
-           y_2, w_2, ids_2
 
   def train_valid_test_split(self, dataset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
@@ -157,12 +152,12 @@ class StratifiedSplitter(Splitter):
 
     # Obtain original x, y, and w arrays and shuffle
     X, y, w, ids = randomize_arrays(dataset.to_numpy())
-    X_train, y_train, w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
+    X_train, y_train, w_train, ids_train, X_test, y_test, w_test, ids_test = stratified_split(X, y, w, ids, frac_train)
 
     # calculate percent split for valid (out of test and valid)
     valid_percentage = frac_valid / (frac_valid + frac_test)
     # split test data into valid and test, treating sub test set also as sparse
-    X_valid, y_valid, w_valid, ids_valid, X_test, y_test, w_test, ids_test = self.__split(X_test, y_test, w_test,
+    X_valid, y_valid, w_valid, ids_valid, X_test, y_test, w_test, ids_test = stratified_split(X_test, y_test, w_test,
                                                                                           ids_test, valid_percentage)
 
     # turn back into dataset objects
