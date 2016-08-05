@@ -49,7 +49,7 @@ def load_tox21(base_dir, reload=True):
   # Load Tox21 dataset
   print("About to load Tox21 dataset.")
   dataset_file = os.path.join(
-      current_dir, "../../datasets/tox21_single.csv.gz")
+      current_dir, "../../datasets/tox21.csv.gz")
   dataset = load_from_disk(dataset_file)
   print("Columns of dataset: %s" % str(dataset.columns.values))
   print("Number of examples in dataset: %s" % str(dataset.shape[0]))
@@ -57,7 +57,9 @@ def load_tox21(base_dir, reload=True):
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
   featurizer = CircularFingerprint(size=1024)
-  all_tox21_tasks = ['NR-AR']
+  all_tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+                     'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
+                     'SR-HSE', 'SR-MMP', 'SR-p53']
 
   if not reload or not os.path.exists(data_dir):
     loader = DataLoader(tasks=all_tox21_tasks,
@@ -77,4 +79,57 @@ def load_tox21(base_dir, reload=True):
     for transformer in transformers:
         transformer.transform(dataset)
   
+  return all_tox21_tasks, dataset, transformers
+
+
+def load_single_task_tox21(base_dir, reload=True):
+  """Load Tox21 datasets. Does not do train/test split"""
+  # Set some global variables up top
+  verbosity = "high"
+  model = "logistic"
+
+  # Create some directories for analysis
+  # The base_dir holds the results of all analysis
+  if not reload:
+    if os.path.exists(base_dir):
+      shutil.rmtree(base_dir)
+  if not os.path.exists(base_dir):
+    os.makedirs(base_dir)
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  print(current_dir)
+  # Make directories to store the raw and featurized datasets.
+  samples_dir = os.path.join(base_dir, "samples")
+  data_dir = os.path.join(base_dir, "dataset")
+
+  # Load Tox21 dataset
+  print("About to load Tox21 dataset.")
+  dataset_file = os.path.join(
+    current_dir, "../../datasets/tox21_single.csv.gz")
+  dataset = load_from_disk(dataset_file)
+  print("Columns of dataset: %s" % str(dataset.columns.values))
+  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
+
+  # Featurize Tox21 dataset
+  print("About to featurize Tox21 dataset.")
+  featurizer = CircularFingerprint(size=1024)
+  all_tox21_tasks = ['NR-AR']
+
+  if not reload or not os.path.exists(data_dir):
+    loader = DataLoader(tasks=all_tox21_tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    dataset = loader.featurize(
+      dataset_file, data_dir, shard_size=8192)
+  else:
+    dataset = Dataset(data_dir, all_tox21_tasks, reload=True)
+
+  # Initialize transformers
+  transformers = [
+    BalancingTransformer(transform_w=True, dataset=dataset)]
+  if not reload:
+    print("About to transform data")
+    for transformer in transformers:
+      transformer.transform(dataset)
+
   return all_tox21_tasks, dataset, transformers
