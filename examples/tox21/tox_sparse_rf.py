@@ -16,7 +16,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.tox21_datasets import load_single_task_tox21
+from deepchem.datasets.tox21_datasets import load_tox21
 from deepchem.splits import StratifiedSplitter
 from deepchem.splits import RandomSplitter
 
