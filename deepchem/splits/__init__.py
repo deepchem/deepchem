@@ -117,14 +117,12 @@ def stratified_split(X, y, w, ids, frac_split):
   # finds index cutoff per task in array to get required split calculated
   index_list = generate_required_index(w, required_hits_list)
 
-  w_1 = w_2 = np.zeros(w.shape)
+  w_1, w_2 = np.zeros(w.shape), np.zeros(w.shape)
 
   # chunk appropriate values into weights matrices
   for col_index, index in enumerate(index_list):
     # copy over up to required index for weight first_split
     w_1[:index, col_index] = w[:index, col_index]
-    w_1[index:, col_index] = np.zeros(w_1[index:, col_index].shape)
-    w_2[:index, col_index] = np.zeros(w_2[:index, col_index].shape)
     w_2[index:, col_index] = w[index:, col_index]
 
   # check out if any rows in either w_1 or w_2 are just zeros
