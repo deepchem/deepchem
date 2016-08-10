@@ -84,10 +84,9 @@ def randomize_arrays(array_list):
   array_list = [array[perm] for array in array_list]
   return array_list
 
-
 def generate_required_hits(w, frac_split):
   required_hits = (w != 0).sum(0)  # returns list of per column sum of non zero elements
-  required_hits = [int(col_hits * frac_split) for col_hits in required_hits]
+  required_hits = [(int(col_hits * frac_split) + 1) for col_hits in required_hits]
   return required_hits
 
 def generate_required_index(w, required_hit_list):
