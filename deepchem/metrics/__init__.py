@@ -161,6 +161,7 @@ class Metric(object):
       w = np.ones_like(y_true)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
+    nan_tasks = []
     for task in xrange(n_tasks):
       y_task = y_true[:, task]
       if self.mode == "regression":
@@ -172,7 +173,10 @@ class Metric(object):
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
+      if metric_value is np.nan:
+        nan_tasks.append(task)
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
+    log("nan tasks: %s" % str(nan_tasks))
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:
