@@ -176,7 +176,7 @@ class Metric(object):
       if metric_value is np.nan:
         nan_tasks.append(task)
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
-    log("nan tasks: %s" % str(nan_tasks))
+    log("nan tasks: %s" % str(nan_tasks), self.verbosity)
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:
