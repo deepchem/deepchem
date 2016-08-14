@@ -214,26 +214,6 @@ class Dataset(object):
           os.path.join(self.data_dir, row['ids'])), dtype=object)
       yield (X, y, w, ids)
 
-  #def det_iterbatches(self, batch_size=None, epoch=0):
-  #  """
-  #  Returns minibatches from dataset.
-  #  """
-  #  for i, (X, y, w, ids) in enumerate(self.itershards()):
-  #    nb_sample = np.shape(X)[0]
-  #    if batch_size is None:
-  #      shard_batch_size = nb_sample
-  #    else:
-  #      shard_batch_size = batch_size 
-  #    interval_points = np.linspace(
-  #        0, nb_sample, np.ceil(float(nb_sample)/shard_batch_size)+1, dtype=int)
-  #    for j in range(len(interval_points)-1):
-  #      indices = range(interval_points[j], interval_points[j+1])
-  #      X_batch = X[indices, :]
-  #      y_batch = y[indices]
-  #      w_batch = w[indices]
-  #      ids_batch = ids[indices]
-  #      yield (X_batch, y_batch, w_batch, ids_batch)
-
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False):
     """Returns minibatches from dataset randomly."""
     num_shards = self.get_number_shards()

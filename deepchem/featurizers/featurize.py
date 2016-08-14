@@ -222,10 +222,6 @@ class DataLoader(object):
 
   def _featurize_shard(self, df_shard, write_fn, shard_num, input_type):
     """Featurizes a shard of an input dataframe."""
-    #################################################################### DEBUG
-    print("input_type, self.smiles_field")
-    print(input_type, self.smiles_field)
-    #################################################################### DEBUG
     field = self.mol_field if input_type == "sdf" else self.smiles_field 
     field_type = "mol" if input_type == "sdf" else "smiles" 
     log("Currently featurizing feature_type: %s"

@@ -72,21 +72,11 @@ class SingletaskToMultitask(Model):
     task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
-      #y_task = task_datasets[ind].get_labels()
-      #X_task, y_task, w_task, ids_task = task_datasets[ind].to_numpy()
       task_model = self.model_builder(
           [task], {task: self.task_types[task]}, self.model_params,
           self.task_model_dirs[task],
           verbosity=self.verbosity)
-      #if y_task.size > 0:
-        #task_model.raw_model.fit(X_task, np.ravel(y_task))
       task_model.fit(task_datasets[ind])
-      #else:
-      #  print("No labels for task %s" % task)
-      #  print("Fitting on dummy dataset.")
-      #  X_task_fake = np.zeros_like(X)
-      #  y_task_fake = np.zeros_like(w_task)
-      #  task_model.raw_model.fit(X_task_fake, y_task_fake)
       task_model.save()
       if self.store_in_memory:
         self.task_models[task] = task_model
