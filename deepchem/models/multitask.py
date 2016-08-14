@@ -18,15 +18,18 @@ class SingletaskToMultitask(Model):
   Warning: This current implementation is only functional for sklearn models. 
   """
   def __init__(self, tasks, task_types, model_params, model_dir, model_builder,
-               verbosity=None):
+               store_in_memory=False, verbosity=None):
     self.tasks = tasks
     self.task_types = task_types
     self.model_params = model_params
     self.models = {}
     self.model_dir = model_dir
+    # If models are TF models, they don't use up RAM, so can keep in memory
+    self.task_models = {}
     self.task_model_dirs = {}
     self.model_builder = model_builder
     self.verbosity = verbosity
+    self.store_in_memory = store_in_memory
     log("About to initialize singletask to multitask model",
         self.verbosity, "high")
     if not os.path.exists(self.model_dir):
@@ -65,23 +68,18 @@ class SingletaskToMultitask(Model):
 
     Warning: This current implementation is only functional for sklearn models. 
     """
+    log("About to create task-specific datasets", self.verbosity, "high")
     task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
-      X_task, y_task, w_task, ids_task = task_datasets[ind].to_numpy()
       task_model = self.model_builder(
           [task], {task: self.task_types[task]}, self.model_params,
           self.task_model_dirs[task],
           verbosity=self.verbosity)
-      if y_task.size > 0:
-        task_model.raw_model.fit(X_task, np.ravel(y_task))
-      else:
-        print("No labels for task %s" % task)
-        print("Fitting on dummy dataset.")
-        X_task_fake = np.zeros_like(X)
-        y_task_fake = np.zeros_like(w_task)
-        task_model.raw_model.fit(X_task_fake, y_task_fake)
+      task_model.fit(task_datasets[ind])
       task_model.save()
+      if self.store_in_memory:
+        self.task_models[task] = task_model
 
   def predict_on_batch(self, X):
     """
@@ -92,11 +90,14 @@ class SingletaskToMultitask(Model):
     y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
       task_type = self.task_types[task]
-      task_model = self.model_builder(
-          [task], {task: self.task_types[task]}, self.model_params,
-          self.task_model_dirs[task],
-          verbosity=self.verbosity)
-      task_model.reload()
+      if self.store_in_memory:
+        task_model = self.task_models[task]
+      else:
+        task_model = self.model_builder(
+            [task], {task: self.task_types[task]}, self.model_params,
+            self.task_model_dirs[task],
+            verbosity=self.verbosity)
+        task_model.reload()
 
       if task_type == "classification":
         y_pred[:, ind] = task_model.predict_on_batch(X)
@@ -114,11 +115,14 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      task_model = self.model_builder(
-          [task], {task: self.task_types[task]}, self.model_params,
-          self.task_model_dirs[task],
-          verbosity=self.verbosity)
-      task_model.reload()
+      if self.store_in_memory:
+        task_model = self.task_models[task]
+      else:
+        task_model = self.model_builder(
+            [task], {task: self.task_types[task]}, self.model_params,
+            self.task_model_dirs[task],
+            verbosity=self.verbosity)
+        task_model.reload()
 
       y_pred[:, ind] = task_model.predict_proba_on_batch(X)
     return y_pred
