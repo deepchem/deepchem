@@ -370,6 +370,9 @@ class TensorflowGraph(object):
       # allow_soft_placement=True allows ops without a GPU implementation
       # to run on the CPU instead.
       config = tf.ConfigProto(allow_soft_placement=True)
+      ################################################################# DEBUG
+      config.gpu_options.allow_growth = True
+      ################################################################# DEBUG
       self._shared_session = tf.Session(config=config)
     return self._shared_session
 
@@ -569,6 +572,12 @@ class TensorflowModel(Model):
     Makes predictions on batch of data.
     """
     return self.eval_model.predict_on_batch(X)
+
+  def predict_grad_on_batch(self, X):
+    """
+    Calculates gradient of cost function on batch of data.
+    """
+    return self.eval_model.predict_grad_on_batch(X)
 
   def predict_proba_on_batch(self, X):
     """

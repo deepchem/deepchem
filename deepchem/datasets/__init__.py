@@ -682,6 +682,34 @@ class Dataset(object):
       save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
       save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
 
+  # TODO(rbharath, joegomes): Have to add more comments on why this function is
+  # needed.
+  def get_grad_statistics(self):
+    """Computes and returns statistics of this dataset"""
+    if len(self) == 0:
+      return None, None, None, None
+    df = self.metadata_df
+    y = []
+    y_n = []
+    for _, row in df.iterrows():
+      yy = load_from_disk(os.path.join(self.data_dir, row['y']))
+      y.append(yy)
+      yn = load_from_disk(os.path.join(self.data_dir, row['y_n']))
+      y_n.append(np.array(yn))
+
+    y = np.vstack(y)
+    y_n = np.sum(y_n, axis=0)
+
+    energy = y[:,0]
+    grad = y[:,1:]
+    for i in xrange(energy.size):
+      grad[i] *= energy[i]
+
+    ydely_means = np.sum(grad, axis=0)/y_n[1:]
+
+    return grad, ydely_means
+
+
 def compute_sums_and_nb_sample(tensor, W=None):
   """
   Computes sums, squared sums of tensor along axis 0.
