@@ -4,6 +4,9 @@ Contains an abstract base class that supports different ML models.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+__author__ = "Bharath Ramsundar and Joseph Gomes"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
 import sys
 import numpy as np
 import pandas as pd
@@ -141,41 +144,27 @@ class Model(object):
     n_tasks = len(self.tasks)
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
-      ############################################################## DEBUG
-      #y_pred_batch = np.reshape(self.predict_on_batch(X_batch), y_batch.shape)
       n_samples = len(X_batch)
       y_pred_batch = np.reshape(self.predict_on_batch(X_batch), (n_samples, n_tasks))
-      #print("predict()")
-      #print("X_batch.shape, y_batch.shape")
-      #print(X_batch.shape, y_batch.shape)
-      #print("y_pred_batch.shape")
-      #print(y_pred_batch.shape)
-      ############################################################## DEBUG
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
-    ############################################################## DEBUG
-    print("predict()")
-    print("[y_pred.shape for y_pred in y_preds]")
-    print([y_pred.shape for y_pred in y_preds])
-    ############################################################## DEBUG
     y_pred = np.vstack(y_preds)
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples, n_tasks = len(dataset), len(self.tasks)
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
-    ############################################################## DEBUG
     # Special case to handle singletasks.
     if n_tasks == 1:
       y_pred = np.squeeze(y_pred)
-    print("n_tasks, y_pred.shape")
-    print(n_tasks, y_pred.shape)
-    ############################################################## DEBUG
     return y_pred
 
   def predict_grad(self, dataset, transformers=[]):
     """
     Uses self to calculate gradient on provided Dataset object.
+
+    TODO(rbharath): Should we assume each model has meaningful gradients to
+    predict? Should this be a subclass for PhysicalModel or the like?
 
     Returns:
       y_pred: numpy ndarray of shape (n_samples,)
@@ -194,6 +183,10 @@ class Model(object):
   def evaluate_error(self, dataset, transformers=[]):
     """
     Evaluate the error in energy and gradient components, forcebalance-style.
+
+    TODO(rbharath): This looks like it should be a subclass method for a
+    PhysicalMethod class. forcebalance style errors aren't meaningful for most
+    chem-informatic datasets.
     """
     y_preds = []
     y_train = []
@@ -239,6 +232,10 @@ class Model(object):
   def evaluate_error_class2(self, dataset, transformers=[]):
     """
     Evaluate the error in energy and gradient components, forcebalance-style.
+
+    TODO(rbharath): Should be a subclass PhysicalModel method. Also, need to
+    find a better name for this method (class2 doesn't tell us anything about the
+    semantics of this method.
     """
     y_preds = []
     y_train = []
@@ -290,6 +287,10 @@ class Model(object):
     """
     Uses self to calculate finite difference gradient on provided Dataset object.
     Currently only useful if your task is energy and self contains predict_grad_on_batch.
+
+    TODO(rbharath): This shouldn't be a method of the Model class. Perhaps a
+    method of PhysicalModel subclass. Leaving it in for time-being while refactoring
+    continues.
 
     Returns:
       y_pred: numpy ndarray of shape (n_samples,)

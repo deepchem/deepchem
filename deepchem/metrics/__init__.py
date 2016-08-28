@@ -103,7 +103,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity=None, mode=None, atomicnet=False):
+               verbosity=None, mode=None, compute_force_metrics=False):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -136,7 +136,7 @@ class Metric(object):
         raise ValueError("Must specify mode for new metric.")
     assert mode in ["classification", "regression"]
     self.mode = mode
-    self.atomicnet = atomicnet
+    self.compute_force_metrics = compute_force_metrics 
 
   def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True):
     """Compute a performance metric for each task.
@@ -182,7 +182,7 @@ class Metric(object):
       if filter_nans:
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
-      if self.atomicnet:
+      if self.compute_force_metrics:
         force_error = self.task_averager(computed_metrics[1:])*4961.47596096
         print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))
         return computed_metrics[0]

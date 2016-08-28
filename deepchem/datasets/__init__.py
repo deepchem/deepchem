@@ -682,10 +682,15 @@ class Dataset(object):
       save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
       save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
 
-  # TODO(rbharath, joegomes): Have to add more comments on why this function is
-  # needed.
   def get_grad_statistics(self):
-    """Computes and returns statistics of this dataset"""
+    """Computes and returns statistics of this dataset
+
+    This function assumes that the first task of a dataset holds the energy for
+    an input system, and that the remaining tasks holds the gradient for the system.
+
+    TODO(rbharath, joegomes): It is unclear whether this should be a Dataset
+    function. Might get refactored out.
+    """
     if len(self) == 0:
       return None, None, None, None
     df = self.metadata_df

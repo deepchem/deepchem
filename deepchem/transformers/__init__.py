@@ -169,11 +169,15 @@ class NormalizationTransformer(Transformer):
         transformed_grad.append(grad_E)   
 
       transformed_grad = np.asarray(transformed_grad)
-      #print("TRAINING gradient")
-      #print(self.grad)
       return transformed_grad
 
 class AtomicNormalizationTransformer(Transformer):
+  """
+  TODO(rbharath): Needs more discussion of what a gradient is semantically.
+  It's evident that not every Dataset has meaningful gradient information, so
+  this transformer can't be applied to all data. Should there be a subclass of
+  Dataset named GradientDataset perhaps?
+  """
 
   def __init__(self, transform_X=False, transform_y=False, transform_w=False,
                dataset=None):
@@ -260,10 +264,7 @@ class AtomicNormalizationTransformer(Transformer):
         transformed_grad.append(grad_E)   
 
       transformed_grad = np.asarray(transformed_grad)
-      #print("TRAINING gradient")
-      #print(self.grad)
       return transformed_grad
-
 
 
 class ClippingTransformer(Transformer):

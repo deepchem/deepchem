@@ -2,6 +2,7 @@
 Contains basic hyperparameter optimizations.
 """
 import numpy as np
+import os
 import itertools
 import tempfile
 import shutil
@@ -61,7 +62,14 @@ class HyperparamOpt(object):
           self.verbosity, "high")
 
       if logdir is not None:
-        model_dir = logdir
+        model_dir = os.path.join(logdir, str(ind))
+        log("model_dir is %s" % model_dir, self.verbosity, "high")
+        try: 
+          os.makedirs(model_dir)
+        except OSError:
+          if not os.path.isdir(model_dir):
+            log("Error creating model_dir, using tempfile directory", self.verbosity, "high")
+            model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
       #TODO(JG) Fit transformers for TF models
@@ -99,7 +107,6 @@ class HyperparamOpt(object):
           self.verbosity, "low")
       log("\tbest_validation_score so far: %f" % best_validation_score,
           self.verbosity, "low")
-
     if best_model is None:
       log("No models trained correctly.", self.verbosity, "low")
       # arbitrarily return last model
