@@ -56,6 +56,8 @@ class Evaluator(object):
       csvfile: Open file object.
     """
     mol_ids = self.dataset.get_ids()
+    n_tasks = len(self.task_names)
+    y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
     assert len(y_preds) == len(mol_ids)
     with open(csv_out, "wb") as csvfile:
       csvwriter = csv.writer(csvfile)

@@ -153,7 +153,7 @@ class SingletaskToMultitask(Model):
     Concatenates results from all singletask models.
     """
     n_tasks = len(self.tasks)
-    n_samples = X.shape[0]
+    n_samples = len(dataset) 
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
       if self.store_in_memory:
@@ -165,8 +165,8 @@ class SingletaskToMultitask(Model):
             verbosity=self.verbosity)
         task_model.reload()
 
-      y_pred[:, ind] = task_model.predict_proba_on_batch(
-          dataset, transformers, n_classes)
+      y_pred[:, ind] = np.squeeze(task_model.predict_proba(
+          dataset, transformers, n_classes))
     return y_pred
 
   def save(self):

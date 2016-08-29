@@ -156,7 +156,7 @@ class Model(object):
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
-      y_pred = np.squeeze(y_pred)
+      y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
   def predict_grad(self, dataset, transformers=[]):

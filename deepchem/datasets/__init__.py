@@ -686,7 +686,8 @@ class Dataset(object):
     """Computes and returns statistics of this dataset
 
     This function assumes that the first task of a dataset holds the energy for
-    an input system, and that the remaining tasks holds the gradient for the system.
+    an input system, and that the remaining tasks holds the gradient for the
+    system.
 
     TODO(rbharath, joegomes): It is unclear whether this should be a Dataset
     function. Might get refactored out.
