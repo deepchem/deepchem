@@ -10,6 +10,7 @@ import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
 import sklearn
+from deepchem.transformers import undo_transforms
 
 class SingletaskToMultitask(Model):
   """
@@ -99,12 +100,29 @@ class SingletaskToMultitask(Model):
             verbosity=self.verbosity)
         task_model.reload()
 
-      if task_type == "classification":
-        y_pred[:, ind] = task_model.predict_on_batch(X)
-      elif task_type == "regression":
-        y_pred[:, ind] = task_model.predict_on_batch(X)
+      y_pred[:, ind] = task_model.predict_on_batch(X)
+    return y_pred
+
+  def predict(self, dataset, transformers=[]):
+    """
+    Prediction for multitask models. 
+    """
+    n_tasks = len(self.tasks)
+    n_samples = len(dataset) 
+    y_pred = np.zeros((n_samples, n_tasks))
+    for ind, task in enumerate(self.tasks):
+      task_type = self.task_types[task]
+      if self.store_in_memory:
+        task_model = self.task_models[task]
       else:
-        raise ValueError("Invalid task_type")
+        task_model = self.model_builder(
+            [task], {task: self.task_types[task]}, self.model_params,
+            self.task_model_dirs[task],
+            verbosity=self.verbosity)
+        task_model.reload()
+
+      y_pred[:, ind] = task_model.predict(dataset, [])
+    y_pred = undo_transforms(y_pred, transformers)
     return y_pred
 
   def predict_proba_on_batch(self, X, n_classes=2):
@@ -125,6 +143,27 @@ class SingletaskToMultitask(Model):
         task_model.reload()
 
       y_pred[:, ind] = task_model.predict_proba_on_batch(X)
+    return y_pred
+
+  def predict_proba(self, dataset, transformers=[], n_classes=2):
+    """
+    Concatenates results from all singletask models.
+    """
+    n_tasks = len(self.tasks)
+    n_samples = len(dataset) 
+    y_pred = np.zeros((n_samples, n_tasks, n_classes))
+    for ind, task in enumerate(self.tasks):
+      if self.store_in_memory:
+        task_model = self.task_models[task]
+      else:
+        task_model = self.model_builder(
+            [task], {task: self.task_types[task]}, self.model_params,
+            self.task_model_dirs[task],
+            verbosity=self.verbosity)
+        task_model.reload()
+
+      y_pred[:, ind] = np.squeeze(task_model.predict_proba(
+          dataset, transformers, n_classes))
     return y_pred
 
   def save(self):
