@@ -691,6 +691,8 @@ class Dataset(object):
 
     TODO(rbharath, joegomes): It is unclear whether this should be a Dataset
     function. Might get refactored out.
+    TODO(rbharath, joegomes): If y_n were an exposed part of the API, this
+    function could be entirely written in userspace.
     """
     if len(self) == 0:
       return None, None, None, None

@@ -10,9 +10,7 @@ import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
 import sklearn
-######################################################## DEBUG
 from deepchem.transformers import undo_transforms
-######################################################## DEBUG
 
 class SingletaskToMultitask(Model):
   """
@@ -123,7 +121,6 @@ class SingletaskToMultitask(Model):
             verbosity=self.verbosity)
         task_model.reload()
 
-      #y_pred[:, ind] = task_model.predict(dataset, transformers)
       y_pred[:, ind] = task_model.predict(dataset, [])
     y_pred = undo_transforms(y_pred, transformers)
     return y_pred
