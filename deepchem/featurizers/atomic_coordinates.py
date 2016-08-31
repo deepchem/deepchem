@@ -140,6 +140,20 @@ def compute_neighbor_cell_map(N_x, N_y, N_z):
         neighbor_cell_map[(x_ind, y_ind, z_ind)] = neighbors
   return neighbor_cell_map
 
+def get_coords(mol):
+  """
+  Gets coordinates in Angstrom for RDKit mol.
+  """
+  N = mol.GetNumAtoms()
+  coords = np.zeros((N,3))
+
+  coords_raw = [mol.GetConformer(0).GetAtomPosition(i) for i in range(N)]
+  for atom in range(N):
+    coords[atom,0] = coords_raw[atom].x
+    coords[atom,1] = coords_raw[atom].y
+    coords[atom,2] = coords_raw[atom].z
+  return coords
+
 class NeighborListAtomicCoordinates(Featurizer):
   """
   Adjacency List of neighbors in 3-space
@@ -156,7 +170,9 @@ class NeighborListAtomicCoordinates(Featurizer):
   """ 
 
   def __init__(self, neighbor_cutoff=4):
-    self.neighbor_cutoff = 4
+    if neighbor_cutoff <= 0:
+      raise ValueError("neighbor_cutoff must be positive value.")
+    self.neighbor_cutoff = neighbor_cutoff
 
   def _featurize(self, mol):
     """
@@ -166,13 +182,7 @@ class NeighborListAtomicCoordinates(Featurizer):
     ----------
     """
     N = mol.GetNumAtoms()
-    coords = np.zeros((N,3))
-
-    coords_raw = [mol.GetConformer(0).GetAtomPosition(i) for i in range(N)]
-    for atom in range(N):
-      coords[atom,0] = coords_raw[atom].x
-      coords[atom,1] = coords_raw[atom].y
-      coords[atom,2] = coords_raw[atom].z
+    coords = get_coords(mol)
 
     x_bins, y_bins, z_bins = get_cells(coords, self.neighbor_cutoff)
 
@@ -192,13 +202,31 @@ class NeighborListAtomicCoordinates(Featurizer):
     for atom in range(N):
       cell = atom_to_cell[atom]
       neighbor_cells = neighbor_cell_map[cell]
-      neighbor_list[atom] = []
+      # For smaller systems especially, the periodic boundary conditions can
+      # result in neighboring cells being seen multiple times. Use a set() to
+      # make sure duplicate neighbors are ignored. Convert back to list before
+      # returning. 
+      neighbor_list[atom] = set()
+      ####################################################### DEBUG
+      all_nbrs = set()
+      print("self.neighbor_cutoff")
+      print(self.neighbor_cutoff)
+      ####################################################### DEBUG
       for neighbor_cell in neighbor_cells:
         atoms_in_cell = cell_to_atoms[neighbor_cell]
         for neighbor_atom in atoms_in_cell:
           if neighbor_atom == atom:
             continue
-          if np.linalg.norm(coords[atom] - coords[atoms_in_cell]) < self.neighbor_cutoff:
-            neighbor_list[atom].append(neighbor_atom)
+          # TODO(rbharath): How does distance need to be modified here to
+          # account for periodic boundary conditions?
+          if np.linalg.norm(coords[atom] - coords[neighbor_atom]) < self.neighbor_cutoff:
+            neighbor_list[atom].add(neighbor_atom)
+          ########################################################### DEBUG
+          all_nbrs.add(neighbor_atom)
+          ########################################################### DEBUG
+          
+      ########################################################### DEBUG
+      print("All neighbor-cell atoms for %d = %s" % (atom, str(all_nbrs)))
+      neighbor_list[atom] = list(neighbor_list[atom])
         
     return neighbor_list
