@@ -207,11 +207,6 @@ class NeighborListAtomicCoordinates(Featurizer):
       # make sure duplicate neighbors are ignored. Convert back to list before
       # returning. 
       neighbor_list[atom] = set()
-      ####################################################### DEBUG
-      all_nbrs = set()
-      print("self.neighbor_cutoff")
-      print(self.neighbor_cutoff)
-      ####################################################### DEBUG
       for neighbor_cell in neighbor_cells:
         atoms_in_cell = cell_to_atoms[neighbor_cell]
         for neighbor_atom in atoms_in_cell:
@@ -221,12 +216,7 @@ class NeighborListAtomicCoordinates(Featurizer):
           # account for periodic boundary conditions?
           if np.linalg.norm(coords[atom] - coords[neighbor_atom]) < self.neighbor_cutoff:
             neighbor_list[atom].add(neighbor_atom)
-          ########################################################### DEBUG
-          all_nbrs.add(neighbor_atom)
-          ########################################################### DEBUG
           
-      ########################################################### DEBUG
-      print("All neighbor-cell atoms for %d = %s" % (atom, str(all_nbrs)))
       neighbor_list[atom] = list(neighbor_list[atom])
         
     return neighbor_list
