@@ -11,18 +11,18 @@ __license__ = "GPL"
 
 import unittest
 import numpy as np
+import pandas as pd
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import BalancingTransformer
 from deepchem.datasets.tests import TestDatasetAPI
 
 class TestTransformerAPI(TestDatasetAPI):
-  """
-  Test top-level API for transformer objects.
-  """
+  """Test top-level API for transformer objects."""
 
+  """
   def test_y_log_transformer(self):
-    """Tests logarithmic data transformer."""
+    # Tests logarithmic data transformer.
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_y=True, dataset=solubility_dataset)
@@ -42,9 +42,10 @@ class TestTransformerAPI(TestDatasetAPI):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
-
+  """
+  """
   def test_X_log_transformer(self):
-    """Tests logarithmic data transformer."""
+    # Tests logarithmic data transformer.
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_X=True, dataset=solubility_dataset)
@@ -61,6 +62,69 @@ class TestTransformerAPI(TestDatasetAPI):
     np.testing.assert_allclose(w, w_t)
     # Check y is now a logarithmic version of itself
     np.testing.assert_allclose(X_t, np.log(X+1))
+
+    # Check that untransform does the right thing.
+    np.testing.assert_allclose(log_transformer.untransform(X_t), X)
+  """
+
+  def test_y_log_transformer(self):
+    """Tests logarithmic data transformer with selection."""
+    multitask_dataset = self.load_feat_multitask_data()
+    dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")
+    tid = []
+    tasklist =  ["task0", "task3", "task4", "task5"]
+    first_task = "task0"
+    for task in tasklist:
+      tiid = dfe.columns.get_loc(task)-dfe.columns.get_loc(first_task)
+      tid = np.concatenate((tid, np.array([tiid])))
+    tasks = tid.astype(int)
+    log_transformer = LogTransformer(
+        transform_y=True, tasks=tasks,
+        dataset=multitask_dataset)
+    X, y, w, ids = multitask_dataset.to_numpy()
+    log_transformer.transform(multitask_dataset)
+    X_t, y_t, w_t, ids_t = multitask_dataset.to_numpy()
+
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check X is unchanged since this is a y transformer
+    np.testing.assert_allclose(X, X_t)
+    # Check w is unchanged since this is a y transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check y is now a logarithmic version of itself
+    np.testing.assert_allclose(y_t[:,tasks], np.log(y[:,tasks]+1))
+
+    # Check that untransform does the right thing.
+    np.testing.assert_allclose(log_transformer.untransform(y_t), y)
+
+  def test_X_log_transformer(self):
+    #Tests logarithmic data transformer with selection.
+    multitask_dataset = self.load_feat_multitask_data()
+    dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")
+    fid = []
+    featurelist =  ["feat0", "feat1", "feat2","feat3", "feat5"]
+    first_feature = "feat0"
+    for feature in featurelist:
+      fiid = dfe.columns.get_loc(feature)-dfe.columns.get_loc(first_feature)
+      fid = np.concatenate((fid, np.array([fiid])))
+    features = fid.astype(int)
+    log_transformer = LogTransformer(
+        transform_X=True, features=features,
+        dataset=multitask_dataset)
+    X, y, w, ids = multitask_dataset.to_numpy()
+    log_transformer.transform(multitask_dataset)
+    X_t, y_t, w_t, ids_t = multitask_dataset.to_numpy()
+
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check y is unchanged since this is a X transformer
+    np.testing.assert_allclose(y, y_t)
+    # Check w is unchanged since this is a y transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check y is now a logarithmic version of itself
+    np.testing.assert_allclose(X_t[:,features], np.log(X[:,features]+1))
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(X_t), X)

@@ -87,8 +87,8 @@ class Transformer(object):
 def _transform_row(i, df, transformer, data_dir):
   """
   Transforms the data (X, y, w,...) in a single row.
+  Writes X-transformed, y-transformed to disk.
 
-  Writes X-transforme,d y-transformed to disk.
   """
   transformer.transform_row(i, df, data_dir)
 
@@ -172,22 +172,60 @@ class ClippingTransformer(Transformer):
 
 class LogTransformer(Transformer):
 
+  def __init__(self, transform_X=False, transform_y=False,
+               features=None, tasks=None,
+               dataset=None):
+    self.features=features
+    self.tasks=tasks
+    """Initialize log  transformation."""
+    super(LogTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y,
+        dataset=dataset)
+
   def transform_row(self, i, df, data_dir):
     """Logarithmically transforms data in dataset."""
+    """Select features and tasks of interest for transformation."""
     row = df.iloc[i]
     if self.transform_X:
       X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      X = np.log(X+1)
+      end_feat=len(X[1,:])
+      for j in xrange(end_feat):
+        if j in self.features:
+          X[:,j] = np.log(X[:,j]+1)
+        else:
+          X[:,j] = X[:,j]
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
     if self.transform_y:
       y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-      y = np.log(y+1)
+      end_task=len(y[1,:])
+      for j in xrange(end_task):
+        if j in self.tasks:
+          y[:,j] = np.log(y[:,j]+1)
+        else:
+          y[:,j] = y[:,j]
       save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
 
   def untransform(self, z):
-    """Undoes the logarithmic transformation."""
-    return np.exp(z)-1
+    """
+    Undo transformation on provided data.
+    """
+    if self.transform_X:
+      end_feat=len(z[1,:])
+      for j in xrange(end_feat):
+        if j in self.features:
+          z[:,j] = np.exp(z[:,j])-1
+        else:
+          z[:,j] = z[:,j]
+      return z
+    elif self.transform_y:
+      end_task=len(z[1,:])
+      for j in xrange(end_task):
+        if j in self.tasks:
+          z[:,j] = np.exp(z[:,j])-1
+        else:
+          z[:,j] = z[:,j]
+      return z
 
 class BalancingTransformer(Transformer):
   """Balance positive and negative examples for weights."""
