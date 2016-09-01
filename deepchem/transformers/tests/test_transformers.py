@@ -20,9 +20,8 @@ from deepchem.datasets.tests import TestDatasetAPI
 class TestTransformerAPI(TestDatasetAPI):
   """Test top-level API for transformer objects."""
 
-  """
   def test_y_log_transformer(self):
-    # Tests logarithmic data transformer.
+    """Tests logarithmic data transformer."""
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_y=True, dataset=solubility_dataset)
@@ -42,10 +41,9 @@ class TestTransformerAPI(TestDatasetAPI):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
-  """
-  """
+
   def test_X_log_transformer(self):
-    # Tests logarithmic data transformer.
+    """Tests logarithmic data transformer."""
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_X=True, dataset=solubility_dataset)
@@ -65,9 +63,8 @@ class TestTransformerAPI(TestDatasetAPI):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(X_t), X)
-  """
-
-  def test_y_log_transformer(self):
+ 
+  def test_y_log_transformer_select(self):
     """Tests logarithmic data transformer with selection."""
     multitask_dataset = self.load_feat_multitask_data()
     dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")
@@ -98,7 +95,7 @@ class TestTransformerAPI(TestDatasetAPI):
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
 
-  def test_X_log_transformer(self):
+  def test_X_log_transformer_select(self):
     #Tests logarithmic data transformer with selection.
     multitask_dataset = self.load_feat_multitask_data()
     dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")

@@ -188,22 +188,28 @@ class LogTransformer(Transformer):
     row = df.iloc[i]
     if self.transform_X:
       X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      end_feat=len(X[1,:])
-      for j in xrange(end_feat):
-        if j in self.features:
-          X[:,j] = np.log(X[:,j]+1)
-        else:
-          X[:,j] = X[:,j]
+      num_features=len(X[0])
+      if self.features is None:
+        X = np.log(X+1)
+      else:
+        for j in xrange(num_features):
+          if j in self.features:
+            X[:,j] = np.log(X[:,j]+1)
+          else:
+            X[:,j] = X[:,j]
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
     if self.transform_y:
       y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-      end_task=len(y[1,:])
-      for j in xrange(end_task):
-        if j in self.tasks:
-          y[:,j] = np.log(y[:,j]+1)
-        else:
-          y[:,j] = y[:,j]
+      num_tasks=len(y[0])
+      if self.tasks is None:
+        y = np.log(y+1)
+      else:
+        for j in xrange(num_tasks):
+          if j in self.tasks:
+            y[:,j] = np.log(y[:,j]+1)
+          else:
+            y[:,j] = y[:,j]
       save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
 
   def untransform(self, z):
@@ -211,21 +217,27 @@ class LogTransformer(Transformer):
     Undo transformation on provided data.
     """
     if self.transform_X:
-      end_feat=len(z[1,:])
-      for j in xrange(end_feat):
-        if j in self.features:
-          z[:,j] = np.exp(z[:,j])-1
-        else:
-          z[:,j] = z[:,j]
-      return z
+      num_features=len(z[0])
+      if self.features is None:
+        return np.exp(z)-1
+      else:
+        for j in xrange(num_features):
+          if j in self.features:
+            z[:,j] = np.exp(z[:,j])-1
+          else:
+            z[:,j] = z[:,j]
+        return z
     elif self.transform_y:
-      end_task=len(z[1,:])
-      for j in xrange(end_task):
-        if j in self.tasks:
-          z[:,j] = np.exp(z[:,j])-1
-        else:
-          z[:,j] = z[:,j]
-      return z
+      num_tasks=len(z[0])
+      if self.tasks is None:
+        return np.exp(z)-1
+      else:
+        for j in xrange(num_tasks):
+          if j in self.tasks:
+            z[:,j] = np.exp(z[:,j])-1
+          else:
+            z[:,j] = z[:,j]
+        return z
 
 class BalancingTransformer(Transformer):
   """Balance positive and negative examples for weights."""
