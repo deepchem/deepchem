@@ -105,8 +105,6 @@ class NormalizationTransformer(Transformer):
     super(NormalizationTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y,
         transform_w=transform_w, dataset=dataset)
-    #################################################################### DEBUG
-    #X_means, X_stds, y_means, y_stds = dataset.get_statistics()
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means 
@@ -117,7 +115,6 @@ class NormalizationTransformer(Transformer):
       # Control for pathological case with no variance.
       y_stds[y_stds == 0] = 1.
       self.y_stds = y_stds
-    #################################################################### DEBUG
     self.transform_gradients = transform_gradients
     if self.transform_gradients:
       true_grad, ydely_means = dataset.get_grad_statistics()

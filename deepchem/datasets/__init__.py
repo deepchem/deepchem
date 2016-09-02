@@ -73,14 +73,12 @@ class Dataset(object):
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
-      ##################################################### DEBUG
       if hasattr(featurizer, "dtype"):
         dtype = featurizer.dtype
         compute_feature_statistics = False
       else:
         dtype = float
         compute_feature_statistics = True
-      ##################################################### DEBUG
       ############################################################## TIMING
       time1 = time.time()
       ############################################################## TIMING
@@ -117,11 +115,8 @@ class Dataset(object):
     return metadata_df
 
   @staticmethod
-  ############################################################## DEBUG
-  #def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None):
   def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None,
                          compute_feature_statistics=True):
-  ############################################################## DEBUG
     out_X = "%s-X.joblib" % basename
     out_X_transformed = "%s-X-transformed.joblib" % basename
     out_X_sums = "%s-X_sums.joblib" % basename
@@ -140,6 +135,10 @@ class Dataset(object):
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
       if compute_feature_statistics:
+        ########################################################## DEBUG
+        print("compute_feature_statistics")
+        print(compute_feature_statistics)
+        ########################################################## DEBUG
         X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
         save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
         save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
@@ -464,12 +463,9 @@ class Dataset(object):
     """Sets verbosity."""
     self.verbosity = new_verbosity
 
-  ####################################################### DEBUG
-  # TODO(rbharath): This ad-hoc change for general object types seems kludgey.
-  # Is there a more principled approach to support general objects?
-  #def select(self, select_dir, indices):
+  # TODO(rbharath): This change for general object types seems a little
+  # kludgey.  Is there a more principled approach to support general objects?
   def select(self, select_dir, indices, compute_feature_statistics=False):
-  ####################################################### DEBUG
     """Creates a new dataset from a selection of indices from self."""
     if not os.path.exists(select_dir):
       os.makedirs(select_dir)
@@ -497,13 +493,11 @@ class Dataset(object):
       w_sel = w[shard_indices]
       ids_sel = ids[shard_indices]
       basename = "dataset-%d" % shard_num
-      ############################################################ DEBUG
       metadata_rows.append(
           Dataset.write_data_to_disk(
               select_dir, basename, tasks,
               X_sel, y_sel, w_sel, ids_sel,
               compute_feature_statistics=compute_feature_statistics))
-      ############################################################ DEBUG
       # Updating counts
       indices_count += num_shard_elts
       count += shard_len
@@ -627,38 +621,32 @@ class Dataset(object):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
 
-  ################################################## DEBUG
-  #def get_statistics(self):
   def get_statistics(self, X_stats=True, y_stats=True):
-  ################################################## DEBUG
     """Computes and returns statistics of this dataset"""
     if len(self) == 0:
       return None, None, None, None
-    ################################################## DEBUG
-    #self.update_moments()
     self.update_moments(X_stats, y_stats)
-    ################################################## DEBUG
     df = self.metadata_df
-    ################################################## DEBUG
-    #X_means, X_stds, y_means, y_stds = self._compute_mean_and_std(df)
-    if X_stats:
+    if X_stats and not y_stats:
       X_means, X_stds = self._compute_mean_and_std(df, X_stats, y_stats)
       return X_means, X_stds
-    elif y_stats:
+    elif y_stats and not X_stats:
       y_means, y_stds = self._compute_mean_and_std(df, X_stats, y_stats)
       return y_means, y_stds
-    ################################################## DEBUG
-    #return X_means, X_stds, y_means, y_stds
+    elif X_stats and y_stats:
+      X_means, X_stds = self._compute_mean_and_std(
+          df, X_stats=True, y_stats=False)
+      y_means, y_stds = self._compute_mean_and_std(
+          df, X_stats=False, y_stats=True)
+      return X_means, X_stds, y_means, y_stds
+    else:
+      return None
 
-  ################################################## DEBUG
-  #def _compute_mean_and_std(self, df):
   def _compute_mean_and_std(self, df, X_stats, y_stats):
-  ################################################## DEBUG
     """
     Compute means/stds of X/y from sums/sum_squares of tensors.
     """
 
-  ################################################## DEBUG
     if X_stats:
       X_sums = []
       X_sum_squares = []
@@ -681,9 +669,7 @@ class Dataset(object):
 
       X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
       return overall_X_means, np.sqrt(X_vars)
-  ################################################## DEBUG
 
-  ################################################## DEBUG
     if y_stats:
       y_sums = []
       y_sum_squares = []
@@ -703,27 +689,16 @@ class Dataset(object):
       y_means = np.sum(y_sums, axis=0)/y_n
       y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
       return y_means, np.sqrt(y_vars)
-  ################################################## DEBUG
   
-  ########################################################## DEBUG
-  #def update_moments(self):
   def update_moments(self, X_stats, y_stats):
-  ########################################################## DEBUG
     """Re-compute statistics of this dataset during transformation"""
     df = self.metadata_df
-    ########################################################## DEBUG
-    #self._update_mean_and_std(df)
     self._update_mean_and_std(df, X_stats, y_stats)
-    ########################################################## DEBUG
 
-  ########################################################## DEBUG
-  #def _update_mean_and_std(self, df):
   def _update_mean_and_std(self, df, X_stats, y_stats):
-  ########################################################## DEBUG
     """
     Compute means/stds of X/y from sums/sum_squares of tensors.
     """
-    ########################################################## DEBUG
     if X_stats:
       X_transform = []
       for _, row in df.iterrows():
@@ -732,9 +707,7 @@ class Dataset(object):
         Xss = np.sum(np.square(Xt),axis=0)
         save_to_disk(Xs, os.path.join(self.data_dir, row['X_sums']))
         save_to_disk(Xss, os.path.join(self.data_dir, row['X_sum_squares']))
-    ########################################################## DEBUG
 
-    ########################################################## DEBUG
     if y_stats:
       y_transform = []
       for _, row in df.iterrows():
@@ -743,7 +716,6 @@ class Dataset(object):
         yss = np.sum(np.square(yt),axis=0)
         save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
         save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
-    ########################################################## DEBUG
 
   def get_grad_statistics(self):
     """Computes and returns statistics of this dataset
@@ -779,7 +751,6 @@ class Dataset(object):
     ydely_means = np.sum(grad, axis=0)/y_n[1:]
 
     return grad, ydely_means
-
 
 def compute_sums_and_nb_sample(tensor, W=None):
   """
@@ -872,16 +843,9 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, dtype,
   w = w[valid_inds]
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
-  ############################################################## DEBUG
-  #return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
-  print("x[0]")
-  print(x[0])
-  print("type(x)")
-  print(type(x))
   if dtype == float:
     return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
   elif dtype == object:
     return sorted_ids, x, y.astype(float), w.astype(float)
   else:
     raise ValueError("Unrecognized dtype for featurizer.")
-  ############################################################## DEBUG

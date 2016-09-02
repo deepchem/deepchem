@@ -37,7 +37,8 @@ class Splitter(object):
   def train_valid_test_split(self, dataset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
-                             log_every_n=1000):
+                             log_every_n=1000,
+                             compute_feature_statistics=True):
     """
     Splits self into train/validation/test sets.
 
@@ -48,12 +49,18 @@ class Splitter(object):
       dataset,
       frac_train=frac_train, frac_test=frac_test,
       frac_valid=frac_valid, log_every_n=log_every_n)
-    train_dataset = dataset.select(train_dir, train_inds)
+    train_dataset = dataset.select( 
+        train_dir, train_inds,
+        compute_feature_statistics=compute_feature_statistics)
     if valid_dir is not None:
-      valid_dataset = dataset.select(valid_dir, valid_inds)
+      valid_dataset = dataset.select(
+          valid_dir, valid_inds,
+          compute_feature_statistics=compute_feature_statistics)
     else:
       valid_dataset = None
-    test_dataset = dataset.select(test_dir, test_inds)
+    test_dataset = dataset.select(
+        test_dir, test_inds,
+        compute_feature_statistics=compute_feature_statistics)
 
     return train_dataset, valid_dataset, test_dataset
 

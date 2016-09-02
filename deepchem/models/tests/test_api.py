@@ -193,6 +193,7 @@ class TestModelAPI(TestAPI):
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
+    
     dataset = loader.featurize(input_file, self.data_dir)
 
     splitter = ScaffoldSplitter()
@@ -217,6 +218,7 @@ class TestModelAPI(TestAPI):
     model = SklearnModel(tasks, task_types, model_params, self.model_dir,
                          mode="regression",
                          model_instance=RandomForestRegressor())
+  
 
     # Fit trained model
     model.fit(train_dataset)

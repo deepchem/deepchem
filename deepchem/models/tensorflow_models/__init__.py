@@ -1,5 +1,4 @@
 """Helper operations and classes for general model building.
-
 """
 from __future__ import print_function
 from __future__ import division
@@ -211,7 +210,7 @@ class TensorflowGraph(object):
             dataset.shuffle()
           ####################################################################### DEBUG
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(batch_size)):
-            print("On batch %d" % ind)
+            log("On batch %d" % ind, self.verbosity)
           ####################################################################### DEBUG
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)

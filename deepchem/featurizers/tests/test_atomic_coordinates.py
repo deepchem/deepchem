@@ -159,7 +159,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     x_bins, y_bins, z_bins = get_cells(coords, nblist_featurizer.neighbor_cutoff)
 
     nblist_featurizer = NeighborListAtomicCoordinates()
-    nblist = nblist_featurizer._featurize(self.mol)
+    nblist = nblist_featurizer._featurize(self.mol)[1]
     assert isinstance(nblist, dict)
     assert len(nblist.keys()) == N
     for (atom, neighbors) in nblist.items():
@@ -185,12 +185,12 @@ class TestAtomicCoordinates(unittest.TestCase):
 
     # Test with cutoff 0 angstroms. There should be no neighbors in this case.
     nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=.1)
-    nblist = nblist_featurizer._featurize(self.mol)
+    nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
       assert len(nblist[atom]) == 0
 
     # Test with cutoff 100 angstroms. Everything should be neighbors now.
     nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=100)
-    nblist = nblist_featurizer._featurize(self.mol)
+    nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
       assert len(nblist[atom]) == N-1
