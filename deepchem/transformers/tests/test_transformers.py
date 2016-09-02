@@ -12,6 +12,7 @@ __license__ = "GPL"
 import unittest
 import numpy as np
 import pandas as pd
+import os
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import BalancingTransformer
@@ -67,7 +68,8 @@ class TestTransformerAPI(TestDatasetAPI):
   def test_y_log_transformer_select(self):
     """Tests logarithmic data transformer with selection."""
     multitask_dataset = self.load_feat_multitask_data()
-    dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")
+    dfe = pd.read_csv(os.path.join(self.current_dir,
+                      "../../models/tests/feat_multitask_example.csv"))
     tid = []
     tasklist =  ["task0", "task3", "task4", "task5"]
     first_task = "task0"
@@ -98,7 +100,8 @@ class TestTransformerAPI(TestDatasetAPI):
   def test_X_log_transformer_select(self):
     #Tests logarithmic data transformer with selection.
     multitask_dataset = self.load_feat_multitask_data()
-    dfe = pd.read_csv("../../models/tests/feat_multitask_example.csv")
+    dfe = pd.read_csv(os.path.join(self.current_dir,
+                      "../../models/tests/feat_multitask_example.csv"))
     fid = []
     featurelist =  ["feat0", "feat1", "feat2","feat3", "feat5"]
     first_feature = "feat0"
