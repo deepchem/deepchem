@@ -173,6 +173,9 @@ class NeighborListAtomicCoordinates(Featurizer):
     if neighbor_cutoff <= 0:
       raise ValueError("neighbor_cutoff must be positive value.")
     self.neighbor_cutoff = neighbor_cutoff
+    # Type of data created by this featurizer
+    self.dtype = object
+    self.coordinates_featurizer = AtomicCoordinates()
 
   def _featurize(self, mol):
     """
@@ -182,6 +185,8 @@ class NeighborListAtomicCoordinates(Featurizer):
     ----------
     """
     N = mol.GetNumAtoms()
+    # TODO(rbharath): Should this return a list?
+    bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
     coords = get_coords(mol)
 
     x_bins, y_bins, z_bins = get_cells(coords, self.neighbor_cutoff)
@@ -217,6 +222,6 @@ class NeighborListAtomicCoordinates(Featurizer):
           if np.linalg.norm(coords[atom] - coords[neighbor_atom]) < self.neighbor_cutoff:
             neighbor_list[atom].add(neighbor_atom)
           
-      neighbor_list[atom] = list(neighbor_list[atom])
+      neighbor_list[atom] = sorted(list(neighbor_list[atom]))
         
-    return neighbor_list
+    return (bohr_coords, neighbor_list)

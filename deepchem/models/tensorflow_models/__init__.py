@@ -1,5 +1,4 @@
 """Helper operations and classes for general model building.
-
 """
 from __future__ import print_function
 from __future__ import division
@@ -209,7 +208,10 @@ class TensorflowGraph(object):
           if shuffle:
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
-          for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
+          ####################################################################### DEBUG
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(batch_size)):
+            log("On batch %d" % ind, self.verbosity)
+          ####################################################################### DEBUG
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.output + [
@@ -370,9 +372,9 @@ class TensorflowGraph(object):
       # allow_soft_placement=True allows ops without a GPU implementation
       # to run on the CPU instead.
       config = tf.ConfigProto(allow_soft_placement=True)
-      ################################################################# DEBUG
-      config.gpu_options.allow_growth = True
-      ################################################################# DEBUG
+      ################################################################## DEBUG
+      #config.gpu_options.allow_growth = True
+      ################################################################## DEBUG
       self._shared_session = tf.Session(config=config)
     return self._shared_session
 
