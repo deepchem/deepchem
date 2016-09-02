@@ -73,11 +73,19 @@ class Dataset(object):
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
+      ##################################################### DEBUG
+      if hasattr(featurizer, "dtype"):
+        dtype = featurizer.dtype
+        compute_feature_statistics = False
+      else:
+        dtype = float
+        compute_feature_statistics = True
+      ##################################################### DEBUG
       ############################################################## TIMING
       time1 = time.time()
       ############################################################## TIMING
       ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field,
-                                         verbosity)
+                                         dtype, verbosity)
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbosity)
@@ -88,7 +96,9 @@ class Dataset(object):
       assert X.shape[0] == y.shape[0]
       assert y.shape == w.shape
       assert len(ids) == X.shape[0]
-    return Dataset.write_data_to_disk(data_dir, basename, tasks, X, y, w, ids)
+    return Dataset.write_data_to_disk(
+        data_dir, basename, tasks, X, y, w, ids,
+        compute_feature_statistics=compute_feature_statistics)
 
   @staticmethod
   def construct_metadata(metadata_entries):
@@ -107,7 +117,11 @@ class Dataset(object):
     return metadata_df
 
   @staticmethod
-  def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None):
+  ############################################################## DEBUG
+  #def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None):
+  def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None,
+                         compute_feature_statistics=True):
+  ############################################################## DEBUG
     out_X = "%s-X.joblib" % basename
     out_X_transformed = "%s-X-transformed.joblib" % basename
     out_X_sums = "%s-X_sums.joblib" % basename
@@ -125,10 +139,11 @@ class Dataset(object):
     if X is not None:
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
-      X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
-      save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
-      save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
-      save_to_disk(X_n, os.path.join(data_dir, out_X_n))
+      if compute_feature_statistics:
+        X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
+        save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
+        save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
+        save_to_disk(X_n, os.path.join(data_dir, out_X_n))
     if y is not None:
       save_to_disk(y, os.path.join(data_dir, out_y))
       save_to_disk(y, os.path.join(data_dir, out_y_transformed))
@@ -449,7 +464,12 @@ class Dataset(object):
     """Sets verbosity."""
     self.verbosity = new_verbosity
 
-  def select(self, select_dir, indices):
+  ####################################################### DEBUG
+  # TODO(rbharath): This ad-hoc change for general object types seems kludgey.
+  # Is there a more principled approach to support general objects?
+  #def select(self, select_dir, indices):
+  def select(self, select_dir, indices, compute_feature_statistics=False):
+  ####################################################### DEBUG
     """Creates a new dataset from a selection of indices from self."""
     if not os.path.exists(select_dir):
       os.makedirs(select_dir)
@@ -477,9 +497,13 @@ class Dataset(object):
       w_sel = w[shard_indices]
       ids_sel = ids[shard_indices]
       basename = "dataset-%d" % shard_num
+      ############################################################ DEBUG
       metadata_rows.append(
-          Dataset.write_data_to_disk(select_dir, basename, tasks,
-                                     X_sel, y_sel, w_sel, ids_sel))
+          Dataset.write_data_to_disk(
+              select_dir, basename, tasks,
+              X_sel, y_sel, w_sel, ids_sel,
+              compute_feature_statistics=compute_feature_statistics))
+      ############################################################ DEBUG
       # Updating counts
       indices_count += num_shard_elts
       count += shard_len
@@ -603,84 +627,123 @@ class Dataset(object):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
 
-  def get_statistics(self):
+  ################################################## DEBUG
+  #def get_statistics(self):
+  def get_statistics(self, X_stats=True, y_stats=True):
+  ################################################## DEBUG
     """Computes and returns statistics of this dataset"""
     if len(self) == 0:
       return None, None, None, None
-    self.update_moments()
+    ################################################## DEBUG
+    #self.update_moments()
+    self.update_moments(X_stats, y_stats)
+    ################################################## DEBUG
     df = self.metadata_df
-    X_means, X_stds, y_means, y_stds = self._compute_mean_and_std(df)
-    return X_means, X_stds, y_means, y_stds
+    ################################################## DEBUG
+    #X_means, X_stds, y_means, y_stds = self._compute_mean_and_std(df)
+    if X_stats:
+      X_means, X_stds = self._compute_mean_and_std(df, X_stats, y_stats)
+      return X_means, X_stds
+    elif y_stats:
+      y_means, y_stds = self._compute_mean_and_std(df, X_stats, y_stats)
+      return y_means, y_stds
+    ################################################## DEBUG
+    #return X_means, X_stds, y_means, y_stds
 
-  def _compute_mean_and_std(self, df):
+  ################################################## DEBUG
+  #def _compute_mean_and_std(self, df):
+  def _compute_mean_and_std(self, df, X_stats, y_stats):
+  ################################################## DEBUG
     """
     Compute means/stds of X/y from sums/sum_squares of tensors.
     """
 
-    X_sums = []
-    X_sum_squares = []
-    X_n = []
-    for _, row in df.iterrows():
-      Xs = load_from_disk(os.path.join(self.data_dir, row['X_sums']))
-      Xss = load_from_disk(os.path.join(self.data_dir, row['X_sum_squares']))
-      Xn = load_from_disk(os.path.join(self.data_dir, row['X_n']))
-      X_sums.append(np.array(Xs))
-      X_sum_squares.append(np.array(Xss))
-      X_n.append(np.array(Xn))
+  ################################################## DEBUG
+    if X_stats:
+      X_sums = []
+      X_sum_squares = []
+      X_n = []
+      for _, row in df.iterrows():
+        Xs = load_from_disk(os.path.join(self.data_dir, row['X_sums']))
+        Xss = load_from_disk(os.path.join(self.data_dir, row['X_sum_squares']))
+        Xn = load_from_disk(os.path.join(self.data_dir, row['X_n']))
+        X_sums.append(np.array(Xs))
+        X_sum_squares.append(np.array(Xss))
+        X_n.append(np.array(Xn))
 
-    # Note that X_n is a list of floats
-    n = float(np.sum(X_n))
-    X_sums = np.vstack(X_sums)
-    X_sum_squares = np.vstack(X_sum_squares)
-    overall_X_sums = np.sum(X_sums, axis=0)
-    overall_X_means = overall_X_sums / n
-    overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
+      # Note that X_n is a list of floats
+      n = float(np.sum(X_n))
+      X_sums = np.vstack(X_sums)
+      X_sum_squares = np.vstack(X_sum_squares)
+      overall_X_sums = np.sum(X_sums, axis=0)
+      overall_X_means = overall_X_sums / n
+      overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
 
-    X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
+      X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
+      return overall_X_means, np.sqrt(X_vars)
+  ################################################## DEBUG
 
-    y_sums = []
-    y_sum_squares = []
-    y_n = []
-    for _, row in df.iterrows():
-      ys = load_from_disk(os.path.join(self.data_dir, row['y_sums']))
-      yss = load_from_disk(os.path.join(self.data_dir, row['y_sum_squares']))
-      yn = load_from_disk(os.path.join(self.data_dir, row['y_n']))
-      y_sums.append(np.array(ys))
-      y_sum_squares.append(np.array(yss))
-      y_n.append(np.array(yn))
+  ################################################## DEBUG
+    if y_stats:
+      y_sums = []
+      y_sum_squares = []
+      y_n = []
+      for _, row in df.iterrows():
+        ys = load_from_disk(os.path.join(self.data_dir, row['y_sums']))
+        yss = load_from_disk(os.path.join(self.data_dir, row['y_sum_squares']))
+        yn = load_from_disk(os.path.join(self.data_dir, row['y_n']))
+        y_sums.append(np.array(ys))
+        y_sum_squares.append(np.array(yss))
+        y_n.append(np.array(yn))
 
-    # Note y_n is a list of arrays of shape (n_tasks,)
-    y_n = np.sum(y_n, axis=0)
-    y_sums = np.vstack(y_sums)
-    y_sum_squares = np.vstack(y_sum_squares)
-    y_means = np.sum(y_sums, axis=0)/y_n
-    y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
-    return overall_X_means, np.sqrt(X_vars), y_means, np.sqrt(y_vars)
+      # Note y_n is a list of arrays of shape (n_tasks,)
+      y_n = np.sum(y_n, axis=0)
+      y_sums = np.vstack(y_sums)
+      y_sum_squares = np.vstack(y_sum_squares)
+      y_means = np.sum(y_sums, axis=0)/y_n
+      y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
+      return y_means, np.sqrt(y_vars)
+  ################################################## DEBUG
   
-  def update_moments(self):
+  ########################################################## DEBUG
+  #def update_moments(self):
+  def update_moments(self, X_stats, y_stats):
+  ########################################################## DEBUG
     """Re-compute statistics of this dataset during transformation"""
     df = self.metadata_df
-    self._update_mean_and_std(df)
+    ########################################################## DEBUG
+    #self._update_mean_and_std(df)
+    self._update_mean_and_std(df, X_stats, y_stats)
+    ########################################################## DEBUG
 
-  def _update_mean_and_std(self, df):
+  ########################################################## DEBUG
+  #def _update_mean_and_std(self, df):
+  def _update_mean_and_std(self, df, X_stats, y_stats):
+  ########################################################## DEBUG
     """
     Compute means/stds of X/y from sums/sum_squares of tensors.
     """
-    X_transform = []
-    for _, row in df.iterrows():
-      Xt = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
-      Xs = np.sum(Xt,axis=0)
-      Xss = np.sum(np.square(Xt),axis=0)
-      save_to_disk(Xs, os.path.join(self.data_dir, row['X_sums']))
-      save_to_disk(Xss, os.path.join(self.data_dir, row['X_sum_squares']))
+    ########################################################## DEBUG
+    if X_stats:
+      X_transform = []
+      for _, row in df.iterrows():
+        Xt = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
+        Xs = np.sum(Xt,axis=0)
+        Xss = np.sum(np.square(Xt),axis=0)
+        save_to_disk(Xs, os.path.join(self.data_dir, row['X_sums']))
+        save_to_disk(Xss, os.path.join(self.data_dir, row['X_sum_squares']))
+    ########################################################## DEBUG
 
-    y_transform = []
-    for _, row in df.iterrows():
-      yt = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
-      ys = np.sum(yt,axis=0)
-      yss = np.sum(np.square(yt),axis=0)
-      save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
-      save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
+    ########################################################## DEBUG
+    if y_stats:
+      y_transform = []
+      for _, row in df.iterrows():
+        yt = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
+        ys = np.sum(yt,axis=0)
+        yss = np.sum(np.square(yt),axis=0)
+        save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
+        save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
+    ########################################################## DEBUG
 
   def get_grad_statistics(self):
     """Computes and returns statistics of this dataset
@@ -749,7 +812,8 @@ def compute_sums_and_nb_sample(tensor, W=None):
 
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
-def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, verbosity=None):
+def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, dtype,
+                        verbosity=None):
   """Transforms a dataframe containing deepchem input into numpy arrays"""
   if feature_type not in df.keys():
     raise ValueError(
@@ -808,4 +872,16 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, verbosity=None):
   w = w[valid_inds]
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
-  return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
+  ############################################################## DEBUG
+  #return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
+  print("x[0]")
+  print(x[0])
+  print("type(x)")
+  print(type(x))
+  if dtype == float:
+    return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
+  elif dtype == object:
+    return sorted_ids, x, y.astype(float), w.astype(float)
+  else:
+    raise ValueError("Unrecognized dtype for featurizer.")
+  ############################################################## DEBUG

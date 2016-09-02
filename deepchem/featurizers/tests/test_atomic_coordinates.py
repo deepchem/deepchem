@@ -194,4 +194,3 @@ class TestAtomicCoordinates(unittest.TestCase):
     nblist = nblist_featurizer._featurize(self.mol)
     for atom in range(N):
       assert len(nblist[atom]) == N-1
-    
