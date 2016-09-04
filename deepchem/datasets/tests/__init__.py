@@ -17,6 +17,7 @@ import numpy as np
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
+from deepchem.featurizers import UserDefinedFeaturizer
 from deepchem.transformers import NormalizationTransformer
 from deepchem.models.tests import TestAPI
 
@@ -89,3 +90,20 @@ class TestDatasetAPI(TestAPI):
         featurizer=featurizer,
         verbosity="low")
     return loader.featurize(input_file, self.data_dir)
+  
+  def load_feat_multitask_data(self):
+    """Load example with numerical features, tasks."""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
+    features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
+    featurizer = UserDefinedFeaturizer(features)
+    tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/feat_multitask_example.csv")
+    loader = DataLoader(
+        tasks=tasks,
+        featurizer=featurizer,
+        id_field="id",
+        verbosity="low")
+    return loader.featurize(input_file, self.data_dir)
+
