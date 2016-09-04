@@ -1,6 +1,7 @@
-"""TensorFlow implementation of the models from the ICML-2015 paper.
+"""TensorFlow implementation of fully connected networks. 
 
-
+# Hyperparams used in Arxiv paper "Massively Multitask Networks for Drug Discovery"
+# TODO(rbharath): Should these be moved elsewhere?
 hyperparam_dict = {
     "single": Hyperparams(num_layers=1,
                           num_hidden=1200,
@@ -66,25 +67,28 @@ from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.metrics import to_one_hot
+################################################### DEBUG
+from deepchem.datasets import pad_features
+################################################### DEBUG
 
 def softmax(x):
-    """Simple numpy softmax implementation
-    """
-    # (n_samples, n_classes)
-    if len(x.shape) == 2:
-      row_max = np.max(x, axis = 1)
-      x -= row_max.reshape((x.shape[0], 1))
-      x = np.exp(x)
-      row_sum = np.sum(x, axis = 1)
-      x /= row_sum.reshape((x.shape[0], 1))
-    # (n_samples, n_tasks, n_classes)
-    elif len(x.shape) == 3:
-      row_max = np.max(x, axis = 2)
-      x -= row_max.reshape(x.shape[:2] + (1,))
-      x = np.exp(x)
-      row_sum = np.sum(x, axis = 2)
-      x /= row_sum.reshape(x.shape[:2] + (1,))
-    return x
+  """Simple numpy softmax implementation
+  """
+  # (n_samples, n_classes)
+  if len(x.shape) == 2:
+    row_max = np.max(x, axis = 1)
+    x -= row_max.reshape((x.shape[0], 1))
+    x = np.exp(x)
+    row_sum = np.sum(x, axis = 1)
+    x /= row_sum.reshape((x.shape[0], 1))
+  # (n_samples, n_tasks, n_classes)
+  elif len(x.shape) == 3:
+    row_max = np.max(x, axis = 2)
+    x -= row_max.reshape(x.shape[:2] + (1,))
+    x = np.exp(x)
+    row_sum = np.sum(x, axis = 2)
+    x /= row_sum.reshape(x.shape[:2] + (1,))
+  return x
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
@@ -332,6 +336,13 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       num_tasks = self.num_tasks
       outputs = []
       with self._get_shared_session().as_default():
+        ################################################### DEBUG
+        n_samples = len(X)
+        # Some tensorflow models can't handle variadic batches,
+        # especially models using tf.pack, tf.split. Pad batch-size
+        # to handle these cases.
+        X = pad_features(self.model_params["batch_size"], X)
+        ################################################### DEBUG
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session().run(
             self.output, feed_dict=feed_dict)
@@ -341,10 +352,22 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
           batch_outputs = batch_outputs.transpose((1, 0))
+        ########################################################### DEBUG
+        # Handle edge case when batch-size is 1.
+        elif batch_outputs.ndim == 1:
+          #print("X.shape, batch_outputs.shape")
+          #print(X.shape, batch_outputs.shape)
+          n_samples = len(X)
+          batch_outputs = batch_outputs.reshape((n_samples, num_tasks))
+        ########################################################### DEBUG
         else:
           raise ValueError(
               'Unrecognized rank combination for output: %s' %
               (batch_outputs.shape))
+        ##################################################### DEBUG
+        # Prune away any padding that was added
+        batch_outputs = batch_outputs[:n_samples]
+        ##################################################### DEBUG
         outputs.append(batch_outputs)
 
         outputs = np.squeeze(np.concatenate(outputs)) 

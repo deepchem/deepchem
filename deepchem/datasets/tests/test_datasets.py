@@ -14,6 +14,8 @@ import tempfile
 import os
 import shutil
 import numpy as np
+from deepchem.datasets import pad_batch
+from deepchem.datasets import pad_features
 from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
@@ -24,6 +26,125 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   """
   Test basic top-level API for dataset objects.
   """
+
+  def test_pad_features(self):
+    """Test that pad_features pads features correctly."""
+    batch_size = 100
+    num_features = 10
+    num_tasks = 5
+  
+    # Test cases where n_samples < 2*n_samples < batch_size
+    n_samples = 29
+    X_b = np.zeros((n_samples, num_features))
+  
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test cases where n_samples < batch_size
+    n_samples = 79
+    X_b = np.zeros((n_samples, num_features))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case where n_samples == batch_size
+    n_samples = 100 
+    X_b = np.zeros((n_samples, num_features))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case for object featurization.
+    n_samples = 2
+    X_b = np.array([{"a": 1}, {"b": 2}])
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case for more complicated object featurization
+    n_samples = 2
+    X_b = np.array([(1, {"a": 1}), (2, {"b": 2})])
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case with multidimensional data
+    n_samples = 50
+    num_atoms = 15
+    d = 3
+    X_b = np.zeros((n_samples, num_atoms, d))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+  
+
+  def test_pad_batches(self):
+    """Test that pad_batch pads batches correctly."""
+    batch_size = 100
+    num_features = 10
+    num_tasks = 5
+  
+    # Test cases where n_samples < 2*n_samples < batch_size
+    n_samples = 29
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test cases where n_samples < batch_size
+    n_samples = 79
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case where n_samples == batch_size
+    n_samples = 100 
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case for object featurization.
+    n_samples = 2
+    X_b = np.array([{"a": 1}, {"b": 2}])
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case for more complicated object featurization
+    n_samples = 2
+    X_b = np.array([(1, {"a": 1}), (2, {"b": 2})])
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case with multidimensional data
+    n_samples = 50
+    num_atoms = 15
+    d = 3
+    X_b = np.zeros((n_samples, num_atoms, d))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+    
   def test_get_task_names(self):
     """Test that get_task_names returns correct task_names"""
     solubility_dataset = self.load_solubility_data()
@@ -108,14 +229,6 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
 
     X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
-    print("type(X_shape), type(y_shape), type(w_shape), type(ids_shape)")
-    print(type(X_shape), type(y_shape), type(w_shape), type(ids_shape))
-    print("type(X.shape), type(y.shape), type(w.shape), type(ids.shape)")
-    print(type(X.shape), type(y.shape), type(w.shape), type(ids.shape))
-    print("X_shape, y_shape, w_shape, ids_shape")
-    print(X_shape, y_shape, w_shape, ids_shape)
-    print("X.shape, y.shape, w.shape, ids.shape")
-    print(X.shape, y.shape, w.shape, ids.shape)
     assert X_shape == X.shape
     assert y_shape == y.shape
     assert w_shape == w.shape

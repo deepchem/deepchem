@@ -142,6 +142,12 @@ class TensorflowGraph(object):
           task_str = str(task).zfill(len(str(self.num_tasks)))
           with self._shared_name_scope('cost_{}'.format(task_str)):
             with tf.name_scope('weighted'):
+              ####################################################### DEBUG
+              #print("len(self.output)")
+              #print(len(self.output))
+              #print("self.output")
+              #print(self.output)
+              ####################################################### DEBUG
               weighted_cost = self.cost(self.output[task], self.labels[task],
                                         self.weights[task])
               weighted_costs.append(weighted_cost)
@@ -179,7 +185,8 @@ class TensorflowGraph(object):
       else:
         self.updates = tf.no_op(name='updates')
 
-  def fit(self, dataset, shuffle=False, max_checkpoints_to_keep=5):
+  def fit(self, dataset, shuffle=False, max_checkpoints_to_keep=5,
+          log_every_N_batches=50, pad_batches=False):
     """Fit the model.
 
     Args:
@@ -190,6 +197,9 @@ class TensorflowGraph(object):
     Raises:
       AssertionError: If model is not in training mode.
     """
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     num_datapoints = len(dataset)
     batch_size = self.model_params["batch_size"]
     step_per_epoch = np.ceil(float(num_datapoints)/batch_size)
@@ -209,8 +219,10 @@ class TensorflowGraph(object):
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
           ####################################################################### DEBUG
-          for ind, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(batch_size)):
-            log("On batch %d" % ind, self.verbosity)
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+              dataset.iterbatches(batch_size, pad_batches=pad_batches)):
+            if ind % log_every_N_batches == 0:
+              log("On batch %d" % ind, self.verbosity)
           ####################################################################### DEBUG
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
@@ -230,7 +242,15 @@ class TensorflowGraph(object):
           log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch+1)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1),
+          self.verbosity)
+    ############################################################## TIMING
 
+  #### TODO(rbharath): There's an almost identical copy of this method in
+  #### fcnet. Should this version of the method be removed? An arbitrary
+  #### TensorflowGraph can have  structure different from the below....
   def predict_on_batch(self, X):
     """Return model output for the provided input.
 
@@ -563,11 +583,11 @@ class TensorflowModel(Model):
     self.num_tasks = len(self.task_types)
     self.fit_transformers = None
 
-  def fit(self, dataset, shuffle=False):
+  def fit(self, dataset, shuffle=False, pad_batches=False):
     """
     Fits TensorflowGraph to data.
     """
-    self.train_model.fit(dataset, shuffle=shuffle)
+    self.train_model.fit(dataset, shuffle=shuffle, pad_batches=pad_batches)
 
   def predict_on_batch(self, X):
     """

@@ -110,10 +110,17 @@ class Model(object):
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
+    ####################################################### DEBUG
+    if "pad_batches" in self.model_params:
+      pad_batches = self.model_params["pad_batches"]
+    else:
+      pad_batches = False
+    ####################################################### DEBUG
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
       losses = []
-      for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
+      for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(
+          batch_size, pad_batches=pad_batches):
         if self.fit_transformers:
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
                                             w_batch)

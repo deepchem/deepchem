@@ -81,8 +81,14 @@ class HyperparamOpt(object):
         model = self.model_class(
             self.tasks, self.task_types, model_params, model_dir,
             verbosity=self.verbosity)
+      ####################################################### DEBUG
+      if "pad_batches" in model_params:
+        pad_batches = model_params["pad_batches"]
+      else:
+        pad_batches = False
+      ####################################################### DEBUG
         
-      model.fit(train_dataset)
+      model.fit(train_dataset, pad_batches=pad_batches)
       model.save()
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
