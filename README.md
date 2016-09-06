@@ -82,8 +82,14 @@ Linux (64-bit) Installation
    ```bash
    conda install -c omnia mdtraj
    ```
+   
+13. `scikit-learn`
+    ```bash
+    conda install scikit-learn 
+    ```
 
-13. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+
+14. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -91,7 +97,7 @@ Linux (64-bit) Installation
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-14. `deepchem`: Clone the `deepchem` github repo:
+15. `deepchem`: Clone the `deepchem` github repo:
     ```bash
     git clone https://github.com/deepchem/deepchem.git
     ```
@@ -100,7 +106,18 @@ Linux (64-bit) Installation
     python setup.py install
     ```
 
-15. If installation has been successful, all tests in test suite should pass:
+16. To run test suite, install `nosetests`:
+    ```bash
+    pip install nose 
+    ```
+    Make sure that the correct version of `nosetests` is active by running
+    ```bash
+    which nosetests 
+    ```
+    You might need to uninstall a system install of `nosetests` if
+    there is a conflict.
+
+17. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
