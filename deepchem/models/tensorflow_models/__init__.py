@@ -142,12 +142,6 @@ class TensorflowGraph(object):
           task_str = str(task).zfill(len(str(self.num_tasks)))
           with self._shared_name_scope('cost_{}'.format(task_str)):
             with tf.name_scope('weighted'):
-              ####################################################### DEBUG
-              #print("len(self.output)")
-              #print(len(self.output))
-              #print("self.output")
-              #print(self.output)
-              ####################################################### DEBUG
               weighted_cost = self.cost(self.output[task], self.labels[task],
                                         self.weights[task])
               weighted_costs.append(weighted_cost)
@@ -218,12 +212,10 @@ class TensorflowGraph(object):
           if shuffle:
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
-          ####################################################################### DEBUG
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
               dataset.iterbatches(batch_size, pad_batches=pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbosity)
-          ####################################################################### DEBUG
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.output + [
