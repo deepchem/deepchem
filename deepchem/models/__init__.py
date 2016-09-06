@@ -20,6 +20,7 @@ from deepchem.transformers import undo_grad_transforms
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
+from deepchem.datasets import pad_batch
 
 
 class Model(object):
@@ -110,13 +111,22 @@ class Model(object):
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
     batch_size = self.model_params["batch_size"]
+    if "pad_batches" in self.model_params:
+      pad_batches = self.model_params["pad_batches"]
+    else:
+      pad_batches = False
     for epoch in range(self.model_params["nb_epoch"]):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
       losses = []
-      for (X_batch, y_batch, w_batch, _) in dataset.iterbatches(batch_size):
+      for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
+          batch_size, pad_batches=pad_batches):
         if self.fit_transformers:
           X_batch, y_batch, w_batch = self.transform_on_batch(X_batch, y_batch,
                                             w_batch)
+        if pad_batches:
+          X_batch, y_batch, w_batch, ids_batch = pad_batch(
+              batch_size, X_batch, y_batch, w_batch, ids_batch)
+        
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
       log("Avg loss for epoch %d: %f"
           % (epoch+1,np.array(losses).mean()),self.verbosity)

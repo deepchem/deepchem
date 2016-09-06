@@ -81,7 +81,6 @@ class HyperparamOpt(object):
         model = self.model_class(
             self.tasks, self.task_types, model_params, model_dir,
             verbosity=self.verbosity)
-        
       model.fit(train_dataset)
       model.save()
     

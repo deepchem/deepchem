@@ -194,3 +194,37 @@ class TestAtomicCoordinates(unittest.TestCase):
     nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
       assert len(nblist[atom]) == N-1
+
+  def test_neighbor_list_max_num_neighbors(self):
+    """
+    Test that neighbor lists return only max_num_neighbors.
+    """
+    N = self.mol.GetNumAtoms()
+
+    max_num_neighbors = 1
+    nblist_featurizer = NeighborListAtomicCoordinates(max_num_neighbors)
+    nblist = nblist_featurizer._featurize(self.mol)[1]
+
+    for atom in range(N):
+      assert len(nblist[atom]) <= max_num_neighbors
+
+    # Do a manual distance computation and ensure that selected neighbor is
+    # closest since we set max_num_neighbors = 1
+    coords = get_coords(self.mol)
+    for i in range(N):
+      closest_dist = np.inf
+      closest_nbr = None
+      for j in range(N):
+        if i == j:
+          continue
+        dist = np.linalg.norm(coords[i] - coords[j])
+        print("Distance(%d, %d) = %f" % (i, j, dist))
+        if dist < closest_dist:
+          closest_dist = dist
+          closest_nbr = j
+      print("Closest neighbor to %d is %d" % (i, closest_nbr))
+      print("Distance: %f" % closest_dist)
+      if closest_dist < nblist_featurizer.neighbor_cutoff:
+        assert nblist[i] == [closest_nbr]
+      else:
+        assert nblist[i] == []

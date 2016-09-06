@@ -169,9 +169,13 @@ class NeighborListAtomicCoordinates(Featurizer):
     Threshold distance [Angstroms] for counting neighbors.
   """ 
 
-  def __init__(self, neighbor_cutoff=4):
+  def __init__(self, max_num_neighbors=None, neighbor_cutoff=4):
     if neighbor_cutoff <= 0:
       raise ValueError("neighbor_cutoff must be positive value.")
+    if max_num_neighbors is not None:
+      if not isinstance(max_num_neighbors, int) or max_num_neighbors <= 0:
+        raise ValueError("max_num_neighbors must be positive integer.")
+    self.max_num_neighbors = max_num_neighbors
     self.neighbor_cutoff = neighbor_cutoff
     # Type of data created by this featurizer
     self.dtype = object
@@ -219,9 +223,17 @@ class NeighborListAtomicCoordinates(Featurizer):
             continue
           # TODO(rbharath): How does distance need to be modified here to
           # account for periodic boundary conditions?
-          if np.linalg.norm(coords[atom] - coords[neighbor_atom]) < self.neighbor_cutoff:
-            neighbor_list[atom].add(neighbor_atom)
+          dist = np.linalg.norm(coords[atom] - coords[neighbor_atom])
+          if dist < self.neighbor_cutoff:
+            neighbor_list[atom].add((neighbor_atom, dist))
           
-      neighbor_list[atom] = sorted(list(neighbor_list[atom]))
+      # Sort neighbors by distance
+      closest_neighbors = sorted(
+          list(neighbor_list[atom]), key=lambda elt: elt[1])
+      closest_neighbors = [nbr for (nbr, dist) in closest_neighbors]
+      # Pick up to max_num_neighbors
+      closest_neighbors = closest_neighbors[:self.max_num_neighbors]
+      neighbor_list[atom] = closest_neighbors
+
         
     return (bohr_coords, neighbor_list)

@@ -21,6 +21,74 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+def pad_features(batch_size, X_b):
+  """Pads a batch of features to have precisely batch_size elements.
+  
+  Version of pad_batch for use at prediction time.
+  """
+  num_samples = len(X_b)
+  if num_samples == batch_size:
+    return X_b
+  else:
+    # By invariant of when this is called, can assume num_samples > 0
+    # and num_samples < batch_size
+    if len(X_b.shape) > 1:
+      feature_shape = X_b.shape[1:]
+      X_out = np.zeros((batch_size,) + feature_shape, dtype=X_b.dtype)
+    else:
+      X_out = np.zeros((batch_size,), dtype=X_b.dtype)
+
+    # Fill in batch arrays 
+    start = 0 
+    while start < batch_size:
+      num_left = batch_size - start 
+      if num_left < num_samples:
+        increment = num_left
+      else:
+        increment = num_samples
+      X_out[start:start+increment] = X_b[:increment]
+      start += increment
+    return X_out
+
+def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
+  """Pads batch to have size precisely batch_size elements.
+
+  Fills in batch by wrapping around samples till whole batch is filled.
+  """
+  num_samples = len(X_b)
+  if num_samples == batch_size:
+    return (X_b, y_b, w_b, ids_b)
+  else:
+    # By invariant of when this is called, can assume num_samples > 0
+    # and num_samples < batch_size
+    if len(X_b.shape) > 1:
+      feature_shape = X_b.shape[1:]
+      X_out = np.zeros((batch_size,) + feature_shape, dtype=X_b.dtype)
+    else:
+      X_out = np.zeros((batch_size,), dtype=X_b.dtype)
+
+    num_tasks = y_b.shape[1]
+    y_out = np.zeros((batch_size, num_tasks), dtype=y_b.dtype) 
+    w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
+    ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
+
+    # Fill in batch arrays 
+    start = 0 
+    while start < batch_size:
+      num_left = batch_size - start 
+      if num_left < num_samples:
+        increment = num_left
+      else:
+        increment = num_samples
+      X_out[start:start+increment] = X_b[:increment]
+      y_out[start:start+increment] = y_b[:increment]
+      w_out[start:start+increment] = w_b[:increment]
+      ids_out[start:start+increment] = ids_b[:increment]
+      start += increment
+    return (X_out, y_out, w_out, ids_out)
+    
+      
+
 class Dataset(object):
   """
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
@@ -228,7 +296,8 @@ class Dataset(object):
           os.path.join(self.data_dir, row['ids'])), dtype=object)
       yield (X, y, w, ids)
 
-  def iterbatches(self, batch_size=None, epoch=0, deterministic=False):
+  def iterbatches(self, batch_size=None, epoch=0, deterministic=False,
+                  pad_batches=False):
     """Returns minibatches from dataset randomly."""
     num_shards = self.get_number_shards()
     if not deterministic:
@@ -255,6 +324,9 @@ class Dataset(object):
         y_batch = y[perm_indices]
         w_batch = w[perm_indices]
         ids_batch = ids[perm_indices]
+        if pad_batches:
+          (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+            shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
   def reshard(self, shard_size):
