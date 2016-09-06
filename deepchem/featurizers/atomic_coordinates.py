@@ -18,6 +18,10 @@ class AtomicCoordinates(Featurizer):
   """
   name = ['atomic_coordinates']
 
+  def __init__(self):
+    # Type of data created by this featurizer
+    self.dtype = object
+
   def _featurize(self, mol):
     """
     Calculate atomic coodinates.
