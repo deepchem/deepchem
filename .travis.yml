@@ -17,7 +17,9 @@ install:
 - conda install -c omnia openbabel
 - conda install joblib
 - conda install -c omnia theano
-- conda install -c omnia keras
+- conda install h5py
+- pip install keras
+- export KERAS_BACKEND=tensorflow
 - conda install seaborn
 - conda install six
 - conda install dill
