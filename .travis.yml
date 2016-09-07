@@ -18,7 +18,7 @@ install:
 - conda install joblib
 - conda install h5py
 - pip install Theano 
-- pip install keras
+- pip install git+git://github.com/Theano/Theano.git --upgrade --no-deps
 - export KERAS_BACKEND=theano
 - conda install seaborn
 - conda install six
