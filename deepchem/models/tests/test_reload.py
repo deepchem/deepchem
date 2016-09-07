@@ -74,13 +74,6 @@ class TestModelReload(TestAPI):
     n_samples = 10
     n_features = 3
     n_tasks = len(tasks)
-    ##################################################### DEBUG
-    import keras
-    print("keras.__version__")
-    print(keras.__version__)
-    print("keras.__file__")
-    print(keras.__file__)
-    ##################################################### DEBUG
     
     # Generate dummy dataset
     np.random.seed(123)
