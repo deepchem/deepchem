@@ -20,10 +20,8 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-############################################################# DEBUG
 import tensorflow as tf
 from keras import backend as K
-############################################################# DEBUG
 
 class TestModelReload(TestAPI):
 
@@ -73,12 +71,10 @@ class TestModelReload(TestAPI):
 
   def test_keras_reload(self):
     """Test that trained keras models can be reloaded correctly."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       tasks = ["task0"]
       task_types = {task: "classification" for task in tasks}
       n_samples = 10

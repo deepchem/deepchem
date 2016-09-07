@@ -26,10 +26,8 @@ from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.multitask import SingletaskToMultitask
-############################################################# DEBUG
 import tensorflow as tf
 from keras import backend as K
-############################################################# DEBUG
 
 class TestOverfitAPI(TestAPI):
   """
@@ -156,12 +154,10 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_regression_overfit(self):
     """Test that keras models can overfit simple regression datasets."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       tasks = ["task0"]
       task_types = {task: "regression" for task in tasks}
       n_samples = 10
@@ -262,12 +258,10 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_classification_overfit(self):
     """Test that keras models can overfit simple classification datasets."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       tasks = ["task0"]
       task_types = {task: "classification" for task in tasks}
       n_samples = 10
@@ -317,12 +311,10 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_skewed_classification_overfit(self):
     """Test keras models can overfit 0/1 datasets with few actives."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       tasks = ["task0"]
       task_types = {task: "classification" for task in tasks}
       n_samples = 100
@@ -502,20 +494,12 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    print("np.count_nonzero(y)")
-    print(np.count_nonzero(y))
-    ##### DEBUG
     y_flat, w_flat = np.squeeze(y), np.squeeze(w)
     y_nonzero = y_flat[w_flat != 0]
     num_nonzero = np.count_nonzero(y_nonzero)
     weight_nonzero = len(y_nonzero)/num_nonzero
-    print("weight_nonzero")
-    print(weight_nonzero)
     w_flat[y_flat != 0] = weight_nonzero
     w = np.reshape(w_flat, (n_samples, n_tasks))
-    print("np.amin(w), np.amax(w)")
-    print(np.amin(w), np.amax(w))
-    ##### DEBUG
   
     dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
@@ -599,12 +583,10 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_multitask_classification_overfit(self):
     """Test keras multitask overfits tiny data."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       n_tasks = 10
       tasks = ["task%d" % task for task in range(n_tasks)]
       task_types = {task: "classification" for task in tasks}
@@ -751,12 +733,10 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_multitask_regression_overfit(self):
     """Test keras multitask overfits tiny data."""
-    ############################################################# DEBUG
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-    ############################################################# DEBUG
       n_tasks = 10
       tasks = ["task%d" % task for task in range(n_tasks)]
       task_types = {task: "regression" for task in tasks}

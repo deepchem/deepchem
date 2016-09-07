@@ -30,10 +30,8 @@ from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.splits import ScaffoldSplitter
-############################################################# DEBUG
 import tensorflow as tf
 from keras import backend as K
-############################################################# DEBUG
 
 def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
     """Builds random forests given hyperparameters.
@@ -179,12 +177,10 @@ class TestHyperparamOptAPI(TestAPI):
       
     def model_builder(tasks, task_types, model_params, task_model_dir,
                       verbosity=None):
-      ############################################################# DEBUG
       g = tf.Graph()
       sess = tf.Session(graph=g)
       K.set_session(sess)
       with g.as_default():
-      ############################################################# DEBUG
         return MultiTaskDNN(tasks, task_types, model_params, task_model_dir,
                             model_instance=LogisticRegression())
     optimizer = HyperparamOpt(MultiTaskDNN, tasks, task_types,
