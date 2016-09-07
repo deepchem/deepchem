@@ -30,7 +30,8 @@ install:
 - python setup.py install
 - conda install -c https://conda.anaconda.org/jjhelmus tensorflow
 script:
-- nosetests -v deepchem --nologcapture
+#- nosetests -v deepchem --nologcapture
+- deepchem.models.tests.test_reload:TestModelReload.test_keras_reload --nologcapture
 after_success:
 - source devtools/travis-ci/after_sucess.sh
 # AWS access_key and secret key secured through travis secure var api.
