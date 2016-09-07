@@ -16,7 +16,6 @@ install:
 - conda install -c omnia boost=1.59.0
 - conda install -c omnia openbabel
 - conda install joblib
-- conda install -c omnia theano
 - conda install h5py
 - pip install keras
 - export KERAS_BACKEND=tensorflow
