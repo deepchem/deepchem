@@ -12,7 +12,6 @@ Requirements
 * [joblib](https://pypi.python.org/pypi/joblib)
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
-* [theano](http://deeplearning.net/software/theano/)
 * [keras](http://keras.io)
 * [six](https://pypi.python.org/pypi/six)
 * [dill](https://pypi.python.org/pypi/dill)
@@ -23,7 +22,7 @@ Requirements
 Linux (64-bit) Installation 
 ---------------------------
 
-```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below. This is especially true for the `keras` library, where `deepchem` is known not to work with the latest default version.
+```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
 1. Anaconda 2.7
    Download the **64-bit Python 2.7** version of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).  
@@ -54,42 +53,36 @@ Linux (64-bit) Installation
    conda install joblib 
    ```
 
-7. `theano`
+7. `keras`
    ```bash
-   conda install -c omnia theano
+   pip install keras
    ```
 
-8. `keras`
-   ```bash
-   conda install -c omnia keras
-   ```
-
-9. `six`
+8. `six`
    ```bash
    conda install six
    ```
-10. `dill`
+9. `dill`
     ```bash
     conda install dill
     ```
 
-11. `ipyparallel`
+10. `ipyparallel`
     ```bash
     conda install ipyparallel
     ```
 
-12. `mdtraj`
+11. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
    ```
    
-13. `scikit-learn`
+12. `scikit-learn`
     ```bash
     conda install scikit-learn 
     ```
 
-
-14. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+13. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -97,7 +90,7 @@ Linux (64-bit) Installation
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-15. `deepchem`: Clone the `deepchem` github repo:
+14. `deepchem`: Clone the `deepchem` github repo:
     ```bash
     git clone https://github.com/deepchem/deepchem.git
     ```
@@ -106,7 +99,7 @@ Linux (64-bit) Installation
     python setup.py install
     ```
 
-16. To run test suite, install `nosetests`:
+15. To run test suite, install `nosetests`:
     ```bash
     pip install nose 
     ```
@@ -117,7 +110,9 @@ Linux (64-bit) Installation
     You might need to uninstall a system install of `nosetests` if
     there is a conflict.
 
-17. If installation has been successful, all tests in test suite should pass:
+16. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
+    Note that the full test-suite uses up a fair amount of memory. 
+    Try running tests for one submodule at a time if memory proves an issue.
