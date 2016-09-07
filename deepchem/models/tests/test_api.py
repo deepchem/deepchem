@@ -33,6 +33,9 @@ from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import SpecifiedSplitter
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
+import tensorflow as tf
+from keras import backend as K
 
 class TestModelAPI(TestAPI):
   """
@@ -277,8 +280,6 @@ class TestModelAPI(TestAPI):
   #                        Metric(metrics.mean_squared_error),
   #                        Metric(metrics.mean_absolute_error)]
 
-  #  model = SingleTaskDNN(tasks, task_types, model_params, self.model_dir)
-
   #  # Fit trained model
   #  model.fit(train_dataset)
   #  model.save()
@@ -294,54 +295,58 @@ class TestModelAPI(TestAPI):
 
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
-    from deepchem.models.keras_models.fcnet import MultiTaskDNN
-    task_type = "classification"
-    # TODO(rbharath): There should be some automatic check to ensure that all
-    # required model_params are specified.
-    model_params = {"nb_hidden": 10, "activation": "relu",
-                    "dropout": .5, "learning_rate": .01,
-                    "momentum": .9, "nesterov": False,
-                    "decay": 1e-4, "batch_size": 5,
-                    "nb_epoch": 2, "init": "glorot_uniform",
-                    "nb_layers": 1, "batchnorm": False}
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      task_type = "classification"
+      # TODO(rbharath): There should be some automatic check to ensure that all
+      # required model_params are specified.
+      # TODO(rbharath): Turning off dropout to make tests behave.
+      model_params = {"nb_hidden": 10, "activation": "relu",
+                      "dropout": .0, "learning_rate": .01,
+                      "momentum": .9, "nesterov": False,
+                      "decay": 1e-4, "batch_size": 5,
+                      "nb_epoch": 2, "init": "glorot_uniform",
+                      "nb_layers": 1, "batchnorm": False}
 
-    input_file = os.path.join(self.current_dir, "multitask_example.csv")
-    tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
-             "task7", "task8", "task9", "task10", "task11", "task12",
-             "task13", "task14", "task15", "task16"]
-    task_types = {task: task_type for task in tasks}
+      input_file = os.path.join(self.current_dir, "multitask_example.csv")
+      tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
+               "task7", "task8", "task9", "task10", "task11", "task12",
+               "task13", "task14", "task15", "task16"]
+      task_types = {task: task_type for task in tasks}
 
-    featurizer = CircularFingerprint(size=1024)
+      featurizer = CircularFingerprint(size=1024)
 
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
-    splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
+      loader = DataLoader(tasks=tasks,
+                          smiles_field=self.smiles_field,
+                          featurizer=featurizer,
+                          verbosity="low")
+      dataset = loader.featurize(input_file, self.data_dir)
+      splitter = ScaffoldSplitter()
+      train_dataset, test_dataset = splitter.train_test_split(
+          dataset, self.train_dir, self.test_dir)
 
-    transformers = []
-    model_params["data_shape"] = train_dataset.get_data_shape()
-    classification_metrics = [Metric(metrics.roc_auc_score),
-                              Metric(metrics.matthews_corrcoef),
-                              Metric(metrics.recall_score),
-                              Metric(metrics.accuracy_score)]
-    
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir)
+      transformers = []
+      model_params["data_shape"] = train_dataset.get_data_shape()
+      classification_metrics = [Metric(metrics.roc_auc_score),
+                                Metric(metrics.matthews_corrcoef),
+                                Metric(metrics.recall_score),
+                                Metric(metrics.accuracy_score)]
+      
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir)
 
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
+      # Fit trained model
+      model.fit(train_dataset)
+      model.save()
 
-    # Eval model on train
-    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(classification_metrics)
+      # Eval model on train
+      evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
+      _ = evaluator.compute_model_performance(classification_metrics)
 
-    # Eval model on test
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(classification_metrics)
+      # Eval model on test
+      evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
+      _ = evaluator.compute_model_performance(classification_metrics)
 
   def test_singletask_tf_mlp_ECFP_classification_API(self):
     """Straightforward test of Tensorflow singletask deepchem classification API."""
