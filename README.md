@@ -57,6 +57,7 @@ Linux (64-bit) Installation
    ```bash
    pip install keras
    ```
+   `deepchem` only supports the `tensorflow` backend for keras. See [keras docs](https://keras.io/backend/) to see how to set keras backend to tensorflow.
 
 8. `six`
    ```bash
