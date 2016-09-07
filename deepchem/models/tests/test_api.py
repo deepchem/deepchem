@@ -33,6 +33,11 @@ from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.splits import ScaffoldSplitter
 from deepchem.splits import SpecifiedSplitter
+############################################################# DEBUG
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
+import tensorflow as tf
+from keras import backend as K
+############################################################# DEBUG
 
 class TestModelAPI(TestAPI):
   """
@@ -294,7 +299,12 @@ class TestModelAPI(TestAPI):
 
   def test_multitask_keras_mlp_ECFP_classification_API(self):
     """Straightforward test of Keras multitask deepchem classification API."""
-    from deepchem.models.keras_models.fcnet import MultiTaskDNN
+    ############################################################# DEBUG
+    g = tf.Graph()
+    #sess = tf.Session(graph=g)
+    sess = tf.Session()
+    K.set_session(sess)
+    ############################################################# DEBUG
     task_type = "classification"
     # TODO(rbharath): There should be some automatic check to ensure that all
     # required model_params are specified.

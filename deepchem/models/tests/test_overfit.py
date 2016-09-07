@@ -26,6 +26,10 @@ from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.multitask import SingletaskToMultitask
+############################################################# DEBUG
+import tensorflow as tf
+from keras import backend as K
+############################################################# DEBUG
 
 class TestOverfitAPI(TestAPI):
   """
@@ -152,52 +156,58 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_regression_overfit(self):
     """Test that keras models can overfit simple regression datasets."""
-    tasks = ["task0"]
-    task_types = {task: "regression" for task in tasks}
-    n_samples = 10
-    n_features = 3
-    n_tasks = len(tasks)
-    
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.rand(n_samples, n_tasks)
-    w = np.ones((n_samples, n_tasks))
+    ############################################################# DEBUG
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+    ############################################################# DEBUG
+      tasks = ["task0"]
+      task_types = {task: "regression" for task in tasks}
+      n_samples = 10
+      n_features = 3
+      n_tasks = len(tasks)
+      
+      # Generate dummy dataset
+      np.random.seed(123)
+      ids = np.arange(n_samples)
+      X = np.random.rand(n_samples, n_features)
+      y = np.random.rand(n_samples, n_tasks)
+      w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-        "nb_hidden": 1000,
-        "activation": "relu",
-        "dropout": .0,
-        "learning_rate": .15,
-        "momentum": .9,
-        "nesterov": False,
-        "decay": 1e-4,
-        "batch_size": n_samples,
-        "nb_epoch": 200,
-        "init": "glorot_uniform",
-        "nb_layers": 1,
-        "batchnorm": False,
-        "data_shape": dataset.get_data_shape()
-    }
+      model_params = {
+          "nb_hidden": 1000,
+          "activation": "relu",
+          "dropout": .0,
+          "learning_rate": .15,
+          "momentum": .9,
+          "nesterov": False,
+          "decay": 1e-4,
+          "batch_size": n_samples,
+          "nb_epoch": 200,
+          "init": "glorot_uniform",
+          "nb_layers": 1,
+          "batchnorm": False,
+          "data_shape": dataset.get_data_shape()
+      }
 
-    verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                         verbosity=verbosity)
+      verbosity = "high"
+      regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                           verbosity=verbosity)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([regression_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([regression_metric])
 
-    assert scores[regression_metric.name] > .7
+      assert scores[regression_metric.name] > .7
 
   def test_tf_regression_overfit(self):
     """Test that TensorFlow models can overfit simple regression datasets."""
@@ -252,102 +262,114 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_classification_overfit(self):
     """Test that keras models can overfit simple classification datasets."""
-    tasks = ["task0"]
-    task_types = {task: "classification" for task in tasks}
-    n_samples = 10
-    n_features = 3
-    n_tasks = len(tasks)
+    ############################################################# DEBUG
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+    ############################################################# DEBUG
+      tasks = ["task0"]
+      task_types = {task: "classification" for task in tasks}
+      n_samples = 10
+      n_features = 3
+      n_tasks = len(tasks)
+      
+      # Generate dummy dataset
+      np.random.seed(123)
+      ids = np.arange(n_samples)
+      X = np.random.rand(n_samples, n_features)
+      y = np.random.randint(2, size=(n_samples, n_tasks))
+      w = np.ones((n_samples, n_tasks))
     
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.randint(2, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-  
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-        "nb_hidden": 1000,
-        "activation": "relu",
-        "dropout": .0,
-        "learning_rate": .15,
-        "momentum": .9,
-        "nesterov": False,
-        "decay": 1e-4,
-        "batch_size": n_samples,
-        "nb_epoch": 200,
-        "init": "glorot_uniform",
-        "nb_layers": 1,
-        "batchnorm": False,
-        "data_shape": dataset.get_data_shape()
-    }
+      model_params = {
+          "nb_hidden": 1000,
+          "activation": "relu",
+          "dropout": .0,
+          "learning_rate": .15,
+          "momentum": .9,
+          "nesterov": False,
+          "decay": 1e-4,
+          "batch_size": n_samples,
+          "nb_epoch": 200,
+          "init": "glorot_uniform",
+          "nb_layers": 1,
+          "batchnorm": False,
+          "data_shape": dataset.get_data_shape()
+      }
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                         verbosity=verbosity)
+      verbosity = "high"
+      classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                           verbosity=verbosity)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([classification_metric])
 
-    assert scores[classification_metric.name] > .9
+      assert scores[classification_metric.name] > .9
 
   def test_keras_skewed_classification_overfit(self):
     """Test keras models can overfit 0/1 datasets with few actives."""
-    tasks = ["task0"]
-    task_types = {task: "classification" for task in tasks}
-    n_samples = 100
-    n_features = 3
-    n_tasks = len(tasks)
+    ############################################################# DEBUG
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+    ############################################################# DEBUG
+      tasks = ["task0"]
+      task_types = {task: "classification" for task in tasks}
+      n_samples = 100
+      n_features = 3
+      n_tasks = len(tasks)
+      
+      # Generate dummy dataset
+      np.random.seed(123)
+      p = .05
+      ids = np.arange(n_samples)
+      X = np.random.rand(n_samples, n_features)
+      y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+      w = np.ones((n_samples, n_tasks))
     
-    # Generate dummy dataset
-    np.random.seed(123)
-    p = .05
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-  
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-        "nb_hidden": 1000,
-        "activation": "relu",
-        "dropout": .0,
-        "learning_rate": .15,
-        "momentum": .9,
-        "nesterov": False,
-        "decay": 1e-4,
-        "batch_size": n_samples,
-        "nb_epoch": 200,
-        "init": "glorot_uniform",
-        "nb_layers": 1,
-        "batchnorm": False,
-        "data_shape": dataset.get_data_shape()
-    }
+      model_params = {
+          "nb_hidden": 1000,
+          "activation": "relu",
+          "dropout": .0,
+          "learning_rate": .15,
+          "momentum": .9,
+          "nesterov": False,
+          "decay": 1e-4,
+          "batch_size": n_samples,
+          "nb_epoch": 200,
+          "init": "glorot_uniform",
+          "nb_layers": 1,
+          "batchnorm": False,
+          "data_shape": dataset.get_data_shape()
+      }
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                         verbosity=verbosity)
+      verbosity = "high"
+      classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                           verbosity=verbosity)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([classification_metric])
 
-    assert scores[classification_metric.name] > .9
+      assert scores[classification_metric.name] > .9
 
   def test_tf_classification_overfit(self):
     """Test that tensorflow models can overfit simple classification datasets."""
@@ -577,52 +599,58 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_multitask_classification_overfit(self):
     """Test keras multitask overfits tiny data."""
-    n_tasks = 10
-    tasks = ["task%d" % task for task in range(n_tasks)]
-    task_types = {task: "classification" for task in tasks}
-    n_samples = 10
-    n_features = 3
+    ############################################################# DEBUG
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+    ############################################################# DEBUG
+      n_tasks = 10
+      tasks = ["task%d" % task for task in range(n_tasks)]
+      task_types = {task: "classification" for task in tasks}
+      n_samples = 10
+      n_features = 3
+      
+      # Generate dummy dataset
+      np.random.seed(123)
+      ids = np.arange(n_samples)
+      X = np.random.rand(n_samples, n_features)
+      y = np.random.randint(2, size=(n_samples, n_tasks))
+      w = np.ones((n_samples, n_tasks))
     
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.randint(2, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-  
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-        "nb_hidden": 1000,
-        "activation": "relu",
-        "dropout": .0,
-        "learning_rate": .15,
-        "momentum": .9,
-        "nesterov": False,
-        "decay": 1e-4,
-        "batch_size": n_samples,
-        "nb_epoch": 200,
-        "init": "glorot_uniform",
-        "nb_layers": 1,
-        "batchnorm": False,
-        "data_shape": dataset.get_data_shape()
-    }
+      model_params = {
+          "nb_hidden": 1000,
+          "activation": "relu",
+          "dropout": .0,
+          "learning_rate": .15,
+          "momentum": .9,
+          "nesterov": False,
+          "decay": 1e-4,
+          "batch_size": n_samples,
+          "nb_epoch": 200,
+          "init": "glorot_uniform",
+          "nb_layers": 1,
+          "batchnorm": False,
+          "data_shape": dataset.get_data_shape()
+      }
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                         verbosity=verbosity)
+      verbosity = "high"
+      classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                           verbosity=verbosity)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([classification_metric])
 
-    assert scores[classification_metric.name] > .9
+      assert scores[classification_metric.name] > .9
 
   def test_tf_multitask_classification_overfit(self):
     """Test tf multitask overfits tiny data."""
@@ -723,52 +751,58 @@ class TestOverfitAPI(TestAPI):
 
   def test_keras_multitask_regression_overfit(self):
     """Test keras multitask overfits tiny data."""
-    n_tasks = 10
-    tasks = ["task%d" % task for task in range(n_tasks)]
-    task_types = {task: "regression" for task in tasks}
-    n_samples = 10
-    n_features = 3
+    ############################################################# DEBUG
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+    ############################################################# DEBUG
+      n_tasks = 10
+      tasks = ["task%d" % task for task in range(n_tasks)]
+      task_types = {task: "regression" for task in tasks}
+      n_samples = 10
+      n_features = 3
+      
+      # Generate dummy dataset
+      np.random.seed(123)
+      ids = np.arange(n_samples)
+      X = np.random.rand(n_samples, n_features)
+      y = np.random.randint(2, size=(n_samples, n_tasks))
+      w = np.ones((n_samples, n_tasks))
     
-    # Generate dummy dataset
-    np.random.seed(123)
-    ids = np.arange(n_samples)
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.randint(2, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-  
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-        "nb_hidden": 1000,
-        "activation": "relu",
-        "dropout": .0,
-        "learning_rate": .15,
-        "momentum": .9,
-        "nesterov": False,
-        "decay": 1e-4,
-        "batch_size": n_samples,
-        "nb_epoch": 200,
-        "init": "glorot_uniform",
-        "nb_layers": 1,
-        "batchnorm": False,
-        "data_shape": dataset.get_data_shape()
-    }
+      model_params = {
+          "nb_hidden": 1000,
+          "activation": "relu",
+          "dropout": .0,
+          "learning_rate": .15,
+          "momentum": .9,
+          "nesterov": False,
+          "decay": 1e-4,
+          "batch_size": n_samples,
+          "nb_epoch": 200,
+          "init": "glorot_uniform",
+          "nb_layers": 1,
+          "batchnorm": False,
+          "data_shape": dataset.get_data_shape()
+      }
 
-    verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
-    model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                         verbosity=verbosity)
+      verbosity = "high"
+      regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
+                           verbosity=verbosity)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([regression_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([regression_metric])
 
-    assert scores[regression_metric.name] > .9
+      assert scores[regression_metric.name] > .9
 
   def test_tf_multitask_regression_overfit(self):
     """Test tf multitask overfits tiny data."""
