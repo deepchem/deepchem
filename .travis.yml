@@ -18,7 +18,7 @@ install:
 - conda install joblib
 - conda install h5py
 - pip install keras
-#- export KERAS_BACKEND=tensorflow
+- export KERAS_BACKEND=theano
 - conda install seaborn
 - conda install six
 - conda install dill
