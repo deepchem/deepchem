@@ -17,6 +17,7 @@ install:
 - conda install -c omnia openbabel
 - conda install joblib
 - conda install h5py
+- pip install Theano 
 - pip install keras
 - export KERAS_BACKEND=theano
 - conda install seaborn
