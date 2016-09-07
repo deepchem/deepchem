@@ -34,7 +34,7 @@ script:
 #- nosetests -v deepchem --nologcapture
 #- nosetests -v deepchem.models.tests.test_reload:TestModelReload.test_keras_reload --nologcapture
 #- nosetests -v deepchem.models.tests.test_overfit:TestOverfitAPI --nologcapture
-- nosetests -v deepchem.models --nologcapture
+- nosetests -v deepchem --nologcapture
 after_success:
 - source devtools/travis-ci/after_sucess.sh
 # AWS access_key and secret key secured through travis secure var api.
