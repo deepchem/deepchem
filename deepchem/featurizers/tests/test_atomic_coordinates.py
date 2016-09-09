@@ -10,6 +10,7 @@ from deepchem.featurizers.atomic_coordinates import get_coords
 from deepchem.featurizers.atomic_coordinates import put_atoms_in_cells
 from deepchem.featurizers.atomic_coordinates import compute_neighbor_cell_map
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
+from deepchem.featurizers.atomic_coordinates import FixedSizeAtomicCoordinates
 from deepchem.featurizers.atomic_coordinates import NeighborListAtomicCoordinates
 
 class TestAtomicCoordinates(unittest.TestCase):
@@ -31,12 +32,24 @@ class TestAtomicCoordinates(unittest.TestCase):
     Simple test that atomic coordinates returns ndarray of right shape.
     """
     N = self.mol.GetNumAtoms()
-    atomic_coords_featurizer = AtomicCoordinates(max_atoms=N)
+    atomic_coords_featurizer = AtomicCoordinates()
     # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
     # this expected behavior? Need to think about API.
     coords = atomic_coords_featurizer._featurize(self.mol)[0]
     assert isinstance(coords, np.ndarray)
     assert coords.shape == (N, 3)
+
+  def test_fixed_size_atomic_coordinates(self):
+    """
+    Simple test that atomic coordinates returns ndarray of right shape.
+    """
+    N = self.mol.GetNumAtoms()
+    atomic_coords_featurizer = FixedSizeAtomicCoordinates(max_atoms=N)
+    # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
+    # this expected behavior? Need to think about API.
+    coords = atomic_coords_featurizer._featurize(self.mol)[0]
+    assert isinstance(coords, np.ndarray)
+    assert coords.shape == (N+1, 3)
 
   def test_get_cells(self):
     """
