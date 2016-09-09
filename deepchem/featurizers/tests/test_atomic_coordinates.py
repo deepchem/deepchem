@@ -31,7 +31,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     Simple test that atomic coordinates returns ndarray of right shape.
     """
     N = self.mol.GetNumAtoms()
-    atomic_coords_featurizer = AtomicCoordinates()
+    atomic_coords_featurizer = AtomicCoordinates(max_atoms=N)
     # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
     # this expected behavior? Need to think about API.
     coords = atomic_coords_featurizer._featurize(self.mol)[0]
