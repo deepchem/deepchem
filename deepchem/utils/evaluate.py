@@ -35,7 +35,8 @@ class Evaluator(object):
   def __init__(self, model, dataset, transformers, verbosity=False):
     self.model = model
     self.dataset = dataset
-    self.transformers = transformers
+    self.output_transformers = [
+        transformer for transformer in transformers if transformer.transform_y]
     self.task_names = dataset.get_task_names()
     self.task_type = model.get_task_type().lower()
     self.verbosity = verbosity
@@ -71,7 +72,7 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     y = self.dataset.get_labels()
-    y = undo_transforms(y, self.transformers)
+    y = undo_transforms(y, self.output_transformers)
     w = self.dataset.get_weights()
 
     if not len(metrics):
@@ -79,10 +80,10 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     if mode == "classification":
-      y_pred = self.model.predict_proba(self.dataset, self.transformers)
-      y_pred_print = self.model.predict(self.dataset, self.transformers).astype(int)
+      y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
+      y_pred_print = self.model.predict(self.dataset, self.output_transformers).astype(int)
     else:
-      y_pred = self.model.predict(self.dataset, self.transformers)
+      y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
     multitask_scores = {}
 

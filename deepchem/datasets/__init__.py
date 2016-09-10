@@ -21,6 +21,26 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+def sparsify_features(X):
+  """Extracts a sparse feature representation from dense feature array."""
+  n_samples = len(X)
+  X_sparse = []
+  for i in range(n_samples):
+    nonzero_inds = np.nonzero(X[i])[0]
+    nonzero_vals = X[i][nonzero_inds]
+    X_sparse.append((nonzero_inds, nonzero_vals))
+  X_sparse = np.array(X_sparse, dtype=object)
+  return X_sparse
+
+def densify_features(X_sparse, num_features):
+  """Expands sparse feature representation to dense feature array."""
+  n_samples = len(X_sparse)
+  X = np.zeros((n_samples, num_features))
+  for i in range(n_samples):
+    nonzero_inds, nonzero_vals = X_sparse[i]
+    X[i][nonzero_inds.astype(int)] = nonzero_vals
+  return X
+
 def pad_features(batch_size, X_b):
   """Pads a batch of features to have precisely batch_size elements.
   
@@ -203,10 +223,6 @@ class Dataset(object):
       save_to_disk(X, os.path.join(data_dir, out_X))
       save_to_disk(X, os.path.join(data_dir, out_X_transformed))
       if compute_feature_statistics:
-        ########################################################## DEBUG
-        print("compute_feature_statistics")
-        print(compute_feature_statistics)
-        ########################################################## DEBUG
         X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
         save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
         save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
@@ -440,6 +456,48 @@ class Dataset(object):
     #########################################################  TIMING
     time2 = time.time()
     log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
+        self.verbosity)
+    #########################################################  TIMING
+
+  def sparse_shuffle(self):
+    """Shuffling that exploits data sparsity to shuffle large datasets.
+
+    Only for 1-dimensional feature vectors (does not work for tensorial
+    featurizations).
+    """
+    #########################################################  TIMING
+    time1 = time.time()
+    #########################################################  TIMING
+    shard_size = self.get_shard_size()
+    num_shards = self.get_number_shards()
+    X_sparses, ys, ws, ids = [], [], [], []
+    num_features = None
+    for i in range(num_shards):
+      (X_s, y_s, w_s, ids_s) = self.get_shard(i) 
+      if num_features is None:
+        num_features = X_s.shape[1]
+      X_sparse = sparsify_features(X_s) 
+      X_sparses, ys, ws, ids = (
+          X_sparses + [X_sparse], ys + [y_s], ws + [w_s],
+          ids + [np.atleast_1d(np.squeeze(ids_s))])
+    # Get full dataset in memory
+    (X_sparse, y, w, ids) = (
+        np.vstack(X_sparses), np.vstack(ys), np.vstack(ws), np.concatenate(ids))
+    # Shuffle in memory
+    num_samples = len(X_sparse)
+    permutation = np.random.permutation(num_samples)
+    X_sparse, y, w, ids = (X_sparse[permutation], y[permutation],
+                           w[permutation], ids[permutation])
+    # Write shuffled shards out to disk
+    for i in range(num_shards):
+      start, stop = i*shard_size, (i+1)*shard_size
+      (X_sparse_s, y_s, w_s, ids_s) = (
+          X_sparse[start:stop], y[start:stop], w[start:stop], ids[start:stop])
+      X_s = densify_features(X_sparse_s, num_features)
+      self.set_shard(i, X_s, y_s, w_s, ids_s)
+    #########################################################  TIMING
+    time2 = time.time()
+    log("TIMING: sparse_shuffle took %0.3f s" % (time2-time1),
         self.verbosity)
     #########################################################  TIMING
 

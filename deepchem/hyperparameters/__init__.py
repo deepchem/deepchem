@@ -16,7 +16,8 @@ class HyperparamOpt(object):
   Provides simple hyperparameter search capabilities.
   """
 
-  def __init__(self, model_class, tasks, task_types, fit_transformers=None, verbosity=None):
+  def __init__(self, model_class, tasks, task_types, fit_transformers=None,
+               verbosity=None):
     self.model_class = model_class
     self.tasks = tasks
     self.task_types = task_types
