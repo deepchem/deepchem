@@ -14,6 +14,8 @@ import tempfile
 import os
 import shutil
 import numpy as np
+from deepchem.datasets import sparsify_features
+from deepchem.datasets import densify_features
 from deepchem.datasets import pad_batch
 from deepchem.datasets import pad_features
 from deepchem.datasets import Dataset
@@ -26,6 +28,30 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   """
   Test basic top-level API for dataset objects.
   """
+
+  def test_sparsify_and_densify(self):
+    """Test that sparsify and densify work as inverses."""
+    # Test on identity matrix
+    num_samples = 10
+    num_features = num_samples
+    X = np.eye(num_samples)
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
+
+    # Generate random sparse features dataset
+    np.random.seed(123)
+    p = .05
+    X = np.random.binomial(1, p, size=(num_samples, num_features))
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
+
+    # Test edge case with array of all zeros
+    X = np.zeros((num_samples, num_features))
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
 
   def test_pad_features(self):
     """Test that pad_features pads features correctly."""

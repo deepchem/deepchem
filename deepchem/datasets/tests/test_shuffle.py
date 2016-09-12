@@ -57,6 +57,40 @@ class TestShuffle(TestAPI):
     assert y_orig.shape == y_new.shape
     assert w_orig.shape == w_new.shape
 
+  def test_sparse_shuffle(self):
+    """Test that sparse datasets can be shuffled quickly."""
+    verbosity = "high"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data_dir = os.path.join(self.base_dir, "dataset")
+
+    dataset_file = os.path.join(
+        current_dir, "../../models/tests/example.csv")
+
+    featurizer = CircularFingerprint(size=1024)
+    tasks = ["log-solubility"]
+    loader = DataLoader(tasks=tasks,
+                        smiles_field="smiles",
+                        featurizer=featurizer,
+                        verbosity=verbosity)
+    dataset = loader.featurize(
+        dataset_file, data_dir, shard_size=2)
+
+    X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()
+    orig_len = len(dataset)
+
+    dataset.sparse_shuffle()
+    X_new, y_new, w_new, new_ids = dataset.to_numpy()
+    
+    assert len(dataset) == orig_len
+    # The shuffling should have switched up the ordering
+    assert not np.array_equal(orig_ids, new_ids)
+    # But all the same entries should still be present
+    assert sorted(orig_ids) == sorted(new_ids)
+    # All the data should have same shape
+    assert X_orig.shape == X_new.shape
+    assert y_orig.shape == y_new.shape
+    assert w_orig.shape == w_new.shape
+
   def test_reshard_shuffle(self):
     """Test that datasets can be merged."""
     verbosity = "high"
