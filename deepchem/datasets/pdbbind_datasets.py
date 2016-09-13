@@ -33,19 +33,20 @@ def load_pdbbind_labels(labels_file):
                "ignore-this-field", "reference", "ligand name"))
   return contents_df
 
-def compute_pdbbind_feature(compound_featurizers, complex_featurizers,
-                            pdb_subdir, pdb_code):
+def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
+                                 pdb_subdir, pdb_code):
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  #rdkit_mol = Chem.MolFromMol2File(str(ligand_file))
   rdkit_mol = Chem.SDMolSupplier(str(ligand_file)).next()
 
   all_features = []
   for complex_featurizer in complex_featurizers:
     features = complex_featurizer.featurize_complexes(
       [ligand_file], [protein_file])
-    all_features.append(features)
+    ################################################ DEBUG
+    all_features.append(np.squeeze(features))
+    ################################################ DEBUG
   
   for compound_featurizer in compound_featurizers:
     features = np.squeeze(compound_featurizer.featurize([rdkit_mol]))
@@ -53,8 +54,8 @@ def compute_pdbbind_feature(compound_featurizers, complex_featurizers,
 
   features = np.concatenate(all_features)
   return features
-    
-def load_pdbbind(pdbbind_dir, base_dir, reload=True):
+
+def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   """Load PDBBind datasets. Does not do train/test split"""
   # Set some global variables up top
   reload = True
@@ -85,21 +86,36 @@ def load_pdbbind(pdbbind_dir, base_dir, reload=True):
   # Define featurizers
   grid_featurizer = GridFeaturizer(
       voxel_width=16.0, feature_types="voxel_combined",
-      voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+      # TODO(rbharath, enf): Figure out why pi_stack is slow and cation_pi
+      # causes segfaults.
+      #voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+      #"salt_bridge"], ecfp_power=9, splif_power=9,
+      voxel_feature_types=["ecfp", "splif", "hbond", 
       "salt_bridge"], ecfp_power=9, splif_power=9,
-      parallel=True, flatten=True)
+      parallel=True, flatten=True,
+      verbosity=verbosity)
   compound_featurizers = [CircularFingerprint(size=1024)]
   complex_featurizers = [grid_featurizer]
   
   # Featurize Dataset
   features = []
-  for pdb_code in ids:
+  feature_len = None
+  y_inds = []
+  for ind, pdb_code in enumerate(ids):
+    print("Processing %s" % str(pdb_code))
     pdb_subdir = os.path.join(pdb_subdirs, pdb_code)
-    computed_feature = compute_pdbbind_feature(
+    computed_feature = compute_pdbbind_grid_feature(
         compound_featurizers, complex_featurizers, pdb_subdir, pdb_code)
-    if len(computed_feature) == 0:
-      computed_feature = np.zeros(1024)
+    if feature_len is None:
+      feature_len = len(computed_feature)
+    if len(computed_feature) != feature_len:
+      print("Featurization failed for %s!" % pdb_code)
+      continue
+    y_inds.append(ind)
     features.append(computed_feature)
+  ############################################################# DEBUG
+  y = y[y_inds]
+  ############################################################# DEBUG
   X = np.vstack(features)
   w = np.ones_like(y)
    

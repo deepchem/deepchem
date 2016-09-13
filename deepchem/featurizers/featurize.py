@@ -252,6 +252,8 @@ class DataLoader(object):
         return True
     return False
 
+  # TODO(rbharath): Should this function be modified to accept filenames for
+  # ligand/protein files instead of loaded strings?
   def _featurize_complexes(self, df, featurizer, parallel=True,
                            worker_pool=None):
     """Generates circular fingerprints for dataset."""
