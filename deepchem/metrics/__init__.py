@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import precision_score
 from scipy.stats import pearsonr
 
 def to_one_hot(y):
@@ -126,7 +127,7 @@ class Metric(object):
     self.threshold = threshold
     if mode is None:
       if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
-                       "accuracy_score", "kappa_score"]:
+                       "accuracy_score", "kappa_score", "precision_score"]:
         mode = "classification"
       elif self.name in ["pearson_r2_score", "r2_score", "mean_squared_error",
                          "mean_absolute_error", "rms_score",
