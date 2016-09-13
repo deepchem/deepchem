@@ -20,6 +20,9 @@ import tempfile
 import os
 import shutil
 import multiprocessing as mp
+############################################################## DEBUG
+import time
+############################################################## DEBUG
 
 
 """
@@ -784,7 +787,13 @@ class GridFeaturizer(ComplexFeaturizer):
                ecfp_degree=2, ecfp_power=3, splif_power=3,
                save_intermediates=False, ligand_only=False,
                box_width=16.0, voxel_width=1.0, voxelize_features=True, 
-               voxel_feature_types=[], flatten=False, parallel=False, **kwargs):
+               voxel_feature_types=[], flatten=False, parallel=False,
+               verbosity=None, **kwargs):
+    self.verbosity = verbosity
+    #################################################### DEBUG
+    print("self.verbosity")
+    print(self.verbosity)
+    #################################################### DEBUG
     self.parallel = parallel
     self.flatten = flatten
 
@@ -822,16 +831,31 @@ class GridFeaturizer(ComplexFeaturizer):
   def _featurize_complex(self, ligand_pdb_lines, protein_pdb_lines):
     tempdir = tempfile.mkdtemp()
 
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     ligand_pdb_file = os.path.join(tempdir, "ligand.pdb")
     with open(ligand_pdb_file, "w") as mol_f:
       mol_f.writelines(ligand_pdb_lines)
+    ############################################################## TIMING
+    time2 = time.time()
+    log("TIMING: Writing ligand took %0.3f s" % (time2-time1),
+        self.verbosity)
+    ############################################################## TIMING
+
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     protein_pdb_file = os.path.join(tempdir, "protein.pdb")
     with open(protein_pdb_file, "w") as protein_f:
       protein_f.writelines(protein_pdb_lines)
+    ############################################################## TIMING
+    time2 = time.time()
+    log("TIMING: Writing protein took %0.3f s" % (time2-time1),
+        self.verbosity)
+    ############################################################## TIMING
 
     features_dict = self._transform(protein_pdb_file, ligand_pdb_file)
-    #print("np.shape(features_dict.values()[0])")
-    #print(np.shape(features_dict.values()[0]))
     shutil.rmtree(tempdir)
     return features_dict.values()
 
@@ -869,25 +893,57 @@ class GridFeaturizer(ComplexFeaturizer):
 
     This function then computes a featurization with scheme specified by the user.
     """
-    a = time.time()
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     protein_name = str(protein_pdb).split(
       "/")[len(str(protein_pdb).split("/")) - 2]
 
     if not self.ligand_only:
       protein_xyz, protein_ob = self._load_molecule(
           protein_pdb, calc_charges=False)
+    ############################################################## TIMING
+    time2 = time.time()
+    log("TIMING: Loading protein coordinates took %0.3f s" % (time2-time1),
+        self.verbosity)
+    ############################################################## TIMING
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     ligand_xyz, ligand_ob = self._load_molecule(
         ligand_pdb, calc_charges=False)
+    ############################################################## TIMING
+    time2 = time.time()
+    log("TIMING: Loading ligand coordinates took %0.3f s" % (time2-time1),
+        self.verbosity)
+    ############################################################## TIMING
+
+    ############################################################# DEBUG
+    print("self.feature_types")
+    print(self.feature_types)
+    ############################################################# DEBUG
+    ############################################################# DEBUG
+    print("self.voxel_feature_types")
+    print(self.voxel_feature_types)
+    ############################################################# DEBUG
 
     if "ecfp" in self.feature_types:
       ecfp_array = _compute_ecfp_features(
         ligand_ob, self.ecfp_degree, self.ecfp_power)
       return({(0, 0): ecfp_array})
 
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
     centroid = _compute_centroid(ligand_xyz)
     ligand_xyz = _subtract_centroid(ligand_xyz, centroid)
     if not self.ligand_only:
       protein_xyz = _subtract_centroid(protein_xyz, centroid)
+    ############################################################## TIMING
+    time2 = time.time()
+    log("TIMING: Centroid processing took %0.3f s" % (time2-time1),
+        self.verbosity)
+    ############################################################## TIMING
 
     if "splif" in self.feature_types:
       splif_array = self._featurize_splif(
@@ -900,45 +956,109 @@ class GridFeaturizer(ComplexFeaturizer):
 
     pairwise_distances = _compute_pairwise_distances(protein_xyz, ligand_xyz)
     if "ecfp" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       protein_ecfp_dict, ligand_ecfp_dict = (
           _featurize_binding_pocket_ecfp(
               protein_xyz, protein_ob, ligand_xyz, ligand_ob,
               pairwise_distances, cutoff=4.5, ecfp_degree=self.ecfp_degree))
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: ecfp voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
     if "splif" in self.voxel_feature_types: 
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       splif_dicts = _featurize_splif(protein_xyz, protein_ob, ligand_xyz,
                                      ligand_ob, self.contact_bins,
                                      pairwise_distances, self.ecfp_degree)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: splif voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "hbond" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       hbond_list = _compute_hydrogen_bonds(protein_xyz, protein_ob, ligand_xyz,
                                            ligand_ob, pairwise_distances,
                                            self.hbond_dist_bins,
                                            self.hbond_angle_cutoffs,
                                            self.ecfp_degree)          
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: hbond voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "sybyl" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       protein_sybyl_dict, ligand_sybyl_dict = _featurize_binding_pocket_sybyl(
           protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
           cutoff=7.0)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: sybyl voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "pi_stack" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
           _compute_pi_stack(protein_xyz, protein_ob, ligand_xyz, ligand_ob,
-                            pairwise_distances)
+                            pairwise_distances))
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: pi_stack voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "cation_pi" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       protein_cation_pi, ligand_cation_pi = (
           _compute_binding_pocket_cation_pi(protein_xyz, protein_ob,
           ligand_xyz, ligand_ob))
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: cation_pi voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "salt_bridge" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       salt_bridge_list = _compute_salt_bridges(protein_xyz, protein_ob,
                                                ligand_xyz, ligand_ob,
                                                pairwise_distances)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: salt_bridge voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     if "charge" in self.voxel_feature_types:
+      ############################################################## TIMING
+      time1 = time.time()
+      ############################################################## TIMING
       protein_charge_dictionary = _compute_charge_dictionary(protein_ob)
       ligand_charge_dictionary = _compute_charge_dictionary(ligand_ob)
+      ############################################################## TIMING
+      time2 = time.time()
+      log("TIMING: charge voxel computataion took %0.3f s" % (time2-time1),
+          self.verbosity)
+      ############################################################## TIMING
 
     transformed_systems = {}
     transformed_systems[(0, 0)] = [protein_xyz, ligand_xyz]
@@ -964,7 +1084,7 @@ class GridFeaturizer(ComplexFeaturizer):
               _convert_atom_to_voxel, _hash_ecfp, ligand_xyz,
               feature_dict=ligand_ecfp_dict, channel_power=self.ecfp_power)
           feature_tensors.append(ecfp_tensor)
-          #print("Completed ecfp tensor")
+          print("Completed ecfp tensor")
         
         if "splif" in self.voxel_feature_types: 
 
@@ -974,7 +1094,7 @@ class GridFeaturizer(ComplexFeaturizer):
                              feature_dict=splif_dict,
                              channel_power=self.splif_power)
               for splif_dict in splif_dicts]
-          #print("Completed splif tensor")
+          print("Completed splif tensor")
 
         if "hbond" in self.voxel_feature_types:
 
@@ -982,7 +1102,7 @@ class GridFeaturizer(ComplexFeaturizer):
               self._voxelize(_convert_atom_pair_to_voxel, None, (protein_xyz,
                              ligand_xyz), feature_list=hbond, channel_power=0)
               for hbond in hbond_list]
-          #print("Completed hbond tensor")
+          print("Completed hbond tensor")
 
         if "sybyl" in self.voxel_feature_types:
 
@@ -995,7 +1115,7 @@ class GridFeaturizer(ComplexFeaturizer):
               _convert_atom_to_voxel, hash_sybyl, ligand_xyz,
               feature_dict=ligand_sybyl_dict, nb_channel=len(self.sybyl_types))
           feature_tensors.append(sybyl_tensor)  
-          #print("Completed sybyl tensor")        
+          print("Completed sybyl tensor")        
 
         if "pi_stack" in self.voxel_feature_types:
           pi_parallel_tensor = self._voxelize(
@@ -1013,7 +1133,7 @@ class GridFeaturizer(ComplexFeaturizer):
               _convert_atom_to_voxel, None, ligand_xyz,
               feature_dict=ligand_pi_t, nb_channel=1)
           feature_tensors.append(pi_t_tensor)
-          #print("Completed pi_stack tensor")
+          print("Completed pi_stack tensor")
 
         if "cation_pi" in self.voxel_feature_types:
           cation_pi_tensor = self._voxelize(
@@ -1023,7 +1143,7 @@ class GridFeaturizer(ComplexFeaturizer):
               _convert_atom_to_voxel, None, ligand_xyz,
               feature_dict=ligand_cation_pi, nb_channel=1)
           feature_tensors.append(cation_pi_tensor)
-          #print("Completed cation_pi tensor.")
+          print("Completed cation_pi tensor.")
 
         if "salt_bridge" in self.voxel_feature_types:
           salt_bridge_tensor = self._voxelize(
@@ -1031,7 +1151,7 @@ class GridFeaturizer(ComplexFeaturizer):
               feature_list=salt_bridge_list, nb_channel=1)
           feature_tensors.append(salt_bridge_tensor)
 
-          #print("Completed salt_bridge tensor.")
+          print("Completed salt_bridge tensor.")
 
         if "charge" in self.voxel_feature_types:
           charge_tensor = self._voxelize(
@@ -1044,7 +1164,7 @@ class GridFeaturizer(ComplexFeaturizer):
               dtype="np.float16")
           feature_tensors.append(charge_tensor)
 
-          #print("Completed salt_bridge tensor.")
+          print("Completed salt_bridge tensor.")
 
         if "charge" in self.voxel_feature_types:
           feature_tensor = np.concatenate(feature_tensors, axis=3).astype(np.float16)

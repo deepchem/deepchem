@@ -45,12 +45,30 @@ def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
   for complex_featurizer in complex_featurizers:
     features = complex_featurizer.featurize_complexes(
       [ligand_file], [protein_file])
-    all_features.append(features)
+    ################################################ DEBUG
+    all_features.append(np.squeeze(features))
+    print("type(features)")
+    print(type(features))
+    #all_features += features
+    ################################################ DEBUG
+  ################################################ DEBUG
+  print("grid_featurizer outcome")
+  print("all_features")
+  print(all_features)
+  ################################################ DEBUG
   
   for compound_featurizer in compound_featurizers:
     features = np.squeeze(compound_featurizer.featurize([rdkit_mol]))
     all_features.append(features)
 
+  ################################################ DEBUG
+  print("complex_featurizers, compound_featurizers")
+  print(complex_featurizers, compound_featurizers)
+  print("len(all_features)")
+  print(len(all_features))
+  print("[features.shape for features in all_features]")
+  print([features.shape for features in all_features])
+  ################################################ DEBUG
   features = np.concatenate(all_features)
   return features
 
@@ -106,22 +124,38 @@ def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   # Define featurizers
   grid_featurizer = GridFeaturizer(
       voxel_width=16.0, feature_types="voxel_combined",
-      voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+      #voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+      #"salt_bridge"], ecfp_power=9, splif_power=9,
+      voxel_feature_types=["ecfp", "splif", "hbond", 
       "salt_bridge"], ecfp_power=9, splif_power=9,
-      parallel=True, flatten=True)
+      parallel=True, flatten=True,
+      verbosity=verbosity)
   compound_featurizers = [CircularFingerprint(size=1024)]
   complex_featurizers = [grid_featurizer]
   
   # Featurize Dataset
   features = []
-  for pdb_code in ids:
+  feature_len = None
+  y_inds = []
+  for ind, pdb_code in enumerate(ids):
     print("Processing %s" % str(pdb_code))
     pdb_subdir = os.path.join(pdb_subdirs, pdb_code)
     computed_feature = compute_pdbbind_grid_feature(
         compound_featurizers, complex_featurizers, pdb_subdir, pdb_code)
-    if len(computed_feature) == 0:
-      computed_feature = np.zeros(1024)
+    if feature_len is None:
+      feature_len = len(computed_feature)
+    if len(computed_feature) != feature_len:
+      print("Featurization failed for %s!" % pdb_code)
+      continue
+    y_inds.append(ind)
     features.append(computed_feature)
+  ############################################################# DEBUG
+  print("[feature.shape for feature in features]")
+  print([feature.shape for feature in features])
+  ############################################################# DEBUG
+  ############################################################# DEBUG
+  y = y[y_inds]
+  ############################################################# DEBUG
   X = np.vstack(features)
   w = np.ones_like(y)
    
@@ -163,7 +197,7 @@ def load_core_pdbbind_atomic_coordinates(pdbbind_dir, base_dir, reload=True):
       voxel_width=16.0, feature_types="voxel_combined",
       voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
       "salt_bridge"], ecfp_power=9, splif_power=9,
-      parallel=True, flatten=True)
+      parallel=True, flatten=True, verbosity=verbosity)
   compound_featurizers = [CircularFingerprint(size=1024)]
   complex_featurizers = [grid_featurizer]
   
