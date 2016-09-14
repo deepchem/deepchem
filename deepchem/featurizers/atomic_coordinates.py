@@ -11,6 +11,9 @@ __license__ = "LGPL v2.1+"
 
 import numpy as np
 from deepchem.featurizers import Featurizer
+from deepchem.featurizers import ComplexFeaturizer
+from deepchem.featurizers.grid_featurizer import load_molecule 
+from deepchem.featurizers.grid_featurizer import merge_molecules
 
 class AtomicCoordinates(Featurizer):
   """
@@ -44,6 +47,51 @@ class AtomicCoordinates(Featurizer):
 
     coords = [coords]
     return coords
+
+def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors):
+  """Computes a neighbor list from atom coordinates."""
+  x_bins, y_bins, z_bins = get_cells(coords, neighbor_cutoff)
+
+  # Associate each atom with cell it belongs to. O(N)
+  cell_to_atoms, atom_to_cell = put_atoms_in_cells(
+      coords, x_bins, y_bins, z_bins)
+
+  # Associate each cell with its neighbor cells. Assumes periodic boundary
+  # conditions, so does wrapround. O(constant)
+  N_x, N_y, N_z = len(x_bins), len(y_bins), len(z_bins)
+  neighbor_cell_map = compute_neighbor_cell_map(N_x, N_y, N_z)
+
+  # For each atom, loop through all atoms in its cell and neighboring cells.
+  # Accept as neighbors only those within threshold. This computation should be
+  # O(Nm), where m is the number of atoms within a set of neighboring-cells.
+  neighbor_list = {}
+  for atom in range(N):
+    cell = atom_to_cell[atom]
+    neighbor_cells = neighbor_cell_map[cell]
+    # For smaller systems especially, the periodic boundary conditions can
+    # result in neighboring cells being seen multiple times. Use a set() to
+    # make sure duplicate neighbors are ignored. Convert back to list before
+    # returning. 
+    neighbor_list[atom] = set()
+    for neighbor_cell in neighbor_cells:
+      atoms_in_cell = cell_to_atoms[neighbor_cell]
+      for neighbor_atom in atoms_in_cell:
+        if neighbor_atom == atom:
+          continue
+        # TODO(rbharath): How does distance need to be modified here to
+        # account for periodic boundary conditions?
+        dist = np.linalg.norm(coords[atom] - coords[neighbor_atom])
+        if dist < neighbor_cutoff:
+          neighbor_list[atom].add((neighbor_atom, dist))
+        
+    # Sort neighbors by distance
+    closest_neighbors = sorted(
+        list(neighbor_list[atom]), key=lambda elt: elt[1])
+    closest_neighbors = [nbr for (nbr, dist) in closest_neighbors]
+    # Pick up to max_num_neighbors
+    closest_neighbors = closest_neighbors[:max_num_neighbors]
+    neighbor_list[atom] = closest_neighbors
+    return neighbor_list
 
 def get_cells(coords, neighbor_cutoff):
   """Computes cells given molecular coordinates."""
@@ -187,53 +235,65 @@ class NeighborListAtomicCoordinates(Featurizer):
 
     Parameters
     ----------
+      mol: rdkit Mol
+        To be featurized.
     """
     N = mol.GetNumAtoms()
     # TODO(rbharath): Should this return a list?
     bohr_coords = self.coordinates_featurizer._featurize(mol)[0]
     coords = get_coords(mol)
-
-    x_bins, y_bins, z_bins = get_cells(coords, self.neighbor_cutoff)
-
-    # Associate each atom with cell it belongs to. O(N)
-    cell_to_atoms, atom_to_cell = put_atoms_in_cells(
-        coords, x_bins, y_bins, z_bins)
-
-    # Associate each cell with its neighbor cells. Assumes periodic boundary
-    # conditions, so does wrapround. O(constant)
-    N_x, N_y, N_z = len(x_bins), len(y_bins), len(z_bins)
-    neighbor_cell_map = compute_neighbor_cell_map(N_x, N_y, N_z)
-
-    # For each atom, loop through all atoms in its cell and neighboring cells.
-    # Accept as neighbors only those within threshold. This computation should be
-    # O(Nm), where m is the number of atoms within a set of neighboring-cells.
-    neighbor_list = {}
-    for atom in range(N):
-      cell = atom_to_cell[atom]
-      neighbor_cells = neighbor_cell_map[cell]
-      # For smaller systems especially, the periodic boundary conditions can
-      # result in neighboring cells being seen multiple times. Use a set() to
-      # make sure duplicate neighbors are ignored. Convert back to list before
-      # returning. 
-      neighbor_list[atom] = set()
-      for neighbor_cell in neighbor_cells:
-        atoms_in_cell = cell_to_atoms[neighbor_cell]
-        for neighbor_atom in atoms_in_cell:
-          if neighbor_atom == atom:
-            continue
-          # TODO(rbharath): How does distance need to be modified here to
-          # account for periodic boundary conditions?
-          dist = np.linalg.norm(coords[atom] - coords[neighbor_atom])
-          if dist < self.neighbor_cutoff:
-            neighbor_list[atom].add((neighbor_atom, dist))
-          
-      # Sort neighbors by distance
-      closest_neighbors = sorted(
-          list(neighbor_list[atom]), key=lambda elt: elt[1])
-      closest_neighbors = [nbr for (nbr, dist) in closest_neighbors]
-      # Pick up to max_num_neighbors
-      closest_neighbors = closest_neighbors[:self.max_num_neighbors]
-      neighbor_list[atom] = closest_neighbors
-
+    neighbor_list = compute_neighbor_list(
+        coords, self.neighbor_cutoff, self.max_num_neighbors)
         
     return (bohr_coords, neighbor_list)
+
+# TODO(rbharath): This shares a lot of code with NeighborListAtomicCoordinates.
+# Is there some elegant way to refactor to avoid code duplication?
+class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
+  """
+  Adjacency list of neighbors for protein-ligand complexes in 3-space.
+
+  Neighbors dtermined by user-dfined distance cutoff.
+  """
+  def __init__(self, max_num_neighbors=None, neighbor_cutoff=4):
+    if neighbor_cutoff <= 0:
+      raise ValueError("neighbor_cutoff must be positive value.")
+    if max_num_neighbors is not None:
+      if not isinstance(max_num_neighbors, int) or max_num_neighbors <= 0:
+        raise ValueError("max_num_neighbors must be positive integer.")
+    self.max_num_neighbors = max_num_neighbors
+    self.neighbor_cutoff = neighbor_cutoff
+    # Type of data created by this featurizer
+    self.dtype = object
+    self.coordinates_featurizer = AtomicCoordinates()
+
+  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+    """
+    Compute neighbor list for complex.
+
+    Parameters
+    ----------
+    mol_pdb: list
+      Should be a list of lines of the PDB file.
+    complex_pdb: list
+      Should be a list of lines of the PDB file.
+    """
+    mol_coords, ob_mol = load_molecule(mol_pdb_file)
+    protein_coords, protein_mol = load_molecule(protein_pdb_file)
+    ########################################################## DEBUG
+    print("mol_pdb_file, protein_pdb_file")
+    print(mol_pdb_file, protein_pdb_file)
+    print("type(mol_coords), type(ob_mol)")
+    print(type(mol_coords), type(ob_mol))
+    print("type(protein_coords), type(protein_mol)")
+    print(type(protein_coords), type(protein_mol))
+    print("mol_coords.shape, protein_coords.shape")
+    print(mol_coords.shape, protein_coords.shape)
+    ########################################################## DEBUG
+    system_coords, system_mol = merge_molecules(
+        mol_coords, ob_mol, protein_coords, protein_mol)
+    
+    system_neighbor_list = compute_neighbor_list(
+        system_coords, self.neighbor_cutoff, self.max_num_neighbors)
+
+    return (system_coords, system_neighbor_list)

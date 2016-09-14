@@ -28,6 +28,77 @@ import time
 """
 http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
 """
+def get_xyz_from_ob(ob_mol):
+  """
+  returns an m x 3 np array of 3d coords
+  of given openbabel molecule
+  """
+
+  xyz = np.zeros((ob_mol.NumAtoms(), 3))
+  for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
+    xyz[i, 0] = atom.x()
+    xyz[i, 1] = atom.y()
+    xyz[i, 2] = atom.z()
+  return(xyz)
+
+
+def load_molecule(molecule_file, remove_hydrogens=True,
+                  calc_charges=False):
+  """Converts molecule file to (xyz-coords, obmol object)
+
+  Given molecule_file, returns a tuple of xyz coords of molecule
+  and an openbabel object representing that molecule
+  """
+
+  if ".mol2" in molecule_file:
+    ###################################################### DEBUG
+    print("mol2 file")
+    ###################################################### DEBUG
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("mol2"), str("mol2"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, molecule_file)
+  else:
+    ###################################################### DEBUG
+    print("non mol2 file")
+    ###################################################### DEBUG
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("pdb"), str("pdb"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(molecule_file))
+    ###################################################### DEBUG
+    print("ob_mol.NumAtoms()")
+    print(ob_mol.NumAtoms())
+    ###################################################### DEBUG
+
+  if calc_charges:
+    gasteiger = ob.OBChargeModel.FindType(str("gasteiger"))
+    gasteiger.ComputeCharges(ob_mol)
+    ob_mol.UnsetImplicitValencePerceived()
+    ob_mol.CorrectForPH(7.4)
+    ob_mol.AddHydrogens()
+  else:
+    ob_mol.AddHydrogens()
+
+  xyz = get_xyz_from_ob(ob_mol)
+
+  return xyz, ob_mol
+
+def merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
+  """Merges coordinates of protein and ligand.
+
+  Takes as input protein and ligand objects of class PDB and adds ligand atoms
+  to the protein, and returns the new instance of class PDB called system that
+  contains both sets of atoms.
+  """
+
+  system_xyz = np.array(np.vstack(np.vstack((protein_xyz, ligand_xyz))))
+  system_ob = ob.OBMol(protein_ob)
+  system_ob += ligand_ob
+
+  return system_xyz, system_ob
+
+
 def _merge_two_dicts(x, y):
   """Given two dicts, merge them into a new dict as a shallow copy."""
   z = x.copy()
@@ -749,20 +820,6 @@ def _convert_atom_pair_to_voxel(
                         atom_index_pair[1], box_width, voxel_width)[0])
   return(indices_list)
 
-def _merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
-  """Merges coordinates of protein and ligand.
-
-  Takes as input protein and ligand objects of class PDB and adds ligand atoms
-  to the protein, and returns the new instance of class PDB called system that
-  contains both sets of atoms.
-  """
-
-  system_xyz = np.array(np.vstack(np.vstack((protein_xyz, ligand_xyz))))
-  system_ob = ob.OBMol(protein_ob)
-  system_ob += ligand_ob
-
-  return system_xyz, system_ob
-
 def _compute_charge_dictionary(molecule):
   """Computes partial charges for each atom."""
   charge_dictionary = {}
@@ -900,7 +957,7 @@ class GridFeaturizer(ComplexFeaturizer):
       "/")[len(str(protein_pdb).split("/")) - 2]
 
     if not self.ligand_only:
-      protein_xyz, protein_ob = self._load_molecule(
+      protein_xyz, protein_ob = load_molecule(
           protein_pdb, calc_charges=False)
     ############################################################## TIMING
     time2 = time.time()
@@ -910,7 +967,7 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_xyz, ligand_ob = self._load_molecule(
+    ligand_xyz, ligand_ob = load_molecule(
         ligand_pdb, calc_charges=False)
     ############################################################## TIMING
     time2 = time.time()
@@ -1242,50 +1299,6 @@ class GridFeaturizer(ComplexFeaturizer):
       feature_vector[0] += len(feature_list)
 
     return feature_vector
-
-  def _get_xyz_from_ob(self, ob_mol):
-    """
-    returns an m x 3 np array of 3d coords
-    of given openbabel molecule
-    """
-
-    xyz = np.zeros((ob_mol.NumAtoms(), 3))
-    for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
-      xyz[i, 0] = atom.x()
-      xyz[i, 1] = atom.y()
-      xyz[i, 2] = atom.z()
-    return(xyz)
-
-  def _load_molecule(self, molecule_file, remove_hydrogens=True,
-                     calc_charges=False):
-    """
-    given molecule_file, returns a tuple of xyz coords of molecule
-    and an openbabel object representing that molecule
-    """
-
-    if ".mol2" in molecule_file:
-      obConversion = ob.OBConversion()
-      obConversion.SetInAndOutFormats(str("mol2"), str("mol2"))
-      ob_mol = ob.OBMol()
-      obConversion.ReadFile(ob_mol, molecule_file)
-    else:
-      obConversion = ob.OBConversion()
-      obConversion.SetInAndOutFormats(str("pdb"), str("pdb"))
-      ob_mol = ob.OBMol()
-      obConversion.ReadFile(ob_mol, str(molecule_file))
-
-    if calc_charges:
-      gasteiger = ob.OBChargeModel.FindType(str("gasteiger"))
-      gasteiger.ComputeCharges(ob_mol)
-      ob_mol.UnsetImplicitValencePerceived()
-      ob_mol.CorrectForPH(7.4)
-      ob_mol.AddHydrogens()
-    else:
-      ob_mol.AddHydrogens()
-
-    xyz = self._get_xyz_from_ob(ob_mol)
-
-    return xyz, ob_mol
 
   def _generate_box(self, mol):
     """Removes atoms outside box.
