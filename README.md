@@ -102,7 +102,7 @@ Linux (64-bit) Installation
 
 15. To run test suite, install `nosetests`:
     ```bash
-    pip install nose 
+    pip install nose --user
     ```
     Make sure that the correct version of `nosetests` is active by running
     ```bash
