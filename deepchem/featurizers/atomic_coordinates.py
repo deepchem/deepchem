@@ -50,6 +50,7 @@ class AtomicCoordinates(Featurizer):
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors):
   """Computes a neighbor list from atom coordinates."""
+  N = coords.shape[0]
   x_bins, y_bins, z_bins = get_cells(coords, neighbor_cutoff)
 
   # Associate each atom with cell it belongs to. O(N)

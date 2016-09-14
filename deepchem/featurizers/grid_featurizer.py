@@ -93,8 +93,8 @@ def merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
   """
 
   system_xyz = np.array(np.vstack(np.vstack((protein_xyz, ligand_xyz))))
-  system_ob = ob.OBMol(protein_ob)
-  system_ob += ligand_ob
+  system_ob = ob.OBMol(protein)
+  system_ob += ligand
 
   return system_xyz, system_ob
 

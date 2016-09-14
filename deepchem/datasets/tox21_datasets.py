@@ -8,24 +8,11 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import RandomSplitter
 from deepchem.datasets import Dataset
 from deepchem.transformers import BalancingTransformer
-from deepchem.hyperparameters import HyperparamOpt
-from deepchem.models.multitask import SingletaskToMultitask
-from deepchem import metrics
-from deepchem.metrics import Metric
-from deepchem.metrics import to_one_hot
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.utils.evaluate import relative_difference
-from deepchem.utils.evaluate import Evaluator
 
 def load_tox21(base_dir, reload=True):
   """Load Tox21 datasets. Does not do train/test split"""
