@@ -91,7 +91,12 @@ Linux (64-bit) Installation
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-14. `deepchem`: Clone the `deepchem` github repo:
+14. `h5py`:
+    ```
+    conda install h5py
+    ```
+
+15. `deepchem`: Clone the `deepchem` github repo:
     ```bash
     git clone https://github.com/deepchem/deepchem.git
     ```
@@ -100,7 +105,7 @@ Linux (64-bit) Installation
     python setup.py install
     ```
 
-15. To run test suite, install `nosetests`:
+16. To run test suite, install `nosetests`:
     ```bash
     pip install nose --user
     ```
@@ -111,7 +116,7 @@ Linux (64-bit) Installation
     You might need to uninstall a system install of `nosetests` if
     there is a conflict.
 
-16. If installation has been successful, all tests in test suite should pass:
+17. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
