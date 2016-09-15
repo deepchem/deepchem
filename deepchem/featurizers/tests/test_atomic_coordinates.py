@@ -242,3 +242,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     system_coords, system_neighbor_list = complex_featurizer._featurize_complex(
         ligand_file, protein_file)
   
+    N = system_coords.shape[0]
+    assert len(system_neighbor_list.keys()) == N
+    for atom in range(N):
+      assert len(system_neighbor_list[atom]) <= max_num_neighbors

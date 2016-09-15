@@ -92,7 +92,7 @@ def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors):
     # Pick up to max_num_neighbors
     closest_neighbors = closest_neighbors[:max_num_neighbors]
     neighbor_list[atom] = closest_neighbors
-    return neighbor_list
+  return neighbor_list
 
 def get_cells(coords, neighbor_cutoff):
   """Computes cells given molecular coordinates."""
@@ -281,16 +281,6 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     """
     mol_coords, ob_mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
-    ########################################################## DEBUG
-    print("mol_pdb_file, protein_pdb_file")
-    print(mol_pdb_file, protein_pdb_file)
-    print("type(mol_coords), type(ob_mol)")
-    print(type(mol_coords), type(ob_mol))
-    print("type(protein_coords), type(protein_mol)")
-    print(type(protein_coords), type(protein_mol))
-    print("mol_coords.shape, protein_coords.shape")
-    print(mol_coords.shape, protein_coords.shape)
-    ########################################################## DEBUG
     system_coords, system_mol = merge_molecules(
         mol_coords, ob_mol, protein_coords, protein_mol)
     

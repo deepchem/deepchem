@@ -17,6 +17,7 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
+from deepchem.featurizers.atomic_coordinates import NeighborListComplexAtomicCoordinates
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
@@ -44,9 +45,7 @@ def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
   for complex_featurizer in complex_featurizers:
     features = complex_featurizer.featurize_complexes(
       [ligand_file], [protein_file])
-    ################################################ DEBUG
     all_features.append(np.squeeze(features))
-    ################################################ DEBUG
   
   for compound_featurizer in compound_featurizers:
     features = np.squeeze(compound_featurizer.featurize([rdkit_mol]))
@@ -54,6 +53,66 @@ def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
 
   features = np.concatenate(all_features)
   return features
+
+def compute_pdbbind_coordinate_features(
+    complex_featurizer, pdb_subdir, pdb_code):
+  """Compute features for a given complex"""
+  protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
+  ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
+
+  feature = complex_featurizer.featurize_complexes(
+    [ligand_file], [protein_file])
+  return feature
+
+def load_core_pdbbind_coordinates(pdbbind_dir, base_dir, reload=True):
+  """Load PDBBind datasets. Does not do train/test split"""
+  # Set some global variables up top
+  reload = True
+  verbosity = "high"
+  model = "logistic"
+  regen = False
+  neighbor_cutoff = 4
+  max_num_neighbors = 10
+
+  # Create some directories for analysis
+  # The base_dir holds the results of all analysis
+  if not reload:
+    if os.path.exists(base_dir):
+      shutil.rmtree(base_dir)
+  if not os.path.exists(base_dir):
+    os.makedirs(base_dir)
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  #Make directories to store the raw and featurized datasets.
+  data_dir = os.path.join(base_dir, "dataset")
+
+  # Load PDBBind dataset
+  labels_file = os.path.join(pdbbind_dir, "INDEX_core_data.2013")
+  pdb_subdirs = os.path.join(pdbbind_dir, "website-core-set")
+  tasks = ["-logKd/Ki"]
+  print("About to load contents.")
+  contents_df = load_pdbbind_labels(labels_file)
+  ids = contents_df["PDB code"].values
+  y = np.array([float(val) for val in contents_df["-logKd/Ki"].values])
+
+  # Define featurizers
+  featurizer = NeighborListComplexAtomicCoordinates(
+      max_num_neighbors, neighbor_cutoff)
+  
+  # Featurize Dataset
+  features = []
+  for ind, pdb_code in enumerate(ids):
+    print("Processing %s" % str(pdb_code))
+    pdb_subdir = os.path.join(pdb_subdirs, pdb_code)
+    computed_feature = compute_pdbbind_coordinate_features(
+        featurizer, pdb_subdir, pdb_code)
+    features.append(computed_feature)
+  X = np.array(features, dtype-object)
+  w = np.ones_like(y)
+   
+  dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+  transformers = []
+  
+  return tasks, dataset, transformers
 
 def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   """Load PDBBind datasets. Does not do train/test split"""
@@ -113,9 +172,7 @@ def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
       continue
     y_inds.append(ind)
     features.append(computed_feature)
-  ############################################################# DEBUG
   y = y[y_inds]
-  ############################################################# DEBUG
   X = np.vstack(features)
   w = np.ones_like(y)
    

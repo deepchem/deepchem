@@ -57,19 +57,29 @@ def load_molecule(molecule_file, remove_hydrogens=True,
     obConversion = ob.OBConversion()
     obConversion.SetInAndOutFormats(str("mol2"), str("mol2"))
     ob_mol = ob.OBMol()
-    obConversion.ReadFile(ob_mol, molecule_file)
-  else:
+    obConversion.ReadFile(ob_mol, str(molecule_file))
+  elif ".sdf" in molecule_file:
     ###################################################### DEBUG
-    print("non mol2 file")
+    print("sdf file")
+    ###################################################### DEBUG
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("sdf"), str("sdf"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(molecule_file))
+  elif ".pdb" in molecule_file:
+    ###################################################### DEBUG
+    print("pdb file")
     ###################################################### DEBUG
     obConversion = ob.OBConversion()
     obConversion.SetInAndOutFormats(str("pdb"), str("pdb"))
     ob_mol = ob.OBMol()
     obConversion.ReadFile(ob_mol, str(molecule_file))
-    ###################################################### DEBUG
-    print("ob_mol.NumAtoms()")
-    print(ob_mol.NumAtoms())
-    ###################################################### DEBUG
+  else:
+    raise ValueError("Unrecognized file type")
+  ###################################################### DEBUG
+  print("ob_mol.NumAtoms()")
+  print(ob_mol.NumAtoms())
+  ###################################################### DEBUG
 
   if calc_charges:
     gasteiger = ob.OBChargeModel.FindType(str("gasteiger"))
