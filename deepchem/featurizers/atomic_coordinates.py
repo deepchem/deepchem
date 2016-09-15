@@ -14,9 +14,13 @@ from deepchem.featurizers import Featurizer
 
 class AtomicCoordinates(Featurizer):
   """
-  Nx3 matrix of Cartesian coordinates [Angstrom]
+  Nx3 matrix of Cartesian coordinates [Bohr]
   """
   name = ['atomic_coordinates']
+
+  def __init__(self, max_atoms=None):
+    # Type of data created by this featurizer
+    self.dtype = object
 
   def _featurize(self, mol):
     """
@@ -41,6 +45,48 @@ class AtomicCoordinates(Featurizer):
       coords[atom,0] = coords_in_bohr[atom].x
       coords[atom,1] = coords_in_bohr[atom].y
       coords[atom,2] = coords_in_bohr[atom].z
+
+    coords = [coords]
+    return coords
+
+class FixedSizeAtomicCoordinates(Featurizer):
+  """
+  1x3 Header (num_atoms, 0, 0)
+  Nx3 matrix of Cartesian coordinates [Bohr]
+  """
+  name = ['atomic_coordinates']
+
+  def __init__(self, max_atoms=None):
+    # Type of data created by this featurizer
+    self.dtype = object
+    self.max_atoms = max_atoms
+    
+
+  def _featurize(self, mol):
+    """
+    Calculate atomic coodinates.
+
+    Parameters
+    ----------
+    mol : RDKit Mol
+          Molecule.
+    """
+
+    N = mol.GetNumAtoms()
+    Nmax = self.max_atoms
+    coords = np.zeros((Nmax+1,3))
+
+    # RDKit stores atomic coordinates in Angstrom. Atomic unit of length is the
+    # bohr (1 bohr = 0.529177 Angstrom). Converting units makes gradient calculation
+    # consistent with most QM software packages.
+    coords_in_bohr = [mol.GetConformer(0).GetAtomPosition(i).__div__(0.52917721092)
+                      for i in xrange(N)]
+
+    coords[0,0] = N
+    for atom in xrange(N):
+      coords[atom+1,0] = coords_in_bohr[atom].x
+      coords[atom+1,1] = coords_in_bohr[atom].y
+      coords[atom+1,2] = coords_in_bohr[atom].z
 
     coords = [coords]
     return coords
