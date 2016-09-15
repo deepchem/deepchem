@@ -122,3 +122,14 @@ Linux (64-bit) Installation
     ```
     Note that the full test-suite uses up a fair amount of memory. 
     Try running tests for one submodule at a time if memory proves an issue.
+
+Frequently Asked Questions
+--------------------------
+1. Question: I'm seeing some failures in my test suite having to do with MKL
+   ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
+
+   Answer: This is a general issue with the newest version of `scikit-learn` enabling MKL by default. This doesn't play well with many linux systems. See BVLC/caffe#3884 for discussions. The following seems to fix the issue
+   ```bash
+   conda install nomkl numpy scipy scikit-learn numexpr
+   conda remove mkl mkl-service
+   ```
