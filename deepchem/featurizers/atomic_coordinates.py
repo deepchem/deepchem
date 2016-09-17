@@ -248,8 +248,6 @@ class NeighborListAtomicCoordinates(Featurizer):
         
     return (bohr_coords, neighbor_list)
 
-# TODO(rbharath): This shares a lot of code with NeighborListAtomicCoordinates.
-# Is there some elegant way to refactor to avoid code duplication?
 class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
   """
   Adjacency list of neighbors for protein-ligand complexes in 3-space.
