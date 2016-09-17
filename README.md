@@ -133,3 +133,7 @@ Frequently Asked Questions
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
+   
+Getting Started
+---------------
+The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
