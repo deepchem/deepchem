@@ -1,6 +1,7 @@
 """
 Test atomic coordinates and neighbor lists.
 """
+import os
 import numpy as np
 import unittest
 from rdkit import Chem
@@ -11,6 +12,7 @@ from deepchem.featurizers.atomic_coordinates import put_atoms_in_cells
 from deepchem.featurizers.atomic_coordinates import compute_neighbor_cell_map
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
 from deepchem.featurizers.atomic_coordinates import NeighborListAtomicCoordinates
+from deepchem.featurizers.atomic_coordinates import NeighborListComplexAtomicCoordinates
 
 class TestAtomicCoordinates(unittest.TestCase):
   """
@@ -228,3 +230,19 @@ class TestAtomicCoordinates(unittest.TestCase):
         assert nblist[i] == [closest_nbr]
       else:
         assert nblist[i] == []
+
+  def test_complex_featurization_simple(self):
+    """Test Neighbor List computation on protein-ligand complex."""
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
+    protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
+    max_num_neighbors = 4
+    complex_featurizer = NeighborListComplexAtomicCoordinates(max_num_neighbors)
+
+    system_coords, system_neighbor_list = complex_featurizer._featurize_complex(
+        ligand_file, protein_file)
+  
+    N = system_coords.shape[0]
+    assert len(system_neighbor_list.keys()) == N
+    for atom in range(N):
+      assert len(system_neighbor_list[atom]) <= max_num_neighbors
