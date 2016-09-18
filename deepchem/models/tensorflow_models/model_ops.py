@@ -211,11 +211,11 @@ def is_training():
     raise ValueError('Training mode has more than one setting.')
   return train[0]
 
-def WeightDecay(model_params):
+def WeightDecay(penalty_type, penalty):
   """Add weight decay.
 
   Args:
-    model_params: dictionary.
+    model: TensorflowGraph.
 
   Returns:
     A scalar tensor containing the weight decay cost.
@@ -230,14 +230,13 @@ def WeightDecay(model_params):
       variables.append(v)
 
   with tf.name_scope('weight_decay'):
-    if model_params["penalty_type"] == 'l1':
+    if penalty_type == 'l1':
       cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
-    elif model_params["penalty_type"] == 'l2':
+    elif penalty_type == 'l2':
       cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
     else:
-      raise NotImplementedError('Unsupported penalty_type %s' %
-                                model_params["penalty_type"])
-    cost *= model_params["penalty"]
+      raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
+    cost *= penalty
     tf.scalar_summary('Weight Decay Cost', cost)
   return cost
 
@@ -377,11 +376,10 @@ def Transform(tensor, transform, convolution=True, mask=None):
         tensor = model_utils.Mask(tensor, mask)
   return tensor
 
-def Optimizer(model_params):
+def Optimizer(optimizer="adam", learning_rate=.001, momentum=.9):
   """Create model optimizer.
 
   Args:
-    model_params: dictionary.
 
   Returns:
     A training Optimizer.
@@ -390,18 +388,18 @@ def Optimizer(model_params):
     NotImplementedError: If an unsupported optimizer is requested.
   """
   # TODO(user): gradient clipping (see Minimize)
-  if model_params["optimizer"] == 'adagrad':
-    train_op = tf.train.AdagradOptimizer(model_params["learning_rate"])
-  elif model_params["optimizer"] == 'adam':
-    train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
-  elif model_params["optimizer"] == 'momentum':
-    train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
-                                          model_params["momentum"])
-  elif model_params["optimizer"] == 'rmsprop':
-    train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
-                                         model_params["momentum"])
-  elif model_params["optimizer"] == 'sgd':
-    train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
+  if optimizer == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(learning_rate)
+  elif optimizer == 'adam':
+    train_op = tf.train.AdamOptimizer(learning_rate)
+  elif optimizer == 'momentum':
+    train_op = tf.train.MomentumOptimizer(learning_rate,
+                                          momentum)
+  elif optimizer == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(learning_rate,
+                                         momentum)
+  elif optimizer == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(learning_rate)
   else:
-    raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
+    raise NotImplementedError('Unsupported optimizer %s' % optimizer)
   return train_op

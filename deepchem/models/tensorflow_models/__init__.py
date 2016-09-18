@@ -27,6 +27,15 @@ class TensorflowGraph(object):
     penalty
     nb_epoch
     pad_batches
+    penalty_type
+    optimizer
+    learning_rate
+    momentum
+    data_shape
+    layer_sizes
+    weight_init_stddevs
+    bias_init_consts
+    dropouts
 
   Classifier:
     num_classes
@@ -52,7 +61,6 @@ class TensorflowGraph(object):
       normalization. Should be set to tf.no_op() if no updates are required.
 
   This base class provides the following attributes:
-    model_params: dictionary containing model configuration parameters.
     graph: TensorFlow graph object.
     logdir: Path to the file output directory to store checkpoints etc.
     master: TensorFlow session master specification string.
@@ -62,25 +70,24 @@ class TensorflowGraph(object):
       mask when calculating gradient costs.
 
   Args:
-    model_params: dictionary.
     train: If True, model is in training mode.
     logdir: Directory for output files.
   """
 
-  def __init__(self, model_params, logdir, tasks, task_types, train=True,
-               verbosity=None):
+  def __init__(self, n_tasks, n_inputs, layer_sizes=[1000],
+               weight_init_stddevs=[.02], bias_init_consts=[1], penalty=0.0,
+               learning_rate=.001, momentum=".9", optimizer="adam",
+               batch_size=50, num_classes=2, logdir, train=True, verbosity=None):
     """Constructs the computational graph.
 
     Args:
       train: whether model is in train mode
-      model_params: dictionary of model parameters
       logdir: Location to save data
 
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
     """
     self.graph = tf.Graph() 
-    self.model_params = model_params
     self.logdir = logdir
     self.tasks = tasks
     self.task_types = task_types
@@ -143,7 +150,6 @@ class TensorflowGraph(object):
     with self.graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
       epsilon = 1e-3  # small float to avoid dividing by zero
-      model_params = self.model_params
       weighted_costs = []  # weighted costs for each example
       gradient_costs = []  # costs used for gradient calculation
 
@@ -162,7 +168,7 @@ class TensorflowGraph(object):
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
               gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                     model_params["batch_size"])
+                                     self.batch_size)
               gradient_costs.append(gradient_cost)
 
         # aggregated costs
@@ -171,8 +177,8 @@ class TensorflowGraph(object):
             loss = tf.add_n(gradient_costs)
 
           # weight decay
-          if model_params["penalty"] != 0.0:
-            penalty = model_ops.WeightDecay(model_params)
+          if self.penalty != 0.0:
+            penalty = model_ops.WeightDecay(self.penalty_type, self.penalty)
             loss += penalty
 
         # loss used for gradient calculation
@@ -189,8 +195,8 @@ class TensorflowGraph(object):
       else:
         self.updates = tf.no_op(name='updates')
 
-  def fit(self, dataset, shuffle=False, max_checkpoints_to_keep=5,
-          log_every_N_batches=50):
+  def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
+          max_checkpoints_to_keep=5, log_every_N_batches=50):
     """Fit the model.
 
     Args:
@@ -205,14 +211,9 @@ class TensorflowGraph(object):
     time1 = time.time()
     ############################################################## TIMING
     num_datapoints = len(dataset)
-    batch_size = self.model_params["batch_size"]
+    batch_size = self.batch_size
     step_per_epoch = np.ceil(float(num_datapoints)/batch_size)
-    nb_epoch = self.model_params["nb_epoch"]
     log("Training for %d epochs" % nb_epoch, self.verbosity)
-    if "pad_batches" in self.model_params:
-      pad_batches = self.model_params["pad_batches"]
-    else:
-      pad_batches = False
     with self.graph.as_default():
       self.require_attributes(['loss', 'updates'])
       train_op = self.get_training_op()
@@ -390,7 +391,7 @@ class TensorflowGraph(object):
     Returns:
     A training op.
     """
-    opt = model_ops.Optimizer(self.model_params)
+    opt = model_ops.Optimizer(self.optimizer, self.learning_rate, self.momentum)
     return opt.minimize(self.loss, name='train')
 
   def _get_shared_session(self):
@@ -499,9 +500,8 @@ class TensorflowClassifier(TensorflowGraph):
     feeding and fetching the same tensor.
     """
     with self.graph.as_default():
-      model_params = self.model_params
-      batch_size = model_params["batch_size"]
-      num_classes = model_params["num_classes"]
+      batch_size = self.batch_size 
+      num_classes = self.num_classes
       labels = []
       for task in xrange(self.num_tasks):
         with tf.name_scope(self.placeholder_scope):
@@ -555,7 +555,7 @@ class TensorflowRegressor(TensorflowGraph):
     feeding and fetching the same tensor.
     """
     with self.graph.as_default():
-      batch_size = self.model_params["batch_size"]
+      batch_size = self.batch_size
       labels = []
       for task in xrange(self.num_tasks):
         with tf.name_scope(self.placeholder_scope):
@@ -578,9 +578,9 @@ class TensorflowModel(Model):
     self.verbosity = verbosity
     if tf_class is None:
       tf_class = TensorflowGraph
-    self.train_model = tf_class(model_params, logdir, tasks, task_types,
+    self.train_model = tf_class(logdir, tasks, task_types,
                                 train=True, verbosity=verbosity)
-    self.eval_model = tf_class(model_params, logdir, tasks, task_types,
+    self.eval_model = tf_class(logdir, tasks, task_types,
                                 train=False, verbosity=verbosity)
     self.fit_transformers = None
 

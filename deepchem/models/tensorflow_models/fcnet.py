@@ -98,8 +98,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x num_features.
     """
-    assert len(self.model_params["data_shape"]) == 1
-    num_features = self.model_params["data_shape"][0]
+    num_features = self.n_inputs
     with self.graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
@@ -107,10 +106,10 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             shape=[None, num_features],
             name='mol_features')
 
-      layer_sizes = self.model_params["layer_sizes"]
-      weight_init_stddevs = self.model_params["weight_init_stddevs"]
-      bias_init_consts = self.model_params["bias_init_consts"]
-      dropouts = self.model_params["dropouts"]
+      layer_sizes = self.layer_sizes
+      weight_init_stddevs = self.weight_init_stddevs
+      bias_init_consts = self.bias_init_consts
+      dropouts = self.dropouts
       lengths_set = {
           len(layer_sizes),
           len(weight_init_stddevs),
@@ -158,13 +157,13 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       else:
         # Dummy placeholders
         orig_dict["labels_%d" % task] = np.squeeze(to_one_hot(
-            np.zeros((self.model_params["batch_size"],))))
+            np.zeros((self.batch_size,))))
       if w_b is not None:
         orig_dict["weights_%d" % task] = w_b[:, task]
       else:
         # Dummy placeholders
         orig_dict["weights_%d" % task] = np.ones(
-            (self.model_params["batch_size"],)) 
+            (self.batch_size,)) 
     return self._get_feed_dict(orig_dict)
 
   def predict_proba_on_batch(self, X):
