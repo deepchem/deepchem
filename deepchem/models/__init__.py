@@ -27,19 +27,24 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True, 
-               verbosity=None, **kwargs):
-    self.model_class = model_instance.__class__
-    self.model_dir = model_dir
+  def __init__(self, model_instance, n_tasks, model_dir,
+               fit_transformers=None, verbosity=None):
+    """Abstract class for all models.
+    Parameters:
+    -----------
+    model_instance: object
+      Wrapper around ScikitLearn/Keras/Tensorflow model object.
+    n_tasks: int
+      Number of tasks for this model.
+    """
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
-    self.tasks = tasks
-    self.task_types = task_types
-    self.model_params = model_params
+    self.model_instance = model_instance
+    self.model_class = model_instance.__class__
+    self.model_dir = model_dir
+    self.n_tasks = n_tasks
     self.fit_transformers = fit_transformers
 
-    self.raw_model = None
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
@@ -63,18 +68,6 @@ class Model(object):
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
-
-  def set_raw_model(self, raw_model):
-    """
-    Set underlying raw model. Useful when loading from disk.
-    """
-    self.raw_model = raw_model
-
-  def get_raw_model(self):
-    """
-    Return raw model.
-    """
-    return self.raw_model
 
   def reload(self):
     """
@@ -100,7 +93,6 @@ class Model(object):
   def save(self):
     """Dispatcher function for saving."""
     params = {"model_params" : self.model_params,
-              "task_types" : self.task_types,
               "model_class": self.__class__}
     save_to_disk(params, Model.get_params_filename(self.model_dir))
 
@@ -151,7 +143,7 @@ class Model(object):
     """
     y_preds = []
     batch_size = self.model_params["batch_size"]
-    n_tasks = len(self.tasks)
+    n_tasks = self.n_tasks
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       n_samples = len(X_batch)
@@ -162,7 +154,7 @@ class Model(object):
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples = len(dataset)
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
@@ -215,7 +207,7 @@ class Model(object):
     y_pred = np.vstack(y_preds)
     y = np.vstack(y_train)
 
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples, n_tasks = len(dataset), self.n_tasks
     n_atoms = int((n_tasks-1)/3)
 
     y_pred = np.reshape(y_pred, (n_samples, n_tasks)) 
@@ -272,7 +264,7 @@ class Model(object):
     y = np.vstack(y_train)
     grad = np.vstack(grads)
 
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples, n_tasks = len(dataset), self.n_tasks
     n_atoms = int((n_tasks-1)/3)
 
     y_pred = np.reshape(y_pred, (n_samples, n_tasks)) 
@@ -362,7 +354,7 @@ class Model(object):
     """
     y_preds = []
     batch_size = self.model_params["batch_size"]
-    n_tasks = len(self.tasks)
+    n_tasks = self.n_tasks
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
@@ -373,7 +365,7 @@ class Model(object):
     y_pred = np.vstack(y_preds)
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples = len(dataset)
     y_pred = y_pred[:n_samples]
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
@@ -382,6 +374,9 @@ class Model(object):
     """
     Currently models can only be classifiers or regressors.
     """
+    ################################################################## DEBUG
     # TODO(rbharath): This is a hack based on fact that multi-tasktype models
     # aren't supported.
-    return self.task_types.itervalues().next()
+    #return self.task_types.itervalues().next()
+    raise NotImplementedError
+    ################################################################## DEBUG

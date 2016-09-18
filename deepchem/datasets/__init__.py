@@ -114,7 +114,8 @@ class Dataset(object):
   Wrapper class for dataset transformed into X, y, w numpy ndarrays.
   """
   def __init__(self, data_dir=None, tasks=[], metadata_rows=None, #featurizers=None, 
-               raw_data=None, verbosity=None, reload=False):
+               raw_data=None, verbosity=None, reload=False,
+               compute_feature_statistics=True):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
@@ -132,7 +133,9 @@ class Dataset(object):
         metadata_rows = []
         ids, X, y, w = raw_data
         metadata_rows.append(
-            Dataset.write_data_to_disk(self.data_dir, "data", tasks, X, y, w, ids))
+            Dataset.write_data_to_disk(
+                self.data_dir, "data", tasks, X, y, w, ids,
+                compute_feature_statistics=compute_feature_statistics))
         self.metadata_df = Dataset.construct_metadata(metadata_rows)
         self.save_to_disk()
       else:
@@ -153,7 +156,7 @@ class Dataset(object):
   @staticmethod
   def write_dataframe(val, data_dir, featurizer=None, tasks=None,
                       raw_data=None, basename=None, mol_id_field="mol_id",
-                      verbosity=None):
+                      verbosity=None, compute_feature_statistics=None):
     """Writes data from dataframe to disk."""
     if featurizer is not None and tasks is not None:
       feature_type = featurizer.__class__.__name__
@@ -161,12 +164,13 @@ class Dataset(object):
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
-      if hasattr(featurizer, "dtype"):
-        dtype = featurizer.dtype
-        compute_feature_statistics = False
-      else:
-        dtype = float
-        compute_feature_statistics = True
+      if compute_feature_statistics is None:
+        if hasattr(featurizer, "dtype"):
+          dtype = featurizer.dtype
+          compute_feature_statistics = False
+        else:
+          dtype = float
+          compute_feature_statistics = True
       ############################################################## TIMING
       time1 = time.time()
       ############################################################## TIMING
@@ -386,7 +390,8 @@ class Dataset(object):
     self.save_to_disk()
 
   @staticmethod
-  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None):
+  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None,
+                 compute_feature_statistics=True):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -402,7 +407,8 @@ class Dataset(object):
       tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
     return Dataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data,
-                   verbosity=verbosity)
+                   verbosity=verbosity,
+                   compute_feature_statistics=compute_feature_statistics)
 
   @staticmethod
   def merge(merge_dir, datasets):

@@ -24,7 +24,7 @@ class KerasModel(Model):
     Saves underlying keras model to disk.
     """
     super(KerasModel, self).save()
-    model = self.get_raw_model()
+    model = self.model_instance
     filename, _ = os.path.splitext(Model.get_model_filename(self.model_dir))
 
     # Note that keras requires the model architecture and weights to be stored
@@ -52,5 +52,4 @@ class KerasModel(Model):
     with open(json_filename) as file_obj:
       model = model_from_json(file_obj.read())
     model.load_weights(h5_filename)
-    self.raw_model = model
-
+    self.model_instnace = model

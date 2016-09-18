@@ -28,8 +28,6 @@ base_data_dir = "/scratch/users/rbharath/muv"
 
 muv_tasks, dataset, transformers = load_muv(
     base_data_dir, reload=reload)
-print("len(dataset)")
-print(len(dataset))
 
 base_dir = "/scratch/users/rbharath/muv_analysis"
 if os.path.exists(base_dir):
