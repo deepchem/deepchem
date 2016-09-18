@@ -19,8 +19,8 @@ Requirements
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
-Linux (64-bit) Installation 
----------------------------
+Linux (64-bit) Installation from Source
+---------------------------------------
 
 ```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
@@ -57,7 +57,12 @@ Linux (64-bit) Installation
    ```bash
    pip install keras --user
    ```
-   `deepchem` only supports the `tensorflow` backend for keras. See [keras docs](https://keras.io/backend/) to see how to set keras backend to tensorflow.
+   `deepchem` only supports the `tensorflow` backend for keras. To set the backend to `tensorflow`,
+   add the following line to your `~/.bashrc`
+   ```bash
+   export KERAS_BACKEND=tensorflow
+   ```
+   See [keras docs](https://keras.io/backend/) for more details and alternate methods of setting backend.
 
 8. `six`
    ```bash
