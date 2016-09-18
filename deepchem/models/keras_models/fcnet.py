@@ -22,7 +22,7 @@ class MultiTaskDNN(Graph):
   TODO(rbharath): Port this code over to use Keras's new functional-API
   instead of using legacy Graph object.
   """
-  def __init__(self, n_tasks, n_inputs, task_type, nb_layers=1, nb_hidden=1000,
+  def __init__(self, n_tasks, n_features, task_type, n_layers=1, n_hidden=1000,
                init="glorot_uniform", batchnorm=False, dropout=0.5,
                activation="relu", learning_rate=.001, decay=1e-6,
                momentum=0.9, nesterov=False):
@@ -30,10 +30,10 @@ class MultiTaskDNN(Graph):
     # Store hyperparameters
     assert task_type in ["classification", "regression"]
     self.task_type = task_type
-    self.n_inputs = n_inputs
+    self.n_features = n_features
     self.n_tasks = n_tasks
-    self.nb_layers = nb_layers
-    self.nb_hidden = nb_hidden
+    self.n_layers = n_layers
+    self.n_hidden = n_hidden
     self.init = init
     self.batchnorm = batchnorm
     self.dropout = dropout
@@ -43,15 +43,15 @@ class MultiTaskDNN(Graph):
     self.momentum = momentum
     self.nesterov = nesterov
 
-    self.add_input(name="input", input_shape=(self.n_inputs,))
+    self.add_input(name="input", input_shape=(self.n_features,))
     prev_layer = "input"
-    for ind, layer in enumerate(range(self.nb_layers)):
+    for ind, layer in enumerate(range(self.n_layers)):
       dense_layer_name = "dense%d" % ind
       activation_layer_name = "activation%d" % ind
       batchnorm_layer_name = "batchnorm%d" % ind
       dropout_layer_name = "dropout%d" % ind
       self.add_node(
-          Dense(self.nb_hidden, init=self.init),
+          Dense(self.n_hidden, init=self.init),
           name=dense_layer_name, input=prev_layer)
       prev_layer = dense_layer_name 
       if self.batchnorm:
@@ -91,11 +91,11 @@ class MultiTaskDNN(Graph):
     self.compile(optimizer=sgd, loss=loss_dict)
 
   def get_config(self):
-    return {"n_inputs": self.n_inputs,
+    return {"n_features": self.n_features,
             "n_tasks": self.n_tasks,
             "task_type": self.task_type,
-            "nb_layers": self.nb_layers,
-            "nb_hidden": self.nb_hidden,
+            "n_layers": self.n_layers,
+            "n_hidden": self.n_hidden,
             "init": self.init,
             "batchnorm": self.batchnorm,
             "dropout": self.dropout,
@@ -148,8 +148,8 @@ class MultiTaskDNN(Graph):
     """
     data = self.get_data_dict(X)
     y_pred_dict = super(MultiTaskDNN, self).predict_on_batch(data)
-    nb_samples = np.shape(X)[0]
-    y_pred = np.zeros((nb_samples, self.n_tasks))
+    n_samples = np.shape(X)[0]
+    y_pred = np.zeros((n_samples, self.n_tasks))
     for task in range(self.n_tasks):
       taskname = "task%d" % task 
       if self.task_type == "classification":
@@ -181,7 +181,7 @@ class SingleTaskDNN(MultiTaskDNN):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, n_inputs, task_type, **kwargs):
+  def __init__(self, n_features, task_type, **kwargs):
     n_tasks = 1
     super(SingleTaskDNN, self).__init__(
-        n_tasks, n_inputs, task_type, **kwargs)
+        n_tasks, n_features, task_type, **kwargs)

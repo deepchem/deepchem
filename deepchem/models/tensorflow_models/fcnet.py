@@ -1,58 +1,4 @@
 """TensorFlow implementation of fully connected networks. 
-
-# Hyperparams used in Arxiv paper "Massively Multitask Networks for Drug Discovery"
-# TODO(rbharath): Should these be moved elsewhere?
-hyperparam_dict = {
-    "single": Hyperparams(num_layers=1,
-                          num_hidden=1200,
-                          node_depth=1,
-                          nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                          weight_init=GaussianWeightInit(0.01),
-                          bias_init=ConstantBiasInit(0.5),
-                          dropout=1.),
-    "deep": Hyperparams(num_layers=4,
-                        num_hidden=1000,
-                        node_depth=1,
-                        nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                        weight_init=GaussianWeightInit(0.01),
-                        bias_init=ConstantBiasInit(0.5),
-                        dropout=1.),
-    "deepaux": Hyperparams(num_layers=4,
-                        num_hidden=1000,
-                        auxiliary_softmax_layers=[0, 1, 2],
-                        auxiliary_softmax_weight=0.3,
-                        node_depth=1,
-                        nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                        weight_init=GaussianWeightInit(0.01),
-                        bias_init=ConstantBiasInit(0.5),
-                        dropout=1.),
-    "py": Hyperparams(num_layers=2,
-                      num_hidden=[2000, 100],
-                      node_depth=1,
-                      nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                      weight_init=[GaussianWeightInit(0.01),
-                                   GaussianWeightInit(0.04)],
-                      bias_init=[ConstantBiasInit(0.5),
-                                 ConstantBiasInit(3.0)],
-                      dropout=1.),
-    "pydrop1": Hyperparams(num_layers=2,
-                           num_hidden=[2000, 100],
-                           node_depth=1,
-                           nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                           weight_init=[GaussianWeightInit(0.01),
-                                        GaussianWeightInit(0.04)],
-                           bias_init=[ConstantBiasInit(0.5),
-                                      ConstantBiasInit(3.0)],
-                           dropout=[0.75, 1.]),
-    "pydrop2": Hyperparams(num_layers=2,
-                           num_hidden=[2000, 100],
-                           node_depth=1,
-                           nonlinearity=ACTIVATION_RECTIFIED_LINEAR,
-                           weight_init=[GaussianWeightInit(0.01),
-                                        GaussianWeightInit(0.04)],
-                           bias_init=[ConstantBiasInit(0.5),
-                                      ConstantBiasInit(3.0)],
-                           dropout=[0.75, 0.75])}
 """
 from __future__ import print_function
 from __future__ import division
@@ -96,14 +42,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
 
     This method creates the following Placeholders:
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
-        batch_size x num_features.
+        batch_size x n_features.
     """
-    num_features = self.n_inputs
+    n_features = self.n_features
     with self.graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
-            shape=[None, num_features],
+            shape=[None, n_features],
             name='mol_features')
 
       layer_sizes = self.layer_sizes
@@ -117,12 +63,12 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
           len(dropouts),
           }
       assert len(lengths_set) == 1, 'All layer params must have same length.'
-      num_layers = lengths_set.pop()
-      assert num_layers > 0, 'Must have some layers defined.'
+      n_layers = lengths_set.pop()
+      assert n_layers > 0, 'Must have some layers defined.'
 
       prev_layer = self.mol_features
-      prev_layer_size = num_features 
-      for i in xrange(num_layers):
+      prev_layer_size = n_features 
+      for i in xrange(n_layers):
         layer = tf.nn.relu(model_ops.FullyConnectedLayer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -136,7 +82,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         prev_layer_size = layer_sizes[i]
 
       self.output = model_ops.MultitaskLogits(
-          layer, self.num_tasks)
+          layer, self.n_tasks)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -144,14 +90,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     TODO(rbharath): ids_b is not used here. Can we remove it?
 
     Args:
-      X_b: np.ndarray of shape (batch_size, num_features)
-      y_b: np.ndarray of shape (batch_size, num_tasks)
-      w_b: np.ndarray of shape (batch_size, num_tasks)
+      X_b: np.ndarray of shape (batch_size, n_features)
+      y_b: np.ndarray of shape (batch_size, n_tasks)
+      w_b: np.ndarray of shape (batch_size, n_tasks)
       ids_b: List of length (batch_size) with datapoint identifiers.
     """ 
     orig_dict = {}
     orig_dict["mol_features"] = X_b
-    for task in xrange(self.num_tasks):
+    for task in xrange(self.n_tasks):
       if y_b is not None:
         orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
       else:
@@ -175,7 +121,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       dataset: deepchem.datasets.dataset object.
 
     Returns:
-      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
         output: Model outputs.
       Note that the output arrays may be more than 2D, e.g. for
       classifier models that return class probabilities.
@@ -191,14 +137,14 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       self.require_attributes(['output'])
 
       # run eval data through the model
-      num_tasks = self.num_tasks
+      n_tasks = self.n_tasks
       outputs = []
       with self._get_shared_session().as_default():
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session().run(
             self.output, feed_dict=feed_dict)
-        batch_outputs = np.asarray(data[:num_tasks], dtype=float)
-        # reshape to batch_size x num_tasks x ...
+        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
@@ -222,21 +168,20 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
 
     This method creates the following Placeholders:
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
-        batch_size x num_features.
+        batch_size x n_features.
     """
-    assert len(self.model_params["data_shape"]) == 1
-    num_features = self.model_params["data_shape"][0]
+    n_features = self.n_inputs
     with self.graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
-            shape=[None, num_features],
+            shape=[None, n_features],
             name='mol_features')
 
-      layer_sizes = self.model_params["layer_sizes"]
-      weight_init_stddevs = self.model_params["weight_init_stddevs"]
-      bias_init_consts = self.model_params["bias_init_consts"]
-      dropouts = self.model_params["dropouts"]
+      layer_sizes = self.layer_sizes
+      weight_init_stddevs = self.weight_init_stddevs
+      bias_init_consts = self.bias_init_consts
+      dropouts = self.dropouts
       lengths_set = {
           len(layer_sizes),
           len(weight_init_stddevs),
@@ -244,12 +189,12 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
           len(dropouts),
           }
       assert len(lengths_set) == 1, 'All layer params must have same length.'
-      num_layers = lengths_set.pop()
-      assert num_layers > 0, 'Must have some layers defined.'
+      n_layers = lengths_set.pop()
+      assert n_layers > 0, 'Must have some layers defined.'
 
       prev_layer = self.mol_features
-      prev_layer_size = num_features 
-      for i in xrange(num_layers):
+      prev_layer_size = n_features 
+      for i in xrange(n_layers):
         layer = tf.nn.relu(model_ops.FullyConnectedLayer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -259,12 +204,11 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
         layer = model_ops.Dropout(layer, dropouts[i])
-        #layer = tf.nn.dropout(layer, keep_prob)
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
       self.output = []
-      for task in range(self.num_tasks):
+      for task in range(self.n_tasks):
         self.output.append(tf.squeeze(
             model_ops.FullyConnectedLayer(
                 tensor=prev_layer,
@@ -281,26 +225,26 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
     TODO(rbharath): ids_b is not used here. Can we remove it?
 
     Args:
-      X_b: np.ndarray of shape (batch_size, num_features)
-      y_b: np.ndarray of shape (batch_size, num_tasks)
-      w_b: np.ndarray of shape (batch_size, num_tasks)
+      X_b: np.ndarray of shape (batch_size, n_features)
+      y_b: np.ndarray of shape (batch_size, n_tasks)
+      w_b: np.ndarray of shape (batch_size, n_tasks)
       ids_b: List of length (batch_size) with datapoint identifiers.
     """ 
     orig_dict = {}
     orig_dict["mol_features"] = X_b
-    for task in xrange(self.num_tasks):
+    for task in xrange(self.n_tasks):
       if y_b is not None:
         orig_dict["labels_%d" % task] = y_b[:, task]
       else:
         # Dummy placeholders
         orig_dict["labels_%d" % task] = np.squeeze(
-            np.zeros((self.model_params["batch_size"],)))
+            np.zeros((self.batch_size,)))
       if w_b is not None:
         orig_dict["weights_%d" % task] = w_b[:, task]
       else:
         # Dummy placeholders
         orig_dict["weights_%d" % task] = np.ones(
-            (self.model_params["batch_size"],)) 
+            (self.batch_size,)) 
     return self._get_feed_dict(orig_dict)
 
   def predict_on_batch(self, X):
@@ -312,7 +256,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       dataset: deepchem.datasets.dataset object.
 
     Returns:
-      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
         output: Model outputs.
         labels: True labels.
         weights: Example weights.
@@ -330,19 +274,19 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       self.require_attributes(['output'])
 
       # run eval data through the model
-      num_tasks = self.num_tasks
+      n_tasks = self.n_tasks
       outputs = []
       with self._get_shared_session().as_default():
         n_samples = len(X)
         # Some tensorflow models can't handle variadic batches,
         # especially models using tf.pack, tf.split. Pad batch-size
         # to handle these cases.
-        X = pad_features(self.model_params["batch_size"], X)
+        X = pad_features(self.batch_size, X)
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session().run(
             self.output, feed_dict=feed_dict)
-        batch_outputs = np.asarray(data[:num_tasks], dtype=float)
-        # reshape to batch_size x num_tasks x ...
+        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
@@ -352,7 +296,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
           #print("X.shape, batch_outputs.shape")
           #print(X.shape, batch_outputs.shape)
           n_samples = len(X)
-          batch_outputs = batch_outputs.reshape((n_samples, num_tasks))
+          batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
         else:
           raise ValueError(
               'Unrecognized rank combination for output: %s' %

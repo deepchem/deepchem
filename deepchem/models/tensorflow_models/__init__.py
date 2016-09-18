@@ -38,7 +38,7 @@ class TensorflowGraph(object):
     dropouts
 
   Classifier:
-    num_classes
+    n_classes
 
   Has the following attributes:
 
@@ -64,7 +64,7 @@ class TensorflowGraph(object):
     graph: TensorFlow graph object.
     logdir: Path to the file output directory to store checkpoints etc.
     master: TensorFlow session master specification string.
-    num_tasks: Integer number of tasks this model trains/evals on.
+    n_tasks: Integer number of tasks this model trains/evals on.
     placeholder_scope: name scope where tf.placeholders are defined.
     valid: Placeholder for a boolean tensor with shape batch_size to use as a
       mask when calculating gradient costs.
@@ -74,10 +74,11 @@ class TensorflowGraph(object):
     logdir: Directory for output files.
   """
 
-  def __init__(self, n_tasks, n_inputs, layer_sizes=[1000],
-               weight_init_stddevs=[.02], bias_init_consts=[1], penalty=0.0,
-               learning_rate=.001, momentum=".9", optimizer="adam",
-               batch_size=50, num_classes=2, logdir, train=True, verbosity=None):
+  def __init__(self, n_tasks, n_features, logdir, layer_sizes=[1000],
+               weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
+               dropouts=[0.5], learning_rate=.001, momentum=".9",
+               optimizer="adam", batch_size=50, n_classes=2,
+               train=True, verbosity=None):
     """Constructs the computational graph.
 
     Args:
@@ -87,12 +88,26 @@ class TensorflowGraph(object):
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
     """
+    # Save hyperparameters
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+    self.logdir = logdir
+    self.layer_sizes = layer_sizes
+    self.weight_init_stddevs = weight_init_stddevs
+    self.bias_init_consts = bias_init_consts
+    self.penalty = penalty
+    self.dropouts = dropouts
+    self.learning_rate = learning_rate
+    self.momentum = momentum
+    self.optimizer = optimizer
+    self.batch_size = batch_size
+    self.n_classes = n_classes
+    self.train = train
+    self.verbosity = verbosity
+
+
     self.graph = tf.Graph() 
     self.logdir = logdir
-    self.tasks = tasks
-    self.task_types = task_types
-    self.num_tasks = len(task_types)
-    self.verbosity = verbosity
 
     # Lazily created by _get_shared_session().
     self._shared_session = None
@@ -154,8 +169,8 @@ class TensorflowGraph(object):
       gradient_costs = []  # costs used for gradient calculation
 
       with self._shared_name_scope('costs'):
-        for task in xrange(self.num_tasks):
-          task_str = str(task).zfill(len(str(self.num_tasks)))
+        for task in xrange(self.n_tasks):
+          task_str = str(task).zfill(len(str(self.n_tasks)))
           with self._shared_name_scope('cost_{}'.format(task_str)):
             with tf.name_scope('weighted'):
               weighted_cost = self.cost(self.output[task], self.labels[task],
@@ -210,9 +225,9 @@ class TensorflowGraph(object):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    num_datapoints = len(dataset)
+    n_datapoints = len(dataset)
     batch_size = self.batch_size
-    step_per_epoch = np.ceil(float(num_datapoints)/batch_size)
+    step_per_epoch = np.ceil(float(n_datapoints)/batch_size)
     log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.graph.as_default():
       self.require_attributes(['loss', 'updates'])
@@ -223,7 +238,7 @@ class TensorflowGraph(object):
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
-          avg_loss, num_batches = 0., 0
+          avg_loss, n_batches = 0., 0
           if shuffle:
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
@@ -243,9 +258,9 @@ class TensorflowGraph(object):
             avg_loss += loss
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
-            num_batches += 1
+            n_batches += 1
           saver.save(sess, self._save_path, global_step=epoch)
-          avg_loss = float(avg_loss)/num_batches
+          avg_loss = float(avg_loss)/n_batches
           log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch+1)
@@ -267,7 +282,7 @@ class TensorflowGraph(object):
       dataset: deepchem.datasets.dataset object.
 
     Returns:
-      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
         output: Model outputs.
         labels: True labels.
         weights: Example weights.
@@ -286,15 +301,15 @@ class TensorflowGraph(object):
       self.require_attributes(['output'])
 
       # run eval data through the model
-      num_tasks = self.num_tasks
+      n_tasks = self.n_tasks
       output = []
       start = time.time()
       with self._get_shared_session().as_default():
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session().run(
             self.output, feed_dict=feed_dict)
-        batch_output = np.asarray(data[:num_tasks], dtype=float)
-        # reshape to batch_size x num_tasks x ...
+        batch_output = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
         elif batch_output.ndim == 2:
@@ -343,7 +358,7 @@ class TensorflowGraph(object):
 
     This method creates the following Placeholders for each task:
       labels_%d: Float label tensor. For classification tasks, this tensor will
-        have shape batch_size x num_classes. For regression tasks, this tensor
+        have shape batch_size x n_classes. For regression tasks, this tensor
         will have shape batch_size.
 
     Raises:
@@ -361,7 +376,7 @@ class TensorflowGraph(object):
     feeding and fetching the same tensor.
     """
     weights = []
-    for task in xrange(self.num_tasks):
+    for task in xrange(self.n_tasks):
       with tf.name_scope(self.placeholder_scope):
         weights.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None],
@@ -399,9 +414,6 @@ class TensorflowGraph(object):
       # allow_soft_placement=True allows ops without a GPU implementation
       # to run on the CPU instead.
       config = tf.ConfigProto(allow_soft_placement=True)
-      ################################################################## DEBUG
-      #config.gpu_options.allow_growth = True
-      ################################################################## DEBUG
       self._shared_session = tf.Session(config=config)
     return self._shared_session
 
@@ -457,7 +469,7 @@ class TensorflowGraph(object):
       if getattr(self, attr, None) is None:
         raise AssertionError(
             'self.%s must be defined by a concrete subclass' % attr)
-
+  
 class TensorflowClassifier(TensorflowGraph):
   """Classification model.
 
@@ -478,8 +490,8 @@ class TensorflowClassifier(TensorflowGraph):
     """Calculate single-task training cost for a batch of examples.
 
     Args:
-      logits: Tensor with shape batch_size x num_classes containing logits.
-      labels: Tensor with shape batch_size x num_classes containing true labels
+      logits: Tensor with shape batch_size x n_classes containing logits.
+      labels: Tensor with shape batch_size x n_classes containing true labels
         in a one-hot encoding.
       weights: Tensor with shape batch_size containing example weights.
 
@@ -494,19 +506,19 @@ class TensorflowClassifier(TensorflowGraph):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
-      labels_%d: Label tensor with shape batch_size x num_classes.
+      labels_%d: Label tensor with shape batch_size x n_classes.
 
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
     with self.graph.as_default():
       batch_size = self.batch_size 
-      num_classes = self.num_classes
+      n_classes = self.n_classes
       labels = []
-      for task in xrange(self.num_tasks):
+      for task in xrange(self.n_tasks):
         with tf.name_scope(self.placeholder_scope):
           labels.append(tf.identity(
-              tf.placeholder(tf.float32, shape=[None, num_classes],
+              tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
       self.labels = labels
 
@@ -557,7 +569,7 @@ class TensorflowRegressor(TensorflowGraph):
     with self.graph.as_default():
       batch_size = self.batch_size
       labels = []
-      for task in xrange(self.num_tasks):
+      for task in xrange(self.n_tasks):
         with tf.name_scope(self.placeholder_scope):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None],
@@ -578,10 +590,8 @@ class TensorflowModel(Model):
     self.verbosity = verbosity
     if tf_class is None:
       tf_class = TensorflowGraph
-    self.train_model = tf_class(logdir, tasks, task_types,
-                                train=True, verbosity=verbosity)
-    self.eval_model = tf_class(logdir, tasks, task_types,
-                                train=False, verbosity=verbosity)
+    self.train_model = tf_class(logdir, train=True)
+    self.eval_model = tf_class(logdir, train=False)
     self.fit_transformers = None
 
   def fit(self, dataset, shuffle=False):
@@ -619,3 +629,6 @@ class TensorflowModel(Model):
     Loads model from disk. Thin wrapper around restore() for consistency.
     """
     self.eval_model.restore()
+
+  def get_num_tasks(self):
+    return self.train_model.n_tasks

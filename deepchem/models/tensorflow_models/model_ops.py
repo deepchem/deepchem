@@ -189,8 +189,8 @@ def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
     bias_init = tf.zeros([size])
 
   with tf.op_scope([tensor], name, 'fully_connected'):
-    w = tf.Variable(weight_init, name='w')
-    b = tf.Variable(bias_init, name='b')
+    w = tf.Variable(weight_init, name='w', dtype=tf.float32)
+    b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
 
 def is_training():
