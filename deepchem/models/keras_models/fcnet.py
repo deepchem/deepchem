@@ -25,12 +25,13 @@ class MultiTaskDNN(Graph):
   def __init__(self, n_tasks, n_inputs, task_type, nb_layers=1, nb_hidden=1000,
                init="glorot_uniform", batchnorm=False, dropout=0.5,
                activation="relu", learning_rate=.001, decay=1e-6,
-               momentum=0.9, nesterov=False, verbosity="low"):
+               momentum=0.9, nesterov=False):
     super(MultiTaskDNN, self).__init__()
     # Store hyperparameters
     assert task_type in ["classification", "regression"]
     self.task_type = task_type
     self.n_inputs = n_inputs
+    self.n_tasks = n_tasks
     self.nb_layers = nb_layers
     self.nb_hidden = nb_hidden
     self.init = init
@@ -89,6 +90,26 @@ class MultiTaskDNN(Graph):
               nesterov=self.nesterov)
     self.compile(optimizer=sgd, loss=loss_dict)
 
+  def get_config(self):
+    return {"n_inputs": self.n_inputs,
+            "n_tasks": self.n_tasks,
+            "task_type": self.task_type,
+            "nb_layers": self.nb_layers,
+            "nb_hidden": self.nb_hidden,
+            "init": self.init,
+            "batchnorm": self.batchnorm,
+            "dropout": self.dropout,
+            "activation": self.activation,
+            "learning_rate": self.learning_rate,
+            "decay": self.decay,
+            "momentum": self.momentum,
+            "nesterov": self.nesterov,
+            }
+
+  @classmethod
+  def from_config(cls, config):
+    return cls(**config)
+
   def get_data_dict(self, X, y=None):
     """Wrap data X in dict for graph computations (Keras graph only for now)."""
     data = {}
@@ -118,7 +139,7 @@ class MultiTaskDNN(Graph):
     w = w + eps * np.ones(np.shape(w))
     data = self.get_data_dict(X, y)
     sample_weight = self.get_sample_weight(w)
-    loss = self.raw_model.train_on_batch(data, sample_weight=sample_weight)
+    loss = self.train_on_batch(data, sample_weight=sample_weight)
     return loss
 
   def predict_on_batch(self, X):
@@ -126,7 +147,7 @@ class MultiTaskDNN(Graph):
     Makes predictions on given batch of new data.
     """
     data = self.get_data_dict(X)
-    y_pred_dict = self.raw_model.predict_on_batch(data)
+    y_pred_dict = super(MultiTaskDNN, self).predict_on_batch(data)
     nb_samples = np.shape(X)[0]
     y_pred = np.zeros((nb_samples, self.n_tasks))
     for task in range(self.n_tasks):
@@ -146,10 +167,10 @@ class MultiTaskDNN(Graph):
     Makes predictions on given batch of new data.
     """
     data = self.get_data_dict(X)
-    y_pred_dict = self.raw_model.predict_on_batch(data)
+    y_pred_dict = super(MultiTaskDNN, self).predict_on_batch(data)
     n_samples = np.shape(X)[0]
     y_pred = np.zeros((n_samples, self.n_tasks, n_classes))
-    for task in rand(self.n_tasks):
+    for task in range(self.n_tasks):
       taskname = "task%d" % task 
       y_pred_task = np.squeeze(y_pred_dict[taskname])
       y_pred[:, task] = y_pred_task

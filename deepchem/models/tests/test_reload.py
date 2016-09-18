@@ -17,6 +17,7 @@ from deepchem.metrics import Metric
 from deepchem.datasets import Dataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.sklearn_models import SklearnModel
+from deepchem.models.keras_models import KerasModel
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
@@ -42,24 +43,18 @@ class TestModelReload(TestAPI):
   
     dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-    model_params = {
-      "batch_size": None,
-      "data_shape": dataset.get_data_shape()
-    }
-
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-    model = SklearnModel(tasks, task_types, model_params, self.model_dir,
-                         mode="classification",
-                         model_instance=RandomForestClassifier())
+
+    sklearn_model = RandomForestClassifier()
+    model = SklearnModel(sklearn_model, self.model_dir)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
 
     # Load trained model
-    reloaded_model = SklearnModel(tasks, task_types, model_params, self.model_dir,
-                                  mode="classification")
+    reloaded_model = SklearnModel(None, self.model_dir)
     reloaded_model.reload()
 
     # Eval model on train
@@ -90,43 +85,30 @@ class TestModelReload(TestAPI):
     
       dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
 
-      model_params = {
-          "nb_hidden": 1000,
-          "activation": "relu",
-          "dropout": .0,
-          "learning_rate": .15,
-          "momentum": .9,
-          "nesterov": False,
-          "decay": 1e-4,
-          "batch_size": n_samples,
-          "nb_epoch": 200,
-          "init": "glorot_uniform",
-          "nb_layers": 1,
-          "batchnorm": False,
-          "data_shape": dataset.get_data_shape()
-      }
-
       verbosity = "high"
       classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-      model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                           verbosity=verbosity)
+      keras_model = MultiTaskDNN(n_tasks, n_features, "classification",
+                                 dropout=0.)
+      model = KerasModel(keras_model, self.model_dir)
 
       # Fit trained model
       model.fit(dataset)
       model.save()
 
       # Load trained model
-      reloaded_model = MultiTaskDNN(tasks, task_types, model_params, self.model_dir,
-                                    verbosity=verbosity)
-      reloaded_model.reload()
+      reloaded_keras_model = MultiTaskDNN(
+          n_tasks, n_features, "classification", dropout=0.)
+      reloaded_model = KerasModel(reloaded_keras_model, self.model_dir)
+      reloaded_model.reload(custom_objects={"MultiTaskDNN": MultiTaskDNN})
       
 
       # Eval model on train
       transformers = []
-      evaluator = Evaluator(reloaded_model, dataset, transformers, verbosity=verbosity)
+      evaluator = Evaluator(reloaded_model, dataset, transformers,
+                            verbosity=verbosity)
       scores = evaluator.compute_model_performance([classification_metric])
 
-      assert scores[classification_metric.name] > .9
+      assert scores[classification_metric.name] > .6
 
   def test_tf_reload(self):
     """Test that tensorflow models can overfit simple classification datasets."""

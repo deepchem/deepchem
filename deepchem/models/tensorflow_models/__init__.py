@@ -21,6 +21,16 @@ from deepchem.utils.save import log
 class TensorflowGraph(object):
   """Thin wrapper holding a tensorflow graph and a few vars.
 
+  Notes:
+  
+    batch_size
+    penalty
+    nb_epoch
+    pad_batches
+
+  Classifier:
+    num_classes
+
   Has the following attributes:
 
     placeholder_root: String placeholder prefix, used to create
@@ -559,24 +569,19 @@ class TensorflowModel(Model):
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self, tasks, task_types, model_params, logdir, tf_class=None,
-               verbosity=None):
-    """
+  def __init__(self, tf_class, logdir, verbosity=None):
+    '''
     Args:
       tf_class: Class that inherits from TensorflowGraph
-    """ 
+    ''' 
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
     if tf_class is None:
       tf_class = TensorflowGraph
-    self.model_params = model_params
-    self.tasks = tasks
-    self.task_types = task_types
     self.train_model = tf_class(model_params, logdir, tasks, task_types,
                                 train=True, verbosity=verbosity)
     self.eval_model = tf_class(model_params, logdir, tasks, task_types,
                                 train=False, verbosity=verbosity)
-    self.num_tasks = len(self.task_types)
     self.fit_transformers = None
 
   def fit(self, dataset, shuffle=False):

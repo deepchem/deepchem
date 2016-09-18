@@ -335,6 +335,10 @@ class Dataset(object):
         shard_batch_size = n_samples
       else:
         shard_batch_size = batch_size 
+      ############################################################### DEBUG
+      print("n_samples, shard_batch_size")
+      print(n_samples, shard_batch_size)
+      ############################################################### DEBUG
       interval_points = np.linspace(
           0, n_samples, np.ceil(float(n_samples)/shard_batch_size)+1, dtype=int)
       for j in range(len(interval_points)-1):

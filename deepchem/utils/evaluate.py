@@ -38,7 +38,6 @@ class Evaluator(object):
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y]
     self.task_names = dataset.get_task_names()
-    self.task_type = model.get_task_type().lower()
     self.verbosity = verbosity
 
   def output_statistics(self, scores, stats_out):
@@ -81,7 +80,8 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
-      y_pred_print = self.model.predict(self.dataset, self.output_transformers).astype(int)
+      y_pred_print = self.model.predict(
+          self.dataset, self.output_transformers).astype(int)
     else:
       y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
