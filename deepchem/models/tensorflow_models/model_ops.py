@@ -33,8 +33,8 @@ def AddBias(tensor, init=None, name=None):
     return tf.nn.bias_add(tensor, b)
 
 
-def BatchNormalize(tensor, convolution, mask=None, epsilon=0.001,
-                   scale_after_normalization=True, decay=0.999,
+def BatchNormalize(tensor, convolution, training=True, mask=None,
+                   epsilon=0.001, scale_after_normalization=True, decay=0.999,
                    global_step=None, name=None):
   """Batch normalization.
 
@@ -86,7 +86,7 @@ def BatchNormalize(tensor, convolution, mask=None, epsilon=0.001,
     # moving averages from training.
     mean_moving_average = MovingAverage(mean, global_step, decay)
     variance_moving_average = MovingAverage(variance, global_step, decay)
-    if not is_training():
+    if training:
       mean = mean_moving_average
       variance = variance_moving_average
 
@@ -130,7 +130,7 @@ def MovingAverage(tensor, global_step, decay=0.999):
   return exponential_moving_average.average(tensor)
 
 
-def Dropout(tensor, dropout_prob, training_only=True):
+def Dropout(tensor, dropout_prob, training=True, training_only=True):
   """Random dropout.
 
   This implementation supports "always-on" dropout (training_only=False), which
@@ -157,7 +157,7 @@ def Dropout(tensor, dropout_prob, training_only=True):
   if not dropout_prob:
     return tensor  # do nothing
   keep_prob = 1.0 - dropout_prob
-  if is_training() or not training_only:
+  if training or not training_only:
     tensor = tf.nn.dropout(tensor, keep_prob)
   return tensor
 
@@ -193,6 +193,7 @@ def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
     b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
 
+'''
 def is_training():
   """Determine whether the default graph is in training mode.
 
@@ -210,6 +211,7 @@ def is_training():
   elif len(train) > 1:
     raise ValueError('Training mode has more than one setting.')
   return train[0]
+'''
 
 def WeightDecay(penalty_type, penalty):
   """Add weight decay.
