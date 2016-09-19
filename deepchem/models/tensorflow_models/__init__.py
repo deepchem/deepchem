@@ -19,6 +19,13 @@ from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
 
 class TensorflowGraph(object):
+  """Simple class that holds information needed to run Tensorflow graph."""
+  def __init__(self, graph, session, name_scopes):
+    self.graph = graph
+    self.session = session
+    self.name_scopes = name_scopes
+
+class TensorflowGraphModel(object):
   """Thin wrapper holding a tensorflow graph and a few vars.
 
   Notes:
@@ -105,47 +112,53 @@ class TensorflowGraph(object):
     self.train = train
     self.verbosity = verbosity
 
-
-    self.graph = tf.Graph() 
-    self.logdir = logdir
-
-    # Lazily created by _get_shared_session().
-    self._shared_session = None
-
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.
     self._restored_model = False
-
-    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
-    # when subclass-overridden methods use the same scopes.
-    self._name_scopes = {}
-
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
 
-    with self.graph.as_default():
-      model_ops.set_training(train)
-      self.placeholder_root = 'placeholders'
-      with tf.name_scope(self.placeholder_root) as scope:
-        self.placeholder_scope = scope
+    self.train_graph = self.construct_graph(train=True)
+    self.eval_graph = self.construct_graph(train=False)
 
-    self.setup()
+
+  def construct_graph(self, train):
+    """Returns a TensorflowGraph object."""
+    graph = tf.Graph() 
+
+    # Lazily created by _get_shared_session().
+    shared_session = None
+
+    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
+    # when subclass-overridden methods use the same scopes.
+    name_scopes = {}
+
     if train:
-      self.add_training_cost()
-      self.merge_updates()
-    else:
-      self.add_output_ops()  # add softmax heads
+      with graph.as_default():
+        model_ops.set_training(train)
 
-  def setup(self):
-    """Add ops common to training/eval to the graph."""
-    with self.graph.as_default():
+    # Setup graph
+    with graph.as_default():
       with tf.name_scope('core_model'):
-        self.build()
-      self.add_label_placeholders()
-      self.add_weight_placeholders()
+        self.build(graph, name_scopes)
+      self.add_label_placeholders(graph, name_scopes)
+      self.add_weight_placeholders(graph, name_scopes)
 
-  def _shared_name_scope(self, name):
+    if train:
+      self.add_training_cost(graph, name_scopes)
+    else:
+      self.add_output_ops(graph)  # add softmax heads
+    return TensorflowGraph(graph, shared_session, name_scopes)
+
+  def _get_placeholder_scope(self, graph, name_scopes):
+    """Gets placeholder scope."""
+    placeholder_root = "placeholders"
+    with graph.as_default():
+      with tf.name_scope(placeholder_root) as scope:
+        return scope
+
+  def _shared_name_scope(self, name, graph, name_scopes):
     """Returns a singleton TensorFlow scope with the given name.
 
     Used to prevent '_1'-appended scopes when sharing scopes with child classes.
@@ -155,23 +168,25 @@ class TensorflowGraph(object):
     Returns:
       tf.name_scope with the provided name.
     """
-    if name not in self._name_scopes:
-      with self.graph.as_default():
+    with graph.as_default():
+      if name not in name_scopes:
         with tf.name_scope(name) as scope:
-          self._name_scopes[name] = scope
-    return tf.name_scope(self._name_scopes[name])
+          name_scopes[name] = scope
+      placeholder_scope = tf.name_scope(name_scopes[name])
+      return placeholder_scope
 
-  def add_training_cost(self):
-    with self.graph.as_default():
+  def add_training_cost(self, graph, name_scopes):
+    with graph.as_default():
       self.require_attributes(['output', 'labels', 'weights'])
       epsilon = 1e-3  # small float to avoid dividing by zero
       weighted_costs = []  # weighted costs for each example
       gradient_costs = []  # costs used for gradient calculation
 
-      with self._shared_name_scope('costs'):
+      with self._shared_name_scope('costs', graph, name_scopes):
         for task in xrange(self.n_tasks):
           task_str = str(task).zfill(len(str(self.n_tasks)))
-          with self._shared_name_scope('cost_{}'.format(task_str)):
+          with self._shared_name_scope(
+              'cost_{}'.format(task_str), graph, name_scopes):
             with tf.name_scope('weighted'):
               weighted_cost = self.cost(self.output[task], self.labels[task],
                                         self.weights[task])
@@ -187,7 +202,7 @@ class TensorflowGraph(object):
               gradient_costs.append(gradient_cost)
 
         # aggregated costs
-        with self._shared_name_scope('aggregated'):
+        with self._shared_name_scope('aggregated', graph, name_scopes):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
 
@@ -200,15 +215,6 @@ class TensorflowGraph(object):
         self.loss = loss
 
       return weighted_costs
-
-  def merge_updates(self):
-    """Group updates into a single op."""
-    with self.graph.as_default():
-      updates = tf.get_default_graph().get_collection('updates')
-      if updates:
-        self.updates = tf.group(*updates, name='updates')
-      else:
-        self.updates = tf.no_op(name='updates')
 
   def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
           max_checkpoints_to_keep=5, log_every_N_batches=50):
@@ -232,7 +238,7 @@ class TensorflowGraph(object):
     with self.graph.as_default():
       self.require_attributes(['loss', 'updates'])
       train_op = self.get_training_op()
-      with self._get_shared_session() as sess:
+      with self._get_shared_session(train=True) as sess:
         sess.run(tf.initialize_all_variables())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
@@ -304,9 +310,9 @@ class TensorflowGraph(object):
       n_tasks = self.n_tasks
       output = []
       start = time.time()
-      with self._get_shared_session().as_default():
+      with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session().run(
+        data = self._get_shared_session(train=False).run(
             self.output, feed_dict=feed_dict)
         batch_output = np.asarray(data[:n_tasks], dtype=float)
         # reshape to batch_size x n_tasks x ...
@@ -325,16 +331,16 @@ class TensorflowGraph(object):
 
     return np.copy(outputs)
 
-  def add_output_ops(self):
+  def add_output_ops(self, graph):
     """Replace logits with softmax outputs."""
-    with self.graph.as_default():
+    with graph.as_default():
       softmax = []
       with tf.name_scope('inference'):
         for i, logits in enumerate(self.output):
           softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
       self.output = softmax
 
-  def build(self):
+  def build(self, graph):
     """Define the core graph.
 
     NOTE(user): Operations defined here should be in their own name scope to
@@ -353,7 +359,7 @@ class TensorflowGraph(object):
     raise NotImplementedError('Must be overridden by concrete subclass')
 
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -366,7 +372,7 @@ class TensorflowGraph(object):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def add_weight_placeholders(self):
+  def add_weight_placeholders(self, graph, name_scopes):
     """Add Placeholders for example weights for each task.
 
     This method creates the following Placeholders for each task:
@@ -376,8 +382,9 @@ class TensorflowGraph(object):
     feeding and fetching the same tensor.
     """
     weights = []
+    placeholder_scope = self._get_placeholder_scope(graph, name_scopes)
     for task in xrange(self.n_tasks):
-      with tf.name_scope(self.placeholder_scope):
+      with tf.name_scope(placeholder_scope):
         weights.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None],
                            name='weights_%d' % task)))
@@ -409,13 +416,19 @@ class TensorflowGraph(object):
     opt = model_ops.Optimizer(self.optimizer, self.learning_rate, self.momentum)
     return opt.minimize(self.loss, name='train')
 
-  def _get_shared_session(self):
-    if not self._shared_session:
-      # allow_soft_placement=True allows ops without a GPU implementation
-      # to run on the CPU instead.
-      config = tf.ConfigProto(allow_soft_placement=True)
-      self._shared_session = tf.Session(config=config)
-    return self._shared_session
+  def _get_shared_session(self, train):
+    # allow_soft_placement=True allows ops without a GPU implementation
+    # to run on the CPU instead.
+    if train:
+      if not self.train_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.train_graph.session = tf.Session(config=config)
+      return self.train_graph.session
+    else:
+      if not self.eval_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.eval_graph.session = tf.Session(config=config)
+      return self.eval_graph.session
 
   def _get_feed_dict(self, named_values):
     feed_dict = {}
@@ -435,8 +448,9 @@ class TensorflowGraph(object):
       assert not model_ops.is_training()
       last_checkpoint = self._find_last_checkpoint()
 
+      # TODO(rbharath): Is setting train=Falseright here?
       saver = tf.train.Saver()
-      saver.restore(self._get_shared_session(),
+      saver.restore(self._get_shared_session(train=False),
                     last_checkpoint)
       self._restored_model = True
 
@@ -470,7 +484,7 @@ class TensorflowGraph(object):
         raise AssertionError(
             'self.%s must be defined by a concrete subclass' % attr)
   
-class TensorflowClassifier(TensorflowGraph):
+class TensorflowClassifier(TensorflowGraphModel):
   """Classification model.
 
   Subclasses must set the following attributes:
@@ -502,7 +516,7 @@ class TensorflowClassifier(TensorflowGraph):
     return tf.mul(tf.nn.softmax_cross_entropy_with_logits(logits, labels),
                   weights)
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -511,19 +525,20 @@ class TensorflowClassifier(TensorflowGraph):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    with self.graph.as_default():
+    placeholder_scope = self._get_placeholder_scope(graph, name_scopes)
+    with graph.as_default():
       batch_size = self.batch_size 
       n_classes = self.n_classes
       labels = []
       for task in xrange(self.n_tasks):
-        with tf.name_scope(self.placeholder_scope):
+        with tf.name_scope(placeholder_scope):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
       self.labels = labels
 
 
-class TensorflowRegressor(TensorflowGraph):
+class TensorflowRegressor(TensorflowGraphModel):
   """Regression model.
 
   Subclasses must set the following attributes:
@@ -539,7 +554,7 @@ class TensorflowRegressor(TensorflowGraph):
   def get_task_type(self):
     return "regressor"
 
-  def add_output_ops(self):
+  def add_output_ops(self, graph):
     """No-op for regression models since no softmax."""
     pass
 
@@ -557,7 +572,7 @@ class TensorflowRegressor(TensorflowGraph):
     """
     return tf.mul(0.5 * tf.square(output - labels), weights)
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, placeholder_scope):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -566,11 +581,11 @@ class TensorflowRegressor(TensorflowGraph):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    with self.graph.as_default():
+    with graph.as_default():
       batch_size = self.batch_size
       labels = []
       for task in xrange(self.n_tasks):
-        with tf.name_scope(self.placeholder_scope):
+        with tf.name_scope(placeholder_scope):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None],
                              name='labels_%d' % task)))
@@ -581,11 +596,7 @@ class TensorflowModel(Model):
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self, tf_class, logdir, verbosity=None):
-    '''
-    Args:
-      tf_class: Class that inherits from TensorflowGraph
-    ''' 
+  def __init__(self, model, logdir, verbosity=None):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
     if tf_class is None:

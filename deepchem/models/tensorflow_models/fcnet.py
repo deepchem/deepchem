@@ -37,16 +37,17 @@ def softmax(x):
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
 
-  def build(self):
+  def build(self, graph, name_scopes):
     """Constructs the graph architecture as specified in its config.
 
     This method creates the following Placeholders:
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
+    placeholder_scope = self._get_placeholder_scope(graph, name_scopes)
     n_features = self.n_features
-    with self.graph.as_default():
-      with tf.name_scope(self.placeholder_scope):
+    with graph.as_default():
+      with tf.name_scope(placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,
             shape=[None, n_features],
@@ -132,7 +133,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     """
     if not self._restored_model:
       self.restore()
-    with self.graph.as_default():
+    with self.eval_graph.graph.as_default():
       assert not model_ops.is_training()
       self.require_attributes(['output'])
 
@@ -163,7 +164,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
 class TensorflowMultiTaskRegressor(TensorflowRegressor):
   """Implements an icml model as configured in a model_config.proto."""
 
-  def build(self):
+  def build(self, graph):
     """Constructs the graph architecture as specified in its config.
 
     This method creates the following Placeholders:
@@ -171,7 +172,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         batch_size x n_features.
     """
     n_features = self.n_inputs
-    with self.graph.as_default():
+    with graph.as_default():
       with tf.name_scope(self.placeholder_scope):
         self.mol_features = tf.placeholder(
             tf.float32,

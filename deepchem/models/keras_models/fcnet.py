@@ -79,7 +79,7 @@ class MultiTaskDNN(Graph):
 
     loss_dict = {}
     for task in range(self.n_tasks):
-      taskname = "task%d" % ind
+      taskname = "task%d" % task 
       if self.task_type == "classification":
         loss_dict[taskname] = "binary_crossentropy"
       elif self.task_type == "regression":
