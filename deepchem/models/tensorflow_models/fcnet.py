@@ -14,7 +14,6 @@ from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.metrics import to_one_hot
-from deepchem.datasets import pad_features
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
@@ -108,11 +107,11 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
-    n_features = self.n_inputs
+    n_features = self.n_features
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
     with graph.as_default():
-      with tf.name_scope(placeholder_scope):
+      with placeholder_scope:
         self.mol_features = tf.placeholder(
             tf.float32,
             shape=[None, n_features],
@@ -149,7 +148,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
 
       output = []
       for task in range(self.n_tasks):
-        self.output.append(tf.squeeze(
+        output.append(tf.squeeze(
             model_ops.FullyConnectedLayer(
                 tensor=prev_layer,
                 size=layer_sizes[i],

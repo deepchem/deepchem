@@ -17,6 +17,7 @@ from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
+from deepchem.datasets import pad_features
 
 def softmax(x):
   """Simple numpy softmax implementation
@@ -574,9 +575,9 @@ class TensorflowRegressor(TensorflowGraphModel):
   def get_task_type(self):
     return "regressor"
 
-  def add_output_ops(self, graph):
+  def add_output_ops(self, graph, output):
     """No-op for regression models since no softmax."""
-    pass
+    return output
 
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
@@ -605,8 +606,8 @@ class TensorflowRegressor(TensorflowGraphModel):
     with graph.as_default():
       batch_size = self.batch_size
       labels = []
-      for task in xrange(self.n_tasks):
-        with tf.name_scope(placeholder_scope):
+      with placeholder_scope:
+        for task in xrange(self.n_tasks):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None],
                              name='labels_%d' % task)))
@@ -647,7 +648,7 @@ class TensorflowRegressor(TensorflowGraphModel):
         X = pad_features(self.batch_size, X)
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
-            self.output, feed_dict=feed_dict)
+            self.eval_graph.output, feed_dict=feed_dict)
         batch_outputs = np.asarray(data[:n_tasks], dtype=float)
         # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
@@ -683,11 +684,11 @@ class TensorflowModel(Model):
     self.model_instance = model
     self.fit_transformers = None
 
-  def fit(self, dataset, shuffle=False):
+  def fit(self, dataset, **kwargs):
     """
     Fits TensorflowGraph to data.
     """
-    self.model_instance.fit(dataset, shuffle=shuffle)
+    self.model_instance.fit(dataset, **kwargs)
 
   def predict_on_batch(self, X):
     """
