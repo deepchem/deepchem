@@ -16,12 +16,8 @@ class HyperparamOpt(object):
   Provides simple hyperparameter search capabilities.
   """
 
-  def __init__(self, model_class, tasks, task_types, fit_transformers=None,
-               verbosity=None):
+  def __init__(self, model_class, verbosity=None):
     self.model_class = model_class
-    self.tasks = tasks
-    self.task_types = task_types
-    self.fit_transformers = fit_transformers
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
@@ -73,15 +69,8 @@ class HyperparamOpt(object):
             model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
-      #TODO(JG) Fit transformers for TF models
-      if self.fit_transformers:
-        model = self.model_class(
-            self.tasks, self.task_types, model_params, model_dir,
-            fit_transformers=self.fit_transformers, verbosity=self.verbosity)
-      else:
-        model = self.model_class(
-            self.tasks, self.task_types, model_params, model_dir,
-            verbosity=self.verbosity)
+
+      model = self.model_class(model_params, model_dir)
       model.fit(train_dataset)
       model.save()
     
