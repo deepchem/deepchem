@@ -52,7 +52,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       prev_layer = self.mol_features
       prev_layer_size = n_features 
       for i in xrange(n_layers):
-        layer = tf.nn.relu(model_ops.FullyConnectedLayer(
+        layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
             weight_init=tf.truncated_normal(
@@ -60,11 +60,11 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
                 stddev=weight_init_stddevs[i]),
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
-        layer = model_ops.Dropout(layer, dropouts[i], training)
+        layer = model_ops.dropout(layer, dropouts[i], training)
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
-      output = model_ops.MultitaskLogits(
+      output = model_ops.multitask_logits(
           layer, self.n_tasks)
     return output
 
@@ -134,7 +134,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       prev_layer = self.mol_features
       prev_layer_size = n_features 
       for i in xrange(n_layers):
-        layer = tf.nn.relu(model_ops.FullyConnectedLayer(
+        layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
             weight_init=tf.truncated_normal(
@@ -142,14 +142,14 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                 stddev=weight_init_stddevs[i]),
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
-        layer = model_ops.Dropout(layer, dropouts[i])
+        layer = model_ops.dropout(layer, dropouts[i])
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 
       output = []
       for task in range(self.n_tasks):
         output.append(tf.squeeze(
-            model_ops.FullyConnectedLayer(
+            model_ops.fully_connected_layer(
                 tensor=prev_layer,
                 size=layer_sizes[i],
                 weight_init=tf.truncated_normal(

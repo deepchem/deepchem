@@ -18,6 +18,7 @@ from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
 from deepchem.datasets import pad_features
+from tensorflow.contrib.layers.python.layers import batch_norm
 
 def softmax(x):
   """Simple numpy softmax implementation
@@ -211,7 +212,7 @@ class TensorflowGraphModel(object):
 
           # weight decay
           if self.penalty != 0.0:
-            penalty = model_ops.WeightDecay(self.penalty_type, self.penalty)
+            penalty = model_ops.weight_decay(self.penalty_type, self.penalty)
             loss += penalty
 
       return loss 
@@ -410,7 +411,7 @@ class TensorflowGraphModel(object):
     A training op.
     """
     with graph.as_default():
-      opt = model_ops.Optimizer(self.optimizer, self.learning_rate, self.momentum)
+      opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
       return opt.minimize(loss, name='train')
 
   def _get_shared_session(self, train):
@@ -464,7 +465,7 @@ class TensorflowClassifier(TensorflowGraphModel):
   """Classification model.
 
   Subclasses must set the following attributes:
-    output: Logits op(s) used for computing classification loss and predicted
+    output: logits op(s) used for computing classification loss and predicted
       class probabilities for each task.
 
   Class attributes:
