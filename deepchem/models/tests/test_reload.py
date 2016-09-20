@@ -129,21 +129,21 @@ class TestModelReload(TestAPI):
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
-    def tf_model_builder(logdir, train):
-      return TensorflowMultiTaskClassifier(
-          n_tasks, n_features, logdir, dropouts=[0.], train=train)
-    model = TensorflowModel(
-        tf_model_builder, self.model_dir, verbosity=verbosity)
+    tensorflow_model = TensorflowMultiTaskClassifier(
+          n_tasks, n_features, self.model_dir, dropouts=[0.],
+          verbosity=verbosity)
+    model = TensorflowModel(tensorflow_model, self.model_dir)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
 
     # Load trained model
-    reloaded_model = TensorflowModel(
-        tf_model_builder, self.model_dir, verbosity=verbosity)
+    reloaded_tensorflow_model = TensorflowMultiTaskClassifier(
+          n_tasks, n_features, self.model_dir, dropouts=[0.],
+          verbosity=verbosity)
+    reloaded_model = TensorflowModel(reloaded_tensorflow_model, self.model_dir)
     reloaded_model.reload()
-    assert reloaded_model.eval_model._restored_model
 
     # Eval model on train
     transformers = []

@@ -23,6 +23,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.multitask import SingletaskToMultitask 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from deepchem.datasets import Dataset
 from deepchem.hyperparameters import HyperparamOpt
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
@@ -33,19 +34,6 @@ from deepchem.splits import ScaffoldSplitter
 import tensorflow as tf
 from keras import backend as K
 
-def rf_model_builder(tasks, task_types, params_dict, model_dir, verbosity=None):
-  """Builds random forests given hyperparameters.
-
-  Last two arguments only for tensorflow models and ignored.
-  """
-  n_estimators = params_dict["n_estimators"]
-  max_features = params_dict["max_features"]
-  return SklearnModel(
-      tasks, task_types, params_dict, model_dir,
-      mode="regression",
-      model_instance=RandomForestRegressor(n_estimators=n_estimators,
-                                           max_features=max_features))
-
 class TestHyperparamOptAPI(TestAPI):
   """
   Test hyperparameter optimization API.
@@ -54,8 +42,6 @@ class TestHyperparamOptAPI(TestAPI):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    task_type = "regression"
-    task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
     loader = DataLoader(tasks=tasks,
                         smiles_field=self.smiles_field,
@@ -67,23 +53,21 @@ class TestHyperparamOptAPI(TestAPI):
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
         dataset, self.train_dir, self.valid_dir, self.test_dir)
 
-    input_transformers = []
-    output_transformers = [
+    transformers = [
         NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-    transformers = input_transformers + output_transformers
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
         transformer.transform(dataset)
-    params_dict = {
-      "n_estimators": [10, 100],
-      "max_features": ["auto"],
-      "data_shape": train_dataset.get_data_shape()
-    }
-    metric = Metric(metrics.r2_score)
 
-    optimizer = HyperparamOpt(rf_model_builder, tasks, task_types, verbosity="low")
+    params_dict = {"n_estimators": [10, 100]}
+    metric = Metric(metrics.r2_score)
+    def rf_model_builder(model_params, model_dir):
+      sklearn_model = RandomForestRegressor(**model_params)
+      return SklearnModel(sklearn_model, model_dir)
+
+    optimizer = HyperparamOpt(rf_model_builder, verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-      params_dict, train_dataset, valid_dataset, output_transformers,
+      params_dict, train_dataset, valid_dataset, transformers,
       metric, logdir=None)
 
   def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
