@@ -22,8 +22,7 @@ from deepchem.transformers import NormalizationTransformer
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.multitask import SingletaskToMultitask 
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestRegressor 
+from sklearn.ensemble import RandomForestClassifier
 from deepchem.datasets import Dataset
 from deepchem.hyperparameters import HyperparamOpt
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
@@ -53,7 +52,6 @@ class TestHyperparamOptAPI(TestAPI):
   """
   def test_singletask_sklearn_rf_ECFP_regression_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
-    splittype = "scaffold"
     featurizer = CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     task_type = "regression"
@@ -90,12 +88,9 @@ class TestHyperparamOptAPI(TestAPI):
 
   def test_singletask_to_multitask_sklearn_hyperparam_opt(self):
     """Test of hyperparam_opt with singletask_to_multitask."""
-    splittype = "scaffold"
-    output_transformers = []
     tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
-    task_types = {task: "classification" for task in tasks}
     input_file = "multitask_example.csv"
       
     n_features = 10
@@ -119,25 +114,20 @@ class TestHyperparamOptAPI(TestAPI):
     valid_dataset = Dataset.from_numpy(self.valid_dir,
                                        X_valid, y_valid, w_valid, ids_valid,
                                        tasks)
-    params_dict = {
-        "batch_size": [32],
-        "data_shape": [train_dataset.get_data_shape()],
-    }
+
+    transformers = []
     classification_metric = Metric(metrics.matthews_corrcoef, np.mean,
                                    mode="classification")
-    def model_builder(tasks, task_types, model_params, task_model_dir,
-                      verbosity=None):
-      return SklearnModel(tasks, task_types, model_params, task_model_dir,
-                          model_instance=LogisticRegression())
-    def multitask_model_builder(tasks, task_types, params_dict, logdir=None,
-                                verbosity=None):
-      return SingletaskToMultitask(tasks, task_types, params_dict,
-                                   self.model_dir, model_builder)
+    params_dict = {"n_estimators": [1, 10]}
+    def multitask_model_builder(model_params, model_dir):
+      def model_builder(model_dir):
+        sklearn_model = RandomForestClassifier(**model_params)
+        return SklearnModel(sklearn_model, model_dir)
+      return SingletaskToMultitask(tasks, model_builder, model_dir)
 
-    optimizer = HyperparamOpt(multitask_model_builder, tasks, task_types,
-                              verbosity="low")
+    optimizer = HyperparamOpt(multitask_model_builder, verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-      params_dict, train_dataset, valid_dataset, output_transformers,
+      params_dict, train_dataset, valid_dataset, transformers,
       classification_metric, logdir=None)
 
   def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
@@ -175,7 +165,6 @@ class TestHyperparamOptAPI(TestAPI):
 
   def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Tensorflow multitask deepchem classification API."""
-    splittype = "scaffold"
     task_type = "classification"
 
     input_file = os.path.join(self.current_dir, "multitask_example.csv")

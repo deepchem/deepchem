@@ -84,24 +84,8 @@ class TensorflowGraph(object):
 
 
 class TensorflowGraphModel(object):
-  """Thin wrapper holding a tensorflow graph and a few vars.
-
-  Notes:
+  """Parent class for deepchem Tensorflow models.
   
-    batch_size
-    penalty
-    nb_epoch
-    pad_batches
-    penalty_type
-    optimizer
-    learning_rate
-    momentum
-    data_shape
-    layer_sizes
-    weight_init_stddevs
-    bias_init_consts
-    dropouts
-
   Classifier:
     n_classes
 
@@ -116,23 +100,6 @@ class TensorflowGraphModel(object):
     build
     add_output_ops
     add_training_cost 
-
-  Subclasses must set the following attributes:
-    loss: Op to calculate training cost used for gradient calculation.
-    output: Op(s) for model output for each task.
-    labels: Op(s) for true labels for each task.
-    weights: Op(s) for example weights for each task.
-    updates: Op(s) for running updates of e.g. moving averages for batch
-      normalization. Should be set to tf.no_op() if no updates are required.
-
-  This base class provides the following attributes:
-    graph: TensorFlow graph object.
-    logdir: Path to the file output directory to store checkpoints etc.
-    master: TensorFlow session master specification string.
-    n_tasks: Integer number of tasks this model trains/evals on.
-    placeholder_scope: name scope where tf.placeholders are defined.
-    valid: Placeholder for a boolean tensor with shape batch_size to use as a
-      mask when calculating gradient costs.
 
   Args:
     train: If True, model is in training mode.
@@ -179,12 +146,6 @@ class TensorflowGraphModel(object):
 
     self.train_graph = self.construct_graph(training=True)
     self.eval_graph = self.construct_graph(training=False)
-    ######################################################## DEBUG
-    print("self.train_graph.output")
-    print(self.train_graph.output)
-    print("self.eval_graph.output")
-    print(self.eval_graph.output)
-    ######################################################## DEBUG
 
 
   def construct_graph(self, training):
@@ -202,10 +163,6 @@ class TensorflowGraphModel(object):
     with graph.as_default():
       output = self.build(graph, name_scopes, training)
       labels = self.add_label_placeholders(graph, name_scopes)
-      ####################################################### DEBUG
-      print("labels")
-      print(labels)
-      ####################################################### DEBUG
       weights = self.add_example_weight_placeholders(graph, name_scopes)
 
     if training:
@@ -256,9 +213,6 @@ class TensorflowGraphModel(object):
             penalty = model_ops.WeightDecay(self.penalty_type, self.penalty)
             loss += penalty
 
-      ############################################################ DEBUG
-      #return weighted_costs
-      ############################################################ DEBUG
       return loss 
 
   def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
@@ -299,10 +253,6 @@ class TensorflowGraphModel(object):
               log("On batch %d" % ind, self.verbosity)
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            ######################################################## DEBUG
-            print("feed_dict.keys()")
-            print(feed_dict.keys())
-            ######################################################## DEBUG
             fetches = self.train_graph.output + [
                 train_op, self.train_graph.loss]
             fetched_values = sess.run(
@@ -428,8 +378,8 @@ class TensorflowGraphModel(object):
     """
     weights = []
     placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
-    for task in xrange(self.n_tasks):
-      with placeholder_scope:
+    with placeholder_scope:
+      for task in xrange(self.n_tasks):
         weights.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None],
                            name='weights_%d' % task)))
@@ -555,8 +505,8 @@ class TensorflowClassifier(TensorflowGraphModel):
       batch_size = self.batch_size 
       n_classes = self.n_classes
       labels = []
-      for task in xrange(self.n_tasks):
-        with placeholder_scope:
+      with placeholder_scope:
+        for task in xrange(self.n_tasks):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
@@ -589,10 +539,6 @@ class TensorflowClassifier(TensorflowGraphModel):
       outputs = []
       with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
-        ################################################### DEBUG
-        print("feed_dict.keys()")
-        print(feed_dict.keys())
-        ################################################### DEBUG
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
         batch_outputs = np.asarray(data[:n_tasks], dtype=float)
