@@ -562,7 +562,7 @@ class TestOverfitAPI(TestAPI):
       evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
       scores = evaluator.compute_model_performance([regression_metric])
 
-      assert scores[regression_metric.name] > .8
+      assert scores[regression_metric.name] > .75
 
   def test_tf_multitask_regression_overfit(self):
     """Test tf multitask overfits tiny data."""
