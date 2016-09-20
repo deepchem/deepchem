@@ -16,25 +16,6 @@ from deepchem.models.tensorflow_models import model_ops
 from deepchem.metrics import to_one_hot
 from deepchem.datasets import pad_features
 
-def softmax(x):
-  """Simple numpy softmax implementation
-  """
-  # (n_samples, n_classes)
-  if len(x.shape) == 2:
-    row_max = np.max(x, axis = 1)
-    x -= row_max.reshape((x.shape[0], 1))
-    x = np.exp(x)
-    row_sum = np.sum(x, axis = 1)
-    x /= row_sum.reshape((x.shape[0], 1))
-  # (n_samples, n_tasks, n_classes)
-  elif len(x.shape) == 3:
-    row_max = np.max(x, axis = 2)
-    x -= row_max.reshape(x.shape[:2] + (1,))
-    x = np.exp(x)
-    row_sum = np.sum(x, axis = 2)
-    x /= row_sum.reshape(x.shape[:2] + (1,))
-  return x
-
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
 
@@ -54,10 +35,6 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             tf.float32,
             shape=[None, n_features],
             name='mol_features')
-        ########################################################### DEBUG
-        print("self.mol_features")
-        print(self.mol_features)
-        ########################################################### DEBUG
 
       layer_sizes = self.layer_sizes
       weight_init_stddevs = self.weight_init_stddevs
@@ -120,51 +97,6 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
             (self.batch_size,)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
 
-  def predict_proba_on_batch(self, X):
-    """Return model output for the provided input.
-
-    Restore(checkpoint) must have previously been called on this object.
-
-    Args:
-      dataset: deepchem.datasets.dataset object.
-
-    Returns:
-      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
-        output: Model outputs.
-      Note that the output arrays may be more than 2D, e.g. for
-      classifier models that return class probabilities.
-
-    Raises:
-      AssertionError: If model is not in evaluation mode.
-      ValueError: If output and labels are not both 3D or both 2D.
-    """
-    if not self._restored_model:
-      self.restore()
-    with self.eval_graph.graph.as_default():
-
-      # run eval data through the model
-      n_tasks = self.n_tasks
-      outputs = []
-      with self._get_shared_session(train=False).as_default():
-        feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session(train=False).run(
-            self.eval_graph.output, feed_dict=feed_dict)
-        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
-        if batch_outputs.ndim == 3:
-          batch_outputs = batch_outputs.transpose((1, 0, 2))
-        elif batch_outputs.ndim == 2:
-          batch_outputs = batch_outputs.transpose((1, 0))
-        else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s ' %
-              (batch_outputs.shape,))
-        outputs.append(batch_outputs)
-
-        # We apply softmax to predictions to get class probabilities.
-        outputs = softmax(np.squeeze(np.hstack(outputs)))
-
-    return np.copy(outputs)
 
 class TensorflowMultiTaskRegressor(TensorflowRegressor):
   """Implements an icml model as configured in a model_config.proto."""
@@ -255,65 +187,3 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         orig_dict["weights_%d" % task] = np.ones(
             (self.batch_size,)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
-
-  def predict_on_batch(self, X):
-    """Return model output for the provided input.
-
-    Restore(checkpoint) must have previously been called on this object.
-
-    Args:
-      dataset: deepchem.datasets.dataset object.
-
-    Returns:
-      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
-        output: Model outputs.
-        labels: True labels.
-        weights: Example weights.
-      Note that the output and labels arrays may be more than 2D, e.g. for
-      classifier models that return class probabilities.
-
-    Raises:
-      AssertionError: If model is not in evaluation mode.
-      ValueError: If output and labels are not both 3D or both 2D.
-    """
-    if not self._restored_model:
-      self.restore()
-    with self.train_graph.graph.as_default():
-      assert not model_ops.is_training()
-      self.require_attributes(['output'])
-
-      # run eval data through the model
-      n_tasks = self.n_tasks
-      outputs = []
-      with self._get_shared_session(train=False).as_default():
-        n_samples = len(X)
-        # Some tensorflow models can't handle variadic batches,
-        # especially models using tf.pack, tf.split. Pad batch-size
-        # to handle these cases.
-        X = pad_features(self.batch_size, X)
-        feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session(train=False).run(
-            self.output, feed_dict=feed_dict)
-        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
-        if batch_outputs.ndim == 3:
-          batch_outputs = batch_outputs.transpose((1, 0, 2))
-        elif batch_outputs.ndim == 2:
-          batch_outputs = batch_outputs.transpose((1, 0))
-        # Handle edge case when batch-size is 1.
-        elif batch_outputs.ndim == 1:
-          #print("X.shape, batch_outputs.shape")
-          #print(X.shape, batch_outputs.shape)
-          n_samples = len(X)
-          batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
-        else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s' %
-              (batch_outputs.shape))
-        # Prune away any padding that was added
-        batch_outputs = batch_outputs[:n_samples]
-        outputs.append(batch_outputs)
-
-        outputs = np.squeeze(np.concatenate(outputs)) 
-
-    return np.copy(outputs)
