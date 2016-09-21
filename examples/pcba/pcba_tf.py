@@ -18,7 +18,6 @@ from deepchem.datasets.pcba_datasets import load_pcba
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models import TensorflowModel
 
-
 np.random.seed(123)
 
 # Set some global variables up top

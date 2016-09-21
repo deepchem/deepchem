@@ -54,7 +54,7 @@ class SingletaskToMultitask(Model):
     return task_datasets
    
       
-  def fit(self, dataset):
+  def fit(self, dataset, **kwargs):
     """
     Updates all singletask models with new information.
 
