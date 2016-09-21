@@ -19,7 +19,7 @@ class SklearnModel(Model):
   Abstract base class for different ML models.
   """
 
-  def fit(self, dataset):
+  def fit(self, dataset, **kwargs):
     """
     Fits SKLearn model to data.
     """

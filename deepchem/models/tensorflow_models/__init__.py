@@ -112,7 +112,7 @@ class TensorflowGraphModel(object):
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                dropouts=[0.5], learning_rate=.001, momentum=".9",
                optimizer="adam", batch_size=50, n_classes=2,
-               train=True, verbosity=None):
+               train=True, verbosity=None, **kwargs):
     """Constructs the computational graph.
 
     Args:
@@ -218,7 +218,7 @@ class TensorflowGraphModel(object):
       return loss 
 
   def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
-          max_checkpoints_to_keep=5, log_every_N_batches=50):
+          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
     Args:
@@ -643,10 +643,14 @@ class TensorflowRegressor(TensorflowGraphModel):
       outputs = []
       with self._get_shared_session(train=False).as_default():
         n_samples = len(X)
+        # TODO(rbharath): Should this be padding there? Shouldn't padding be
+        # turned on in predict?
+        #################################################################### DEBUG
         # Some tensorflow models can't handle variadic batches,
         # especially models using tf.pack, tf.split. Pad batch-size
         # to handle these cases.
-        X = pad_features(self.batch_size, X)
+        #X = pad_features(self.batch_size, X)
+        #################################################################### DEBUG
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
@@ -658,8 +662,6 @@ class TensorflowRegressor(TensorflowGraphModel):
           batch_outputs = batch_outputs.transpose((1, 0))
         # Handle edge case when batch-size is 1.
         elif batch_outputs.ndim == 1:
-          #print("X.shape, batch_outputs.shape")
-          #print(X.shape, batch_outputs.shape)
           n_samples = len(X)
           batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
         else:
@@ -679,11 +681,13 @@ class TensorflowModel(Model):
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self, model, logdir, verbosity=None):
+  def __init__(self, model, logdir, verbosity=None, **kwargs):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
     self.model_instance = model
     self.fit_transformers = None
+    if not os.path.exists(logdir):
+      os.makedirs(logdir)
 
   def fit(self, dataset, **kwargs):
     """

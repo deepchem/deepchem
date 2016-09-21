@@ -28,7 +28,7 @@ class Model(object):
   Abstract base class for different ML models.
   """
   def __init__(self, model_instance, model_dir,
-               fit_transformers=None, verbosity=None):
+               fit_transformers=None, verbosity=None, **kwargs):
     """Abstract class for all models.
     Parameters:
     -----------
@@ -96,7 +96,7 @@ class Model(object):
     """
     raise NotImplementedError
 
-  def fit(self, dataset, nb_epoch=10, batch_size=50, pad_batches=False):
+  def fit(self, dataset, nb_epoch=10, batch_size=50, pad_batches=False, **kwargs):
     """
     Fits a model on data in a Dataset object.
     """
@@ -129,7 +129,8 @@ class Model(object):
 
     return X, y, w
 
-  def predict(self, dataset, transformers=[], batch_size=None):
+  def predict(self, dataset, transformers=[], batch_size=None,
+              pad_batches=False):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -139,9 +140,10 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True):
+        batch_size, deterministic=True, pad_batches=pad_batches):
       n_samples = len(X_batch)
-      y_pred_batch = np.reshape(self.predict_on_batch(X_batch), (n_samples, n_tasks))
+      y_pred_batch = self.predict_on_batch(X_batch)
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)

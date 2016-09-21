@@ -25,7 +25,7 @@ class MultiTaskDNN(Graph):
   def __init__(self, n_tasks, n_features, task_type, n_layers=1, n_hidden=1000,
                init="glorot_uniform", batchnorm=False, dropout=0.5,
                activation="relu", learning_rate=.001, decay=1e-6,
-               momentum=0.9, nesterov=False):
+               momentum=0.9, nesterov=False, **kwargs):
     super(MultiTaskDNN, self).__init__()
     # Store hyperparameters
     assert task_type in ["classification", "regression"]

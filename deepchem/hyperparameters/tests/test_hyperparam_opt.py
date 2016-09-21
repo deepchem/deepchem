@@ -141,7 +141,7 @@ class TestHyperparamOptAPI(TestAPI):
     def model_builder(model_params, model_dir):
       keras_model = MultiTaskDNN(
           len(tasks), n_features, task_type, dropout=0., **model_params)
-      return KerasModel(keras_model, self.model_dir)
+      return KerasModel(keras_model, model_dir)
     optimizer = HyperparamOpt(model_builder, verbosity="low")
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,

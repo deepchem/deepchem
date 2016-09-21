@@ -17,7 +17,8 @@ from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
 
-def load_nci(base_dir, reload=True, force_transform=False):
+def load_nci(base_dir, reload=True, force_transform=False,
+             shard_size=1000, num_shards_per_batch=4):
   """Load NCI datasets. Does not do train/test split"""
   # Set some global variables up top
   verbosity = "high"
@@ -70,7 +71,8 @@ def load_nci(base_dir, reload=True, force_transform=False):
                       featurizer=featurizer,
                       verbosity=verbosity)
   if not reload or not os.path.exists(data_dir):
-    dataset = loader.featurize(dataset_paths, data_dir)
+    dataset = loader.featurize(dataset_paths, data_dir, shard_size=shard_size,
+                               num_shards_per_batch=num_shards_per_batch)
     regen = True
   else:
     dataset = Dataset(data_dir, reload=True)

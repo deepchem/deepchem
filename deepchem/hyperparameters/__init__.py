@@ -71,7 +71,7 @@ class HyperparamOpt(object):
         model_dir = tempfile.mkdtemp()
 
       model = self.model_class(model_params, model_dir)
-      model.fit(train_dataset)
+      model.fit(train_dataset, **model_params)
       model.save()
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)

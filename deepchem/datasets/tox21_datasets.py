@@ -14,12 +14,11 @@ from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.datasets import Dataset
 from deepchem.transformers import BalancingTransformer
 
-def load_tox21(base_dir, reload=True):
+def load_tox21(base_dir, reload=True, num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
   reload = True
   verbosity = "high"
-  model = "logistic"
 
   # Create some directories for analysis
   # The base_dir holds the results of all analysis
@@ -30,8 +29,9 @@ def load_tox21(base_dir, reload=True):
     os.makedirs(base_dir)
   current_dir = os.path.dirname(os.path.realpath(__file__))
   #Make directories to store the raw and featurized datasets.
-  samples_dir = os.path.join(base_dir, "samples")
   data_dir = os.path.join(base_dir, "dataset")
+  train_dir = os.path.join(base_dir, "train")
+  valid_dir = os.path.join(base_dir, "valid")
 
   # Load Tox21 dataset
   print("About to load Tox21 dataset.")
@@ -44,19 +44,19 @@ def load_tox21(base_dir, reload=True):
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
   featurizer = CircularFingerprint(size=1024)
-  all_tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
-                     'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
-                     'SR-HSE', 'SR-MMP', 'SR-p53']
+  tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+                 'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
+                 'SR-HSE', 'SR-MMP', 'SR-p53']
 
   if not reload or not os.path.exists(data_dir):
-    loader = DataLoader(tasks=all_tox21_tasks,
+    loader = DataLoader(tasks=tox21_tasks,
                         smiles_field="smiles",
                         featurizer=featurizer,
                         verbosity=verbosity)
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=8192)
   else:
-    dataset = Dataset(data_dir, all_tox21_tasks, reload=True)
+    dataset = Dataset(data_dir, tox21_tasks, reload=True)
 
   # Initialize transformers 
   transformers = [
@@ -65,5 +65,16 @@ def load_tox21(base_dir, reload=True):
     print("About to transform data")
     for transformer in transformers:
         transformer.transform(dataset)
+
+  X, y, w, ids = dataset.to_numpy()
+  X_train, X_valid = X[:num_train], X[num_train:]
+  y_train, y_valid = y[:num_train], y[num_train:]
+  w_train, w_valid = w[:num_train], w[num_train:]
+  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+
+  train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
+                                     w_train, ids_train, tox21_tasks)
+  valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
+                                     w_valid, ids_valid, tox21_tasks)
   
-  return all_tox21_tasks, dataset, transformers
+  return tox21_tasks, (train_dataset, valid_dataset), transformers
