@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar, Aneesh Pappu "
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import tempfile
 import numpy as np
 from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
@@ -33,6 +34,37 @@ class Splitter(object):
   def __init__(self, verbosity=None):
     """Creates splitter object."""
     self.verbosity = verbosity
+
+  def k_fold_split(self, dataset, directories, compute_feature_statistics=True):
+    """Does K-fold split of dataset."""
+    log("Computing K-fold split", self.verbosity)
+    k = len(directories)
+    fold_datasets = []
+    # rem_dataset is remaining portion of dataset
+    rem_dataset = dataset
+    for fold in range(k):
+      # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
+      # to k-1.
+      frac_fold = 1./(k-fold)
+      fold_dir = directories[fold]
+      fold_inds, rem_inds, _ = self.split(
+          rem_dataset,
+          frac_train=frac_fold, frac_valid=1-frac_fold, frac_test=0)
+      fold_dataset = dataset.select( 
+          fold_dir, fold_inds,
+          compute_feature_statistics=compute_feature_statistics)
+      # TODO(rbharath): Is making a tempfile the best way to handle remainders?
+      # Would be  nice to be able to do in memory dataset construction...
+      rem_dir = tempfile.mkdtemp()
+      rem_dataset = dataset.select( 
+          rem_dir, rem_inds,
+          compute_feature_statistics=compute_feature_statistics)
+      ####################################################################### DEBUG
+      print("frac_fold, fold, len(fold_dataset), len(rem_dataset)")
+      print(frac_fold, fold, len(fold_dataset), len(rem_dataset))
+      ####################################################################### DEBUG
+      fold_datasets.append(fold_dataset)
+    return fold_datasets
 
   def train_valid_test_split(self, dataset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
@@ -98,7 +130,8 @@ class StratifiedSplitter(Splitter):
     return array_list
   
   def __generate_required_hits(self, w, frac_split):
-    required_hits = (w != 0).sum(0)  # returns list of per column sum of non zero elements
+    # returns list of per column sum of non zero elements
+    required_hits = (w != 0).sum(0)  
     for col_hits in required_hits:
       col_hits = int(frac_split * col_hits)
     return required_hits
@@ -106,7 +139,8 @@ class StratifiedSplitter(Splitter):
   def __generate_required_index(self, w, required_hit_list):
     col_index = 0
     index_hits = []
-    # loop through each column and obtain index required to splice out for required fraction of hits
+    # loop through each column and obtain index required to splice out for
+    # required fraction of hits
     for col in w.T:
       num_hit = 0
       num_required = required_hit_list[col_index]
@@ -121,7 +155,7 @@ class StratifiedSplitter(Splitter):
 
   def __split(self, X, y, w, ids, frac_split):
     """
-    Method that does bulk of splitting dataset appropriately based on desired split percentage
+    Method that does bulk of splitting dataset.
     """
     # find the total number of hits for each task and calculate the required
     # number of hits for split based on frac_split
@@ -165,18 +199,26 @@ class StratifiedSplitter(Splitter):
 
     # Obtain original x, y, and w arrays and shuffle
     X, y, w, ids = self.__randomize_arrays(dataset.to_numpy())
-    X_train, y_train, w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
+    arrays = self.__split(X, y, w, ids, frac_train)
+    train_arrays, rem_arrays = arrays[:4], arrays[4:]
+    (X_train, y_train, w_train, ids_train) = train_arrays
+    (X_rem, y_rem, w_rem, ids_rem) = rem_arrays 
 
     # calculate percent split for valid (out of test and valid)
     valid_percentage = frac_valid / (frac_valid + frac_test)
     # split test data into valid and test, treating sub test set also as sparse
-    X_valid, y_valid, w_valid, ids_valid, X_test, y_test, w_test, ids_test = self.__split(X_test, y_test, w_test,
-                                                                                          ids_test, valid_percentage)
+    arrays = self.__split(X_rem, y_rem, w_rem, ids_rem, valid_percentage)
+    (valid_arrays, test_arrays) = arrays[:4], arrays[4:]
+    (X_valid, y_valid, w_valid, ids_valid) = valid_arrays
+    (X_test, y_test, w_test, ids_test) = test_arrays
 
     # turn back into dataset objects
-    train_data = Dataset.from_numpy(train_dir, X_train, y_train, w_train, ids_train)
-    valid_data = Dataset.from_numpy(valid_dir, X_valid, y_valid, w_valid, ids_valid)
-    test_data = Dataset.from_numpy(test_dir, X_test, y_test, w_test, ids_test)
+    train_data = Dataset.from_numpy(
+        train_dir, X_train, y_train, w_train, ids_train)
+    valid_data = Dataset.from_numpy(
+        valid_dir, X_valid, y_valid, w_valid, ids_valid)
+    test_data = Dataset.from_numpy(
+        test_dir, X_test, y_test, w_test, ids_test)
     return train_data, valid_data, test_data
 
 
