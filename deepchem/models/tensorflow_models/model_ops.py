@@ -4,18 +4,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 
-import tensorflow as tf
-
-from google.protobuf import text_format
-
-from tensorflow.python.platform import gfile
-
-from deepchem.models.tensorflow_models import utils as model_utils
 import sys
 import traceback
+import tensorflow as tf
 
-
-def AddBias(tensor, init=None, name=None):
+def add_bias(tensor, init=None, name=None):
   """Add a bias term to a tensor.
 
   Args:
@@ -33,104 +26,7 @@ def AddBias(tensor, init=None, name=None):
     return tf.nn.bias_add(tensor, b)
 
 
-def BatchNormalize(tensor, convolution, mask=None, epsilon=0.001,
-                   scale_after_normalization=True, decay=0.999,
-                   global_step=None, name=None):
-  """Batch normalization.
-
-  Normalize, scale, and shift the input tensor to reduce covariate shift.
-
-  NOTE(user): For inference, the mean and variance must be set to fixed
-  values derived from the entire training set. This is accomplished by using
-  moving_mean and moving_variance during evaluation. Be sure that models run
-  the ops in updates during training or the moving averages will not be very
-  useful!
-
-  Args:
-    tensor: Input tensor (must be 4D).
-    convolution: If True, perform normalization across rows and columns as
-      well as over batch.
-    mask: Mask to apply to tensor.
-    epsilon: Small float to avoid dividing by zero.
-    scale_after_normalization: If True, multiply by gamma. If False, gamma is
-      not used. When the next layer is linear (also e.g. ReLU), this can be
-      disabled since the scaling can be done by the next layer.
-    decay: Float value for moving average decay.
-    global_step: Tensor containing global step for accelerating moving averages
-      at the beginning of training.
-    name: Name for this op. Defaults to 'batch_norm'.
-
-  Returns:
-    A new tensor corresponding to the batch normalized input.
-
-  Raises:
-    ValueError: If the input tensor is not 4D.
-  """
-  if len(tensor.get_shape()) != 4:
-    raise ValueError('Input tensor must be 4D, not %dD'
-                     % len(tensor.get_shape()))
-  if convolution:
-    axes = [0, 1, 2]
-    shape = tensor.get_shape()[3:]
-  else:
-    axes = [0]
-    shape = tensor.get_shape()[1:]
-  with tf.op_scope([tensor], None, 'BatchNormalize'):
-    if mask is not None:
-      mean, variance = model_utils.Moment(
-          2, tensor, reduction_indices=axes, mask=mask)
-    else:
-      mean, variance = tf.nn.moments(tensor, axes)
-
-    # Keep track of moving averages for mean and variance. During eval, use the
-    # moving averages from training.
-    mean_moving_average = MovingAverage(mean, global_step, decay)
-    variance_moving_average = MovingAverage(variance, global_step, decay)
-    if not is_training():
-      mean = mean_moving_average
-      variance = variance_moving_average
-
-    beta = tf.Variable(tf.zeros(shape), name='beta')
-    gamma = tf.Variable(tf.constant(1.0, shape=shape), name='gamma')
-    if convolution:
-      batch_norm = tf.nn.batch_norm_with_global_normalization(
-          tensor, mean, variance, beta, gamma, epsilon,
-          scale_after_normalization)
-    else:
-      batch_norm = (tensor - mean) * tf.rsqrt(variance + epsilon)
-      if scale_after_normalization:
-        batch_norm *= gamma
-      batch_norm += beta
-    if mask is not None:
-      batch_norm = model_utils.Mask(batch_norm, mask)
-    return batch_norm
-
-
-def MovingAverage(tensor, global_step, decay=0.999):
-  """Create a variable that contains the moving average of a tensor.
-
-  Adds a tf.identity and special namescope to ensure the tensor
-  is colocated with its Variable on the parameter server.
-  See http://g/tensorflow-users/PAAXYLlybNs/xA0z-x1qEwAJ
-  and replicated_model.py#NameScopeDevicePicker for context.
-
-  Args:
-    tensor: Tensor to calculate moving average of.
-    global_step: Variable containing the number of global steps.
-    decay: Float for exponential decay of moving average.
-
-  Returns:
-    A tf.Variable containing the moving average of the input tensor.
-  """
-  exponential_moving_average = tf.train.ExponentialMovingAverage(
-      decay=decay, num_updates=global_step)
-
-  update_op = exponential_moving_average.apply([tensor])
-  tf.get_default_graph().add_to_collection('updates', update_op)
-  return exponential_moving_average.average(tensor)
-
-
-def Dropout(tensor, dropout_prob, training_only=True):
+def dropout(tensor, dropout_prob, training=True, training_only=True):
   """Random dropout.
 
   This implementation supports "always-on" dropout (training_only=False), which
@@ -157,13 +53,13 @@ def Dropout(tensor, dropout_prob, training_only=True):
   if not dropout_prob:
     return tensor  # do nothing
   keep_prob = 1.0 - dropout_prob
-  if is_training() or not training_only:
+  if training or not training_only:
     tensor = tf.nn.dropout(tensor, keep_prob)
   return tensor
 
 
-def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
-                        name=None):
+def fully_connected_layer(tensor, size, weight_init=None, bias_init=None,
+                          name=None):
   """Fully connected layer.
 
   Args:
@@ -189,33 +85,15 @@ def FullyConnectedLayer(tensor, size, weight_init=None, bias_init=None,
     bias_init = tf.zeros([size])
 
   with tf.op_scope([tensor], name, 'fully_connected'):
-    w = tf.Variable(weight_init, name='w')
-    b = tf.Variable(bias_init, name='b')
+    w = tf.Variable(weight_init, name='w', dtype=tf.float32)
+    b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
 
-def is_training():
-  """Determine whether the default graph is in training mode.
-
-  Returns:
-    A boolean value indicating whether the default graph is in training mode.
-
-  Raises:
-    ValueError: If the 'train' collection in the default graph does not contain
-      exactly one element.
-  """
-  #traceback.print_stack(file=sys.stdout) 
-  train = tf.get_collection("train")
-  if not train:
-    raise ValueError('Training mode is not set. Please call set_training.')
-  elif len(train) > 1:
-    raise ValueError('Training mode has more than one setting.')
-  return train[0]
-
-def WeightDecay(model_params):
+def weight_decay(penalty_type, penalty):
   """Add weight decay.
 
   Args:
-    model_params: dictionary.
+    model: TensorflowGraph.
 
   Returns:
     A scalar tensor containing the weight decay cost.
@@ -230,37 +108,19 @@ def WeightDecay(model_params):
       variables.append(v)
 
   with tf.name_scope('weight_decay'):
-    if model_params["penalty_type"] == 'l1':
+    if penalty_type == 'l1':
       cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
-    elif model_params["penalty_type"] == 'l2':
+    elif penalty_type == 'l2':
       cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
     else:
-      raise NotImplementedError('Unsupported penalty_type %s' %
-                                model_params["penalty_type"])
-    cost *= model_params["penalty"]
+      raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
+    cost *= penalty
     tf.scalar_summary('Weight Decay Cost', cost)
   return cost
 
-def set_training(train):
-  """Set the training mode of the default graph.
 
-  This operation may only be called once for a given graph.
-
-  Args:
-    graph: Tensorflow graph. 
-    train: If True, graph is in training mode.
-
-  Raises:
-    AssertionError: If the default graph already has this value set.
-  """
-  if tf.get_collection('train'):
-    raise AssertionError('Training mode already set: %s' %
-                         graph.get_collection('train'))
-  tf.add_to_collection('train', train)
-
-
-def MultitaskLogits(features, num_tasks, num_classes=2, weight_init=None,
-                    bias_init=None, dropout=None, name=None):
+def multitask_logits(features, num_tasks, num_classes=2, weight_init=None,
+                     bias_init=None, dropout_prob=None, name=None):
   """Create a logit tensor for each classification task.
 
   Args:
@@ -269,26 +129,26 @@ def MultitaskLogits(features, num_tasks, num_classes=2, weight_init=None,
     num_classes: Number of classes for each task.
     weight_init: Weight initializer.
     bias_init: Bias initializer.
-    dropout: Float giving dropout probability for weights (NOT keep
+    dropout_prob: Float giving dropout probability for weights (NOT keep
       probability).
     name: Name for this op. Defaults to 'multitask_logits'.
 
   Returns:
     A list of logit tensors; one for each classification task.
   """
-  logits = []
+  logits_list = []
   with tf.name_scope('multitask_logits'):
     for task_idx in range(num_tasks):
       with tf.op_scope([features], name,
                        ('task' + str(task_idx).zfill(len(str(num_tasks))))):
-        logits.append(
-            Logits(features, num_classes, weight_init=weight_init,
-                   bias_init=bias_init, dropout=dropout))
-  return logits
+        logits_list.append(
+            logits(features, num_classes, weight_init=weight_init,
+                   bias_init=bias_init, dropout_prob=dropout_prob))
+  return logits_list
 
 
-def Logits(features, num_classes=2, weight_init=None, bias_init=None,
-           dropout=None, name=None):
+def logits(features, num_classes=2, weight_init=None, bias_init=None,
+           dropout_prob=None, name=None):
   """Create a logits tensor for a single classification task.
 
   You almost certainly don't want dropout on there -- it's like randomly setting
@@ -299,7 +159,7 @@ def Logits(features, num_classes=2, weight_init=None, bias_init=None,
     num_classes: Number of classes for each task.
     weight_init: Weight initializer.
     bias_init: Bias initializer.
-    dropout: Float giving dropout probability for weights (NOT keep
+    dropout_prob: Float giving dropout probability for weights (NOT keep
       probability).
     name: Name for this op.
 
@@ -307,23 +167,23 @@ def Logits(features, num_classes=2, weight_init=None, bias_init=None,
     A logits tensor with shape batch_size x num_classes.
   """
   with tf.op_scope([features], name, 'logits') as name:
-    return Dropout(
-        FullyConnectedLayer(features, num_classes, weight_init=weight_init,
-                            bias_init=bias_init, name=name),
-        dropout)
+    return dropout(
+        fully_connected_layer(features, num_classes, weight_init=weight_init,
+                              bias_init=bias_init, name=name),
+        dropout_prob)
 
 
-def SoftmaxN(tensor, name=None):
+def softmax_N(tensor, name=None):
   """Apply softmax across last dimension of a tensor.
 
   Args:
     tensor: Input tensor.
-    name: Name for this op. If None, defaults to 'SoftmaxN'.
+    name: Name for this op. If None, defaults to 'softmax_N'.
 
   Returns:
     A tensor with softmax-normalized values on the last dimension.
   """
-  with tf.op_scope([tensor], name, 'SoftmaxN'):
+  with tf.op_scope([tensor], name, 'softmax_N'):
     exp_tensor = tf.exp(tensor)
     reduction_indices = [tensor.get_shape().ndims - 1]
     return tf.div(exp_tensor,
@@ -331,57 +191,10 @@ def SoftmaxN(tensor, name=None):
                                 reduction_indices=reduction_indices,
                                 keep_dims=True))
 
-def Transform(tensor, transform, convolution=True, mask=None):
-  """Apply a transform to a tensor.
-
-  Args:
-    tensor: Input tensor.
-    transform: String description of transform. Supported values are 'bias'
-      and 'batch_norm'.
-    convolution: If True, assume tensor is the output of a convolution.
-    mask: Mask to apply to tensor.
-
-  Returns:
-    A tensor with the same shape as the input tensor.
-
-  Raises:
-    ValueError: If the input tensor is not 3D or 4D.
-  """
-  if len(tensor.get_shape()) not in [2, 3, 4]:
-    raise ValueError('Input tensor must be 2D, 3D or 4D, not %dD.'
-                     % len(tensor.get_shape()))
-  with tensor.graph.as_default():
-    if transform == 'batch_norm':
-      # batch normalization requires 4D input
-      if len(tensor.get_shape()) != 4:
-        # 3D case: add one extra dimension
-        if len(tensor.get_shape()) == 3:
-          squeeze = [2]
-          tensor = tf.expand_dims(tensor, 2)
-          if mask is not None:
-            mask = tf.expand_dims(mask, -1)
-        # 2D case: add two extra dimensions
-        else:
-          squeeze = [1, 2]
-          tensor = tf.expand_dims(tf.expand_dims(tensor, -2), -2)
-          if mask is not None:
-            mask = tf.expand_dims(tf.expand_dims(mask, -1), -1)
-        tensor = BatchNormalize(tensor, convolution=convolution, mask=mask)
-        tensor = tf.squeeze(tensor, squeeze)
-      else:
-        tensor = BatchNormalize(tensor, convolution=convolution, mask=mask)
-    elif transform == 'bias':
-      tensor = AddBias(tensor, init=tf.constant(
-          1.0, shape=[tensor.get_shape()[-1].value]))
-      if mask is not None:
-        tensor = model_utils.Mask(tensor, mask)
-  return tensor
-
-def Optimizer(model_params):
+def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):
   """Create model optimizer.
 
   Args:
-    model_params: dictionary.
 
   Returns:
     A training Optimizer.
@@ -390,18 +203,18 @@ def Optimizer(model_params):
     NotImplementedError: If an unsupported optimizer is requested.
   """
   # TODO(user): gradient clipping (see Minimize)
-  if model_params["optimizer"] == 'adagrad':
-    train_op = tf.train.AdagradOptimizer(model_params["learning_rate"])
-  elif model_params["optimizer"] == 'adam':
-    train_op = tf.train.AdamOptimizer(model_params["learning_rate"])
-  elif model_params["optimizer"] == 'momentum':
-    train_op = tf.train.MomentumOptimizer(model_params["learning_rate"],
-                                          model_params["momentum"])
-  elif model_params["optimizer"] == 'rmsprop':
-    train_op = tf.train.RMSPropOptimizer(model_params["learning_rate"],
-                                         model_params["momentum"])
-  elif model_params["optimizer"] == 'sgd':
-    train_op = tf.train.GradientDescentOptimizer(model_params["learning_rate"])
+  if optimizer == 'adagrad':
+    train_op = tf.train.AdagradOptimizer(learning_rate)
+  elif optimizer == 'adam':
+    train_op = tf.train.AdamOptimizer(learning_rate)
+  elif optimizer == 'momentum':
+    train_op = tf.train.MomentumOptimizer(learning_rate,
+                                          momentum)
+  elif optimizer == 'rmsprop':
+    train_op = tf.train.RMSPropOptimizer(learning_rate,
+                                         momentum)
+  elif optimizer == 'sgd':
+    train_op = tf.train.GradientDescentOptimizer(learning_rate)
   else:
-    raise NotImplementedError('Unsupported optimizer %s' % model_params["optimizer"])
+    raise NotImplementedError('Unsupported optimizer %s' % optimizer)
   return train_op

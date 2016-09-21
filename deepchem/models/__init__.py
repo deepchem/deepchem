@@ -27,19 +27,23 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True, 
-               verbosity=None, **kwargs):
-    self.model_class = model_instance.__class__
+  def __init__(self, model_instance, model_dir,
+               fit_transformers=None, verbosity=None, **kwargs):
+    """Abstract class for all models.
+    Parameters:
+    -----------
+    model_instance: object
+      Wrapper around ScikitLearn/Keras/Tensorflow model object.
+    model_dir: str
+      Path to directory where model will be stored.
+    """
     self.model_dir = model_dir
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
-    self.tasks = tasks
-    self.task_types = task_types
-    self.model_params = model_params
+    self.model_instance = model_instance
+    self.model_class = model_instance.__class__
     self.fit_transformers = fit_transformers
 
-    self.raw_model = None
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
 
@@ -64,18 +68,6 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def set_raw_model(self, raw_model):
-    """
-    Set underlying raw model. Useful when loading from disk.
-    """
-    self.raw_model = raw_model
-
-  def get_raw_model(self):
-    """
-    Return raw model.
-    """
-    return self.raw_model
-
   def reload(self):
     """
     Reload trained model from disk.
@@ -98,24 +90,19 @@ class Model(object):
     return os.path.join(model_dir, "model_params.joblib")
 
   def save(self):
-    """Dispatcher function for saving."""
-    params = {"model_params" : self.model_params,
-              "task_types" : self.task_types,
-              "model_class": self.__class__}
-    save_to_disk(params, Model.get_params_filename(self.model_dir))
+    """Dispatcher function for saving.
 
-  def fit(self, dataset):
+    Each subclass is responsible for overriding this method.
+    """
+    raise NotImplementedError
+
+  def fit(self, dataset, nb_epoch=10, batch_size=50, pad_batches=False, **kwargs):
     """
     Fits a model on data in a Dataset object.
     """
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
-    batch_size = self.model_params["batch_size"]
-    if "pad_batches" in self.model_params:
-      pad_batches = self.model_params["pad_batches"]
-    else:
-      pad_batches = False
-    for epoch in range(self.model_params["nb_epoch"]):
+    for epoch in range(nb_epoch):
       log("Starting epoch %s" % str(epoch+1), self.verbosity)
       losses = []
       for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
@@ -142,7 +129,8 @@ class Model(object):
 
     return X, y, w
 
-  def predict(self, dataset, transformers=[]):
+  def predict(self, dataset, transformers=[], batch_size=None,
+              pad_batches=False):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -150,26 +138,26 @@ class Model(object):
       y_pred: numpy ndarray of shape (n_samples,)
     """
     y_preds = []
-    batch_size = self.model_params["batch_size"]
-    n_tasks = len(self.tasks)
+    n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True):
+        batch_size, deterministic=True, pad_batches=pad_batches):
       n_samples = len(X_batch)
-      y_pred_batch = np.reshape(self.predict_on_batch(X_batch), (n_samples, n_tasks))
+      y_pred_batch = self.predict_on_batch(X_batch)
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)
   
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples = len(dataset)
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
-  def predict_grad(self, dataset, transformers=[]):
+  def predict_grad(self, dataset, transformers=[], batch_size=50):
     """
     Uses self to calculate gradient on provided Dataset object.
 
@@ -180,7 +168,6 @@ class Model(object):
       y_pred: numpy ndarray of shape (n_samples,)
     """
     grads = []
-    batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
       energy_batch = self.predict_on_batch(X_batch)
       grad_batch = self.predict_grad_on_batch(X_batch)
@@ -190,7 +177,7 @@ class Model(object):
   
     return grad
 
-  def evaluate_error(self, dataset, transformers=[]):
+  def evaluate_error(self, dataset, transformers=[], batch_size=50):
     """
     Evaluate the error in energy and gradient components, forcebalance-style.
 
@@ -200,7 +187,6 @@ class Model(object):
     """
     y_preds = []
     y_train = []
-    batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
       y_pred_batch = self.predict_on_batch(X_batch)
@@ -215,7 +201,7 @@ class Model(object):
     y_pred = np.vstack(y_preds)
     y = np.vstack(y_train)
 
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples, n_tasks = len(dataset), self.get_num_tasks()
     n_atoms = int((n_tasks-1)/3)
 
     y_pred = np.reshape(y_pred, (n_samples, n_tasks)) 
@@ -239,7 +225,7 @@ class Model(object):
     
     return energy_error, grad_error
 
-  def evaluate_error_class2(self, dataset, transformers=[]):
+  def evaluate_error_class2(self, dataset, transformers=[], batch_size=50):
     """
     Evaluate the error in energy and gradient components, forcebalance-style.
 
@@ -250,7 +236,6 @@ class Model(object):
     y_preds = []
     y_train = []
     grads = []
-    batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
       # untransformed E is needed for undo_grad_transform
@@ -272,7 +257,7 @@ class Model(object):
     y = np.vstack(y_train)
     grad = np.vstack(grads)
 
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples, n_tasks = len(dataset), self.get_num_tasks()
     n_atoms = int((n_tasks-1)/3)
 
     y_pred = np.reshape(y_pred, (n_samples, n_tasks)) 
@@ -293,7 +278,7 @@ class Model(object):
     
     return energy_error, grad_error
 
-  def test_fd_grad(self, dataset, transformers=[]):
+  def test_fd_grad(self, dataset, transformers=[], batch_size=50):
     """
     Uses self to calculate finite difference gradient on provided Dataset object.
     Currently only useful if your task is energy and self contains predict_grad_on_batch.
@@ -306,7 +291,6 @@ class Model(object):
       y_pred: numpy ndarray of shape (n_samples,)
     """
     y_preds = []
-    batch_size = self.model_params["batch_size"]
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(batch_size):
 
       for xb in X_batch:
@@ -353,7 +337,8 @@ class Model(object):
     return y_pred
 
 
-  def predict_proba(self, dataset, transformers=[], n_classes=2):
+  def predict_proba(self, dataset, transformers=[], batch_size=None,
+                    n_classes=2):
     """
     TODO: Do transformers even make sense here?
 
@@ -361,8 +346,7 @@ class Model(object):
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
     y_preds = []
-    batch_size = self.model_params["batch_size"]
-    n_tasks = len(self.tasks)
+    n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
@@ -373,7 +357,7 @@ class Model(object):
     y_pred = np.vstack(y_preds)
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
-    n_samples, n_tasks = len(dataset), len(self.tasks)
+    n_samples = len(dataset)
     y_pred = y_pred[:n_samples]
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
@@ -382,6 +366,10 @@ class Model(object):
     """
     Currently models can only be classifiers or regressors.
     """
-    # TODO(rbharath): This is a hack based on fact that multi-tasktype models
-    # aren't supported.
-    return self.task_types.itervalues().next()
+    raise NotImplementedError
+
+  def get_num_tasks(self):
+    """
+    Get number of tasks.
+    """
+    raise NotImplementedError

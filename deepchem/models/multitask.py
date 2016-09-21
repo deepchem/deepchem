@@ -18,30 +18,21 @@ class SingletaskToMultitask(Model):
 
   Warning: This current implementation is only functional for sklearn models. 
   """
-  def __init__(self, tasks, task_types, model_params, model_dir, model_builder,
-               store_in_memory=False, verbosity=None):
+  def __init__(self, tasks, model_builder, model_dir, verbosity=None):
     self.tasks = tasks
-    self.task_types = task_types
-    self.model_params = model_params
-    self.models = {}
     self.model_dir = model_dir
-    # If models are TF models, they don't use up RAM, so can keep in memory
-    self.task_models = {}
     self.task_model_dirs = {}
     self.model_builder = model_builder
     self.verbosity = verbosity
-    self.store_in_memory = store_in_memory
     log("About to initialize singletask to multitask model",
         self.verbosity, "high")
     if not os.path.exists(self.model_dir):
       os.makedirs(self.model_dir)
-    self.fit_transformers = False
     for task in self.tasks:
-      task_type = self.task_types[task]
       task_model_dir = os.path.join(self.model_dir, str(task))
       if not os.path.exists(task_model_dir):
         os.makedirs(task_model_dir)
-      log("Initializing model for task %s" % task,
+      log("Initializing directory for task %s" % task,
           self.verbosity, "high")
       self.task_model_dirs[task] = task_model_dir
 
@@ -63,7 +54,7 @@ class SingletaskToMultitask(Model):
     return task_datasets
    
       
-  def fit(self, dataset):
+  def fit(self, dataset, **kwargs):
     """
     Updates all singletask models with new information.
 
@@ -74,13 +65,9 @@ class SingletaskToMultitask(Model):
     for ind, task in enumerate(self.tasks):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       task_model = self.model_builder(
-          [task], {task: self.task_types[task]}, self.model_params,
-          self.task_model_dirs[task],
-          verbosity=self.verbosity)
+          self.task_model_dirs[task])
       task_model.fit(task_datasets[ind])
       task_model.save()
-      if self.store_in_memory:
-        self.task_models[task] = task_model
 
   def predict_on_batch(self, X):
     """
@@ -90,15 +77,8 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
-      task_type = self.task_types[task]
-      if self.store_in_memory:
-        task_model = self.task_models[task]
-      else:
-        task_model = self.model_builder(
-            [task], {task: self.task_types[task]}, self.model_params,
-            self.task_model_dirs[task],
-            verbosity=self.verbosity)
-        task_model.reload()
+      task_model = self.model_builder(self.task_model_dirs[task])
+      task_model.reload()
 
       y_pred[:, ind] = task_model.predict_on_batch(X)
     return y_pred
@@ -111,15 +91,8 @@ class SingletaskToMultitask(Model):
     n_samples = len(dataset) 
     y_pred = np.zeros((n_samples, n_tasks))
     for ind, task in enumerate(self.tasks):
-      task_type = self.task_types[task]
-      if self.store_in_memory:
-        task_model = self.task_models[task]
-      else:
-        task_model = self.model_builder(
-            [task], {task: self.task_types[task]}, self.model_params,
-            self.task_model_dirs[task],
-            verbosity=self.verbosity)
-        task_model.reload()
+      task_model = self.model_builder(self.task_model_dirs[task])
+      task_model.reload()
 
       y_pred[:, ind] = task_model.predict(dataset, [])
     y_pred = undo_transforms(y_pred, transformers)
@@ -133,14 +106,8 @@ class SingletaskToMultitask(Model):
     n_samples = X.shape[0]
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      if self.store_in_memory:
-        task_model = self.task_models[task]
-      else:
-        task_model = self.model_builder(
-            [task], {task: self.task_types[task]}, self.model_params,
-            self.task_model_dirs[task],
-            verbosity=self.verbosity)
-        task_model.reload()
+      task_model = self.model_builder(self.task_model_dirs[task])
+      task_model.reload()
 
       y_pred[:, ind] = task_model.predict_proba_on_batch(X)
     return y_pred
@@ -153,14 +120,8 @@ class SingletaskToMultitask(Model):
     n_samples = len(dataset) 
     y_pred = np.zeros((n_samples, n_tasks, n_classes))
     for ind, task in enumerate(self.tasks):
-      if self.store_in_memory:
-        task_model = self.task_models[task]
-      else:
-        task_model = self.model_builder(
-            [task], {task: self.task_types[task]}, self.model_params,
-            self.task_model_dirs[task],
-            verbosity=self.verbosity)
-        task_model.reload()
+      task_model = self.model_builder(self.task_model_dirs[task])
+      task_model.reload()
 
       y_pred[:, ind] = np.squeeze(task_model.predict_proba(
           dataset, transformers, n_classes))
