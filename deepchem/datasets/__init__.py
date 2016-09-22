@@ -602,9 +602,21 @@ class Dataset(object):
   # TODO(rbharath): This change for general object types seems a little
   # kludgey.  Is there a more principled approach to support general objects?
   def select(self, select_dir, indices, compute_feature_statistics=False):
-    """Creates a new dataset from a selection of indices from self."""
+    """Creates a new dataset from a selection of indices from self.
+
+    Parameters
+    ----------
+    select_dir: string
+      Path to new directory that the selected indices will be copied to.
+    indices: list
+      List of indices to select.
+    compute_feature_statistics: bool
+      Whether or not to compute moments of features. Only meaningful if features
+      are np.ndarrays. Not meaningful for other featurizations.
+    """
     if not os.path.exists(select_dir):
       os.makedirs(select_dir)
+    # Handle edge case with empty indices
     if not len(indices):
       return Dataset(
           data_dir=select_dir, metadata_rows=[], verbosity=self.verbosity)
@@ -622,12 +634,11 @@ class Dataset(object):
         if indices_count + num_shard_elts >= len(indices):
           break
       # Need to offset indices to fit within shard_size
-      shard_indices = (
-          indices[indices_count:indices_count+num_shard_elts] - count)
-      X_sel = X[shard_indices]
-      y_sel = y[shard_indices]
-      w_sel = w[shard_indices]
-      ids_sel = ids[shard_indices]
+      shard_inds =  indices[indices_count:indices_count+num_shard_elts] - count
+      X_sel = X[shard_inds]
+      y_sel = y[shard_inds]
+      w_sel = w[shard_inds]
+      ids_sel = ids[shard_inds]
       basename = "dataset-%d" % shard_num
       metadata_rows.append(
           Dataset.write_data_to_disk(
@@ -696,6 +707,8 @@ class Dataset(object):
     """
     Returns all molecule-ids for this dataset.
     """
+    if len(self) == 0:
+      return np.array([])
     ids = []
     for (_, _, _, ids_b) in self.itershards():
       ids.append(np.atleast_1d(np.squeeze(ids_b)))
