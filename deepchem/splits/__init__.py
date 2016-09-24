@@ -28,9 +28,10 @@ def randomize_arrays(array_list):
   # assumes that every array is of the same dimension
   num_rows = array_list[0].shape[0]
   perm = np.random.permutation(num_rows)
+  permuted_arrays = []
   for array in array_list:
-    array = array[perm]
-  return array_list
+    permuted_arrays.append(array[perm])
+  return permuted_arrays 
 
 class Splitter(object):
   """
@@ -103,13 +104,13 @@ class Splitter(object):
     Splits self into train/test sets.
     Returns Dataset objects.
     """
-    valid_dir = None
+    valid_dir = tempfile.mkdtemp()
     train_samples, _, test_samples = self.train_valid_test_split(
       samples, train_dir, valid_dir, test_dir,
-      frac_train=frac_train, frac_test=1 - frac_train, frac_valid=0.)
+      frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
     return train_samples, test_samples
 
-  def split(self, samples, frac_train=None, frac_valid=None, frac_test=None,
+  def split(self, dataset, frac_train=None, frac_valid=None, frac_test=None,
             log_every_n=None):
     """
     Stub to be filled in by child classes.
@@ -117,10 +118,9 @@ class Splitter(object):
     raise NotImplementedError
 
   
-
-class StratifiedSplitter(Splitter):
+class RandomStratifiedSplitter(Splitter):
   """
-  Stratified Splitter class.
+  RandomStratified Splitter class.
 
   For sparse multitask datasets, a standard split offers no guarantees that the
   splits will have any activate compounds. This class guarantees that each task
@@ -143,52 +143,63 @@ class StratifiedSplitter(Splitter):
       col_hits = int(frac_split * col_hits)
     return required_hits
 
-  def __generate_required_index(self, w, required_hit_list):
-    col_index = 0
-    index_hits = []
+  def get_task_split_indices(self, y, w, frac_split):
+    """Returns num datapoints needed per task to split properly."""
+    w_present = (w != 0)
+    y_present = y * w_present
+
+    # Compute number of actives needed per task.
+    task_actives = np.sum(y_present, axis=0)
+    task_split_actives = (frac_split*task_actives).astype(int)
+    
     # loop through each column and obtain index required to splice out for
     # required fraction of hits
-    for col in w.T:
-      num_hit = 0
-      num_required = required_hit_list[col_index]
-      for index, value in enumerate(col):
-        if value != 0:
-          num_hit += 1
-          if num_hit >= num_required:
-            index_hits.append(index)
-            break
-      col_index += 1
-    return index_hits
+    split_indices = []
+    n_tasks = np.shape(y)[1]
+    for task in range(n_tasks):
+      actives_count = task_split_actives[task]
+      cum_task_actives = np.cumsum(y_present[:, task])
+      # Find the first index where the cumulative number of actives equals
+      # the actives_count
+      split_index = np.amin(np.where(cum_task_actives >= actives_count)[0])
+      # Note that np.where tells us last index required to exceed
+      # actives_count, so we actually want the following location
+      split_indices.append(split_index+1)
+    return split_indices 
 
-  def __split(self, X, y, w, ids, frac_split):
+  # TODO(rbharath): Refactor this split method to match API of other splits (or
+  # potentially refactor those to match this.
+  def split(self, dataset, split_dirs, frac_split):
     """
     Method that does bulk of splitting dataset.
     """
-    # find the total number of hits for each task and calculate the required
-    # number of hits for split based on frac_split
-    required_hits_list = self.__generate_required_hits(w, frac_split)
-    # finds index cutoff per task in array to get required split calculated
-    index_list = self.__generate_required_index(w, required_hits_list)
+    assert len(split_dirs) == 2
+    # Handle edge case where frac_split is 1
+    if frac_split == 1:
+      X, y, w, ids = dataset.to_numpy()
+      dataset_1 = Dataset.from_numpy(split_dirs[0], X, y, w, ids)
+      dataset_2 = None 
+      return dataset_1, dataset_2
+    X, y, w, ids = randomize_arrays(dataset.to_numpy())
+    split_indices = self.get_task_split_indices(y, w, frac_split)
 
-    w_1 = w_2 = np.zeros(w.shape)
-
-    # chunk appropriate values into weights matrices
-    for col_index, index in enumerate(index_list):
+    # Create weight matrices fpor two haves. 
+    w_1, w_2 = np.zeros_like(w), np.zeros_like(w)
+    for task, split_index in enumerate(split_indices):
       # copy over up to required index for weight first_split
-      w_1[:index, col_index] = w[:index, col_index]
-      w_2[index:, col_index] = w[index:, col_index]
+      w_1[:split_index, task] = w[:split_index, task]
+      w_2[split_index:, task] = w[split_index:, task]
 
     # check out if any rows in either w_1 or w_2 are just zeros
     rows_1 = w_1.any(axis=1)
+    X_1, y_1, w_1, ids_1 = X[rows_1], y[rows_1], w_1[rows_1], ids[rows_1]
+    dataset_1 = Dataset.from_numpy(split_dirs[0], X_1, y_1, w_1, ids_1)
+
     rows_2 = w_2.any(axis=1)
+    X_2, y_2, w_2, ids_2 = X[rows_2], y[rows_2], w_2[rows_2], ids[rows_2]
+    dataset_2 = Dataset.from_numpy(split_dirs[1], X_2, y_2, w_2, ids_2)
 
-    # prune first set
-    w_1, X_1, y_1, ids_1 = w_1[rows_1], X[rows_1], y[rows_1], ids[rows_1]
-
-    # prune second sets
-    w_2, X_2, y_2, ids_2 = w_2[rows_2], X[rows_2], y[rows_2], ids[rows_2]
-
-    return ((X_1, y_1, w_1, ids_1), (X_2, y_2, w_2, ids_2))
+    return dataset_1, dataset_2 
 
   def train_valid_test_split(self, dataset, train_dir,
                              valid_dir, test_dir, frac_train=.8,
@@ -196,29 +207,41 @@ class StratifiedSplitter(Splitter):
                              log_every_n=1000):
     """Custom split due to raggedness in original split.
     """
-
     # Obtain original x, y, and w arrays and shuffle
     X, y, w, ids = randomize_arrays(dataset.to_numpy())
-    train_arrays, rem_arrays = self.__split(X, y, w, ids, frac_train)
-    (X_train, y_train, w_train, ids_train) = train_arrays
-    (X_rem, y_rem, w_rem, ids_rem) = rem_arrays 
+    rem_dir = tempfile.mkdtemp()
+    train_dataset, rem_dataset = self.split(
+        dataset, [train_dir, rem_dir], frac_train)
 
     # calculate percent split for valid (out of test and valid)
-    valid_percentage = frac_valid / (frac_valid + frac_test)
+    if frac_valid + frac_test > 0:
+      valid_percentage = frac_valid / (frac_valid + frac_test)
+    else:
+      return train_dataset, None, None
     # split test data into valid and test, treating sub test set also as sparse
-    valid_arrays, test_arrays = self.__split(
-        X_rem, y_rem, w_rem, ids_rem, valid_percentage)
-    (X_valid, y_valid, w_valid, ids_valid) = valid_arrays
-    (X_test, y_test, w_test, ids_test) = test_arrays
+    valid_dataset, test_dataset = self.split(
+        dataset, [valid_dir, test_dir], valid_percentage)
 
-    # turn back into dataset objects
-    train_data = Dataset.from_numpy(
-        train_dir, X_train, y_train, w_train, ids_train)
-    valid_data = Dataset.from_numpy(
-        valid_dir, X_valid, y_valid, w_valid, ids_valid)
-    test_data = Dataset.from_numpy(
-        test_dir, X_test, y_test, w_test, ids_test)
-    return train_data, valid_data, test_data
+    return train_dataset, valid_dataset, test_dataset
+
+  def k_fold_split(self, dataset, directories, compute_feature_statistics=True):
+    """Needs custom implementation due to ragged splits for stratification."""
+    log("Computing K-fold split", self.verbosity)
+    k = len(directories)
+    fold_datasets = []
+    # rem_dataset is remaining portion of dataset
+    rem_dataset = dataset
+    for fold in range(k):
+      # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
+      # to k-1.
+      frac_fold = 1./(k-fold)
+      fold_dir = directories[fold]
+      rem_dir = tempfile.mkdtemp()
+      fold_dataset, rem_dataset = self.split(
+          rem_dataset, [fold_dir, rem_dir], frac_split=frac_fold)
+      fold_datasets.append(fold_dataset)
+    return fold_datasets
+
 
 
 class MolecularWeightSplitter(Splitter):
