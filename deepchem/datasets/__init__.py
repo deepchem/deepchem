@@ -106,8 +106,6 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
       ids_out[start:start+increment] = ids_b[:increment]
       start += increment
     return (X_out, y_out, w_out, ids_out)
-    
-      
 
 class Dataset(object):
   """
@@ -625,7 +623,6 @@ class Dataset(object):
     metadata_rows = []
     tasks = self.get_task_names()
     for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
-      log("Selecting from shard %d" % shard_num, self.verbosity)
       shard_len = len(X)
       # Find indices which rest in this shard
       num_shard_elts = 0
