@@ -138,6 +138,17 @@ Frequently Asked Questions
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
+2. Question: The test suite is core-dumping for me. What's up?
+   ```
+   [rbharath]$ nosetests -v deepchem --nologcapture
+   Illegal instruction (core dumped)
+   ```
+   Answer: This is often due to `openbabel` issues on older linux systems. Open `ipython` and run the following
+   ```
+   In [1]: import openbabel as ob
+   ```
+   If you see a core-dump, then it's a sign there's an issue with your `openbabel` install. Try reinstalling `openbabel` from source for your machine.
+   
    
 Getting Started
 ---------------
