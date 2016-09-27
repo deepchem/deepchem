@@ -143,6 +143,7 @@ Frequently Asked Questions
    [rbharath]$ nosetests -v deepchem --nologcapture
    Illegal instruction (core dumped)
    ```
+   
    Answer: This is often due to `openbabel` issues on older linux systems. Open `ipython` and run the following
    ```
    In [1]: import openbabel as ob
