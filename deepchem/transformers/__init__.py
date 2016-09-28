@@ -11,6 +11,8 @@ from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils import pad_array
+import shutil
+from deepchem.datasets import Dataset
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -120,8 +122,7 @@ class NormalizationTransformer(Transformer):
     row = df.iloc[i]
 
     if self.transform_X:
-      X = load_from_disk(
-          os.path.join(data_dir, row['X-transformed']))
+      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
@@ -456,3 +457,56 @@ class CoulombBinarizationTransformer(Transformer):
 
   def untranform(self, z):
     print("Cannot undo CoulombBinarizationTransformer.")
+
+class CDFTransformer(Transformer):
+  """Histograms the data and assigns values based on sorted list."""
+  """Acts like a Cumulative Distribution Function (CDF)."""
+  def __init__(self, transform_X=False,
+               transform_y=False,
+               bins=2,
+               dataset=None):
+    self.dataset = dataset
+    self.transform_X = transform_X
+    self.transform_y = transform_y
+    self.bins = bins
+
+  def transform(self, dataset):
+    """Performs CDF transform on data."""
+    X, y, w, ids = dataset.to_numpy()
+    w_t = w
+    ids_t = ids
+    if self.transform_X:
+      X_t = self.get_cdf_values(X)
+      y_t = y
+    if self.transform_y:
+      y_t = self.get_cdf_values(y)
+      X_t = X
+    # TODO (rbharath): Find a more elegant solution to saving the data?
+    # shutil.rmtree(dataset.data_dir)
+    # os.makedirs(dataset.data_dir)
+    # Dataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
+    
+    return X_t, y_t, w_t, ids_t
+
+  def get_cdf_values(self, array): 
+    cols = len(array[0,:])
+    rows = len(array[:,0])
+    array_t = np.zeros((rows,cols))
+    parts = rows/self.bins
+    hist_values = np.zeros((rows,1))
+    sorted_hist_values = np.zeros((rows,1))
+    for row in xrange(rows):
+      if np.remainder(self.bins,2)==1:
+        hist_values[row,0] = np.floor(np.divide(row,parts))*1/(self.bins-1)
+      else:
+        hist_values[row,0] = np.floor(np.divide(row,parts))*1/self.bins
+    order = np.argsort(array, axis=0)
+    for col in xrange(cols):
+      sorted_hist_values[:,0] = hist_values[order[:,col],0]
+      array_t[:,col] = sorted_hist_values[:,0]
+
+    return array_t
+
+  def untransform(self, z):
+    print("Cannot undo CDF Transformer.")
+    # Need this for transform_y

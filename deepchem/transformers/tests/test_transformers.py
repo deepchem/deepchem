@@ -12,10 +12,12 @@ __license__ = "GPL"
 import unittest
 import numpy as np
 import pandas as pd
+import numpy.random as random
 import os
 from deepchem.transformers import LogTransformer
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import BalancingTransformer
+from deepchem.transformers import CDFTransformer
 from deepchem.datasets.tests import TestDatasetAPI
 
 class TestTransformerAPI(TestDatasetAPI):
@@ -181,6 +183,29 @@ class TestTransformerAPI(TestDatasetAPI):
     # vectors. Need to figure out what's wrong here. (low priority)
     ## Check that untransform does the right thing.
     #np.testing.assert_allclose(normalization_transformer.untransform(X_t), X)
+
+  def test_cdf_transformer(self):
+    """Test CDF transformer on Gaussian normal dataset."""
+    target = np.array(np.transpose(np.linspace(0.,1.,1001)))
+    target = np.array([target])
+    gaussian_dataset = self.load_gaussian_cdf_data()
+    cdf_transformer = CDFTransformer(
+        transform_X=True, bins=1001, dataset=gaussian_dataset)
+    # cdf_transformer.transform(gaussian_dataset)
+    # X_t, y_t, w_t, ids_t = gaussian_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = cdf_transformer.transform(gaussian_dataset)
+    X, y, w, ids = gaussian_dataset.to_numpy()
+
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check y is unchanged since this is an X transformer
+    np.testing.assert_allclose(y, y_t)
+    # Check w is unchanged since this is an X transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check X is now holding the proper values when sorted.
+    sorted = np.sort(X_t)
+    np.testing.assert_allclose(sorted, target)
 
   def test_singletask_balancing_transformer(self):
     """Test balancing transformer on single-task dataset."""
