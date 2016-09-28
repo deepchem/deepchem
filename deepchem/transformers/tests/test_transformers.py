@@ -189,11 +189,14 @@ class TestTransformerAPI(TestDatasetAPI):
     target = np.array(np.transpose(np.linspace(0.,1.,1001)))
     target = np.array([target])
     gaussian_dataset = self.load_gaussian_cdf_data()
+    bins=1001
     cdf_transformer = CDFTransformer(
-        transform_X=True, bins=1001, dataset=gaussian_dataset)
+        transform_X=True, bins=bins)
+    #cdf_transformer = CDFTransformer(
+    #    transform_X=True, bins=1001, dataset=gaussian_dataset)
     # cdf_transformer.transform(gaussian_dataset)
     # X_t, y_t, w_t, ids_t = gaussian_dataset.to_numpy()
-    X_t, y_t, w_t, ids_t = cdf_transformer.transform(gaussian_dataset)
+    X_t, y_t, w_t, ids_t = cdf_transformer.transform(gaussian_dataset,bins=bins)
     X, y, w, ids = gaussian_dataset.to_numpy()
 
     # Check ids are unchanged.

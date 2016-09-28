@@ -463,23 +463,21 @@ class CDFTransformer(Transformer):
   """Acts like a Cumulative Distribution Function (CDF)."""
   def __init__(self, transform_X=False,
                transform_y=False,
-               bins=2,
-               dataset=None):
-    self.dataset = dataset
+               bins=2):
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.bins = bins
 
-  def transform(self, dataset):
+  def transform(self, dataset, bins):
     """Performs CDF transform on data."""
     X, y, w, ids = dataset.to_numpy()
     w_t = w
     ids_t = ids
     if self.transform_X:
-      X_t = self.get_cdf_values(X)
+      X_t = get_cdf_values(X,self.bins)
       y_t = y
     if self.transform_y:
-      y_t = self.get_cdf_values(y)
+      y_t = get_cdf_values(y,self.bins)
       X_t = X
     # TODO (rbharath): Find a more elegant solution to saving the data?
     # shutil.rmtree(dataset.data_dir)
@@ -488,25 +486,25 @@ class CDFTransformer(Transformer):
     
     return X_t, y_t, w_t, ids_t
 
-  def get_cdf_values(self, array): 
-    cols = len(array[0,:])
-    rows = len(array[:,0])
-    array_t = np.zeros((rows,cols))
-    parts = rows/self.bins
-    hist_values = np.zeros((rows,1))
-    sorted_hist_values = np.zeros((rows,1))
-    for row in xrange(rows):
-      if np.remainder(self.bins,2)==1:
-        hist_values[row,0] = np.floor(np.divide(row,parts))*1/(self.bins-1)
-      else:
-        hist_values[row,0] = np.floor(np.divide(row,parts))*1/self.bins
-    order = np.argsort(array, axis=0)
-    for col in xrange(cols):
-      sorted_hist_values[:,0] = hist_values[order[:,col],0]
-      array_t[:,col] = sorted_hist_values[:,0]
-
-    return array_t
-
   def untransform(self, z):
     print("Cannot undo CDF Transformer.")
     # Need this for transform_y
+
+def get_cdf_values(array, bins): 
+  n_cols = array.shape[1]
+  n_rows = array.shape[0]
+  array_t = np.zeros((n_rows,n_cols))
+  parts = n_rows/bins
+  hist_values = np.zeros(n_rows)
+  sorted_hist_values = np.zeros(n_rows)
+  for row in xrange(n_rows):
+    if np.remainder(bins,2)==1:
+      hist_values[row] = np.floor(np.divide(row,parts))/(bins-1)
+    else:
+      hist_values[row] = np.floor(np.divide(row,parts))/bins
+  for col in xrange(n_cols):
+    order = np.argsort(array[:,col], axis=0)
+    sorted_hist_values = hist_values[order]
+    array_t[:,col] = sorted_hist_values
+
+  return array_t
