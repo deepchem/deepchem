@@ -72,7 +72,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       hydrophobics_dict[name] = compute_hydrophobic_contacts(
           ligand, protein)
-    for name, hydrophobics in hydrophobics_dict.iteritems():
+    for name, hydrophobics in hydrophobics_dict.items():
       print("Processing hydrohobics for %s" % name)
       assert len(hydrophobics) == 6
       assert "BACKBONE_ALPHA" in hydrophobics
@@ -90,7 +90,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       electrostatics_dict[name] = compute_electrostatic_energy(
           ligand, protein)
-    for name, electrostatics in electrostatics_dict.iteritems():
+    for name, electrostatics in electrostatics_dict.items():
       print("Processing electrostatics for %s" % name)
       # The keys of these dicts are pairs of atomtypes, but the keys are
       # sorted so that ("C", "O") is always written as "C_O". Thus, for N
@@ -109,7 +109,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       active_site_dict[name] = compute_active_site_flexibility(
           ligand, protein)
-    for name, active_site_flexibility in active_site_dict.iteritems():
+    for name, active_site_flexibility in active_site_dict.items():
       print("Processing active site flexibility for %s" % name)
       assert len(active_site_flexibility.keys()) == 6
       assert "BACKBONE_ALPHA" in active_site_flexibility
@@ -137,7 +137,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       hbonds_dict[name] = compute_hydrogen_bonds(
           ligand, protein)
-    for name, hbonds in hbonds_dict.iteritems():
+    for name, hbonds in hbonds_dict.items():
       print("Processing hydrogen bonds for %s" % name)
       assert len(hbonds) == 12
       assert "HDONOR-LIGAND_BACKBONE_ALPHA" in hbonds
@@ -161,7 +161,7 @@ class TestBinana(unittest.TestCase):
     for name, _, ligand in self.test_cases:
       counts_dict[name] = compute_ligand_atom_counts(
           ligand)
-    for name, counts in counts_dict.iteritems():
+    for name, counts in counts_dict.items():
       print("Processing ligand atom counts for %s" % name)
       #print counts
       assert len(counts) == len(Binana.atom_types)
@@ -175,15 +175,15 @@ class TestBinana(unittest.TestCase):
       contacts_dict[name] = compute_contacts(
           ligand, protein)
     num_atoms = len(Binana.atom_types)
-    for name, (close_contacts, contacts) in contacts_dict.iteritems():
+    for name, (close_contacts, contacts) in contacts_dict.items():
       print("Processing contacts for %s" % name)
       print("close_contacts")
-      for key, val in close_contacts.iteritems():
+      for key, val in close_contacts.items():
         if val != 0:
           print (key, val)
       print("len(close_contacts): " + str(len(close_contacts)))
       print("contacts")
-      for key, val in contacts.iteritems():
+      for key, val in contacts.items():
         if val != 0:
           print (key, val)
       print("len(contacts): " + str(len(contacts)))
@@ -200,7 +200,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       pi_stacking_dict[name] = compute_pi_pi_stacking(
           ligand, protein)
-    for name, pi_stacking in pi_stacking_dict.iteritems():
+    for name, pi_stacking in pi_stacking_dict.items():
       print("Processing pi-stacking for %s" % name)
       assert len(pi_stacking) == 3
       print(pi_stacking)
@@ -221,7 +221,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       pi_t_dict[name] = compute_pi_t(
           ligand, protein)
-    for name, pi_t in pi_t_dict.iteritems():
+    for name, pi_t in pi_t_dict.items():
       print("Processing pi-T for %s" % name)
       assert len(pi_t) == 3
       assert "T-SHAPED_ALPHA" in pi_t
@@ -236,7 +236,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       pi_cation_dict[name] = compute_pi_cation(
           ligand, protein)
-    for name, pi_cation in pi_cation_dict.iteritems():
+    for name, pi_cation in pi_cation_dict.items():
       print("Processing pi-cation for %s" % name)
       assert len(pi_cation) == 6
       assert 'PI-CATION_LIGAND-CHARGED_ALPHA' in pi_cation
@@ -257,7 +257,7 @@ class TestBinana(unittest.TestCase):
     for name, protein, ligand in self.test_cases:
       salt_bridges_dict[name] = compute_salt_bridges(
           ligand, protein)
-    for name, salt_bridges in salt_bridges_dict.iteritems():
+    for name, salt_bridges in salt_bridges_dict.items():
       print("Processing salt-bridges for %s" % name)
       assert len(salt_bridges) == 3
       print(salt_bridges)
@@ -289,6 +289,6 @@ class TestBinana(unittest.TestCase):
     # rotatable_boonds_count: 1
     total_len = (3*num_atoms*(num_atoms+1)/2 + num_atoms
                  + 12 + 6 + 3 + 6 + 3 + 6 + 3 + 1)
-    for name, input_vector in features_dict.iteritems():
+    for name, input_vector in features_dict.items():
       print("Processing input-vector for %s" % name)
       assert len(input_vector) == total_len

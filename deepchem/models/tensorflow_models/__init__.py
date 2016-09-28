@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import cPickle as pickle
+import pickle
 import os
 import time
 import warnings
@@ -80,7 +80,7 @@ class TensorflowGraph(object):
   def get_feed_dict(named_values):
     feed_dict = {}
     placeholder_root = "placeholders"
-    for name, value in named_values.iteritems():
+    for name, value in named_values.items():
       feed_dict['{}/{}:0'.format(placeholder_root, name)] = value
     return feed_dict
 
@@ -187,7 +187,7 @@ class TensorflowGraphModel(object):
       gradient_costs = []  # costs used for gradient calculation
 
       with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
-        for task in xrange(self.n_tasks):
+        for task in range(self.n_tasks):
           task_str = str(task).zfill(len(str(self.n_tasks)))
           with TensorflowGraph.shared_name_scope(
               'cost_{}'.format(task_str), graph, name_scopes):
@@ -381,7 +381,7 @@ class TensorflowGraphModel(object):
     weights = []
     placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
     with placeholder_scope:
-      for task in xrange(self.n_tasks):
+      for task in range(self.n_tasks):
         weights.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None],
                            name='weights_%d' % task)))
@@ -508,7 +508,7 @@ class TensorflowClassifier(TensorflowGraphModel):
       n_classes = self.n_classes
       labels = []
       with placeholder_scope:
-        for task in xrange(self.n_tasks):
+        for task in range(self.n_tasks):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
@@ -608,7 +608,7 @@ class TensorflowRegressor(TensorflowGraphModel):
       batch_size = self.batch_size
       labels = []
       with placeholder_scope:
-        for task in xrange(self.n_tasks):
+        for task in range(self.n_tasks):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None],
                              name='labels_%d' % task)))

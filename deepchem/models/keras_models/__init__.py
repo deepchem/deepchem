@@ -36,7 +36,7 @@ class KerasModel(Model):
     self.model_instance.save(h5_filename)
     # Save architecture
     json_string = model.to_json()
-    with open(json_filename, "wb") as file_obj:
+    with open(json_filename, "w") as file_obj:
       file_obj.write(json_string)
     model.save_weights(h5_filename, overwrite=True)
 

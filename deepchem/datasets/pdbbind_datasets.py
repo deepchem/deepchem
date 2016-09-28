@@ -39,7 +39,7 @@ def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  rdkit_mol = Chem.SDMolSupplier(str(ligand_file)).next()
+  rdkit_mol = next(Chem.SDMolSupplier(str(ligand_file)))
 
   all_features = []
   for complex_featurizer in complex_featurizers:

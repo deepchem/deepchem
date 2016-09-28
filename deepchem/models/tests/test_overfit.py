@@ -406,7 +406,7 @@ class TestOverfitAPI(TestAPI):
     dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
 
     verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity, task_averager=np.mean)
     def model_builder(model_dir):
       sklearn_model = RandomForestClassifier()
       return SklearnModel(sklearn_model, model_dir)
@@ -476,7 +476,7 @@ class TestOverfitAPI(TestAPI):
     dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
 
     verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
     tensorflow_model = TensorflowMultiTaskClassifier(
         n_tasks, n_features, self.model_dir, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
@@ -511,7 +511,7 @@ class TestOverfitAPI(TestAPI):
     dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
 
     verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    regression_metric = Metric(metrics.r2_score, verbosity=verbosity, task_averager=np.mean)
     def model_builder(model_dir):
       sklearn_model = RandomForestRegressor()
       return SklearnModel(sklearn_model, model_dir)

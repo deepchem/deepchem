@@ -7,6 +7,7 @@ import itertools
 import tempfile
 import shutil
 import collections
+from functools import reduce
 from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
@@ -35,7 +36,7 @@ class HyperparamOpt(object):
     """ 
     hyperparams = params_dict.keys()
     hyperparam_vals = params_dict.values() 
-    for hyperparam_list in params_dict.itervalues():
+    for hyperparam_list in params_dict.values():
       assert isinstance(hyperparam_list, collections.Iterable)
 
     number_combinations = reduce(mul, [len(vals) for vals in hyperparam_vals])

@@ -47,7 +47,7 @@ class TestLoad(TestAPI):
     shutil.move(data_dir, moved_data_dir)
 
     moved_dataset = Dataset(
-        moved_data_dir, reload=reload)
+        moved_data_dir, reload=True)
 
     X_moved, y_moved, w_moved, ids_moved = moved_dataset.to_numpy()
 

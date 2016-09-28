@@ -64,7 +64,7 @@ PI_PADDING = 0.75
 def hashtable_entry_add_one(hashtable, key, toadd=1):
   """Increments hashtable entry if exists, else creates entry."""
   # note that dictionaries (hashtables) are passed by reference in python
-  if hashtable.has_key(key):
+  if key in hashtable:
     hashtable[key] = hashtable[key] + toadd
   else:
     hashtable[key] = toadd

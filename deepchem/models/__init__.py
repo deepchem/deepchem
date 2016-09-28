@@ -301,8 +301,8 @@ class Model(object):
         h = 0.001
         fd_batch = []
         # Filling a new batch with displaced geometries
-        for i in xrange(num_atoms):
-          for j in xrange(coords):
+        for i in range(num_atoms):
+          for j in range(coords):
             displace = np.zeros((num_atoms, coords))
             displace[i][j] += h/2
             fd_batch.append(xb+displace)

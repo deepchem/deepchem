@@ -167,7 +167,7 @@ class DataLoader(object):
         worker_pool = mp.Pool(processes=1)
     log("Spawning workers now.", self.verbosity)
     metadata_rows = []
-    data_iterator = it.izip(
+    data_iterator = zip(
         it.repeat((self, shard_size, input_type, data_dir)),
         enumerate(load_data(input_files, shard_size, self.verbosity)))
     # Turns out python map is terrible and exhausts the generator as given.
@@ -212,7 +212,7 @@ class DataLoader(object):
     # creating a Dataset. Is there a more elegant solutions?
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
-                      reload=reload, verbosity=self.verbosity)
+                      reload=True, verbosity=self.verbosity)
     ############################################################## TIMING
     time2 = time.time()
     print("TIMING: dataset construction took %0.3f s" % (time2-time1),

@@ -39,8 +39,9 @@ class TestGeneralization(TestAPI):
     X, y = dataset.data, dataset.target
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
@@ -73,8 +74,9 @@ class TestGeneralization(TestAPI):
 
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
@@ -117,8 +119,9 @@ class TestGeneralization(TestAPI):
     
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
@@ -154,8 +157,9 @@ class TestGeneralization(TestAPI):
 
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
@@ -191,8 +195,9 @@ class TestGeneralization(TestAPI):
     
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
     test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
 
