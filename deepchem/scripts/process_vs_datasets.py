@@ -11,7 +11,7 @@ import argparse
 import os
 import csv
 from rdkit import Chem
-import cPickle as pickle
+import pickle
 import warnings
 from multiprocessing import Pool
 import itertools

@@ -212,8 +212,8 @@ class Featurizer(object):
     # - second axis = max # conformers
     # - remaining axes = determined by feature shape
     features_shape = None
-    for i in xrange(len(features)):
-      for j in xrange(len(features[i])):
+    for i in range(len(features)):
+      for j in range(len(features[i])):
         if features[i][j] is not None:
           features_shape = features[i][0].shape
           break
@@ -230,7 +230,7 @@ class Featurizer(object):
       try:
         x[i, :n_confs] = mol_features
       except ValueError:  # handle None conformer values
-        for j in xrange(n_confs):
+        for j in range(n_confs):
           x[i, j] = mol_features[j]
     return x
 

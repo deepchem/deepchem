@@ -51,7 +51,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
 
       prev_layer = self.mol_features
       prev_layer_size = n_features 
-      for i in xrange(n_layers):
+      for i in range(n_layers):
         layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -81,7 +81,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     """ 
     orig_dict = {}
     orig_dict["mol_features"] = X_b
-    for task in xrange(self.n_tasks):
+    for task in range(self.n_tasks):
       if y_b is not None:
         orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
       else:
@@ -133,7 +133,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
 
       prev_layer = self.mol_features
       prev_layer_size = n_features 
-      for i in xrange(n_layers):
+      for i in range(n_layers):
         layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -172,7 +172,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
     """ 
     orig_dict = {}
     orig_dict["mol_features"] = X_b
-    for task in xrange(self.n_tasks):
+    for task in range(self.n_tasks):
       if y_b is not None:
         orig_dict["labels_%d" % task] = y_b[:, task]
       else:

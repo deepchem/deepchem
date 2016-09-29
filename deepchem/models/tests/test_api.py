@@ -38,6 +38,7 @@ from deepchem.models.keras_models import KerasModel
 import tensorflow as tf
 from keras import backend as K
 
+
 class TestModelAPI(TestAPI):
   """
   Test top-level API for ML models.
@@ -128,52 +129,6 @@ class TestModelAPI(TestAPI):
     evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
     _ = evaluator.compute_model_performance(regression_metrics)
 
-  def test_singletask_sklearn_rf_ECFP_regression_sharded_API(self):
-    """Test of singletask RF ECFP regression API: sharded edition."""
-    splittype = "scaffold"
-    featurizer = CircularFingerprint(size=1024)
-    tasks = ["label"]
-    task_type = "regression"
-    task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(
-        self.current_dir, "../../../datasets/pdbbind_core_df.pkl.gz")
-
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
-
-    splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
-    input_transformers = []
-    output_transformers = [
-        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-    transformers = input_transformers + output_transformers
-    for dataset in [train_dataset, test_dataset]:
-      for transformer in transformers:
-        transformer.transform(dataset)
-    # We set shard size above to force the creation of multiple shards of the data.
-    # pdbbind_core has ~200 examples.
-    regression_metrics = [Metric(metrics.r2_score),
-                          Metric(metrics.mean_squared_error),
-                          Metric(metrics.mean_absolute_error)]
-
-    sklearn_model = RandomForestRegressor()
-    model = SklearnModel(sklearn_model, self.model_dir)
-
-    # Fit trained model
-    model.fit(train_dataset)
-    model.save()
-
-    # Eval model on train
-    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
-
-    # Eval model on test
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
 
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""

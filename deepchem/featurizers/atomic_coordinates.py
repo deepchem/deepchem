@@ -37,10 +37,10 @@ class AtomicCoordinates(Featurizer):
     # RDKit stores atomic coordinates in Angstrom. Atomic unit of length is the
     # bohr (1 bohr = 0.529177 Angstrom). Converting units makes gradient calculation
     # consistent with most QM software packages.
-    coords_in_bohr = [mol.GetConformer(0).GetAtomPosition(i).__div__(0.52917721092)
-                      for i in xrange(N)]
+    coords_in_bohr = [mol.GetConformer(0).GetAtomPosition(i).__idiv__(0.52917721092)
+                      for i in range(N)]
 
-    for atom in xrange(N):
+    for atom in range(N):
       coords[atom,0] = coords_in_bohr[atom].x
       coords[atom,1] = coords_in_bohr[atom].y
       coords[atom,2] = coords_in_bohr[atom].z

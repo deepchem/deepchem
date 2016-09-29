@@ -85,8 +85,8 @@ class CoulombMatrix(Featurizer):
     for conf in mol.GetConformers():
       d = self.get_interatomic_distances(conf)
       m = np.zeros((n_atoms, n_atoms))
-      for i in xrange(mol.GetNumAtoms()):
-        for j in xrange(mol.GetNumAtoms()):
+      for i in range(mol.GetNumAtoms()):
+        for j in range(mol.GetNumAtoms()):
           if i == j:
             m[i, j] = 0.5 * z[i] ** 2.4
           elif i < j:
@@ -127,7 +127,7 @@ class CoulombMatrix(Featurizer):
     rval = []
     row_norms = np.asarray([np.linalg.norm(row) for row in m], dtype=float)
     rng = np.random.RandomState(self.seed)
-    for i in xrange(self.n_samples):
+    for i in range(self.n_samples):
       e = rng.normal(size=row_norms.size)
       p = np.argsort(row_norms + e)
       new = m[p][:, p]  # permute rows first, then columns
@@ -145,10 +145,10 @@ class CoulombMatrix(Featurizer):
         Molecule conformer.
     """
     n_atoms = conf.GetNumAtoms()
-    coords = [conf.GetAtomPosition(i).__div__(0.52917721092) for i in xrange(n_atoms)]  # Convert AtomPositions from Angstrom to bohr (atomic units)
+    coords = [conf.GetAtomPosition(i).__idiv__(0.52917721092) for i in range(n_atoms)]  # Convert AtomPositions from Angstrom to bohr (atomic units)
     d = np.zeros((n_atoms, n_atoms), dtype=float)
-    for i in xrange(n_atoms):
-      for j in xrange(n_atoms):
+    for i in range(n_atoms):
+      for j in range(n_atoms):
         if i < j:
           d[i, j] = coords[i].Distance(coords[j])
           d[j, i] = d[i, j]

@@ -167,8 +167,10 @@ class DataLoader(object):
         worker_pool = mp.Pool(processes=1)
     log("Spawning workers now.", self.verbosity)
     metadata_rows = []
-    data_iterator = it.izip(
-        it.repeat((self, shard_size, input_type, data_dir)),
+    def wrap_with_shard_metadata(iterator):
+      for item in iterator:
+        yield ((self, shard_size, input_type, data_dir), item)
+    data_iterator = wrap_with_shard_metadata(
         enumerate(load_data(input_files, shard_size, self.verbosity)))
     # Turns out python map is terrible and exhausts the generator as given.
     # Solution seems to be to to manually pull out N elements from iterator,
@@ -212,7 +214,7 @@ class DataLoader(object):
     # creating a Dataset. Is there a more elegant solutions?
     dataset = Dataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
-                      reload=reload, verbosity=self.verbosity)
+                      reload=True, verbosity=self.verbosity)
     ############################################################## TIMING
     time2 = time.time()
     print("TIMING: dataset construction took %0.3f s" % (time2-time1),

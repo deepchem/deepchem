@@ -257,7 +257,7 @@ class Dataset(object):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    return self.metadata_df.iterrows().next()[1]['task_names']
+    return next(self.metadata_df.iterrows())[1]['task_names']
 
   def get_data_shape(self):
     """
@@ -268,7 +268,7 @@ class Dataset(object):
     sample_X = load_from_disk(
         os.path.join(
             self.data_dir,
-            self.metadata_df.iterrows().next()[1]['X-transformed']))[0]
+            next(self.metadata_df.iterrows())[1]['X-transformed']))[0]
     return np.shape(sample_X)
 
   def get_shard_size(self):
@@ -278,7 +278,7 @@ class Dataset(object):
     sample_y = load_from_disk(
         os.path.join(
             self.data_dir,
-            self.metadata_df.iterrows().next()[1]['y-transformed']))
+            next(self.metadata_df.iterrows())[1]['y-transformed']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -891,7 +891,7 @@ class Dataset(object):
 
     energy = y[:,0]
     grad = y[:,1:]
-    for i in xrange(energy.size):
+    for i in range(energy.size):
       grad[i] *= energy[i]
 
     ydely_means = np.sum(grad, axis=0)/y_n[1:]
