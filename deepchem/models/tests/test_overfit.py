@@ -340,7 +340,7 @@ class TestOverfitAPI(TestAPI):
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
     scores = evaluator.compute_model_performance([classification_metric])
 
-    assert scores[classification_metric.name] > .8
+    assert scores[classification_metric.name] > .75
 
   def test_tf_skewed_missing_classification_overfit(self):
     """TF, skewed data, few actives
