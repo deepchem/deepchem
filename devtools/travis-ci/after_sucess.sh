@@ -12,7 +12,7 @@ fi
 # Create the docs and push them to S3
 # -----------------------------------
 echo "About to install numpydoc, s3cmd"
-pip install numpydoc s3cmd
+pip install numpydoc s3cmd msmb_theme
 conda list -e
 mkdir -p docs/_build
 echo "About to build docs"
