@@ -324,10 +324,6 @@ class Dataset(object):
       shard_perm = np.arange(num_shards)
     for i in range(num_shards):
       X, y, w, ids = self.get_shard(shard_perm[i])
-      ############################################################ DEBUG
-      print("X.shape, y.shape, w.shape, ids.shape")
-      print(X.shape, y.shape, w.shape, ids.shape)
-      ############################################################ DEBUG
       n_samples = X.shape[0]
       if not deterministic:
         sample_perm = np.random.permutation(n_samples)
@@ -342,12 +338,6 @@ class Dataset(object):
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
         perm_indices = sample_perm[indices]
-        ############################################################# DEBUG
-        #print("len(indices)")
-        #print(len(indices))
-        #print("perm_indices")
-        #print(perm_indices)
-        ############################################################# DEBUG
         X_batch = X[perm_indices]
         y_batch = y[perm_indices]
         w_batch = w[perm_indices]
