@@ -42,8 +42,8 @@ class TestSplitters(TestDatasetAPI):
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(
         merge_dir, [train_data, valid_data, test_data])
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(solubility_dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
 
   def test_singletask_index_split(self):
     """
@@ -63,8 +63,8 @@ class TestSplitters(TestDatasetAPI):
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(
         merge_dir, [train_data, valid_data, test_data])
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(solubility_dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
 
   def test_singletask_scaffold_split(self):
     """
@@ -87,7 +87,7 @@ class TestSplitters(TestDatasetAPI):
     """
     solubility_dataset = self.load_solubility_data()
     random_splitter = RandomSplitter()
-    ids_set = set(solubility_dataset.get_ids())
+    ids_set = set(solubility_dataset.ids)
 
     K = 5
     fold_dirs = [tempfile.mkdtemp() for i in range(K)]
@@ -97,21 +97,21 @@ class TestSplitters(TestDatasetAPI):
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
-      fold_ids_set = set(fold_dataset.get_ids())
+      fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
       # Verify that no two folds have overlapping compounds.
       for other_fold in range(K):
         if fold == other_fold:
           continue
         other_fold_dataset = fold_datasets[other_fold]
-        other_fold_ids_set = set(other_fold_dataset.get_ids())
+        other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(solubility_dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
 
   def test_singletask_index_k_fold_split(self):
     """
@@ -119,7 +119,7 @@ class TestSplitters(TestDatasetAPI):
     """
     solubility_dataset = self.load_solubility_data()
     index_splitter = IndexSplitter()
-    ids_set = set(solubility_dataset.get_ids())
+    ids_set = set(solubility_dataset.ids)
 
     K = 5
     fold_dirs = [tempfile.mkdtemp() for i in range(K)]
@@ -130,21 +130,21 @@ class TestSplitters(TestDatasetAPI):
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
-      fold_ids_set = set(fold_dataset.get_ids())
+      fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
       # Verify that no two folds have overlapping compounds.
       for other_fold in range(K):
         if fold == other_fold:
           continue
         other_fold_dataset = fold_datasets[other_fold]
-        other_fold_ids_set = set(other_fold_dataset.get_ids())
+        other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(solubility_dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
     
   def test_singletask_scaffold_k_fold_split(self):
     """
@@ -152,7 +152,7 @@ class TestSplitters(TestDatasetAPI):
     """
     solubility_dataset = self.load_solubility_data()
     scaffold_splitter = ScaffoldSplitter()
-    ids_set = set(solubility_dataset.get_ids())
+    ids_set = set(solubility_dataset.ids)
 
     K = 5
     fold_dirs = [tempfile.mkdtemp() for i in range(K)]
@@ -164,21 +164,21 @@ class TestSplitters(TestDatasetAPI):
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
-      fold_ids_set = set(fold_dataset.get_ids())
+      fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
       # Verify that no two folds have overlapping compounds.
       for other_fold in range(K):
         if fold == other_fold:
           continue
         other_fold_dataset = fold_datasets[other_fold]
-        other_fold_ids_set = set(other_fold_dataset.get_ids())
+        other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(solubility_dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
 
   def test_singletask_stratified_column_indices(self):
     """
@@ -310,10 +310,10 @@ class TestSplitters(TestDatasetAPI):
     assert len(dataset_2) == 10
 
     # Check positives are correctly distributed
-    y_1 = dataset_1.get_labels()
+    y_1 = dataset_1.y
     assert np.count_nonzero(y_1) == n_positives/2
 
-    y_2 = dataset_2.get_labels()
+    y_2 = dataset_2.y
     assert np.count_nonzero(y_2) == n_positives/2
 
   def test_singletask_stratified_k_fold_split(self):
@@ -335,7 +335,7 @@ class TestSplitters(TestDatasetAPI):
     dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
     
     stratified_splitter = RandomStratifiedSplitter()
-    ids_set = set(dataset.get_ids())
+    ids_set = set(dataset.ids)
 
     K = 5
     fold_dirs = [tempfile.mkdtemp() for i in range(K)]
@@ -347,25 +347,25 @@ class TestSplitters(TestDatasetAPI):
       # Verify lengths is 100/k == 20
       # Note: This wouldn't work for multitask str
       # assert len(fold_dataset) == n_samples/K
-      fold_labels = fold_dataset.get_labels()
+      fold_labels = fold_dataset.y
       # Verify that each fold has n_positives/K = 4 positive examples.
       assert np.count_nonzero(fold_labels == 1) == n_positives/K
       # Verify that compounds in this fold are subset of original compounds
-      fold_ids_set = set(fold_dataset.get_ids())
+      fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
       # Verify that no two folds have overlapping compounds.
       for other_fold in range(K):
         if fold == other_fold:
           continue
         other_fold_dataset = fold_datasets[other_fold]
-        other_fold_ids_set = set(other_fold_dataset.get_ids())
+        other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
     merged_dataset = Dataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(dataset)
-    assert sorted(merged_dataset.get_ids()) == (
-           sorted(dataset.get_ids()))
+    assert sorted(merged_dataset.ids) == (
+           sorted(dataset.ids))
 
 
   def test_multitask_random_split(self):

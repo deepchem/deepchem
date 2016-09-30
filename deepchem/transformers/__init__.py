@@ -383,8 +383,8 @@ class BalancingTransformer(Transformer):
     assert transform_w
 
     # Compute weighting factors from dataset.
-    y = self.dataset.get_labels()
-    w = self.dataset.get_weights()
+    y = self.dataset.y
+    w = self.dataset.w
     # Ensure dataset is binary
     np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
     weights = []

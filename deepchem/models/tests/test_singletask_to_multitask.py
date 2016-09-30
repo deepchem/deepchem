@@ -13,7 +13,7 @@ import numpy as np
 from deepchem.models.tests import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.models.multitask import SingletaskToMultitask 
 from deepchem.models.sklearn_models import SklearnModel
@@ -34,7 +34,7 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     y_train = np.random.randint(2, size=(n_train, n_tasks))
     w_train = np.ones_like(y_train)
     ids_train = ["C"] * n_train
-    train_dataset = Dataset.from_numpy(
+    train_dataset = DiskDataset.from_numpy(
         self.train_dir, X_train, y_train, w_train, ids_train)
 
     # Define test dataset
@@ -43,7 +43,7 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     y_test = np.random.randint(2, size=(n_test, n_tasks))
     w_test = np.ones_like(y_test)
     ids_test = ["C"] * n_test
-    test_dataset = Dataset.from_numpy(
+    test_dataset = DiskDataset.from_numpy(
         self.test_dir, X_test, y_test, w_test, ids_test)
 
     transformers = []

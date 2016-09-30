@@ -71,13 +71,13 @@ class TestMerge(TestAPI):
 
     shard_nums = [1, 2]
 
-    orig_ids = dataset.get_ids()
+    orig_ids = dataset.ids
     _, _, _, ids_1 = dataset.get_shard(1)
     _, _, _, ids_2 = dataset.get_shard(2)
 
     subset = dataset.subset(subset_dir, shard_nums)
-    after_ids = dataset.get_ids()
+    after_ids = dataset.ids
 
     assert len(subset) == 4
-    assert sorted(subset.get_ids()) == sorted(np.concatenate([ids_1, ids_2]))
+    assert sorted(subset.ids) == sorted(np.concatenate([ids_1, ids_2]))
     assert list(orig_ids) == list(after_ids)

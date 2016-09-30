@@ -260,7 +260,7 @@ class MolecularWeightSplitter(Splitter):
     np.random.seed(seed)
 
     mws = []
-    for smiles in dataset.get_ids():
+    for smiles in dataset.ids:
       mol = Chem.MolFromSmiles(smiles)
       mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
       mws.append(mw)
@@ -328,7 +328,7 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     log("About to generate scaffolds", self.verbosity)
     data_len = len(dataset)
-    for ind, smiles in enumerate(dataset.get_ids()):
+    for ind, smiles in enumerate(dataset.ids):
       if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
       scaffold = generate_scaffold(smiles)

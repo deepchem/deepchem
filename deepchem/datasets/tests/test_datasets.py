@@ -322,8 +322,8 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     """Test that ordering of labels is consistent over time."""
     solubility_dataset = self.load_solubility_data()
 
-    ids1 = solubility_dataset.get_ids()
-    ids2 = solubility_dataset.get_ids()
+    ids1 = solubility_dataset.ids
+    ids2 = solubility_dataset.ids
 
     assert np.array_equal(ids1, ids2)
 

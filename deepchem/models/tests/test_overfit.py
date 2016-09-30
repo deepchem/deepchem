@@ -16,7 +16,7 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from deepchem import metrics
-from deepchem.datasets import Dataset
+from deepchem.datasets import NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.tests import TestAPI
 from deepchem.utils.evaluate import Evaluator
@@ -47,7 +47,7 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
@@ -77,7 +77,7 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -109,7 +109,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -144,7 +144,7 @@ class TestOverfitAPI(TestAPI):
       y = np.random.rand(n_samples, n_tasks)
       w = np.ones((n_samples, n_tasks))
 
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
@@ -175,7 +175,7 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = Metric(metrics.mean_squared_error, verbosity=verbosity)
@@ -214,7 +214,7 @@ class TestOverfitAPI(TestAPI):
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -252,7 +252,7 @@ class TestOverfitAPI(TestAPI):
       y = np.random.binomial(1, p, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -284,7 +284,7 @@ class TestOverfitAPI(TestAPI):
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
@@ -321,7 +321,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -368,7 +368,7 @@ class TestOverfitAPI(TestAPI):
     w_flat[y_flat != 0] = weight_nonzero
     w = np.reshape(w_flat, (n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -403,7 +403,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity, task_averager=np.mean)
@@ -439,7 +439,7 @@ class TestOverfitAPI(TestAPI):
       X = np.random.rand(n_samples, n_features)
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = Metric(
@@ -473,7 +473,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
@@ -508,7 +508,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity, task_averager=np.mean)
@@ -544,7 +544,7 @@ class TestOverfitAPI(TestAPI):
       X = np.random.rand(n_samples, n_features)
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       regression_metric = Metric(metrics.r2_score, verbosity=verbosity,
@@ -578,7 +578,7 @@ class TestOverfitAPI(TestAPI):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     model_params = {
       "layer_sizes": [1000],
@@ -593,8 +593,7 @@ class TestOverfitAPI(TestAPI):
       "bias_init_consts": [1.],
       "nb_epoch": 100,
       "penalty": 0.0,
-      "optimizer": "adam",
-      "data_shape": dataset.get_data_shape()
+      "optimizer": "adam"
     }
 
     verbosity = "high"

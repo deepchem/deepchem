@@ -17,7 +17,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 ## task0: 1,1,0,-,0,-,1,-,-,1
 
@@ -46,7 +46,7 @@ class TestLoad(TestAPI):
     X, y, w, ids = dataset.to_numpy()
     shutil.move(data_dir, moved_data_dir)
 
-    moved_dataset = Dataset(
+    moved_dataset = DiskDataset(
         moved_data_dir, reload=True)
 
     X_moved, y_moved, w_moved, ids_moved = moved_dataset.to_numpy()
@@ -107,7 +107,7 @@ class TestLoad(TestAPI):
     y_tasks, w_tasks, = [], []
     for ind, task in enumerate(all_tasks):
       print("Processing task %s" % task)
-      dataset = Dataset(data_dir, verbosity=verbosity, reload=reload)
+      dataset = DiskDataset(data_dir, verbosity=verbosity, reload=reload)
 
       X_task, y_task, w_task, ids_task = dataset.to_numpy()
       y_tasks.append(y_task[:, ind])
