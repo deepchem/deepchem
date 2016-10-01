@@ -187,7 +187,7 @@ class TensorflowGraphModel(object):
       gradient_costs = []  # costs used for gradient calculation
 
       with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
-        for task in xrange(self.n_tasks):
+        for task in range(self.n_tasks):
           task_str = str(task).zfill(len(str(self.n_tasks)))
           with TensorflowGraph.shared_name_scope(
               'cost_{}'.format(task_str), graph, name_scopes):
@@ -555,6 +555,9 @@ class TensorflowClassifier(TensorflowGraphModel):
               (batch_outputs.shape,))
         outputs.append(batch_outputs)
 
+        # TODO(rbharath): This is a bug! We're actually applying softmax twice.
+        # I believe this is harmless since softmax of softmax doesn't change
+        # properties, but I need to check this...
         # We apply softmax to predictions to get class probabilities.
         outputs = softmax(np.squeeze(np.hstack(outputs)))
 

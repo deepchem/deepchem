@@ -143,6 +143,12 @@ class Model(object):
         batch_size, deterministic=True, pad_batches=pad_batches):
       n_samples = len(X_batch)
       y_pred_batch = self.predict_on_batch(X_batch)
+      ################################################################### DEBUG
+      #print("X_batch.shape, y_batch.shape")
+      #print(X_batch.shape, y_batch.shape)
+      #print("y_pred_batch.shape")
+      #print(y_pred_batch.shape)
+      ################################################################### DEBUG
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
@@ -151,6 +157,10 @@ class Model(object):
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples = len(dataset)
+    ################################################### DEBUG
+    print("n_samples, y_pred.shape, (n_samples, n_tasks)")
+    print(n_samples, y_pred.shape, (n_samples, n_tasks))
+    ################################################### DEBUG
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
@@ -338,7 +348,7 @@ class Model(object):
 
 
   def predict_proba(self, dataset, transformers=[], batch_size=None,
-                    n_classes=2):
+                    n_classes=2, pad_batches=False):
     """
     TODO: Do transformers even make sense here?
 
@@ -348,7 +358,7 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True):
+        batch_size, deterministic=True, pad_batches=pad_batches):
       y_pred_batch = self.predict_proba_on_batch(X_batch)
       batch_size = len(y_batch)
       y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes))
