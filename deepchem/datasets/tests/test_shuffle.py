@@ -17,7 +17,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 class TestShuffle(TestAPI):
   """
@@ -41,11 +41,11 @@ class TestShuffle(TestAPI):
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     orig_len = len(dataset)
 
     dataset.shuffle(iterations=5)
-    X_new, y_new, w_new, new_ids = dataset.to_numpy()
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -75,11 +75,11 @@ class TestShuffle(TestAPI):
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     orig_len = len(dataset)
 
     dataset.sparse_shuffle()
-    X_new, y_new, w_new, new_ids = dataset.to_numpy()
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -109,11 +109,11 @@ class TestShuffle(TestAPI):
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = dataset.to_numpy()
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     orig_len = len(dataset)
 
     dataset.reshard_shuffle(reshard_size=1)
-    X_new, y_new, w_new, new_ids = dataset.to_numpy()
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -135,11 +135,11 @@ class TestShuffle(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
     dataset.reshard(shard_size=10)
 
     dataset.shuffle_each_shard()
-    X_s, y_s, w_s, ids_s = dataset.to_numpy()
+    X_s, y_s, w_s, ids_s = (dataset.X, dataset.y, dataset.w, dataset.ids)
     assert X_s.shape == X.shape
     assert y_s.shape == y.shape
     assert ids_s.shape == ids.shape
@@ -163,11 +163,11 @@ class TestShuffle(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
     dataset.reshard(shard_size=10)
     dataset.shuffle_shards()
 
-    X_s, y_s, w_s, ids_s = dataset.to_numpy()
+    X_s, y_s, w_s, ids_s = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
     assert X_s.shape == X.shape
     assert y_s.shape == y.shape

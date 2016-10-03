@@ -132,6 +132,11 @@ class Dataset(object):
     raise NotImplementedError()
 
   @property
+  def X(self):
+    """Get the X vector for this dataset as a single numpy array."""
+    raise NotImplementedError()
+
+  @property
   def y(self):
     """Get the y vector for this dataset as a single numpy array."""
     raise NotImplementedError()
@@ -147,15 +152,6 @@ class Dataset(object):
     """Get the weight vector for this dataset as a single numpy array."""
     raise NotImplementedError()
 
-  def to_numpy(self):
-    """
-    Transforms internal data into arrays X, y, w, ids
-
-    Creates three arrays containing all data in this object. This operation is
-    dangerous (!) for large datasets which don't fit into memory.
-    """
-    raise NotImplementedError()
-
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False, pad_batches=False):
     """Generator that iterates over minibatches from the dataset.
     
@@ -167,7 +163,7 @@ class Dataset(object):
 class NumpyDataset(Dataset):
   """A Dataset defined by in-memory numpy arrays."""
 
-  def __init__(self, X, y, w=None, ids=None):
+  def __init__(self, X, y, w=None, ids=None, verbosity=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -183,6 +179,7 @@ class NumpyDataset(Dataset):
     self._y = y
     self._w = w
     self._ids = np.array(ids, dtype=object)
+    self.verbosity = verbosity
 
   def __len__(self):
     """
@@ -202,6 +199,11 @@ class NumpyDataset(Dataset):
     tasks = np.arange(self._y.shape[1])
 
   @property
+  def X(self):
+    """Get the X vector for this dataset as a single numpy array."""
+    return self._X
+
+  @property
   def y(self):
     """Get the y vector for this dataset as a single numpy array."""
     return self._y
@@ -215,15 +217,6 @@ class NumpyDataset(Dataset):
   def w(self):
     """Get the weight vector for this dataset as a single numpy array."""
     return self._w
-
-  def to_numpy(self):
-    """
-    Transforms internal data into arrays X, y, w, ids
-
-    Creates three arrays containing all data in this object. This operation is
-    dangerous (!) for large datasets which don't fit into memory.
-    """
-    return self._X, self._y, self._w, self._ids
 
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False, pad_batches=False):
     """Generator that iterates over minibatches from the dataset.
@@ -524,7 +517,7 @@ class DiskDataset(Dataset):
         reshard_dir, new_basename, tasks, X_next, y_next, w_next, ids_next))
     ind += 1
     # Get new metadata rows
-    resharded_dataset = Dataset(
+    resharded_dataset = DiskDataset(
         data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata,
         verbosity=self.verbosity)
     shutil.rmtree(self.data_dir)
@@ -561,12 +554,12 @@ class DiskDataset(Dataset):
     Xs, ys, ws, all_ids = [], [], [], []
     metadata_rows = []
     for ind, dataset in enumerate(datasets):
-      X, y, w, ids = dataset.to_numpy()
+      X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
       basename = "dataset-%d" % ind
       tasks = dataset.get_task_names()
       metadata_rows.append(
           DiskDataset.write_data_to_disk(merge_dir, basename, tasks, X, y, w, ids))
-    return Dataset(data_dir=merge_dir,
+    return DiskDataset(data_dir=merge_dir,
                    metadata_rows=metadata_rows,
                    verbosity=dataset.verbosity)
 
@@ -583,7 +576,7 @@ class DiskDataset(Dataset):
       basename = "dataset-%d" % shard_num
       metadata_rows.append(DiskDataset.write_data_to_disk(
           subset_dir, basename, tasks, X, y, w, ids))
-    return Dataset(data_dir=subset_dir,
+    return DiskDataset(data_dir=subset_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
@@ -761,7 +754,7 @@ class DiskDataset(Dataset):
       os.makedirs(select_dir)
     # Handle edge case with empty indices
     if not len(indices):
-      return Dataset(
+      return DiskDataset(
           data_dir=select_dir, metadata_rows=[], verbosity=self.verbosity)
     indices = np.array(sorted(indices)).astype(int)
     count, indices_count = 0, 0
@@ -790,7 +783,7 @@ class DiskDataset(Dataset):
       # Updating counts
       indices_count += num_shard_elts
       count += shard_len
-    return Dataset(data_dir=select_dir,
+    return DiskDataset(data_dir=select_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
@@ -827,23 +820,6 @@ class DiskDataset(Dataset):
                 verbosity=self.verbosity)
         for (task_num, task) in enumerate(tasks)]
     return task_datasets
-    
-  def to_numpy(self):
-    """
-    Transforms internal data into arrays X, y, w, ids
-
-    Creates three arrays containing all data in this object. This operation is
-    dangerous (!) for large datasets which don't fit into memory.
-    """
-    Xs, ys, ws, ids = [], [], [], []
-    for (X_b, y_b, w_b, ids_b) in self.itershards():
-      Xs.append(X_b)
-      ys.append(y_b)
-      ws.append(w_b)
-      ids.append(np.atleast_1d(np.squeeze(ids_b)))
-    np.concatenate(ids)
-    return (np.vstack(Xs), np.vstack(ys), np.vstack(ws),
-            np.concatenate(ids))
 
   @property
   def ids(self):
@@ -854,6 +830,14 @@ class DiskDataset(Dataset):
     for (_, _, _, ids_b) in self.itershards():
       ids.append(np.atleast_1d(np.squeeze(ids_b)))
     return np.concatenate(ids)
+
+  @property
+  def X(self):
+    """Get the X vector for this dataset as a single numpy array."""
+    Xs = []
+    for (X_b, _, _, _) in self.itershards():
+      Xs.append(X_b)
+    return np.vstack(Xs)
 
   @property
   def y(self):

@@ -11,7 +11,7 @@ __license__ = "GPL"
 
 import tempfile
 import numpy as np
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.splits import RandomSplitter
 from deepchem.splits import IndexSplitter
 from deepchem.splits import ScaffoldSplitter
@@ -40,7 +40,7 @@ class TestSplitters(TestDatasetAPI):
     assert len(test_data) == 1
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(
+    merged_dataset = DiskDataset.merge(
         merge_dir, [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -61,7 +61,7 @@ class TestSplitters(TestDatasetAPI):
     assert len(test_data) == 1
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(
+    merged_dataset = DiskDataset.merge(
         merge_dir, [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -108,7 +108,7 @@ class TestSplitters(TestDatasetAPI):
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(merge_dir, fold_datasets)
+    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -141,7 +141,7 @@ class TestSplitters(TestDatasetAPI):
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(merge_dir, fold_datasets)
+    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -175,7 +175,7 @@ class TestSplitters(TestDatasetAPI):
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(merge_dir, fold_datasets)
+    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -298,7 +298,7 @@ class TestSplitters(TestDatasetAPI):
     w = np.ones((n_samples, n_tasks))
     ids = np.arange(n_samples)
     data_dir = tempfile.mkdtemp()
-    dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
 
     stratified_splitter = RandomStratifiedSplitter()
     split_dirs = [tempfile.mkdtemp(), tempfile.mkdtemp()]
@@ -332,7 +332,7 @@ class TestSplitters(TestDatasetAPI):
     ids = np.arange(n_samples)
 
     data_dir = tempfile.mkdtemp()
-    dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
     
     stratified_splitter = RandomStratifiedSplitter()
     ids_set = set(dataset.ids)
@@ -362,7 +362,7 @@ class TestSplitters(TestDatasetAPI):
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
     merge_dir = tempfile.mkdtemp()
-    merged_dataset = Dataset.merge(merge_dir, fold_datasets)
+    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
     assert len(merged_dataset) == len(dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(dataset.ids))
@@ -421,7 +421,6 @@ class TestSplitters(TestDatasetAPI):
     # task structure of w np array is such that each row corresponds to a
     # sample. The loaded sparse dataset has many rows with only zeros
     sparse_dataset = self.load_sparse_multitask_dataset()
-    X, y, w, ids = sparse_dataset.to_numpy()
     
     stratified_splitter = RandomStratifiedSplitter()
     datasets = stratified_splitter.train_valid_test_split(
@@ -431,7 +430,7 @@ class TestSplitters(TestDatasetAPI):
     train_data, valid_data, test_data = datasets
 
     for dataset_index, dataset in enumerate(datasets):
-      X, y, w, ids = dataset.to_numpy()
+      w = dataset.w
       # verify that there are no rows (samples) in weights matrix w
       # that have no hits.
       assert len(np.where(~w.any(axis=1))[0]) == 0

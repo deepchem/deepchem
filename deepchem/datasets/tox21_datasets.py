@@ -11,7 +11,7 @@ import shutil
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.transformers import BalancingTransformer
 
 def load_tox21(base_dir, reload=True, num_train=7200):
@@ -56,7 +56,7 @@ def load_tox21(base_dir, reload=True, num_train=7200):
     dataset = loader.featurize(
         dataset_file, data_dir, shard_size=8192)
   else:
-    dataset = Dataset(data_dir, tox21_tasks, reload=True)
+    dataset = DiskDataset(data_dir, tox21_tasks, reload=True)
 
   # Initialize transformers 
   transformers = [
@@ -66,15 +66,15 @@ def load_tox21(base_dir, reload=True, num_train=7200):
     for transformer in transformers:
         transformer.transform(dataset)
 
-  X, y, w, ids = dataset.to_numpy()
+  X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
   X_train, X_valid = X[:num_train], X[num_train:]
   y_train, y_valid = y[:num_train], y[num_train:]
   w_train, w_valid = w[:num_train], w[num_train:]
   ids_train, ids_valid = ids[:num_train], ids[num_train:]
 
-  train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
+  train_dataset = DiskDataset.from_numpy(train_dir, X_train, y_train,
                                      w_train, ids_train, tox21_tasks)
-  valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
+  valid_dataset = DiskDataset.from_numpy(valid_dir, X_valid, y_valid,
                                      w_valid, ids_valid, tox21_tasks)
   
   return tox21_tasks, (train_dataset, valid_dataset), transformers

@@ -12,7 +12,7 @@ import pandas as pd
 import shutil
 from rdkit import Chem
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
@@ -109,7 +109,7 @@ def load_core_pdbbind_coordinates(pdbbind_dir, base_dir, reload=True):
   X = np.array(features, dtype-object)
   w = np.ones_like(y)
    
-  dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+  dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
   transformers = []
   
   return tasks, dataset, transformers
@@ -176,7 +176,7 @@ def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   X = np.vstack(features)
   w = np.ones_like(y)
    
-  dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+  dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
   transformers = []
   
   return tasks, dataset, transformers

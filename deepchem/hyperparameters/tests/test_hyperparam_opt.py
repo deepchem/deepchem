@@ -24,7 +24,7 @@ from deepchem.metrics import Metric
 from deepchem.models.multitask import SingletaskToMultitask 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-from deepchem.datasets import Dataset
+from deepchem.datasets import NumpyDataset
 from deepchem.hyperparameters import HyperparamOpt
 from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.keras_models import KerasModel
@@ -85,9 +85,7 @@ class TestHyperparamOptAPI(TestAPI):
     y_train = np.random.randint(2, size=(n_train, n_tasks))
     w_train = np.ones_like(y_train)
     ids_train = ["C"] * n_train
-    train_dataset = Dataset.from_numpy(self.train_dir,
-                                       X_train, y_train, w_train, ids_train,
-                                       tasks)
+    train_dataset = NumpyDataset(X_train, y_train, w_train, ids_train)
 
     # Define validation dataset
     n_valid = 10
@@ -95,9 +93,7 @@ class TestHyperparamOptAPI(TestAPI):
     y_valid = np.random.randint(2, size=(n_valid, n_tasks))
     w_valid = np.ones_like(y_valid)
     ids_valid = ["C"] * n_valid
-    valid_dataset = Dataset.from_numpy(self.valid_dir,
-                                       X_valid, y_valid, w_valid, ids_valid,
-                                       tasks)
+    valid_dataset = NumpyDataset(X_valid, y_valid, w_valid, ids_valid)
 
     transformers = []
     classification_metric = Metric(metrics.matthews_corrcoef, np.mean,

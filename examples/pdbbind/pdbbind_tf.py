@@ -28,7 +28,7 @@ from deepchem.utils.evaluate import Evaluator
 from deepchem.splits import RandomSplitter
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
 from deepchem.datasets.pdbbind_datasets import load_core_pdbbind_grid
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 verbosity = "high"
 base_dir = "/scratch/users/rbharath/PDBBIND-ATOMICNET"
@@ -49,16 +49,16 @@ pdbbind_tasks, dataset, transformers = load_core_pdbbind_grid(
 
 print("About to perform train/valid/test split.")
 num_train = .8 * len(dataset)
-X, y, w, ids = dataset.to_numpy()
+X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
 X_train, X_valid = X[:num_train], X[num_train:]
 y_train, y_valid = y[:num_train], y[num_train:]
 w_train, w_valid = w[:num_train], w[num_train:]
 ids_train, ids_valid = ids[:num_train], ids[num_train:]
 
-train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
+train_dataset = DiskDataset.from_numpy(train_dir, X_train, y_train,
                                    w_train, ids_train, pdbbind_tasks)
-valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
+valid_dataset = DiskDataset.from_numpy(valid_dir, X_valid, y_valid,
                                    w_valid, ids_valid, pdbbind_tasks)
 
 classification_metric = Metric(metrics.pearson_r2_score, verbosity=verbosity,

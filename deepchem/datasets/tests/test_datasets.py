@@ -18,7 +18,7 @@ from deepchem.datasets import sparsify_features
 from deepchem.datasets import densify_features
 from deepchem.datasets import pad_batch
 from deepchem.datasets import pad_features
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset, NumpyDataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
@@ -198,15 +198,15 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   def test_reshard(self):
     """Test that resharding the dataset works."""
     solubility_dataset = self.load_solubility_data()
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     assert solubility_dataset.get_number_shards() == 1
     solubility_dataset.reshard(shard_size=1)
     assert solubility_dataset.get_shard_size() == 1
-    X_r, y_r, w_r, ids_r = solubility_dataset.to_numpy()
+    X_r, y_r, w_r, ids_r = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     assert solubility_dataset.get_number_shards() == 10
     solubility_dataset.reshard(shard_size=10)
     assert solubility_dataset.get_shard_size() == 10
-    X_rr, y_rr, w_rr, ids_rr = solubility_dataset.to_numpy()
+    X_rr, y_rr, w_rr, ids_rr = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
 
     # Test first resharding worked
     np.testing.assert_array_equal(X, X_r)
@@ -229,12 +229,12 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     y = np.random.randint(2, size=(num_datapoints, num_tasks))
     w = np.ones((num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
 
     select_dir = tempfile.mkdtemp()
     indices = [0, 4, 5, 8]
     select_dataset = dataset.select(select_dir, indices)
-    X_sel, y_sel, w_sel, ids_sel = select_dataset.to_numpy()
+    X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y, select_dataset.w, select_dataset.ids)
     np.testing.assert_array_equal(X[indices], X_sel)
     np.testing.assert_array_equal(y[indices], y_sel)
     np.testing.assert_array_equal(w[indices], w_sel)
@@ -252,7 +252,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
     
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
+    dataset = NumpyDataset(X, y, w, ids)
 
     X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
     assert X_shape == X.shape
@@ -272,7 +272,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
     
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
+    dataset = NumpyDataset(X, y, w, ids)
 
     task_dirs = []
     try:
@@ -281,7 +281,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
       singletask_datasets = dataset.to_singletask(task_dirs)
       for task in range(num_tasks):
         singletask_dataset = singletask_datasets[task]
-        X_task, y_task, w_task, ids_task = singletask_dataset.to_numpy()
+        X_task, y_task, w_task, ids_task = (singletask_dataset.X, singletask_dataset.y, singletask_dataset.w, singletask_dataset.ids)
         w_nonzero = w[:, task] != 0
         np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
         np.testing.assert_array_equal(y_task.flatten(), y[:, task][w_nonzero != 0])
@@ -309,7 +309,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     N_samples = len(solubility_dataset)
     N_tasks = len(tasks)
     
@@ -330,7 +330,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   def test_get_statistics(self):
     """Test statistics computation of this dataset."""
     solubility_dataset = self.load_solubility_data()
-    X, y, _, _ = solubility_dataset.to_numpy()
+    X, y, _, _ = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
     X_stds, y_stds = np.std(X, axis=0), np.std(y, axis=0)
     comp_X_means, comp_X_stds, comp_y_means, comp_y_stds = \

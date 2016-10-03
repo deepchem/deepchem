@@ -17,7 +17,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 class TestMerge(TestAPI):
   """
@@ -45,7 +45,7 @@ class TestMerge(TestAPI):
     second_dataset = loader.featurize(
         dataset_file, second_data_dir)
 
-    merged_dataset = Dataset.merge(
+    merged_dataset = DiskDataset.merge(
         merged_data_dir, [first_dataset, second_dataset])
 
     assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
