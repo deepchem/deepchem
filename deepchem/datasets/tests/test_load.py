@@ -17,7 +17,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 ## task0: 1,1,0,-,0,-,1,-,-,1
 
@@ -43,13 +43,13 @@ class TestLoad(TestAPI):
                         verbosity=verbosity)
     dataset = loader.featurize(dataset_file, data_dir)
 
-    X, y, w, ids = dataset.to_numpy()
+    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     shutil.move(data_dir, moved_data_dir)
 
-    moved_dataset = Dataset(
+    moved_dataset = DiskDataset(
         moved_data_dir, reload=True)
 
-    X_moved, y_moved, w_moved, ids_moved = moved_dataset.to_numpy()
+    X_moved, y_moved, w_moved, ids_moved = (moved_dataset.X, moved_dataset.y, moved_dataset.w, moved_dataset.ids)
 
     np.testing.assert_allclose(X, X_moved)
     np.testing.assert_allclose(y, y_moved)
@@ -100,16 +100,16 @@ class TestLoad(TestAPI):
         dataset_file, data_dir)
 
     # Do train/valid split.
-    X_multi, y_multi, w_multi, ids_multi = dataset.to_numpy()
+    X_multi, y_multi, w_multi, ids_multi = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
 
     ####### Do singletask load
     y_tasks, w_tasks, = [], []
     for ind, task in enumerate(all_tasks):
       print("Processing task %s" % task)
-      dataset = Dataset(data_dir, verbosity=verbosity, reload=reload)
+      dataset = DiskDataset(data_dir, verbosity=verbosity, reload=reload)
 
-      X_task, y_task, w_task, ids_task = dataset.to_numpy()
+      X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w, dataset.ids)
       y_tasks.append(y_task[:, ind])
       w_tasks.append(w_task[:, ind])
 
@@ -167,7 +167,7 @@ class TestLoad(TestAPI):
     dataset = loader.featurize(dataset_file, data_dir)
 
     # Do train/valid split.
-    X_multi, y_multi, w_multi, ids_multi = dataset.to_numpy()
+    X_multi, y_multi, w_multi, ids_multi = (dataset.X, dataset.y, dataset.w, dataset.ids)
 
 
     ####### Do singletask load
@@ -182,7 +182,7 @@ class TestLoad(TestAPI):
                           verbosity=verbosity)
       dataset = loader.featurize(dataset_file, data_dir)
 
-      X_task, y_task, w_task, ids_task = dataset.to_numpy()
+      X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w, dataset.ids)
       y_tasks.append(y_task)
       w_tasks.append(w_task)
       ids_tasks.append(ids_task)

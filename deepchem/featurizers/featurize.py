@@ -23,7 +23,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_pickle_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
 from deepchem.featurizers import UserDefinedFeaturizer
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.utils.save import load_data
 from deepchem.utils.save import get_input_type
 ############################################################## DEBUG
@@ -83,7 +83,7 @@ def featurize_map_function(args):
       loader.verbosity)
   log("About to featurize shard.", loader.verbosity)
   write_fn = partial(
-      Dataset.write_dataframe, data_dir=data_dir,
+      DiskDataset.write_dataframe, data_dir=data_dir,
       featurizer=loader.featurizer, tasks=loader.tasks,
       mol_id_field=loader.id_field, verbosity=loader.verbosity)
   ############################################################## TIMING
@@ -212,7 +212,7 @@ class DataLoader(object):
 
     # TODO(rbharath): This whole bit with metadata_rows is an awkward way of
     # creating a Dataset. Is there a more elegant solutions?
-    dataset = Dataset(data_dir=data_dir,
+    dataset = DiskDataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
                       reload=True, verbosity=self.verbosity)
     ############################################################## TIMING

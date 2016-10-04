@@ -9,7 +9,7 @@ import os
 import numpy as np
 import shutil
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
@@ -59,7 +59,7 @@ def load_muv(base_dir, reload=True, frac_train=.8):
     dataset = loader.featurize(dataset_file, data_dir)
     regen = True
   else:
-    dataset = Dataset(data_dir, reload=True)
+    dataset = DiskDataset(data_dir, reload=True)
 
   # Initialize transformers 
   transformers = [
@@ -69,7 +69,7 @@ def load_muv(base_dir, reload=True, frac_train=.8):
     for transformer in transformers:
         transformer.transform(dataset)
 
-  X, y, w, ids = dataset.to_numpy()
+  X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
   num_tasks = 17
   num_train = frac_train * len(dataset)
   MUV_tasks = MUV_tasks[:num_tasks]
@@ -80,9 +80,9 @@ def load_muv(base_dir, reload=True, frac_train=.8):
   w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
   ids_train, ids_valid = ids[:num_train], ids[num_train:]
 
-  train_dataset = Dataset.from_numpy(train_dir, X_train, y_train,
+  train_dataset = DiskDataset.from_numpy(train_dir, X_train, y_train,
                                      w_train, ids_train, MUV_tasks)
-  valid_dataset = Dataset.from_numpy(valid_dir, X_valid, y_valid,
+  valid_dataset = DiskDataset.from_numpy(valid_dir, X_valid, y_valid,
                                      w_valid, ids_valid, MUV_tasks)
   
   return MUV_tasks, (train_dataset, valid_dataset), transformers

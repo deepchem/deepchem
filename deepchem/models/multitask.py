@@ -9,6 +9,7 @@ import os
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
+from deepchem.datasets import DiskDataset
 import sklearn
 from deepchem.transformers import undo_transforms
 
@@ -36,7 +37,6 @@ class SingletaskToMultitask(Model):
           self.verbosity, "high")
       self.task_model_dirs[task] = task_model_dir
 
-  
   def _create_task_datasets(self, dataset):
     """Make directories to hold data for tasks"""
     task_data_dirs = []
@@ -46,20 +46,57 @@ class SingletaskToMultitask(Model):
         shutil.rmtree(task_data_dir)
       os.makedirs(task_data_dir)
       task_data_dirs.append(task_data_dir)
-    task_datasets = dataset.to_singletask(task_data_dirs)
+    task_datasets = self._to_singletask(dataset, task_data_dirs)
     if self.verbosity is not None:
       for task, task_dataset in zip(self.tasks, task_datasets):
         log("Dataset for task %s has shape %s"
             % (task, str(task_dataset.get_shape())), self.verbosity)
     return task_datasets
-   
-      
+
+  @staticmethod
+  def _to_singletask(dataset, task_dirs):
+    """Transforms a multitask dataset to a collection of singletask datasets."""
+    tasks = dataset.get_task_names()
+    assert len(tasks) == len(task_dirs)
+    log("Splitting multitask dataset into singletask datasets", dataset.verbosity)
+    task_metadata_rows = {task: [] for task in tasks}
+    for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
+      log("Processing shard %d" % shard_num, dataset.verbosity)
+      basename = "dataset-%d" % shard_num
+      for task_num, task in enumerate(tasks):
+        log("\tTask %s" % task, dataset.verbosity)
+        w_task = w[:, task_num]
+        y_task = y[:, task_num]
+
+        # Extract those datapoints which are present for this task
+        X_nonzero = X[w_task != 0]
+        num_datapoints = X_nonzero.shape[0]
+        y_nonzero = np.reshape(y_task[w_task != 0], (num_datapoints, 1))
+        w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
+        ids_nonzero = ids[w_task != 0]
+
+        if X_nonzero.size > 0: 
+          task_metadata_rows[task].append(
+            DiskDataset.write_data_to_disk(
+                task_dirs[task_num], basename, [task],
+                X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
+    
+    task_datasets = [
+        DiskDataset(data_dir=task_dirs[task_num],
+                metadata_rows=task_metadata_rows[task],
+                verbosity=dataset.verbosity)
+        for (task_num, task) in enumerate(tasks)]
+    return task_datasets
+
+
   def fit(self, dataset, **kwargs):
     """
     Updates all singletask models with new information.
 
     Warning: This current implementation is only functional for sklearn models. 
     """
+    if not isinstance(dataset, DiskDataset):
+      raise ValueError('SingletaskToMultitask only works with DiskDatasets')
     log("About to create task-specific datasets", self.verbosity, "high")
     task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):

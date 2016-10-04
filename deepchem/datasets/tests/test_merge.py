@@ -17,7 +17,7 @@ from deepchem.models.tests import TestAPI
 from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 class TestMerge(TestAPI):
   """
@@ -45,7 +45,7 @@ class TestMerge(TestAPI):
     second_dataset = loader.featurize(
         dataset_file, second_data_dir)
 
-    merged_dataset = Dataset.merge(
+    merged_dataset = DiskDataset.merge(
         merged_data_dir, [first_dataset, second_dataset])
 
     assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
@@ -71,13 +71,13 @@ class TestMerge(TestAPI):
 
     shard_nums = [1, 2]
 
-    orig_ids = dataset.get_ids()
+    orig_ids = dataset.ids
     _, _, _, ids_1 = dataset.get_shard(1)
     _, _, _, ids_2 = dataset.get_shard(2)
 
     subset = dataset.subset(subset_dir, shard_nums)
-    after_ids = dataset.get_ids()
+    after_ids = dataset.ids
 
     assert len(subset) == 4
-    assert sorted(subset.get_ids()) == sorted(np.concatenate([ids_1, ids_2]))
+    assert sorted(subset.ids) == sorted(np.concatenate([ids_1, ids_2]))
     assert list(orig_ids) == list(after_ids)

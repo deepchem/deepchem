@@ -26,9 +26,9 @@ class TestTransformerAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_y=True, dataset=solubility_dataset)
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     log_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = solubility_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -48,9 +48,9 @@ class TestTransformerAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     log_transformer = LogTransformer(
         transform_X=True, dataset=solubility_dataset)
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     log_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = solubility_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -80,9 +80,9 @@ class TestTransformerAPI(TestDatasetAPI):
     log_transformer = LogTransformer(
         transform_y=True, tasks=tasks,
         dataset=multitask_dataset)
-    X, y, w, ids = multitask_dataset.to_numpy()
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
     log_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = multitask_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -112,9 +112,9 @@ class TestTransformerAPI(TestDatasetAPI):
     log_transformer = LogTransformer(
         transform_X=True, features=features,
         dataset=multitask_dataset)
-    X, y, w, ids = multitask_dataset.to_numpy()
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
     log_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = multitask_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -134,9 +134,9 @@ class TestTransformerAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     normalization_transformer = NormalizationTransformer(
         transform_y=True, dataset=solubility_dataset)
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     normalization_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = solubility_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
@@ -156,9 +156,9 @@ class TestTransformerAPI(TestDatasetAPI):
     solubility_dataset = self.load_solubility_data()
     normalization_transformer = NormalizationTransformer(
         transform_X=True, dataset=solubility_dataset)
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     normalization_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = solubility_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
@@ -188,9 +188,9 @@ class TestTransformerAPI(TestDatasetAPI):
     classification_dataset = self.load_classification_data()
     balancing_transformer = BalancingTransformer(
       transform_w=True, dataset=classification_dataset)
-    X, y, w, ids = classification_dataset.to_numpy()
+    X, y, w, ids = (classification_dataset.X, classification_dataset.y, classification_dataset.w, classification_dataset.ids)
     balancing_transformer.transform(classification_dataset)
-    X_t, y_t, w_t, ids_t = classification_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (classification_dataset.X, classification_dataset.y, classification_dataset.w, classification_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
@@ -214,9 +214,9 @@ class TestTransformerAPI(TestDatasetAPI):
     multitask_dataset = self.load_multitask_data()
     balancing_transformer = BalancingTransformer(
       transform_w=True, dataset=multitask_dataset)
-    X, y, w, ids = multitask_dataset.to_numpy()
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
     balancing_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = multitask_dataset.to_numpy()
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
