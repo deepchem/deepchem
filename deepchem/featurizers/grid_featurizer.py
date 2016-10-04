@@ -12,7 +12,7 @@ import time
 from collections import deque
 import hashlib
 import sys
-#import openbabel as ob
+import openbabel as ob
 from functools import partial
 from deepchem.featurizers import ComplexFeaturizer
 from deepchem.utils.save import log

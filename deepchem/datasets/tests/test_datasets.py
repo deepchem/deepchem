@@ -259,38 +259,6 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     assert y_shape == y.shape
     assert w_shape == w.shape
     assert ids_shape == ids.shape
-
-
-  def test_to_singletask(self):
-    """Test that to_singletask works."""
-    num_datapoints = 100
-    num_features = 10
-    num_tasks = 10
-    # Generate data
-    X = np.random.rand(num_datapoints, num_features)
-    y = np.random.randint(2, size=(num_datapoints, num_tasks))
-    w = np.random.randint(2, size=(num_datapoints, num_tasks))
-    ids = np.array(["id"] * num_datapoints)
-    
-    dataset = NumpyDataset(X, y, w, ids)
-
-    task_dirs = []
-    try:
-      for task in range(num_tasks):
-        task_dirs.append(tempfile.mkdtemp())
-      singletask_datasets = dataset.to_singletask(task_dirs)
-      for task in range(num_tasks):
-        singletask_dataset = singletask_datasets[task]
-        X_task, y_task, w_task, ids_task = (singletask_dataset.X, singletask_dataset.y, singletask_dataset.w, singletask_dataset.ids)
-        w_nonzero = w[:, task] != 0
-        np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
-        np.testing.assert_array_equal(y_task.flatten(), y[:, task][w_nonzero != 0])
-        np.testing.assert_array_equal(w_task.flatten(), w[:, task][w_nonzero != 0])
-        np.testing.assert_array_equal(ids_task, ids[w_nonzero != 0])
-    finally:
-      # Cleanup
-      for task_dir in task_dirs:
-        shutil.rmtree(task_dir)
   
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""
@@ -303,6 +271,36 @@ class TestBasicDatasetAPI(TestDatasetAPI):
       assert y_b.shape == (batch_size,) + (len(tasks),)
       assert w_b.shape == (batch_size,) + (len(tasks),)
       assert ids_b.shape == (batch_size,)
+
+  def test_itersamples_numpy(self):
+    """Test that iterating over samples in a NumpyDataset works."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+    # Generate data
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    dataset = NumpyDataset(X, y, w, ids)
+    for i, (sx, sy, sw, sid) in enumerate(dataset.itersamples()):
+        np.testing.assert_array_equal(sx, X[i])
+        np.testing.assert_array_equal(sy, y[i])
+        np.testing.assert_array_equal(sw, w[i])
+        np.testing.assert_array_equal(sid, ids[i])
+
+  def test_itersamples_dist(self):
+    """Test that iterating over samples in a DiskDataset works."""
+    solubility_dataset = self.load_solubility_data()
+    X = solubility_dataset.X
+    y = solubility_dataset.y
+    w = solubility_dataset.w
+    ids = solubility_dataset.ids
+    for i, (sx, sy, sw, sid) in enumerate(solubility_dataset.itersamples()):
+        np.testing.assert_array_equal(sx, X[i])
+        np.testing.assert_array_equal(sy, y[i])
+        np.testing.assert_array_equal(sw, w[i])
+        np.testing.assert_array_equal(sid, ids[i])
 
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""

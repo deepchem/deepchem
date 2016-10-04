@@ -11,7 +11,7 @@ __license__ = "GNU General Public License"
 import math
 import os
 import subprocess
-#import openbabel
+import openbabel
 import numpy as np
 
 

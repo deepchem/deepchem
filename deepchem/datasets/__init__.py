@@ -153,11 +153,50 @@ class Dataset(object):
     raise NotImplementedError()
 
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False, pad_batches=False):
-    """Generator that iterates over minibatches from the dataset.
-    
+    """Get an object that iterates over minibatches from the dataset.
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
     """
     raise NotImplementedError()
+
+  def itersamples(self):
+    """Get an object that iterates over the samples in the dataset.
+
+    Example:
+    >>> for x, y, w, id in dataset.itersamples():
+    >>>   print(x, y, w, id)
+    """
+    raise NotImplementedError()
+
+  def get_statistics(self, X_stats=True, y_stats=True):
+    """Compute and return statistics of this dataset."""
+    X_means = 0.0
+    X_m2 = 0.0
+    y_means = 0.0
+    y_m2 = 0.0
+    n = 0
+    for X, y, _, _ in self.itersamples():
+        n += 1
+        dx = X-X_means
+        dy = y-y_means
+        X_means += dx/n
+        y_means += dy/n
+        X_m2 += dx*(X-X_means)
+        y_m2 += dy*(y-y_means)
+    if n < 2:
+        X_stds = 0.0
+        y_stds = 0
+    else:
+        X_stds = np.sqrt(X_m2/n)
+        y_stds = np.sqrt(y_m2/n)
+    if X_stats and not y_stats:
+      return X_means, X_stds
+    elif y_stats and not X_stats:
+      return y_means, y_stds
+    elif X_stats and y_stats:
+      return X_means, X_stds, y_means, y_stds
+    else:
+      return None
 
 
 class NumpyDataset(Dataset):
@@ -219,30 +258,42 @@ class NumpyDataset(Dataset):
     return self._w
 
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False, pad_batches=False):
-    """Generator that iterates over minibatches from the dataset.
-    
+    """Get an object that iterates over minibatches from the dataset.
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
     """
+    def iterate(dataset, batch_size, deterministic, pad_batches):
+      n_samples = dataset._X.shape[0]
+      if not deterministic:
+        sample_perm = np.random.permutation(n_samples)
+      else:
+        sample_perm = np.arange(n_samples)
+      if batch_size is None:
+        batch_size = n_samples
+      interval_points = np.linspace(
+          0, n_samples, np.ceil(float(n_samples)/batch_size)+1, dtype=int)
+      for j in range(len(interval_points)-1):
+        indices = range(interval_points[j], interval_points[j+1])
+        perm_indices = sample_perm[indices]
+        X_batch = dataset._X[perm_indices, :]
+        y_batch = dataset._y[perm_indices]
+        w_batch = dataset._w[perm_indices]
+        ids_batch = dataset._ids[perm_indices]
+        if pad_batches:
+          (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+            batch_size, X_batch, y_batch, w_batch, ids_batch)
+        yield (X_batch, y_batch, w_batch, ids_batch)
+    return iterate(self, batch_size, deterministic, pad_batches)
+
+  def itersamples(self):
+    """Get an object that iterates over the samples in the dataset.
+
+    Example:
+    >>> for x, y, w, id in dataset.itersamples():
+    >>>   print(x, y, w, id)
+    """
     n_samples = self._X.shape[0]
-    if not deterministic:
-      sample_perm = np.random.permutation(n_samples)
-    else:
-      sample_perm = np.arange(n_samples)
-    if batch_size is None:
-      batch_size = n_samples
-    interval_points = np.linspace(
-        0, n_samples, np.ceil(float(n_samples)/batch_size)+1, dtype=int)
-    for j in range(len(interval_points)-1):
-      indices = range(interval_points[j], interval_points[j+1])
-      perm_indices = sample_perm[indices]
-      X_batch = self._X[perm_indices, :]
-      y_batch = self._y[perm_indices]
-      w_batch = self._w[perm_indices]
-      ids_batch = self._ids[perm_indices]
-      if pad_batches:
-        (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-          batch_size, X_batch, y_batch, w_batch, ids_batch)
-      yield (X_batch, y_batch, w_batch, ids_batch)
+    return ((self._X[i], self._y[i], self._w[i], self._ids[i]) for i in range(n_samples))
 
 
 class DiskDataset(Dataset):
@@ -435,55 +486,76 @@ class DiskDataset(Dataset):
 
   def itershards(self):
     """
-    Iterates over all shards in dataset.
+    Return an object that iterates over all shards in dataset.
 
     Datasets are stored in sharded fashion on disk. Each call to next() for the
     generator defined by this function returns the data from a particular shard.
     The order of shards returned is guaranteed to remain fixed.
     """
-    for _, row in self.metadata_df.iterrows():
-      X = np.array(load_from_disk(
-          os.path.join(self.data_dir, row['X-transformed'])))
-      y = np.array(load_from_disk(
-          os.path.join(self.data_dir, row['y-transformed'])))
-      w = np.array(load_from_disk(
-          os.path.join(self.data_dir, row['w-transformed'])))
-      ids = np.array(load_from_disk(
-          os.path.join(self.data_dir, row['ids'])), dtype=object)
-      yield (X, y, w, ids)
+    def iterate(dataset):
+      for _, row in dataset.metadata_df.iterrows():
+        X = np.array(load_from_disk(
+            os.path.join(dataset.data_dir, row['X-transformed'])))
+        y = np.array(load_from_disk(
+            os.path.join(dataset.data_dir, row['y-transformed'])))
+        w = np.array(load_from_disk(
+            os.path.join(dataset.data_dir, row['w-transformed'])))
+        ids = np.array(load_from_disk(
+            os.path.join(dataset.data_dir, row['ids'])), dtype=object)
+        yield (X, y, w, ids)
+    return iterate(self)
 
   def iterbatches(self, batch_size=None, epoch=0, deterministic=False,
                   pad_batches=False):
-    """Returns minibatches from dataset randomly."""
-    num_shards = self.get_number_shards()
-    if not deterministic:
-      shard_perm = np.random.permutation(num_shards)
-    else:
-      shard_perm = np.arange(num_shards)
-    for i in range(num_shards):
-      X, y, w, ids = self.get_shard(shard_perm[i])
-      n_samples = X.shape[0]
+    """Get an object that iterates over minibatches from the dataset.
+
+    Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
+    """
+    def iterate(dataset):
+      num_shards = dataset.get_number_shards()
       if not deterministic:
-        sample_perm = np.random.permutation(n_samples)
+        shard_perm = np.random.permutation(num_shards)
       else:
-        sample_perm = np.arange(n_samples)
-      if batch_size is None:
-        shard_batch_size = n_samples
-      else:
-        shard_batch_size = batch_size 
-      interval_points = np.linspace(
-          0, n_samples, np.ceil(float(n_samples)/shard_batch_size)+1, dtype=int)
-      for j in range(len(interval_points)-1):
-        indices = range(interval_points[j], interval_points[j+1])
-        perm_indices = sample_perm[indices]
-        X_batch = X[perm_indices, :]
-        y_batch = y[perm_indices]
-        w_batch = w[perm_indices]
-        ids_batch = ids[perm_indices]
-        if pad_batches:
-          (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-            shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-        yield (X_batch, y_batch, w_batch, ids_batch)
+        shard_perm = np.arange(num_shards)
+      for i in range(num_shards):
+        X, y, w, ids = dataset.get_shard(shard_perm[i])
+        n_samples = X.shape[0]
+        if not deterministic:
+          sample_perm = np.random.permutation(n_samples)
+        else:
+          sample_perm = np.arange(n_samples)
+        if batch_size is None:
+          shard_batch_size = n_samples
+        else:
+          shard_batch_size = batch_size 
+        interval_points = np.linspace(
+            0, n_samples, np.ceil(float(n_samples)/shard_batch_size)+1, dtype=int)
+        for j in range(len(interval_points)-1):
+          indices = range(interval_points[j], interval_points[j+1])
+          perm_indices = sample_perm[indices]
+          X_batch = X[perm_indices, :]
+          y_batch = y[perm_indices]
+          w_batch = w[perm_indices]
+          ids_batch = ids[perm_indices]
+          if pad_batches:
+            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+              shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+          yield (X_batch, y_batch, w_batch, ids_batch)
+    return iterate(self)
+
+  def itersamples(self):
+    """Get an object that iterates over the samples in the dataset.
+
+    Example:
+    >>> for x, y, w, id in dataset.itersamples():
+    >>>   print(x, y, w, id)
+    """
+    def iterate(dataset):
+        for (X_shard, y_shard, w_shard, ids_shard) in dataset.itershards():
+            n_samples = X_shard.shape[0]
+            for i in range(n_samples):
+                yield (X_shard[i], y_shard[i], w_shard[i], ids_shard[i])
+    return iterate(self)
 
   def reshard(self, shard_size):
     """Reshards data to have specified shard size."""
@@ -787,40 +859,6 @@ class DiskDataset(Dataset):
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)
 
-  def to_singletask(self, task_dirs):
-    """Transforms multitask dataset in collection of singletask datasets."""
-    tasks = self.get_task_names()
-    assert len(tasks) == len(task_dirs)
-    log("Splitting multitask dataset into singletask datasets", self.verbosity)
-    task_metadata_rows = {task: [] for task in tasks}
-    for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
-      log("Processing shard %d" % shard_num, self.verbosity)
-      basename = "dataset-%d" % shard_num
-      for task_num, task in enumerate(tasks):
-        log("\tTask %s" % task, self.verbosity)
-        w_task = w[:, task_num]
-        y_task = y[:, task_num]
-
-        # Extract those datapoints which are present for this task
-        X_nonzero = X[w_task != 0]
-        num_datapoints = X_nonzero.shape[0]
-        y_nonzero = np.reshape(y_task[w_task != 0], (num_datapoints, 1))
-        w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
-        ids_nonzero = ids[w_task != 0]
-
-        if X_nonzero.size > 0: 
-          task_metadata_rows[task].append(
-            DiskDataset.write_data_to_disk(
-                task_dirs[task_num], basename, [task],
-                X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
-    
-    task_datasets = [
-        DiskDataset(data_dir=task_dirs[task_num],
-                metadata_rows=task_metadata_rows[task],
-                verbosity=self.verbosity)
-        for (task_num, task) in enumerate(tasks)]
-    return task_datasets
-
   @property
   def ids(self):
     """Get the ids vector for this dataset as a single numpy array."""
@@ -892,102 +930,6 @@ class DiskDataset(Dataset):
   def get_label_stds(self):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
-
-  def get_statistics(self, X_stats=True, y_stats=True):
-    """Computes and returns statistics of this dataset"""
-    if len(self) == 0:
-      return None, None, None, None
-    self.update_moments(X_stats, y_stats)
-    df = self.metadata_df
-    if X_stats and not y_stats:
-      X_means, X_stds = self._compute_mean_and_std(df, X_stats, y_stats)
-      return X_means, X_stds
-    elif y_stats and not X_stats:
-      y_means, y_stds = self._compute_mean_and_std(df, X_stats, y_stats)
-      return y_means, y_stds
-    elif X_stats and y_stats:
-      X_means, X_stds = self._compute_mean_and_std(
-          df, X_stats=True, y_stats=False)
-      y_means, y_stds = self._compute_mean_and_std(
-          df, X_stats=False, y_stats=True)
-      return X_means, X_stds, y_means, y_stds
-    else:
-      return None
-
-  def _compute_mean_and_std(self, df, X_stats, y_stats):
-    """
-    Compute means/stds of X/y from sums/sum_squares of tensors.
-    """
-
-    if X_stats:
-      X_sums = []
-      X_sum_squares = []
-      X_n = []
-      for _, row in df.iterrows():
-        Xs = load_from_disk(os.path.join(self.data_dir, row['X_sums']))
-        Xss = load_from_disk(os.path.join(self.data_dir, row['X_sum_squares']))
-        Xn = load_from_disk(os.path.join(self.data_dir, row['X_n']))
-        X_sums.append(np.array(Xs))
-        X_sum_squares.append(np.array(Xss))
-        X_n.append(np.array(Xn))
-
-      # Note that X_n is a list of floats
-      n = float(np.sum(X_n))
-      X_sums = np.vstack(X_sums)
-      X_sum_squares = np.vstack(X_sum_squares)
-      overall_X_sums = np.sum(X_sums, axis=0)
-      overall_X_means = overall_X_sums / n
-      overall_X_sum_squares = np.sum(X_sum_squares, axis=0)
-
-      X_vars = (overall_X_sum_squares - np.square(overall_X_sums)/n)/(n)
-      return overall_X_means, np.sqrt(X_vars)
-
-    if y_stats:
-      y_sums = []
-      y_sum_squares = []
-      y_n = []
-      for _, row in df.iterrows():
-        ys = load_from_disk(os.path.join(self.data_dir, row['y_sums']))
-        yss = load_from_disk(os.path.join(self.data_dir, row['y_sum_squares']))
-        yn = load_from_disk(os.path.join(self.data_dir, row['y_n']))
-        y_sums.append(np.array(ys))
-        y_sum_squares.append(np.array(yss))
-        y_n.append(np.array(yn))
-
-      # Note y_n is a list of arrays of shape (n_tasks,)
-      y_n = np.sum(y_n, axis=0)
-      y_sums = np.vstack(y_sums)
-      y_sum_squares = np.vstack(y_sum_squares)
-      y_means = np.sum(y_sums, axis=0)/y_n
-      y_vars = np.sum(y_sum_squares, axis=0)/y_n - np.square(y_means)
-      return y_means, np.sqrt(y_vars)
-  
-  def update_moments(self, X_stats, y_stats):
-    """Re-compute statistics of this dataset during transformation"""
-    df = self.metadata_df
-    self._update_mean_and_std(df, X_stats, y_stats)
-
-  def _update_mean_and_std(self, df, X_stats, y_stats):
-    """
-    Compute means/stds of X/y from sums/sum_squares of tensors.
-    """
-    if X_stats:
-      X_transform = []
-      for _, row in df.iterrows():
-        Xt = load_from_disk(os.path.join(self.data_dir, row['X-transformed']))
-        Xs = np.sum(Xt,axis=0)
-        Xss = np.sum(np.square(Xt),axis=0)
-        save_to_disk(Xs, os.path.join(self.data_dir, row['X_sums']))
-        save_to_disk(Xss, os.path.join(self.data_dir, row['X_sum_squares']))
-
-    if y_stats:
-      y_transform = []
-      for _, row in df.iterrows():
-        yt = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
-        ys = np.sum(yt,axis=0)
-        yss = np.sum(np.square(yt),axis=0)
-        save_to_disk(ys, os.path.join(self.data_dir, row['y_sums']))
-        save_to_disk(yss, os.path.join(self.data_dir, row['y_sum_squares']))
 
   def get_grad_statistics(self):
     """Computes and returns statistics of this dataset

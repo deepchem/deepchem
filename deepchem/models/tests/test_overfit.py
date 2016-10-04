@@ -16,7 +16,7 @@ import sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from deepchem import metrics
-from deepchem.datasets import NumpyDataset
+from deepchem.datasets import DiskDataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.tests import TestAPI
 from deepchem.utils.evaluate import Evaluator
@@ -403,7 +403,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = NumpyDataset(X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.train_dir, X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity, task_averager=np.mean)
@@ -508,7 +508,7 @@ class TestOverfitAPI(TestAPI):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = NumpyDataset(X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.train_dir, X, y, w, ids)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity, task_averager=np.mean)
