@@ -53,7 +53,8 @@ class SingletaskToMultitask(Model):
             % (task, str(task_dataset.get_shape())), self.verbosity)
     return task_datasets
 
-  def _to_singletask(self, dataset, task_dirs):
+  @staticmethod
+  def _to_singletask(dataset, task_dirs):
     """Transforms a multitask dataset to a collection of singletask datasets."""
     tasks = dataset.get_task_names()
     assert len(tasks) == len(task_dirs)

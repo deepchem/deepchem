@@ -88,7 +88,7 @@ class TestSingletasktoMultitaskAPI(TestAPI):
     try:
       for task in range(num_tasks):
         task_dirs.append(tempfile.mkdtemp())
-      singletask_datasets = SingletaskToMultitask._to_singletask(None, dataset, task_dirs)
+      singletask_datasets = SingletaskToMultitask._to_singletask(dataset, task_dirs)
       for task in range(num_tasks):
         singletask_dataset = singletask_datasets[task]
         X_task, y_task, w_task, ids_task = (singletask_dataset.X, singletask_dataset.y, singletask_dataset.w, singletask_dataset.ids)
