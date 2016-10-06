@@ -177,12 +177,14 @@ class Dataset(object):
     n = 0
     for X, y, _, _ in self.itersamples():
         n += 1
-        dx = X-X_means
-        dy = y-y_means
-        X_means += dx/n
-        y_means += dy/n
-        X_m2 += dx*(X-X_means)
-        y_m2 += dy*(y-y_means)
+        if X_stats:
+            dx = X-X_means
+            X_means += dx/n
+            X_m2 += dx*(X-X_means)
+        if y_stats:
+            dy = y-y_means
+            y_means += dy/n
+            y_m2 += dy*(y-y_means)
     if n < 2:
         X_stds = 0.0
         y_stds = 0
