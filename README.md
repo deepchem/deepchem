@@ -1,7 +1,7 @@
-deepchem
+DeepChem
 =============
 
-Deep Learning Toolchain for Drug Discovery and Quantum Chemistry
+Deep Learning Toolchain for Drug Discovery and Quantum Chemistry. DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. For more information, see the "About Us" section below.
 
 Requirements
 ------------
@@ -154,3 +154,7 @@ Frequently Asked Questions
 Getting Started
 ---------------
 The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
+
+About Us
+--------
+DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
