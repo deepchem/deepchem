@@ -155,6 +155,43 @@ Getting Started
 ---------------
 The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
 
+Input Formats
+-------------
+Accepted input formats for deepchem include csv, pkl.gz, and sdf files. For
+example, with a csv input, in order to build models, we expect the
+following columns to have entries for each row in the csv file.
+
+1. A column containing SMILES strings [1].
+2. A column containing an experimental measurement.
+3. (Optional) A column containing a unique compound identifier.
+
+Here's an example of a potential input file. 
+
++---------------+-------------------------------------------+----------------+ 
+|Compound ID    | measured log solubility in mols per litre | smiles         | 
++===============+===========================================+================+ 
+| benzothiazole | -1.5                                      | c2ccc1scnc1c2  | 
++---------------+-------------------------------------------+----------------+ 
+
+Here the "smiles" column contains the SMILES string, the "measured log
+solubility in mols per litre" contains the experimental measurement and
+"Compound ID" contains the unique compound identifier.
+
+[2] Anderson, Eric, Gilman D. Veith, and David Weininger. "SMILES, a line
+notation and computerized interpreter for chemical structures." US
+Environmental Protection Agency, Environmental Research Laboratory, 1987.
+
+Data Featurization
+------------------
+
+Most machine learning algorithms require that input data form vectors.
+However, input data for drug-discovery datasets routinely come in the
+format of lists of molecules and associated experimental readouts. To
+transform lists of molecules into vectors, we need to use the ``deechem``
+featurization class ``DataFeaturizer``. Instances of this class must be
+passed a ``Featurizer`` object. ``deepchem`` provides a number of
+different subclasses of ``Featurizer`` for convenience:
+
 About Us
 --------
 DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
