@@ -43,7 +43,7 @@ class TestDrop(TestAPI):
                         verbosity=verbosity)
     dataset = loader.featurize(dataset_file, data_dir, debug=True, logging=False)
 
-    X, y, w, ids = dataset.to_numpy()
+    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     print("ids.shape, X.shape, y.shape, w.shape")
     print(ids.shape, X.shape, y.shape, w.shape)
     assert len(X) == len(y) == len(w) == len(ids)

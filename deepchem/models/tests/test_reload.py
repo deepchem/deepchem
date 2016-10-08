@@ -14,7 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.tests import TestAPI
 from deepchem import metrics
 from deepchem.metrics import Metric
-from deepchem.datasets import Dataset
+from deepchem.datasets import NumpyDataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.keras_models import KerasModel
@@ -41,7 +41,7 @@ class TestModelReload(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -83,7 +83,7 @@ class TestModelReload(TestAPI):
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+      dataset = NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -124,7 +124,7 @@ class TestModelReload(TestAPI):
     y = np.random.randint(n_classes, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = Dataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)

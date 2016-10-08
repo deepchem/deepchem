@@ -398,7 +398,7 @@ def _compute_ecfp_features(system_ob, ecfp_degree, ecfp_power):
 
   ecfp_dict = _compute_all_ecfp(system_ob, degree=ecfp_degree)
   ecfp_vec = [_hash_ecfp(ecfp, ecfp_power)
-        for index, ecfp in ecfp_dict.iteritems()]
+        for index, ecfp in ecfp_dict.items()]
   ecfp_array = np.zeros(2 ** ecfp_power)
   ecfp_array[sorted(ecfp_vec)] = 1.0
   return(ecfp_array)
@@ -1126,7 +1126,7 @@ class GridFeaturizer(ComplexFeaturizer):
 
     if "voxel_combined" in self.feature_types:
       features = {}
-      for system_id, system in transformed_systems.iteritems():
+      for system_id, system in transformed_systems.items():
         protein_xyz = system[0]
         ligand_xyz = system[1]
         feature_tensors = []
@@ -1256,7 +1256,7 @@ class GridFeaturizer(ComplexFeaturizer):
          nb_channel),
         dtype=np.float16)      
     if feature_dict is not None:
-      for key, features in feature_dict.iteritems():
+      for key, features in feature_dict.items():
         voxels = get_voxels(
           coordinates, key, self.box_width, self.voxel_width)
         for voxel in voxels:  
@@ -1290,7 +1290,7 @@ class GridFeaturizer(ComplexFeaturizer):
         hash_function(
           feature,
           channel_power) for key,
-        feature in feature_dict.iteritems()]
+        feature in feature_dict.items()]
       feature_vector[on_channels] += 1
     elif feature_list is not None:
       feature_vector[0] += len(feature_list)

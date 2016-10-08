@@ -177,8 +177,8 @@ def dock_ligand_to_receptor(ligand_file, receptor_filename, protein_centroid,
   out_filename = os.path.join(subdir, "%s_docked.pdbqt" % ligand_name)
   if os.path.exists(out_filename):
     try:
-      receptor_pybel = pybel.readfile("pdbqt", 
-        out_filename).next()
+      receptor_pybel = next(pybel.readfile("pdbqt", 
+        out_filename))
       return out_filename
     except:
       pass
@@ -217,8 +217,8 @@ def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=Non
 
     print("Examining %s" % receptor_filename)
 
-    receptor_pybel = pybel.readfile("pdb", 
-        os.path.join(subdir, "%s.pdb" % receptor_name)).next()
+    receptor_pybel = next(pybel.readfile("pdb", 
+        os.path.join(subdir, "%s.pdb" % receptor_name)))
     protein_centroid, protein_range = get_molecule_data(receptor_pybel)
 
     box_dims = protein_range + 5.0
@@ -241,8 +241,8 @@ def dock_ligands_to_receptors(docking_dir, worker_pool=False, exhaustiveness=Non
       print("Docking to %s first to ascertain centroid and box dimensions" % active_ligand)
 
       out_pdb_qt = dock_ligand_to_receptor_partial(active_ligand)
-      ligand_pybel = pybel.readfile("pdbqt", 
-                                    out_pdb_qt).next()
+      ligand_pybel = next(pybel.readfile("pdbqt", 
+                                    out_pdb_qt))
       ligand_centroid, _ = get_molecule_data(ligand_pybel)
       print("Protein centroid = %s" %(str(protein_centroid)))
       print("Ligand centroid = %s" %(str(ligand_centroid)))

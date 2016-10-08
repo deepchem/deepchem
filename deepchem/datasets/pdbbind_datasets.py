@@ -12,7 +12,7 @@ import pandas as pd
 import shutil
 from rdkit import Chem
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
@@ -39,7 +39,7 @@ def compute_pdbbind_grid_feature(compound_featurizers, complex_featurizers,
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  rdkit_mol = Chem.SDMolSupplier(str(ligand_file)).next()
+  rdkit_mol = next(Chem.SDMolSupplier(str(ligand_file)))
 
   all_features = []
   for complex_featurizer in complex_featurizers:
@@ -109,7 +109,7 @@ def load_core_pdbbind_coordinates(pdbbind_dir, base_dir, reload=True):
   X = np.array(features, dtype-object)
   w = np.ones_like(y)
    
-  dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+  dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
   transformers = []
   
   return tasks, dataset, transformers
@@ -176,7 +176,7 @@ def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   X = np.vstack(features)
   w = np.ones_like(y)
    
-  dataset = Dataset.from_numpy(data_dir, X, y, w, ids)
+  dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
   transformers = []
   
   return tasks, dataset, transformers

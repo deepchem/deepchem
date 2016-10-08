@@ -123,13 +123,14 @@ class Metric(object):
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
+    print(self.name)
     self.verbosity = verbosity
     self.threshold = threshold
     if mode is None:
-      if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
+      if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef", "recall_score",
                        "accuracy_score", "kappa_score", "precision_score"]:
         mode = "classification"
-      elif self.name in ["pearson_r2_score", "r2_score", "mean_squared_error",
+      elif self.metric.__name__ in ["pearson_r2_score", "r2_score", "mean_squared_error",
                          "mean_absolute_error", "rms_score",
                          "mae_score"]:
         mode = "regression"
@@ -167,7 +168,7 @@ class Metric(object):
       w = np.ones_like(y_true)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
-    for task in xrange(n_tasks):
+    for task in range(n_tasks):
       y_task = y_true[:, task]
       if self.mode == "regression":
         y_pred_task = y_pred[:, task]

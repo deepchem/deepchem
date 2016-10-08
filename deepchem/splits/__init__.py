@@ -14,7 +14,7 @@ import numpy as np
 from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
-from deepchem.datasets import Dataset
+from deepchem.datasets import NumpyDataset
 from deepchem.featurizers.featurize import load_data
 
 def generate_scaffold(smiles, include_chirality=False):
@@ -177,11 +177,10 @@ class RandomStratifiedSplitter(Splitter):
     assert len(split_dirs) == 2
     # Handle edge case where frac_split is 1
     if frac_split == 1:
-      X, y, w, ids = dataset.to_numpy()
-      dataset_1 = Dataset.from_numpy(split_dirs[0], X, y, w, ids)
+      dataset_1 = NumpyDataset(dataset.X, dataset.y, dataset.w, dataset.ids)
       dataset_2 = None 
       return dataset_1, dataset_2
-    X, y, w, ids = randomize_arrays(dataset.to_numpy())
+    X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w, dataset.ids))
     split_indices = self.get_task_split_indices(y, w, frac_split)
 
     # Create weight matrices fpor two haves. 
@@ -194,11 +193,11 @@ class RandomStratifiedSplitter(Splitter):
     # check out if any rows in either w_1 or w_2 are just zeros
     rows_1 = w_1.any(axis=1)
     X_1, y_1, w_1, ids_1 = X[rows_1], y[rows_1], w_1[rows_1], ids[rows_1]
-    dataset_1 = Dataset.from_numpy(split_dirs[0], X_1, y_1, w_1, ids_1)
+    dataset_1 = NumpyDataset(X_1, y_1, w_1, ids_1)
 
     rows_2 = w_2.any(axis=1)
     X_2, y_2, w_2, ids_2 = X[rows_2], y[rows_2], w_2[rows_2], ids[rows_2]
-    dataset_2 = Dataset.from_numpy(split_dirs[1], X_2, y_2, w_2, ids_2)
+    dataset_2 = NumpyDataset(X_2, y_2, w_2, ids_2)
 
     return dataset_1, dataset_2 
 
@@ -209,7 +208,7 @@ class RandomStratifiedSplitter(Splitter):
     """Custom split due to raggedness in original split.
     """
     # Obtain original x, y, and w arrays and shuffle
-    X, y, w, ids = randomize_arrays(dataset.to_numpy())
+    X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w, dataset.ids))
     rem_dir = tempfile.mkdtemp()
     train_dataset, rem_dataset = self.split(
         dataset, [train_dir, rem_dir], frac_train)
@@ -261,7 +260,7 @@ class MolecularWeightSplitter(Splitter):
     np.random.seed(seed)
 
     mws = []
-    for smiles in dataset.get_ids():
+    for smiles in dataset.ids:
       mol = Chem.MolFromSmiles(smiles)
       mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
       mws.append(mw)
@@ -329,7 +328,7 @@ class ScaffoldSplitter(Splitter):
     scaffolds = {}
     log("About to generate scaffolds", self.verbosity)
     data_len = len(dataset)
-    for ind, smiles in enumerate(dataset.get_ids()):
+    for ind, smiles in enumerate(dataset.ids):
       if ind % log_every_n == 0:
         log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
       scaffold = generate_scaffold(smiles)
@@ -362,7 +361,7 @@ class SpecifiedSplitter(Splitter):
 
   def __init__(self, input_file, split_field, verbosity=None):
     """Provide input information for splits."""
-    raw_df = load_data([input_file], shard_size=None).next()
+    raw_df = next(load_data([input_file], shard_size=None))
     self.splits = raw_df[split_field].values
     self.verbosity = verbosity
 

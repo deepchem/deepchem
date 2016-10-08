@@ -22,10 +22,10 @@ Requirements
 Linux (64-bit) Installation from Source
 ---------------------------------------
 
-```deepchem``` currently requires Python 2.7, and is not supported on any platforms except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
+```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
-1. Anaconda 2.7
-   Download the **64-bit Python 2.7** version of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).  
+1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
+   
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
 
 2. `openbabel`
@@ -138,6 +138,18 @@ Frequently Asked Questions
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
+2. Question: The test suite is core-dumping for me. What's up?
+   ```
+   [rbharath]$ nosetests -v deepchem --nologcapture
+   Illegal instruction (core dumped)
+   ```
+   
+   Answer: This is often due to `openbabel` issues on older linux systems. Open `ipython` and run the following
+   ```
+   In [1]: import openbabel as ob
+   ```
+   If you see a core-dump, then it's a sign there's an issue with your `openbabel` install. Try reinstalling `openbabel` from source for your machine.
+   
    
 Getting Started
 ---------------

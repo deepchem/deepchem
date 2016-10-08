@@ -44,7 +44,7 @@ class Evaluator(object):
     """
     Write computed stats to file.
     """
-    with open(stats_out, "wb") as statsfile:
+    with open(stats_out, "w") as statsfile:
       statsfile.write(str(scores) + "\n")
 
   def output_predictions(self, y_preds, csv_out):
@@ -55,11 +55,11 @@ class Evaluator(object):
       y_preds: np.ndarray
       csvfile: Open file object.
     """
-    mol_ids = self.dataset.get_ids()
+    mol_ids = self.dataset.ids
     n_tasks = len(self.task_names)
     y_preds = np.reshape(y_preds, (len(y_preds), n_tasks))
     assert len(y_preds) == len(mol_ids)
-    with open(csv_out, "wb") as csvfile:
+    with open(csv_out, "w") as csvfile:
       csvwriter = csv.writer(csvfile)
       csvwriter.writerow(["Compound"] + self.dataset.get_task_names())
       for mol_id, y_pred in zip(mol_ids, y_preds):
@@ -70,9 +70,9 @@ class Evaluator(object):
     """
     Computes statistics of model on test data and saves results to csv.
     """
-    y = self.dataset.get_labels()
+    y = self.dataset.y
     y = undo_transforms(y, self.output_transformers)
-    w = self.dataset.get_weights()
+    w = self.dataset.w
 
     if not len(metrics):
       return {}

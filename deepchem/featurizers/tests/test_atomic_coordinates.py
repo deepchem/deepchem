@@ -6,10 +6,7 @@ import numpy as np
 import unittest
 from rdkit import Chem
 from deepchem.utils import conformers
-from deepchem.featurizers.atomic_coordinates import get_cells
 from deepchem.featurizers.atomic_coordinates import get_coords
-from deepchem.featurizers.atomic_coordinates import put_atoms_in_cells
-from deepchem.featurizers.atomic_coordinates import compute_neighbor_cell_map
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
 from deepchem.featurizers.atomic_coordinates import NeighborListAtomicCoordinates
 from deepchem.featurizers.atomic_coordinates import NeighborListComplexAtomicCoordinates
@@ -40,117 +37,6 @@ class TestAtomicCoordinates(unittest.TestCase):
     assert isinstance(coords, np.ndarray)
     assert coords.shape == (N, 3)
 
-  def test_get_cells(self):
-    """
-    Test that coordinates are split into cell appropriately.
-    """
-    # The coordinates span the cube of side-length 2 set on (-1, 1)
-    coords = np.array(
-        [[1., 1., 1.],
-         [-1., -1., -1.]])
-    # Set cell size (neighbor_cutoff) at 1 angstrom.
-    neighbor_cutoff = 1
-    # We should get 2 bins in each dimension
-    x_bins, y_bins, z_bins = get_cells(coords, neighbor_cutoff)
-
-    # Check bins are lists
-    assert isinstance(x_bins, list)
-    assert isinstance(y_bins, list)
-    assert isinstance(z_bins, list)
-
-    assert len(x_bins) == 2
-    assert x_bins ==[(-1.0, 0.0), (0.0, 1.0)] 
-    assert len(y_bins) == 2
-    assert y_bins ==[(-1.0, 0.0), (0.0, 1.0)] 
-    assert len(z_bins) == 2
-    assert z_bins ==[(-1.0, 0.0), (0.0, 1.0)] 
-
-
-  def test_put_atoms_in_cells(self):
-    """
-    Test that atoms are placed into correct cells.
-    """
-    # As in previous example, coordinates span size-2 cube on (-1, 1)
-    coords = np.array(
-        [[1., 1., 1.],
-         [-1., -1., -1.]])
-    # Set cell size (neighbor_cutoff) at 1 angstrom.
-    neighbor_cutoff = 1
-    # We should get 2 bins in each dimension
-    x_bins, y_bins, z_bins = get_cells(coords, neighbor_cutoff)
-
-    cell_to_atoms, atom_to_cell = put_atoms_in_cells(
-        coords, x_bins, y_bins, z_bins)
-
-    # Both cell_to_atoms and atom_to_cell are dictionaries
-    assert isinstance(cell_to_atoms, dict)
-    assert isinstance(atom_to_cell, dict)
-
-    # atom_to_cell should be of len 2 since 2 atoms
-    assert len(atom_to_cell) == 2
-
-    # cell_to_atoms should be of len 8 since 8 cells total.
-    assert len(cell_to_atoms) == 8
-
-    # We have two atoms. The first is in highest corner (1,1,1)
-    # Second atom should be in lowest corner (0, 0, 0)
-    assert atom_to_cell[0] == (1, 1, 1)
-    assert atom_to_cell[1] == (0, 0, 0)
-
-    # (1,1,1) should contain atom 0. (0, 0, 0) should contain atom 1.
-    # Everything else should be an empty list
-    for cell, atoms in cell_to_atoms.items():
-      if cell == (1, 1, 1):
-        assert atoms == [0]
-      elif cell == (0, 0, 0):
-        assert atoms == [1]
-      else:
-        assert atoms == []
-
-  def test_compute_neighbor_cell_map(self):
-    """
-    Tests that computed neighbors for grid are meaningful.
-    """
-    # For a 1x1x1 grid, the neighbor cell map should return [(0,0,0)] * 27
-    # since the periodic boundary conditions mean wrap-around happens in all
-    # directions.
-    neighbor_cell_map = compute_neighbor_cell_map(1, 1, 1)
-    assert isinstance(neighbor_cell_map, dict)
-    assert len(neighbor_cell_map) == 1
-    assert neighbor_cell_map[(0,0,0)] == [(0,0,0)] * 27
-
-    neighbor_cell_map = compute_neighbor_cell_map(5, 5, 5)
-    assert isinstance(neighbor_cell_map, dict)
-    assert len(neighbor_cell_map) == 125 
-    assert sorted(neighbor_cell_map[(2,2, 2)]) == [
-        (1, 1, 1),
-        (1, 1, 2),
-        (1, 1, 3),
-        (1, 2, 1),
-        (1, 2, 2),
-        (1, 2, 3),
-        (1, 3, 1),
-        (1, 3, 2),
-        (1, 3, 3),
-        (2, 1, 1),
-        (2, 1, 2),
-        (2, 1, 3),
-        (2, 2, 1),
-        (2, 2, 2),
-        (2, 2, 3),
-        (2, 3, 1),
-        (2, 3, 2),
-        (2, 3, 3),
-        (3, 1, 1),
-        (3, 1, 2),
-        (3, 1, 3),
-        (3, 2, 1),
-        (3, 2, 2),
-        (3, 2, 3),
-        (3, 3, 1),
-        (3, 3, 2),
-        (3, 3, 3)]
-
   def test_neighbor_list_shape(self):
     """
     Simple test that Neighbor Lists have right shape.
@@ -158,7 +44,6 @@ class TestAtomicCoordinates(unittest.TestCase):
     nblist_featurizer = NeighborListAtomicCoordinates()
     N = self.mol.GetNumAtoms()
     coords = get_coords(self.mol)
-    x_bins, y_bins, z_bins = get_cells(coords, nblist_featurizer.neighbor_cutoff)
 
     nblist_featurizer = NeighborListAtomicCoordinates()
     nblist = nblist_featurizer._featurize(self.mol)[1]
@@ -230,6 +115,25 @@ class TestAtomicCoordinates(unittest.TestCase):
         assert nblist[i] == [closest_nbr]
       else:
         assert nblist[i] == []
+
+  def test_neighbor_list_periodic(self):
+    """Test building a neighbor list with periodic boundary conditions."""
+    cutoff = 4.0
+    box_size = np.array([10.0, 8.0, 9.0])
+    N = self.mol.GetNumAtoms()
+    coords = get_coords(self.mol)
+    featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=cutoff, periodic_box_size=box_size)
+    neighborlist = featurizer._featurize(self.mol)[1]
+    expected_neighbors = [set() for i in range(N)]
+    for i in range(N):
+        for j in range(i):
+            delta = coords[i]-coords[j]
+            delta -= np.round(delta/box_size)*box_size
+            if np.linalg.norm(delta) < cutoff:
+                expected_neighbors[i].add(j)
+                expected_neighbors[j].add(i)
+    for i in range(N):
+        assert(set(neighborlist[i]) == expected_neighbors[i])
 
   def test_complex_featurization_simple(self):
     """Test Neighbor List computation on protein-ligand complex."""

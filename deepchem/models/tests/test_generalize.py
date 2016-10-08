@@ -16,7 +16,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression 
 from sklearn.linear_model import LogisticRegression
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.metrics import Metric
 from deepchem.models.tests import TestAPI
 from deepchem.models.sklearn_models import SklearnModel
@@ -39,10 +39,11 @@ class TestGeneralization(TestAPI):
     X, y = dataset.data, dataset.target
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
-    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
+    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
@@ -73,10 +74,11 @@ class TestGeneralization(TestAPI):
 
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
-    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
+    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
 
     # Eval model on train
     transformers = [
@@ -117,10 +119,11 @@ class TestGeneralization(TestAPI):
     
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
-    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
+    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
@@ -154,10 +157,11 @@ class TestGeneralization(TestAPI):
 
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
-    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
+    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
@@ -191,10 +195,11 @@ class TestGeneralization(TestAPI):
     
     frac_train = .7
     n_samples = len(X)
-    X_train, y_train = X[:frac_train*n_samples], y[:frac_train*n_samples]
-    X_test, y_test = X[frac_train*n_samples:], y[frac_train*n_samples:]
-    train_dataset = Dataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = Dataset.from_numpy(self.test_dir, X_test, y_test)
+    n_train = int(frac_train*n_samples)
+    X_train, y_train = X[:n_train], y[:n_train]
+    X_test, y_test = X[n_train:], y[n_train:]
+    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
+    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
 
     verbosity = "high"
     classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)

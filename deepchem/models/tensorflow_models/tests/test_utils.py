@@ -42,14 +42,14 @@ class UtilsTest(test_util.TensorFlowTestCase):
 
   def testParseCheckpoint(self):
     # parse CheckpointState proto
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile(mode='w+') as f:
       cp = checkpoint_state_pb2.CheckpointState()
       cp.model_checkpoint_path = 'my-checkpoint'
       f.write(text_format.MessageToString(cp))
       f.file.flush()
       self.assertEqual(utils.ParseCheckpoint(f.name), 'my-checkpoint')
     # parse path to actual checkpoint
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile(mode='w+') as f:
       f.write('This is not a CheckpointState proto.')
       f.file.flush()
       self.assertEqual(utils.ParseCheckpoint(f.name), f.name)
