@@ -1,7 +1,11 @@
 DeepChem
 =============
 
-Deep Learning Toolchain for Drug Discovery and Quantum Chemistry. DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. For more information, see the "About Us" section below.
+DeepChem aims to provide a high quality open-source toolchain for
+democratizing the use of deep-learning in drug discovery and quantum
+chemistry. DeepChem
+is a package developed by the [Pande group](https://pande.stanford.edu/) at
+Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/). 
 
 Requirements
 ------------
@@ -191,6 +195,12 @@ transform lists of molecules into vectors, we need to use the ``deechem``
 featurization class ``DataFeaturizer``. Instances of this class must be
 passed a ``Featurizer`` object. ``deepchem`` provides a number of
 different subclasses of ``Featurizer`` for convenience:
+
+DeepChem Publications
+---------------------
+1. [Computational Modeling of β-secretase 1 (BACE-1) Inhibitors using
+Ligand Based
+Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 
 About Us
 --------
