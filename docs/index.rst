@@ -11,13 +11,13 @@ DeepChem
 
 DeepChem is a python library designed to facilitate the use of machine-learning
 and deep-learning methods in computational drug discovery. DeepChem is a
-package by the Pande_ group at Stanford. Development and documentation
-lives on Github_.  deepchem is licensed under
-the GNU GPL (v3.0 or later)
+package by the Pande_ group at Stanford and originally created by `Bharath
+Ramsundar <https://rbharath.github.io>`_. Development and documentation
+lives on Github_. DeepChem is licensed under the GNU GPL (v3.0 or later).
 
 New users should check out installation_ instructions and examples_ on github.
 
-.. _installation: https://github.com/deepchem/deepchem/blob/master/README.md
+.. _installation: https://github.com/deepchem/deepchem/blob/master/README.md#linux-64-bit-installation-from-source
 .. _examples: https://github.com/deepchem/deepchem/tree/master/examples
 .. _Pande: https://pande.stanford.edu/
 .. _Github: https://github.com/pandegroup/deepchem
