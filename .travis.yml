@@ -37,6 +37,7 @@ script:
 after_success:
 - echo "TESTTEST"
 - echo $TESTTEST
+- echo $AWS_ACCESS_KEY_ID
 - source devtools/travis-ci/after_sucess.sh
 env:
   global:

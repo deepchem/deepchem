@@ -9,6 +9,9 @@ BUCKET_NAME = 'deepchem.io'
 if not any(d.project_name == 's3cmd' for d in pip.get_installed_distributions()):
   raise ImportError('The s3cmd package is required. try $ pip install s3cmd')
 
+print("os.environ.keys()")
+print(os.environ.keys())
+
 # The secret key is available as a secure environment variable
 # on travis-ci to push the build documentation to Amazon S3.
 with tempfile.NamedTemporaryFile('w') as f:
