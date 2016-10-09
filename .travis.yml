@@ -35,6 +35,8 @@ install:
 script:
 - nosetests -v deepchem --nologcapture
 after_success:
+- echo "TESTTEST"
+- echo $TESTTEST
 - source devtools/travis-ci/after_sucess.sh
 env:
   global:
