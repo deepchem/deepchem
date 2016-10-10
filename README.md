@@ -13,6 +13,9 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
+* [Contributing to DeepChem](#contributing-to-deepchem)
+    * [Code Style Guidelines](#code-style-guidelines)
+    * [Documentation Style Guidelines](#documentation-style-guidelines)
 * [DeepChem Publications](#deepchem-publications)
 * [Examples](/examples)
 * [About Us](#about-us)
@@ -198,6 +201,18 @@ transform lists of molecules into vectors, we need to use the ``deechem``
 featurization class ``DataFeaturizer``. Instances of this class must be
 passed a ``Featurizer`` object. ``deepchem`` provides a number of
 different subclasses of ``Featurizer`` for convenience:
+
+## Contributing to DeepChem
+
+We actively encourage community contributions to DeepChem. The first place to start getting involved is by running our examples locally. Afterwards, we encourage contributors to give a shot to improving our documentation. While we take effort to provide good docs, there's plenty of room for improvement. All docs are hosted on Github, either in this `README.md` file, or in the `docs/` directory.
+
+Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
+
+### Code Style Guidelines
+DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/). Aim for a score of at least 8/10 on contributed files.
+
+### Documentation Style Guidelines
+DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io). 
 
 ## DeepChem Publications
 1. [Computational Modeling of β-secretase 1 (BACE-1) Inhibitors using

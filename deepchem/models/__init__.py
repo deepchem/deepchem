@@ -14,7 +14,7 @@ import joblib
 import os
 import tempfile
 import sklearn
-from deepchem.datasets import Dataset
+from deepchem.datasets import Dataset, pad_features
 from deepchem.transformers import undo_transforms
 from deepchem.transformers import undo_grad_transforms
 from deepchem.utils.save import load_from_disk
