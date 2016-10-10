@@ -35,8 +35,5 @@ install:
 script:
 - nosetests -v deepchem --nologcapture
 after_success:
-- echo "TESTTEST"
-- echo $TESTTEST
-- echo $AWS_ACCESS_KEY_ID
 - echo $TRAVIS_SECURE_ENV_VARS
 - source devtools/travis-ci/after_sucess.sh
