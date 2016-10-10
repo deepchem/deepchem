@@ -250,7 +250,7 @@ class TensorflowGraphModel(object):
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              dataset.iterbatches(batch_size, pad_batches=pad_batches)):
+              dataset.iterbatches(batch_size, pad_batches=True)): # hardcode pad_batches=True to work around limitations in Tensorflow
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbosity)
             # Run training op.
@@ -695,11 +695,25 @@ class TensorflowModel(Model):
     """
     self.model_instance.fit(dataset, **kwargs)
 
+  def predict(self, dataset, transformers=[], batch_size=None,
+              pad_batches=False):
+    """
+    Uses self to make predictions on provided Dataset object.
+
+    This is overridden to make sure the batch size is always valid for Tensorflow.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
+    """
+    return Model.predict(self, dataset, transformers, self.model_instance.batch_size, True)
+
   def predict_on_batch(self, X):
     """
     Makes predictions on batch of data.
     """
-    return self.model_instance.predict_on_batch(X)
+    len_unpadded = len(X)
+    Xpad = pad_features(self.model_instance.batch_size, X)
+    return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
 
   def predict_grad_on_batch(self, X):
     """
