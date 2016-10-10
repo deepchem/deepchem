@@ -5,11 +5,9 @@ python:
 sudo: required
 dist: trusty
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-    wget https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh -O anaconda.sh;
-  else
-    wget https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-x86_64.sh -O anaconda.sh;
-  fi
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh
+  -O anaconda.sh; else wget https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-x86_64.sh
+  -O anaconda.sh; fi
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
 - hash -r
@@ -22,7 +20,7 @@ install:
 - conda install -c omnia openbabel
 - conda install joblib
 - conda install h5py
-- pip install keras 
+- pip install keras
 - export KERAS_BACKEND=tensorflow
 - conda install seaborn
 - conda install six
@@ -31,15 +29,14 @@ install:
 - conda install ipyparallel
 - pip install runipy
 - pip install nglview
-- conda install -c omnia mdtraj 
+- conda install -c omnia mdtraj
 - python setup.py install
 - conda install -c https://conda.anaconda.org/jjhelmus tensorflow
 script:
 - nosetests -v deepchem --nologcapture
 after_success:
+- echo "TESTTEST"
+- echo $TESTTEST
+- echo $AWS_ACCESS_KEY_ID
+- echo $TRAVIS_SECURE_ENV_VARS
 - source devtools/travis-ci/after_sucess.sh
-# AWS access_key and secret key secured through travis secure var api.
-env:
-  global:
-  - secure: FojR+Zrw/XLeDWHaZnwqkBt7DGwOJ6N9X0HJIkkzGsTxQy405qY9bfKMgzivY4UAppqWH2R9kcY/3K2lnFOU9Z2dSf9ZSLVmXjQQK+YhiFiPVQG1bQ8XEhQ51927AZn2wGqzPSFlOI8M4ek2V4a6d72Wg6SOooVbI+A9PtrdXNJlEfonY0QfSakhg+IFPBsN84khbGaHlTRCXvozRTSm3Ubo4jidN54WbO7Ll18qJ183Fgh8SVxYfodDAusZaWU2e/q9lCk6nkJ9bDC9anPbuTXpSlIkH7x7WcrMbLCrvvHJq26YOCjReCDea1/N8ECsarXWfvPjz1Cv59QSghoLxFeRRNCDHWaWTccKgWRAFd60+vSgd8CcoMFsMY0XedO2mSQztLAb2pS2TCoCPMD/5Zip5pkXOxJB5CwPqSuJ41FBPYthzyhG1MPbaQnPDZjtx5TDaVdN5w+Nfc40i9+0rFNisEyAdi2dTcr6bWZ7UlWj7LBDJGVjYPC8lKsaip6dyov3KeLveod0IbY5zCVnqF2rwuID5n/6ejGgytv1caZWa9TvEjzuSJoo8d2uXwyTzQLntardt2ZvtA8ZmwChyaq0pNtUgxQE4wn8hZG19+lAvIc95ZDJuSV7xwuo5XsMDffa3jrjyWhByveyfbHs1znAmAl4w6NJ32ylWr0/+Do=
-  - secure: JDldUkMQE7+vlKX2ghTFhGWCWHzJJtC4w8xIzAaKo04zHaBcrHSmhXXwkkPjyGjgcXE6ORKUI/zJnCecErpPbHYVEQUGzyTG9ikQr0pIENTua5j5AHJUt5Y+aWsD2fzNWE1ZT88sxKAqj96rsfRfj7coymkoyLXrvqdd5OVm+sEiup5MLGEutbMrOPXChSXBUiGetLakoMnQ0WznOttWVUb52j5SsCJSOh7baX0eNdEmaGZ+ok4R/j8/c8LTARVOC2AZ6c6BIfJPHk7rPpq4HoeVRIgp2o7vbjosE+eI499OPP1AcFHUm38XJ68mDsw5exu/ONEbFgxzA2hXqVW/TDnWpaJ0hLKxjGg8JnJ63OYWyY2nk7UGQNPwiVj4DiN7zsNkV1+IbaUmiGjbWAxyCa8FBOoXos7DQ7pVtWNvhZtsAzJaCNgvCFgsrxcutxGuN9zkpmL30QNpE6HT/mvmww5MHH5KacBYPLjqmihQCuasT9L6k2+dPspRRfbrgyBZJxffteWumXBThIaqs8BuqG1CxxgkOgvUTSBZyoZtfX3CW8ClEIKT89+bQXQKwcqSqWCu7qsFx7A6ssmzliCzO5iXZhxaPS7rICqRu4HPJ1YNS5bUbwwEmBeMw0ATsxpfo0ityNSJbO0AvXiIr9fcVv0cPJuz3pialFrGDMMPjeY=
