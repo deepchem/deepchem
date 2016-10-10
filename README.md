@@ -1,10 +1,23 @@
-deepchem
-=============
+# DeepChem
 
-Deep Learning Toolchain for Drug Discovery and Quantum Chemistry
+DeepChem aims to provide a high quality open-source toolchain that
+democratizes the use of deep-learning in drug discovery, materials science, and quantum
+chemistry. DeepChem is a package developed by the [Pande group](https://pande.stanford.edu/) at
+Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/). 
 
-Requirements
-------------
+### Table of contents:
+
+* [Requirements](#requirements)
+* [Installation from Source](#installation)
+* [FAQ](#faq)
+* [Getting Started](#getting-started)
+    * [Input Formats](#input-formats)
+    * [Data Featurization](#data-featurization)
+* [DeepChem Publications](#deepchem-publications)
+* [Examples](/examples)
+* [About Us](#about-us)
+
+## Requirements
 * [openbabel](http://openbabel.org/wiki/Main_Page)
 * [pandas](http://pandas.pydata.org/)
 * [rdkit](http://www.rdkit.org/docs/Install.html)
@@ -19,10 +32,9 @@ Requirements
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
-Linux (64-bit) Installation from Source
----------------------------------------
+## Installation
 
-```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
+Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
    
@@ -128,8 +140,7 @@ Linux (64-bit) Installation from Source
     Note that the full test-suite uses up a fair amount of memory. 
     Try running tests for one submodule at a time if memory proves an issue.
 
-Frequently Asked Questions
---------------------------
+## FAQ
 1. Question: I'm seeing some failures in my test suite having to do with MKL
    ```Intel MKL FATAL ERROR: Cannot load libmkl_avx.so or libmkl_def.so.```
 
@@ -151,6 +162,47 @@ Frequently Asked Questions
    If you see a core-dump, then it's a sign there's an issue with your `openbabel` install. Try reinstalling `openbabel` from source for your machine.
    
    
-Getting Started
----------------
+## Getting Started
 The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
+
+### Input Formats
+Accepted input formats for deepchem include csv, pkl.gz, and sdf files. For
+example, with a csv input, in order to build models, we expect the
+following columns to have entries for each row in the csv file.
+
+1. A column containing SMILES strings [1].
+2. A column containing an experimental measurement.
+3. (Optional) A column containing a unique compound identifier.
+
+Here's an example of a potential input file. 
+
+|Compound ID    | measured log solubility in mols per litre | smiles         | 
+|---------------|-------------------------------------------|----------------| 
+| benzothiazole | -1.5                                      | c2ccc1scnc1c2  | 
+
+
+Here the "smiles" column contains the SMILES string, the "measured log
+solubility in mols per litre" contains the experimental measurement and
+"Compound ID" contains the unique compound identifier.
+
+[2] Anderson, Eric, Gilman D. Veith, and David Weininger. "SMILES, a line
+notation and computerized interpreter for chemical structures." US
+Environmental Protection Agency, Environmental Research Laboratory, 1987.
+
+### Data Featurization
+
+Most machine learning algorithms require that input data form vectors.
+However, input data for drug-discovery datasets routinely come in the
+format of lists of molecules and associated experimental readouts. To
+transform lists of molecules into vectors, we need to use the ``deechem``
+featurization class ``DataFeaturizer``. Instances of this class must be
+passed a ``Featurizer`` object. ``deepchem`` provides a number of
+different subclasses of ``Featurizer`` for convenience:
+
+## DeepChem Publications
+1. [Computational Modeling of β-secretase 1 (BACE-1) Inhibitors using
+Ligand Based
+Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
+
+## About Us
+DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
