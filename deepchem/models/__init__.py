@@ -14,7 +14,7 @@ import joblib
 import os
 import tempfile
 import sklearn
-from deepchem.datasets import Dataset
+from deepchem.datasets import Dataset, pad_features
 from deepchem.transformers import undo_transforms
 from deepchem.transformers import undo_grad_transforms
 from deepchem.utils.save import load_from_disk
@@ -140,9 +140,13 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True, pad_batches=pad_batches):
+        batch_size, deterministic=True):
       n_samples = len(X_batch)
+      if pad_batches:
+        X_batch = pad_features(batch_size, X_batch)
       y_pred_batch = self.predict_on_batch(X_batch)
+      if pad_batches:
+        y_pred_batch = y_pred_batch[:n_samples]
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
