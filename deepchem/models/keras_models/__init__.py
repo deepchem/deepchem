@@ -55,7 +55,18 @@ class KerasModel(Model):
     model.load_weights(h5_filename)
     self.model_instance = model
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
+    """
+    Makes predictions on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Keras Models. Only used for Tensorflow models
+      with rigid batch-size requirements.
+    """
     return self.model_instance.predict_on_batch(X)
 
   # TODO(rbharath): The methods below aren't extensible and depend on
@@ -67,5 +78,18 @@ class KerasModel(Model):
   def get_num_tasks(self):
     return self.model_instance.n_tasks
   
-  def predict_proba_on_batch(self, X, n_classes=2):
+  def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):
+    """
+    Makes predictions of class probabilities on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
+    n_classes: int
+      Number of classifier classes
+    """
     return self.model_instance.predict_proba_on_batch(X, n_classes)

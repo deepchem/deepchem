@@ -54,16 +54,32 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes predictions of class probabilities on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
@@ -140,15 +156,13 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True, pad_batches=pad_batches):
+        batch_size, deterministic=True):
       n_samples = len(X_batch)
-      y_pred_batch = self.predict_on_batch(X_batch)
-      ################################################################### DEBUG
-      #print("X_batch.shape, y_batch.shape")
-      #print(X_batch.shape, y_batch.shape)
-      #print("y_pred_batch.shape")
-      #print(y_pred_batch.shape)
-      ################################################################### DEBUG
+      ########################################################## DEBUG
+      y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batches)
+      # Discard any padded predictions
+      y_pred_batch = y_pred_batch[:n_samples]
+      ########################################################## DEBUG
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
@@ -358,10 +372,13 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-        batch_size, deterministic=True, pad_batches=pad_batches):
-      y_pred_batch = self.predict_proba_on_batch(X_batch)
-      batch_size = len(y_batch)
-      y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes))
+        batch_size, deterministic=True):
+      ################################################################# DEBUG
+      n_samples = len(X_batch)
+      y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batches)
+      y_pred_batch = y_pred_batch[:n_samples]
+      ################################################################# DEBUG
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)
