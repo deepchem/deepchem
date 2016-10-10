@@ -18,12 +18,5 @@ mkdir -p docs/_build
 echo "About to build docs"
 sphinx-apidoc -f -o docs/source deepchem
 sphinx-build -b html docs/source docs/_build
-#sphinx-build -b html docs docs/_build
 echo "About to push docs to s3"
-#source ~/.deeprc
-#which python
-#which sphinx-build
-#~/anaconda/envs/deepchem/bin/python devtools/travis-ci/push-docs-to-s3.py
-#bash ../../deepchem-docs-sh
-#s3cmd -M -H --config ~/.s3cfg sync docs/_build/ s3://deepchem.io
 python devtools/travis-ci/push-docs-to-s3.py
