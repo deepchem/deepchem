@@ -22,6 +22,11 @@ def undo_transforms(y, transformers):
       y = transformer.untransform(y)
   return y
 
+def undo_grad_transforms(grad, tasks, transformers):
+  for transformer in reversed(transformers):
+    if transformer.transform_y:
+      grad = transformer.untransform_grad(grad, tasks)
+  return grad
 
 class Transformer(object):
   """
@@ -97,18 +102,26 @@ def _transform_row(i, df, transformer, data_dir):
 class NormalizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False, transform_w=False,
-               dataset=None):
+               dataset=None, transform_gradients=False):
     """Initialize normalization transformation."""
     super(NormalizationTransformer, self).__init__(
         transform_X=transform_X, transform_y=transform_y,
         transform_w=transform_w, dataset=dataset)
-    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
-    self.X_means = X_means 
-    self.X_stds = X_stds
-    self.y_means = y_means 
-    # Control for pathological case with no variance.
-    y_stds[y_stds == 0] = 1.
-    self.y_stds = y_stds
+    if transform_X:
+      X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
+      self.X_means = X_means 
+      self.X_stds = X_stds
+    elif transform_y:
+      y_means, y_stds = dataset.get_statistics(X_stats=False, y_stats=True)
+      self.y_means = y_means 
+      # Control for pathological case with no variance.
+      y_stds[y_stds == 0] = 1.
+      self.y_stds = y_stds
+    self.transform_gradients = transform_gradients
+    if self.transform_gradients:
+      true_grad, ydely_means = dataset.get_grad_statistics()
+      self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
+      self.ydely_means = ydely_means
 
   def transform(self, dataset, parallel=False):
     super(NormalizationTransformer, self).transform(
@@ -122,7 +135,8 @@ class NormalizationTransformer(Transformer):
     row = df.iloc[i]
 
     if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
+      X = load_from_disk(
+          os.path.join(data_dir, row['X-transformed']))
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
@@ -139,6 +153,123 @@ class NormalizationTransformer(Transformer):
       return z * self.X_stds + self.X_means
     elif self.transform_y:
       return z * self.y_stds + self.y_means
+
+  def untransform_grad(self, grad, tasks):
+    """
+    Undo transformation on gradient.
+    """
+    if self.transform_y:
+
+      grad_means = self.y_means[1:]
+      energy_var = self.y_stds[0]        
+      grad_var = 1/energy_var*(self.ydely_means-self.y_means[0]*self.y_means[1:])
+      energy = tasks[:,0]
+      transformed_grad = []
+
+      for i in range(energy.size):
+        Etf = energy[i]
+        grad_Etf = grad[i].flatten()
+        grad_E = Etf*grad_var+energy_var*grad_Etf+grad_means
+        grad_E = np.reshape(grad_E, (-1,3))
+        transformed_grad.append(grad_E)   
+
+      transformed_grad = np.asarray(transformed_grad)
+      return transformed_grad
+
+class AtomicNormalizationTransformer(Transformer):
+  """
+  TODO(rbharath): Needs more discussion of what a gradient is semantically.
+  It's evident that not every Dataset has meaningful gradient information, so
+  this transformer can't be applied to all data. Should there be a subclass of
+  Dataset named GradientDataset perhaps?
+  """
+
+  def __init__(self, transform_X=False, transform_y=False, transform_w=False,
+               dataset=None):
+    """Initialize normalization transformation."""
+    super(AtomicNormalizationTransformer, self).__init__(
+        transform_X=transform_X, transform_y=transform_y,
+        transform_w=transform_w, dataset=dataset)
+    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
+    self.X_means = X_means 
+    self.X_stds = X_stds
+    self.y_means = y_means 
+    # Control for pathological case with no variance.
+    y_stds[y_stds == 0] = 1.
+    self.y_stds = y_stds
+    true_grad, ydely_means = dataset.get_grad_statistics()
+    self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
+    self.ydely_means = ydely_means
+
+  def transform(self, dataset, parallel=False):
+    super(AtomicNormalizationTransformer, self).transform(
+        dataset, parallel=parallel)
+    
+
+  def transform_row(self, i, df, data_dir):
+    """
+    Normalizes the data (X, y, w, ...) in a single row).
+    """
+    row = df.iloc[i]
+
+    if self.transform_X:
+      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
+      X = np.nan_to_num((X - self.X_means) / self.X_stds)
+      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
+
+    if self.transform_y:
+
+      y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
+
+      # transform tasks as normal
+      y = np.nan_to_num((y - self.y_means) / self.y_stds)
+
+      # add 2nd order correction term to gradients
+      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
+      for i in range(y.shape[0]):
+        y[i,1:] = y[i,1:] - grad_var*y[i,0]/self.y_stds[0]
+
+      save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
+
+  def untransform(self, z):
+    """
+    Undo transformation on provided data.
+    """
+    if self.transform_X:
+      return z * self.X_stds + self.X_means
+    elif self.transform_y:
+
+      # untransform grad
+      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
+      for i in range(z.shape[0]):
+        z[i,1:] = z[i,0]*grad_var + self.y_stds[0]*z[i,1:] + self.y_means[1:] 
+      # untransform energy
+      z[:,0] = z[:,0] * self.y_stds[0] + self.y_means[0]
+
+      return z
+
+  def untransform_grad(self, grad, tasks):
+    """
+    Undo transformation on gradient.
+    """
+    if self.transform_y:
+
+      grad_means = self.y_means[1:]
+      energy_var = self.y_stds[0]        
+      grad_var = 1/energy_var*(self.ydely_means-self.y_means[0]*self.y_means[1:])
+      energy = tasks[:,0]
+      transformed_grad = []
+
+      for i in range(energy.size):
+        Etf = energy[i]
+        grad_Etf = grad[i].flatten()
+        grad_E = Etf*grad_var+energy_var*grad_Etf+grad_means
+        grad_E = np.reshape(grad_E, (-1,3))
+        transformed_grad.append(grad_E)   
+
+      transformed_grad = np.asarray(transformed_grad)
+      return transformed_grad
+
 
 class ClippingTransformer(Transformer):
 
@@ -193,7 +324,7 @@ class LogTransformer(Transformer):
       if self.features is None:
         X = np.log(X+1)
       else:
-        for j in xrange(num_features):
+        for j in range(num_features):
           if j in self.features:
             X[:,j] = np.log(X[:,j]+1)
           else:
@@ -206,7 +337,7 @@ class LogTransformer(Transformer):
       if self.tasks is None:
         y = np.log(y+1)
       else:
-        for j in xrange(num_tasks):
+        for j in range(num_tasks):
           if j in self.tasks:
             y[:,j] = np.log(y[:,j]+1)
           else:
@@ -222,7 +353,7 @@ class LogTransformer(Transformer):
       if self.features is None:
         return np.exp(z)-1
       else:
-        for j in xrange(num_features):
+        for j in range(num_features):
           if j in self.features:
             z[:,j] = np.exp(z[:,j])-1
           else:
@@ -233,7 +364,7 @@ class LogTransformer(Transformer):
       if self.tasks is None:
         return np.exp(z)-1
       else:
-        for j in xrange(num_tasks):
+        for j in range(num_tasks):
           if j in self.tasks:
             z[:,j] = np.exp(z[:,j])-1
           else:
@@ -253,8 +384,8 @@ class BalancingTransformer(Transformer):
     assert transform_w
 
     # Compute weighting factors from dataset.
-    y = self.dataset.get_labels()
-    w = self.dataset.get_weights()
+    y = self.dataset.y
+    w = self.dataset.w
     # Ensure dataset is binary
     np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
     weights = []
@@ -305,8 +436,8 @@ class CoulombRandomizationTransformer(Transformer):
     d = int((np.sqrt(8*len(x)+1)-1)/2)
     cm = np.zeros([d,d])
     cm[np.triu_indices_from(cm)] = x
-    for i in xrange(len(cm)):
-      for j in xrange(i+1,len(cm)):
+    for i in range(len(cm)):
+      for j in range(i+1,len(cm)):
         cm[j,i] = cm[i,j]
     return cm
 
@@ -345,7 +476,7 @@ class CoulombRandomizationTransformer(Transformer):
     row = df.iloc[i]
     if self.transform_X:
       X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      for j in xrange(len(X)):
+      for j in range(len(X)):
         cm = self.construct_cm_from_triu(X[j])
         X[j] = self.unpad_randomize_and_flatten(cm)
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
@@ -359,7 +490,7 @@ class CoulombRandomizationTransformer(Transformer):
     Randomly permute a Coulomb Matrix passed as an array
     """
     if self.transform_X:
-      for j in xrange(len(X)):
+      for j in range(len(X)):
         cm = self.construct_cm_from_triu(X[j])
         X[j] = self.unpad_randomize_and_flatten(cm)
 

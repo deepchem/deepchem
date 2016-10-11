@@ -13,7 +13,7 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.models.tests import TestAPI
 from deepchem.splits import RandomSplitter
 from deepchem.splits import ScaffoldSplitter
@@ -153,7 +153,7 @@ class TestFeaturizedSamples(TestAPI):
     # Now perform move
     shutil.move(data_dir, moved_data_dir)
 
-    moved_featurized_dataset = Dataset(
+    moved_featurized_dataset = DiskDataset(
         data_dir=moved_data_dir, reload=True)
 
     assert len(moved_featurized_dataset) == n_dataset

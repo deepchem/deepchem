@@ -32,9 +32,9 @@ def pad_array(x, shape, fill=0, both=False):
   """
   x = np.asarray(x)
   if not isinstance(shape, tuple):
-    shape = tuple(shape for _ in xrange(x.ndim))
+    shape = tuple(shape for _ in range(x.ndim))
   pad = []
-  for i in xrange(x.ndim):
+  for i in range(x.ndim):
     diff = shape[i] - x.shape[i]
     assert diff >= 0
     if both:

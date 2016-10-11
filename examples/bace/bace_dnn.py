@@ -10,12 +10,12 @@ from deepchem.datasets import Dataset
 from deepchem.transformers import NormalizationTransformer
 from deepchem.transformers import ClippingTransformer
 from deepchem.hyperparameters import HyperparamOpt
-from bace_features import user_specified_features
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 from deepchem.datasets.bace_datasets import load_bace
-from deepchem.models.keras_models.fcnet import SingleTaskDNN
+from deepchem.models.keras_models.fcnet import MultiTaskDNN
+from deepchem.models.keras_models import KerasModel
 
 
 def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
@@ -40,24 +40,18 @@ def bace_dnn_model(mode="classification", verbosity="high", split="20-80"):
   else:
     raise ValueError("Invalid mode %s" % mode)
 
-  params_dict = {"activation": ["relu"],
-                  "momentum": [.9],
-                  "batch_size": [50],
-                  "init": ["glorot_uniform"],
-                  "data_shape": [train_dataset.get_data_shape()],
-                  "learning_rate": np.power(10., np.random.uniform(-5, -3, size=5)),
-                  "decay": np.power(10, np.random.uniform(-6, -4, size=5)),
-                  "nb_hidden": [1000],
-                  "nb_epoch": [40],
-                  "nesterov": [False],
-                  "dropout": [.5],
-                  "nb_layers": [1],
-                  "batchnorm": [False],
-                }
+  params_dict = {"learning_rate": np.power(10., np.random.uniform(-5, -3, size=5)),
+                 "decay": np.power(10, np.random.uniform(-6, -4, size=5)),
+                 "nb_epoch": [40] }
 
-  optimizer = HyperparamOpt(SingleTaskDNN, bace_tasks,
-                            {task: mode for task in bace_tasks},
-                            verbosity=verbosity)
+  n_features = train_dataset.get_data_shape()[0]
+  def model_builder(model_params, model_dir):
+    keras_model = MultiTaskDNN(
+        len(bace_tasks), n_features, "classification", dropout=.5,
+        **model_params)
+    return KerasModel(keras_model, model_dir)
+
+  optimizer = HyperparamOpt(model_builder, verbosity="low")
   best_dnn, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,
       metric=metric)
