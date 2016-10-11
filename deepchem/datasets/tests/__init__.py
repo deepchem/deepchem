@@ -107,3 +107,20 @@ class TestDatasetAPI(TestAPI):
         verbosity="low")
     return loader.featurize(input_file, self.data_dir)
 
+  def load_gaussian_cdf_data(self):
+    """Load example with numbers sampled from Gaussian normal distribution.
+       Each feature and task is a column of values that is sampled
+       from a normal distribution of mean 0, stdev 1."""
+    if os.path.exists(self.data_dir):
+      shutil.rmtree(self.data_dir)
+    features = ["feat0","feat1"]
+    featurizer = UserDefinedFeaturizer(features)
+    tasks = ["task0","task1"]
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/gaussian_cdf_example.csv")
+    loader = DataLoader(
+        tasks=tasks,
+        featurizer=featurizer,
+        id_field="id",
+        verbosity=None)
+    return loader.featurize(input_file, self.data_dir)
