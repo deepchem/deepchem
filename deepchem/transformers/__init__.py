@@ -12,7 +12,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils import pad_array
 import shutil
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -470,7 +470,7 @@ class CDFTransformer(Transformer):
 
   def transform(self, dataset, bins):
     """Performs CDF transform on data."""
-    X, y, w, ids = dataset.to_numpy()
+    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)  
     w_t = w
     ids_t = ids
     if self.transform_X:
@@ -480,31 +480,78 @@ class CDFTransformer(Transformer):
       y_t = get_cdf_values(y,self.bins)
       X_t = X
     # TODO (rbharath): Find a more elegant solution to saving the data?
-    # shutil.rmtree(dataset.data_dir)
-    # os.makedirs(dataset.data_dir)
-    # Dataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
-    
-    return X_t, y_t, w_t, ids_t
+    shutil.rmtree(dataset.data_dir)
+    os.makedirs(dataset.data_dir)
+    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
     print("Cannot undo CDF Transformer.")
     # Need this for transform_y
 
-def get_cdf_values(array, bins): 
+def get_cdf_values(array, bins):
+  #array = np.transpose(array)
+  n_rows = array.shape[0] 
   n_cols = array.shape[1]
-  n_rows = array.shape[0]
   array_t = np.zeros((n_rows,n_cols))
   parts = n_rows/bins
   hist_values = np.zeros(n_rows)
   sorted_hist_values = np.zeros(n_rows)
-  for row in xrange(n_rows):
+  for row in range(n_rows):
     if np.remainder(bins,2)==1:
       hist_values[row] = np.floor(np.divide(row,parts))/(bins-1)
     else:
       hist_values[row] = np.floor(np.divide(row,parts))/bins
-  for col in xrange(n_cols):
+  for col in range(n_cols):
     order = np.argsort(array[:,col], axis=0)
     sorted_hist_values = hist_values[order]
     array_t[:,col] = sorted_hist_values
-
+ 
   return array_t
+
+class PowerTransformer(Transformer):
+  """Takes power n transform of a column and adds it as a new column."""
+  def __init__(self, transform_X=False,
+               transform_y=False, features=None, tasks=None,
+               n_powers=1, powers=[1]):
+    self.transform_X = transform_X
+    self.transform_y = transform_y
+    self.features = features
+    self.tasks = tasks
+    self.n_powers = n_powers
+    self.powers = powers
+    if len(self.powers) != self.n_powers:
+      print("Number of powers in list powers is not equal to n_powers.")
+      
+  def transform(self, dataset, n_powers, powers):
+    """Performs power transform on data."""
+    X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)     
+    X_t = X
+    y_t = y
+    w_t = w
+    ids_t = ids
+    if self.transform_X:
+      for i in range(self.n_powers):
+	X_temp = np.power(X, self.powers[i])
+      	X_t = np.append(X_t, X_temp, axis=1)
+        new_features = self.features
+        #for j in range(len(self.features)):
+
+    if self.transform_y:
+      for i in range(self.n_powers):
+	y_temp = np.power(y, self.powers[i])
+      	y_t = np.append(y_t, y_temp, axis=1)
+        new_tasks = self.tasks
+        #for j in range(len(self.tasks)):
+
+    # TODO (rbharath): Find a more elegant solution to saving the data?
+    shutil.rmtree(dataset.data_dir)
+    os.makedirs(dataset.data_dir)
+    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
+
+  def untransform(self, z):
+    if self.transform_X:
+      orig_len = (z.shape[1])/(self.n_powers+1)
+      z = z[:,:orig_len]
+    if self.transform_y:
+      orig_len = (z.shape[1])/(self.n_powers+1)
+      z = z[:,:orig_len]
