@@ -68,7 +68,6 @@ class Transformer(object):
   def transform(self, dataset, parallel=False):
     """
     Transforms all internally stored data.
-
     Adds X-transform, y-transform columns to metadata.
     """
     df = dataset.metadata_df
@@ -95,7 +94,6 @@ def _transform_row(i, df, transformer, data_dir):
   """
   Transforms the data (X, y, w,...) in a single row.
   Writes X-transformed, y-transformed to disk.
-
   """
   transformer.transform_row(i, df, data_dir)
 
@@ -213,7 +211,8 @@ class AtomicNormalizationTransformer(Transformer):
     row = df.iloc[i]
 
     if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
+      X = load_from_disk(
+          os.path.join(data_dir, row['X-transformed']))
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
       save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
 
@@ -446,7 +445,6 @@ class CoulombRandomizationTransformer(Transformer):
     1. Remove zero padding on Coulomb Matrix
     2. Randomly permute the rows and columns for n_samples
     3. Flatten each sample to upper triangular portion
-
     Returns list of feature vectors
     """
     max_atom_number = len(cm) 
@@ -598,6 +596,7 @@ class CDFTransformer(Transformer):
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.bins = bins
+  # TODO (flee2): for transform_y, figure out weights, untransform
 
   def transform(self, dataset, bins):
     """Performs CDF transform on data."""
@@ -608,15 +607,18 @@ class CDFTransformer(Transformer):
       X_t = get_cdf_values(X,self.bins)
       y_t = y
     if self.transform_y:
+      print("y will not be transformed by CDFTransformer, for now.")
+      """
       y_t = get_cdf_values(y,self.bins)
       X_t = X
+      """
     # TODO (rbharath): Find a more elegant solution to saving the data?
     shutil.rmtree(dataset.data_dir)
     os.makedirs(dataset.data_dir)
     DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    print("Cannot undo CDF Transformer.")
+    print("Cannot undo CDF Transformer, for now.")
     # Need this for transform_y
 
 def get_cdf_values(array, bins):
@@ -640,39 +642,33 @@ def get_cdf_values(array, bins):
   return array_t
 
 class PowerTransformer(Transformer):
-  """Takes power n transform of a column and adds it as a new column."""
+  """Takes power n transforms of the data based on an input vector."""
   def __init__(self, transform_X=False,
-               transform_y=False, features=None, tasks=None,
-               n_powers=1, powers=[1]):
+               transform_y=False,
+               powers=[1]):
     self.transform_X = transform_X
     self.transform_y = transform_y
-    self.features = features
-    self.tasks = tasks
-    self.n_powers = n_powers
     self.powers = powers
-    if len(self.powers) != self.n_powers:
-      print("Number of powers in list powers is not equal to n_powers.")
       
-  def transform(self, dataset, n_powers, powers):
+  def transform(self, dataset):
     """Performs power transform on data."""
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)     
-    X_t = X
-    y_t = y
     w_t = w
     ids_t = ids
+    n_powers = len(self.powers)
     if self.transform_X:
-      for i in range(self.n_powers):
-	X_temp = np.power(X, self.powers[i])
-      	X_t = np.append(X_t, X_temp, axis=1)
-        new_features = self.features
-        #for j in range(len(self.features)):
-
+      X_t = np.power(X, self.powers[0])
+      for i in range(1, n_powers):
+      	X_t = np.hstack((X_t,np.power(X, self.powers[i])))
+      y_t = y
     if self.transform_y:
-      for i in range(self.n_powers):
-	y_temp = np.power(y, self.powers[i])
-      	y_t = np.append(y_t, y_temp, axis=1)
-        new_tasks = self.tasks
-        #for j in range(len(self.tasks)):
+      print("y will not be transformed by PowerTransformer, for now.")
+      """
+      y_t = np.power(y, self.powers[0])
+      for i in range(1, n_powers):
+      	y_t = np.hstack((y_t,np.power(y, self.powers[i])))
+      X_t = X
+      """
 
     # TODO (rbharath): Find a more elegant solution to saving the data?
     shutil.rmtree(dataset.data_dir)
@@ -680,9 +676,8 @@ class PowerTransformer(Transformer):
     DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    if self.transform_X:
-      orig_len = (z.shape[1])/(self.n_powers+1)
-      z = z[:,:orig_len]
-    if self.transform_y:
-      orig_len = (z.shape[1])/(self.n_powers+1)
-      z = z[:,:orig_len]
+    print("Cannot undo Power Transformer, for now.")    
+    """
+    orig_len = (z.shape[1])/(self.n_powers+1)
+    z = z[:,:orig_len]
+    """
