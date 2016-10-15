@@ -277,7 +277,7 @@ class TensorflowGraphModel(object):
           self.verbosity)
     ############################################################## TIMING
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -297,6 +297,8 @@ class TensorflowGraphModel(object):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
     
     if not self._restored_model:
       self.restore()
@@ -514,7 +516,7 @@ class TensorflowClassifier(TensorflowGraphModel):
                              name='labels_%d' % task)))
       return labels
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -532,13 +534,13 @@ class TensorflowClassifier(TensorflowGraphModel):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
     if not self._restored_model:
       self.restore()
     with self.eval_graph.graph.as_default():
-
       # run eval data through the model
       n_tasks = self.n_tasks
-      outputs = []
       with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
@@ -553,10 +555,9 @@ class TensorflowClassifier(TensorflowGraphModel):
           raise ValueError(
               'Unrecognized rank combination for output: %s ' %
               (batch_outputs.shape,))
-        outputs.append(batch_outputs)
 
-        # We apply softmax to predictions to get class probabilities.
-        outputs = softmax(np.squeeze(np.hstack(outputs)))
+      # Note that softmax is already applied in construct_grpah
+      outputs = batch_outputs
 
     return np.copy(outputs)
 
@@ -707,13 +708,16 @@ class TensorflowModel(Model):
     """
     return Model.predict(self, dataset, transformers, self.model_instance.batch_size, True)
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=True):
     """
     Makes predictions on batch of data.
     """
-    len_unpadded = len(X)
-    Xpad = pad_features(self.model_instance.batch_size, X)
-    return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
+    if pad_batch:
+      len_unpadded = len(X)
+      Xpad = pad_features(self.model_instance.batch_size, X)
+      return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
+    else:
+      return self.model_instance.predict_on_batch(X)
 
   def predict_grad_on_batch(self, X):
     """
@@ -721,11 +725,11 @@ class TensorflowModel(Model):
     """
     return self.model_instance.predict_grad_on_batch(X)
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on batch of data.
     """
-    return self.model_instance.predict_proba_on_batch(X)
+    return self.model_instance.predict_proba_on_batch(X, pad_batch=pad_batch)
 
   def save(self):
     """

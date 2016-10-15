@@ -277,7 +277,7 @@ class NumpyDataset(Dataset):
       for j in range(len(interval_points)-1):
         indices = range(interval_points[j], interval_points[j+1])
         perm_indices = sample_perm[indices]
-        X_batch = dataset._X[perm_indices, :]
+        X_batch = dataset._X[perm_indices]
         y_batch = dataset._y[perm_indices]
         w_batch = dataset._w[perm_indices]
         ids_batch = dataset._ids[perm_indices]
@@ -535,7 +535,7 @@ class DiskDataset(Dataset):
         for j in range(len(interval_points)-1):
           indices = range(interval_points[j], interval_points[j+1])
           perm_indices = sample_perm[indices]
-          X_batch = X[perm_indices, :]
+          X_batch = X[perm_indices]
           y_batch = y[perm_indices]
           w_batch = w[perm_indices]
           ids_batch = ids[perm_indices]
@@ -875,9 +875,15 @@ class DiskDataset(Dataset):
   def X(self):
     """Get the X vector for this dataset as a single numpy array."""
     Xs = []
+    one_dimensional = False
     for (X_b, _, _, _) in self.itershards():
       Xs.append(X_b)
-    return np.vstack(Xs)
+      if len(X_b.shape) == 1:
+        one_dimensional = True
+    if not one_dimensional:
+      return np.vstack(Xs)
+    else:
+      return np.concatenate(Xs)
 
   @property
   def y(self):

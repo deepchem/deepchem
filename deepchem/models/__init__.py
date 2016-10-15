@@ -54,16 +54,32 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes predictions of class probabilities on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
@@ -142,11 +158,9 @@ class Model(object):
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       n_samples = len(X_batch)
-      if pad_batches:
-        X_batch = pad_features(batch_size, X_batch)
-      y_pred_batch = self.predict_on_batch(X_batch)
-      if pad_batches:
-        y_pred_batch = y_pred_batch[:n_samples]
+      y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batches)
+      # Discard any padded predictions
+      y_pred_batch = y_pred_batch[:n_samples]
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
@@ -342,7 +356,7 @@ class Model(object):
 
 
   def predict_proba(self, dataset, transformers=[], batch_size=None,
-                    n_classes=2):
+                    n_classes=2, pad_batches=False):
     """
     TODO: Do transformers even make sense here?
 
@@ -353,9 +367,10 @@ class Model(object):
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
-      y_pred_batch = self.predict_proba_on_batch(X_batch)
-      batch_size = len(y_batch)
-      y_pred_batch = np.reshape(y_pred_batch, (batch_size, n_tasks, n_classes))
+      n_samples = len(X_batch)
+      y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batches)
+      y_pred_batch = y_pred_batch[:n_samples]
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)

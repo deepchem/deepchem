@@ -55,8 +55,24 @@ class KerasModel(Model):
     model.load_weights(h5_filename)
     self.model_instance = model
 
-  def predict_on_batch(self, X):
-    return self.model_instance.predict_on_batch(X)
+  def predict_on_batch(self, X, pad_batch=False):
+    """
+    Makes predictions on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Used for Tensorflow models with rigid batch-size requirements.
+    """
+    n_samples = len(X) 
+    n_tasks = self.get_num_tasks()
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    y_pred = self.model_instance.predict_on_batch(X)
+    y_pred = np.reshape(y_pred, (n_samples, n_tasks))
+    return y_pred
 
   # TODO(rbharath): The methods below aren't extensible and depend on
   # implementation details of fcnet. Better way to expose this information?
@@ -67,5 +83,26 @@ class KerasModel(Model):
   def get_num_tasks(self):
     return self.model_instance.n_tasks
   
-  def predict_proba_on_batch(self, X, n_classes=2):
-    return self.model_instance.predict_proba_on_batch(X, n_classes)
+  def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):
+    """
+    Makes predictions of class probabilities on given batch of new data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
+    n_classes: int
+      Number of classifier classes
+    """
+    n_samples = len(X) 
+    n_tasks = self.get_num_tasks()
+    
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    y_pred_proba = self.model_instance.predict_proba_on_batch(X,
+        n_classes)
+    y_pred_proba = np.reshape(y_pred_proba, (n_samples, n_tasks, n_classes))
+    return y_pred_proba

@@ -33,15 +33,31 @@ class SklearnModel(Model):
       self.model_instance.fit(X, y)
     y_pred_raw = self.model_instance.predict(X)
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on batch of data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     return self.model_instance.predict(X)
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes per-class predictions on batch of data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
     return self.model_instance.predict_proba(X)
 
