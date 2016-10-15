@@ -713,13 +713,16 @@ class TensorflowModel(Model):
     """
     return Model.predict(self, dataset, transformers, self.model_instance.batch_size, True)
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=True):
     """
     Makes predictions on batch of data.
     """
-    len_unpadded = len(X)
-    Xpad = pad_features(self.model_instance.batch_size, X)
-    return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
+    if pad_batch:
+      len_unpadded = len(X)
+      Xpad = pad_features(self.model_instance.batch_size, X)
+      return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
+    else:
+      return self.model_instance.predict_on_batch(X)
 
   def predict_grad_on_batch(self, X):
     """
@@ -727,11 +730,11 @@ class TensorflowModel(Model):
     """
     return self.model_instance.predict_grad_on_batch(X)
 
-  def predict_proba_on_batch(self, X):
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on batch of data.
     """
-    return self.model_instance.predict_proba_on_batch(X)
+    return self.model_instance.predict_proba_on_batch(X, pad_batch=pad_batch)
 
   def save(self):
     """
