@@ -373,10 +373,18 @@ class Model(object):
     n_tasks = self.get_num_tasks()
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
-      ################################################################# DEBUG
       n_samples = len(X_batch)
       y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batches)
+      ################################################################# DEBUG
+      print("X_batch.shape")
+      print(X_batch.shape)
+      print("y_pred_batch.shape")
+      print(y_pred_batch.shape)
+      ################################################################# DEBUG
       y_pred_batch = y_pred_batch[:n_samples]
+      ################################################################# DEBUG
+      print("y_pred_batch.shape, (n_samples, n_tasks, n_classes)")
+      print(y_pred_batch.shape, (n_samples, n_tasks, n_classes))
       ################################################################# DEBUG
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)

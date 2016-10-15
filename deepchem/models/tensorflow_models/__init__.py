@@ -541,7 +541,6 @@ class TensorflowClassifier(TensorflowGraphModel):
     with self.eval_graph.graph.as_default():
       # run eval data through the model
       n_tasks = self.n_tasks
-      outputs = []
       with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
@@ -556,13 +555,16 @@ class TensorflowClassifier(TensorflowGraphModel):
           raise ValueError(
               'Unrecognized rank combination for output: %s ' %
               (batch_outputs.shape,))
-        outputs.append(batch_outputs)
 
-        # TODO(rbharath): This is a bug! We're actually applying softmax twice.
-        # I believe this is harmless since softmax of softmax doesn't change
-        # properties, but I need to check this...
-        # We apply softmax to predictions to get class probabilities.
-        outputs = softmax(np.squeeze(np.hstack(outputs)))
+      # TODO(rbharath): This is a bug! We're actually applying softmax twice.
+      # I believe this is harmless since softmax of softmax doesn't change
+      # properties, but I need to check this...
+      # We apply softmax to predictions to get class probabilities.
+      #outputs = softmax(np.squeeze(batch_outputs))
+      #outputs = softmax(batch_outputs)
+
+      # Note that softmax is already applied in construct_grpah
+      outputs = batch_outputs
 
     return np.copy(outputs)
 
