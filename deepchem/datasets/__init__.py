@@ -875,18 +875,11 @@ class DiskDataset(Dataset):
   def X(self):
     """Get the X vector for this dataset as a single numpy array."""
     Xs = []
-    ##################################################### DEBUG
-    #print("dataset.X computation.")
     one_dimensional = False
-    ##################################################### DEBUG
     for (X_b, _, _, _) in self.itershards():
       Xs.append(X_b)
-      ##################################################### DEBUG
-      #print("X_b.shape")
-      #print(X_b.shape)
       if len(X_b.shape) == 1:
         one_dimensional = True
-      ##################################################### DEBUG
     if not one_dimensional:
       return np.vstack(Xs)
     else:

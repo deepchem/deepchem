@@ -158,11 +158,9 @@ class Model(object):
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       n_samples = len(X_batch)
-      ########################################################## DEBUG
       y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batches)
       # Discard any padded predictions
       y_pred_batch = y_pred_batch[:n_samples]
-      ########################################################## DEBUG
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
@@ -171,10 +169,6 @@ class Model(object):
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples = len(dataset)
-    ################################################### DEBUG
-    print("n_samples, y_pred.shape, (n_samples, n_tasks)")
-    print(n_samples, y_pred.shape, (n_samples, n_tasks))
-    ################################################### DEBUG
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
@@ -375,17 +369,7 @@ class Model(object):
         batch_size, deterministic=True):
       n_samples = len(X_batch)
       y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batches)
-      ################################################################# DEBUG
-      print("X_batch.shape")
-      print(X_batch.shape)
-      print("y_pred_batch.shape")
-      print(y_pred_batch.shape)
-      ################################################################# DEBUG
       y_pred_batch = y_pred_batch[:n_samples]
-      ################################################################# DEBUG
-      print("y_pred_batch.shape, (n_samples, n_tasks, n_classes)")
-      print(y_pred_batch.shape, (n_samples, n_tasks, n_classes))
-      ################################################################# DEBUG
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
