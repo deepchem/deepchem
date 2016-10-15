@@ -2,6 +2,7 @@ import sys
 import os
 import deepchem
 import tempfile, shutil
+from bace_datasets import load_bace
 from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
@@ -9,7 +10,6 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.bace_datasets import load_bace
 
 def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
   """Train random forests on BACE dataset."""

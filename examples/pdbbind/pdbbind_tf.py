@@ -18,6 +18,7 @@ import numpy.random
 
 import sys
 import shutil
+from pdbbind_datasets import load_core_pdbbind_grid
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.hyperparameters import HyperparamOpt
 from deepchem import metrics
@@ -27,11 +28,10 @@ from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.utils.evaluate import Evaluator
 from deepchem.splits import RandomSplitter
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
-from deepchem.datasets.pdbbind_datasets import load_core_pdbbind_grid
 from deepchem.datasets import DiskDataset
 
 verbosity = "high"
-base_dir = "/scratch/users/rbharath/PDBBIND-ATOMICNET"
+base_dir = "/scratch/users/zqwu/PDBBIND-ATOMICNET"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 os.makedirs(base_dir)

@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
+from nci_datasets import load_nci
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor
 from deepchem.datasets import Dataset
@@ -16,7 +17,6 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.nci_datasets import load_nci
 from deepchem.splits import RandomSplitter
 
 np.random.seed(123)
@@ -27,7 +27,7 @@ reload = True
 verbosity = "high"
 force_transform = False 
 
-base_dir = "/scratch/users/rbharath/nci_rf"
+base_dir = "/scratch/users/zqwu/nci_rf"
 train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")

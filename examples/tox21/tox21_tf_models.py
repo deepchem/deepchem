@@ -8,13 +8,13 @@ from __future__ import unicode_literals
 import os
 import shutil
 import numpy as np
+from tox21_datasets import load_tox21
 from deepchem.datasets import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models import TensorflowModel
-from deepchem.datasets.tox21_datasets import load_tox21
 
 # Only for debug!
 np.random.seed(123)
@@ -23,7 +23,7 @@ np.random.seed(123)
 verbosity = "high"
 
 #Make directories to store the raw and featurized datasets.
-base_dir = "/scratch/users/rbharath/tox21_tf"
+base_dir = "/scratch/users/zqwu/tox21_tf"
 data_dir = os.path.join(base_dir, "dataset")
 model_dir = os.path.join(base_dir, "model")
 # This is for good debug (to make sure nasty state isn't being passed around)

@@ -8,13 +8,13 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
+from pcba_datasets import load_pcba
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.pcba_datasets import load_pcba
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models import TensorflowModel
 
@@ -25,7 +25,7 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/scratch/users/rbharath/pcba_tf"
+base_dir = "/scratch/users/zqwu/pcba_tf"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

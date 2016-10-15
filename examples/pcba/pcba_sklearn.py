@@ -8,13 +8,14 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
+from pcba_datasets import load_pcba
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.pcba_datasets import load_pcba
+
 
 np.random.seed(123)
 
@@ -22,7 +23,7 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/scratch/users/rbharath/pcba_sklearn"
+base_dir = "/scratch/users/zqwu/pcba_sklearn"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
