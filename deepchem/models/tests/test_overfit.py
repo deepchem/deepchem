@@ -26,6 +26,7 @@ from deepchem.models.keras_models.fcnet import MultiTaskDNN
 from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.multitask import SingletaskToMultitask
 import tensorflow as tf
 from keras import backend as K
@@ -580,22 +581,6 @@ class TestOverfitAPI(TestAPI):
   
     dataset = NumpyDataset(X, y, w, ids)
 
-    model_params = {
-      "layer_sizes": [1000],
-      "dropouts": [.0],
-      "learning_rate": 0.0003,
-      "momentum": .9,
-      "batch_size": n_samples,
-      "num_regression_tasks": n_tasks,
-      "num_classes": n_classes,
-      "num_features": n_features,
-      "weight_init_stddevs": [.1],
-      "bias_init_consts": [1.],
-      "nb_epoch": 100,
-      "penalty": 0.0,
-      "optimizer": "adam"
-    }
-
     verbosity = "high"
     regression_metric = Metric(metrics.mean_squared_error, verbosity=verbosity,
                                task_averager=np.mean, mode="regression")
@@ -615,3 +600,43 @@ class TestOverfitAPI(TestAPI):
     scores = evaluator.compute_model_performance([regression_metric])
 
     assert scores[regression_metric.name] < .1
+
+  def test_tf_robust_multitask_regression_overfit(self):
+    """Test tf robust multitask overfits tiny data."""
+    n_tasks = 10
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+  
+    dataset = NumpyDataset(X, y, w, ids)
+
+    verbosity = "high"
+    regression_metric = Metric(metrics.mean_squared_error, verbosity=verbosity,
+                               task_averager=np.mean, mode="regression")
+    tensorflow_model = RobustMultitaskRegressor(
+        n_tasks, n_features, self.model_dir, layer_sizes=[100], dropouts=[0.],
+        learning_rate=0.003, weight_init_stddevs=[.1],
+        batch_size=n_samples, verbosity=verbosity)
+    model = TensorflowModel(tensorflow_model, self.model_dir)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=75)
+    model.save()
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    scores = evaluator.compute_model_performance([regression_metric])
+    ############################################### DEBUG
+    print("scores[regression_metric.name]")
+    print(scores[regression_metric.name])
+    ############################################### DEBUG
+
+    assert scores[regression_metric.name] < .5
