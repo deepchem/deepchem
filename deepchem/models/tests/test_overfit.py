@@ -621,22 +621,19 @@ class TestOverfitAPI(TestAPI):
     regression_metric = Metric(metrics.mean_squared_error, verbosity=verbosity,
                                task_averager=np.mean, mode="regression")
     tensorflow_model = RobustMultitaskRegressor(
-        n_tasks, n_features, self.model_dir, layer_sizes=[100], dropouts=[0.],
+        n_tasks, n_features, self.model_dir, layer_sizes=[50],
+        bypass_layer_sizes=[10], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
     model = TensorflowModel(tensorflow_model, self.model_dir)
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=75)
+    model.fit(dataset, nb_epoch=25)
     model.save()
 
     # Eval model on train
     transformers = []
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
     scores = evaluator.compute_model_performance([regression_metric])
-    ############################################### DEBUG
-    print("scores[regression_metric.name]")
-    print(scores[regression_metric.name])
-    ############################################### DEBUG
 
-    assert scores[regression_metric.name] < .5
+    assert scores[regression_metric.name] < .15
