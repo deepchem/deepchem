@@ -77,7 +77,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
 
       prev_layer = self.mol_features
       prev_layer_size = num_features 
-      for i in xrange(num_layers):
+      for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
         ########################################################## DEBUG
         print("Adding weights of shape %s" % str([prev_layer_size, layer_sizes[i]]))
@@ -103,7 +103,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
         # Construct task bypass layer
         prev_bypass_layer = self.mol_features
         prev_bypass_layer_size = num_features
-        for i in xrange(num_bypass_layers):
+        for i in range(num_bypass_layers):
           # bypass_layer has shape [None, bypass_layer_sizes[i]]
           ########################################################## DEBUG
           print("Adding bypass weights of shape %s"
@@ -162,7 +162,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
     """ 
     orig_dict = {}
     orig_dict["mol_features"] = X_b
-    for task in xrange(self.n_tasks):
+    for task in range(self.n_tasks):
       if y_b is not None:
         orig_dict["labels_%d" % task] = y_b[:, task]
       else:
