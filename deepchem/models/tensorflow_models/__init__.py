@@ -110,8 +110,8 @@ class TensorflowGraphModel(object):
 
   def __init__(self, n_tasks, n_features, logdir, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
-               dropouts=[0.5], learning_rate=.001, momentum=".9",
-               optimizer="adam", batch_size=50, n_classes=2,
+               penalty_type="l2", dropouts=[0.5], learning_rate=.001,
+               momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
                train=True, verbosity=None, **kwargs):
     """Constructs the computational graph.
 
@@ -130,6 +130,7 @@ class TensorflowGraphModel(object):
     self.weight_init_stddevs = weight_init_stddevs
     self.bias_init_consts = bias_init_consts
     self.penalty = penalty
+    self.penalty_type = penalty_type
     self.dropouts = dropouts
     self.learning_rate = learning_rate
     self.momentum = momentum
