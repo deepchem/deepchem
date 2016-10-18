@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import shutil
 import numpy as np
+from tox21_datasets import load_tox21
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
 from deepchem.datasets import Dataset
@@ -16,7 +17,6 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.tox21_datasets import load_tox21
 
 # Only for debug!
 np.random.seed(123)
@@ -24,7 +24,7 @@ np.random.seed(123)
 # Set some global variables up top
 verbosity = "high"
 
-base_dir = "/scratch/users/rbharath/tox21_sklearn"
+base_dir = "/tmp/tox21_sklearn"
 #Make directories to store the raw and featurized datasets.
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):

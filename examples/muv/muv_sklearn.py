@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
+from muv_datasets import load_muv
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.datasets import Dataset
@@ -16,7 +17,6 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.muv_datasets import load_muv
 
 np.random.seed(123)
 
@@ -25,7 +25,7 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/scratch/users/rbharath/muv_sklearn"
+base_dir = "/tmp/muv_sklearn"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
