@@ -24,7 +24,7 @@ np.random.seed(123)
 # Set some global variables up top
 verbosity = "high"
 
-base_dir = "/scratch/users/zqwu/tox21_sklearn"
+base_dir = "/tmp/tox21_sklearn"
 #Make directories to store the raw and featurized datasets.
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):

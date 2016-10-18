@@ -27,7 +27,7 @@ reload = True
 verbosity = "high"
 force_transform = False 
 
-base_dir = "/scratch/users/zqwu/nci_rf"
+base_dir = "/tmp/nci_rf"
 train_dir = os.path.join(base_dir, "train_dataset")
 valid_dir = os.path.join(base_dir, "valid_dataset")
 test_dir = os.path.join(base_dir, "test_dataset")

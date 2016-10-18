@@ -21,7 +21,7 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/scratch/users/zqwu/muv_tf"
+base_dir = "/tmp/muv_tf"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

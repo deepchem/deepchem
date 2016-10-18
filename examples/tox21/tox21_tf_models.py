@@ -23,7 +23,7 @@ np.random.seed(123)
 verbosity = "high"
 
 #Make directories to store the raw and featurized datasets.
-base_dir = "/scratch/users/zqwu/tox21_tf"
+base_dir = "/tmp/tox21_tf"
 data_dir = os.path.join(base_dir, "dataset")
 model_dir = os.path.join(base_dir, "model")
 # This is for good debug (to make sure nasty state isn't being passed around)

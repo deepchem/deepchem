@@ -31,7 +31,7 @@ from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
 from deepchem.datasets import DiskDataset
 
 verbosity = "high"
-base_dir = "/scratch/users/zqwu/PDBBIND-ATOMICNET"
+base_dir = "/tmp/PDBBIND-ATOMICNET"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 os.makedirs(base_dir)
@@ -43,7 +43,7 @@ test_dir = os.path.join(base_dir, "test")
 model_dir = os.path.join(base_dir, "model")
 
 # REPLACE WITH DOWNLOADED PDBBIND EXAMPLE
-pdbbind_dir = "/scratch/users/zqwu/deep-docking/datasets/pdbbind"
+pdbbind_dir = "/tmp/deep-docking/datasets/pdbbind"
 pdbbind_tasks, dataset, transformers = load_core_pdbbind_grid(
     pdbbind_dir, base_dir)
 
