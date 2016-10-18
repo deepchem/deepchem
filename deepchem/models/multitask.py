@@ -103,7 +103,7 @@ class SingletaskToMultitask(Model):
       log("Fitting model for task %s" % task, self.verbosity, "high")
       task_model = self.model_builder(
           self.task_model_dirs[task])
-      task_model.fit(task_datasets[ind])
+      task_model.fit(task_datasets[ind], **kwargs)
       task_model.save()
 
   def predict_on_batch(self, X):
