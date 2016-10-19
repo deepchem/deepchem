@@ -40,53 +40,86 @@ from tox21.tox21_datasets import load_tox21
 
 def benchmarkLoadingDatasets(base_dir, n_features = 1024, datasetName = 'all',
                              model = 'all', reload = True, verbosity = 'high'):
-  Results = {}
+  
   assert datasetName in ['all', 'muv', 'nci', 'pcba', 'tox21']
   
   if datasetName in ['all','muv']:
     print('-------------------------------------')
     print('Benchmark test on datasets: muv')
     print('-------------------------------------')
-    tasks_muv, datasets_muv, transformers_muv = load_muv(base_dir, reload=reload)
-    Results['muv_train'], Results['muv_valid'] = benchmarkTrainAndValid(base_dir, 
-                                            datasets_muv, tasks_muv, transformers_muv, 
-                                            n_features, model, verbosity)
+    tasks_muv,datasets_muv,transformers_muv = load_muv(base_dir,reload=reload)
+    muv_train,muv_valid = benchmarkTrainAndValid(base_dir,datasets_muv,
+                                                 tasks_muv, transformers_muv,
+                                                 n_features, model, verbosity)
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('muv_train,')
+      for i in muv_train:
+        f.write(i+','+str(muv_train[i]))
+      f.write('\n'+'muv_valid,')
+      for i in muv_valid:
+        f.write(i+','+str(muv_valid[i]))
+    
     del tasks_muv, datasets_muv, transformers_muv
     
   if datasetName in ['all','nci']:
     print('-------------------------------------')
     print('Benchmark test on datasets: nci')
     print('-------------------------------------')
-    tasks_nci, datasets_nci, transformers_nci = load_nci(base_dir, reload=reload)
-    Results['nci_train'], Results['nci_valid'] = benchmarkTrainAndValid(base_dir, 
-                                            datasets_nci, tasks_nci, transformers_nci, 
-                                            n_features, model, verbosity)
+    tasks_nci,datasets_nci,transformers_nci = load_nci(base_dir, reload=reload)
+    nci_train,nci_valid = benchmarkTrainAndValid(base_dir,datasets_nci,
+                                                 tasks_nci,transformers_nci,
+                                                 n_features,model,verbosity)
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'nci_train,')
+      for i in nci_train:
+        f.write(i+','+str(nci_train[i]))
+      f.write('\n'+'nci_valid,')
+      for i in nci_valid:
+        f.write(i+','+str(nci_valid[i]))
+
     del tasks_nci, datasets_nci, transformers_nci
     
   if datasetName in ['all','pcba']:
     print('-------------------------------------')
     print('Benchmark test on datasets: pcba')
     print('-------------------------------------')
-    tasks_pcba, datasets_pcba, transformers_pcba = load_pcba(base_dir, reload=reload)
-    Results['pcba_train'], Results['pcba_valid'] = benchmarkTrainAndValid(base_dir, 
-                                            datasets_pcba, tasks_pcba, transformers_pcba, 
-                                            n_features, model, verbosity)
+    tasks_pcba,datasets_pcba,transformers_pcba = load_pcba(base_dir,
+                                                           reload=reload)
+    pcba_train,pcba_valid = benchmarkTrainAndValid(base_dir,datasets_pcba,
+                                                tasks_pcba,transformers_pcba,
+                                                n_features, model, verbosity)
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'pcba_train,')
+      for i in pcba_train:
+        f.write(i+','+str(pcba_train[i]))
+      f.write('\n'+'pcba_valid,')
+      for i in pcba_valid:
+        f.write(i+','+str(pcba_valid[i]))
     del tasks_pcba, datasets_pcba, transformers_pcba
     
   if datasetName in ['all','tox21']:
     print('-------------------------------------')
     print('Benchmark test on datasets: tox21')
     print('-------------------------------------')
-    tasks_tox21, datasets_tox21, transformers_tox21 = load_tox21(base_dir, reload=reload)
-    Results['tox21_train'], Results['tox21_valid'] = benchmarkTrainAndValid(base_dir, 
-                                            datasets_tox21, tasks_tox21, transformers_tox21, 
-                                            n_features, model, verbosity)
+    tasks_tox21,datasets_tox21,transformers_tox21 = load_tox21(base_dir,
+                                                               reload=reload)
+    tox21_train,tox21_valid = benchmarkTrainAndValid(base_dir,datasets_tox21,
+                                                tasks_tox21,transformers_tox21,
+                                                n_features, model, verbosity)
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'tox21_train,')
+      for i in tox21_train:
+        f.write(i+','+str(tox21_train[i]))
+      f.write('\n'+'tox21_valid,')
+      for i in tox21_valid:
+        f.write(i+','+str(tox21_valid[i]))
+        
     del tasks_tox21, datasets_tox21, transformers_tox21
     
-  return Results
+  return None
 
 def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers, 
-                           n_features = 1024, model = 'all', verbosity = 'high'):
+                           n_features = 1024,model = 'all',verbosity = 'high'):
   train_scores = {}
   valid_scores = {}
 
@@ -114,9 +147,11 @@ def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers,
     print('-------------------------------------')
     print('Start fitting by tensorflow')
     model_tf.fit(train_dataset)
-    train_evaluator = Evaluator(model_tf, train_dataset, transformers, verbosity=verbosity)
+    train_evaluator = Evaluator(model_tf, train_dataset, transformers,
+                                verbosity=verbosity)
     train_scores['tensorflow'] = train_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
-    valid_evaluator = Evaluator(model_tf, valid_dataset, transformers, verbosity=verbosity)
+    valid_evaluator = Evaluator(model_tf, valid_dataset, transformers,
+                                verbosity=verbosity)
     valid_scores['tensorflow'] = valid_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
 
   if model == 'all' or model == 'rf':
@@ -133,9 +168,11 @@ def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers,
     print('-------------------------------------')
     print('Start fitting by random forest')
     model_rf.fit(train_dataset)
-    train_evaluator = Evaluator(model_rf, train_dataset, transformers, verbosity=verbosity)
+    train_evaluator = Evaluator(model_rf, train_dataset, transformers, 
+                                verbosity=verbosity)
     train_scores['random_forest'] = train_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
-    valid_evaluator = Evaluator(model_rf, valid_dataset, transformers, verbosity=verbosity)
+    valid_evaluator = Evaluator(model_rf, valid_dataset, transformers, 
+                                verbosity=verbosity)
     valid_scores['random_forest'] = valid_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
   
   if model == 'all' or model == 'keras':
@@ -149,9 +186,11 @@ def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers,
     print('-------------------------------------')
     print('Start fitting by keras')
     model_kr.fit(train_dataset)
-    train_evaluator = Evaluator(model_kr, train_dataset, transformers, verbosity=verbosity)
+    train_evaluator = Evaluator(model_kr, train_dataset, transformers, 
+                                verbosity=verbosity)
     train_scores['keras'] = train_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
-    valid_evaluator = Evaluator(model_kr, valid_dataset, transformers, verbosity=verbosity)
+    valid_evaluator = Evaluator(model_kr, valid_dataset, transformers, 
+                                verbosity=verbosity)
     valid_scores['keras'] = valid_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
 
   return train_scores, valid_scores
@@ -172,5 +211,6 @@ if __name__ == '__main__':
   datasetName = 'tox21'
   model = 'keras'
   
-  Results = benchmarkLoadingDatasets(base_dir, n_features = 1024, datasetName = datasetName,
-                             model = model, reload = reload, verbosity = verbosity)
+  benchmarkLoadingDatasets(base_dir, n_features = 1024,
+                           datasetName = datasetName, model = model,
+                           reload = reload, verbosity = verbosity)
