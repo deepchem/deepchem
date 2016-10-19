@@ -4,9 +4,13 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+__author__ = "Han Altae-Tran and Bharath Ramsundar"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
+
 from keras.layers import Input
 from keras import backend as K
-from data_structures import ConvMol
+from deepchem.featurizers.mol_graphs import ConvMol
 
 def merge_two_dicts(x, y):
   z = x.copy()

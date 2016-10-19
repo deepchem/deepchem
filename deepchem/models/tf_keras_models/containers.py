@@ -4,12 +4,27 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+__author__ = "Han Altae-Tran and Bharath Ramsundar"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
+
 from keras.engine.topology import Container
 
 class GraphContainer(Container):
-  def __init__(self, sess, input, output, **kwargs):
-    # Remove the keywords for the GraphModel
-    self.graph_topology = kwargs.pop('graph_topology')
+  def __init__(self, sess, input, output, graph_topology, **kwargs):
+    """
+    Parameters
+    ----------
+    sess: tf.Session
+      The tensorflow session for this Keras model.
+    input: tf.Tensor
+      Input tensor for container.
+    output: tf.Tensor
+      Output tensor for container.
+    graph_topology: deepchem.models.tf_keras_models.graph_topology.GraphTopology
+      Manager for topology placeholders.
+    """
+    self.graph_topology = graph_topology 
     kwargs["input"] = input
     kwargs["output"] = output
 
@@ -21,14 +36,11 @@ class GraphContainer(Container):
   def get_graph_topology(self):
     return self.graph_topology
 
-  def get(self):
-    return self.graph_topology.get_inputs()
-
   def get_batch_size(self):
     return self.graph_topology.get_batch_size()
 
   def get_num_output_features(self):
-    # Gets the output shape of the featurization layers of the network
+    """Gets the output shape of the featurization layers of the network"""
     return self.layers[-1].output_shape[1]
 
   def get_output(self):
