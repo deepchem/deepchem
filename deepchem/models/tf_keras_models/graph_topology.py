@@ -52,13 +52,11 @@ class GraphTopology(object):
     self.name = name
     self.max_deg = max_deg
     self.min_deg = min_deg
-    self.init_keras_placeholders()
 
-  def init_keras_placeholders(self):
-    self.nodes_placeholder = Input(
+    self.atom_features_placeholder = Input(
         tensor=K.placeholder(
             shape=(None, self.n_feat), dtype='float32',
-            name=self.name+'_nodes'))
+            name=self.name+'_atom_features'))
     self.deg_adj_lists_placeholders = [
         Input(tensor=K.placeholder(
           shape=(None, deg), dtype='int32', name=self.name+'_deg_adj'+str(deg)))
@@ -74,39 +72,46 @@ class GraphTopology(object):
 
     # Define the list of tensors to be used as topology
     self.topology = [self.deg_slice_placeholder, self.membership_placeholder]
-    self.topology.extend(self.deg_adj_lists_placeholders)
+    self.topology += self.deg_adj_lists_placeholders
 
-    self.inputs = [self.nodes_placeholder]
-    self.inputs.extend(self.topology)
+    self.inputs = [self.atom_features_placeholder]
+    self.inputs += self.topology
 
-  def get_inputs(self):
+  def get_input_placeholders(self):
+    """All placeholders.
+
+    Contains atom_features placeholder and topology placeholders.
+    """
     return self.inputs
 
-  def get_topology(self):
+  def get_topology_placeholders(self):
+    """Returns topology placeholders
+
+    Consists of deg_slice_placeholder, membership_placeholder, and the
+    deg_adj_list_placeholders.
+    """
     return self.topology
 
   def get_batch_size(self):
     return self.batch_size
 
-  def get_nodes(self):
-    return self.nodes_placeholder
+  def get_atom_features_placeholder(self):
+    return self.atom_features_placeholder
 
-  def get_deg_adj_lists(self):
+  def get_deg_adjacency_lists_placeholders(self):
     return self.deg_adj_lists_placeholders
 
-  def get_deg_slice(self):
+  def get_deg_slice_placeholder(self):
     return self.deg_slice_placeholder
 
-  def get_membership(self):
+  def get_membership_placeholder(self):
     return self.membership_placeholder
 
-  # TODO(rbharath): It's still not clear to me that this should live alone like
-  # this... It's awkward to separate out part of the batch construction this
-  # way.
   def batch_to_feed_dict(self, batch):
-    """Converts the current batch into a feed_dict used by tensorflow.
+    """Converts the current batch of mol_graphs into tensorflow feed_dict.
 
-    Assigns the graph information in batch to the placeholders tensors
+    Assigns the graph information in array of ConvMol objects to the
+    placeholders tensors
 
     params
     ------
@@ -120,8 +125,7 @@ class GraphTopology(object):
     """
     # Merge mol conv objects
     batch = ConvMol.agglomerate_mols(batch)
-
-    atoms = batch.nodes
+    atoms = batch.get_atom_features()
     deg_adj_lists = [batch.deg_adj_lists[deg]
                      for deg in range(1, self.max_deg+1)]
 
@@ -132,6 +136,7 @@ class GraphTopology(object):
                   self.membership_placeholder : batch.membership}
     return merge_dicts([atoms_dict, deg_adj_dict])
 
+'''
 def extract_topology(x):
   # Extracts the topology tensors from x
   topology = x[1::]
@@ -149,3 +154,4 @@ def extract_nodes(x):
 
 def extract_membership(x):
   return x[2]
+'''

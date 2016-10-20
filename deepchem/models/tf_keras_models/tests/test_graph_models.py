@@ -1,5 +1,5 @@
 """
-Simple Tests for Container objects.
+Testing construction of graph models.
 """
 from __future__ import print_function
 from __future__ import division
@@ -13,22 +13,20 @@ import unittest
 from tensorflow.python.framework import test_util
 from deepchem.models.tf_keras_models.containers import GraphContainer
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
+from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
 
-class TestContainers(test_util.TensorFlowTestCase):
+class TestGraphModels(test_util.TensorFlowTestCase):
   """
   Test Container usage.
   """
   def setUp(self):
-    super(TestContainers, self).setUp()
+    super(TestGraphModels, self).setUp()
     self.root = '/tmp'
 
-  def test_graph_containers(self):
-    """Simple test that Graph Container can be initialized."""
+  def test_sequential_graph_model(self):
+    """Simple test that SequentialGraphModel can be initialized."""
     n_atoms = 5
     n_atom_feat = 10
     batch_size = 3
-    with self.test_session() as sess:
-      topology = GraphTopology(n_atoms, n_atom_feat, batch_size)
-      container = GraphContainer(sess, input=topology.get_inputs(),
-                                 output=topology.get_nodes(),
-                                 graph_topology=topology)
+    graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
+    assert len(graph_model.layers) == 0
