@@ -131,7 +131,7 @@ class GraphTopology(object):
 
     # Generate dicts
     deg_adj_dict = dict(zip(self.deg_adj_lists_placeholders, deg_adj_lists))
-    atoms_dict = {self.nodes_placeholder : atoms,
+    atoms_dict = {self.atom_features_placeholder : atoms,
                   self.deg_slice_placeholder : batch.deg_slice,
                   self.membership_placeholder : batch.membership}
     return merge_dicts([atoms_dict, deg_adj_dict])

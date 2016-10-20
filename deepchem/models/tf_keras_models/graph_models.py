@@ -16,14 +16,31 @@ from deepchem.models.tf_keras_models.containers import SupportGraphContainer
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
 class SequentialGraphModel(object):
+  """An analog of Keras Sequential model for Graph data.
+
+  Like the Sequential class from Keras, but automatically passes topology
+  placeholders from GraphTopology to each graph layer (from keras_layers) added
+  to the network. Non graph layers don't get the extra placeholders. 
+  """
   def __init__(self, n_atoms, n_feat, batch_size):
+    """
+    Parameters
+    ----------
+    n_atoms: int
+      (Max?) Number of atoms in system.
+    n_feat: int
+      Number of features per atom.
+    batch_size: int
+      Batch size for training models.
+    """
+    
     #super(SequentialGraphModel, self).__init__()
     self.batch_size = batch_size
     # Create graph topology and x
     self.graph_topology = GraphTopology(n_atoms, n_feat, self.batch_size)
-    self.output = self.graph_topology.get_nodes()
-
-    self.layers = []  # Keep track of the layers
+    self.output = self.graph_topology.get_atom_features_placeholder()
+    # Keep track of the layers
+    self.layers = []  
 
   def add(self, layer):
     """Adds a new layer to model."""
