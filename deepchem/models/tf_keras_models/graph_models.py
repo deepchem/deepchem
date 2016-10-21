@@ -11,12 +11,14 @@ __license__ = "GPL"
 
 
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
+'''
 from deepchem.models.tf_keras_models.containers import GraphContainer
 from deepchem.models.tf_keras_models.containers import SupportGraphContainer
+'''
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
 class SequentialGraphModel(object):
-  """An analog of Keras Sequential model for Graph data.
+  """An analog of Keras Sequential class for Graph data.
 
   Like the Sequential class from Keras, but automatically passes topology
   placeholders from GraphTopology to each graph layer (from keras_layers) added
@@ -68,10 +70,22 @@ class SequentialGraphModel(object):
         [self.output] + self.graph_topology.get_topology_placeholders())
   '''
     
+  '''
   def return_container(self, sess):
     return GraphContainer(sess, input=self.return_inputs(),
                           output=self.return_outputs(),
                           graph_topology=self.graph_topology)
+  '''
+  
+  def get_batch_size():
+    return self.batch_size
+
+  def get_graph_topology():
+    return self.graph_topology
+
+  def get_num_output_features(self):
+    """Gets the output shape of the featurization layers of the network"""
+    return self.layers[-1].output_shape[1]
   
   def return_outputs(self):
     return self.output

@@ -88,7 +88,7 @@ class TestMolGraphs(unittest.TestCase):
     # from new position to old position is 
     # {(4, 0), (0, 1), (1, 2), (2, 3), (3, 4)}. Check that adjacency
     # list respects this reordering and returns correct adjacency list.
-    assert (mol.get_adacency_list()
+    assert (mol.get_adjacency_list()
             == [[4], [2, 3], [1, 4], [1, 4], [2, 3, 0]])
 
   def test_agglomerate_molecules(self):

@@ -12,8 +12,6 @@ __license__ = "GPL"
 import unittest
 from tensorflow.python.framework import test_util
 from keras.layers import Dense, BatchNormalization
-from deepchem.models.tf_keras_models.containers import GraphContainer
-from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
 from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
@@ -30,7 +28,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
   def test_sequential_graph_model(self):
     """Simple test that SequentialGraphModel can be initialized."""
     n_atoms = 5
-    n_atom_feat = 10
+    n_feat = 10
     batch_size = 3
     graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
     assert len(graph_model.layers) == 0

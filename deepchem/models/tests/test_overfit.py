@@ -9,10 +9,16 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import os
 import tempfile
 import numpy as np
 import unittest
 import sklearn
+import tensorflow as tf
+from keras import backend as K
+from keras.layers import Dense, BatchNormalization
+from deepchem.featurizers.featurize import DataLoader
+from deepchem.featurizers.fingerprints import CircularFingerprint
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from deepchem import metrics
@@ -28,8 +34,12 @@ from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.multitask import SingletaskToMultitask
-import tensorflow as tf
-from keras import backend as K
+from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
+from deepchem.models.tf_keras_models.keras_layers import GraphConv
+from deepchem.models.tf_keras_models.keras_layers import GraphPool
+from deepchem.models.tf_keras_models.keras_layers import GraphGather
+from deepchem.featurizers.graph_features import ConvMolFeaturizer
+from multitask_classifier import MultitaskGraphClassifier
 
 class TestOverfitAPI(TestAPI):
   """
@@ -477,7 +487,8 @@ class TestOverfitAPI(TestAPI):
     dataset = NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity,
+                                   task_averager=np.mean)
     tensorflow_model = TensorflowMultiTaskClassifier(
         n_tasks, n_features, self.model_dir, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
@@ -637,3 +648,55 @@ class TestOverfitAPI(TestAPI):
     scores = evaluator.compute_model_performance([regression_metric])
 
     assert scores[regression_metric.name] < .15
+
+  def test_graph_conv_multitask_classification_overfit(self):
+    """Test graph-conv multitask overfits tiny data."""
+    n_tasks = 10
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Load mini log-solubility dataset.
+    splittype = "scaffold"
+    featurizer = ConvMolFeaturizer()
+    tasks = ["log-solubility"]
+    task_type = "regression"
+    task_types = {task: task_type for task in tasks}
+    input_file = os.path.join(self.current_dir, "example.csv")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity,
+                                   task_averager=np.mean)
+
+    n_atoms = 50
+    n_feat = 71
+    batch_size = 20
+    graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
+    graph_model.add(GraphConv(64, activation='relu'))
+    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(GraphPool())
+    # Gather Projection
+    graph_model.add(Dense(128, activation='relu'))
+    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(GraphGather(batch_size, activation="tanh"))
+
+    model = MultitaskGraphClassifier(
+      sess, graph_model, n_tasks, learning_rate=1e-3,
+      learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
+      beta2=.999, verbosity="high")
+
+    # Fit trained model
+    model.fit(dataset)
+    model.save()
+
+    # Eval model on train
+    transformers = []
+    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+    scores = evaluator.compute_model_performance([classification_metric])
+
+    assert scores[classification_metric.name] > .9

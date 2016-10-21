@@ -10,6 +10,7 @@ __license__ = "GPL"
 
 from keras.engine.topology import Container
 
+'''
 class GraphContainer(Container):
   def __init__(self, sess, input, output, graph_topology, **kwargs):
     """
@@ -45,6 +46,7 @@ class GraphContainer(Container):
 
   def get_output(self):
     return self.output
+'''
 
 class SupportGraphContainer(Container):
   def __init__(self, sess, **kwargs):

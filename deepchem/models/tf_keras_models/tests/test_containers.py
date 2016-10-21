@@ -11,9 +11,12 @@ __license__ = "GPL"
 
 import unittest
 from tensorflow.python.framework import test_util
+'''
 from deepchem.models.tf_keras_models.containers import GraphContainer
+'''
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
+'''
 class TestContainers(test_util.TensorFlowTestCase):
   """
   Test Container usage.
@@ -29,6 +32,7 @@ class TestContainers(test_util.TensorFlowTestCase):
     batch_size = 3
     with self.test_session() as sess:
       topology = GraphTopology(n_atoms, n_atom_feat, batch_size)
-      container = GraphContainer(sess, input=topology.get_inputs(),
+      container = GraphContainer(sess, input=topology.get_input_placeholders(),
                                  output=topology.get_nodes(),
                                  graph_topology=topology)
+'''
