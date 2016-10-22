@@ -77,10 +77,10 @@ class SequentialGraphModel(object):
                           graph_topology=self.graph_topology)
   '''
   
-  def get_batch_size():
+  def get_batch_size(self):
     return self.batch_size
 
-  def get_graph_topology():
+  def get_graph_topology(self):
     return self.graph_topology
 
   def get_num_output_features(self):

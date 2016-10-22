@@ -14,9 +14,11 @@ import tempfile
 import numpy as np
 import unittest
 import sklearn
+import shutil
 import tensorflow as tf
 from keras import backend as K
 from keras.layers import Dense, BatchNormalization
+from tensorflow.python.framework import test_util
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from sklearn.ensemble import RandomForestClassifier
@@ -39,12 +41,24 @@ from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
 from deepchem.featurizers.graph_features import ConvMolFeaturizer
-from multitask_classifier import MultitaskGraphClassifier
+from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
 
-class TestOverfitAPI(TestAPI):
+class TestOverfitAPI(test_util.TensorFlowTestCase):
   """
   Test that models can overfit simple datasets.
   """
+  def setUp(self):
+    super(TestOverfitAPI, self).setUp()
+    self.root = '/tmp'
+    self.smiles_field = "smiles"
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.train_dir = tempfile.mkdtemp()
+    self.data_dir = tempfile.mkdtemp()
+    self.model_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.train_dir)
+    shutil.rmtree(self.data_dir)
 
   def test_sklearn_regression_overfit(self):
     """Test that sklearn models can overfit simple regression datasets."""
@@ -651,7 +665,7 @@ class TestOverfitAPI(TestAPI):
 
   def test_graph_conv_multitask_classification_overfit(self):
     """Test graph-conv multitask overfits tiny data."""
-    n_tasks = 10
+    n_tasks = 1
     n_samples = 10
     n_features = 3
     n_classes = 2
@@ -675,7 +689,7 @@ class TestOverfitAPI(TestAPI):
 
     n_atoms = 50
     n_feat = 71
-    batch_size = 20
+    batch_size = 10
     graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
     graph_model.add(GraphConv(64, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
@@ -685,18 +699,20 @@ class TestOverfitAPI(TestAPI):
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(GraphGather(batch_size, activation="tanh"))
 
-    model = MultitaskGraphClassifier(
-      sess, graph_model, n_tasks, learning_rate=1e-3,
-      learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
-      beta2=.999, verbosity="high")
+    with self.test_session() as sess:
+      tensorflow_model = MultitaskGraphClassifier(
+        sess, graph_model, n_tasks, self.model_dir, learning_rate=1e-3,
+        learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
+        beta2=.999, verbosity="high")
+      model = TensorflowModel(tensorflow_model, self.model_dir)
 
-    # Fit trained model
-    model.fit(dataset)
-    model.save()
+      # Fit trained model
+      model.fit(dataset)
+      model.save()
 
-    # Eval model on train
-    transformers = []
-    evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([classification_metric])
 
     assert scores[classification_metric.name] > .9

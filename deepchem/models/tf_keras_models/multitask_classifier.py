@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 import tensorflow as tf
@@ -6,11 +7,12 @@ from keras.engine import Layer
 from keras.layers import Input, Dense
 from keras import initializations, activations
 from keras import backend as K
-from utils import merge_dicts
 from deepchem.datasets import pad_features
 from deepchem.utils.save import log
-from deepchem.models import Model
+from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import model_ops
+# TODO(rbharath): Find a way to get rid of this import?
+from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 
 def get_loss_fn(final_loss):
   # Obtain appropriate loss function
@@ -41,9 +43,9 @@ def get_loss_fn(final_loss):
       return tf.reduce_sum(weighted_costs)
   return loss_fn
 
-class MultitaskGraphClassifier(Model):
+class MultitaskGraphClassifier(TensorflowClassifier):
 
-  def __init__(self, sess, model, n_tasks,
+  def __init__(self, sess, model, n_tasks, logdir,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
                beta1=.9, beta2=.999, verbosity=None):
@@ -53,6 +55,7 @@ class MultitaskGraphClassifier(Model):
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model 
+    self.logdir = logdir
            
     # Extract model info 
     self.batch_size = self.model.get_batch_size()
@@ -80,12 +83,20 @@ class MultitaskGraphClassifier(Model):
     self.init_fn = tf.initialize_all_variables()
     sess.run(self.init_fn)  
 
+    # Path to save checkpoint files, which matches the
+    # replicated supervisor's default path.
+    self._save_path = os.path.join(logdir, 'model.ckpt')
+
   def build(self):
     # Create target inputs
     self.label_placeholder = Input(tensor=K.placeholder(
-      shape=(None,self.n_tasks), name="label", dtype='bool'))
+      shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
+    ######################################### DEBUG
+    print("self.n_tasks")
+    print(self.n_tasks)
+    ######################################### DEBUG
     self.weight_placeholder = Input(tensor=K.placeholder(
-          shape=(None,self.n_tasks), name="weight", dtype='float32'))
+          shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
 
     # Create final dense layer from keras 
     feat = self.model.return_outputs()
@@ -129,7 +140,9 @@ class MultitaskGraphClassifier(Model):
     # num_dat_dict = {self.num_datapoints_placeholder : self.}
 
     # Get other optimizer information
-    keras_dict = {K.learning_phase() : training}
+    # TODO(rbharath): Figure out how to handle phase appropriately
+    #keras_dict = {K.learning_phase() : training}
+    keras_dict = {}
     feed_dict = merge_dicts([targets_dict, atoms_dict,
                              keras_dict])
     return feed_dict
@@ -167,11 +180,14 @@ class MultitaskGraphClassifier(Model):
         softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
     return softmax
 
-
   def fit(self, dataset, nb_epoch=10, batch_size=50, pad_batches=False,
-          log_every_N_batches=50, **kwargs):
+          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbosity)
+  
+    # Save an initial checkpoint.
+    saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+    saver.save(self.sess, self._save_path, global_step=0)
     for epoch in range(nb_epoch):
       # TODO(rbharath): This decay shouldn't be hard-coded.
       lr = self.learning_rate / (1 + float(epoch) / self.T)
@@ -185,6 +201,15 @@ class MultitaskGraphClassifier(Model):
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
+      saver.save(self.sess, self._save_path, global_step=epoch)
+    # Always save a final checkpoint when complete.
+    saver.save(self.sess, self._save_path, global_step=epoch+1)
+
+  def save(self):
+    """
+    No-op since models save themselves during fit()
+    """
+    pass
 
   def predict(self, dataset, transformers=[], **kwargs):
     """Wraps predict to set batch_size/padding."""
