@@ -9,7 +9,7 @@ from keras import initializations, activations
 from keras import backend as K
 from deepchem.datasets import pad_features
 from deepchem.utils.save import log
-from deepchem.models.tensorflow_models import TensorflowClassifier
+from deepchem.models import Model 
 from deepchem.models.tensorflow_models import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
@@ -43,7 +43,7 @@ def get_loss_fn(final_loss):
       return tf.reduce_sum(weighted_costs)
   return loss_fn
 
-class MultitaskGraphClassifier(TensorflowClassifier):
+class MultitaskGraphClassifier(Model):
 
   def __init__(self, sess, model, n_tasks, logdir,
                final_loss='cross_entropy', learning_rate=.001,
@@ -207,7 +207,7 @@ class MultitaskGraphClassifier(TensorflowClassifier):
 
   def save(self):
     """
-    No-op since models save themselves during fit()
+    No-op since this model doesn't currently support saving... 
     """
     pass
 
@@ -239,6 +239,11 @@ class MultitaskGraphClassifier(TensorflowClassifier):
     outputs = np.zeros((n_samples, self.n_tasks))
     for task, output in enumerate(batch_outputs):
       outputs[:, task] = np.argmax(output, axis=1)
+    #################################### DEBUG
+    print("predict_on_batch")
+    print("outputs")
+    print(outputs)
+    #################################### DEBUG
     return outputs 
 
   def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):

@@ -673,19 +673,22 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     # Load mini log-solubility dataset.
     splittype = "scaffold"
     featurizer = ConvMolFeaturizer()
-    tasks = ["log-solubility"]
-    task_type = "regression"
+    tasks = ["outcome"]
+    task_type = "classification"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example.csv")
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
     loader = DataLoader(tasks=tasks,
                         smiles_field=self.smiles_field,
                         featurizer=featurizer,
                         verbosity="low")
     dataset = loader.featurize(input_file, self.data_dir)
+    ########################################################### DEBUG
+    print("dataset.y")
+    print(dataset.y)
+    ########################################################### DEBUG
 
     verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity,
-                                   task_averager=np.mean)
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
     n_atoms = 50
     n_feat = 71
@@ -700,11 +703,10 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     graph_model.add(GraphGather(batch_size, activation="tanh"))
 
     with self.test_session() as sess:
-      tensorflow_model = MultitaskGraphClassifier(
+      model = MultitaskGraphClassifier(
         sess, graph_model, n_tasks, self.model_dir, learning_rate=1e-3,
         learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
         beta2=.999, verbosity="high")
-      model = TensorflowModel(tensorflow_model, self.model_dir)
 
       # Fit trained model
       model.fit(dataset)
