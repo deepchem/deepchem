@@ -17,6 +17,7 @@ from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraphM
 from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
+from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
 
 class TestGraphModels(test_util.TensorFlowTestCase):
   """
@@ -60,5 +61,23 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     n_support = 11 
     n_feat = 10
     nb_filter = 7
+    batch_size = 3
 
     support_model = SequentialSupportGraphModel(n_test, n_support, n_feat)
+    
+    # Add layers
+    support_model.add(GraphConv(64, activation='relu'))
+    # Need to add batch-norm separately to test/support due to differing
+    # shapes.
+    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(GraphPool())
+
+    # Apply an attention lstm layer
+    support_model.join(AttnLSTMEmbedding(max_depth))
+
+    # Gather Projection
+    support_model.add(Dense(128, activation='relu'))
+    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(GraphGather(batch_size, activation="tanh"))

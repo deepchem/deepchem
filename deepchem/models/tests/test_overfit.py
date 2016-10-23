@@ -41,7 +41,10 @@ from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
 from deepchem.featurizers.graph_features import ConvMolFeaturizer
+from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraphModel
 from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
+from deepchem.models.tf_keras_models.support_classifier import SupportGraphClassifier
+from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
 
 class TestOverfitAPI(test_util.TensorFlowTestCase):
   """
@@ -682,10 +685,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
                         featurizer=featurizer,
                         verbosity="low")
     dataset = loader.featurize(input_file, self.data_dir)
-    ########################################################### DEBUG
-    print("dataset.y")
-    print(dataset.y)
-    ########################################################### DEBUG
 
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
@@ -705,6 +704,77 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       model = MultitaskGraphClassifier(
         sess, graph_model, n_tasks, self.model_dir, learning_rate=1e-3,
+        learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
+        beta2=.999, verbosity="high")
+
+      # Fit trained model
+      model.fit(dataset, nb_epoch=30)
+      model.save()
+
+      # Eval model on train
+      transformers = []
+      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+      scores = evaluator.compute_model_performance([classification_metric])
+
+    ############################################################ DEBUG
+    print("scores")
+    print(scores)
+    ############################################################ DEBUG
+
+    assert scores[classification_metric.name] > .9
+
+  def test_attn_lstm_multitask_classification_overfit(self):
+    """Test support graph-conv multitask overfits tiny data."""
+    n_tasks = 1
+    n_test = 5
+    n_support = 9
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    max_depth = 4
+    
+    # Load mini log-solubility dataset.
+    splittype = "scaffold"
+    featurizer = ConvMolFeaturizer()
+    tasks = ["outcome"]
+    task_type = "classification"
+    task_types = {task: task_type for task in tasks}
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = DataLoader(tasks=tasks,
+                        smiles_field=self.smiles_field,
+                        featurizer=featurizer,
+                        verbosity="low")
+    dataset = loader.featurize(input_file, self.data_dir)
+
+    verbosity = "high"
+    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+
+    n_atoms = 50
+    n_feat = 71
+    batch_size = 10
+
+    support_model = SequentialSupportGraphModel(n_test, n_support, n_feat)
+    
+    # Add layers
+    support_model.add(GraphConv(64, activation='relu'))
+    # Need to add batch-norm separately to test/support due to differing
+    # shapes.
+    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(GraphPool())
+
+    # Apply an attention lstm layer
+    support_model.join(AttnLSTMEmbedding(max_depth))
+
+    # Gather Projection
+    support_model.add(Dense(128, activation='relu'))
+    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(GraphGather(batch_size, activation="tanh"))
+
+    with self.test_session() as sess:
+      model = SupportGraphClassifier(
+        sess, support_model, n_tasks, self.model_dir, learning_rate=1e-3,
         learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
         beta2=.999, verbosity="high")
 

@@ -103,13 +103,16 @@ class SequentialSupportGraphModel(object):
     self.bool_pre_gather = True  
 
   def add(self, layer):
-    # Add layer to the layer list
+    """Adds a layer to both test/support stacks.
+
+    Note that the layer transformation is performed independently on the
+    test/support tensors.
+    """
     self.layers.append(layer)
 
     # Update new value of x
     if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
-      assert (self.bool_pre_gather,
-              'Cannot use GraphConv or GraphGather layers after a GraphGather')
+      assert (self.bool_pre_gather, "Cannot apply graphical layers after gather.")
           
       self.test = layer([self.test] + self.test_graph_topology.topology)
       self.support = layer([self.support] + self.support_graph_topology.topology)
@@ -120,34 +123,36 @@ class SequentialSupportGraphModel(object):
     if type(layer).__name__ == 'GraphGather':
       self.bool_pre_gather = False  # Set flag to stop adding topology
 
-  def join(self, layer, swap=False):
+  def add_test(self, layer):
+    """Adds a layer to test."""
+    self.layers.append(layer)
+
+    # Update new value of x
+    if type(layer).__name__ in ['GraphConv', 'GraphPool']:
+      self.test = layer([self.test] + self.test_graph_topology.topology)
+    else:
+      self.test = layer(self.test)
+
+  def add_support(self, layer):
+    """Adds a layer to support."""
+    self.layers.append(layer)
+
+    # Update new value of x
+    if type(layer).__name__ in ['GraphConv', 'GraphPool']:
+      self.support = layer([self.support] + self.support_graph_topology.topology)
+    else:
+      self.support = layer(self.support)
+
+  def join(self, layer):
     """Joins test and support to a two input two output layer"""
     self.layers.append(layer)
-    if not swap:
-        self.test, self.support = layer([self.test, self.support])
-    else:
-        self.support, self.test = layer([self.support, self.test])
-  
-  def graph_gather(self, activation='linear'):
-    gather1 = GraphGather(self.test_batch_size, activation=activation)
-    gather2 = GraphGather(self.support_batch_size, activation=activation)
+    self.test, self.support = layer([self.test, self.support])
 
-    self.layers.append(gather1)
-    self.layers.append(gather2)
-    
-    self.test = gather1([self.test] + self.test_graph_topology.topology)
-    self.support = gather2([self.support] + self.support_graph_topology.topology)
-    
-    self.bool_pre_gather = False
+  def get_test_outputs(self):
+    return self.test
 
-  '''
-  def return_container(self, sess):
-    return SupportGraphContainer(
-        sess, input=self.return_inputs(),
-        output=self.return_outputs(), 
-        graph_topology_test=self.test_graph_topology,
-        graph_topology_support=self.support_graph_topology)
-  '''
+  def get_support_outputs(self):
+    return self.support
   
   def return_outputs(self):
     return [self.test] + [self.support]
@@ -155,6 +160,3 @@ class SequentialSupportGraphModel(object):
   def return_inputs(self):
     return (self.test_graph_topology.get_inputs()
             + self.support_graph_topology.get_inputs())
-
-  def get_layer(self, layer_id):
-    return self.layers[layer_id]

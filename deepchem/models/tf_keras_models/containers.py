@@ -46,7 +46,6 @@ class GraphContainer(Container):
 
   def get_output(self):
     return self.output
-'''
 
 class SupportGraphContainer(Container):
   def __init__(self, sess, **kwargs):
@@ -80,3 +79,4 @@ class SupportGraphContainer(Container):
   
   def get_support_output(self):
     return self.output[1]
+'''
