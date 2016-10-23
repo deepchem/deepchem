@@ -75,14 +75,14 @@ class SequentialGraphModel(object):
 
 class SequentialSupportGraphModel(object):
   """An analog of Keras Sequential model for test/support models."""
-  def __init__(self, n_test, n_support, n_feat):
+  def __init__(self, n_test, n_support, n_feat, max_atoms_per_mol=60):
     """
     Parameters
     ----------
     n_test: int
-      Number of test atoms.
+      Number of test molecules.
     n_support: int
-      Number of support atoms.
+      Number of support support.
     n_feat: int
       Number of atomic features.
     """
@@ -90,10 +90,12 @@ class SequentialSupportGraphModel(object):
     self.n_support = n_support
 
     # Create graph topology and x
+    n_test_atoms = n_test * max_atoms_per_mol
+    n_support_atoms = n_support * max_atoms_per_mol
     self.test_graph_topology = GraphTopology(
-        n_test, n_feat, name='test')
+        n_test_atoms, n_feat, name='test')
     self.support_graph_topology = GraphTopology(
-        n_support, n_feat, name='support')
+        n_support_atoms, n_feat, name='support')
     self.test = self.test_graph_topology.get_atom_features_placeholder()
     self.support = self.support_graph_topology.get_atom_features_placeholder()
 
@@ -148,10 +150,10 @@ class SequentialSupportGraphModel(object):
     self.layers.append(layer)
     self.test, self.support = layer([self.test, self.support])
 
-  def get_test_outputs(self):
+  def get_test_output(self):
     return self.test
 
-  def get_support_outputs(self):
+  def get_support_output(self):
     return self.support
   
   def return_outputs(self):

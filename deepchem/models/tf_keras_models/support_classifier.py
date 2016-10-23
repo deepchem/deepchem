@@ -64,33 +64,19 @@ def get_task_support(dataset, n_pos, n_neg, task):
   mol_list = dataset.ids 
   y_task = dataset.y[:, task]
 
-
-  ################################################# DEBUG
-  print("get_task_support()")
-  print("np.count_nonzero(y_task), len(y_task)")
-  print(np.count_nonzero(y_task), len(y_task))
-  ################################################# DEBUG
   # Split data into pos and neg lists.
   pos_mols = np.where(y_task == 1)[0]
   neg_mols = np.where(y_task == 0)[0]
-  ################################################# DEBUG
-  print("y_task")
-  print(y_task)
-  print("pos_mols")
-  print(pos_mols)
-  ################################################# DEBUG
 
-  n_pos_avail = len(pos_mols)
-  n_neg_avail = len(neg_mols)
-
-  # Ensure that there are examples to sample
-  assert n_pos_avail >= n_pos
-  assert n_neg_avail >= n_neg
+  # TODO(rbharath): Commenting this out since I think it's OK to duplicate
+  # pos/neg samples when necessary. Delete this part once sure.
+  ## Ensure that there are examples to sample
+  #assert len(pos_mols) >= n_pos
+  #assert len(neg_mols) >= n_neg
 
   # Get randomly sampled pos/neg indices (with replacement)
-  pos_inds = pos_mols[np.random.choice(n_pos_avail, (n_pos))]
-  neg_inds = neg_mols[np.random.choice(n_neg_avail, (n_neg))]
-
+  pos_inds = pos_mols[np.random.choice(len(pos_mols), (n_pos))]
+  neg_inds = neg_mols[np.random.choice(len(neg_mols), (n_neg))]
 
   # Handle one-d vs. non one-d feature matrices
   one_dimensional_features = (len(dataset.X.shape) == 1)
@@ -134,6 +120,11 @@ class SupportGenerator(object):
   # TODO(rbharath): This is generating data from one task at a time. Why not
   # have batches that mix information from multiple tasks?
   def next(self):
+    """Sample next support.
+
+    Supports are sampled from the tasks in a random order. Each support is
+    drawn entirely from within one task.
+    """
     if self.trial_num == self.n_trials:
       raise StopIteration
     else:
@@ -222,12 +213,12 @@ class SupportGraphClassifier(Model):
         tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
         name="support_label_placeholder"))
 
-  def construct_feed_dict(self, test, support, training=True):
+  def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
     # Generate dictionary elements for support 
     support_labels_dict = {self.support_label_placeholder: np.squeeze(support.y)}
     support_topo_dict = (
-        self.model.graph_topology_support.batch_to_feed_dict(support.X))
+        self.model.support_graph_topology.batch_to_feed_dict(support.X))
     support_dict = merge_dicts([support_topo_dict, support_labels_dict])
   
     # Generate dictionary elements for test
@@ -239,14 +230,17 @@ class SupportGraphClassifier(Model):
                    self.weight_placeholder: np.squeeze(test.w)}
     # Get graph information for x
     batch_topo_dict = (
-        self.model.graph_topology_test.batch_to_feed_dict(test.X))
+        self.model.test_graph_topology.batch_to_feed_dict(test.X))
     test_dict =  merge_dicts([batch_topo_dict, target_dict])
 
     test_support_dicts = merge_dicts([test_dict, support_dict])
 
     # Get information for keras 
-    keras_dict = {K.learning_phase() : training}
-    feed_dict = merge_dicts([test_support_dicts, keras_dict])
+    if add_phase:
+      keras_dict = {K.learning_phase() : training}
+      feed_dict = merge_dicts([test_support_dicts, keras_dict])
+    else:
+      feed_dict = test_support_dicts
     return feed_dict
 
   def fit(self, dataset, n_trials_per_epoch=1000, nb_epoch=10, n_pos=1,
@@ -256,7 +250,7 @@ class SupportGraphClassifier(Model):
       lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
 
       # Create different support sets
-      for (task, support) in SupportGenerator(dataset, dataset.get_task_names(),
+      for (task, support) in SupportGenerator(dataset, range(self.n_tasks),
           n_pos, n_neg, n_trials_per_epoch):
         print("Sampled Support set")
         # Get batch to try it out on
