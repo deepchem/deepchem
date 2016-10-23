@@ -41,82 +41,90 @@ def get_task_dataset_minus_support(dataset, support, task):
   # TODO(rbharath): Haven't implemented minus-support functionality!
   return NumpyDataset(X_task, y_task, w_task, ids_task)
 
-def get_task_support(dataset, n_pos, n_neg, task, n_trials):
+def get_task_support(dataset, n_pos, n_neg, task):
   """Generates a support set purely for specified task.
+  
+  Parameters
+  ----------
+  datasets: deepchem.datasets.Dataset
+    Dataset from which supports are sampled.
+  n_pos: int
+    Number of positive samples in support.
+  n_neg: int
+    Number of negative samples in support.
+  task: int
+    Index of current task.
+
+  Returns
+  -------
+  list
+    List of NumpyDatasets, each of which is a support set.
   """
   # Make a shallow copy of the molecules list to avoid rarranging the original list
-  #!  needs to be a list of molecules from the task (refactorable)
   mol_list = dataset.ids 
   y_task = dataset.y[:, task]
+
+
+  ################################################# DEBUG
+  print("get_task_support()")
+  print("np.count_nonzero(y_task), len(y_task)")
+  print(np.count_nonzero(y_task), len(y_task))
+  ################################################# DEBUG
   # Split data into pos and neg lists.
+  pos_mols = np.where(y_task == 1)[0]
+  neg_mols = np.where(y_task == 0)[0]
+  ################################################# DEBUG
+  print("y_task")
+  print(y_task)
+  print("pos_mols")
+  print(pos_mols)
+  ################################################# DEBUG
 
-  # When reimlementing this, it will be much faster if these are stored
-  # separately for fast access Depending on how you want to handle different
-  # tasks, you may want to refactor task here, which allows you to compute
-  # the support sets for multiple tasks simultaneously due to the fact that
-  # the task data used to be stored in the mol objects, which is not the case
-  # in the refactor
-  pos_mol = np.where(y_task == 1)[0]
-  neg_mol = np.where(y_task == 0)[0]
-
-  n_pos_avail = len(pos_mol)
-  n_neg_avail = len(neg_mol)
+  n_pos_avail = len(pos_mols)
+  n_neg_avail = len(neg_mols)
 
   # Ensure that there are examples to sample
   assert n_pos_avail >= n_pos
   assert n_neg_avail >= n_neg
 
-  # Get randomly sampled indices (with replacement)
-  pos_ids = np.random.choice(n_pos_avail, (n_trials, n_pos))
-  neg_ids = np.random.choice(n_neg_avail, (n_trials, n_neg))
+  # Get randomly sampled pos/neg indices (with replacement)
+  pos_inds = pos_mols[np.random.choice(n_pos_avail, (n_pos))]
+  neg_inds = neg_mols[np.random.choice(n_neg_avail, (n_neg))]
 
-  supports = []
-  for trial in range(n_trials):
-    one_dimensional_features = (len(dataset.X.shape) == 1)
-    if not one_dimensional_features:
-      X_trial = np.vstack(
-          [dataset.X[pos_ids[trial]], dataset.X[neg_ids[trial]]])
-    else:
-      X_trial = np.concatenate(
-          [dataset.X[pos_ids[trial]], dataset.X[neg_ids[trial]]])
-    y_trial = np.concatenate(
-        [dataset.y[pos_ids[trial], task], dataset.y[neg_ids[trial], task]])
-    w_trial = np.concatenate(
-        [dataset.w[pos_ids[trial], task], dataset.w[neg_ids[trial], task]])
-    ids_trial = np.concatenate(
-        [dataset.ids[pos_ids[trial]], dataset.ids[neg_ids[trial]]])
-    supports.append(NumpyDataset(X_trial, y_trial, w_trial, ids_trial))
-  return supports
+
+  # Handle one-d vs. non one-d feature matrices
+  one_dimensional_features = (len(dataset.X.shape) == 1)
+  if not one_dimensional_features:
+    X_trial = np.vstack(
+        [dataset.X[pos_inds], dataset.X[neg_inds]])
+  else:
+    X_trial = np.concatenate(
+        [dataset.X[pos_inds], dataset.X[neg_inds]])
+  y_trial = np.concatenate(
+      [dataset.y[pos_inds, task], dataset.y[neg_inds, task]])
+  w_trial = np.concatenate(
+      [dataset.w[pos_inds, task], dataset.w[neg_inds, task]])
+  ids_trial = np.concatenate(
+      [dataset.ids[pos_inds], dataset.ids[neg_inds]])
+  return NumpyDataset(X_trial, y_trial, w_trial, ids_trial)
 
 class SupportGenerator(object):
   """ Generate support sets from a dataset.
 
   Iterates over tasks and trials. For each trial, picks one support from
   each task, and returns in a randomized order
-
-  TODO(rbharath): Need to make this generate supports on the fly in next()
-  instead of precomputing supports.
   """
   def __init__(self, dataset, tasks, n_pos, n_neg, n_trials):
     self.tasks = tasks
     self.n_tasks = len(tasks)
     self.n_trials = n_trials
-
-    # Generate batches
-    self.build(dataset, n_pos, n_neg, n_trials)
-
-  # TODO(rbharath): This really shouldn't be built up-front. Need to do this
-  # on the fly to save time...
-  def build(self, dataset, n_pos, n_neg, n_trials):
-    # Generate batches
-    self.supports= {}
-    for task in self.tasks:
-      print("Handling task %s" % str(task))
-      self.supports[task] = get_task_support(
-          dataset, n_pos=n_pos, n_neg=n_neg, task=task, n_trials=n_trials)
+    self.dataset = dataset
+    self.n_pos = n_pos
+    self.n_neg = n_neg
 
     # Init the iterator
     self.perm_tasks = np.random.permutation(self.tasks)
+    # Set initial iterator state
     self.task_num = 0
     self.trial_num = 0
 
@@ -130,8 +138,9 @@ class SupportGenerator(object):
       raise StopIteration
     else:
       task = self.perm_tasks[self.task_num]  # Get id from permutation
-      support = self.supports[task][self.trial_num]
-
+      #support = self.supports[task][self.trial_num]
+      support = get_task_support(
+          self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task)
       # Increment and update logic
       self.task_num += 1
       if self.task_num == self.n_tasks:
