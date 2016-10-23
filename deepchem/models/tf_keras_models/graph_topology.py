@@ -26,17 +26,19 @@ def merge_dicts(l):
 
 class GraphTopology(object):
   """Manages placeholders associated with batch of graphs and their topology"""
-  def __init__(self, n_atoms, n_feat, batch_size, name='topology', max_deg=6,
+  def __init__(self, n_atoms, n_feat, name='topology', max_deg=6,
                min_deg=0):
     """
+    Note that batch size is not specified in a GraphTopology object. A batch
+    of molecules must be combined into a disconnected graph and fed to topology
+    directly to handle batches.
+
     Parameters
     ----------
     n_atoms: int
       Number of atoms (max) in graphs.
     n_feat: int
       Number of features per atom.
-    batch_size: int
-      Number of molecules per batch.
     name: str, optional
       Name of this manager.
     max_deg: int, optional
@@ -47,15 +49,17 @@ class GraphTopology(object):
     
     self.n_atoms = n_atoms
     self.n_feat = n_feat
-    self.batch_size = batch_size
 
     self.name = name
     self.max_deg = max_deg
     self.min_deg = min_deg
 
     self.atom_features_placeholder = Input(
+        #tensor=K.placeholder(
+        #    shape=(None, self.n_feat), dtype='float32',
+        #    name=self.name+'_atom_features'))
         tensor=K.placeholder(
-            shape=(None, self.n_feat), dtype='float32',
+            shape=(self.n_atoms, self.n_feat), dtype='float32',
             name=self.name+'_atom_features'))
     self.deg_adj_lists_placeholders = [
         Input(tensor=K.placeholder(
@@ -91,9 +95,6 @@ class GraphTopology(object):
     deg_adj_list_placeholders.
     """
     return self.topology
-
-  def get_batch_size(self):
-    return self.batch_size
 
   def get_atom_features_placeholder(self):
     return self.atom_features_placeholder

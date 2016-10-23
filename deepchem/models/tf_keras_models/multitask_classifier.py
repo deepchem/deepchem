@@ -45,7 +45,7 @@ def get_loss_fn(final_loss):
 
 class MultitaskGraphClassifier(Model):
 
-  def __init__(self, sess, model, n_tasks, logdir,
+  def __init__(self, sess, model, n_tasks, logdir, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
                beta1=.9, beta2=.999, verbosity=None):
@@ -58,7 +58,7 @@ class MultitaskGraphClassifier(Model):
     self.logdir = logdir
            
     # Extract model info 
-    self.batch_size = self.model.get_batch_size()
+    self.batch_size = batch_size 
     # Get graph topology for x
     self.graph_topology = self.model.get_graph_topology()
     self.feat_dim = self.model.get_num_output_features()
@@ -180,7 +180,7 @@ class MultitaskGraphClassifier(Model):
         softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
     return softmax
 
-  def fit(self, dataset, nb_epoch=10, batch_size=50, pad_batches=False,
+  def fit(self, dataset, nb_epoch=10, pad_batches=False,
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbosity)
@@ -195,7 +195,7 @@ class MultitaskGraphClassifier(Model):
       log("Starting epoch %d" % epoch, self.verbosity)
       # ToDo(hraut->rbharath) : what is the ids_b for? Is it the zero's? 
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          batch_size, pad_batches=pad_batches)):
+          self.batch_size, pad_batches=pad_batches)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbosity)
         self.sess.run(

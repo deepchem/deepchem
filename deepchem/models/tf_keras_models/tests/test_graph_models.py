@@ -13,6 +13,7 @@ import unittest
 from tensorflow.python.framework import test_util
 from keras.layers import Dense, BatchNormalization
 from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
+from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraphModel
 from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
@@ -51,3 +52,13 @@ class TestGraphModels(test_util.TensorFlowTestCase):
 
     # There should be 8 layers in graph_model
     assert len(graph_model.layers) == 6
+
+  def test_sample_attn_lstm_architecture(self):
+    """Tests that a representative attention architecture can be created."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11 
+    n_feat = 10
+    nb_filter = 7
+
+    support_model = SequentialSupportGraphModel(n_test, n_support, n_feat)

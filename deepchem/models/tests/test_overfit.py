@@ -709,12 +709,17 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
         beta2=.999, verbosity="high")
 
       # Fit trained model
-      model.fit(dataset)
+      model.fit(dataset, nb_epoch=30)
       model.save()
 
       # Eval model on train
       transformers = []
       evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
       scores = evaluator.compute_model_performance([classification_metric])
+
+    ############################################################ DEBUG
+    print("scores")
+    print(scores)
+    ############################################################ DEBUG
 
     assert scores[classification_metric.name] > .9

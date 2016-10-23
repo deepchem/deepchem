@@ -24,7 +24,7 @@ class SequentialGraphModel(object):
   placeholders from GraphTopology to each graph layer (from keras_layers) added
   to the network. Non graph layers don't get the extra placeholders. 
   """
-  def __init__(self, n_atoms, n_feat, batch_size):
+  def __init__(self, n_atoms, n_feat):
     """
     Parameters
     ----------
@@ -32,21 +32,18 @@ class SequentialGraphModel(object):
       (Max?) Number of atoms in system.
     n_feat: int
       Number of features per atom.
-    batch_size: int
-      Batch size for training models.
     """
     
     #super(SequentialGraphModel, self).__init__()
-    self.batch_size = batch_size
     # Create graph topology and x
-    self.graph_topology = GraphTopology(n_atoms, n_feat, self.batch_size)
+    self.graph_topology = GraphTopology(n_atoms, n_feat)
     self.output = self.graph_topology.get_atom_features_placeholder()
     # Keep track of the layers
     self.layers = []  
 
   def add(self, layer):
     """Adds a new layer to model."""
-    # Update new value of x
+    # For graphical layers, add connectivity placeholders 
     if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
       if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
         assert (self.layers[-1].__name__ != "GraphGather",
@@ -59,26 +56,6 @@ class SequentialGraphModel(object):
 
     # Add layer to the layer list
     self.layers.append(layer)
-
-  '''
-  def graph_gather(self, activation='linear'):
-    gather = GraphGather(self.batch_size, activation=activation)
-
-    self.layers.append(gather)
-    
-    self.output = gather(
-        [self.output] + self.graph_topology.get_topology_placeholders())
-  '''
-    
-  '''
-  def return_container(self, sess):
-    return GraphContainer(sess, input=self.return_inputs(),
-                          output=self.return_outputs(),
-                          graph_topology=self.graph_topology)
-  '''
-  
-  def get_batch_size(self):
-    return self.batch_size
 
   def get_graph_topology(self):
     return self.graph_topology
@@ -97,18 +74,28 @@ class SequentialGraphModel(object):
     return self.layers[layer_id]
 
 class SequentialSupportGraphModel(object):
-  def __init__(self, n_atom, n_feat, test_batch_size, support_batch_size):
-
-    self.test_batch_size = test_batch_size
-    self.support_batch_size = support_batch_size
+  """An analog of Keras Sequential model for test/support models."""
+  def __init__(self, n_test, n_support, n_feat):
+    """
+    Parameters
+    ----------
+    n_test: int
+      Number of test atoms.
+    n_support: int
+      Number of support atoms.
+    n_feat: int
+      Number of atomic features.
+    """
+    self.n_test = n_test
+    self.n_support = n_support
 
     # Create graph topology and x
     self.test_graph_topology = GraphTopology(
-        n_atom, n_feat, test_batch_size, name='test')
+        n_test, n_feat, name='test')
     self.support_graph_topology = GraphTopology(
-        n_atom, n_feat, support_batch_size, name='support')
-    self.test = self.test_graph_topology.get_nodes()
-    self.support = self.support_graph_topology.get_nodes()
+        n_support, n_feat, name='support')
+    self.test = self.test_graph_topology.get_atom_features_placeholder()
+    self.support = self.support_graph_topology.get_atom_features_placeholder()
 
     # Keep track of the layers
     self.layers = []  
@@ -118,10 +105,6 @@ class SequentialSupportGraphModel(object):
   def add(self, layer):
     # Add layer to the layer list
     self.layers.append(layer)
-    ############################################################# DEBUG
-    print("SequentialSupportGraphModel.add()")
-    print(layer)
-    ############################################################# DEBUG
 
     # Update new value of x
     if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
@@ -157,18 +140,21 @@ class SequentialSupportGraphModel(object):
     
     self.bool_pre_gather = False
 
+  '''
   def return_container(self, sess):
     return SupportGraphContainer(
         sess, input=self.return_inputs(),
         output=self.return_outputs(), 
         graph_topology_test=self.test_graph_topology,
         graph_topology_support=self.support_graph_topology)
+  '''
   
   def return_outputs(self):
     return [self.test] + [self.support]
 
   def return_inputs(self):
-    return self.test_graph_topology.get_inputs() + self.support_graph_topology.get_inputs()
+    return (self.test_graph_topology.get_inputs()
+            + self.support_graph_topology.get_inputs())
 
   def get_layer(self, layer_id):
     return self.layers[layer_id]

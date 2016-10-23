@@ -456,8 +456,29 @@ class GraphPool(Layer):
     return atom_features 
 
 class AttnLSTMEmbedding(Layer):
+  """Implements AttnLSTM as in matching networks paper.
+
+  References:
+  Matching Networks for One Shot Learning
+  https://arxiv.org/pdf/1606.04080v1.pdf
+
+  Order Matters: Sequence to sequence for sets
+  https://arxiv.org/abs/1511.06391
+  """
   def __init__(self, max_depth, init='glorot_uniform', activation='linear',
                dropout=None, **kwargs):
+    """
+    Parameters
+    ----------
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    init: str, optional
+      Type of initialization of weights
+    activation: str, optional
+      Activation for layers.
+    dropout: float, optional
+      Dropout probability
+    """
     super(AttnLSTMEmbedding, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
@@ -466,7 +487,9 @@ class AttnLSTMEmbedding(Layer):
 
 
   def build(self, input_shape):
-    print(input_shape)
+    """Initializes trainable weights."""
+    # x_input_shape = (N_test, N_feat)
+    # xp_input_shape = (N_support, N_feat)
     x_input_shape, xp_input_shape = input_shape  #Unpack
 
     N_test = x_input_shape[0]
@@ -481,13 +504,41 @@ class AttnLSTMEmbedding(Layer):
     self.trainable_weights = [self.q_init, self.r_init]
       
   def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form [(n_test, n_feat), (n_support, n_feat)]
+
+    Returns
+    -------
+    list
+      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
     x_input_shape, xp_input_shape = input_shape  #Unpack
 
     return input_shape
 
   def call(self, x_xp, mask=None):
-    x, xp = x_xp  #Unpack
-    print('unpacked')
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x_xp: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    # x is test set, xp is support set.
+    x, xp = x_xp
 
     # Get initializations
     q = self.q_init
