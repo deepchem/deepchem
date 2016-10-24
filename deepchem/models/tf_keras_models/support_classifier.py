@@ -373,6 +373,8 @@ class SupportGraphClassifier(Model):
     print("scores")
     print(scores)
     y_pred_batch = np.round(scores)
+    print("y_pred_batch")
+    print(y_pred_batch)
     ########################################################## DEBUG
     return y_pred_batch
 
@@ -388,11 +390,13 @@ class SupportGraphClassifier(Model):
     ############################################### DEBUG
     print("scores.shape")
     print(scores.shape)
-    y_pred_batch = scores
+    y_pred_batch = to_one_hot(np.round(scores))
+    print("y_pred_batch")
+    print(y_pred_batch)
     ############################################### DEBUG
     return y_pred_batch
     
-  def evaluate(self, dataset, test_tasks, metrics, n_pos=1,
+  def evaluate(self, dataset, test_tasks, metric, n_pos=1,
                n_neg=9, n_trials=1000):
     """Evaluate performance of dataset on test_tasks according to metrics
 
@@ -403,24 +407,18 @@ class SupportGraphClassifier(Model):
     is averaged and returned.
     """
     # Get batches
-    task_scores = {(task, metric.name): []
-                   for task in test_tasks for metric in metrics}
+    task_scores = {task: [] for task in test_tasks}
     for (task, support) in SupportGenerator(dataset, test_tasks,
          n_pos, n_neg, n_trials):
       print("Sampled Support set.")
       task_dataset = get_task_dataset_minus_support(dataset, support, task)
       y_pred = self.predict_proba(support, task_dataset)
 
-    #TODO(rbharath): Fix this up so numbers are meaningfully averaged across trials.
-      for metric in metrics:
-        task_scores[(task, metric.name)].append(metric.compute_metric(
-            task_dataset.y, y_pred, task_dataset.w))
+      task_scores[task].append(metric.compute_metric(
+          task_dataset.y, y_pred, task_dataset.w))
 
-    ## Join information for all tasks.
-    #joint_task_scores = {}
-    #for metric in metrics:
-    #  task_array = np.zeros(len(n_tasks))
-    #  for task in test_tasks:
-    #    task_array[task] = np.mean(np.array(task_scores[(task, metric.name)]))
-    #  joint_task_scores[metric.name] = task_array
-    #return joint_task_scores
+    # Join information for all tasks.
+    mean_task_scores = {}
+    for task in test_tasks:
+      mean_task_scores[task] = np.mean(np.array(task_scores[task]))
+    return mean_task_scores

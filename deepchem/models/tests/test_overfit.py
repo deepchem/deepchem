@@ -792,8 +792,9 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
       # Eval model on train
       scores = model.evaluate(dataset, range(n_tasks),
-                              [classification_metric], n_trials=1)
+                              classification_metric, n_trials=1)
       print("scores")
       print(scores)
 
-    assert scores[classification_metric.name] > .9
+    # Measure performance on 0-th task.
+    assert scores[0] > .9
