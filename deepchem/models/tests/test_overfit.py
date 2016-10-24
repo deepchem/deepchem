@@ -689,10 +689,10 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
-    n_atoms = 50
+    #n_atoms = 50
     n_feat = 71
     batch_size = 10
-    graph_model = SequentialGraphModel(n_atoms, n_feat)
+    graph_model = SequentialGraphModel(n_feat)
     graph_model.add(GraphConv(64, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(GraphPool())
@@ -703,9 +703,9 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       model = MultitaskGraphClassifier(
-        sess, graph_model, n_tasks, self.model_dir, learning_rate=1e-3,
-        learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
-        beta2=.999, verbosity="high")
+        sess, graph_model, n_tasks, self.model_dir, batch_size=batch_size,
+        learning_rate=1e-3, learning_rate_decay_time=1000,
+        optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
       # Fit trained model
       model.fit(dataset, nb_epoch=30)
@@ -726,10 +726,10 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
   def test_attn_lstm_multitask_classification_overfit(self):
     """Test support graph-conv multitask overfits tiny data."""
     n_tasks = 1
-    n_test = 5
-    n_support = 9
     n_samples = 10
     n_features = 3
+    n_test = 5
+    n_support = 9
     n_classes = 2
     max_depth = 4
     
@@ -749,47 +749,51 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
-    n_atoms = 50
     n_feat = 71
     batch_size = 10
+    test_batch_size = 10
+    support_batch_size = 10
 
-    support_model = SequentialSupportGraphModel(n_test, n_support, n_feat)
+    support_model = SequentialSupportGraphModel(n_feat)
     
     # Add layers
+    # output will be (n_atoms, 64)
     support_model.add(GraphConv(64, activation='relu'))
     # Need to add batch-norm separately to test/support due to differing
     # shapes.
+    # output will be (n_atoms, 64)
     support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    # output will be (n_atoms, 64)
     support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
     support_model.add(GraphPool())
+    support_model.add_test(GraphGather(test_batch_size))
+    support_model.add_support(GraphGather(support_batch_size))
 
     # Apply an attention lstm layer
-    support_model.join(AttnLSTMEmbedding(max_depth))
+    support_model.join(AttnLSTMEmbedding(test_batch_size, support_batch_size,
+                                         max_depth))
 
-    # Gather Projection
-    support_model.add(Dense(128, activation='relu'))
-    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
-    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-    support_model.add(GraphGather(batch_size, activation="tanh"))
+    ## Gather Projection
+    #support_model.add(Dense(128, activation='relu'))
+    #support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+    #support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+    #support_model.add(GraphGather(batch_size, activation="tanh"))
 
     with self.test_session() as sess:
       model = SupportGraphClassifier(
-        sess, support_model, n_tasks, self.model_dir, learning_rate=1e-3,
-        learning_rate_decay_time=1000, optimizer_type="adam", beta1=.9,
-        beta2=.999, verbosity="high")
+        sess, support_model, n_tasks, self.model_dir, 
+        test_batch_size=test_batch_size, support_batch_size=support_batch_size,
+        learning_rate=1e-3, learning_rate_decay_time=1000,
+        optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
       # Fit trained model
-      model.fit(dataset, nb_epoch=30)
+      model.fit(dataset, nb_epoch=3, n_trials_per_epoch=5)
       model.save()
 
       # Eval model on train
-      transformers = []
-      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-      scores = evaluator.compute_model_performance([classification_metric])
-
-    ############################################################ DEBUG
-    print("scores")
-    print(scores)
-    ############################################################ DEBUG
+      scores = model.evaluate(dataset, range(n_tasks),
+                              [classification_metric], n_trials=1)
+      print("scores")
+      print(scores)
 
     assert scores[classification_metric.name] > .9

@@ -182,10 +182,13 @@ class SupportGraphClassifier(Model):
     self.epsilon = K.epsilon()
 
     self.build()
-    self.scores_op, self.loss_op = self.add_training_loss()
+    self.pred_op, self.scores_op, self.loss_op = self.add_training_loss()
     # Get train function
     self.add_optimizer()
 
+    # Initialize
+    self.init_fn = tf.initialize_all_variables()
+    sess.run(self.init_fn)  
 
   def add_optimizer(self):
     if self.optimizer_type == "adam":
@@ -222,7 +225,7 @@ class SupportGraphClassifier(Model):
     # Get graph information for test 
     batch_topo_dict = (
         self.model.test_graph_topology.batch_to_feed_dict(test.X))
-    feed_dict = merge_dicts([batch_topo_dict, feed_dict_dict])
+    feed_dict = merge_dicts([batch_topo_dict, feed_dict])
     # Generate dictionary elements for test
     feed_dict[self.label_placeholder] = np.squeeze(test.y)
     feed_dict[self.weight_placeholder] = np.squeeze(test.w)
@@ -236,6 +239,7 @@ class SupportGraphClassifier(Model):
           n_neg=9, **kwargs):
     # Perform the optimization
     for epoch in range(nb_epoch):
+      # TODO(rbharath): Try removing this learning rate.
       lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
 
       # Create different support sets
@@ -249,27 +253,34 @@ class SupportGraphClassifier(Model):
         # Train on support set, batch pair
         self.sess.run(self.train_op, feed_dict=feed_dict)
 
-  def add_training_loss(self):
-    scores = self.get_scores()
+  def save(self):
+    """Save all models
 
+    TODO(rbharath): Saving is not yet supported for this model.
+    """
+    pass
+
+  def add_training_loss(self):
+    """Adds training loss and scores for network."""
+    pred, scores = self.get_scores()
     losses = tf.nn.sigmoid_cross_entropy_with_logits(scores, self.label_placeholder)
     weighted_losses = tf.mul(losses, self.weight_placeholder)
     loss = tf.reduce_sum(weighted_losses)
 
-    return scores, loss
+    return pred, scores, loss
 
   def get_scores(self):
     """Adds tensor operations for computing scores.
 
-    TODO(rbharath): Not clear what the mathematical function computed here is.
-    What equations in the Matching Networks paper does this correspond to?
+    Computes prediction yhat (eqn (1) in Matching networks) of class for test
+    compounds.
     """
     # Get featurization for x
     test_feat = self.model.get_test_output()  
     # Get featurization for support
     support_feat = self.model.get_support_output()  
 
-    # TODO(rbharath): I believe this part computes the inner part c() of the kernel
+    # Computes the inner part c() of the kernel
     # (the inset equation in section 2.1.1 of Matching networks paper). 
     # Normalize
     if self.similarity == 'cosine':
@@ -286,9 +297,6 @@ class SupportGraphClassifier(Model):
     elif self.similarity == 'euclidean':
       test_feat = tf.expand_dims(test_feat, 1)
       support_feat = tf.expand_dims(support_feat, 0)
-      #g = -tf.sqrt(tf.maximum(
-      #       tf.reduce_sum(tf.square(test_feat - support_feat), 2), 1e-6))
-      #g = -tf.sqrt(tf.reduce_sum(tf.square(test_feat - support_feat), 2))
       max_dist_sq = 20
       g = -tf.maximum(tf.reduce_sum(tf.square(test_feat - support_feat), 2), max_dist_sq)
     # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper 
@@ -297,20 +305,24 @@ class SupportGraphClassifier(Model):
 
     # Weighted sum of support labels
     support_labels = tf.expand_dims(self.support_label_placeholder, 1)
-    # Prediction yhat in eqn (1) of Matching Networks.
+    # pred is yhat in eqn (1) of Matching Networks.
     pred = tf.squeeze(tf.matmul(soft, support_labels), [1])
 
     pred = tf.clip_by_value(pred, K.epsilon(), 1.-K.epsilon())
 
+    ################################################################ DEBUG
+    print("get_scores()")
+    print("pred")
+    print(pred)
+    ################################################################ DEBUG
+
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)
-    # Not sure which is the best way to compute
-    #scores = tf.sub(tf.log(pred),
-    #                tf.log(tf.sub(tf.constant(1., dtype=tf.float32), pred)))
-    #scores = -tf.log(tf.inv(pred)-tf.constant(1., dtype=tf.float32))
+    # Used to invoke tf.nn.sigmoid_cross_entropy_with_logits
+    # in Cross Entropy calculation.
     scores = tf.log(pred) - tf.log(tf.constant(1., dtype=tf.float32)-pred)
 
-    return scores
+    return pred, scores
 
   def predict(self, support, test):
     """Makes predictions on test given support.
@@ -327,6 +339,21 @@ class SupportGraphClassifier(Model):
     y_pred = np.concatenate(y_preds)
     return y_pred
 
+  def predict_proba(self, support, test):
+    """Makes predictions on test given support.
+
+    TODO(rbharath): Does not currently support any transforms.
+    TODO(rbharath): Only for 1 task at a time currently. Is there a better way?
+    """
+    y_preds = []
+    for (X_batch, y_batch, w_batch, ids_batch) in test.iterbatches(
+        self.test_batch_size, deterministic=True):
+      test_batch = NumpyDataset(X_batch, y_batch, w_batch, ids_batch)
+      y_pred_batch = self.predict_proba_on_batch(support, test_batch)
+      y_preds.append(y_pred_batch)
+    y_pred = np.concatenate(y_preds)
+    return y_pred
+
   def predict_on_batch(self, support, test_batch):
     """Make predictions on batch of data."""
     n_samples = len(test_batch)
@@ -335,10 +362,38 @@ class SupportGraphClassifier(Model):
         test_batch.ids))
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
+    pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
+    ########################################################## DEBUG
+    print("pred.shape")
+    print(pred.shape)
+    print("scores.shape")
+    print(scores.shape)
+    print("pred")
+    print(pred)
+    print("scores")
+    print(scores)
+    y_pred_batch = np.round(scores)
+    ########################################################## DEBUG
+    return y_pred_batch
+
+  def predict_proba_on_batch(self, support, test_batch):
+    """Make predictions on batch of data."""
+    n_samples = len(test_batch)
+    padded_test_batch = NumpyDataset(*pad_batch(
+        self.test_batch_size, test_batch.X, test_batch.y, test_batch.w,
+        test_batch.ids))
+    feed_dict = self.construct_feed_dict(padded_test_batch, support)
+    # Get scores
     scores = self.sess.run(self.scores_op, feed_dict=feed_dict)
+    ############################################### DEBUG
+    print("scores.shape")
+    print(scores.shape)
+    y_pred_batch = scores
+    ############################################### DEBUG
     return y_pred_batch
     
-  def evaluate(self, dataset, test_tasks, metrics, n_trials=1000):
+  def evaluate(self, dataset, test_tasks, metrics, n_pos=1,
+               n_neg=9, n_trials=1000):
     """Evaluate performance of dataset on test_tasks according to metrics
 
     TODO(rbharath): Currently does not support any transformers.
@@ -351,10 +406,10 @@ class SupportGraphClassifier(Model):
     task_scores = {(task, metric.name): []
                    for task in test_tasks for metric in metrics}
     for (task, support) in SupportGenerator(dataset, test_tasks,
-        self.n_pos, self.n_neg, n_trials):
+         n_pos, n_neg, n_trials):
       print("Sampled Support set.")
       task_dataset = get_task_dataset_minus_support(dataset, support, task)
-      y_pred = self.predict(support, task_dataset)
+      y_pred = self.predict_proba(support, task_dataset)
 
     #TODO(rbharath): Fix this up so numbers are meaningfully averaged across trials.
       for metric in metrics:

@@ -465,8 +465,8 @@ class AttnLSTMEmbedding(Layer):
   Order Matters: Sequence to sequence for sets
   https://arxiv.org/abs/1511.06391
   """
-  def __init__(self, max_depth, init='glorot_uniform', activation='linear',
-               dropout=None, **kwargs):
+  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+               activation='linear', dropout=None, **kwargs):
     """
     Parameters
     ----------
@@ -484,7 +484,8 @@ class AttnLSTMEmbedding(Layer):
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
     self.max_depth = max_depth
-
+    self.n_test = n_test
+    self.n_support = n_support
 
   def build(self, input_shape):
     """Initializes trainable weights."""
@@ -492,14 +493,15 @@ class AttnLSTMEmbedding(Layer):
     # xp_input_shape = (N_support, N_feat)
     x_input_shape, xp_input_shape = input_shape  #Unpack
 
-    N_test = x_input_shape[0]
-    N_support = xp_input_shape[0]
-    N_feat = xp_input_shape[1]
+    n_feat = xp_input_shape[1]
 
-    self.lstm = LSTMStep(N_feat)
-    self.q_init = K.zeros([N_test,N_feat])
-    self.r_init = K.zeros([N_test,N_feat])
-    self.states_init = self.lstm.get_initial_states([N_test,N_feat])
+    self.lstm = LSTMStep(n_feat)
+    ############################################## DEBUG
+    print("AttnLSTMEmbedding.build()")
+    ############################################## DEBUG
+    self.q_init = K.zeros([self.n_test, n_feat])
+    self.r_init = K.zeros([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
     
     self.trainable_weights = [self.q_init, self.r_init]
       

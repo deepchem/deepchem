@@ -24,16 +24,15 @@ class SequentialGraphModel(object):
   placeholders from GraphTopology to each graph layer (from keras_layers) added
   to the network. Non graph layers don't get the extra placeholders. 
   """
-  def __init__(self, n_atoms, n_feat):
+  def __init__(self, n_feat):
     """
     Parameters
     ----------
-    n_atoms: int
-      (Max?) Number of atoms in system.
     n_feat: int
       Number of features per atom.
     """
-    self.graph_topology = GraphTopology(n_atoms, n_feat)
+    #self.graph_topology = GraphTopology(n_atoms, n_feat)
+    self.graph_topology = GraphTopology(n_feat)
     self.output = self.graph_topology.get_atom_features_placeholder()
     # Keep track of the layers
     self.layers = []  
@@ -72,27 +71,16 @@ class SequentialGraphModel(object):
 
 class SequentialSupportGraphModel(object):
   """An analog of Keras Sequential model for test/support models."""
-  def __init__(self, n_test, n_support, n_feat, max_atoms_per_mol=60):
+  def __init__(self, n_feat, max_atoms_per_mol=60):
     """
     Parameters
     ----------
-    n_test: int
-      Number of test molecules.
-    n_support: int
-      Number of support support.
     n_feat: int
       Number of atomic features.
     """
-    self.n_test = n_test
-    self.n_support = n_support
-
     # Create graph topology and x
-    n_test_atoms = n_test * max_atoms_per_mol
-    n_support_atoms = n_support * max_atoms_per_mol
-    self.test_graph_topology = GraphTopology(
-        n_test_atoms, n_feat, name='test')
-    self.support_graph_topology = GraphTopology(
-        n_support_atoms, n_feat, name='support')
+    self.test_graph_topology = GraphTopology(n_feat, name='test')
+    self.support_graph_topology = GraphTopology(n_feat, name='support')
     self.test = self.test_graph_topology.get_atom_features_placeholder()
     self.support = self.support_graph_topology.get_atom_features_placeholder()
 
@@ -127,7 +115,7 @@ class SequentialSupportGraphModel(object):
     self.layers.append(layer)
 
     # Update new value of x
-    if type(layer).__name__ in ['GraphConv', 'GraphPool']:
+    if type(layer).__name__ in ['GraphConv', 'GraphPool', 'GraphGather']:
       self.test = layer([self.test] + self.test_graph_topology.topology)
     else:
       self.test = layer(self.test)
@@ -137,7 +125,7 @@ class SequentialSupportGraphModel(object):
     self.layers.append(layer)
 
     # Update new value of x
-    if type(layer).__name__ in ['GraphConv', 'GraphPool']:
+    if type(layer).__name__ in ['GraphConv', 'GraphPool', 'GraphGather']:
       self.support = layer([self.support] + self.support_graph_topology.topology)
     else:
       self.support = layer(self.support)

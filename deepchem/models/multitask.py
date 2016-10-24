@@ -165,8 +165,10 @@ class SingletaskToMultitask(Model):
     return y_pred
 
   def save(self):
-    """Save all models"""
-    # Saving is done on-the-fly
+    """Save all models
+
+    TODO(rbharath): Saving is not yet supported for this model.
+    """
     pass
 
   def reload(self):

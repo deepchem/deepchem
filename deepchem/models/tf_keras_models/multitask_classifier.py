@@ -91,10 +91,10 @@ class MultitaskGraphClassifier(Model):
     # Create target inputs
     self.label_placeholder = Input(tensor=K.placeholder(
       shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
-    ######################################### DEBUG
-    print("self.n_tasks")
-    print(self.n_tasks)
-    ######################################### DEBUG
+    ########################################## DEBUG
+    #print("self.n_tasks")
+    #print(self.n_tasks)
+    ########################################## DEBUG
     self.weight_placeholder = Input(tensor=K.placeholder(
           shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
 
@@ -116,12 +116,6 @@ class MultitaskGraphClassifier(Model):
     # Get train function
     self.train_op = self.optimizer.minimize(self.loss_op)
 
-
-  def batch_to_targets_dict(self, y_b, w_b):
-    """ Converts the data in a batch to the feed dict for tensorflow """
-    return {self.label_placeholder : y_b,
-            self.weight_placeholder : w_b}
-
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, training=True):
     """Get initial information about task normalization"""
     # TODO(rbharath): I believe this is total amount of data
@@ -130,7 +124,8 @@ class MultitaskGraphClassifier(Model):
       y_b = np.zeros((n_samples, self.n_tasks))
     if w_b is None:
       w_b = np.zeros((n_samples, self.n_tasks))
-    targets_dict = self.batch_to_targets_dict(y_b, w_b)
+    targets_dict = {self.label_placeholder : y_b,
+                    self.weight_placeholder : w_b}
     
     # Get graph information
     atoms_dict = self.graph_topology.batch_to_feed_dict(X_b)
@@ -239,11 +234,6 @@ class MultitaskGraphClassifier(Model):
     outputs = np.zeros((n_samples, self.n_tasks))
     for task, output in enumerate(batch_outputs):
       outputs[:, task] = np.argmax(output, axis=1)
-    #################################### DEBUG
-    print("predict_on_batch")
-    print("outputs")
-    print(outputs)
-    #################################### DEBUG
     return outputs 
 
   def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):
