@@ -14,7 +14,60 @@ from deepchem.utils.evaluate import Evaluator
 from deepchem.metrics import to_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 
-def get_single_task_test(dataset, batch_size, task):
+def get_task_dataset_minus_support(dataset, support, task):
+  """Gets data for specified task, minus support points.
+
+  Useful for evaluating model performance once trained (so that
+  test compounds can be ensured distinct from support.)
+
+  Parameters
+  ----------
+  dataset: deepchem.datasets.Dataset
+    Source dataset.
+  support: deepchem.datasets.Dataset
+    The support dataset
+  task: int
+    Task number of task to select.
+  """
+  support_ids = set(support.ids)
+  non_support_inds = [ind for ind in range(len(dataset))
+                      if dataset.ids[ind] not in support_ids]
+
+  # Remove support indices
+  X = dataset.X[non_support_inds]
+  y = dataset.y[non_support_inds]
+  w = dataset.w[non_support_inds]
+  ids = dataset.ids[non_support_inds]
+
+  # Get task specific entries
+  w_task = w[:, task]
+  X_task = X[w_task != 0]
+  y_task = y[w_task != 0, task]
+  ids_task = ids[w_task != 0]
+  # Now just get weights for this task
+  w_task = w[w_task != 0, task]
+
+  return NumpyDataset(X_task, y_task, w_task, ids_task)
+
+def get_task_dataset(dataset, task):
+  """Selects out entries for a particular task."""
+  X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
+  # Get task specific entries
+  w_task = w[:, task]
+  X_task = X[w_task != 0]
+  y_task = y[w_task != 0, task]
+  ids_task = ids[w_task != 0]
+  # Now just get weights for this task
+  w_task = w[w_task != 0, task]
+
+  return NumpyDataset(X_task, y_task, w_task, ids_task)
+
+def get_task_test(dataset, batch_size, task, replace=True):
+  """Gets test set from specified task.
+
+  Samples random subset of size batch_size from specified task of dataset.
+  Ensures that sampled points have measurements for this task.
+  """
   w_task = dataset.w[:, task]
   X_task = dataset.X[w_task != 0]
   y_task = dataset.y[w_task != 0]
@@ -22,26 +75,14 @@ def get_single_task_test(dataset, batch_size, task):
   # Now just get weights for this task
   w_task = dataset.w[w_task != 0]
 
-  inds = np.random.choice(np.arange(len(X_task)), batch_size)
+  inds = np.random.choice(np.arange(len(X_task)), batch_size, replace=replace)
   X_batch = X_task[inds]
   y_batch = np.squeeze(y_task[inds, task])
   w_batch = np.squeeze(w_task[inds, task])
   ids_batch = ids_task[inds]
   return NumpyDataset(X_batch, y_batch, w_batch, ids_batch)
 
-def get_task_dataset_minus_support(dataset, support, task):
-  """Gets data for specified task, minus support points."""
-  w_task = dataset.w[:, task]
-  X_task = dataset.X[w_task != 0]
-  y_task = dataset.y[w_task != 0, task]
-  ids_task = dataset.ids[w_task != 0]
-  # Now just get weights for this task
-  w_task = dataset.w[w_task != 0, task]
-
-  # TODO(rbharath): Haven't implemented minus-support functionality!
-  return NumpyDataset(X_task, y_task, w_task, ids_task)
-
-def get_task_support(dataset, n_pos, n_neg, task):
+def get_task_support(dataset, n_pos, n_neg, task, replace=True):
   """Generates a support set purely for specified task.
   
   Parameters
@@ -54,29 +95,28 @@ def get_task_support(dataset, n_pos, n_neg, task):
     Number of negative samples in support.
   task: int
     Index of current task.
+  replace: bool, optional
+    Whether or not to use replacement when sampling supports.
 
   Returns
   -------
   list
     List of NumpyDatasets, each of which is a support set.
   """
-  # Make a shallow copy of the molecules list to avoid rarranging the original list
-  mol_list = dataset.ids 
   y_task = dataset.y[:, task]
 
   # Split data into pos and neg lists.
   pos_mols = np.where(y_task == 1)[0]
   neg_mols = np.where(y_task == 0)[0]
 
-  # TODO(rbharath): Commenting this out since I think it's OK to duplicate
-  # pos/neg samples when necessary. Delete this part once sure.
-  ## Ensure that there are examples to sample
-  #assert len(pos_mols) >= n_pos
-  #assert len(neg_mols) >= n_neg
-
   # Get randomly sampled pos/neg indices (with replacement)
-  pos_inds = pos_mols[np.random.choice(len(pos_mols), (n_pos))]
-  neg_inds = neg_mols[np.random.choice(len(neg_mols), (n_neg))]
+  ###################################################################### DEBUG
+  #print("get_task_support()")
+  #print("len(dataset), len(pos_mols), len(neg_mols), n_pos, n_neg")
+  #print(len(dataset), len(pos_mols), len(neg_mols), n_pos, n_neg)
+  ###################################################################### DEBUG
+  pos_inds = pos_mols[np.random.choice(len(pos_mols), (n_pos), replace=replace)]
+  neg_inds = neg_mols[np.random.choice(len(neg_mols), (n_neg), replace=replace)]
 
   # Handle one-d vs. non one-d feature matrices
   one_dimensional_features = (len(dataset.X.shape) == 1)
@@ -100,13 +140,14 @@ class SupportGenerator(object):
   Iterates over tasks and trials. For each trial, picks one support from
   each task, and returns in a randomized order
   """
-  def __init__(self, dataset, tasks, n_pos, n_neg, n_trials):
+  def __init__(self, dataset, tasks, n_pos, n_neg, n_trials, replace):
     self.tasks = tasks
     self.n_tasks = len(tasks)
     self.n_trials = n_trials
     self.dataset = dataset
     self.n_pos = n_pos
     self.n_neg = n_neg
+    self.replace = replace
 
     # Init the iterator
     self.perm_tasks = np.random.permutation(self.tasks)
@@ -131,7 +172,12 @@ class SupportGenerator(object):
       task = self.perm_tasks[self.task_num]  # Get id from permutation
       #support = self.supports[task][self.trial_num]
       support = get_task_support(
-          self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task)
+          self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task,
+          replace=self.replace)
+      ################################################## DEBUG
+      #print("len(set(support.ids))")
+      #print(len(set(support.ids)))
+      ################################################## DEBUG
       # Increment and update logic
       self.task_num += 1
       if self.task_num == self.n_tasks:
@@ -201,16 +247,16 @@ class SupportGraphClassifier(Model):
 
   def build(self):
     # Create target inputs
-    self.label_placeholder = Input(
+    self.test_label_placeholder = Input(
         #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         name="label_placeholder"))
-    self.weight_placeholder = Input(
+    self.test_weight_placeholder = Input(
         #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         name="weight_placeholder"))
 
-    # TODO(rbharath): Should there be support weights here?
+    # TODO(rbharath): There should be weights for the support being used! 
     # Support labels
     self.support_label_placeholder = Input(
         tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
@@ -227,8 +273,8 @@ class SupportGraphClassifier(Model):
         self.model.test_graph_topology.batch_to_feed_dict(test.X))
     feed_dict = merge_dicts([batch_topo_dict, feed_dict])
     # Generate dictionary elements for test
-    feed_dict[self.label_placeholder] = np.squeeze(test.y)
-    feed_dict[self.weight_placeholder] = np.squeeze(test.w)
+    feed_dict[self.test_label_placeholder] = np.squeeze(test.y)
+    feed_dict[self.test_weight_placeholder] = np.squeeze(test.w)
 
     # Get information for keras 
     if add_phase:
@@ -236,18 +282,50 @@ class SupportGraphClassifier(Model):
     return feed_dict
 
   def fit(self, dataset, n_trials_per_epoch=1000, nb_epoch=10, n_pos=1,
-          n_neg=9, **kwargs):
+          n_neg=9, replace=True, **kwargs):
+    """Fits model on dataset.
+
+    Note that fitting for support models is quite different from fitting
+    for other deep models. Fitting is a two-level process. During each epoch,
+    we repeat n_trials_per_epoch, where for each trial, we randomply sample
+    a support set for a given task, and independently a test set from that same
+    task. The SupportGenerator class iterates over the tasks in random order.
+
+    # TODO(rbharath): Is the concept of an epoch even meaningful here? There's
+    # never a guarantee that the full dataset is covered as in usual fit.
+
+    # TODO(rbharath): Would it improve performance to sample multiple test sets
+    for each support set or would that only harm performance?
+    
+    # TODO(rbharath): Should replace be an option for sampling the test sets?
+
+    Parameters
+    ----------
+    dataset: deepchem.datasets.Dataset
+      Dataset to fit model on.
+    n_trials_per_epoch: int, optional
+      Number of (support, test) pairs to sample and train on per epoch.
+    nb_epoch: int, optional
+      Number of training epochs.
+    n_pos: int, optional
+      Number of positive examples per support.
+    n_neg: int, optional
+      Number of negative examples per support.
+    replace: bool, optional
+      Whether or not to use replacement when sampling supports/tests.
+    """
     # Perform the optimization
     for epoch in range(nb_epoch):
       # TODO(rbharath): Try removing this learning rate.
       lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
+      print("Training epoch %d" % epoch)
 
       # Create different support sets
       for (task, support) in SupportGenerator(dataset, range(self.n_tasks),
-          n_pos, n_neg, n_trials_per_epoch):
+          n_pos, n_neg, n_trials_per_epoch, replace):
         print("Sampled Support set")
         # Get batch to try it out on
-        test = get_single_task_test(dataset, self.test_batch_size, task)
+        test = get_task_test(dataset, self.test_batch_size, task, replace)
         print("Obtained batch")
         feed_dict = self.construct_feed_dict(test, support)
         # Train on support set, batch pair
@@ -263,8 +341,9 @@ class SupportGraphClassifier(Model):
   def add_training_loss(self):
     """Adds training loss and scores for network."""
     pred, scores = self.get_scores()
-    losses = tf.nn.sigmoid_cross_entropy_with_logits(scores, self.label_placeholder)
-    weighted_losses = tf.mul(losses, self.weight_placeholder)
+    losses = tf.nn.sigmoid_cross_entropy_with_logits(
+        scores, self.test_label_placeholder)
+    weighted_losses = tf.mul(losses, self.test_weight_placeholder)
     loss = tf.reduce_sum(weighted_losses)
 
     return pred, scores, loss
@@ -309,12 +388,6 @@ class SupportGraphClassifier(Model):
     pred = tf.squeeze(tf.matmul(soft, support_labels), [1])
 
     pred = tf.clip_by_value(pred, K.epsilon(), 1.-K.epsilon())
-
-    ################################################################ DEBUG
-    print("get_scores()")
-    print("pred")
-    print(pred)
-    ################################################################ DEBUG
 
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)
@@ -363,19 +436,7 @@ class SupportGraphClassifier(Model):
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
-    ########################################################## DEBUG
-    print("pred.shape")
-    print(pred.shape)
-    print("scores.shape")
-    print(scores.shape)
-    print("pred")
-    print(pred)
-    print("scores")
-    print(scores)
     y_pred_batch = np.round(scores)
-    print("y_pred_batch")
-    print(y_pred_batch)
-    ########################################################## DEBUG
     return y_pred_batch
 
   def predict_proba_on_batch(self, support, test_batch):
@@ -386,32 +447,65 @@ class SupportGraphClassifier(Model):
         test_batch.ids))
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
-    scores = self.sess.run(self.scores_op, feed_dict=feed_dict)
-    ############################################### DEBUG
-    print("scores.shape")
-    print(scores.shape)
-    y_pred_batch = to_one_hot(np.round(scores))
+    pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
+    y_pred_batch = to_one_hot(np.round(pred))
+    ########################################################## DEBUG
+    print("predict_proba_on_batch()")
+    print("scores")
+    print(scores)
     print("y_pred_batch")
     print(y_pred_batch)
-    ############################################### DEBUG
+    ########################################################## DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, test_tasks, metric, n_pos=1,
-               n_neg=9, n_trials=1000):
+               n_neg=9, n_trials=1000, exclude_support=True, replace=True):
     """Evaluate performance of dataset on test_tasks according to metrics
+
+
+    Evaluates the performance of the trained model by sampling supports randomly
+    for each task in test_tasks. For each sampled support, the accuracy of the
+    model with support provided is computed on all data for that task. If
+    exclude_support is True (by default), the support set is excluded from this
+    accuracy calculation. exclude_support should be set to false if model's
+    memorization capacity wants to be evaluated. 
+    
+
+    Since the accuracy on a task is dependent on the choice of random support,
+    the evaluation experiment is repeated n_trials times over all test_tasks.
+    (Each task gets n_trials/len(test_tasks) experiments). The computed accuracies
+    are averaged across trials.
 
     TODO(rbharath): Currently does not support any transformers.
 
-    Since the performance on a task is dependent on the choice of support,
-    the evaluation experiment is repeated n_trials times. The output scores
-    is averaged and returned.
+    Parameters
+    ----------
+    dataset: deepchem.datasets.Dataset
+      Dataset to test on.
+    test_tasks: list
+      List of task indices (list[int])
+    metrics: deepchem.metrics.Metric
+      Evaluation metric.
+    n_pos: int, optional
+      Number of positive samples per support.
+    n_neg: int, optional
+      Number of negative samples per support.
+    exclude_support: bool, optional
+      Whether support set should be excluded when computing model accuracy.
+    replace: bool, optional
+      Whether or not to use replacement when sampling supports.
     """
     # Get batches
     task_scores = {task: [] for task in test_tasks}
     for (task, support) in SupportGenerator(dataset, test_tasks,
-         n_pos, n_neg, n_trials):
+         n_pos, n_neg, n_trials, replace):
       print("Sampled Support set.")
-      task_dataset = get_task_dataset_minus_support(dataset, support, task)
+      if exclude_support:
+        print("Removing support datapoints for eval.")
+        task_dataset = get_task_dataset_minus_support(dataset, support, task)
+      else:
+        print("Keeping support datapoints for eval.")
+        task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
 
       task_scores[task].append(metric.compute_metric(

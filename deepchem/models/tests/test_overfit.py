@@ -786,13 +786,22 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
         learning_rate=1e-3, learning_rate_decay_time=1000,
         optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
-      # Fit trained model
-      model.fit(dataset, nb_epoch=3, n_trials_per_epoch=5)
+      # Fit trained model. Dataset has 6 positives and 4 negatives, so set
+      # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
+      # is always passed in to support.
+      model.fit(dataset, nb_epoch=0, n_trials_per_epoch=10, n_pos=6, n_neg=4,
+                replace=False)
       model.save()
 
-      # Eval model on train
+      # Eval model on train. Dataset has 6 positives and 4 negatives, so set
+      # n_pos/n_neg accordingly. Note that support is *not* excluded (so we
+      # can measure model has memorized support).  Replacement is turned off to
+      # ensure that support contains full training set. This checks that the
+      # model has mastered memorization of provided support.
       scores = model.evaluate(dataset, range(n_tasks),
-                              classification_metric, n_trials=1)
+                              classification_metric, n_trials=5,
+                              n_pos=6, n_neg=4,
+                              exclude_support=False, replace=False)
       print("scores")
       print(scores)
 
