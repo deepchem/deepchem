@@ -55,12 +55,12 @@ class GraphTopology(object):
     self.min_deg = min_deg
 
     self.atom_features_placeholder = Input(
-        #tensor=K.placeholder(
-        #    shape=(None, self.n_feat), dtype='float32',
-        #    name=self.name+'_atom_features'))
         tensor=K.placeholder(
-            shape=(self.n_atoms, self.n_feat), dtype='float32',
+            shape=(None, self.n_feat), dtype='float32',
             name=self.name+'_atom_features'))
+        #tensor=K.placeholder(
+        #    shape=(self.n_atoms, self.n_feat), dtype='float32',
+        #    name=self.name+'_atom_features'))
     self.deg_adj_lists_placeholders = [
         Input(tensor=K.placeholder(
           shape=(None, deg), dtype='int32', name=self.name+'_deg_adj'+str(deg)))
@@ -136,23 +136,3 @@ class GraphTopology(object):
                   self.deg_slice_placeholder : batch.deg_slice,
                   self.membership_placeholder : batch.membership}
     return merge_dicts([atoms_dict, deg_adj_dict])
-
-'''
-def extract_topology(x):
-  # Extracts the topology tensors from x
-  topology = x[1::]
-
-  # Extract parsed topology information
-  deg_slice = topology[0]
-  membership = topology[1]
-  deg_adj_lists = topology[2::]
-
-  return deg_slice, membership, deg_adj_lists
-
-def extract_nodes(x):
-  # Extracts the nodes from x (just the first tensor in the list of tensors)
-  return x[0]
-
-def extract_membership(x):
-  return x[2]
-'''

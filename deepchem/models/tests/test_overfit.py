@@ -692,7 +692,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     n_atoms = 50
     n_feat = 71
     batch_size = 10
-    graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
+    graph_model = SequentialGraphModel(n_atoms, n_feat)
     graph_model.add(GraphConv(64, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(GraphPool())

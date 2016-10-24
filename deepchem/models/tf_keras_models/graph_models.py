@@ -33,9 +33,6 @@ class SequentialGraphModel(object):
     n_feat: int
       Number of features per atom.
     """
-    
-    #super(SequentialGraphModel, self).__init__()
-    # Create graph topology and x
     self.graph_topology = GraphTopology(n_atoms, n_feat)
     self.output = self.graph_topology.get_atom_features_placeholder()
     # Keep track of the layers

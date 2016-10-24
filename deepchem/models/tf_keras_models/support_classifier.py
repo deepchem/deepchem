@@ -216,31 +216,20 @@ class SupportGraphClassifier(Model):
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
     # Generate dictionary elements for support 
-    support_labels_dict = {self.support_label_placeholder: np.squeeze(support.y)}
-    support_topo_dict = (
+    feed_dict = (
         self.model.support_graph_topology.batch_to_feed_dict(support.X))
-    support_dict = merge_dicts([support_topo_dict, support_labels_dict])
-  
-    # Generate dictionary elements for test
-    ########################################################### DEBUG
-    print("test.y.shape, test.w.shape")
-    print(test.y.shape, test.w.shape)
-    ########################################################### DEBUG
-    target_dict = {self.label_placeholder: np.squeeze(test.y),
-                   self.weight_placeholder: np.squeeze(test.w)}
-    # Get graph information for x
+    feed_dict[self.support_label_placeholder] = np.squeeze(support.y)
+    # Get graph information for test 
     batch_topo_dict = (
         self.model.test_graph_topology.batch_to_feed_dict(test.X))
-    test_dict =  merge_dicts([batch_topo_dict, target_dict])
-
-    test_support_dicts = merge_dicts([test_dict, support_dict])
+    feed_dict = merge_dicts([batch_topo_dict, feed_dict_dict])
+    # Generate dictionary elements for test
+    feed_dict[self.label_placeholder] = np.squeeze(test.y)
+    feed_dict[self.weight_placeholder] = np.squeeze(test.w)
 
     # Get information for keras 
     if add_phase:
-      keras_dict = {K.learning_phase() : training}
-      feed_dict = merge_dicts([test_support_dicts, keras_dict])
-    else:
-      feed_dict = test_support_dicts
+      feed_dict[K.learning_phase()] = training
     return feed_dict
 
   def fit(self, dataset, n_trials_per_epoch=1000, nb_epoch=10, n_pos=1,
@@ -341,26 +330,12 @@ class SupportGraphClassifier(Model):
   def predict_on_batch(self, support, test_batch):
     """Make predictions on batch of data."""
     n_samples = len(test_batch)
-    ################################################# DEBUG
-    print("predict_on_batch()")
-    print("test_batch.X.shape, test_batch.y.shape, test_batch.w.shape, test_batch.ids.shape")
-    print(test_batch.X.shape, test_batch.y.shape, test_batch.w.shape, test_batch.ids.shape)
-    ################################################# DEBUG
     padded_test_batch = NumpyDataset(*pad_batch(
         self.test_batch_size, test_batch.X, test_batch.y, test_batch.w,
         test_batch.ids))
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     scores = self.sess.run(self.scores_op, feed_dict=feed_dict)
-    ################################################# DEBUG
-    print("predict_on_batch()")
-    print("scores.shape")
-    print(scores.shape)
-    print("scores")
-    print(scores)
-    y_pred_batch = to_one_hot(np.round(scores))
-    y_pred_batch = y_pred_batch[:n_samples]
-    ################################################# DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, test_tasks, metrics, n_trials=1000):
