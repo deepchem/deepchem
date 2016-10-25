@@ -35,7 +35,7 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_atoms, n_feat)
+      graph_topology = GraphTopology(n_feat)
       graph_conv_layer = GraphConv(nb_filter)
 
       X = graph_topology.get_input_placeholders()
@@ -50,7 +50,7 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     batch_size = 3
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_atoms, n_feat)
+      graph_topology = GraphTopology(n_feat)
       graph_gather_layer = GraphGather(batch_size)
 
       X = graph_topology.get_input_placeholders()
@@ -65,7 +65,7 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     batch_size = 3
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_atoms, n_feat, batch_size)
+      graph_topology = GraphTopology(n_feat)
       graph_pool_layer = GraphPool()
 
       X = graph_topology.get_input_placeholders()
@@ -85,16 +85,16 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology_test = GraphTopology(n_test, n_feat)
-      graph_topology_support = GraphTopology(n_support, n_feat)
+      graph_topology_test = GraphTopology(n_feat)
+      graph_topology_support = GraphTopology(n_feat)
 
       test = graph_topology_test.get_input_placeholders()[0]
       support = graph_topology_support.get_input_placeholders()[0]
 
-      attn_embedding_layer = AttnLSTMEmbedding(max_depth)
+      attn_embedding_layer = AttnLSTMEmbedding(n_test, n_support, max_depth)
       # Try concatenating the two lists of placeholders
       feed_dict = {test: np.zeros((n_test, n_feat)),
                    support: np.zeros((n_support, n_feat))}
       test_out, support_out = attn_embedding_layer([test, support])
       assert test_out.get_shape() == (n_test, n_feat)
-      assert support_out.get_shape() == (n_support, n_feat)
+      assert support_out.get_shape()[1] == (n_feat)

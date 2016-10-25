@@ -32,7 +32,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     n_atoms = 5
     n_feat = 10
     batch_size = 3
-    graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
+    graph_model = SequentialGraphModel(n_feat)
     assert len(graph_model.layers) == 0
 
   def test_sample_sequential_architecture(self):
@@ -40,7 +40,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     n_atoms = 5
     n_feat = 10
     batch_size = 3
-    graph_model = SequentialGraphModel(n_atoms, n_feat, batch_size)
+    graph_model = SequentialGraphModel(n_feat)
 
     graph_model.add(GraphConv(64, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
@@ -60,10 +60,9 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     n_test = 5
     n_support = 11 
     n_feat = 10
-    nb_filter = 7
     batch_size = 3
 
-    support_model = SequentialSupportGraphModel(n_test, n_support, n_feat)
+    support_model = SequentialSupportGraphModel(n_feat)
     
     # Add layers
     support_model.add(GraphConv(64, activation='relu'))
@@ -74,7 +73,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     support_model.add(GraphPool())
 
     # Apply an attention lstm layer
-    support_model.join(AttnLSTMEmbedding(max_depth))
+    support_model.join(AttnLSTMEmbedding(n_test, n_support, max_depth))
 
     # Gather Projection
     support_model.add(Dense(128, activation='relu'))

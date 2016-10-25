@@ -42,8 +42,8 @@ class SequentialGraphModel(object):
     # For graphical layers, add connectivity placeholders 
     if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
       if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
-        assert (self.layers[-1].__name__ != "GraphGather",
-                'Cannot use GraphConv or GraphGather layers after a GraphGather')
+        assert self.layers[-1].__name__ != "GraphGather", \
+                'Cannot use GraphConv or GraphGather layers after a GraphGather'
           
       self.output = layer(
           [self.output] + self.graph_topology.get_topology_placeholders())
@@ -71,7 +71,7 @@ class SequentialGraphModel(object):
 
 class SequentialSupportGraphModel(object):
   """An analog of Keras Sequential model for test/support models."""
-  def __init__(self, n_feat, max_atoms_per_mol=60):
+  def __init__(self, n_feat):
     """
     Parameters
     ----------
@@ -99,7 +99,7 @@ class SequentialSupportGraphModel(object):
 
     # Update new value of x
     if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
-      assert (self.bool_pre_gather, "Cannot apply graphical layers after gather.")
+      assert self.bool_pre_gather, "Cannot apply graphical layers after gather."
           
       self.test = layer([self.test] + self.test_graph_topology.topology)
       self.support = layer([self.support] + self.support_graph_topology.topology)

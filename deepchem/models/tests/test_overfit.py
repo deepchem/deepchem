@@ -716,11 +716,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
       scores = evaluator.compute_model_performance([classification_metric])
 
-    ############################################################ DEBUG
-    print("scores")
-    print(scores)
-    ############################################################ DEBUG
-
     assert scores[classification_metric.name] > .9
 
   def test_attn_lstm_multitask_classification_overfit(self):
@@ -797,8 +792,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
                               classification_metric, n_trials=5,
                               n_pos=n_pos, n_neg=n_neg,
                               exclude_support=False, replace=False)
-      print("scores")
-      print(scores)
 
     # Measure performance on 0-th task.
     assert scores[0] > .9
