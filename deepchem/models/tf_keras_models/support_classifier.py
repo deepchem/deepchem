@@ -354,9 +354,11 @@ class SupportGraphClassifier(Model):
     Computes prediction yhat (eqn (1) in Matching networks) of class for test
     compounds.
     """
-    # Get featurization for x
+    # Get featurization for test 
+    # Shape (n_test, n_feat)
     test_feat = self.model.get_test_output()  
     # Get featurization for support
+    # Shape (n_support, n_feat)
     support_feat = self.model.get_support_output()  
 
     # Computes the inner part c() of the kernel
@@ -378,21 +380,31 @@ class SupportGraphClassifier(Model):
       support_feat = tf.expand_dims(support_feat, 0)
       max_dist_sq = 20
       g = -tf.maximum(tf.reduce_sum(tf.square(test_feat - support_feat), 2), max_dist_sq)
+    # Note that gram matrix g has shape (n_test, n_support)
+
     # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper 
     # https://arxiv.org/pdf/1606.04080v1.pdf
+    # Computes softmax across axis 1, (so sums distances to support set for
+    # each test entry)
+    # Shape (n_test, n_support)
     soft = tf.nn.softmax(g)  # Renormalize
 
     # Weighted sum of support labels
+    # Shape (n_support, 1)
     support_labels = tf.expand_dims(self.support_label_placeholder, 1)
     # pred is yhat in eqn (1) of Matching Networks.
+    # Shape squeeze((n_test, n_support) * (n_support, 1)) = (n_test,)
     pred = tf.squeeze(tf.matmul(soft, support_labels), [1])
 
+    # Clip softmax probabilities to range [epsilon, 1-epsilon]
+    # Shape (n_test,)
     pred = tf.clip_by_value(pred, K.epsilon(), 1.-K.epsilon())
 
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)
     # Used to invoke tf.nn.sigmoid_cross_entropy_with_logits
     # in Cross Entropy calculation.
+    # Shape (n_test,)
     scores = tf.log(pred) - tf.log(tf.constant(1., dtype=tf.float32)-pred)
 
     return pred, scores

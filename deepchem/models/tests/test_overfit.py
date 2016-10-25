@@ -726,12 +726,13 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
   def test_attn_lstm_multitask_classification_overfit(self):
     """Test support graph-conv multitask overfits tiny data."""
     n_tasks = 1
-    n_samples = 10
-    n_features = 3
-    n_test = 5
-    n_support = 9
-    n_classes = 2
+    n_feat = 71
     max_depth = 4
+    n_pos = 6
+    n_neg = 4
+    test_batch_size = 10
+    support_batch_size = n_pos + n_neg
+    replace = False
     
     # Load mini log-solubility dataset.
     splittype = "scaffold"
@@ -748,11 +749,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
     verbosity = "high"
     classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
-
-    n_feat = 71
-    batch_size = 10
-    test_batch_size = 10
-    support_batch_size = 10
 
     support_model = SequentialSupportGraphModel(n_feat)
     
@@ -773,12 +769,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     support_model.join(AttnLSTMEmbedding(test_batch_size, support_batch_size,
                                          max_depth))
 
-    ## Gather Projection
-    #support_model.add(Dense(128, activation='relu'))
-    #support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
-    #support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-    #support_model.add(GraphGather(batch_size, activation="tanh"))
-
     with self.test_session() as sess:
       model = SupportGraphClassifier(
         sess, support_model, n_tasks, self.model_dir, 
@@ -789,7 +779,12 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       # Fit trained model. Dataset has 6 positives and 4 negatives, so set
       # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
       # is always passed in to support.
-      model.fit(dataset, nb_epoch=0, n_trials_per_epoch=10, n_pos=6, n_neg=4,
+
+      # TODO(rbharath): Why does this work with 0 epochs?!!!
+      # I think it's because the distance calculation is still meaningful even with
+      # random features. The cutoffs also mean that the outputted scores vectors threshold
+      # at logit(epsilon), logit(1-epsilon) and stay fixed.
+      model.fit(dataset, nb_epoch=10, n_trials_per_epoch=10, n_pos=n_pos, n_neg=n_neg,
                 replace=False)
       model.save()
 
@@ -800,7 +795,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       # model has mastered memorization of provided support.
       scores = model.evaluate(dataset, range(n_tasks),
                               classification_metric, n_trials=5,
-                              n_pos=6, n_neg=4,
+                              n_pos=n_pos, n_neg=n_neg,
                               exclude_support=False, replace=False)
       print("scores")
       print(scores)
