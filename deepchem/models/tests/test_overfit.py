@@ -668,130 +668,138 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
   def test_graph_conv_multitask_classification_overfit(self):
     """Test graph-conv multitask overfits tiny data."""
-    n_tasks = 1
-    n_samples = 10
-    n_features = 3
-    n_classes = 2
-    
-    # Load mini log-solubility dataset.
-    splittype = "scaffold"
-    featurizer = ConvMolFeaturizer()
-    tasks = ["outcome"]
-    task_type = "classification"
-    task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example_classification.csv")
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      n_tasks = 1
+      n_samples = 10
+      n_features = 3
+      n_classes = 2
+      
+      # Load mini log-solubility dataset.
+      splittype = "scaffold"
+      featurizer = ConvMolFeaturizer()
+      tasks = ["outcome"]
+      task_type = "classification"
+      task_types = {task: task_type for task in tasks}
+      input_file = os.path.join(self.current_dir, "example_classification.csv")
+      loader = DataLoader(tasks=tasks,
+                          smiles_field=self.smiles_field,
+                          featurizer=featurizer,
+                          verbosity="low")
+      dataset = loader.featurize(input_file, self.data_dir)
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+      verbosity = "high"
+      classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
-    #n_atoms = 50
-    n_feat = 71
-    batch_size = 10
-    graph_model = SequentialGraphModel(n_feat)
-    graph_model.add(GraphConv(64, activation='relu'))
-    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(GraphPool())
-    # Gather Projection
-    graph_model.add(Dense(128, activation='relu'))
-    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(GraphGather(batch_size, activation="tanh"))
+      #n_atoms = 50
+      n_feat = 71
+      batch_size = 10
+      graph_model = SequentialGraphModel(n_feat)
+      graph_model.add(GraphConv(64, activation='relu'))
+      graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(GraphPool())
+      # Gather Projection
+      graph_model.add(Dense(128, activation='relu'))
+      graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(GraphGather(batch_size, activation="tanh"))
 
-    with self.test_session() as sess:
-      model = MultitaskGraphClassifier(
-        sess, graph_model, n_tasks, self.model_dir, batch_size=batch_size,
-        learning_rate=1e-3, learning_rate_decay_time=1000,
-        optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+      with self.test_session() as sess:
+        model = MultitaskGraphClassifier(
+          sess, graph_model, n_tasks, self.model_dir, batch_size=batch_size,
+          learning_rate=1e-3, learning_rate_decay_time=1000,
+          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
-      # Fit trained model
-      model.fit(dataset, nb_epoch=30)
-      model.save()
+        # Fit trained model
+        model.fit(dataset, nb_epoch=30)
+        model.save()
 
-      # Eval model on train
-      transformers = []
-      evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
-      scores = evaluator.compute_model_performance([classification_metric])
+        # Eval model on train
+        transformers = []
+        evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
+        scores = evaluator.compute_model_performance([classification_metric])
 
-    assert scores[classification_metric.name] > .9
+      assert scores[classification_metric.name] > .9
 
   def test_attn_lstm_multitask_classification_overfit(self):
     """Test support graph-conv multitask overfits tiny data."""
-    n_tasks = 1
-    n_feat = 71
-    max_depth = 4
-    n_pos = 6
-    n_neg = 4
-    test_batch_size = 10
-    support_batch_size = n_pos + n_neg
-    replace = False
-    
-    # Load mini log-solubility dataset.
-    splittype = "scaffold"
-    featurizer = ConvMolFeaturizer()
-    tasks = ["outcome"]
-    task_type = "classification"
-    task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example_classification.csv")
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      n_tasks = 1
+      n_feat = 71
+      max_depth = 4
+      n_pos = 6
+      n_neg = 4
+      test_batch_size = 10
+      support_batch_size = n_pos + n_neg
+      replace = False
+      
+      # Load mini log-solubility dataset.
+      splittype = "scaffold"
+      featurizer = ConvMolFeaturizer()
+      tasks = ["outcome"]
+      task_type = "classification"
+      task_types = {task: task_type for task in tasks}
+      input_file = os.path.join(self.current_dir, "example_classification.csv")
+      loader = DataLoader(tasks=tasks,
+                          smiles_field=self.smiles_field,
+                          featurizer=featurizer,
+                          verbosity="low")
+      dataset = loader.featurize(input_file, self.data_dir)
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+      verbosity = "high"
+      classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
 
-    support_model = SequentialSupportGraphModel(n_feat)
-    
-    # Add layers
-    # output will be (n_atoms, 64)
-    support_model.add(GraphConv(64, activation='relu'))
-    # Need to add batch-norm separately to test/support due to differing
-    # shapes.
-    # output will be (n_atoms, 64)
-    support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
-    # output will be (n_atoms, 64)
-    support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-    support_model.add(GraphPool())
-    support_model.add_test(GraphGather(test_batch_size))
-    support_model.add_support(GraphGather(support_batch_size))
+      support_model = SequentialSupportGraphModel(n_feat)
+      
+      # Add layers
+      # output will be (n_atoms, 64)
+      support_model.add(GraphConv(64, activation='relu'))
+      # Need to add batch-norm separately to test/support due to differing
+      # shapes.
+      # output will be (n_atoms, 64)
+      support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+      # output will be (n_atoms, 64)
+      support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add(GraphPool())
+      support_model.add_test(GraphGather(test_batch_size))
+      support_model.add_support(GraphGather(support_batch_size))
 
-    # Apply an attention lstm layer
-    support_model.join(AttnLSTMEmbedding(test_batch_size, support_batch_size,
-                                         max_depth))
+      # Apply an attention lstm layer
+      support_model.join(AttnLSTMEmbedding(test_batch_size, support_batch_size,
+                                           max_depth))
 
-    with self.test_session() as sess:
-      model = SupportGraphClassifier(
-        sess, support_model, n_tasks, self.model_dir, 
-        test_batch_size=test_batch_size, support_batch_size=support_batch_size,
-        learning_rate=1e-3, learning_rate_decay_time=1000,
-        optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+      with self.test_session() as sess:
+        model = SupportGraphClassifier(
+          sess, support_model, n_tasks, self.model_dir, 
+          test_batch_size=test_batch_size, support_batch_size=support_batch_size,
+          learning_rate=1e-3, learning_rate_decay_time=1000,
+          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
-      # Fit trained model. Dataset has 6 positives and 4 negatives, so set
-      # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
-      # is always passed in to support.
+        # Fit trained model. Dataset has 6 positives and 4 negatives, so set
+        # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
+        # is always passed in to support.
 
-      # TODO(rbharath): Why does this work with 0 epochs?!!!
-      # I think it's because the distance calculation is still meaningful even with
-      # random features. The cutoffs also mean that the outputted scores vectors threshold
-      # at logit(epsilon), logit(1-epsilon) and stay fixed.
-      model.fit(dataset, nb_epoch=10, n_trials_per_epoch=10, n_pos=n_pos, n_neg=n_neg,
-                replace=False)
-      model.save()
+        # TODO(rbharath): Why does this work with 0 epochs?!!!
+        # I think it's because the distance calculation is still meaningful even with
+        # random features. The cutoffs also mean that the outputted scores vectors threshold
+        # at logit(epsilon), logit(1-epsilon) and stay fixed.
+        model.fit(dataset, nb_epoch=10, n_trials_per_epoch=10, n_pos=n_pos, n_neg=n_neg,
+                  replace=False)
+        model.save()
 
-      # Eval model on train. Dataset has 6 positives and 4 negatives, so set
-      # n_pos/n_neg accordingly. Note that support is *not* excluded (so we
-      # can measure model has memorized support).  Replacement is turned off to
-      # ensure that support contains full training set. This checks that the
-      # model has mastered memorization of provided support.
-      scores = model.evaluate(dataset, range(n_tasks),
-                              classification_metric, n_trials=5,
-                              n_pos=n_pos, n_neg=n_neg,
-                              exclude_support=False, replace=False)
+        # Eval model on train. Dataset has 6 positives and 4 negatives, so set
+        # n_pos/n_neg accordingly. Note that support is *not* excluded (so we
+        # can measure model has memorized support).  Replacement is turned off to
+        # ensure that support contains full training set. This checks that the
+        # model has mastered memorization of provided support.
+        scores = model.evaluate(dataset, range(n_tasks),
+                                classification_metric, n_trials=5,
+                                n_pos=n_pos, n_neg=n_neg,
+                                exclude_support=False, replace=False)
 
-    # Measure performance on 0-th task.
-    assert scores[0] > .9
+      # Measure performance on 0-th task.
+      assert scores[0] > .9
