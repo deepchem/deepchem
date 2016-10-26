@@ -259,7 +259,8 @@ class NumpyDataset(Dataset):
     """Get the weight vector for this dataset as a single numpy array."""
     return self._w
 
-  def iterbatches(self, batch_size=None, epoch=0, deterministic=False, pad_batches=False):
+  def iterbatches(self, batch_size=None, epoch=0, deterministic=False,
+                  pad_batches=False):
     """Get an object that iterates over minibatches from the dataset.
 
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).

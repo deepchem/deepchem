@@ -707,7 +707,8 @@ class TensorflowModel(Model):
     Returns:
       y_pred: numpy ndarray of shape (n_samples,)
     """
-    return Model.predict(self, dataset, transformers, self.model_instance.batch_size, True)
+    return Model.predict(self, dataset, transformers,
+                         self.model_instance.batch_size, True)
 
   def predict_on_batch(self, X, pad_batch=True):
     """
