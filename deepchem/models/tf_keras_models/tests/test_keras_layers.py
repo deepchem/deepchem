@@ -17,6 +17,7 @@ from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
+from deepchem.models.tf_keras_models.keras_layers import ResiLSTMEmbedding
 
 class TestKerasLayers(test_util.TensorFlowTestCase):
   """
@@ -69,13 +70,7 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
       graph_pool_layer = GraphPool()
 
       X = graph_topology.get_input_placeholders()
-      ############################################# DEBUG
-      #print("X.get_shape()")
-      #print(X.get_shape())
-      ############################################# DEBUG
       out = graph_pool_layer(X)
-      ## Output should be of shape (batch_size, n_feat)
-      #assert out.get_shape() == (batch_size, n_feat) 
 
   def test_attn_lstm_embedding(self):
     """Test that attention LSTM computation works properly."""
@@ -92,6 +87,28 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
       support = graph_topology_support.get_input_placeholders()[0]
 
       attn_embedding_layer = AttnLSTMEmbedding(n_test, n_support, max_depth)
+      # Try concatenating the two lists of placeholders
+      feed_dict = {test: np.zeros((n_test, n_feat)),
+                   support: np.zeros((n_support, n_feat))}
+      test_out, support_out = attn_embedding_layer([test, support])
+      assert test_out.get_shape() == (n_test, n_feat)
+      assert support_out.get_shape()[1] == (n_feat)
+
+  def test_resi_lstm_embedding(self):
+    """Test that attention LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11 
+    n_feat = 10
+    nb_filter = 7
+    with self.test_session() as sess:
+      graph_topology_test = GraphTopology(n_feat)
+      graph_topology_support = GraphTopology(n_feat)
+
+      test = graph_topology_test.get_input_placeholders()[0]
+      support = graph_topology_support.get_input_placeholders()[0]
+
+      attn_embedding_layer = ResiLSTMEmbedding(n_test, n_support, max_depth)
       # Try concatenating the two lists of placeholders
       feed_dict = {test: np.zeros((n_test, n_feat)),
                    support: np.zeros((n_support, n_feat))}

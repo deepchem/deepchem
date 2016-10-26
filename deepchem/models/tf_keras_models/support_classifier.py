@@ -110,11 +110,6 @@ def get_task_support(dataset, n_pos, n_neg, task, replace=True):
   neg_mols = np.where(y_task == 0)[0]
 
   # Get randomly sampled pos/neg indices (with replacement)
-  ###################################################################### DEBUG
-  #print("get_task_support()")
-  #print("len(dataset), len(pos_mols), len(neg_mols), n_pos, n_neg")
-  #print(len(dataset), len(pos_mols), len(neg_mols), n_pos, n_neg)
-  ###################################################################### DEBUG
   pos_inds = pos_mols[np.random.choice(len(pos_mols), (n_pos), replace=replace)]
   neg_inds = neg_mols[np.random.choice(len(neg_mols), (n_neg), replace=replace)]
 
@@ -158,8 +153,8 @@ class SupportGenerator(object):
   def __iter__(self):
     return self
 
-  # TODO(rbharath): This is generating data from one task at a time. Why not
-  # have batches that mix information from multiple tasks?
+  # TODO(rbharath): This is generating data from one task at a time. Is it
+  # wrong to have batches that mix information from multiple tasks?
   def next(self):
     """Sample next support.
 
@@ -174,10 +169,6 @@ class SupportGenerator(object):
       support = get_task_support(
           self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task,
           replace=self.replace)
-      ################################################## DEBUG
-      #print("len(set(support.ids))")
-      #print(len(set(support.ids)))
-      ################################################## DEBUG
       # Increment and update logic
       self.task_num += 1
       if self.task_num == self.n_tasks:
@@ -186,6 +177,8 @@ class SupportGenerator(object):
         self.trial_num += 1  # Upgrade trial index
 
       return (task, support)
+
+  __next__ = next # Python 3.X compatibility
 
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model, n_tasks, train_tasks, 
@@ -461,13 +454,6 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
     y_pred_batch = to_one_hot(np.round(pred))
-    ########################################################## DEBUG
-    print("predict_proba_on_batch()")
-    print("scores")
-    print(scores)
-    print("y_pred_batch")
-    print(y_pred_batch)
-    ########################################################## DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, test_tasks, metric, n_pos=1,

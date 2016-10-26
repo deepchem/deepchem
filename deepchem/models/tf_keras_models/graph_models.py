@@ -11,10 +11,6 @@ __license__ = "GPL"
 
 
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
-'''
-from deepchem.models.tf_keras_models.containers import GraphContainer
-from deepchem.models.tf_keras_models.containers import SupportGraphContainer
-'''
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
 class SequentialGraphModel(object):

@@ -91,10 +91,6 @@ class MultitaskGraphClassifier(Model):
     # Create target inputs
     self.label_placeholder = Input(tensor=K.placeholder(
       shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
-    ########################################## DEBUG
-    #print("self.n_tasks")
-    #print(self.n_tasks)
-    ########################################## DEBUG
     self.weight_placeholder = Input(tensor=K.placeholder(
           shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
 

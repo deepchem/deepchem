@@ -271,7 +271,7 @@ class ConvMol(object):
                  for deg in range(min_deg, max_deg+1)]
 
     # Get the final size of each degree block
-    deg_sizes = map(np.sum, mol_deg_sz)  
+    deg_sizes = list(map(np.sum, mol_deg_sz))
     # Get the index at which each degree starts, not resetting after each degree
     # And not stopping at any speciic molecule
 

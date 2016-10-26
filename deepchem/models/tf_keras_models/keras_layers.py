@@ -16,11 +16,6 @@ from keras.engine.topology import Container
 from keras.layers import Input, Dense, Dropout, LSTM, Merge
 from keras import initializations, activations
 from keras import backend as K
-'''
-from graph_topology import extract_topology
-from graph_topology import extract_nodes
-from graph_topology import extract_membership
-'''
 
 def affine(x, W, b):
   return tf.matmul(x, W) + b
@@ -470,6 +465,10 @@ class AttnLSTMEmbedding(Layer):
     """
     Parameters
     ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
     max_depth: int
       Number of "processing steps" used by sequence-to-sequence for sets model.
     init: str, optional
@@ -489,16 +488,11 @@ class AttnLSTMEmbedding(Layer):
 
   def build(self, input_shape):
     """Initializes trainable weights."""
-    # x_input_shape = (N_test, N_feat)
-    # xp_input_shape = (N_support, N_feat)
     x_input_shape, xp_input_shape = input_shape  #Unpack
 
     n_feat = xp_input_shape[1]
 
     self.lstm = LSTMStep(n_feat)
-    ############################################## DEBUG
-    print("AttnLSTMEmbedding.build()")
-    ############################################## DEBUG
     self.q_init = K.zeros([self.n_test, n_feat])
     self.r_init = K.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
@@ -566,11 +560,15 @@ class AttnLSTMEmbedding(Layer):
 
 class ResiLSTMEmbedding(Layer):
   """Embeds its inputs using an LSTM layer."""
-  def __init__(self, max_depth, init='glorot_uniform', activation='linear',
-               **kwargs):
+  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+               activation='linear', **kwargs):
     """
     Parameters
     ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
     max_depth: int
       Number of LSTM Embedding layers.
     init: string
@@ -583,7 +581,8 @@ class ResiLSTMEmbedding(Layer):
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
     self.max_depth = max_depth
-
+    self.n_test = n_test
+    self.n_support = n_support
 
   def build(self, input_shape):
     """Builds this layer.
@@ -591,60 +590,82 @@ class ResiLSTMEmbedding(Layer):
     Parameters
     ----------
     input_shape: tuple
-      Tuple of (left_shape, right_shape)
+      Tuple of ((n_test, n_feat), (n_support, n_feat))
     """
-    ########################################################## DEBUG
-    print("ResiLSTMEmbedding.build()")
-    print("input_shape")
-    print(input_shape)
-    ########################################################## DEBUG
     left_input_shape, right_input_shape = input_shape  #Unpack
 
-    N_test = left_input_shape[0]
-    N_support = right_input_shape[0]
-    N_feat = right_input_shape[1]
+    n_feat = right_input_shape[1]
 
     # Support set lstm
-    self.right_lstm = LSTMStep(N_feat)
-    self.q_init = K.zeros([N_support, N_feat])
-    self.states_init = self.right_lstm.get_initial_states([N_support, N_feat])
+    self.right_lstm = LSTMStep(n_feat)
+    self.q_init = K.zeros([self.n_support, n_feat])
+    self.states_init = self.right_lstm.get_initial_states(
+        [self.n_support, n_feat])
 
     # Prediction lstm
-    self.left_lstm = LSTMStep(N_feat)
-    self.p_init = K.zeros([N_test,N_feat])
-    self.left_states_init = self.left_lstm.get_initial_states([N_test, N_feat])
+    self.left_lstm = LSTMStep(n_feat)
+    self.p_init = K.zeros([self.n_test, n_feat])
+    self.left_states_init = self.left_lstm.get_initial_states(
+        [self.n_test, n_feat])
     
     self.trainable_weights = []
       
-  # TODO(rbharath): Can this be deleted?
   def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form [(n_test, n_feat), (n_support, n_feat)]
+
+    Returns
+    -------
+    list
+      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
     left_input_shape, right_input_shape = input_shape  #Unpack
 
     return input_shape
 
   def call(self, argument, mask=None):
-    left, right = argument #Unpack
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    argument: list
+      List of two tensors (x, xp). x should be of shape (n_test, n_feat) and
+      xpshould be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    x, xp = argument 
 
     # Get initializations
     p = self.p_init
     q = self.q_init        
-    z = right        
+    z = xp 
     states = self.states_init
-    left_states = self.left_states_init
+    x_states = self.left_states_init
     
     for d in range(self.max_depth):
-      # Process using attention
-      e = cos(z+q, right)
+      # Process xp using attention
+      e = cos(z+q, xp)
       a = K.softmax(e)
       # Get linear combination of support set
-      r = K.dot(a, right)  
+      r = K.dot(a, xp)  
 
       # Not sure if it helps to place the update here or later yet.  Will
       # decide
       #z = r  
 
       # Process using attention
-      x_e = cos(left+p, z)
+      x_e = cos(x+p, z)
       x_a = K.softmax(x_e)
       s = K.dot(x_a, z)
 
@@ -653,7 +674,7 @@ class ResiLSTMEmbedding(Layer):
       q, states = self.right_lstm([qr] + states)
 
       ps = K.concatenate([p, s], axis=1)
-      p, left_states = self.left_lstm([ps] + left_states)
+      p, x_states = self.left_lstm([ps] + x_states)
 
       # New redifinition of support set
       z = r  
