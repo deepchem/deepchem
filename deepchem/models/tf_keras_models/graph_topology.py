@@ -129,7 +129,7 @@ class GraphTopology(object):
                      for deg in range(1, self.max_deg+1)]
 
     # Generate dicts
-    deg_adj_dict = dict(zip(self.deg_adj_lists_placeholders, deg_adj_lists))
+    deg_adj_dict = dict(list(zip(self.deg_adj_lists_placeholders, deg_adj_lists)))
     atoms_dict = {self.atom_features_placeholder : atoms,
                   self.deg_slice_placeholder : batch.deg_slice,
                   self.membership_placeholder : batch.membership}
