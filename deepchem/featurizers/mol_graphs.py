@@ -92,7 +92,7 @@ class ConvMol(object):
     self.deg_block_indices = np.array(deg_block_indices)
 
   def get_atoms_with_deg(self, deg):
-    # Retrieves atom_features with the specific degree
+    """Retrieves atom_features with the specific degree"""
     start_ind = self.deg_slice[deg-self.min_deg,0]
     size = self.deg_slice[deg-self.min_deg,1]
     return self.atom_features[start_ind:(start_ind+size),:]

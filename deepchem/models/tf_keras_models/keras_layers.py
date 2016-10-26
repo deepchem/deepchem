@@ -90,8 +90,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     self_atoms = tf.slice(atoms, begin, size)
     
     # Apply hidden affine to relevant atoms and append
-    rel_out = affine(rel_atoms, W.next(), b.next())
-    self_out = affine(self_atoms, W.next(), b.next())
+    rel_out = affine(rel_atoms, next(W), next(b))
+    self_out = affine(self_atoms, next(W), next(b))
     out = rel_out + self_out
     
     new_rel_atoms_collection[deg-min_deg] = out
@@ -105,7 +105,7 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     self_atoms = tf.slice(atoms, begin, size)
 
     # Only use the self layer
-    out = affine(self_atoms, W.next(), b.next())
+    out = affine(self_atoms, next(W), next(b))
     
     new_rel_atoms_collection[deg-min_deg] = out        
       
