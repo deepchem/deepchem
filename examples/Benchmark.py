@@ -14,6 +14,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import sys
 import os
 import numpy as np
 import shutil
@@ -32,99 +33,170 @@ from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models import TensorflowModel
+from deepchem.splits import RandomSplitter
 
 from muv.muv_datasets import load_muv
 from nci.nci_datasets import load_nci
 from pcba.pcba_datasets import load_pcba
 from tox21.tox21_datasets import load_tox21
 
-def benchmarkLoadingDatasets(base_dir, n_features = 1024, datasetName = 'all',
+def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
                              model = 'all', reload = True, verbosity = 'high'):
   
   assert datasetName in ['all', 'muv', 'nci', 'pcba', 'tox21']
   
-  if datasetName in ['all','muv']:
-    print('-------------------------------------')
-    print('Benchmark test on datasets: muv')
-    print('-------------------------------------')
-    tasks_muv,datasets_muv,transformers_muv = load_muv(base_dir,reload=reload)
-    muv_train,muv_valid = benchmarkTrainAndValid(base_dir,datasets_muv,
-                                                 tasks_muv, transformers_muv,
-                                                 n_features, model, verbosity)
-    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
-      f.write ('muv_train,')
-      for i in muv_train:
-        f.write(i+','+str(muv_train[i]))
-      f.write('\n'+'muv_valid,')
-      for i in muv_valid:
-        f.write(i+','+str(muv_valid[i]))
-    
-    del tasks_muv, datasets_muv, transformers_muv
-    
-  if datasetName in ['all','nci']:
-    print('-------------------------------------')
-    print('Benchmark test on datasets: nci')
-    print('-------------------------------------')
-    tasks_nci,datasets_nci,transformers_nci = load_nci(base_dir, reload=reload)
-    nci_train,nci_valid = benchmarkTrainAndValid(base_dir,datasets_nci,
-                                                 tasks_nci,transformers_nci,
-                                                 n_features,model,verbosity)
-    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
-      f.write ('\n'+'nci_train,')
-      for i in nci_train:
-        f.write(i+','+str(nci_train[i]))
-      f.write('\n'+'nci_valid,')
-      for i in nci_valid:
-        f.write(i+','+str(nci_valid[i]))
-
-    del tasks_nci, datasets_nci, transformers_nci
-    
-  if datasetName in ['all','pcba']:
-    print('-------------------------------------')
-    print('Benchmark test on datasets: pcba')
-    print('-------------------------------------')
-    tasks_pcba,datasets_pcba,transformers_pcba = load_pcba(base_dir,
-                                                           reload=reload)
-    pcba_train,pcba_valid = benchmarkTrainAndValid(base_dir,datasets_pcba,
-                                                tasks_pcba,transformers_pcba,
-                                                n_features, model, verbosity)
-    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
-      f.write ('\n'+'pcba_train,')
-      for i in pcba_train:
-        f.write(i+','+str(pcba_train[i]))
-      f.write('\n'+'pcba_valid,')
-      for i in pcba_valid:
-        f.write(i+','+str(pcba_valid[i]))
-    del tasks_pcba, datasets_pcba, transformers_pcba
-    
+      
   if datasetName in ['all','tox21']:
     print('-------------------------------------')
     print('Benchmark test on datasets: tox21')
     print('-------------------------------------')
+    base_dir = os.path.join(base_dir_o, "tox21")
+    time1 = time.clock()
     tasks_tox21,datasets_tox21,transformers_tox21 = load_tox21(base_dir,
                                                                reload=reload)
-    tox21_train,tox21_valid = benchmarkTrainAndValid(base_dir,datasets_tox21,
+    time2 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+      f.write('Time for loading tox21,'+str(time2-time1)+'\n')
+        
+    train_dataset, valid_dataset = datasets_tox21
+    tox21_train,tox21_valid = benchmarkTrainAndValid(base_dir,train_dataset,
+                                                valid_dataset,
                                                 tasks_tox21,transformers_tox21,
                                                 n_features, model, verbosity)
+    time3 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+        f.write('Time for running tox21,'+model+','+str(time3-time2)+'\n')
     with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
-      f.write ('\n'+'tox21_train,')
+      f.write ('\n'+'tox21_train')
       for i in tox21_train:
-        f.write(i+','+str(tox21_train[i]))
-      f.write('\n'+'tox21_valid,')
+        f.write(','+i+','+str(tox21_train[i]))
+      f.write('\n'+'tox21_valid')
       for i in tox21_valid:
-        f.write(i+','+str(tox21_valid[i]))
+        f.write(','+i+','+str(tox21_valid[i]))
         
     del tasks_tox21, datasets_tox21, transformers_tox21
+    del train_dataset,valid_dataset
+
+  if datasetName in ['all','muv']:
+    print('-------------------------------------')
+    print('Benchmark test on datasets: muv')
+    print('-------------------------------------')
+    base_dir = os.path.join(base_dir_o, "muv")
+    time1 = time.clock()
+    tasks_muv,datasets_muv,transformers_muv = load_muv(base_dir,reload=reload)
+    time2 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+      f.write('Time for loading MUV,'+str(time2-time1)+'\n')
+    
+    
+    # Spliting datasets
+    train_dataset, valid_dataset = datasets_muv
+    muv_train,muv_valid = benchmarkTrainAndValid(base_dir,train_dataset,
+                                                 valid_dataset,
+                                                 tasks_muv, transformers_muv,
+                                                 n_features, model, verbosity)
+    time3 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+        f.write('Time for running MUV,'+model+','+str(time3-time2)+'\n')
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'muv_train')
+      for i in muv_train:
+        f.write(','+i+','+str(muv_train[i]))
+      f.write('\n'+'muv_valid')
+      for i in muv_valid:
+        f.write(','+i+','+str(muv_valid[i]))
+    
+    del tasks_muv, datasets_muv, transformers_muv
+    del train_dataset,valid_dataset
+  
+  '''  
+  if datasetName in ['all','nci']:
+    print('-------------------------------------')
+    print('Benchmark test on datasets: nci')
+    print('-------------------------------------')
+    base_dir = os.path.join(base_dir_o,  "nci")
+    train_dir = os.path.join(base_dir, "train_dataset")
+    valid_dir = os.path.join(base_dir, "valid_dataset")
+    test_dir = os.path.join(base_dir, "test_dataset")
+
+    time1 = time.clock()
+    tasks_nci,datasets_nci,transformers_nci = load_nci(base_dir, reload=reload)
+    time2 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+        f.write('Time for loading nci,'+str(time2-time1)+'\n')
+    print("About to perform train/valid/test split.")
+    splitter = RandomSplitter(verbosity=verbosity)
+    print("Performing new split.")
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+                                datasets_nci, train_dir, valid_dir, test_dir)
+    nci_train,nci_valid = benchmarkTrainAndValid(base_dir,train_dataset,
+                                                 valid_dataset,
+                                                 tasks_nci,transformers_nci,
+                                                 n_features,model,verbosity)
+    time3 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+        f.write('Time for running nci,'+model+','+str(time3-time2)+'\n')
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'nci_train')
+      for i in nci_train:
+        f.write(','+i+','+str(nci_train[i]))
+      f.write('\n'+'nci_valid')
+      for i in nci_valid:
+        f.write(','+i+','+str(nci_valid[i]))
+
+    del tasks_nci, datasets_nci, transformers_nci
+    del train_dataset,valid_dataset
+  '''
+  
+  if datasetName in ['all','pcba']:
+    print('-------------------------------------')
+    print('Benchmark test on datasets: pcba')
+    print('-------------------------------------')
+    base_dir = os.path.join(base_dir_o, "pcba")
+    train_dir = os.path.join(base_dir, "train_dataset")
+    valid_dir = os.path.join(base_dir, "valid_dataset")
+    test_dir = os.path.join(base_dir, "test_dataset")
+
+    time1 = time.clock()
+    tasks_pcba,datasets_pcba,transformers_pcba = load_pcba(base_dir,
+                                                           reload=reload)
+    time2 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+      f.write('Time for loading pcba,'+str(time2-time1)+'\n')
+        
+    # Spliting datasets
+    print("About to perform train/valid/test split.")
+    splitter = RandomSplitter(verbosity=verbosity)
+    print("Performing new split.")
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+                                datasets_pcba, train_dir, valid_dir, test_dir)
+    
+    pcba_train,pcba_valid = benchmarkTrainAndValid(base_dir,train_dataset,
+                                                valid_dataset,
+                                                tasks_pcba,transformers_pcba,
+                                                n_features, model, verbosity)
+    time3 = time.clock()
+    with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
+        f.write('Time for running pcba,'+model+','+str(time3-time2)+'\n')
+    with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
+      f.write ('\n'+'pcba_train')
+      for i in pcba_train:
+        f.write(','+i+','+str(pcba_train[i]))
+      f.write('\n'+'pcba_valid')
+      for i in pcba_valid:
+        f.write(','+i+','+str(pcba_valid[i]))
+    del tasks_pcba, datasets_pcba, transformers_pcba
+    del train_dataset,valid_dataset
+
     
   return None
 
-def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers, 
-                           n_features = 1024,model = 'all',verbosity = 'high'):
+def benchmarkTrainAndValid(base_dir,train_dataset,valid_dataset,tasks,
+                           transformers,n_features = 1024,model = 'all',
+                           verbosity = 'high'):
   train_scores = {}
   valid_scores = {}
 
-  # Spliting datasets
-  train_dataset, valid_dataset = datasets
   
   # Initialize metrics
   classification_metric = Metric(metrics.roc_auc_score, np.mean,
@@ -154,6 +226,7 @@ def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers,
                                 verbosity=verbosity)
     valid_scores['tensorflow'] = valid_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
 
+  
   if model == 'all' or model == 'rf':
     # Initialize model folder
     model_dir_rf = os.path.join(base_dir, "model_rf")
@@ -175,6 +248,7 @@ def benchmarkTrainAndValid(base_dir, datasets, tasks, transformers,
                                 verbosity=verbosity)
     valid_scores['random_forest'] = valid_evaluator.compute_model_performance([classification_metric])['mean-roc_auc_score']
   
+
   if model == 'all' or model == 'keras':
     # Initialize model folder
     model_dir_kr = os.path.join(base_dir, "model_kr")
@@ -202,14 +276,14 @@ if __name__ == '__main__':
   verbosity = 'high'
   
   #Working folder initialization
-  base_dir = "/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
+  base_dir = "/scratch/users/zqwu/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
   if os.path.exists(base_dir):
     shutil.rmtree(base_dir)
   os.makedirs(base_dir)
   
   #Datasets and models used in the benchmark test, all = all the datasets(models)
-  datasetName = 'tox21'
-  model = 'keras'
+  datasetName = sys.argv[1]
+  model = sys.argv[2]
   
   benchmarkLoadingDatasets(base_dir, n_features = 1024,
                            datasetName = datasetName, model = model,

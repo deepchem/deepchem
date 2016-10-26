@@ -1,0 +1,24 @@
+Loading shard 24 of size 1000 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+TIMING: convert_df_to_numpy y computation took 0.008 s
+TIMING: convert_df_to_numpy x computation took 0.072 s
+TIMING: convert_df_to_numpy missing elts computation took 0.015 s
+TIMING: convert_df_to_numpy took 0.104 s
+TIMING: writing metadata row took 0.277 s
+TIMING: shard featurization took 6.428 s
+TIMING: featurization map function took 6.428 s
+TIMING: map call on batch took 25.844 s
+Featurized 24000 datapoints
+
+About to start processing next batch of shards
+Loading shard 25 of size 1000.
+Loading shard 26 of size 1000.
+Loading shard 27 of size 1000.
+Loading shard 28 of size 1000.
+Loading shard 25 of size 1000 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+

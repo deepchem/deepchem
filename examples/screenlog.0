@@ -1,0 +1,4155 @@
+]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ exitscreen -r 102853ls[K[1PrLcd deepchem/examples[5Pscreen -r 97440ls[Kr 36938run --time=10:00:00 -p gpu  --qos gpu --gres gpu:1 --pty bash]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ exitscreen -r 102853ls[K[1PrLcd deepchem/examples[5Pscreen -r 97440ls[Kr 36938run --time=10:00:00 -p gpu  --qos gpu --gres gpu:1 --pty bash[C[C[C[C[C[C[C[C[C[C[C[C[C[1@=[1@g[1@p[1@u[1@:[1@t[1@e[1@a[1P[1@s[1@l[1@a[1@:[1@1[1P[1P[1P[1P[1P[1P[6P gpu[C[C[C[C[C[C[C[C[C[C[C[C[C[6@=gpu:tesla[C[C[C[C[C[C[C[C[C[C[C[C[CM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C50:00:00 -p gpu[1@ M[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C:00:00 -p gpu [1PM[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ nvidia-smi
+Tue Oct 25 20:28:21 2016       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 367.48                 Driver Version: 367.48                    |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  Tesla K20Xm         On   | 0000:05:00.0     Off |                  Off |
+| N/A   25C    P8    19W / 235W |      0MiB /  6081MiB |      0%      Default |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID  Type  Process name                               Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ source activate deepchem
+source ~/.deeprc]0;zqwu@sherlock-ln01:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ source ~/.deeprc
+]0;zqwu@sherlock-ln01:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ python Benchmark.py all tf
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+-------------------------------------
+Benchmark test on datasets: tox21
+-------------------------------------
+About to load Tox21 dataset.
+Columns of dataset: ['NR-AR' 'NR-AR-LBD' 'NR-AhR' 'NR-Aromatase' 'NR-ER' 'NR-ER-LBD'
+ 'NR-PPAR-gamma' 'SR-ARE' 'SR-ATAD5' 'SR-HSE' 'SR-MMP' 'SR-p53' 'mol_id'
+ 'smiles']
+Number of examples in dataset: 8014
+About to featurize Tox21 dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/tox21/../../datasets/tox21.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.152 s
+TIMING: convert_df_to_numpy missing elts computation took 0.026 s
+TIMING: convert_df_to_numpy took 0.243 s
+TIMING: writing metadata row took 1.443 s
+TIMING: shard featurization took 43.589 s
+TIMING: featurization map function took 43.589 s
+TIMING: map call on batch took 43.673 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.008 s high
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:05:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 0: Average loss 2.40593
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 1: Average loss 1.86202
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 2: Average loss 1.66776
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 3: Average loss 1.49412
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 4: Average loss 1.3572
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 5: Average loss 1.23096
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 6: Average loss 1.11667
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 7: Average loss 1.01861
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 8: Average loss 0.946035
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 9: Average loss 0.848703
+TIMING: model fitting took 46.329 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.98930465464167783, 0.99689588161740694, 0.98680908504808462, 0.98862116876385597, 0.95387602276266248, 0.99317296998875149, 0.99494466273840743, 0.97193715725507634, 0.99547253409042025, 0.98740461492663179, 0.98797768404959396, 0.99520983107393413]
+computed_metrics: [0.77955623306233068, 0.86006256517205415, 0.88703481392557038, 0.83470287603968341, 0.70029599366323425, 0.82881192881192889, 0.74145234493192125, 0.7170564928425357, 0.85465724751439054, 0.7206167948419171, 0.86560216715313143, 0.7658402203856749]
+-------------------------------------
+Benchmark test on datasets: muv
+-------------------------------------
+About to load MUV dataset.
+Columns of dataset: ['MUV-466' 'MUV-548' 'MUV-600' 'MUV-644' 'MUV-652' 'MUV-689' 'MUV-692'
+ 'MUV-712' 'MUV-713' 'MUV-733' 'MUV-737' 'MUV-810' 'MUV-832' 'MUV-846'
+ 'MUV-852' 'MUV-858' 'MUV-859' 'mol_id' 'smiles']
+Number of examples in dataset: 93127
+About to featurize MUV dataset.
+Using following tasks
+[u'MUV-466', u'MUV-548', u'MUV-600', u'MUV-644', u'MUV-652', u'MUV-689', u'MUV-692', u'MUV-712', u'MUV-713', u'MUV-733', u'MUV-737', u'MUV-810', u'MUV-832', u'MUV-846', u'MUV-852', u'MUV-858', u'MUV-859']
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:78: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  X_train, X_valid = X[:num_train], X[num_train:]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:79: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:80: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:81: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+Traceback (most recent call last):
+  File "Benchmark.py", line 288, in <module>
+    reload = reload, verbosity = verbosity)
+  File "Benchmark.py", line 95, in benchmarkLoadingDatasets
+    n_features, model, verbosity)
+  File "Benchmark.py", line 219, in benchmarkTrainAndValid
+    model_tf.fit(train_dataset)
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tensorflow_models/__init__.py", line 696, in fit
+    self.model_instance.fit(dataset, **kwargs)
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tensorflow_models/__init__.py", line 257, in fit
+    feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tensorflow_models/fcnet.py", line 86, in construct_feed_dict
+    orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
+IndexError: index 12 is out of bounds for axis 1 with size 12
+]0;zqwu@sherlock-ln01:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ python Benchmark.py M[Kmuv tf
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+-------------------------------------
+Benchmark test on datasets: muv
+-------------------------------------
+About to load MUV dataset.
+Columns of dataset: ['MUV-466' 'MUV-548' 'MUV-600' 'MUV-644' 'MUV-652' 'MUV-689' 'MUV-692'
+ 'MUV-712' 'MUV-713' 'MUV-733' 'MUV-737' 'MUV-810' 'MUV-832' 'MUV-846'
+ 'MUV-852' 'MUV-858' 'MUV-859' 'mol_id' 'smiles']
+Number of examples in dataset: 93127
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.267 s
+TIMING: writing metadata row took 1.532 s
+TIMING: shard featurization took 45.773 s
+TIMING: featurization map function took 45.773 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.529 s
+TIMING: shard featurization took 45.828 s
+TIMING: featurization map function took 45.828 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.135 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.273 s
+TIMING: writing metadata row took 1.534 s
+TIMING: shard featurization took 45.744 s
+TIMING: featurization map function took 45.744 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.128 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.260 s
+TIMING: writing metadata row took 1.526 s
+TIMING: shard featurization took 45.877 s
+TIMING: featurization map function took 45.877 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.133 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.269 s
+TIMING: writing metadata row took 1.521 s
+TIMING: shard featurization took 45.667 s
+TIMING: featurization map function took 45.667 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.262 s
+TIMING: writing metadata row took 1.527 s
+TIMING: shard featurization took 45.730 s
+TIMING: featurization map function took 45.730 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.261 s
+TIMING: writing metadata row took 1.528 s
+TIMING: shard featurization took 45.711 s
+TIMING: featurization map function took 45.711 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.262 s
+TIMING: writing metadata row took 1.521 s
+TIMING: shard featurization took 45.553 s
+TIMING: featurization map function took 45.553 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.263 s
+TIMING: writing metadata row took 1.526 s
+TIMING: shard featurization took 45.693 s
+TIMING: featurization map function took 45.693 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.129 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.262 s
+TIMING: writing metadata row took 1.522 s
+TIMING: shard featurization took 45.695 s
+TIMING: featurization map function took 45.696 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.128 s
+TIMING: convert_df_to_numpy missing elts computation took 0.065 s
+TIMING: convert_df_to_numpy took 0.260 s
+TIMING: writing metadata row took 1.521 s
+TIMING: shard featurization took 45.738 s
+TIMING: featurization map function took 45.738 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.002 s
+TIMING: convert_df_to_numpy x computation took 0.048 s
+TIMING: convert_df_to_numpy missing elts computation took 0.024 s
+TIMING: convert_df_to_numpy took 0.098 s
+TIMING: writing metadata row took 0.559 s
+TIMING: shard featurization took 16.805 s
+TIMING: featurization map function took 16.805 s
+TIMING: map call on batch took 521.241 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.011 s high
+About to transform data
+Using following tasks
+[u'MUV-466', u'MUV-548', u'MUV-600', u'MUV-644', u'MUV-652', u'MUV-689', u'MUV-692', u'MUV-712', u'MUV-713', u'MUV-733', u'MUV-737', u'MUV-810', u'MUV-832', u'MUV-846', u'MUV-852', u'MUV-858', u'MUV-859']
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:78: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  X_train, X_valid = X[:num_train], X[num_train:]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:79: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:80: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:81: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:05:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 0: Average loss 11.5325
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 1: Average loss 5.01855
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 2: Average loss 3.09348
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 3: Average loss 2.96831
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 4: Average loss 2.80423
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 5: Average loss 4.88765
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 6: Average loss 7.35852
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 7: Average loss 7.35239
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 8: Average loss 11.183
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 9: Average loss 9.92317
+TIMING: model fitting took 327.042 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.9780067283431455, 0.98179743947268339, 0.94911460442513729, 0.86752572935272609, 0.97306702109845944, 0.96849599299487932, 0.96902748336026323, 0.97710637563626956, 0.98955213903743311, 0.98455962916139916, 0.96470796209871301, 0.99750561506565316, 0.99701033569659181, 0.9965666929755328, 0.99679999402565977, 0.99637887164350036, 0.89861356683786586]
+computed_metrics: [0.57975010981502262, 0.88272290048094715, 0.55242373383354715, 0.77395174513937692, 0.5971331058020477, 0.67153101806908211, 0.53379549393414205, 0.6486647591797805, 0.57454289732770747, 0.57357934238741959, 0.53546148507980562, 0.54671343490810775, 0.98899852557559265, 0.99186365193559434, 0.90898939140145174, 0.60933775961865844, 0.48561403508771928]
+]0;zqwu@sherlock-ln01:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ python Benchmark.py muv tf[K[K[K[K[K[Kall tf
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+-------------------------------------
+Benchmark test on datasets: tox21
+-------------------------------------
+About to load Tox21 dataset.
+Columns of dataset: ['NR-AR' 'NR-AR-LBD' 'NR-AhR' 'NR-Aromatase' 'NR-ER' 'NR-ER-LBD'
+ 'NR-PPAR-gamma' 'SR-ARE' 'SR-ATAD5' 'SR-HSE' 'SR-MMP' 'SR-p53' 'mol_id'
+ 'smiles']
+Number of examples in dataset: 8014
+About to featurize Tox21 dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/tox21/../../datasets/tox21.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.142 s
+TIMING: convert_df_to_numpy missing elts computation took 0.026 s
+TIMING: convert_df_to_numpy took 0.232 s
+TIMING: writing metadata row took 1.440 s
+TIMING: shard featurization took 45.479 s
+TIMING: featurization map function took 45.480 s
+TIMING: map call on batch took 45.560 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.008 s high
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:05:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 0: Average loss 2.42683
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 1: Average loss 1.87154
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 2: Average loss 1.66644
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 3: Average loss 1.50273
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 4: Average loss 1.36687
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 5: Average loss 1.24246
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 6: Average loss 1.13453
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 7: Average loss 1.03825
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 8: Average loss 0.959291
+On batch 0
+On batch 50
+On batch 100
+Ending epoch 9: Average loss 0.864029
+TIMING: model fitting took 45.988 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.98789225885299536, 0.9962220947920899, 0.98811838499973137, 0.98868940545516049, 0.95052051187678721, 0.99118844840853781, 0.99519959705927574, 0.97162835656427027, 0.99527309486659088, 0.98519048411069809, 0.98718723806586151, 0.9945101629611135]
+computed_metrics: [0.77750677506775068, 0.8625130344108447, 0.87873149259703887, 0.8254835153823028, 0.70684120565306197, 0.82789802789802791, 0.76021180030257185, 0.72442697682344925, 0.8582548403976975, 0.72795774100831201, 0.8643621587592285, 0.77468230694037143]
+-------------------------------------
+Benchmark test on datasets: muv
+-------------------------------------
+About to load MUV dataset.
+Columns of dataset: ['MUV-466' 'MUV-548' 'MUV-600' 'MUV-644' 'MUV-652' 'MUV-689' 'MUV-692'
+ 'MUV-712' 'MUV-713' 'MUV-733' 'MUV-737' 'MUV-810' 'MUV-832' 'MUV-846'
+ 'MUV-852' 'MUV-858' 'MUV-859' 'mol_id' 'smiles']
+Number of examples in dataset: 93127
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.134 s
+TIMING: convert_df_to_numpy missing elts computation took 0.069 s
+TIMING: convert_df_to_numpy took 0.274 s
+TIMING: writing metadata row took 1.537 s
+TIMING: shard featurization took 47.491 s
+TIMING: featurization map function took 47.491 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.268 s
+TIMING: writing metadata row took 1.527 s
+TIMING: shard featurization took 47.390 s
+TIMING: featurization map function took 47.390 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.268 s
+TIMING: writing metadata row took 1.533 s
+TIMING: shard featurization took 47.410 s
+TIMING: featurization map function took 47.410 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.534 s
+TIMING: shard featurization took 47.610 s
+TIMING: featurization map function took 47.611 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.134 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.268 s
+TIMING: writing metadata row took 1.530 s
+TIMING: shard featurization took 47.527 s
+TIMING: featurization map function took 47.527 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.264 s
+TIMING: writing metadata row took 1.529 s
+TIMING: shard featurization took 47.591 s
+TIMING: featurization map function took 47.591 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.534 s
+TIMING: shard featurization took 47.516 s
+TIMING: featurization map function took 47.516 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.268 s
+TIMING: writing metadata row took 1.535 s
+TIMING: shard featurization took 47.558 s
+TIMING: featurization map function took 47.558 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.528 s
+TIMING: shard featurization took 47.460 s
+TIMING: featurization map function took 47.460 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.532 s
+TIMING: shard featurization took 47.472 s
+TIMING: featurization map function took 47.473 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.531 s
+TIMING: shard featurization took 47.516 s
+TIMING: featurization map function took 47.516 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.002 s
+TIMING: convert_df_to_numpy x computation took 0.047 s
+TIMING: convert_df_to_numpy missing elts computation took 0.025 s
+TIMING: convert_df_to_numpy took 0.096 s
+TIMING: writing metadata row took 0.557 s
+TIMING: shard featurization took 17.507 s
+TIMING: featurization map function took 17.507 s
+TIMING: map call on batch took 541.506 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.011 s high
+About to transform data
+Using following tasks
+[u'MUV-466', u'MUV-548', u'MUV-600', u'MUV-644', u'MUV-652', u'MUV-689', u'MUV-692', u'MUV-712', u'MUV-713', u'MUV-733', u'MUV-737', u'MUV-810', u'MUV-832', u'MUV-846', u'MUV-852', u'MUV-858', u'MUV-859']
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:78: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  X_train, X_valid = X[:num_train], X[num_train:]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:79: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:80: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:81: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 0: Average loss 10.0281
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 1: Average loss 3.45327
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 2: Average loss 2.43472
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 3: Average loss 1.85303
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 4: Average loss 2.25725
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 5: Average loss 3.53544
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 6: Average loss 5.05848
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 7: Average loss 6.41787
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 8: Average loss 9.35952
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 9: Average loss 10.3082
+TIMING: model fitting took 327.547 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.99147813288477704, 0.99780345146044214, 0.98543238964768243, 0.99844773326528879, 0.95378083835677607, 0.97747130375192737, 0.98745904920025496, 0.99134673453541544, 0.98454211229946531, 0.96426253687315633, 0.96692829868476882, 0.99369600898410493, 0.97826561506411169, 0.99069273268168301, 0.98346788045345246, 0.87993620684788443, 0.94891687415051895]
+computed_metrics: [0.52943042608228796, 0.82648908620051798, 0.46129923980649618, 0.73878542984305451, 0.58723549488054605, 0.75725738264491294, 0.56177271601881662, 0.62041010968049592, 0.76876758087201114, 0.51000714796283064, 0.55624566273421228, 0.50316051006613316, 0.81779516842463429, 0.9897225077081192, 0.87811278615298716, 0.62314862104187951, 0.43157894736842106]
+-------------------------------------
+Benchmark test on datasets: pcba
+-------------------------------------
+About to load PCBA dataset.
+Columns of dataset: ['PCBA-1030' 'PCBA-1379' 'PCBA-1452' 'PCBA-1454' 'PCBA-1457' 'PCBA-1458'
+ 'PCBA-1460' 'PCBA-1461' 'PCBA-1468' 'PCBA-1469' 'PCBA-1471' 'PCBA-1479'
+ 'PCBA-1631' 'PCBA-1634' 'PCBA-1688' 'PCBA-1721' 'PCBA-2100' 'PCBA-2101'
+ 'PCBA-2147' 'PCBA-2242' 'PCBA-2326' 'PCBA-2451' 'PCBA-2517' 'PCBA-2528'
+ 'PCBA-2546' 'PCBA-2549' 'PCBA-2551' 'PCBA-2662' 'PCBA-2675' 'PCBA-2676'
+ 'PCBA-411' 'PCBA-463254' 'PCBA-485281' 'PCBA-485290' 'PCBA-485294'
+ 'PCBA-485297' 'PCBA-485313' 'PCBA-485314' 'PCBA-485341' 'PCBA-485349'
+ 'PCBA-485353' 'PCBA-485360' 'PCBA-485364' 'PCBA-485367' 'PCBA-492947'
+ 'PCBA-493208' 'PCBA-504327' 'PCBA-504332' 'PCBA-504333' 'PCBA-504339'
+ 'PCBA-504444' 'PCBA-504466' 'PCBA-504467' 'PCBA-504706' 'PCBA-504842'
+ 'PCBA-504845' 'PCBA-504847' 'PCBA-504891' 'PCBA-540276' 'PCBA-540317'
+ 'PCBA-588342' 'PCBA-588453' 'PCBA-588456' 'PCBA-588579' 'PCBA-588590'
+ 'PCBA-588591' 'PCBA-588795' 'PCBA-588855' 'PCBA-602179' 'PCBA-602233'
+ 'PCBA-602310' 'PCBA-602313' 'PCBA-602332' 'PCBA-624170' 'PCBA-624171'
+ 'PCBA-624173' 'PCBA-624202' 'PCBA-624246' 'PCBA-624287' 'PCBA-624288'
+ 'PCBA-624291' 'PCBA-624296' 'PCBA-624297' 'PCBA-624417' 'PCBA-651635'
+ 'PCBA-651644' 'PCBA-651768' 'PCBA-651965' 'PCBA-652025' 'PCBA-652104'
+ 'PCBA-652105' 'PCBA-652106' 'PCBA-686970' 'PCBA-686978' 'PCBA-686979'
+ 'PCBA-720504' 'PCBA-720532' 'PCBA-720542' 'PCBA-720551' 'PCBA-720553'
+ 'PCBA-720579' 'PCBA-720580' 'PCBA-720707' 'PCBA-720708' 'PCBA-720709'
+ 'PCBA-720711' 'PCBA-743255' 'PCBA-743266' 'PCBA-875' 'PCBA-881' 'PCBA-883'
+ 'PCBA-884' 'PCBA-885' 'PCBA-887' 'PCBA-891' 'PCBA-899' 'PCBA-902'
+ 'PCBA-903' 'PCBA-904' 'PCBA-912' 'PCBA-914' 'PCBA-915' 'PCBA-924'
+ 'PCBA-925' 'PCBA-926' 'PCBA-927' 'PCBA-938' 'PCBA-995' 'mol_id' 'smiles']
+Number of examples in dataset: 439863
+About to featurize PCBA dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/pcba/../../datasets/pcba.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 13 of size 8192.
+Loading shard 14 of size 8192.
+Loading shard 15 of size 8192.
+Loading shard 16 of size 8192.
+Loading shard 17 of size 8192.
+Loading shard 18 of size 8192.
+Loading shard 19 of size 8192.
+Loading shard 20 of size 8192.
+Loading shard 21 of size 8192.
+Loading shard 22 of size 8192.
+Loading shard 23 of size 8192.
+Loading shard 24 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.036 s
+TIMING: convert_df_to_numpy x computation took 0.858 s
+TIMING: convert_df_to_numpy missing elts computation took 0.325 s
+TIMING: convert_df_to_numpy took 1.392 s
+TIMING: writing metadata row took 2.848 s
+TIMING: shard featurization took 49.255 s
+TIMING: featurization map function took 49.255 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.033 s
+TIMING: convert_df_to_numpy x computation took 0.866 s
+TIMING: convert_df_to_numpy missing elts computation took 0.316 s
+TIMING: convert_df_to_numpy took 1.384 s
+TIMING: writing metadata row took 2.845 s
+TIMING: shard featurization took 49.497 s
+TIMING: featurization map function took 49.497 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.033 s
+TIMING: convert_df_to_numpy x computation took 0.854 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.376 s
+TIMING: writing metadata row took 2.827 s
+TIMING: shard featurization took 49.170 s
+TIMING: featurization map function took 49.170 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.033 s
+TIMING: convert_df_to_numpy x computation took 0.862 s
+TIMING: convert_df_to_numpy missing elts computation took 0.319 s
+TIMING: convert_df_to_numpy took 1.382 s
+TIMING: writing metadata row took 2.836 s
+TIMING: shard featurization took 49.270 s
+TIMING: featurization map function took 49.270 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.032 s
+TIMING: convert_df_to_numpy x computation took 0.929 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.449 s
+TIMING: writing metadata row took 2.912 s
+TIMING: shard featurization took 49.352 s
+TIMING: featurization map function took 49.352 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.033 s
+TIMING: convert_df_to_numpy x computation took 0.859 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.398 s
+TIMING: writing metadata row took 2.852 s
+TIMING: shard featurization took 49.069 s
+TIMING: featurization map function took 49.069 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.855 s
+TIMING: convert_df_to_numpy missing elts computation took 0.322 s
+TIMING: convert_df_to_numpy took 1.376 s
+TIMING: writing metadata row took 2.827 s
+TIMING: shard featurization took 49.220 s
+TIMING: featurization map function took 49.220 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.848 s
+TIMING: convert_df_to_numpy missing elts computation took 0.329 s
+TIMING: convert_df_to_numpy took 1.375 s
+TIMING: writing metadata row took 2.822 s
+TIMING: shard featurization took 49.017 s
+TIMING: featurization map function took 49.017 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.849 s
+TIMING: convert_df_to_numpy missing elts computation took 0.324 s
+TIMING: convert_df_to_numpy took 1.373 s
+TIMING: writing metadata row took 2.828 s
+TIMING: shard featurization took 49.104 s
+TIMING: featurization map function took 49.104 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.851 s
+TIMING: convert_df_to_numpy missing elts computation took 0.322 s
+TIMING: convert_df_to_numpy took 1.371 s
+TIMING: writing metadata row took 2.824 s
+TIMING: shard featurization took 49.229 s
+TIMING: featurization map function took 49.229 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.862 s
+TIMING: convert_df_to_numpy missing elts computation took 0.319 s
+TIMING: convert_df_to_numpy took 1.380 s
+TIMING: writing metadata row took 2.839 s
+TIMING: shard featurization took 49.186 s
+TIMING: featurization map function took 49.186 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.857 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.377 s
+TIMING: writing metadata row took 2.824 s
+TIMING: shard featurization took 49.314 s
+TIMING: featurization map function took 49.314 s
+Loading shard 13 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.034 s
+TIMING: convert_df_to_numpy x computation took 0.846 s
+TIMING: convert_df_to_numpy missing elts computation took 0.328 s
+TIMING: convert_df_to_numpy took 1.382 s
+TIMING: writing metadata row took 2.834 s
+TIMING: shard featurization took 49.311 s
+TIMING: featurization map function took 49.311 s
+Loading shard 14 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.839 s
+TIMING: convert_df_to_numpy missing elts computation took 0.329 s
+TIMING: convert_df_to_numpy took 1.363 s
+TIMING: writing metadata row took 2.819 s
+TIMING: shard featurization took 49.117 s
+TIMING: featurization map function took 49.117 s
+Loading shard 15 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.837 s
+TIMING: convert_df_to_numpy missing elts computation took 0.329 s
+TIMING: convert_df_to_numpy took 1.361 s
+TIMING: writing metadata row took 2.798 s
+TIMING: shard featurization took 49.085 s
+TIMING: featurization map function took 49.085 s
+Loading shard 16 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.838 s
+TIMING: convert_df_to_numpy missing elts computation took 0.329 s
+TIMING: convert_df_to_numpy took 1.361 s
+TIMING: writing metadata row took 2.799 s
+TIMING: shard featurization took 49.204 s
+TIMING: featurization map function took 49.204 s
+Loading shard 17 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.843 s
+TIMING: convert_df_to_numpy missing elts computation took 0.323 s
+TIMING: convert_df_to_numpy took 1.361 s
+TIMING: writing metadata row took 2.805 s
+TIMING: shard featurization took 49.254 s
+TIMING: featurization map function took 49.254 s
+Loading shard 18 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.849 s
+TIMING: convert_df_to_numpy missing elts computation took 0.318 s
+TIMING: convert_df_to_numpy took 1.360 s
+TIMING: writing metadata row took 2.803 s
+TIMING: shard featurization took 49.216 s
+TIMING: featurization map function took 49.216 s
+Loading shard 19 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.033 s
+TIMING: convert_df_to_numpy x computation took 0.847 s
+TIMING: convert_df_to_numpy missing elts computation took 0.318 s
+TIMING: convert_df_to_numpy took 1.366 s
+TIMING: writing metadata row took 2.819 s
+TIMING: shard featurization took 49.128 s
+TIMING: featurization map function took 49.128 s
+Loading shard 20 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.837 s
+TIMING: convert_df_to_numpy missing elts computation took 0.323 s
+TIMING: convert_df_to_numpy took 1.355 s
+TIMING: writing metadata row took 2.815 s
+TIMING: shard featurization took 49.354 s
+TIMING: featurization map function took 49.354 s
+Loading shard 21 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.842 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.356 s
+TIMING: writing metadata row took 2.817 s
+TIMING: shard featurization took 49.426 s
+TIMING: featurization map function took 49.426 s
+Loading shard 22 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.836 s
+TIMING: convert_df_to_numpy missing elts computation took 0.316 s
+TIMING: convert_df_to_numpy took 1.346 s
+TIMING: writing metadata row took 2.801 s
+TIMING: shard featurization took 49.099 s
+TIMING: featurization map function took 49.099 s
+Loading shard 23 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.834 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.349 s
+TIMING: writing metadata row took 2.806 s
+TIMING: shard featurization took 49.186 s
+TIMING: featurization map function took 49.186 s
+Loading shard 24 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.839 s
+TIMING: convert_df_to_numpy missing elts computation took 0.318 s
+TIMING: convert_df_to_numpy took 1.358 s
+TIMING: writing metadata row took 2.807 s
+TIMING: shard featurization took 49.197 s
+TIMING: featurization map function took 49.197 s
+TIMING: map call on batch took 1196.182 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+Loading shard 25 of size 8192.
+Loading shard 26 of size 8192.
+Loading shard 27 of size 8192.
+Loading shard 28 of size 8192.
+Loading shard 29 of size 8192.
+Loading shard 30 of size 8192.
+Loading shard 31 of size 8192.
+Loading shard 32 of size 8192.
+Loading shard 33 of size 8192.
+Loading shard 34 of size 8192.
+Loading shard 35 of size 8192.
+Loading shard 36 of size 8192.
+Loading shard 37 of size 8192.
+Loading shard 38 of size 8192.
+Loading shard 39 of size 8192.
+Loading shard 40 of size 8192.
+Loading shard 41 of size 8192.
+Loading shard 42 of size 8192.
+Loading shard 43 of size 8192.
+Loading shard 44 of size 8192.
+Loading shard 45 of size 8192.
+Loading shard 46 of size 8192.
+Loading shard 47 of size 8192.
+Loading shard 48 of size 8192.
+Loading shard 25 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.034 s
+TIMING: convert_df_to_numpy x computation took 0.863 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.390 s
+TIMING: writing metadata row took 2.854 s
+TIMING: shard featurization took 49.484 s
+TIMING: featurization map function took 49.484 s
+Loading shard 26 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.032 s
+TIMING: convert_df_to_numpy x computation took 0.871 s
+TIMING: convert_df_to_numpy missing elts computation took 0.318 s
+TIMING: convert_df_to_numpy took 1.391 s
+TIMING: writing metadata row took 2.848 s
+TIMING: shard featurization took 49.214 s
+TIMING: featurization map function took 49.214 s
+Loading shard 27 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.856 s
+TIMING: convert_df_to_numpy missing elts computation took 0.319 s
+TIMING: convert_df_to_numpy took 1.374 s
+TIMING: writing metadata row took 2.864 s
+TIMING: shard featurization took 49.118 s
+TIMING: featurization map function took 49.118 s
+Loading shard 28 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.857 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.378 s
+TIMING: writing metadata row took 2.835 s
+TIMING: shard featurization took 49.100 s
+TIMING: featurization map function took 49.100 s
+Loading shard 29 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.858 s
+TIMING: convert_df_to_numpy missing elts computation took 0.319 s
+TIMING: convert_df_to_numpy took 1.381 s
+TIMING: writing metadata row took 2.841 s
+TIMING: shard featurization took 49.157 s
+TIMING: featurization map function took 49.157 s
+Loading shard 30 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.857 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.376 s
+TIMING: writing metadata row took 2.832 s
+TIMING: shard featurization took 49.007 s
+TIMING: featurization map function took 49.007 s
+Loading shard 31 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.857 s
+TIMING: convert_df_to_numpy missing elts computation took 0.319 s
+TIMING: convert_df_to_numpy took 1.375 s
+TIMING: writing metadata row took 2.826 s
+TIMING: shard featurization took 49.289 s
+TIMING: featurization map function took 49.289 s
+Loading shard 32 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.856 s
+TIMING: convert_df_to_numpy missing elts computation took 0.316 s
+TIMING: convert_df_to_numpy took 1.371 s
+TIMING: writing metadata row took 2.818 s
+TIMING: shard featurization took 49.156 s
+TIMING: featurization map function took 49.156 s
+Loading shard 33 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.030 s
+TIMING: convert_df_to_numpy x computation took 0.851 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.370 s
+TIMING: writing metadata row took 2.824 s
+TIMING: shard featurization took 49.357 s
+TIMING: featurization map function took 49.357 s
+Loading shard 34 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.855 s
+TIMING: convert_df_to_numpy missing elts computation took 0.317 s
+TIMING: convert_df_to_numpy took 1.371 s
+TIMING: writing metadata row took 2.823 s
+TIMING: shard featurization took 49.250 s
+TIMING: featurization map function took 49.250 s
+Loading shard 35 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.864 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.383 s
+TIMING: writing metadata row took 2.835 s
+TIMING: shard featurization took 49.160 s
+TIMING: featurization map function took 49.160 s
+Loading shard 36 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.032 s
+TIMING: convert_df_to_numpy x computation took 0.845 s
+TIMING: convert_df_to_numpy missing elts computation took 0.323 s
+TIMING: convert_df_to_numpy took 1.370 s
+TIMING: writing metadata row took 2.824 s
+TIMING: shard featurization took 49.446 s
+TIMING: featurization map function took 49.446 s
+Loading shard 37 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.034 s
+TIMING: convert_df_to_numpy x computation took 0.861 s
+TIMING: convert_df_to_numpy missing elts computation took 0.317 s
+TIMING: convert_df_to_numpy took 1.383 s
+TIMING: writing metadata row took 2.838 s
+TIMING: shard featurization took 49.314 s
+TIMING: featurization map function took 49.314 s
+Loading shard 38 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.850 s
+TIMING: convert_df_to_numpy missing elts computation took 0.315 s
+TIMING: convert_df_to_numpy took 1.360 s
+TIMING: writing metadata row took 2.822 s
+TIMING: shard featurization took 49.244 s
+TIMING: featurization map function took 49.244 s
+Loading shard 39 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.846 s
+TIMING: convert_df_to_numpy missing elts computation took 0.317 s
+TIMING: convert_df_to_numpy took 1.358 s
+TIMING: writing metadata row took 2.814 s
+TIMING: shard featurization took 49.445 s
+TIMING: featurization map function took 49.445 s
+Loading shard 40 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.839 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.353 s
+TIMING: writing metadata row took 2.823 s
+TIMING: shard featurization took 49.442 s
+TIMING: featurization map function took 49.442 s
+Loading shard 41 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.840 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.355 s
+TIMING: writing metadata row took 2.813 s
+TIMING: shard featurization took 49.409 s
+TIMING: featurization map function took 49.409 s
+Loading shard 42 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.836 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.356 s
+TIMING: writing metadata row took 2.813 s
+TIMING: shard featurization took 49.484 s
+TIMING: featurization map function took 49.484 s
+Loading shard 43 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.858 s
+TIMING: convert_df_to_numpy missing elts computation took 0.316 s
+TIMING: convert_df_to_numpy took 1.369 s
+TIMING: writing metadata row took 2.827 s
+TIMING: shard featurization took 49.255 s
+TIMING: featurization map function took 49.255 s
+Loading shard 44 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.840 s
+TIMING: convert_df_to_numpy missing elts computation took 0.324 s
+TIMING: convert_df_to_numpy took 1.359 s
+TIMING: writing metadata row took 2.812 s
+TIMING: shard featurization took 49.280 s
+TIMING: featurization map function took 49.280 s
+Loading shard 45 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.032 s
+TIMING: convert_df_to_numpy x computation took 0.840 s
+TIMING: convert_df_to_numpy missing elts computation took 0.316 s
+TIMING: convert_df_to_numpy took 1.352 s
+TIMING: writing metadata row took 2.805 s
+TIMING: shard featurization took 49.220 s
+TIMING: featurization map function took 49.220 s
+Loading shard 46 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.838 s
+TIMING: convert_df_to_numpy missing elts computation took 0.321 s
+TIMING: convert_df_to_numpy took 1.355 s
+TIMING: writing metadata row took 2.816 s
+TIMING: shard featurization took 49.429 s
+TIMING: featurization map function took 49.429 s
+Loading shard 47 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.839 s
+TIMING: convert_df_to_numpy missing elts computation took 0.318 s
+TIMING: convert_df_to_numpy took 1.352 s
+TIMING: writing metadata row took 2.808 s
+TIMING: shard featurization took 49.478 s
+TIMING: featurization map function took 49.478 s
+Loading shard 48 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.841 s
+TIMING: convert_df_to_numpy missing elts computation took 0.326 s
+TIMING: convert_df_to_numpy took 1.361 s
+TIMING: writing metadata row took 2.812 s
+TIMING: shard featurization took 49.485 s
+TIMING: featurization map function took 49.485 s
+TIMING: map call on batch took 1197.676 s
+Featurized 393216 datapoints
+
+About to start processing next batch of shards
+Loading shard 49 of size 8192.
+Loading shard 50 of size 8192.
+Loading shard 51 of size 8192.
+Loading shard 52 of size 8192.
+Loading shard 53 of size 8192.
+Loading shard 54 of size 8192.
+Loading shard 49 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.034 s
+TIMING: convert_df_to_numpy x computation took 0.856 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.384 s
+TIMING: writing metadata row took 2.831 s
+TIMING: shard featurization took 49.316 s
+TIMING: featurization map function took 49.317 s
+Loading shard 50 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.856 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.376 s
+TIMING: writing metadata row took 2.819 s
+TIMING: shard featurization took 49.365 s
+TIMING: featurization map function took 49.365 s
+Loading shard 51 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.852 s
+TIMING: convert_df_to_numpy missing elts computation took 0.323 s
+TIMING: convert_df_to_numpy took 1.374 s
+TIMING: writing metadata row took 2.827 s
+TIMING: shard featurization took 49.427 s
+TIMING: featurization map function took 49.427 s
+Loading shard 52 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.031 s
+TIMING: convert_df_to_numpy x computation took 0.864 s
+TIMING: convert_df_to_numpy missing elts computation took 0.320 s
+TIMING: convert_df_to_numpy took 1.384 s
+TIMING: writing metadata row took 2.839 s
+TIMING: shard featurization took 49.411 s
+TIMING: featurization map function took 49.411 s
+Loading shard 53 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.035 s
+TIMING: convert_df_to_numpy x computation took 0.860 s
+TIMING: convert_df_to_numpy missing elts computation took 0.317 s
+TIMING: convert_df_to_numpy took 1.388 s
+TIMING: writing metadata row took 2.844 s
+TIMING: shard featurization took 49.454 s
+TIMING: featurization map function took 49.454 s
+Loading shard 54 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+TIMING: convert_df_to_numpy y computation took 0.024 s
+TIMING: convert_df_to_numpy x computation took 0.558 s
+TIMING: convert_df_to_numpy missing elts computation took 0.221 s
+TIMING: convert_df_to_numpy took 0.913 s
+TIMING: writing metadata row took 1.857 s
+TIMING: shard featurization took 34.059 s
+TIMING: featurization map function took 34.059 s
+TIMING: map call on batch took 284.697 s
+Featurized 589824 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.040 s high
+About to transform data
+About to perform train/valid/test split.
+Performing new split.
+Computing train/valid/test indices
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3019048 get requests, put_count=3018788 evicted_count=1000 eviction_rate=0.000331259 and unsatisfied allocation rate=0.000450473
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3592 get requests, put_count=3857 evicted_count=1000 eviction_rate=0.259269 and unsatisfied allocation rate=0.208241
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 146 to 160
+On batch 50
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 10776 get requests, put_count=10921 evicted_count=1000 eviction_rate=0.0915667 and unsatisfied allocation rate=0.0824053
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 372 to 409
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 0: Average loss 140.647
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 1: Average loss 121.675
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 2: Average loss 105.888
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+srun: Force Terminated job 10420507
+On batch 4600
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+On batch 4650
+On batch 4700
+On batch 4750
+srun: error: gpu-17-35: task 0: Killed
+]0;zqwu@sherlock-ln04:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln04 [1m[31mlogin_node[m ~/deepchem/examples]$ On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 3: Average loss 95.1303
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 4: Average loss 108.589
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 5: Average loss 100.256
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+python Benchmark.pyOn batch 3350
+ muv all
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 6: Average loss 103.326
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 7: Average loss 127.224
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 8: Average loss 106.476
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+On batch 1500
+On batch 1550
+On batch 1600
+On batch 1650
+On batch 1700
+On batch 1750
+On batch 1800
+On batch 1850
+On batch 1900
+On batch 1950
+On batch 2000
+On batch 2050
+On batch 2100
+On batch 2150
+On batch 2200
+On batch 2250
+On batch 2300
+On batch 2350
+On batch 2400
+On batch 2450
+On batch 2500
+On batch 2550
+On batch 2600
+On batch 2650
+On batch 2700
+On batch 2750
+On batch 2800
+On batch 2850
+On batch 2900
+On batch 2950
+On batch 3000
+On batch 3050
+On batch 3100
+On batch 3150
+On batch 3200
+On batch 3250
+On batch 3300
+On batch 3350
+On batch 3400
+On batch 3450
+On batch 3500
+On batch 3550
+On batch 3600
+On batch 3650
+On batch 3700
+On batch 3750
+On batch 3800
+On batch 3850
+On batch 3900
+On batch 3950
+On batch 4000
+On batch 4050
+On batch 4100
+On batch 4150
+On batch 4200
+On batch 4250
+On batch 4300
+On batch 4350
+On batch 4400
+On batch 4450
+On batch 4500
+On batch 4550
+On batch 4600
+On batch 4650
+On batch 4700
+On batch 4750
+On batch 4800
+On batch 4850
+On batch 4900
+On batch 4950
+On batch 5000
+On batch 5050
+On batch 5100
+On batch 5150
+On batch 5200
+On batch 5250
+On batch 5300
+On batch 5350
+On batch 5400
+On batch 5450
+On batch 5500
+Ending epoch 9: Average loss 133.394
+TIMING: model fitting took 9355.557 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.74456849660716184, 0.98510918784339441, 0.99526155781229608, 0.97635743754230053, 0.97411339282734, 0.90220117040626224, 0.9560543028051347, 0.90465144396463071, 0.97945367995375421, 0.99339007420881509, 0.97992566252647251, 0.96288221455632184, 0.97280209478782298, 0.99555122214648195, 0.86785696138422252, 0.98438257142337304, 0.98289490946837343, 0.99007784713958191, 0.88107178175517953, 0.99000722280260989, 0.92676615262322604, 0.95181667068861597, 0.98293205797093375, 0.98746175845300255, 0.89188257658341175, 0.96650015452185156, 0.89415282289571496, 0.98362595184825807, 0.9854669423169431, 0.97895072071721834, 0.94773047037263858, 0.95795668693009128, 0.98660195593571953, 0.97337917347214808, 0.98650864288831608, 0.93870111820319058, 0.94458216862466504, 0.91918983046701164, 0.89386627188739953, 0.95961183082855905, 0.98036012143812523, 0.96708582466728443, 0.88615592372316221, 0.98380677619378587, 0.98688872479524314, 0.94768190814449449, 0.97980499999387716, 0.79003822453148076, 0.87118531484158379, 0.85655000422418159, 0.83186324926856026, 0.93632070587666627, 0.84634939817004473, 0.98139075470694903, 0.97144715604406651, 0.95776765445526912, 0.93563004324895171, 0.97214848624286998, 0.86144852292030871, 0.96470131113088187, 0.90220599056490403, 0.94560155771210974, 0.99693128895836436, 0.98433593288679155, 0.92988359396828724, 0.95445414987026034, 0.98772849367043514, 0.91834354650163175, 0.98547761445350734, 0.99233193680163101, 0.98672246753032955, 0.98154735677663618, 0.97859966339758797, 0.9807235200899258, 0.97947108870396238, 0.99646724000601006, 0.90975090799920055, 0.98284045494074457, 0.98575862285113147, 0.9256046341878601, 0.98183914080453549, 0.82981307749182043, 0.83466531676520783, 0.87164557940103715, 0.94464146691266204, 0.98975534555060884, 0.98094700693152637, 0.77849753135537714, 0.97262681876997015, 0.82881155814744223, 0.93105125570199787, 0.98464408470831533, 0.89191426043041167, 0.82159752300592381, 0.82215527952570067, 0.75346201263227841, 0.88398379901339652, 0.98859517479538161, 0.92703849794247328, 0.84418561081626975, 0.95053848606237423, 0.97129545170466014, 0.98911357473480721, 0.98301896477055295, 0.98938333962479363, 0.98647192445024889, 0.98909131078132417, 0.97747920375550656, 0.99656402913803666, 0.98271039093369494, 0.8837604458585463, 0.90656515230097234, 0.98320309884000112, 0.9214170661358444, 0.88726058854078671, 0.88191178674380588, 0.92629390844409398, 0.97927972368642402, 0.95613149736861081, 0.95006198879565318, 0.97794891895553882, 0.9283452831519311, 0.96235484040988639, 0.97729815418683474, 0.93963946057797754, 0.98316624216091264, 0.84365049167103123, 0.9152960050910981]
+computed_metrics: [0.71427978583975638, 0.89051711050501758, 0.76121019161436765, 0.85892169676277863, 0.86270241500149158, 0.85549092561536755, 0.92205946663340588, 0.7851975944681111, 0.89225799229157687, 0.90413803698117434, 0.42268462752399905, 0.76250693822324123, 0.8385269919260937, 0.93826662362814717, 0.74304333594593475, 0.91873534953323843, 0.88045428596609709, 0.84936508700956792, 0.83126901371395978, 0.89481947903815273, 0.67723409798968426, 0.85858862669371294, 0.84219577388169053, 0.86422324053422239, 0.86401124173385657, 0.81438119439800949, 0.8802164182423784, 0.64619416590701917, 0.76341943518258137, 0.85943320667560719, 0.87134793124097687, 0.98569655506447895, 0.73045058575089983, 0.76694080987683488, 0.88398063390814929, 0.89509983981940744, 0.8959745315467269, 0.84600236142150409, 0.68173017839203331, 0.73831058552242057, 0.73003125172671179, 0.86649631038175223, 0.8613494721899897, 0.85267191231400408, 0.73716242108872354, 0.802246599868078, 0.77109078936759201, 0.76119073498480627, 0.83749303814018061, 0.82299726077336888, 0.79313135536184864, 0.86823041766007547, 0.8180707079282874, 0.69009772341226272, 0.67438509567987059, 0.78049904853796459, 0.89005665769181741, 0.45199601350977242, 0.80277876696083261, 0.88657892651018821, 0.88128366346602593, 0.87092915487527889, 0.99423246181724045, 0.89584925318129494, 0.83465978286972331, 0.89475006623698894, 0.87350218837588001, 0.84692684948863528, 0.79357511035047068, 0.94342604298356503, 0.81200980392156863, 0.86035577798899054, 0.56438496142404526, 0.8446224475058749, 0.87326441602145644, 0.97315027097225337, 0.83733250906578371, 0.70388471520284113, 0.73229319822504801, 0.7100469778677474, 0.47091918067795591, 0.78405941143411484, 0.7685618524278599, 0.81696974454117322, 0.86730517199435608, 0.92168733274603998, 0.87182143729519712, 0.7304732439857895, 0.85079170671426607, 0.77950563489906699, 0.84468185582582411, 0.73237532844569397, 0.84025817415631154, 0.80742925001866017, 0.80379650665114544, 0.69072195179168372, 0.81087337228859258, 0.85844445393855096, 0.67101134812129648, 0.73488870655920357, 0.82921539344592499, 0.85037094123605772, 0.69012278517468917, 0.82367416631201507, 0.84169916431507796, 0.77965059522452917, 0.90421928827805131, 0.56058184406177403, 0.68259459459459459, 0.86656701890989996, 0.82374664519592056, 0.87664880624064301, 0.83036978756884339, 0.82150880480748567, 0.79432506721239116, 0.81240000000000001, 0.83513048724004046, 0.83592101477076541, 0.72446595962023796, 0.80639293139293133, 0.8713428943937418, 0.84243807040417207, 0.84256513866357174, 0.65087171480614114, 0.54464159515396271, 0.41074647168848838, 0.72633609220029716, 0.70064192165170613]
+]0;zqwu@sherlock-ln01:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-2 ~/deepchem/examples]$ python Benchmark.py muv all
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+-------------------------------------
+Benchmark test on datasets: muv
+-------------------------------------
+About to load MUV dataset.
+Columns of dataset: ['MUV-466' 'MUV-548' 'MUV-600' 'MUV-644' 'MUV-652' 'MUV-689' 'MUV-692'
+ 'MUV-712' 'MUV-713' 'MUV-733' 'MUV-737' 'MUV-810' 'MUV-832' 'MUV-846'
+ 'MUV-852' 'MUV-858' 'MUV-859' 'mol_id' 'smiles']
+Number of examples in dataset: 93127
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.132 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.270 s
+TIMING: writing metadata row took 1.539 s
+TIMING: shard featurization took 46.176 s
+TIMING: featurization map function took 46.176 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.268 s
+TIMING: writing metadata row took 1.529 s
+TIMING: shard featurization took 46.129 s
+TIMING: featurization map function took 46.129 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.136 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.275 s
+TIMING: writing metadata row took 1.532 s
+TIMING: shard featurization took 46.267 s
+TIMING: featurization map function took 46.267 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.531 s
+TIMING: shard featurization took 46.192 s
+TIMING: featurization map function took 46.192 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.264 s
+TIMING: writing metadata row took 1.524 s
+TIMING: shard featurization took 46.101 s
+TIMING: featurization map function took 46.101 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.069 s
+TIMING: convert_df_to_numpy took 0.271 s
+TIMING: writing metadata row took 1.530 s
+TIMING: shard featurization took 46.112 s
+TIMING: featurization map function took 46.112 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.132 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.267 s
+TIMING: writing metadata row took 1.545 s
+TIMING: shard featurization took 46.331 s
+TIMING: featurization map function took 46.331 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.130 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.521 s
+TIMING: shard featurization took 46.079 s
+TIMING: featurization map function took 46.079 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.135 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.275 s
+TIMING: writing metadata row took 1.544 s
+TIMING: shard featurization took 46.455 s
+TIMING: featurization map function took 46.455 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.070 s
+TIMING: convert_df_to_numpy took 0.270 s
+TIMING: writing metadata row took 1.544 s
+TIMING: shard featurization took 46.275 s
+TIMING: featurization map function took 46.275 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.131 s
+TIMING: convert_df_to_numpy missing elts computation took 0.066 s
+TIMING: convert_df_to_numpy took 0.265 s
+TIMING: writing metadata row took 1.533 s
+TIMING: shard featurization took 46.262 s
+TIMING: featurization map function took 46.262 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: CircularFingerprint
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.002 s
+TIMING: convert_df_to_numpy x computation took 0.048 s
+TIMING: convert_df_to_numpy missing elts computation took 0.025 s
+TIMING: convert_df_to_numpy took 0.099 s
+TIMING: writing metadata row took 0.569 s
+TIMING: shard featurization took 17.037 s
+TIMING: featurization map function took 17.037 s
+TIMING: map call on batch took 526.852 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.011 s high
+About to transform data
+Using following tasks
+[u'MUV-466', u'MUV-548', u'MUV-600', u'MUV-644', u'MUV-652', u'MUV-689', u'MUV-692', u'MUV-712', u'MUV-713', u'MUV-733', u'MUV-737', u'MUV-810', u'MUV-832', u'MUV-846', u'MUV-852', u'MUV-858', u'MUV-859']
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:78: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  X_train, X_valid = X[:num_train], X[num_train:]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:79: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:80: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
+/home/zqwu/deepchem/examples/muv/muv_datasets.py:81: VisibleDeprecationWarning: using a non-integer number instead of an integer will result in an error in the future
+  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+mean-roc_auc_score
+-------------------------------------
+Start fitting by tensorflow
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:05:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 0: Average loss 11.2322
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 1: Average loss 4.72453
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 2: Average loss 3.15144
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 3: Average loss 3.15774
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 4: Average loss 2.98944
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 5: Average loss 4.29133
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 6: Average loss 5.08925
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 7: Average loss 5.55164
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 8: Average loss 7.36461
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+Ending epoch 9: Average loss 8.94744
+TIMING: model fitting took 328.166 s high
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:05:00.0)
+computed_metrics: [0.98660428931875521, 0.99571012078300702, 0.97446526525052457, 0.98885770179467558, 0.99538471198928336, 0.99327565530238138, 0.99547873523177044, 0.9924355103097231, 0.93342914438502678, 0.99532237673830593, 0.97561872436713348, 0.97702142363510713, 0.99946059495901474, 0.99634812701111042, 0.99553418069391963, 0.96831512688062771, 0.98895023194088605]
+computed_metrics: [0.59295231587681196, 0.89357504007892463, 0.55365781419686044, 0.90457367064886385, 0.58846416382252564, 0.64081044687314059, 0.54057935132458534, 0.59859322842155449, 0.6731276371308017, 0.58039224446032878, 0.60860513532269245, 0.67287807373305575, 0.99257116933197231, 0.99606029462144563, 0.88612506979341155, 0.71009959141981616, 0.45859649122807017]
+-------------------------------------
+Start fitting by random forest
+computed_metrics: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+srun: Force Terminated job 10444220
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: Timed out waiting for job step to complete
+]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ ky[K[K

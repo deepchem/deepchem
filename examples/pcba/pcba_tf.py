@@ -25,7 +25,7 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/tmp/pcba_tf"
+base_dir = "/scratch/users/zqwu/pcba_tf"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

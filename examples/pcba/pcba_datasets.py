@@ -91,22 +91,22 @@ def load_pcba(base_dir, reload=True, frac_train=.8):
     for transformer in transformers:
         transformer.transform(dataset)
 
-  print("About to perform train/valid/test split.")
-  num_train = frac_train * len(dataset)
-  X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-  num_tasks = 120
-  PCBA_tasks = PCBA_tasks[:num_tasks]
-  print("Using following tasks")
-  print(PCBA_tasks)
-  X_train, X_valid = X[:num_train], X[num_train:]
-  y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
-  w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
-  ids_train, ids_valid = ids[:num_train], ids[num_train:]
+  #print("About to perform train/valid/test split.")
+  #num_train = int(frac_train * len(dataset))
+  #X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+  #num_tasks = 120
+  #PCBA_tasks = PCBA_tasks[:num_tasks]
+  #print("Using following tasks")
+  #print(PCBA_tasks)
+  #X_train, X_valid = X[:num_train], X[num_train:]
+  #y_train, y_valid = y[:num_train, :num_tasks], y[num_train:, :num_tasks]
+  #w_train, w_valid = w[:num_train, :num_tasks], w[num_train:, :num_tasks]
+  #ids_train, ids_valid = ids[:num_train], ids[num_train:]
 
-  train_dataset = DiskDataset.from_numpy(train_dir, X_train, y_train,
-                                     w_train, ids_train, PCBA_tasks)
-  valid_dataset = DiskDataset.from_numpy(valid_dir, X_valid, y_valid,
-                                     w_valid, ids_valid, PCBA_tasks)
+  #train_dataset = DiskDataset.from_numpy(train_dir, X_train, y_train,
+  #                                   w_train, ids_train, PCBA_tasks)
+  #valid_dataset = DiskDataset.from_numpy(valid_dir, X_valid, y_valid,
+  #                                   w_valid, ids_valid, PCBA_tasks)
 
   
   return PCBA_tasks, dataset, transformers
