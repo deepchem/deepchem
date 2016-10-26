@@ -281,7 +281,7 @@ class ConvMol(object):
     # second colum telling the size of each degree block
 
     # Input for tensorflow 
-    deg_slice = np.array(zip(deg_start, deg_sizes))
+    deg_slice = np.array(list(zip(deg_start, deg_sizes)))
     
     # Determines the membership (atom i belongs to membership[i] molecule)
     membership = [k

@@ -145,7 +145,7 @@ class ConvMolFeaturizer(Featurizer):
     # Get the node features
     idx_nodes = [(a.GetIdx(), atom_features(a)) for a in mol.GetAtoms()]
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
-    idx, nodes = zip(*idx_nodes)
+    idx, nodes = list(zip(*idx_nodes))
 
     # Stack nodes into an array
     nodes = np.vstack(nodes)
