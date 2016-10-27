@@ -168,6 +168,28 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
+  def transform(self, fn, **args):
+    """Construct a new dataset by applying a transformation to every sample in this dataset.
+
+    The argument is a function that can be called as follows:
+
+    >>> newx, newy, neww = fn(x, y, w)
+
+    It might be called only once with the whole dataset, or multiple times with different
+    subsets of the data.  Each time it is called, it should transform the samples and return
+    the transformed data.
+
+    Parameters
+    ----------
+    fn: function
+      A function to apply to each sample in the dataset
+
+    Returns
+    -------
+    a newly constructed Dataset object
+    """
+    raise NotImplementedError()
+
   def get_statistics(self, X_stats=True, y_stats=True):
     """Compute and return statistics of this dataset."""
     X_means = 0.0
@@ -297,6 +319,29 @@ class NumpyDataset(Dataset):
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i]) for i in range(n_samples))
+
+  def transform(self, fn, **args):
+    """Construct a new dataset by applying a transformation to every sample in this dataset.
+
+    The argument is a function that can be called as follows:
+
+    >>> newx, newy, neww = fn(x, y, w)
+
+    It might be called only once with the whole dataset, or multiple times with different
+    subsets of the data.  Each time it is called, it should transform the samples and return
+    the transformed data.
+
+    Parameters
+    ----------
+    fn: function
+      A function to apply to each sample in the dataset
+
+    Returns
+    -------
+    a newly constructed Dataset object
+    """
+    newx, newy, neww = fn(self._X, self._y, self._w)
+    return NumpyDataset(newx, newy, neww, self._ids[:], self.verbosity)
 
 
 class DiskDataset(Dataset):
@@ -559,6 +604,45 @@ class DiskDataset(Dataset):
             for i in range(n_samples):
                 yield (X_shard[i], y_shard[i], w_shard[i], ids_shard[i])
     return iterate(self)
+
+  def transform(self, fn, **args):
+    """Construct a new dataset by applying a transformation to every sample in this dataset.
+
+    The argument is a function that can be called as follows:
+
+    >>> newx, newy, neww = fn(x, y, w)
+
+    It might be called only once with the whole dataset, or multiple times with different
+    subsets of the data.  Each time it is called, it should transform the samples and return
+    the transformed data.
+
+    Parameters
+    ----------
+    fn: function
+      A function to apply to each sample in the dataset
+    out_dir: string
+      The directory to save the new dataset in.  If this is omitted, a temporary directory
+      is created automatically
+
+    Returns
+    -------
+    a newly constructed Dataset object
+    """
+    if 'out_dir' in args:
+        out_dir = args['out_dir']
+    else:
+        out_dir = tempfile.mkdtemp()
+    tasks = self.get_task_names()
+    metadata_rows = []
+    for shard_num, row in self.metadata_df.iterrows():
+      X, y, w, ids = self.get_shard(shard_num)
+      newx, newy, neww = fn(X, y, w)
+      basename = "dataset-%d" % shard_num
+      metadata_rows.append(DiskDataset.write_data_to_disk(
+          out_dir, basename, tasks, newx, newy, neww, ids))
+    return DiskDataset(data_dir=out_dir,
+                   metadata_rows=metadata_rows,
+                   verbosity=self.verbosity)
 
   def reshard(self, shard_size):
     """Reshards data to have specified shard size."""
@@ -939,41 +1023,6 @@ class DiskDataset(Dataset):
   def get_label_stds(self):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
-
-  def get_grad_statistics(self):
-    """Computes and returns statistics of this dataset
-
-    This function assumes that the first task of a dataset holds the energy for
-    an input system, and that the remaining tasks holds the gradient for the
-    system.
-
-    TODO(rbharath, joegomes): It is unclear whether this should be a Dataset
-    function. Might get refactored out.
-    TODO(rbharath, joegomes): If y_n were an exposed part of the API, this
-    function could be entirely written in userspace.
-    """
-    if len(self) == 0:
-      return None, None, None, None
-    df = self.metadata_df
-    y = []
-    y_n = []
-    for _, row in df.iterrows():
-      yy = load_from_disk(os.path.join(self.data_dir, row['y']))
-      y.append(yy)
-      yn = load_from_disk(os.path.join(self.data_dir, row['y_n']))
-      y_n.append(np.array(yn))
-
-    y = np.vstack(y)
-    y_n = np.sum(y_n, axis=0)
-
-    energy = y[:,0]
-    grad = y[:,1:]
-    for i in range(energy.size):
-      grad[i] *= energy[i]
-
-    ydely_means = np.sum(grad, axis=0)/y_n[1:]
-
-    return grad, ydely_means
 
 def compute_sums_and_nb_sample(tensor, W=None):
   """

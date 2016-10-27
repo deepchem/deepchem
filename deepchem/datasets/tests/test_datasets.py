@@ -289,7 +289,7 @@ class TestBasicDatasetAPI(TestDatasetAPI):
         np.testing.assert_array_equal(sw, w[i])
         np.testing.assert_array_equal(sid, ids[i])
 
-  def test_itersamples_dist(self):
+  def test_itersamples_disk(self):
     """Test that iterating over samples in a DiskDataset works."""
     solubility_dataset = self.load_solubility_data()
     X = solubility_dataset.X
@@ -301,6 +301,56 @@ class TestBasicDatasetAPI(TestDatasetAPI):
         np.testing.assert_array_equal(sy, y[i])
         np.testing.assert_array_equal(sw, w[i])
         np.testing.assert_array_equal(sid, ids[i])
+
+  def test_transform_numpy(self):
+    """Test that the transform() method works for NumpyDatasets."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+
+    # Generate data
+
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    dataset = NumpyDataset(X, y, w, ids)
+
+    # Transform it
+
+    def fn(x, y, w):
+      return (2*x, 1.5*y, w)
+    transformed = dataset.transform(fn)
+    np.testing.assert_array_equal(X, dataset.X)
+    np.testing.assert_array_equal(y, dataset.y)
+    np.testing.assert_array_equal(w, dataset.w)
+    np.testing.assert_array_equal(ids, dataset.ids)
+    np.testing.assert_array_equal(2*X, transformed.X)
+    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(w, transformed.w)
+    np.testing.assert_array_equal(ids, transformed.ids)
+
+  def test_transform_disk(self):
+    """Test that the transform() method works for DiskDatasets."""
+    dataset = self.load_solubility_data()
+    X = dataset.X
+    y = dataset.y
+    w = dataset.w
+    ids = dataset.ids
+
+    # Transform it
+
+    def fn(x, y, w):
+      return (2*x, 1.5*y, w)
+    transformed = dataset.transform(fn)
+    np.testing.assert_array_equal(X, dataset.X)
+    np.testing.assert_array_equal(y, dataset.y)
+    np.testing.assert_array_equal(w, dataset.w)
+    np.testing.assert_array_equal(ids, dataset.ids)
+    np.testing.assert_array_equal(2*X, transformed.X)
+    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(w, transformed.w)
+    np.testing.assert_array_equal(ids, transformed.ids)
 
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""

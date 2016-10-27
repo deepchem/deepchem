@@ -28,6 +28,23 @@ def undo_grad_transforms(grad, tasks, transformers):
       grad = transformer.untransform_grad(grad, tasks)
   return grad
 
+def get_grad_statistics(dataset):
+  """Computes and returns statistics of a dataset
+
+  This function assumes that the first task of a dataset holds the energy for
+  an input system, and that the remaining tasks holds the gradient for the
+  system.
+  """
+  if len(dataset) == 0:
+    return None, None, None, None
+  y = dataset.y
+  energy = y[:,0]
+  grad = y[:,1:]
+  for i in range(energy.size):
+    grad[i] *= energy[i]
+  ydely_means = np.sum(grad, axis=0)/len(energy)
+  return grad, ydely_means
+
 class Transformer(object):
   """
   Abstract base class for different ML models.
@@ -117,7 +134,7 @@ class NormalizationTransformer(Transformer):
       self.y_stds = y_stds
     self.transform_gradients = transform_gradients
     if self.transform_gradients:
-      true_grad, ydely_means = dataset.get_grad_statistics()
+      true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
       self.ydely_means = ydely_means
 
@@ -195,7 +212,7 @@ class AtomicNormalizationTransformer(Transformer):
     # Control for pathological case with no variance.
     y_stds[y_stds == 0] = 1.
     self.y_stds = y_stds
-    true_grad, ydely_means = dataset.get_grad_statistics()
+    true_grad, ydely_means = get_grad_statistics(dataset)
     self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
     self.ydely_means = ydely_means
 
