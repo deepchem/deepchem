@@ -4152,4 +4152,4 @@ computed_metrics: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1
 srun: Force Terminated job 10444220
 srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
 srun: error: Timed out waiting for job step to complete
-]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ ky[K[K
+]0;zqwu@sherlock-ln01:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln01 [1m[31mlogin_node[m ~/deepchem/examples]$ ky[K[Ktimed out waiting for input: auto-logout

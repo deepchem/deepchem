@@ -51,10 +51,10 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
     print('Benchmark test on datasets: tox21')
     print('-------------------------------------')
     base_dir = os.path.join(base_dir_o, "tox21")
-    time1 = time.clock()
+    time1 = time.time()
     tasks_tox21,datasets_tox21,transformers_tox21 = load_tox21(base_dir,
                                                                reload=reload)
-    time2 = time.clock()
+    time2 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
       f.write('Time for loading tox21,'+str(time2-time1)+'\n')
         
@@ -63,7 +63,7 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
                                                 valid_dataset,
                                                 tasks_tox21,transformers_tox21,
                                                 n_features, model, verbosity)
-    time3 = time.clock()
+    time3 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
         f.write('Time for running tox21,'+model+','+str(time3-time2)+'\n')
     with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
@@ -82,9 +82,9 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
     print('Benchmark test on datasets: muv')
     print('-------------------------------------')
     base_dir = os.path.join(base_dir_o, "muv")
-    time1 = time.clock()
+    time1 = time.time()
     tasks_muv,datasets_muv,transformers_muv = load_muv(base_dir,reload=reload)
-    time2 = time.clock()
+    time2 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
       f.write('Time for loading MUV,'+str(time2-time1)+'\n')
     
@@ -95,7 +95,7 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
                                                  valid_dataset,
                                                  tasks_muv, transformers_muv,
                                                  n_features, model, verbosity)
-    time3 = time.clock()
+    time3 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
         f.write('Time for running MUV,'+model+','+str(time3-time2)+'\n')
     with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
@@ -119,9 +119,9 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
     valid_dir = os.path.join(base_dir, "valid_dataset")
     test_dir = os.path.join(base_dir, "test_dataset")
 
-    time1 = time.clock()
+    time1 = time.time()
     tasks_nci,datasets_nci,transformers_nci = load_nci(base_dir, reload=reload)
-    time2 = time.clock()
+    time2 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
         f.write('Time for loading nci,'+str(time2-time1)+'\n')
     print("About to perform train/valid/test split.")
@@ -133,7 +133,7 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
                                                  valid_dataset,
                                                  tasks_nci,transformers_nci,
                                                  n_features,model,verbosity)
-    time3 = time.clock()
+    time3 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
         f.write('Time for running nci,'+model+','+str(time3-time2)+'\n')
     with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
@@ -157,10 +157,10 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
     valid_dir = os.path.join(base_dir, "valid_dataset")
     test_dir = os.path.join(base_dir, "test_dataset")
 
-    time1 = time.clock()
+    time1 = time.time()
     tasks_pcba,datasets_pcba,transformers_pcba = load_pcba(base_dir,
                                                            reload=reload)
-    time2 = time.clock()
+    time2 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
       f.write('Time for loading pcba,'+str(time2-time1)+'\n')
         
@@ -175,7 +175,7 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
                                                 valid_dataset,
                                                 tasks_pcba,transformers_pcba,
                                                 n_features, model, verbosity)
-    time3 = time.clock()
+    time3 = time.time()
     with open('/home/zqwu/deepchem/examples/timing.csv','a') as f:
         f.write('Time for running pcba,'+model+','+str(time3-time2)+'\n')
     with open('/home/zqwu/deepchem/examples/results.csv','a') as f:
