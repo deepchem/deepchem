@@ -669,6 +669,8 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
   def test_graph_conv_singletask_classification_overfit(self):
     """Test graph-conv multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
@@ -729,6 +731,8 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
   def test_attn_lstm_singletask_classification_overfit(self):
     """Test support graph-conv multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
