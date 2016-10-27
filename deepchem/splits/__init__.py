@@ -41,7 +41,7 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def k_fold_split(self, dataset, directories, compute_feature_statistics=True):
+  def k_fold_split(self, dataset, directories=None, compute_feature_statistics=True):
     """Does K-fold split of dataset."""
     log("Computing K-fold split", self.verbosity)
     k = len(directories)
@@ -59,8 +59,6 @@ class Splitter(object):
       fold_dataset = rem_dataset.select( 
           fold_dir, fold_inds,
           compute_feature_statistics=compute_feature_statistics)
-      # TODO(rbharath): Is making a tempfile the best way to handle remainders?
-      # Would be  nice to be able to do in memory dataset construction...
       rem_dir = tempfile.mkdtemp()
       rem_dataset = rem_dataset.select( 
           rem_dir, rem_inds,
