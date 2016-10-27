@@ -45,7 +45,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
 
 2. `openbabel`
    ```bash
-   conda install -c omnia openbabel
+   conda install -c omnia openbabel=2.4.0
    ``` 
 
 3. `pandas`
