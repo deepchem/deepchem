@@ -639,7 +639,7 @@ class DiskDataset(Dataset):
       newx, newy, neww = fn(X, y, w)
       basename = "dataset-%d" % shard_num
       metadata_rows.append(DiskDataset.write_data_to_disk(
-          out_dir, basename, tasks, newx, newy, neww, ids))
+          out_dir, basename, tasks, newx, newy, neww, ids, False))
     return DiskDataset(data_dir=out_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)

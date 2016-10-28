@@ -57,7 +57,7 @@ class TestHyperparamOptAPI(TestAPI):
         NormalizationTransformer(transform_y=True, dataset=train_dataset)]
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
     params_dict = {"n_estimators": [10, 100]}
     metric = Metric(metrics.r2_score)
