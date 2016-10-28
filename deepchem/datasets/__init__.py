@@ -176,21 +176,21 @@ class Dataset(object):
     y_m2 = 0.0
     n = 0
     for X, y, _, _ in self.itersamples():
-        n += 1
-        if X_stats:
-            dx = X-X_means
-            X_means += dx/n
-            X_m2 += dx*(X-X_means)
-        if y_stats:
-            dy = y-y_means
-            y_means += dy/n
-            y_m2 += dy*(y-y_means)
+      n += 1
+      if X_stats:
+        dx = X-X_means
+        X_means += dx/n
+        X_m2 += dx*(X-X_means)
+      if y_stats:
+        dy = y-y_means
+        y_means += dy/n
+        y_m2 += dy*(y-y_means)
     if n < 2:
-        X_stds = 0.0
-        y_stds = 0
+      X_stds = 0.0
+      y_stds = 0
     else:
-        X_stds = np.sqrt(X_m2/n)
-        y_stds = np.sqrt(y_m2/n)
+      X_stds = np.sqrt(X_m2/n)
+      y_stds = np.sqrt(y_m2/n)
     if X_stats and not y_stats:
       return X_means, X_stds
     elif y_stats and not X_stats:
@@ -237,7 +237,7 @@ class NumpyDataset(Dataset):
 
   def get_task_names(self):
     """Get the names of the tasks associated with this dataset."""
-    tasks = np.arange(self._y.shape[1])
+    return np.arange(self._y.shape[1])
 
   @property
   def X(self):
@@ -486,7 +486,6 @@ class DiskDataset(Dataset):
     """
     return self.metadata_df.shape[0]
 
-
   def itershards(self):
     """
     Return an object that iterates over all shards in dataset.
@@ -603,6 +602,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None,
                  compute_feature_statistics=True):
+    """Creates a DiskDataset object from specified Numpy arrays."""
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:

@@ -41,7 +41,7 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def k_fold_split(self, dataset, directories, compute_feature_statistics=True):
+  def k_fold_split(self, dataset, directories=None, compute_feature_statistics=True):
     """Does K-fold split of dataset."""
     log("Computing K-fold split", self.verbosity)
     k = len(directories)
@@ -59,8 +59,6 @@ class Splitter(object):
       fold_dataset = rem_dataset.select( 
           fold_dir, fold_inds,
           compute_feature_statistics=compute_feature_statistics)
-      # TODO(rbharath): Is making a tempfile the best way to handle remainders?
-      # Would be  nice to be able to do in memory dataset construction...
       rem_dir = tempfile.mkdtemp()
       rem_dataset = rem_dataset.select( 
           rem_dir, rem_inds,
@@ -68,8 +66,8 @@ class Splitter(object):
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
-  def train_valid_test_split(self, dataset, train_dir,
-                             valid_dir, test_dir, frac_train=.8,
+  def train_valid_test_split(self, dataset, train_dir=None,
+                             valid_dir=None, test_dir=None, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
                              log_every_n=1000,
                              compute_feature_statistics=True):
@@ -241,7 +239,6 @@ class RandomStratifiedSplitter(Splitter):
           rem_dataset, [fold_dir, rem_dir], frac_split=frac_fold)
       fold_datasets.append(fold_dataset)
     return fold_datasets
-
 
 
 class MolecularWeightSplitter(Splitter):
