@@ -632,6 +632,8 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
   def test_tf_robust_multitask_regression_overfit(self):
     """Test tf robust multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
     n_tasks = 10
     n_samples = 10
     n_features = 3
