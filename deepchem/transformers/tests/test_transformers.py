@@ -31,7 +31,7 @@ class TestTransformerAPI(TestDatasetAPI):
     log_transformer = LogTransformer(
         transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
-    log_transformer.transform(solubility_dataset)
+    solubility_dataset = log_transformer.transform(solubility_dataset)
     X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
@@ -53,7 +53,7 @@ class TestTransformerAPI(TestDatasetAPI):
     log_transformer = LogTransformer(
         transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
-    log_transformer.transform(solubility_dataset)
+    solubility_dataset = log_transformer.transform(solubility_dataset)
     X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
@@ -85,7 +85,7 @@ class TestTransformerAPI(TestDatasetAPI):
         transform_y=True, tasks=tasks,
         dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
-    log_transformer.transform(multitask_dataset)
+    multitask_dataset = log_transformer.transform(multitask_dataset)
     X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
@@ -117,7 +117,7 @@ class TestTransformerAPI(TestDatasetAPI):
         transform_X=True, features=features,
         dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
-    log_transformer.transform(multitask_dataset)
+    multitask_dataset = log_transformer.transform(multitask_dataset)
     X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
@@ -139,7 +139,7 @@ class TestTransformerAPI(TestDatasetAPI):
     normalization_transformer = NormalizationTransformer(
         transform_y=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
-    normalization_transformer.transform(solubility_dataset)
+    solubility_dataset = normalization_transformer.transform(solubility_dataset)
     X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -161,7 +161,7 @@ class TestTransformerAPI(TestDatasetAPI):
     normalization_transformer = NormalizationTransformer(
         transform_X=True, dataset=solubility_dataset)
     X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
-    normalization_transformer.transform(solubility_dataset)
+    solubility_dataset = normalization_transformer.transform(solubility_dataset)
     X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -194,8 +194,7 @@ class TestTransformerAPI(TestDatasetAPI):
     bins=1001
     cdf_transformer = CDFTransformer(transform_X=True, bins=bins)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
-    cdf_transformer.transform(gaussian_dataset, bins=bins)
-    gaussian_dataset = DiskDataset(data_dir=gaussian_dataset.data_dir,reload=True)
+    gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
 
     # Check ids are unchanged.
@@ -218,7 +217,7 @@ class TestTransformerAPI(TestDatasetAPI):
     bins=1001
     cdf_transformer = CDFTransformer(transform_y=True, bins=bins)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
-    cdf_transformer.transform(gaussian_dataset, bins=bins)
+    gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
     gaussian_dataset = DiskDataset(data_dir=gaussian_dataset.data_dir,reload=True)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
 
@@ -240,7 +239,7 @@ class TestTransformerAPI(TestDatasetAPI):
     powers=[1,2,0.5]
     power_transformer = PowerTransformer(transform_X=True, powers=powers)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
-    power_transformer.transform(gaussian_dataset)
+    gaussian_dataset = power_transformer.transform(gaussian_dataset)
     gaussian_dataset = DiskDataset(data_dir=gaussian_dataset.data_dir,reload=True)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
 
@@ -263,7 +262,7 @@ class TestTransformerAPI(TestDatasetAPI):
     balancing_transformer = BalancingTransformer(
       transform_w=True, dataset=classification_dataset)
     X, y, w, ids = (classification_dataset.X, classification_dataset.y, classification_dataset.w, classification_dataset.ids)
-    balancing_transformer.transform(classification_dataset)
+    classification_dataset = balancing_transformer.transform(classification_dataset)
     X_t, y_t, w_t, ids_t = (classification_dataset.X, classification_dataset.y, classification_dataset.w, classification_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -289,7 +288,7 @@ class TestTransformerAPI(TestDatasetAPI):
     balancing_transformer = BalancingTransformer(
       transform_w=True, dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
-    balancing_transformer.transform(multitask_dataset)
+    multitask_dataset = balancing_transformer.transform(multitask_dataset)
     X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):

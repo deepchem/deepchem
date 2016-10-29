@@ -87,7 +87,7 @@ class TestGeneralization(TestAPI):
         NormalizationTransformer(transform_y=True, dataset=train_dataset)]
     for data in [train_dataset, test_dataset]:
       for transformer in transformers:
-          transformer.transform(data)
+          data = transformer.transform(data)
 
     verbosity = "high"
     regression_metric = Metric(metrics.r2_score, verbosity=verbosity)

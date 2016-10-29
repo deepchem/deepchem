@@ -108,7 +108,7 @@ class TestModelAPI(TestAPI):
     transformers = input_transformers + output_transformers
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -157,7 +157,7 @@ class TestModelAPI(TestAPI):
     transformers = input_transformers + output_transformers
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
     regression_metrics = [Metric(metrics.r2_score),
                           Metric(metrics.mean_squared_error),
@@ -246,7 +246,7 @@ class TestModelAPI(TestAPI):
 
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
     classification_metrics = [Metric(metrics.roc_auc_score),
                               Metric(metrics.matthews_corrcoef),

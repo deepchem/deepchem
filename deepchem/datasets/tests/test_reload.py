@@ -77,7 +77,7 @@ class TestReload(TestAPI):
     print("Transforming datasets")
     for dataset in [train_dataset, valid_dataset, test_dataset]:
       for transformer in transformers:
-          transformer.transform(dataset)
+          dataset = transformer.transform(dataset)
 
     return (len(train_dataset), len(valid_dataset), len(test_dataset))
     

@@ -12,7 +12,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils import pad_array
 import shutil
-from deepchem.datasets import DiskDataset
+from deepchem.datasets import DiskDataset, NumpyDataset
 
 def undo_transforms(y, transformers):
   """Undoes all transformations applied."""
@@ -27,6 +27,23 @@ def undo_grad_transforms(grad, tasks, transformers):
     if transformer.transform_y:
       grad = transformer.untransform_grad(grad, tasks)
   return grad
+
+def get_grad_statistics(dataset):
+  """Computes and returns statistics of a dataset
+
+  This function assumes that the first task of a dataset holds the energy for
+  an input system, and that the remaining tasks holds the gradient for the
+  system.
+  """
+  if len(dataset) == 0:
+    return None, None, None, None
+  y = dataset.y
+  energy = y[:,0]
+  grad = y[:,1:]
+  for i in range(energy.size):
+    grad[i] *= energy[i]
+  ydely_means = np.sum(grad, axis=0)/len(energy)
+  return grad, ydely_means
 
 class Transformer(object):
   """
@@ -47,14 +64,8 @@ class Transformer(object):
     # Use fact that bools add as ints in python
     assert (transform_X + transform_y + transform_w) == 1 
 
-  def transform_row(self, i, df, data_dir):
-    """
-    Transforms the data (X, y, w, ...) in a single row).
-    """
-    raise NotImplementedError(
-      "Each Transformer is responsible for its own transform_row method.")
-
   def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
     raise NotImplementedError(
       "Each Transformer is responsible for its own transform_array method.")
 
@@ -63,25 +74,12 @@ class Transformer(object):
     raise NotImplementedError(
       "Each Transformer is responsible for its own untransfomr method.")
 
-  # TODO(rbharath): Change this function to behave like the featurization
-  # (accept IPyparallel pool objects to allow for multi-node parallelism)
   def transform(self, dataset, parallel=False):
     """
     Transforms all internally stored data.
     Adds X-transform, y-transform columns to metadata.
     """
-    df = dataset.metadata_df
-    indices = range(0, df.shape[0])
-    transform_row_partial = partial(
-        _transform_row, df=df, transformer=self, data_dir=dataset.data_dir)
-    if parallel:
-      pool = mp.Pool(int(mp.cpu_count()/4))
-      pool.map(transform_row_partial, indices)
-      pool.terminate()
-    else:
-      for index in indices:
-        transform_row_partial(index)
-    dataset.save_to_disk()
+    return dataset.transform(lambda X, y, w: self.transform_array(X, y, w))
 
   def transform_on_array(self, X, y, w):
     """
@@ -89,13 +87,6 @@ class Transformer(object):
     """
     X, y, w = self.transform_array(X, y, w)    
     return X, y, w
-
-def _transform_row(i, df, transformer, data_dir):
-  """
-  Transforms the data (X, y, w,...) in a single row.
-  Writes X-transformed, y-transformed to disk.
-  """
-  transformer.transform_row(i, df, data_dir)
 
 class NormalizationTransformer(Transformer):
 
@@ -117,31 +108,21 @@ class NormalizationTransformer(Transformer):
       self.y_stds = y_stds
     self.transform_gradients = transform_gradients
     if self.transform_gradients:
-      true_grad, ydely_means = dataset.get_grad_statistics()
+      true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
       self.ydely_means = ydely_means
 
   def transform(self, dataset, parallel=False):
-    super(NormalizationTransformer, self).transform(
+    return super(NormalizationTransformer, self).transform(
         dataset, parallel=parallel)
-    
 
-  def transform_row(self, i, df, data_dir):
-    """
-    Normalizes the data (X, y, w, ...) in a single row).
-    """
-    row = df.iloc[i]
-
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X = load_from_disk(
-          os.path.join(data_dir, row['X-transformed']))
       X = np.nan_to_num((X - self.X_means) / self.X_stds)
-      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
-
     if self.transform_y:
-      y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
       y = np.nan_to_num((y - self.y_means) / self.y_stds)
-      save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
+    return (X, y, w)
 
   def untransform(self, z):
     """
@@ -195,12 +176,12 @@ class AtomicNormalizationTransformer(Transformer):
     # Control for pathological case with no variance.
     y_stds[y_stds == 0] = 1.
     self.y_stds = y_stds
-    true_grad, ydely_means = dataset.get_grad_statistics()
+    true_grad, ydely_means = get_grad_statistics(dataset)
     self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
     self.ydely_means = ydely_means
 
   def transform(self, dataset, parallel=False):
-    super(AtomicNormalizationTransformer, self).transform(
+    return super(AtomicNormalizationTransformer, self).transform(
         dataset, parallel=parallel)
     
 
@@ -229,6 +210,19 @@ class AtomicNormalizationTransformer(Transformer):
         y[i,1:] = y[i,1:] - grad_var*y[i,0]/self.y_stds[0]
 
       save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
+
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
+    if self.transform_X:
+      X = np.nan_to_num((X - self.X_means) / self.X_stds)
+    if self.transform_y:
+      # transform tasks as normal
+      y = np.nan_to_num((y - self.y_means) / self.y_stds)
+      # add 2nd order correction term to gradients
+      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
+      for i in range(y.shape[0]):
+        y[i,1:] = y[i,1:] - grad_var*y[i,0]/self.y_stds[0]
+    return (X, y, w)
 
   def untransform(self, z):
     """
@@ -281,21 +275,15 @@ class ClippingTransformer(Transformer):
                                               dataset=dataset)
     self.max_val = max_val
 
-  def transform_row(self, i, df, data_dir):
-    """
-    Clips outliers for the data (X, y, w, ...) in a single row).
-    """
-    row = df.iloc[i]
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
       X[X > self.max_val] = self.max_val
       X[X < (-1.0*self.max_val)] = -1.0 * self.max_val
-      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
     if self.transform_y:
-      y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
       y[y > trunc] = trunc
       y[y < (-1.0*trunc)] = -1.0 * trunc
-      save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
+    return (X, y, w)
 
   def untransform(self, z):
     warnings.warn("Clipping cannot be undone.")
@@ -313,12 +301,9 @@ class LogTransformer(Transformer):
         transform_X=transform_X, transform_y=transform_y,
         dataset=dataset)
 
-  def transform_row(self, i, df, data_dir):
-    """Logarithmically transforms data in dataset."""
-    """Select features and tasks of interest for transformation."""
-    row = df.iloc[i]
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
       num_features=len(X[0])
       if self.features is None:
         X = np.log(X+1)
@@ -328,10 +313,7 @@ class LogTransformer(Transformer):
             X[:,j] = np.log(X[:,j]+1)
           else:
             X[:,j] = X[:,j]
-      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
-
     if self.transform_y:
-      y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
       num_tasks=len(y[0])
       if self.tasks is None:
         y = np.log(y+1)
@@ -341,7 +323,7 @@ class LogTransformer(Transformer):
             y[:,j] = np.log(y[:,j]+1)
           else:
             y[:,j] = y[:,j]
-      save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
+    return (X, y, w)
 
   def untransform(self, z):
     """
@@ -403,11 +385,8 @@ class BalancingTransformer(Transformer):
       weights.append((neg_weight, pos_weight))
     self.weights = weights
 
-  def transform_row(self, i, df, data_dir):
-    """Reweight the labels for this data."""
-    row = df.iloc[i]
-    y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-    w = load_from_disk(os.path.join(data_dir, row['w-transformed']))
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
     w_balanced = np.zeros_like(w)
     for ind, task in enumerate(self.dataset.get_task_names()):
       task_y = y[:, ind]
@@ -416,7 +395,7 @@ class BalancingTransformer(Transformer):
       one_indices = np.logical_and(task_y==1, task_w != 0)
       w_balanced[zero_indices, ind] = self.weights[ind][0]
       w_balanced[one_indices, ind] = self.weights[ind][1]
-    save_to_disk(w_balanced, os.path.join(data_dir, row['w-transformed']))
+    return (X, y, w_balanced)
 
 class CoulombRandomizationTransformer(Transformer):
 
@@ -467,22 +446,6 @@ class CoulombRandomizationTransformer(Transformer):
 
     return rcm
 
-  def transform_row(self, i, df, data_dir):
-    """
-    Randomly permute a Coulomb Matrix in a dataset
-    """
-    row = df.iloc[i]
-    if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      for j in range(len(X)):
-        cm = self.construct_cm_from_triu(X[j])
-        X[j] = self.unpad_randomize_and_flatten(cm)
-      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
-
-    if self.transform_y:
-      print("y will not be transformed by "
-            "CoulombRandomizationTransformer.")
-
   def transform_array(self, X, y, w):
     """
     Randomly permute a Coulomb Matrix passed as an array
@@ -520,7 +483,7 @@ class CoulombBinarizationTransformer(Transformer):
 
   def transform(self, dataset, parallel=False):
 
-    super(CoulombBinarizationTransformer, self).transform(dataset,
+    dataset = super(CoulombBinarizationTransformer, self).transform(dataset,
           parallel=parallel)
 
     df = dataset.metadata_df
@@ -537,28 +500,7 @@ class CoulombBinarizationTransformer(Transformer):
     for i, row in df.iterrows():
       X_t = (Xt[i]-X_means)/X_stds
       save_to_disk(X_t, os.path.join(dataset.data_dir, row['X-transformed']))
-
-  def transform_row(self, i, df, data_dir):
-    """
-    Binarizes data in dataset with sigmoid function
-    """
-    row = df.iloc[i]
-    X_bin = []
-    if self.update_state: 
-      self.set_max(df, data_dir)
-      self.update_state = False
-    if self.transform_X:
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      for i in range(X.shape[1]):
-        for k in np.arange(0,self.feature_max[i]+self.theta,self.theta):
-          X_bin += [np.tanh((X[:,i]-k)/self.theta)]
-
-      X_bin = np.array(X_bin).T
-      save_to_disk(X_bin, os.path.join(data_dir, row['X-transformed']))
-
-    if self.transform_y:
-      print("y will not be transformed by "
-            "CoulombBinarizationTransformer.")
+    return dataset
 
   def transform_array(self, X, y, w):
     """
@@ -612,10 +554,7 @@ class CDFTransformer(Transformer):
       y_t = get_cdf_values(y,self.bins)
       X_t = X
       """
-    # TODO (rbharath): Find a more elegant solution to saving the data?
-    shutil.rmtree(dataset.data_dir)
-    os.makedirs(dataset.data_dir)
-    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
+    return NumpyDataset(X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
     print("Cannot undo CDF Transformer, for now.")
@@ -674,6 +613,7 @@ class PowerTransformer(Transformer):
     shutil.rmtree(dataset.data_dir)
     os.makedirs(dataset.data_dir)
     DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
+    return dataset
 
   def untransform(self, z):
     print("Cannot undo Power Transformer, for now.")    
