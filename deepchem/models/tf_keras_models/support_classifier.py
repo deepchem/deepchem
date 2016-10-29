@@ -136,6 +136,24 @@ class SupportGenerator(object):
   each task, and returns in a randomized order
   """
   def __init__(self, dataset, tasks, n_pos, n_neg, n_trials, replace):
+    """
+    Parameters
+    ----------
+    dataset: deepchem.datasets.Dataset
+      Holds dataset from which support sets will be sampled.
+    tasks: list
+      Indices of tasks from which supports are sampled.
+      TODO(rbharath): Can this be removed.
+    n_pos: int
+      Number of positive samples
+    n_neg: int
+      Number of negative samples.
+    n_trials: int
+      Number of support sets to sample from dataset.
+    replace: bool
+      Whether to use sampling with or without replacement.
+    """
+      
     self.tasks = tasks
     self.n_tasks = len(tasks)
     self.n_trials = n_trials

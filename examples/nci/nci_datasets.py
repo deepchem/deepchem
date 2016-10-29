@@ -84,6 +84,6 @@ def load_nci(base_dir, reload=True, force_transform=False,
     transformers = [
         NormalizationTransformer(transform_y=True, dataset=dataset)]
     for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   return all_nci_tasks, dataset, transformers

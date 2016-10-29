@@ -67,7 +67,7 @@ def load_muv(base_dir, reload=True, frac_train=.8):
   if regen:
     print("About to transform data")
     for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
   num_tasks = 17
