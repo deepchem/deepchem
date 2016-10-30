@@ -1,5 +1,5 @@
 """
-Train low-data models on random forests.
+Train low-data models with random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
