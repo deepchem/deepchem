@@ -47,9 +47,11 @@ def model_builder(model_dir):
 model = SingletaskToMultitask(tox21_tasks, model_builder, model_dir)
 
 # Fit trained model
+print("About to fit model")
 model.fit(train_dataset)
 model.save()
 
+print("About to evaluate model")
 train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
 train_scores = train_evaluator.compute_model_performance([classification_metric])
 

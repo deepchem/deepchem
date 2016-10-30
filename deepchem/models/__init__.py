@@ -14,6 +14,7 @@ import joblib
 import os
 import tempfile
 import sklearn
+
 from deepchem.datasets import Dataset, pad_features
 from deepchem.transformers import undo_transforms
 from deepchem.transformers import undo_grad_transforms
@@ -21,6 +22,7 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
 from deepchem.datasets import pad_batch
+from deepchem.utils.evaluate import Evaluator
 
 
 class Model(object):
@@ -174,6 +176,29 @@ class Model(object):
     if n_tasks == 1:
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
+
+  def evaluate(self, dataset, metrics, transformers=[]):
+    """
+    Evaluates the performance of this model on specified dataset.
+  
+    Parameters
+    ----------
+    dataset: deepchem.datasets.Dataset
+      Dataset object.
+    metric: deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list
+      List of deepchem.transformers.Transformer
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
+    evaluator = Evaluator(self, dataset, transformers,
+                          verbosity=self.verbosity)
+    scores = evaluator.compute_model_performance(metrics)
+    return scores
 
   def predict_grad(self, dataset, transformers=[], batch_size=50):
     """
