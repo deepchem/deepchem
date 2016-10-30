@@ -149,7 +149,8 @@ class SupportGenerator(object):
     n_neg: int
       Number of negative samples.
     n_trials: int
-      Number of support sets to sample from dataset.
+      Number of passes over tasks to make. In total, n_tasks*n_trials
+      support sets will be sampled by algorithm.
     replace: bool
       Whether to use sampling with or without replacement.
     """
@@ -334,10 +335,9 @@ class SupportGraphClassifier(Model):
       # Create different support sets
       for (task, support) in SupportGenerator(dataset, range(self.n_tasks),
           n_pos, n_neg, n_trials_per_epoch, replace):
-        print("Sampled Support set")
+        print("sampled support for task %s" % str(task))
         # Get batch to try it out on
         test = get_task_test(dataset, self.test_batch_size, task, replace)
-        print("Obtained batch")
         feed_dict = self.construct_feed_dict(test, support)
         # Train on support set, batch pair
         self.sess.run(self.train_op, feed_dict=feed_dict)
@@ -440,6 +440,12 @@ class SupportGraphClassifier(Model):
 
     TODO(rbharath): Does not currently support any transforms.
     TODO(rbharath): Only for 1 task at a time currently. Is there a better way?
+    Parameters
+    ----------
+    support: deepchem.datasets.Dataset
+      The support dataset
+    test: deepchem.datasets.Dataset
+      The test dataset
     """
     y_preds = []
     for (X_batch, y_batch, w_batch, ids_batch) in test.iterbatches(
@@ -460,6 +466,10 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
     y_pred_batch = np.round(scores)
+    ########################################################### DEBUG
+    # Remove padded elements
+    y_pred_batch = y_pred_batch[:n_samples]
+    ########################################################### DEBUG
     return y_pred_batch
 
   def predict_proba_on_batch(self, support, test_batch):
@@ -472,6 +482,10 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
     y_pred_batch = to_one_hot(np.round(pred))
+    ########################################################### DEBUG
+    # Remove padded elements
+    y_pred_batch = y_pred_batch[:n_samples]
+    ########################################################### DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, test_tasks, metric, n_pos=1,
@@ -523,7 +537,10 @@ class SupportGraphClassifier(Model):
         print("Keeping support datapoints for eval.")
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
-
+      ######################################################### DEBUG
+      #print("task_dataset.y.shape, y_pred.shape, task_dataset.w.shape")
+      #print(task_dataset.y.shape, y_pred.shape, task_dataset.w.shape)
+      ######################################################### DEBUG
       task_scores[task].append(metric.compute_metric(
           task_dataset.y, y_pred, task_dataset.w))
 

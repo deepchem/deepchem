@@ -77,11 +77,18 @@ with tf.Session() as sess:
     learning_rate=1e-3, learning_rate_decay_time=1000,
     optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
+  ############################################################ DEBUG
+  print("FIT")
+  ############################################################ DEBUG
   model.fit(train_dataset, nb_epoch=1, n_trials_per_epoch=10, n_pos=n_pos,
             n_neg=n_neg, replace=False)
   model.save()
 
+  ############################################################ DEBUG
+  print("EVAL")
+  ############################################################ DEBUG
   scores = model.evaluate(test_dataset, range(len(test_dataset.get_task_names())),
-                          metric, n_pos=n_pos, n_neg=n_neg, replace=replace)
+                          metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
+                          n_trials=n_trials)
   print("Scores")
   print(scores)
