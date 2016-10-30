@@ -176,9 +176,12 @@ class MultitaskGraphClassifier(Model):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbosity)
   
+    # TODO(rbharath): Disabling saving for now to try to debug.
+    ############################################################# DEBUG
     # Save an initial checkpoint.
-    saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-    saver.save(self.sess, self._save_path, global_step=0)
+    #saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+    #saver.save(self.sess, self._save_path, global_step=0)
+    ############################################################# DEBUG
     for epoch in range(nb_epoch):
       # TODO(rbharath): This decay shouldn't be hard-coded.
       lr = self.learning_rate / (1 + float(epoch) / self.T)
@@ -192,9 +195,13 @@ class MultitaskGraphClassifier(Model):
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
-      saver.save(self.sess, self._save_path, global_step=epoch)
+      ############################################################# DEBUG
+      #saver.save(self.sess, self._save_path, global_step=epoch)
+      ############################################################# DEBUG
+    ############################################################# DEBUG
     # Always save a final checkpoint when complete.
-    saver.save(self.sess, self._save_path, global_step=epoch+1)
+    #saver.save(self.sess, self._save_path, global_step=epoch+1)
+    ############################################################# DEBUG
 
   def save(self):
     """

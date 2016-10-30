@@ -667,7 +667,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
     evaluator = Evaluator(model, dataset, transformers, verbosity=verbosity)
     scores = evaluator.compute_model_performance([regression_metric])
 
-    assert scores[regression_metric.name] < .15
+    assert scores[regression_metric.name] < .2
 
   def test_graph_conv_singletask_classification_overfit(self):
     """Test graph-conv multitask overfits tiny data."""
