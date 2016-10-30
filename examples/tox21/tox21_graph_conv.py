@@ -12,8 +12,8 @@ import tensorflow as tf
 import deepchem as dc
 from keras import backend as K
 from tox21_datasets import load_tox21_convmol
-from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
-from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
+#from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
+#from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
 
 # Only for debug!
 np.random.seed(123)
@@ -26,7 +26,6 @@ with g.as_default():
 
   # Set some global variables up top
   verbosity = "high"
-
 
   #Make directories to store the raw and featurized datasets.
   base_dir = "/tmp/tox21_tf"
@@ -53,7 +52,7 @@ with g.as_default():
   n_feat = 71
   # Batch size of models
   batch_size = 50
-  graph_model = SequentialGraphModel(n_feat)
+  graph_model = dc.models.SequentialGraphModel(n_feat)
   graph_model.add(dc.nn.GraphConv(64, activation='relu'))
   graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
   graph_model.add(dc.nn.GraphPool())
@@ -67,13 +66,13 @@ with g.as_default():
   # Dense post-processing layer
 
   with tf.Session() as sess:
-    model = MultitaskGraphClassifier(
+    model = dc.models.MultitaskGraphClassifier(
       sess, graph_model, len(tox21_tasks), model_dir, batch_size=batch_size,
       learning_rate=1e-3, learning_rate_decay_time=1000,
       optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
 
     # Fit trained model
-    model.fit(train_dataset, nb_epoch=30)
+    model.fit(train_dataset, nb_epoch=10)
 
     train_scores = model.evaluate(train_dataset, [classification_metric])
     print("Train scores")
