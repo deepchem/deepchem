@@ -64,7 +64,7 @@ def load_tox21(base_dir, reload=True, num_train=7200):
   if not reload:
     print("About to transform data")
     for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
   X_train, X_valid = X[:num_train], X[num_train:]

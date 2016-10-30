@@ -89,7 +89,7 @@ def load_pcba(base_dir, reload=True, frac_train=.8):
   if regen:
     print("About to transform data")
     for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   print("About to perform train/valid/test split.")
   num_train = frac_train * len(dataset)

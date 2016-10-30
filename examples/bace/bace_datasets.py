@@ -123,7 +123,7 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   transformers = input_transformers + output_transformers
   for dataset in [train_dataset, valid_dataset, test_dataset, crystal_dataset]:
     for transformer in transformers:
-        transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
   return (bace_tasks, train_dataset, valid_dataset, test_dataset,
           crystal_dataset, output_transformers)
