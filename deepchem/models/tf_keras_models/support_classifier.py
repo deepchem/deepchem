@@ -293,18 +293,15 @@ class SupportGraphClassifier(Model):
       feed_dict[K.learning_phase()] = training
     return feed_dict
 
-  def fit(self, dataset, n_trials_per_epoch=1000, nb_epoch=10, n_pos=1,
+  def fit(self, dataset, n_trials=1000, n_pos=1,
           n_neg=9, replace=True, **kwargs):
     """Fits model on dataset.
 
-    Note that fitting for support models is quite different from fitting
-    for other deep models. Fitting is a two-level process. During each epoch,
-    we repeat n_trials_per_epoch, where for each trial, we randomply sample
-    a support set for a given task, and independently a test set from that same
-    task. The SupportGenerator class iterates over the tasks in random order.
-
-    # TODO(rbharath): Is the concept of an epoch even meaningful here? There's
-    # never a guarantee that the full dataset is covered as in usual fit.
+    Note that fitting for support models is quite different from fitting for
+    other deep models. Fitting is a two-level process.  We perform n_trials,
+    where for each trial, we randomply sample a support set for each given
+    task, and independently a test set from that same task. The
+    SupportGenerator class iterates over the tasks in random order.
 
     # TODO(rbharath): Would it improve performance to sample multiple test sets
     for each support set or would that only harm performance?
@@ -315,10 +312,8 @@ class SupportGraphClassifier(Model):
     ----------
     dataset: deepchem.datasets.Dataset
       Dataset to fit model on.
-    n_trials_per_epoch: int, optional
-      Number of (support, test) pairs to sample and train on per epoch.
-    nb_epoch: int, optional
-      Number of training epochs.
+    n_trials: int, optional
+      Number of (support, test) pairs to sample and train on.
     n_pos: int, optional
       Number of positive examples per support.
     n_neg: int, optional
@@ -327,20 +322,20 @@ class SupportGraphClassifier(Model):
       Whether or not to use replacement when sampling supports/tests.
     """
     # Perform the optimization
-    for epoch in range(nb_epoch):
-      # TODO(rbharath): Try removing this learning rate.
-      lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
-      print("Training epoch %d" % epoch)
+    # TODO(rbharath): Try removing this learning rate.
+    #lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
+    lr = self.learning_rate
 
-      # Create different support sets
-      for (task, support) in SupportGenerator(dataset, range(self.n_tasks),
-          n_pos, n_neg, n_trials_per_epoch, replace):
-        print("sampled support for task %s" % str(task))
-        # Get batch to try it out on
-        test = get_task_test(dataset, self.test_batch_size, task, replace)
-        feed_dict = self.construct_feed_dict(test, support)
-        # Train on support set, batch pair
-        self.sess.run(self.train_op, feed_dict=feed_dict)
+    # Create different support sets
+    support_generator = SupportGenerator(dataset, range(self.n_tasks),
+        n_pos, n_neg, n_trials, replace)
+    for ind, (task, support) in enumerate(support_generator):
+      print("Sample %d from task %s" % (ind, str(task)))
+      # Get batch to try it out on
+      test = get_task_test(dataset, self.test_batch_size, task, replace)
+      feed_dict = self.construct_feed_dict(test, support)
+      # Train on support set, batch pair
+      self.sess.run(self.train_op, feed_dict=feed_dict)
 
   def save(self):
     """Save all models
@@ -527,9 +522,10 @@ class SupportGraphClassifier(Model):
     """
     # Get batches
     task_scores = {task: [] for task in test_tasks}
-    for (task, support) in SupportGenerator(dataset, test_tasks,
-         n_pos, n_neg, n_trials, replace):
-      print("Sampled Support set.")
+    support_generator = SupportGenerator(dataset, test_tasks,
+        n_pos, n_neg, n_trials, replace)
+    for ind, (task, support) in enumerate(support_generator):
+      print("Eval sample %d from task %s" % (ind, str(task)))
       if exclude_support:
         print("Removing support datapoints for eval.")
         task_dataset = get_task_dataset_minus_support(dataset, support, task)

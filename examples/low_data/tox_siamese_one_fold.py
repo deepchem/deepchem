@@ -80,7 +80,7 @@ with tf.Session() as sess:
   ############################################################ DEBUG
   print("FIT")
   ############################################################ DEBUG
-  model.fit(train_dataset, nb_epoch=1, n_trials_per_epoch=10, n_pos=n_pos,
+  model.fit(train_dataset, nb_epoch=1, n_trials=10, n_pos=n_pos,
             n_neg=n_neg, replace=False)
   model.save()
 
