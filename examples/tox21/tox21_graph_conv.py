@@ -12,8 +12,6 @@ import tensorflow as tf
 import deepchem as dc
 from keras import backend as K
 from tox21_datasets import load_tox21_convmol
-#from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
-#from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
 
 # Only for debug!
 np.random.seed(123)
