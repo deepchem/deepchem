@@ -848,7 +848,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       support_model.add_test(dc.nn.GraphGather(test_batch_size))
       support_model.add_support(dc.nn.GraphGather(support_batch_size))
 
-      # Apply an attention lstm layer
+      # Apply a residual lstm layer
       support_model.join(dc.nn.ResiLSTMEmbedding(
           test_batch_size, support_batch_size, max_depth))
 

@@ -564,6 +564,10 @@ class ResiLSTMEmbedding(Layer):
   def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
                activation='linear', **kwargs):
     """
+    Unlike the AttnLSTM model which only modifies the test vectors additively,
+    this model allows for an additive update to be performed to both test and
+    support using information from each other.
+
     Parameters
     ----------
     n_support: int
