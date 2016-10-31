@@ -18,44 +18,23 @@ import shutil
 import tensorflow as tf
 import deepchem as dc
 from keras import backend as K
-#from keras.layers import Dense, BatchNormalization
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-#from deepchem.models.keras_models import KerasModel
-#from deepchem.models.keras_models.fcnet import MultiTaskDNN
-#from deepchem.models.tensorflow_models import TensorflowModel
-#from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
-#from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-#from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
-#from deepchem.models.multitask import SingletaskToMultitask
-#from deepchem.models.tf_keras_models.graph_models import SequentialGraph
-#from deepchem.models.tf_keras_models.keras_layers import GraphConv
-#from deepchem.models.tf_keras_models.keras_layers import GraphPool
-#from deepchem.models.tf_keras_models.keras_layers import GraphGather
-#from deepchem.featurizers.graph_features import ConvMolFeaturizer
-#from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraph
-#from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
-#from deepchem.models.tf_keras_models.support_classifier import SupportGraphClassifier
-#from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
-#from deepchem.models.tf_keras_models.keras_layers import ResiLSTMEmbedding
 
-class TestOverfitAPI(test_util.TensorFlowTestCase):
+class TestOverfit(test_util.TensorFlowTestCase):
   """
   Test that models can overfit simple datasets.
   """
   def setUp(self):
-    super(TestOverfitAPI, self).setUp()
+    super(TestOverfit, self).setUp()
     self.root = '/tmp'
     self.smiles_field = "smiles"
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.train_dir = tempfile.mkdtemp()
-    self.data_dir = tempfile.mkdtemp()
-    #self.model_dir = tempfile.mkdtemp()
 
   def tearDown(self):
     shutil.rmtree(self.train_dir)
-    shutil.rmtree(self.data_dir)
 
   def test_sklearn_regression_overfit(self):
     """Test that sklearn models can overfit simple regression datasets."""
@@ -653,7 +632,6 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       classification_metric = dc.metrics.Metric(
           dc.metrics.accuracy_score, verbosity=verbosity)
 
-      #n_atoms = 50
       n_feat = 71
       batch_size = 10
       graph_model = dc.nn.SequentialGraph(n_feat)
@@ -695,6 +673,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       n_pos = 6
       n_neg = 4
       test_batch_size = 10
+      n_train_trials = 60
       support_batch_size = n_pos + n_neg
       replace = False
       
@@ -727,17 +706,15 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
-          sess, support_model, n_tasks, range(n_tasks), 
-          test_batch_size=test_batch_size, support_batch_size=support_batch_size,
-          learning_rate=1e-3, learning_rate_decay_time=1000,
-          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+          sess, support_model, n_tasks, test_batch_size=test_batch_size,
+          support_batch_size=support_batch_size, learning_rate=1e-3,
+          verbosity="high")
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
         # is always passed in to support.
-
-        model.fit(dataset, nb_epoch=1, n_trials=10, n_pos=n_pos, n_neg=n_neg,
-                  replace=False)
+        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos,
+                  n_neg=n_neg, replace=False)
         model.save()
 
         # Eval model on train. Dataset has 6 positives and 4 negatives, so set
@@ -754,7 +731,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       assert scores[0] > .9
 
   def test_attn_lstm_singletask_classification_overfit(self):
-    """Test support graph-conv multitask overfits tiny data."""
+    """Test attn lstm singletask overfits tiny data."""
     np.random.seed(123)
     tf.set_random_seed(123)
     g = tf.Graph()
@@ -768,6 +745,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       n_neg = 4
       test_batch_size = 10
       support_batch_size = n_pos + n_neg
+      n_train_trials = 60
       replace = False
       
       # Load mini log-solubility dataset.
@@ -778,7 +756,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
                           smiles_field=self.smiles_field,
                           featurizer=featurizer,
                           verbosity="low")
-      dataset = loader.featurize(input_file, self.data_dir)
+      dataset = loader.featurize(input_file)
 
       verbosity = "high"
       classification_metric = dc.metrics.Metric(
@@ -812,13 +790,7 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
         # is always passed in to support.
-
-        # TODO(rbharath): Why does this work with 0 epochs?!!!
-        # I think it's because the distance calculation is still meaningful
-        # even with random features. The cutoffs also mean that the outputted
-        # scores vectors threshold at logit(epsilon), logit(1-epsilon) and stay
-        # fixed.
-        model.fit(dataset, nb_epoch=1, n_trials=10, n_pos=n_pos, n_neg=n_neg,
+        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos, n_neg=n_neg,
                   replace=False)
         model.save()
 
@@ -835,9 +807,8 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       # Measure performance on 0-th task.
       assert scores[0] > .9
 
-  '''
-  TODO(rbharath): This test doesn't pass although it should. Debug to understand root
-  causes of these errors.
+  #TODO(rbharath): This test doesn't pass although it should. Debug to understand root
+  #causes of these errors.
   def test_residual_lstm_singletask_classification_overfit(self):
     """Test resi-lstm multitask overfits tiny data."""
     g = tf.Graph()
@@ -851,55 +822,52 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
       n_neg = 4
       test_batch_size = 10
       support_batch_size = n_pos + n_neg
+      n_train_trials = 30
       replace = False
       
       # Load mini log-solubility dataset.
-      splittype = "scaffold"
-      featurizer = ConvMolFeaturizer()
+      featurizer = dc.featurizers.ConvMolFeaturizer()
       tasks = ["outcome"]
-      task_type = "classification"
-      task_types = {task: task_type for task in tasks}
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = DataLoader(tasks=tasks,
-                          smiles_field=self.smiles_field,
-                          featurizer=featurizer,
-                          verbosity="low")
-      dataset = loader.featurize(input_file, self.data_dir)
+      loader = dc.loaders.DataLoader(
+          tasks=tasks, smiles_field=self.smiles_field,
+          featurizer=featurizer, verbosity="low")
+      dataset = loader.featurize(input_file)
 
       verbosity = "high"
-      classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+      classification_metric = dc.metrics.Metric(
+          dc.metrics.accuracy_score, verbosity=verbosity)
 
-      support_model = SequentialSupportGraph(n_feat)
+      support_model = dc.nn.SequentialSupportGraph(n_feat)
       
       # Add layers
       # output will be (n_atoms, 64)
-      support_model.add(GraphConv(64, activation='relu'))
+      support_model.add(dc.nn.GraphConv(64, activation='relu'))
       # Need to add batch-norm separately to test/support due to differing
       # shapes.
       # output will be (n_atoms, 64)
-      support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       # output will be (n_atoms, 64)
-      support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(GraphPool())
-      support_model.add_test(GraphGather(test_batch_size))
-      support_model.add_support(GraphGather(support_batch_size))
+      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add(dc.nn.GraphPool())
+      support_model.add_test(dc.nn.GraphGather(test_batch_size))
+      support_model.add_support(dc.nn.GraphGather(support_batch_size))
 
       # Apply an attention lstm layer
-      support_model.join(ResiLSTMEmbedding(test_batch_size, support_batch_size,
-                                           max_depth))
+      support_model.join(dc.nn.ResiLSTMEmbedding(
+          test_batch_size, support_batch_size, max_depth))
 
       with self.test_session() as sess:
-        model = SupportGraphClassifier(
-          sess, support_model, n_tasks, self.model_dir, 
-          test_batch_size=test_batch_size, support_batch_size=support_batch_size,
-          learning_rate=1e-3, learning_rate_decay_time=1000,
-          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+        model = dc.models.SupportGraphClassifier(
+          sess, support_model, n_tasks, test_batch_size=test_batch_size,
+          support_batch_size=support_batch_size, learning_rate=1e-3,
+          verbosity="high")
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
         # is always passed in to support.
 
-        model.fit(dataset, nb_epoch=10, n_trials=10, n_pos=n_pos, n_neg=n_neg,
+        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos, n_neg=n_neg,
                   replace=False)
         model.save()
 
@@ -915,4 +883,3 @@ class TestOverfitAPI(test_util.TensorFlowTestCase):
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
-  '''

@@ -7,5 +7,6 @@ from __future__ import unicode_literals
 
 # TODO(rbharath): Get rid of * import
 from deepchem.splits.splitters import *
+from deepchem.splits.splitters import ScaffoldSplitter
 from deepchem.splits.task_splitter import merge_fold_datasets
 from deepchem.splits.task_splitter import TaskSplitter

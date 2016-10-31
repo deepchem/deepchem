@@ -13,76 +13,89 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.featurizers import UserDefinedFeaturizer 
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.basic import RDKitDescriptors
-from deepchem.featurizers.grid_featurizer import GridFeaturizer
-from deepchem.datasets import Dataset
-from deepchem.utils.evaluate import Evaluator
-from deepchem.models import Model
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.transformers import NormalizationTransformer
-from deepchem.transformers import LogTransformer
-from deepchem.transformers import ClippingTransformer
-from deepchem.models.tests import TestAPI
-from deepchem import metrics
-from deepchem.metrics import Metric
-from sklearn.ensemble import RandomForestRegressor
-from deepchem.models.tensorflow_models import TensorflowModel
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import SpecifiedSplitter
-from deepchem.models.keras_models.fcnet import MultiTaskDNN
-from deepchem.models.keras_models import KerasModel 
 import tensorflow as tf
 from keras import backend as K
+import deepchem as dc
+#from deepchem.featurizers import UserDefinedFeaturizer 
+#from deepchem.featurizers.featurize import DataLoader
+#from deepchem.featurizers.fingerprints import CircularFingerprint
+#from deepchem.featurizers.basic import RDKitDescriptors
+#from deepchem.datasets import Dataset
+#from deepchem.utils.evaluate import Evaluator
+#from deepchem.models import Model
+#from deepchem.models.sklearn_models import SklearnModel
+#from deepchem.transformers import NormalizationTransformer
+#from deepchem.transformers import LogTransformer
+#from deepchem.transformers import ClippingTransformer
+#from deepchem.models.tests import TestAPI
+#from deepchem import metrics
+#from deepchem.metrics import Metric
+#from sklearn.ensemble import RandomForestRegressor
+#from deepchem.models.tensorflow_models import TensorflowModel
+#from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+#from deepchem.splits import ScaffoldSplitter
+#from deepchem.splits import SpecifiedSplitter
+#from deepchem.models.keras_models.fcnet import MultiTaskDNN
+#from deepchem.models.keras_models import KerasModel 
 
 
-class TestModelAPI(TestAPI):
+class TestAPI(unittest.TestCase):
   """
   Test top-level API for ML models.
   """
+  def setUp(self):
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    self.smiles_field = "smiles"
+    self.base_dir = tempfile.mkdtemp()
+    self.data_dir = tempfile.mkdtemp()
+    self.train_dir = tempfile.mkdtemp()
+    self.valid_dir = tempfile.mkdtemp()
+    self.test_dir = tempfile.mkdtemp()
+    self.model_dir = tempfile.mkdtemp()
+    if not os.path.exists(self.model_dir):
+      os.makedirs(self.model_dir)
+
+  def tearDown(self):
+    shutil.rmtree(self.base_dir)
+    shutil.rmtree(self.data_dir)
+    shutil.rmtree(self.train_dir)
+    shutil.rmtree(self.valid_dir)
+    shutil.rmtree(self.test_dir)
+    # TODO(rbharath): Removing this causes crashes for some reason. Need to
+    # debug.
+    #shutil.rmtree(self.model_dir)
+
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    task_type = "regression"
-    task_types = {task: task_type for task in tasks}
     input_file = os.path.join(self.current_dir, "example.csv")
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field=self.smiles_field,
+        featurizer=featurizer, verbosity="low")
+    dataset = loader.featurize(input_file)
 
-    splitter = ScaffoldSplitter()
+    splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(
         dataset, self.train_dir, self.test_dir)
 
-    input_transformers = []
-    output_transformers = [
-        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-    transformers = input_transformers + output_transformers
-    regression_metrics = [Metric(metrics.r2_score),
-                          Metric(metrics.mean_squared_error),
-                          Metric(metrics.mean_absolute_error)]
+    transformers = [dc.transformers.NormalizationTransformer(
+        transform_y=True, dataset=train_dataset)]
+    regression_metrics = [dc.metrics.Metric(metrics.r2_score),
+                          dc.metrics.Metric(metrics.mean_squared_error),
+                          dc.metrics.Metric(metrics.mean_absolute_error)]
 
     sklearn_model = RandomForestRegressor()
-    model = SklearnModel(sklearn_model, self.model_dir)
+    model = dc.models.SklearnModel(sklearn_model)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
 
     # Eval model on train
-    evaluator = Evaluator(model, train_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
-
-    # Eval model on test
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=True)
-    _ = evaluator.compute_model_performance(regression_metrics)
+    _ = model.evaluate(train_dataset, regression_metrics, transformers)
+    _ = model.evaluate(valid_dataset, regression_metrics, transformers)
 
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF USF regression API."""

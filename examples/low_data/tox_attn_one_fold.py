@@ -1,5 +1,5 @@
 """
-Train low-data siamese models on random forests. Test last fold only.
+Train low-data attn models on random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -12,14 +12,14 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4
+K = 12 
 # 10 positive/negative ligands
 n_pos = 10
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100
 support_batch_size = n_pos + n_neg
-n_train_trials = 2000 
+n_train_trials = 20 
 n_eval_trials = 5
 n_steps_per_trial = 1 
 # Sample supports without replacement (all pos/neg should be different)
@@ -55,11 +55,15 @@ support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add(dc.nn.GraphPool())
 support_model.add_test(dc.nn.GraphGather(test_batch_size))
 support_model.add_support(dc.nn.GraphGather(support_batch_size))
+# Apply an attention lstm layer
+support_model.join(dc.nn.AttnLSTMEmbedding(
+    test_batch_size, support_batch_size, max_depth))
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=1e-3, verbosity="high")
+    support_batch_size=support_batch_size,
+    learning_rate=1e-3, verbosity="high")
 
   ############################################################ DEBUG
   print("FIT")
@@ -73,7 +77,7 @@ with tf.Session() as sess:
   print("EVAL")
   ############################################################ DEBUG
   scores = model.evaluate(
-      test_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
+      train_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
       n_trials=n_eval_trials)
-  print("Scores on held-out dataset")
+  print("Scores on training dataset")
   print(scores)
