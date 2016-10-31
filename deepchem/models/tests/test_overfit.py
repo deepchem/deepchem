@@ -28,8 +28,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
   """
   def setUp(self):
     super(TestOverfit, self).setUp()
-    self.root = '/tmp'
-    self.smiles_field = "smiles"
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     self.train_dir = tempfile.mkdtemp()
 
@@ -625,7 +623,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
       loader = dc.loaders.DataLoader(
-          tasks=tasks, smiles_field=self.smiles_field, featurizer=featurizer,
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer,
           verbosity=verbosity)
       dataset = loader.featurize(input_file)
 
@@ -682,7 +680,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
       loader = dc.loaders.DataLoader(
-          tasks=tasks, smiles_field=self.smiles_field,
+          tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity=verbosity)
       dataset = loader.featurize(input_file)
 
@@ -752,10 +750,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.featurizers.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.loaders.DataLoader(tasks=tasks,
-                          smiles_field=self.smiles_field,
-                          featurizer=featurizer,
-                          verbosity="low")
+      loader = dc.loaders.DataLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer,
+          verbosity="low")
       dataset = loader.featurize(input_file)
 
       verbosity = "high"
@@ -830,7 +827,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
       loader = dc.loaders.DataLoader(
-          tasks=tasks, smiles_field=self.smiles_field,
+          tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity="low")
       dataset = loader.featurize(input_file)
 

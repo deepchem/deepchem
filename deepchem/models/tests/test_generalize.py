@@ -13,20 +13,14 @@ __license__ = "GPL"
 import sklearn
 import sklearn.datasets
 import numpy as np
+import unittest
+import tempfile
+import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression 
 from sklearn.linear_model import LogisticRegression
-from deepchem.datasets import DiskDataset
-from deepchem.metrics import Metric
-from deepchem.models.tests import TestAPI
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem import metrics
-from deepchem.utils.evaluate import Evaluator
-from deepchem.models.multitask import SingletaskToMultitask
-from deepchem.transformers import NormalizationTransformer
-from deepchem.transformers import ClippingTransformer
 
-class TestGeneralization(TestAPI):
+class TestGeneralization(unittest.TestCase):
   """
   Test that models can learn generalizable models on simple datasets.
   """
@@ -42,28 +36,22 @@ class TestGeneralization(TestAPI):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
+    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
+    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
 
     verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.r2_score, verbosity=verbosity)
+
     sklearn_model = LinearRegression()
-    model = SklearnModel(sklearn_model, self.model_dir)
+    model = dc.models.SklearnModel(sklearn_model)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
 
-    # Eval model on train
-    transformers = []
-    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-    train_scores = train_evaluator.compute_model_performance([regression_metric])
-
     # Eval model on test
-    transformers = []
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([regression_metric])
-
+    scores = model.evaluate(test_dataset, [regression_metric])
     assert scores[regression_metric.name] > .5
 
   def test_sklearn_transformed_regression(self):
@@ -77,35 +65,37 @@ class TestGeneralization(TestAPI):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
+    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
+    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
 
     # Eval model on train
     transformers = [
-        NormalizationTransformer(transform_X=True, dataset=train_dataset),
-        ClippingTransformer(transform_X=True, dataset=train_dataset),
-        NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+        dc.transformers.NormalizationTransformer(
+            transform_X=True, dataset=train_dataset),
+        dc.transformers.ClippingTransformer(
+            transform_X=True, dataset=train_dataset),
+        dc.transformers.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)]
     for data in [train_dataset, test_dataset]:
       for transformer in transformers:
           data = transformer.transform(data)
 
-    verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     sklearn_model = LinearRegression()
-    model = SklearnModel(sklearn_model, self.model_dir)
+    model = dc.models.SklearnModel(sklearn_model)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
 
-    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-    train_scores = train_evaluator.compute_model_performance([regression_metric])
+    train_scores = model.evaluate(train_dataset, [regression_metric],
+                                  transformers)
     assert train_scores[regression_metric.name] > .5
 
     # Eval model on test
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([regression_metric])
-    assert scores[regression_metric.name] > .5
+    test_scores = model.evaluate(test_dataset, [regression_metric],
+                                 transformers)
+    assert test_scores[regression_metric.name] > .5
 
   def test_sklearn_multitask_regression(self):
     """Test that sklearn models can learn on simple multitask regression."""
@@ -122,30 +112,24 @@ class TestGeneralization(TestAPI):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
+    train_dataset = dc.datasets.DiskDataset.from_numpy(
+        tempfile.mkdtemp(), X_train, y_train)
+    test_dataset = dc.datasets.DiskDataset.from_numpy(
+        tempfile.mkdtemp(), X_test, y_test)
 
     verbosity = "high"
-    regression_metric = Metric(metrics.r2_score, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     def model_builder(model_dir):
       sklearn_model = LinearRegression()
-      return SklearnModel(sklearn_model, model_dir)
-    model = SingletaskToMultitask(tasks, model_builder, self.model_dir)
+      return dc.models.SklearnModel(sklearn_model, model_dir)
+    model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
 
-    # Eval model on train
-    transformers = []
-    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-    train_scores = train_evaluator.compute_model_performance([regression_metric])
-
     # Eval model on test
-    transformers = []
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([regression_metric])
-
+    scores = model.evaluate(test_dataset, [regression_metric])
     for score in scores[regression_metric.name]:
       assert score > .5
 
@@ -160,27 +144,19 @@ class TestGeneralization(TestAPI):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
+    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
+    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     sklearn_model = LogisticRegression()
-    model = SklearnModel(sklearn_model, self.model_dir)
+    model = dc.models.SklearnModel(sklearn_model)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
 
-    # Eval model on train
-    transformers = []
-    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-    train_scores = train_evaluator.compute_model_performance([classification_metric])
-
     # Eval model on test
-    transformers = []
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
+    scores = model.evaluate(test_dataset, [classification_metric])
     assert scores[classification_metric.name] > .5
 
   def test_sklearn_multitask_classification(self):
@@ -198,29 +174,21 @@ class TestGeneralization(TestAPI):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = DiskDataset.from_numpy(self.train_dir, X_train, y_train)
-    test_dataset = DiskDataset.from_numpy(self.test_dir, X_test, y_test)
+    train_dataset = dc.datasets.DiskDataset.from_numpy(
+        tempfile.mkdtemp(), X_train, y_train)
+    test_dataset = dc.datasets.DiskDataset.from_numpy(
+        tempfile.mkdtemp(), X_test, y_test)
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     def model_builder(model_dir):
       sklearn_model = LogisticRegression()
-      return SklearnModel(sklearn_model, model_dir)
-    model = SingletaskToMultitask(tasks, model_builder, self.model_dir)
+      return dc.models.SklearnModel(sklearn_model, model_dir)
+    model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
     # Fit trained model
     model.fit(train_dataset)
     model.save()
-
-    # Eval model on train
-    transformers = []
-    train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-    train_scores = train_evaluator.compute_model_performance([classification_metric])
-
     # Eval model on test
-    transformers = []
-    evaluator = Evaluator(model, test_dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
-
+    scores = model.evaluate(test_dataset, [classification_metric])
     for score in scores[classification_metric.name]:
       assert score > .5

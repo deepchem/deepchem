@@ -9,18 +9,20 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-import numpy as np
 import tempfile
 import shutil
-from deepchem.models.tests import TestAPI
-from deepchem import metrics
-from deepchem.metrics import Metric
-from deepchem.datasets import DiskDataset
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.models.multitask import SingletaskToMultitask 
-from deepchem.models.sklearn_models import SklearnModel
-from sklearn.linear_model import LogisticRegression
-from deepchem.utils.evaluate import Evaluator
+import unittest
+import numpy as np
+import deepchem as dc
+#from deepchem.models.tests import TestAPI
+#from deepchem import metrics
+#from deepchem.metrics import Metric
+#from deepchem.datasets import DiskDataset
+#from deepchem.featurizers.fingerprints import CircularFingerprint
+#from deepchem.models.multitask import SingletaskToMultitask 
+#from deepchem.models.sklearn_models import SklearnModel
+#from sklearn.linear_model import LogisticRegression
+#from deepchem.utils.evaluate import Evaluator
 
 class TestSingletasktoMultitaskAPI(TestAPI):
   """

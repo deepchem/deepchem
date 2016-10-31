@@ -9,21 +9,18 @@ import os
 import shutil
 import tempfile
 import numpy as np
-#from deepchem.featurizers.graph_features import ConvMolFeaturizer
-#from deepchem.utils.save import load_from_disk
-#from deepchem.featurizers.featurize import DataLoader
-#from deepchem.featurizers.fingerprints import CircularFingerprint
-#from deepchem.datasets import DiskDataset
-#from deepchem.transformers import BalancingTransformer
+import deepchem as dc
 
 def load_tox21_ecfp(num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
   verbosity = "high"
   current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../../datasets/tox21.csv.gz")
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
-  featurizer = CircularFingerprint(size=1024)
+  featurizer = dc.featurizers.CircularFingerprint(size=1024)
   tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
@@ -49,6 +46,8 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
   # Set some global variables up top
   verbosity = "high"
   current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../../datasets/tox21.csv.gz")
   #Make directories to store the raw and featurized datasets.
 
   # Featurize Tox21 dataset

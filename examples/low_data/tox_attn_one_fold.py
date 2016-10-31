@@ -12,14 +12,16 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 12 
+K = 4 
+# Depth of attention module
+max_depth = 4
 # 10 positive/negative ligands
 n_pos = 10
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100
 support_batch_size = n_pos + n_neg
-n_train_trials = 20 
+n_train_trials = 2000 
 n_eval_trials = 5
 n_steps_per_trial = 1 
 # Sample supports without replacement (all pos/neg should be different)
@@ -77,7 +79,7 @@ with tf.Session() as sess:
   print("EVAL")
   ############################################################ DEBUG
   scores = model.evaluate(
-      train_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
+      test_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
       n_trials=n_eval_trials)
   print("Scores on training dataset")
   print(scores)

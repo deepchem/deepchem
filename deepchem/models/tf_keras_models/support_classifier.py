@@ -16,6 +16,9 @@ from deepchem.datasets import NumpyDataset
 from deepchem.metrics import to_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
+from deepchem.datasets import SupportGenerator
+from deepchem.datasets import get_task_test
+from deepchem.datasets import get_task_dataset_minus_support
 
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,

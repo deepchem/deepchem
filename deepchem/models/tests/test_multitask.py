@@ -13,16 +13,17 @@ import os
 import numpy as np
 import tempfile
 import shutil
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import DiskDataset
-from deepchem.models.tests import TestAPI
-from deepchem.splits import ScaffoldSplitter
+import unittest
+import deepchem as dc
 
-class TestMultitaskData(TestAPI):
+class TestMultitaskData(unittest.TestCase):
   """
   Sanity tests for multitask data.
   """
+  def setUp(self):
+    super(TestMultitaskData, self).setUp()
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+
   def test_multitask_order(self):
     """Test that order of tasks in multitask datasets is preserved."""
     input_file = os.path.join(self.current_dir, "multitask_example.csv")
@@ -30,17 +31,15 @@ class TestMultitaskData(TestAPI):
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
 
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity="low")
+    dataset = loader.featurize(input_file)
 
-    splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
+    splitter = dc.splits.ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(dataset)
   
     assert train_dataset.get_task_names() == tasks
     assert test_dataset.get_task_names() == tasks
@@ -58,7 +57,8 @@ class TestMultitaskData(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = DiskDataset.from_numpy(self.train_dir, X, y, w, ids, tasks)
+    dataset = dc.datasets.DiskDataset.from_numpy(
+        tempfile.mkdtemp(), X, y, w, ids, tasks)
     np.testing.assert_allclose(X, dataset.X)
     np.testing.assert_allclose(y, dataset.y)
     np.testing.assert_allclose(w, dataset.w)
