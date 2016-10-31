@@ -13,6 +13,7 @@ from deepchem.datasets import NumpyDataset
 from deepchem.utils.evaluate import Evaluator
 from deepchem.metrics import to_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
+from deepchem.models.tensorflow_models import model_ops
 
 def get_task_dataset_minus_support(dataset, support, task):
   """Gets data for specified task, minus support points.
@@ -202,8 +203,7 @@ class SupportGenerator(object):
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model, n_tasks, train_tasks, 
                test_batch_size=10, support_batch_size=10,
-               final_loss='cross_entropy', learning_rate=.001, decay_T=20,
-               optimizer_type="adam", similarity="euclidean",
+               learning_rate=.001, similarity="cosine",
                beta1=.9, beta2=.999, **kwargs):
     """Builds a support-based classifier.
 
@@ -226,39 +226,31 @@ class SupportGraphClassifier(Model):
     """
     self.sess = sess
     self.similarity = similarity
-    self.optimizer_type = optimizer_type
-    self.optimizer_beta1 = beta1 
-    self.optimizer_beta2 = beta2 
     self.n_tasks = n_tasks
-    self.final_loss = final_loss
     self.model = model  
     self.test_batch_size = test_batch_size
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    self.decay_T = decay_T
     self.epsilon = K.epsilon()
 
-    self.build()
+    self.add_placeholders()
     self.pred_op, self.scores_op, self.loss_op = self.add_training_loss()
     # Get train function
-    self.add_optimizer()
+    self.train_op = self.get_training_op(self.loss_op)
 
     # Initialize
     self.init_fn = tf.initialize_all_variables()
     sess.run(self.init_fn)  
 
-  def add_optimizer(self):
-    if self.optimizer_type == "adam":
-      self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
-    else:
-      raise ValueError("Optimizer type not recognized.")
-
+  def get_training_op(self, loss):
+    """Attaches an optimizer to the graph."""
+    opt = tf.train.AdamOptimizer(self.learning_rate)
     # Get train function
-    self.train_op = self.optimizer.minimize(self.loss_op)
+    return opt.minimize(self.loss_op, name="train")
 
-  def build(self):
-    # Create target inputs
+  def add_placeholders(self):
+    """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
         #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
@@ -293,7 +285,7 @@ class SupportGraphClassifier(Model):
       feed_dict[K.learning_phase()] = training
     return feed_dict
 
-  def fit(self, dataset, n_trials=1000, n_pos=1,
+  def fit(self, dataset, n_trials=1000, n_steps_per_trial=10, n_pos=1,
           n_neg=9, replace=True, **kwargs):
     """Fits model on dataset.
 
@@ -323,7 +315,6 @@ class SupportGraphClassifier(Model):
     """
     # Perform the optimization
     # TODO(rbharath): Try removing this learning rate.
-    #lr = self.learning_rate / (1 + float(epoch) / self.decay_T)
     lr = self.learning_rate
 
     # Create different support sets
@@ -334,8 +325,12 @@ class SupportGraphClassifier(Model):
       # Get batch to try it out on
       test = get_task_test(dataset, self.test_batch_size, task, replace)
       feed_dict = self.construct_feed_dict(test, support)
-      # Train on support set, batch pair
-      self.sess.run(self.train_op, feed_dict=feed_dict)
+      for step in range(n_steps_per_trial):
+        # Train on support set, batch pair
+        ############################################################## DEBUG
+        _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
+        print("\tloss is %s" % str(loss))
+        ############################################################## DEBUG
 
   def save(self):
     """Save all models
@@ -371,36 +366,24 @@ class SupportGraphClassifier(Model):
     # (the inset equation in section 2.1.1 of Matching networks paper). 
     # Normalize
     if self.similarity == 'cosine':
-      rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test_feat), 1,
-                         keep_dims=True)) + K.epsilon()
-      rnorm_support = tf.rsqrt(tf.reduce_sum(tf.square(support_feat), 1,
-                               keep_dims=True)) + K.epsilon()
-      test_feat_normalized = test_feat * rnorm_test
-      support_feat_normalized = support_feat * rnorm_support
-
-      # Transpose for mul
-      support_feat_normalized_t = tf.transpose(support_feat_normalized, perm=[1,0])  
-      g = tf.matmul(test_feat_normalized, support_feat_normalized_t)  # Gram matrix
+      g = model_ops.cosine_distances(test_feat, support_feat)
     elif self.similarity == 'euclidean':
-      test_feat = tf.expand_dims(test_feat, 1)
-      support_feat = tf.expand_dims(support_feat, 0)
-      max_dist_sq = 20
-      g = -tf.maximum(tf.reduce_sum(tf.square(test_feat - support_feat), 2), max_dist_sq)
+      g = model_ops.euclidean_distance(test_feat, support_feat)
     # Note that gram matrix g has shape (n_test, n_support)
 
     # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper 
     # https://arxiv.org/pdf/1606.04080v1.pdf
     # Computes softmax across axis 1, (so sums distances to support set for
-    # each test entry)
+    # each test entry) to get attention vector
     # Shape (n_test, n_support)
-    soft = tf.nn.softmax(g)  # Renormalize
+    attention = tf.nn.softmax(g)  # Renormalize
 
     # Weighted sum of support labels
     # Shape (n_support, 1)
     support_labels = tf.expand_dims(self.support_label_placeholder, 1)
     # pred is yhat in eqn (1) of Matching Networks.
     # Shape squeeze((n_test, n_support) * (n_support, 1)) = (n_test,)
-    pred = tf.squeeze(tf.matmul(soft, support_labels), [1])
+    pred = tf.squeeze(tf.matmul(attention, support_labels), [1])
 
     # Clip softmax probabilities to range [epsilon, 1-epsilon]
     # Shape (n_test,)

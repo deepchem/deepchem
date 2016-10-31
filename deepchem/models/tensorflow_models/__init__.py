@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import tempfile
 from deepchem.models import Model
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
@@ -108,16 +109,21 @@ class TensorflowGraphModel(object):
     logdir: Directory for output files.
   """
 
-  def __init__(self, n_tasks, n_features, logdir, layer_sizes=[1000],
+  def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
                momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
                train=True, verbosity=None, **kwargs):
     """Constructs the computational graph.
 
-    Args:
-      train: whether model is in train mode
-      logdir: Location to save data
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_features: int
+      Number of features.
+    logdir: str
+      Location to save data
 
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
@@ -125,7 +131,6 @@ class TensorflowGraphModel(object):
     # Save hyperparameters
     self.n_tasks = n_tasks
     self.n_features = n_features
-    self.logdir = logdir
     self.layer_sizes = layer_sizes
     self.weight_init_stddevs = weight_init_stddevs
     self.bias_init_consts = bias_init_consts
@@ -139,6 +144,13 @@ class TensorflowGraphModel(object):
     self.n_classes = n_classes
     self.train = train
     self.verbosity = verbosity
+    
+    if logdir is not None:
+      if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    else:
+      logdir = tempfile.mkdtemp()
+    self.logdir = logdir
 
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.
@@ -683,13 +695,11 @@ class TensorflowModel(Model):
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self, model, logdir, verbosity=None, **kwargs):
+  def __init__(self, model, verbosity=None, **kwargs):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
     self.model_instance = model
     self.fit_transformers = None
-    if not os.path.exists(logdir):
-      os.makedirs(logdir)
 
   def fit(self, dataset, **kwargs):
     """

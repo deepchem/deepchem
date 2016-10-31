@@ -11,6 +11,7 @@ import numpy as np
 import csv
 import numbers
 import dill
+import tempfile
 import itertools
 import multiprocessing as mp
 from functools import partial
@@ -135,7 +136,7 @@ class DataLoader(object):
     self.featurizer = featurizer
     self.log_every_n = log_every_n
 
-  def featurize(self, input_files, data_dir, shard_size=8192,
+  def featurize(self, input_files, data_dir=None, shard_size=8192,
                 num_shards_per_batch=24, worker_pool=None,
                 logging=True, debug=False):
     """Featurize provided files and write to specified location."""
@@ -150,8 +151,11 @@ class DataLoader(object):
     if not isinstance(input_files, list):
       input_files = [input_files]
 
-    if not os.path.exists(data_dir):
-      os.makedirs(data_dir)
+    if data_dir is not None:
+      if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    else:
+      data_dir = tempfile.mkdtemp()
 
     # Construct partial function to write datasets.
     if not len(input_files):
