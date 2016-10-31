@@ -18,6 +18,7 @@ from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.datasets import SupportGenerator
 from deepchem.datasets import get_task_test
+from deepchem.datasets import get_task_dataset
 from deepchem.datasets import get_task_dataset_minus_support
 
 class SupportGraphClassifier(Model):

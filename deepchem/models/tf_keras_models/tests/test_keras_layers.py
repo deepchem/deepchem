@@ -11,13 +11,8 @@ __license__ = "GPL"
 
 import numpy as np
 import unittest
+import deepchem as dc
 from tensorflow.python.framework import test_util
-from deepchem.models.tf_keras_models.graph_topology import GraphTopology
-from deepchem.models.tf_keras_models.keras_layers import GraphConv
-from deepchem.models.tf_keras_models.keras_layers import GraphGather
-from deepchem.models.tf_keras_models.keras_layers import GraphPool
-from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
-from deepchem.models.tf_keras_models.keras_layers import ResiLSTMEmbedding
 
 class TestKerasLayers(test_util.TensorFlowTestCase):
   """
@@ -36,8 +31,8 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_feat)
-      graph_conv_layer = GraphConv(nb_filter)
+      graph_topology = dc.nn.GraphTopology(n_feat)
+      graph_conv_layer = dc.nn.GraphConv(nb_filter)
 
       X = graph_topology.get_input_placeholders()
       out = graph_conv_layer(X)
@@ -51,8 +46,8 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     batch_size = 3
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_feat)
-      graph_gather_layer = GraphGather(batch_size)
+      graph_topology = dc.nn.GraphTopology(n_feat)
+      graph_gather_layer = dc.nn.GraphGather(batch_size)
 
       X = graph_topology.get_input_placeholders()
       out = graph_gather_layer(X)
@@ -66,8 +61,8 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     batch_size = 3
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology = GraphTopology(n_feat)
-      graph_pool_layer = GraphPool()
+      graph_topology = dc.nn.GraphTopology(n_feat)
+      graph_pool_layer = dc.nn.GraphPool()
 
       X = graph_topology.get_input_placeholders()
       out = graph_pool_layer(X)
@@ -80,13 +75,14 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology_test = GraphTopology(n_feat)
-      graph_topology_support = GraphTopology(n_feat)
+      graph_topology_test = dc.nn.GraphTopology(n_feat)
+      graph_topology_support = dc.nn.GraphTopology(n_feat)
 
       test = graph_topology_test.get_input_placeholders()[0]
       support = graph_topology_support.get_input_placeholders()[0]
 
-      attn_embedding_layer = AttnLSTMEmbedding(n_test, n_support, max_depth)
+      attn_embedding_layer = dc.nn.AttnLSTMEmbedding(
+          n_test, n_support, max_depth)
       # Try concatenating the two lists of placeholders
       feed_dict = {test: np.zeros((n_test, n_feat)),
                    support: np.zeros((n_support, n_feat))}
@@ -102,16 +98,17 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
-      graph_topology_test = GraphTopology(n_feat)
-      graph_topology_support = GraphTopology(n_feat)
+      graph_topology_test = dc.nn.GraphTopology(n_feat)
+      graph_topology_support = dc.nn.GraphTopology(n_feat)
 
       test = graph_topology_test.get_input_placeholders()[0]
       support = graph_topology_support.get_input_placeholders()[0]
 
-      attn_embedding_layer = ResiLSTMEmbedding(n_test, n_support, max_depth)
+      resi_embedding_layer = dc.nn.ResiLSTMEmbedding(
+          n_test, n_support, max_depth)
       # Try concatenating the two lists of placeholders
       feed_dict = {test: np.zeros((n_test, n_feat)),
                    support: np.zeros((n_support, n_feat))}
-      test_out, support_out = attn_embedding_layer([test, support])
+      test_out, support_out = resi_embedding_layer([test, support])
       assert test_out.get_shape() == (n_test, n_feat)
       assert support_out.get_shape()[1] == (n_feat)

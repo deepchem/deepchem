@@ -81,5 +81,5 @@ with tf.Session() as sess:
   scores = model.evaluate(
       test_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
       n_trials=n_eval_trials)
-  print("Scores on training dataset")
+  print("Scores on evaluation dataset")
   print(scores)

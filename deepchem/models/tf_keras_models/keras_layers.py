@@ -543,6 +543,7 @@ class AttnLSTMEmbedding(Layer):
     
     for d in range(self.max_depth):
       # Process using attention
+      # Eqn (4), appendix A.1 of Matching Networks paper
       e = cos(x+q, xp)
       a = K.softmax(e)
       r = K.dot(a, xp)
@@ -592,20 +593,19 @@ class ResiLSTMEmbedding(Layer):
     input_shape: tuple
       Tuple of ((n_test, n_feat), (n_support, n_feat))
     """
-    left_input_shape, right_input_shape = input_shape  #Unpack
-
-    n_feat = right_input_shape[1]
+    _, support_input_shape = input_shape  #Unpack
+    n_feat = support_input_shape[1]
 
     # Support set lstm
-    self.right_lstm = LSTMStep(n_feat)
+    self.support_lstm = LSTMStep(n_feat)
     self.q_init = K.zeros([self.n_support, n_feat])
-    self.states_init = self.right_lstm.get_initial_states(
+    self.support_states_init = self.support_lstm.get_initial_states(
         [self.n_support, n_feat])
 
-    # Prediction lstm
-    self.left_lstm = LSTMStep(n_feat)
+    # Test lstm
+    self.test_lstm = LSTMStep(n_feat)
     self.p_init = K.zeros([self.n_test, n_feat])
-    self.left_states_init = self.left_lstm.get_initial_states(
+    self.test_states_init = self.test_lstm.get_initial_states(
         [self.n_test, n_feat])
     
     self.trainable_weights = []
@@ -623,8 +623,6 @@ class ResiLSTMEmbedding(Layer):
     list
       Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
     """
-    left_input_shape, right_input_shape = input_shape  #Unpack
-
     return input_shape
 
   def call(self, argument, mask=None):
@@ -633,8 +631,8 @@ class ResiLSTMEmbedding(Layer):
     Parameters
     ----------
     argument: list
-      List of two tensors (x, xp). x should be of shape (n_test, n_feat) and
-      xpshould be of shape (n_support, n_feat) where n_test is the size of
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
       the test set, n_support that of the support set, and n_feat is the number
       of per-atom features.
 
@@ -649,12 +647,13 @@ class ResiLSTMEmbedding(Layer):
     # Get initializations
     p = self.p_init
     q = self.q_init        
+    # Rename support
     z = xp 
-    states = self.states_init
-    x_states = self.left_states_init
+    states = self.support_states_init
+    x_states = self.test_states_init
     
     for d in range(self.max_depth):
-      # Process xp using attention
+      # Process support xp using attention
       e = cos(z+q, xp)
       a = K.softmax(e)
       # Get linear combination of support set
@@ -664,22 +663,24 @@ class ResiLSTMEmbedding(Layer):
       # decide
       #z = r  
 
-      # Process using attention
+      # Process test x using attention
       x_e = cos(x+p, z)
       x_a = K.softmax(x_e)
       s = K.dot(x_a, z)
 
-      # Generate new attention states
+      # Generate new support attention states
       qr = K.concatenate([q, r], axis=1)
-      q, states = self.right_lstm([qr] + states)
+      q, states = self.support_lstm([qr] + states)
 
+      # Generate new test attention states
       ps = K.concatenate([p, s], axis=1)
-      p, x_states = self.left_lstm([ps] + x_states)
+      p, x_states = self.test_lstm([ps] + x_states)
 
-      # New redifinition of support set
+      # Redefine  
       z = r  
         
-    return [x+p, z+q]
+    #return [x+p, z+q]
+    return [x+p, xp+q]
 
   def compute_mask(self, x, mask=None):
     if not (mask is None):

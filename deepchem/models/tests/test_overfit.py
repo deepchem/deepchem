@@ -804,8 +804,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
       # Measure performance on 0-th task.
       assert scores[0] > .9
 
-  #TODO(rbharath): This test doesn't pass although it should. Debug to understand root
-  #causes of these errors.
   def test_residual_lstm_singletask_classification_overfit(self):
     """Test resi-lstm multitask overfits tiny data."""
     g = tf.Graph()
@@ -819,7 +817,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       n_neg = 4
       test_batch_size = 10
       support_batch_size = n_pos + n_neg
-      n_train_trials = 30
+      n_train_trials = 60
       replace = False
       
       # Load mini log-solubility dataset.
@@ -856,7 +854,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
-          sess, support_model, n_tasks, test_batch_size=test_batch_size,
+          sess, support_model, test_batch_size=test_batch_size,
           support_batch_size=support_batch_size, learning_rate=1e-3,
           verbosity="high")
 
@@ -873,8 +871,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, range(n_tasks),
-                                classification_metric, n_trials=5,
+        scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
                                 exclude_support=False, replace=False)
 

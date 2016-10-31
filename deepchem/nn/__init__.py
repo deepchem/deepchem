@@ -9,6 +9,7 @@ from keras.layers import Dense, BatchNormalization
 from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
+from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
 from deepchem.models.tf_keras_models.graph_models import SequentialGraph
 from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraph
