@@ -294,7 +294,7 @@ if __name__ == '__main__':
   verbosity = 'high'
   
   #Working folder initialization
-  base_dir = "/tmp/benchmark_test_"+time.strftime(
+  base_dir = "/scratch/users/zqwu/benchmark_test_"+time.strftime(
                                                 "%Y_%m_%d", time.localtime())
   if os.path.exists(base_dir):
     shutil.rmtree(base_dir)
