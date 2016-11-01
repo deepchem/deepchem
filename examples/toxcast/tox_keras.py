@@ -47,23 +47,32 @@ classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
 
-#do hyperparameter sweep here
-keras_model = MultiTaskDNN(len(tox_tasks), n_features, "classification",
-                           dropout=.25, learning_rate=.001, decay=1e-4)
-model = KerasModel(keras_model, self.model_dir, verbosity=verbosity)
+learning_rates = [0.0003, 0.001, 0.003]
+hidden_units = [1000, 500]
+dropouts = [.5, .25]
+num_hidden_layers = [1, 2]
 
-# Fit trained model
-model.fit(train_dataset)
-model.save()
+# hyperparameter sweep here
+for learning_rate in learning_rates:
+  for hidden_unit in hidden_units:
+    for dropout in dropouts:
+      for num_hidden_layer in num_hidden_layers:
+        keras_model = MultiTaskDNN(len(tox_tasks), n_features, "classification", n_hidden=hidden_unit,
+                                   n_layers=num_hidden_layer, dropout=dropout, learning_rate=learning_rate, decay=1e-4)
+        model = KerasModel(keras_model, self.model_dir, verbosity=verbosity)
 
-train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
-train_scores = train_evaluator.compute_model_performance([classification_metric])
+        # Fit trained model
+        model.fit(train_dataset)
+        model.save()
 
-print("Train scores")
-print(train_scores)
+        train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
+        train_scores = train_evaluator.compute_model_performance([classification_metric])
 
-valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
-valid_scores = valid_evaluator.compute_model_performance([classification_metric])
+        print("Train scores")
+        print(train_scores)
 
-print("Validation scores")
-print(valid_scores)
+        valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
+        valid_scores = valid_evaluator.compute_model_performance([classification_metric])
+
+        print("Validation scores")
+        print(valid_scores)
