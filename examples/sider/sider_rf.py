@@ -17,7 +17,7 @@ from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
 from sider_datasets import load_sider
-from deepchem.splits import StratifiedSplitter, RandomSplitter
+from deepchem.splits import RandomSplitter
 
 # Set some global variables up top
 reload = False
