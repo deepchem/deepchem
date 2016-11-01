@@ -49,8 +49,8 @@ from pcba.pcba_datasets import load_pcba
 from tox21.tox21_datasets import load_tox21
 
 def benchmark_loading_datasets(base_dir_o, n_features = 1024, 
-			      dataset_name = 'all',model = 'all',reload = True, 
-                              verbosity = 'high', out_path = '/tmp'):
+	 		       dataset_name = 'all',model = 'all',reload = True,
+                               verbosity = 'high', out_path = '/tmp'):
   """
   Loading dataset for benchmark test
   
@@ -63,10 +63,10 @@ def benchmark_loading_datasets(base_dir_o, n_features = 1024,
       number of features, or length of binary fingerprints
   
   dataset_name, string, optional (default='all')
-      choice of which dataset to use, 'all' means evaluating performance of all the datasets
+      choice of which dataset to use, 'all' = computing all the datasets
       
   model string, optional (default='all')
-      choice of which model to use, 'all' means running all models on the dataset
+      choice of which model to use, 'all' = running all models on the dataset
   
   out_path, string, optional(default='/tmp')
       path of result file
@@ -96,13 +96,15 @@ def benchmark_loading_datasets(base_dir_o, n_features = 1024,
     train_dataset, valid_dataset = datasets_tox21
     #running model
     tox21_train,tox21_valid = benchmark_train_and_valid(base_dir,train_dataset,
-                                                valid_dataset,
-                                                tasks_tox21,transformers_tox21,
-                                                n_features, model, verbosity)
+                                                        valid_dataset,
+                                                        tasks_tox21,
+							transformers_tox21,
+                                              		n_features, model,
+							verbosity)
     time_finish_running = time.time()
     #time_finish_running-time_finish_loading is the time(s) used for fitting and evaluating
         
-    with open(out_path+'/results.csv','a') as f:
+    with open(os.path.join(out_path,'results.csv'),'a') as f:
       f.write ('\n'+'tox21,train')
       for i in tox21_train:
         f.write(','+i+','+str(tox21_train[i])) #output train score
@@ -134,12 +136,12 @@ def benchmark_loading_datasets(base_dir_o, n_features = 1024,
     train_dataset, valid_dataset = datasets_muv
     #running model
     muv_train,muv_valid = benchmark_train_and_valid(base_dir,train_dataset,
-                                                 valid_dataset,
-                                                 tasks_muv, transformers_muv,
-                                                 n_features, model, verbosity)
+                                                    valid_dataset,
+                                                    tasks_muv,transformers_muv,
+                                                    n_features,model,verbosity)
     time_finish_running = time.time()
     
-    with open(out_path+'/results.csv','a') as f:
+    with open(os.path.join(out_path,'results.csv'),'a') as f:
       f.write ('\n'+'muv,train')
       for i in muv_train:
         f.write(','+i+','+str(muv_train[i]))
@@ -178,12 +180,14 @@ def benchmark_loading_datasets(base_dir_o, n_features = 1024,
                                 datasets_pcba, train_dir, valid_dir, test_dir)
     #running model
     pcba_train,pcba_valid = benchmark_train_and_valid(base_dir,train_dataset,
-                                                valid_dataset,
-                                                tasks_pcba,transformers_pcba,
-                                                n_features, model, verbosity)
+                            	                      valid_dataset,
+                                                      tasks_pcba,
+						      transformers_pcba,
+                                                      n_features, model,
+						      verbosity)
     time_finish_running = time.time()
 
-    with open(out_path+'/results.csv','a') as f:
+    with open(os.path.join(out_path,'results.csv'),'a') as f:
       f.write ('\n'+'pcba,train')
       for i in pcba_train:
         f.write(','+i+','+str(pcba_train[i]))
@@ -221,12 +225,12 @@ def benchmark_loading_datasets(base_dir_o, n_features = 1024,
                                 datasets_nci, train_dir, valid_dir, test_dir)
     #running model
     nci_train,nci_valid = benchmark_train_and_valid(base_dir,train_dataset,
-                                                 valid_dataset,
-                                                 tasks_nci,transformers_nci,
-                                                 n_features,model,verbosity)
+                                      	            valid_dataset,
+                                                    tasks_nci,transformers_nci,
+                                                    n_features,model,verbosity)
     time_finish_running = time.time()
     
-    with open(out_path+'/results.csv','a') as f:
+    with open(os.path.join(out_path,'results.csv'),'a') as f:
       f.write ('\n'+'nci,train')
       for i in nci_train:
         f.write(','+i+','+str(nci_train[i]))
@@ -271,7 +275,7 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
       number of features, or length of binary fingerprints
   
   model, string, optional (default='all')
-      choice of which model to use, 'all' means running all models on the dataset
+      choice of which model to use, 'all' = running all models on the dataset
       
   """
   train_scores = {}
@@ -340,8 +344,7 @@ if __name__ == '__main__':
   verbosity = 'high'
   
   #Working folder initialization
-  base_dir = "/tmp/benchmark_test_"+time.strftime(
-                                                "%Y_%m_%d", time.localtime())
+  base_dir = "/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
   if os.path.exists(base_dir):
     shutil.rmtree(base_dir)
   os.makedirs(base_dir)
