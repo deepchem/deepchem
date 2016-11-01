@@ -133,5 +133,5 @@ for i in range(tox_predictions.shape[0]):
  
 df = pd.DataFrame(confusion_matrix)
 
-df.to_csv("./tox_sider_matrix.csv")i
+df.to_csv("./tox_sider_matrix.csv")
 
