@@ -59,7 +59,6 @@ for splitter in splitters:
   # Fit Logistic Regression models
   tox_task_types = {task: "classification" for task in tox_tasks}
 
-
   classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                  verbosity=verbosity,
                                  mode="classification")
