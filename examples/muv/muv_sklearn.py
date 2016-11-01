@@ -16,7 +16,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.muv_datasets import load_muv
+from muv_datasets import load_muv
 
 np.random.seed(123)
 
@@ -25,14 +25,14 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_data_dir = "/scratch/users/rbharath/muv"
+base_data_dir = "/scratch/users/apappu/muv"
 
 muv_tasks, dataset, transformers = load_muv(
     base_data_dir, reload=reload)
 print("len(dataset)")
 print(len(dataset))
 
-base_dir = "/scratch/users/rbharath/muv_analysis"
+base_dir = "/scratch/users/apappu/muv_analysis"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 if not os.path.exists(base_dir):
