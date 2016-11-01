@@ -20,7 +20,6 @@ from deepchem.models.keras_models import KerasModel
 np.random.seed(123)
 reload = True
 verbosity = "high"
-<<<<<<< HEAD
 model = "logistic"
 
 base_data_dir = "/scratch/users/apappu/muv"
