@@ -43,7 +43,7 @@ test_dir = os.path.join(base_dir, "test")
 model_dir = os.path.join(base_dir, "model")
 
 # REPLACE WITH DOWNLOADED PDBBIND EXAMPLE
-pdbbind_dir = "/home/zqwu/deepchem/datasets/pdbbind"
+pdbbind_dir = "/tmp/deep-docking/datasets/pdbbind"
 pdbbind_tasks, dataset, transformers = load_core_pdbbind_grid(
     pdbbind_dir, base_dir)
 

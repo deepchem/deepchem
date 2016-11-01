@@ -46,6 +46,7 @@ def benchmarkLoadingDatasets(base_dir_o, n_features = 1024, datasetName = 'all',
   assert datasetName in ['all', 'muv', 'nci', 'pcba', 'tox21']
   
   if datasetName == 'all':
+    #currently not including the nci dataset
     datasetName = ['muv','pcba','tox21']
   else:
     datasetName = [datasetName]
