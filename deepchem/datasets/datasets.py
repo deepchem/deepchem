@@ -896,7 +896,7 @@ class DiskDataset(Dataset):
 
   # TODO(rbharath): This change for general object types seems a little
   # kludgey.  Is there a more principled approach to support general objects?
-  def select(self, select_dir, indices, compute_feature_statistics=False):
+  def select(self, indices, select_dir=None, compute_feature_statistics=False):
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
@@ -909,8 +909,11 @@ class DiskDataset(Dataset):
       Whether or not to compute moments of features. Only meaningful if features
       are np.ndarrays. Not meaningful for other featurizations.
     """
-    if not os.path.exists(select_dir):
-      os.makedirs(select_dir)
+    if select_dir is not None:
+      if not os.path.exists(select_dir):
+        os.makedirs(select_dir)
+    else:
+      select_dir = tempfile.mkdtemp()
     # Handle edge case with empty indices
     if not len(indices):
       return DiskDataset(
