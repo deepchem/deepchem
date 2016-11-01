@@ -22,14 +22,14 @@ reload = True
 verbosity = "high"
 model = "logistic"
 
-base_data_dir = "/scratch/users/apappu/toxcast"
+base_data_dir = "/tmp/toxcast_keras"
 
 tox_tasks, dataset, transformers = load_tox(
     base_data_dir, reload=reload)
 print("len(dataset)")
 print(len(dataset))
 
-base_dir = "/scratch/users/apappu/tox_analysis"
+base_dir = "/tmp/toxcast_analysis"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

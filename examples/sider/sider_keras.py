@@ -22,14 +22,14 @@ reload = True
 verbosity = "high"
 model = "logistic"
 
-base_data_dir = "/scratch/users/apappu/sider"
+base_data_dir = "/tmp/sider_keras"
 
 sider_tasks, dataset, transformers = load_sider(
     base_data_dir, reload=reload)
 print("len(dataset)")
 print(len(dataset))
 
-base_dir = "/scratch/users/apappu/sider_analysis"
+base_dir = "/tmp/sider_analysis"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
