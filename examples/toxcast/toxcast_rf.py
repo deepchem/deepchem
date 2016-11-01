@@ -25,13 +25,13 @@ from deepchem.splits import RandomStratifiedSplitter
 reload = False
 verbosity = "high"
 
-base_data_dir = "/home/apappu/deepchem/examples/toxcast/toxcast_data"
+base_data_dir = "/tmp/toxcast_rf"
 
 toxcast_tasks, toxcast_dataset, transformers = load_toxcast(
     base_data_dir, reload=reload)
 
 #removes directory if present -- warning
-base_dir = "/home/apappu/deepchem/examples/toxcast/toxcast_analysis"
+base_dir = "/tmp/toxcast_analysis"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 if not os.path.exists(base_dir):

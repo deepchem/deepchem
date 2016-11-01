@@ -23,13 +23,13 @@ from deepchem.splits import StratifiedSplitter, RandomSplitter
 reload = False
 verbosity = "high"
 
-base_data_dir = "/home/apappu/deepchem-models/toxcast_models/sider/sider_data"
+base_data_dir = "/tmp/sider_rf"
 
 sider_tasks, sider_dataset, transformers = load_sider(
     base_data_dir, reload=reload)
 
 #removes directory if present -- warning
-base_dir = "/home/apappu/deepchem-models/toxcast_models/sider/sider_analysis"
+base_dir = "/tmp/sider_analysis"
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 if not os.path.exists(base_dir):
