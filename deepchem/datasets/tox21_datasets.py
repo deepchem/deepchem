@@ -81,7 +81,6 @@ def load_tox21(base_dir, reload=True):
   
   return all_tox21_tasks, dataset, transformers
 
-
 def load_single_task_tox21(base_dir, reload=True):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
