@@ -18,7 +18,7 @@ from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
 from toxcast_datasets import load_toxcast
-from deepchem.splits import StratifiedSplitter
+from deepchem.splits import RandomStratifiedSplitter
 
 
 # Set some global variables up top
@@ -43,7 +43,7 @@ model_dir = os.path.join(base_dir, "model")
 
 print("About to perform train/valid/test split.")
 
-splitter = StratifiedSplitter()
+splitter = RandomStratifiedSplitter()
 
 #default split is 80-10-10 train-valid-test split
 train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
