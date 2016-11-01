@@ -15,8 +15,8 @@ from datasets import load_tox21_convmol
 K = 4 
 # Depth of attention module
 max_depth = 4
-# 10 positive/negative ligands
-n_pos = 10
+# number positive/negative ligands
+n_pos = 5 
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100

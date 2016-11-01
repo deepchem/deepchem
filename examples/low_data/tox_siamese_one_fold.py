@@ -13,8 +13,8 @@ from datasets import load_tox21_convmol
 
 # Number of folds for split 
 K = 4
-# 10 positive/negative ligands
-n_pos = 10
+# num positive/negative ligands
+n_pos = 5
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100
