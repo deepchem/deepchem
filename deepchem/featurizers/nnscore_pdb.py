@@ -509,7 +509,7 @@ class PDB(object):
 
     Helper function called when loading PDB from file.
     """
-    for key, residue in self.get_residues().iteritems():
+    for key, residue in self.get_residues().items():
       residue_names = [self.all_atoms[ind].atomname.strip() for ind in residue]
       self.check_protein_format_process_residue(residue_names, key)
 
@@ -967,7 +967,7 @@ class PDB(object):
       List of Aromatic objects.
     """
     charges = []
-    for key, res in residues.iteritems():
+    for key, res in residues.items():
       resname, _, _ = key.strip().split("_")
       real_resname = resname[-3:]
       if real_resname in resnames:
@@ -1287,7 +1287,7 @@ class PDB(object):
       List of Aromatic objects.
     """
     aromatics = []
-    for key, res in residues.iteritems():
+    for key, res in residues.items():
       real_resname, _, _ = key.strip().split("_")
       indices_of_ring = []
       if real_resname in resname:

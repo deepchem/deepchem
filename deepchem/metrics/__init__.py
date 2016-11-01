@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import precision_score
 from scipy.stats import pearsonr
 
 def to_one_hot(y):
@@ -103,7 +104,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity=None, mode=None):
+               verbosity=None, mode=None, compute_energy_metric=False):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -122,13 +123,14 @@ class Metric(object):
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
+    print(self.name)
     self.verbosity = verbosity
     self.threshold = threshold
     if mode is None:
-      if self.name in ["roc_auc_score", "matthews_corrcoef", "recall_score",
-                       "accuracy_score", "kappa_score"]:
+      if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef", "recall_score",
+                       "accuracy_score", "kappa_score", "precision_score"]:
         mode = "classification"
-      elif self.name in ["pearson_r2_score", "r2_score", "mean_squared_error",
+      elif self.metric.__name__ in ["pearson_r2_score", "r2_score", "mean_squared_error",
                          "mean_absolute_error", "rms_score",
                          "mae_score"]:
         mode = "regression"
@@ -136,6 +138,11 @@ class Metric(object):
         raise ValueError("Must specify mode for new metric.")
     assert mode in ["classification", "regression"]
     self.mode = mode
+    # The convention used is that the first task is the metric.
+    # TODO(rbharath, joegomes): This doesn't seem like it should be hard-coded as
+    # an option in the Metric class. Instead, this should be possible to move into
+    # user-space as a custom task_averager function.
+    self.compute_energy_metric = compute_energy_metric
 
   def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True):
     """Compute a performance metric for each task.
@@ -161,6 +168,8 @@ class Metric(object):
       w = np.ones_like(y_true)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
+    
+    nan_tasks = []
     for task in xrange(n_tasks):
       y_task = y_true[:, task]
       if self.mode == "regression":
@@ -172,7 +181,10 @@ class Metric(object):
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
+      if metric_value is np.nan:
+        nan_tasks.append(task)
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
+    log("nan tasks: %s" % str(nan_tasks), self.verbosity)
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:
@@ -181,7 +193,13 @@ class Metric(object):
       if filter_nans:
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
-      return self.task_averager(computed_metrics)
+      if self.compute_energy_metric:
+        # TODO(rbharath, joegomes): What is this magic number?
+        force_error = self.task_averager(computed_metrics[1:])*4961.47596096
+        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))
+        return computed_metrics[0]
+      else:
+        return self.task_averager(computed_metrics)
 
   def compute_singletask_metric(self, y_true, y_pred, w):
     """Compute a metric value.

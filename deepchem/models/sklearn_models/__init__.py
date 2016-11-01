@@ -18,65 +18,63 @@ class SklearnModel(Model):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, tasks, task_types, model_params, model_dir, fit_transformers=None,
-               model_instance=None, initialize_raw_model=True, verbosity=None,
-               mode="classification"):
-    super(SklearnModel, self).__init__(
-        tasks, task_types, model_params, model_dir,
-        fit_transformers=fit_transformers, 
-        initialize_raw_model=initialize_raw_model)
-    self.model_dir = model_dir
-    self.task_types = task_types
-    self.model_params = model_params
-    self.raw_model = model_instance
-    self.verbosity = verbosity
-    assert mode in ["classification", "regression"]
-    self.mode = mode
 
-  # TODO(rbharath): This does not work with very large datasets! sklearn does
-  # support partial_fit, but only for some models. Might make sense to make
-  # PartialSklearnModel subclass at some point to support large data models.
-  # Also, use of batch_size=32 is arbitrary and kludgey
-  def fit(self, dataset):
+  def fit(self, dataset, **kwargs):
     """
     Fits SKLearn model to data.
     """
-    X, y, w, _ = dataset.to_numpy()
-    y, w = np.squeeze(y), np.squeeze(w)
+    X = dataset.X
+    y = np.squeeze(dataset.y)
+    w = np.squeeze(dataset.w)
     # Logistic regression doesn't support weights
-    if not isinstance(self.raw_model, LogisticRegression):
-      self.raw_model.fit(X, y, w)
+    if not isinstance(self.model_instance, LogisticRegression):
+      self.model_instance.fit(X, y, w)
     else:
-      self.raw_model.fit(X, y)
-    y_pred_raw = self.raw_model.predict(X)
+      self.model_instance.fit(X, y)
+    y_pred_raw = self.model_instance.predict(X)
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on batch of data.
-    """
-    return self.raw_model.predict(X)
 
-  def predict_proba_on_batch(self, X):
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
+    """
+    return self.model_instance.predict(X)
+
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes per-class predictions on batch of data.
+
+    Parameters
+    ----------
+    X: np.ndarray
+      Features
+    pad_batch: bool, optional
+      Ignored for Sklearn Model. Only used for Tensorflow models
+      with rigid batch-size requirements.
     """
-    return self.raw_model.predict_proba(X)
+    return self.model_instance.predict_proba(X)
 
   def predict(self, X, transformers=[]):
     """
     Makes predictions on dataset.
     """
-    # Sets batch_size which the default impl in Model expects
-    #TODO(enf/rbharath): This is kludgy. Fix later.
-    if "batch_size" not in self.model_params.keys():
-      self.model_params["batch_size"] = None 
     return super(SklearnModel, self).predict(X, transformers)
 
   def save(self):
     """Saves sklearn model to disk using joblib."""
-    super(SklearnModel, self).save()
-    save_to_disk(self.raw_model, self.get_model_filename(self.model_dir))
+    save_to_disk(self.model_instance, self.get_model_filename(self.model_dir))
 
   def reload(self):
     """Loads sklearn model from joblib file on disk."""
-    self.raw_model = load_from_disk(Model.get_model_filename(self.model_dir))
+    self.model_instance = load_from_disk(Model.get_model_filename(self.model_dir))
+
+  def get_num_tasks(self):
+    """Number of tasks for this model. Defaults to 1"""
+    return 1

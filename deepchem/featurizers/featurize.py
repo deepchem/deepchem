@@ -23,7 +23,7 @@ from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_pickle_from_disk
 from deepchem.featurizers import Featurizer, ComplexFeaturizer
 from deepchem.featurizers import UserDefinedFeaturizer
-from deepchem.datasets import Dataset
+from deepchem.datasets import DiskDataset
 from deepchem.utils.save import load_data
 from deepchem.utils.save import get_input_type
 ############################################################## DEBUG
@@ -83,7 +83,7 @@ def featurize_map_function(args):
       loader.verbosity)
   log("About to featurize shard.", loader.verbosity)
   write_fn = partial(
-      Dataset.write_dataframe, data_dir=data_dir,
+      DiskDataset.write_dataframe, data_dir=data_dir,
       featurizer=loader.featurizer, tasks=loader.tasks,
       mol_id_field=loader.id_field, verbosity=loader.verbosity)
   ############################################################## TIMING
@@ -167,8 +167,10 @@ class DataLoader(object):
         worker_pool = mp.Pool(processes=1)
     log("Spawning workers now.", self.verbosity)
     metadata_rows = []
-    data_iterator = it.izip(
-        it.repeat((self, shard_size, input_type, data_dir)),
+    def wrap_with_shard_metadata(iterator):
+      for item in iterator:
+        yield ((self, shard_size, input_type, data_dir), item)
+    data_iterator = wrap_with_shard_metadata(
         enumerate(load_data(input_files, shard_size, self.verbosity)))
     # Turns out python map is terrible and exhausts the generator as given.
     # Solution seems to be to to manually pull out N elements from iterator,
@@ -210,9 +212,9 @@ class DataLoader(object):
 
     # TODO(rbharath): This whole bit with metadata_rows is an awkward way of
     # creating a Dataset. Is there a more elegant solutions?
-    dataset = Dataset(data_dir=data_dir,
+    dataset = DiskDataset(data_dir=data_dir,
                       metadata_rows=metadata_rows,
-                      reload=reload, verbosity=self.verbosity)
+                      reload=True, verbosity=self.verbosity)
     ############################################################## TIMING
     time2 = time.time()
     print("TIMING: dataset construction took %0.3f s" % (time2-time1),
@@ -223,12 +225,14 @@ class DataLoader(object):
   def _featurize_shard(self, df_shard, write_fn, shard_num, input_type):
     """Featurizes a shard of an input dataframe."""
     field = self.mol_field if input_type == "sdf" else self.smiles_field 
+    field_type = "mol" if input_type == "sdf" else "smiles" 
     log("Currently featurizing feature_type: %s"
         % self.featurizer.__class__.__name__, self.verbosity)
     if isinstance(self.featurizer, UserDefinedFeaturizer):
       self._add_user_specified_features(df_shard, self.featurizer)
     elif isinstance(self.featurizer, Featurizer):
-      self._featurize_mol(df_shard, self.featurizer, field=field)
+      self._featurize_mol(df_shard, self.featurizer, field=field,
+                          field_type=field_type)
     elif isinstance(self.featurizer, ComplexFeaturizer):
       self._featurize_complexes(df_shard, self.featurizer)
     basename = "shard-%d" % shard_num 
@@ -250,6 +254,8 @@ class DataLoader(object):
         return True
     return False
 
+  # TODO(rbharath): Should this function be modified to accept filenames for
+  # ligand/protein files instead of loaded strings?
   def _featurize_complexes(self, df, featurizer, parallel=True,
                            worker_pool=None):
     """Generates circular fingerprints for dataset."""
@@ -273,8 +279,8 @@ class DataLoader(object):
                                       zip(ligand_pdbs, protein_pdbs))
     df[featurizer.__class__.__name__] = list(features)
 
-  def _featurize_mol(self, df, featurizer, parallel=True, field="mol",
-                     worker_pool=None):    
+  def _featurize_mol(self, df, featurizer, parallel=True, field_type="mol",
+                     field=None, worker_pool=None):    
     """Featurize individual compounds.
 
        Given a featurizer that operates on individual chemical compounds 
@@ -289,13 +295,14 @@ class DataLoader(object):
 
       TODO(rbharath): Needs to be merged with _featurize_compounds
     """
-    assert field in ["mol", "smiles"]
+    assert field_type in ["mol", "smiles"]
+    assert field is not None
     sample_elems = df[field].tolist()
 
     if worker_pool is None:
       features = []
       for ind, elem in enumerate(sample_elems):
-        if field == "smiles":
+        if field_type == "smiles":
           mol = Chem.MolFromSmiles(elem)
         else:
           mol = elem
@@ -305,7 +312,7 @@ class DataLoader(object):
     else:
       def featurize_wrapper(elem, dilled_featurizer):
         print("Featurizing %s" % elem)
-        if field == "smiles":
+        if field_type == "smiles":
           mol = Chem.MolFromSmiles(smiles)
         else:
           mol = elem

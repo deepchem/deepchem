@@ -2,6 +2,7 @@ import sys
 import os
 import deepchem
 import tempfile, shutil
+from bace_datasets import load_bace
 from deepchem.hyperparameters import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
@@ -9,8 +10,6 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator
-from deepchem.datasets.bace_datasets import load_bace
-
 
 def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
   """Train random forests on BACE dataset."""
@@ -24,6 +23,9 @@ def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
     all_metrics = [r2_metric, rms_metric, mae_metric]
     metric = r2_metric
     model_class = RandomForestRegressor
+    def rf_model_builder(model_params, model_dir):
+      sklearn_model = RandomForestRegressor(**model_params)
+      return SklearnModel(sklearn_model, model_dir)
   elif mode == "classification":
     roc_auc_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
     accuracy_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
@@ -33,24 +35,18 @@ def bace_rf_model(mode="classification", verbosity="high", split="20-80"):
     model_class = RandomForestClassifier
     all_metrics = [accuracy_metric, mcc_metric, recall_metric, roc_auc_metric]
     metric = roc_auc_metric 
+    def rf_model_builder(model_params, model_dir):
+      sklearn_model = RandomForestClassifier(**model_params)
+      return SklearnModel(sklearn_model, model_dir)
   else:
     raise ValueError("Invalid mode %s" % mode)
 
-  def model_builder(tasks, task_types, params_dict, model_dir, verbosity=verbosity):
-      n_estimators = params_dict["n_estimators"]
-      max_features = params_dict["max_features"]
-      return SklearnModel(
-          tasks, task_types, params_dict, model_dir,
-          model_instance=model_class(n_estimators=n_estimators,
-                                     max_features=max_features))
   params_dict = {
       "n_estimators": [10, 100],
-      "batch_size": [None],
-      "data_shape": [train_dataset.get_data_shape()],
       "max_features": ["auto", "sqrt", "log2", None],
       }
-  optimizer = HyperparamOpt(model_builder, bace_tasks,
-                            {task: mode for task in bace_tasks})
+
+  optimizer = HyperparamOpt(rf_model_builder, verbosity="low")
   best_rf, best_rf_hyperparams, all_rf_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,
       metric=metric)

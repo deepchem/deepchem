@@ -1,12 +1,11 @@
 """Helper operations and classes for general model building.
-
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import cPickle as pickle
+import pickle
 import os
 import time
 import warnings
@@ -18,9 +17,79 @@ from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
+from deepchem.datasets import pad_features
+from tensorflow.contrib.layers.python.layers import batch_norm
+
+def softmax(x):
+  """Simple numpy softmax implementation
+  """
+  # (n_samples, n_classes)
+  if len(x.shape) == 2:
+    row_max = np.max(x, axis = 1)
+    x -= row_max.reshape((x.shape[0], 1))
+    x = np.exp(x)
+    row_sum = np.sum(x, axis = 1)
+    x /= row_sum.reshape((x.shape[0], 1))
+  # (n_samples, n_tasks, n_classes)
+  elif len(x.shape) == 3:
+    row_max = np.max(x, axis = 2)
+    x -= row_max.reshape(x.shape[:2] + (1,))
+    x = np.exp(x)
+    row_sum = np.sum(x, axis = 2)
+    x /= row_sum.reshape(x.shape[:2] + (1,))
+  return x
 
 class TensorflowGraph(object):
-  """Thin wrapper holding a tensorflow graph and a few vars.
+  """Simple class that holds information needed to run Tensorflow graph."""
+  def __init__(self, graph, session, name_scopes, output, labels, weights, loss):
+    self.graph = graph
+    self.session = session
+    self.name_scopes = name_scopes
+    self.output = output
+    self.labels = labels
+    self.weights = weights
+    self.loss = loss
+
+  @staticmethod
+  def get_placeholder_scope(graph, name_scopes):
+    """Gets placeholder scope."""
+    placeholder_root = "placeholders"
+    #with graph.as_default():
+    #  with tf.name_scope(placeholder_root) as scope:
+    #    return scope
+    return TensorflowGraph.shared_name_scope(placeholder_root, graph, name_scopes)
+
+  @staticmethod
+  def shared_name_scope(name, graph, name_scopes):
+    """Returns a singleton TensorFlow scope with the given name.
+
+    Used to prevent '_1'-appended scopes when sharing scopes with child classes.
+
+    Args:
+      name: String. Name scope for group of operations.
+    Returns:
+      tf.name_scope with the provided name.
+    """
+    with graph.as_default():
+      if name not in name_scopes:
+        with tf.name_scope(name) as scope:
+          name_scopes[name] = scope
+      return tf.name_scope(name_scopes[name])
+
+  @staticmethod
+  def get_feed_dict(named_values):
+    feed_dict = {}
+    placeholder_root = "placeholders"
+    for name, value in named_values.items():
+      feed_dict['{}/{}:0'.format(placeholder_root, name)] = value
+    return feed_dict
+
+
+class TensorflowGraphModel(object):
+  """Parent class for deepchem Tensorflow models.
+  
+  Classifier:
+    n_classes
 
   Has the following attributes:
 
@@ -34,117 +103,98 @@ class TensorflowGraph(object):
     add_output_ops
     add_training_cost 
 
-  Subclasses must set the following attributes:
-    loss: Op to calculate training cost used for gradient calculation.
-    output: Op(s) for model output for each task.
-    labels: Op(s) for true labels for each task.
-    weights: Op(s) for example weights for each task.
-    updates: Op(s) for running updates of e.g. moving averages for batch
-      normalization. Should be set to tf.no_op() if no updates are required.
-
-  This base class provides the following attributes:
-    model_params: dictionary containing model configuration parameters.
-    graph: TensorFlow graph object.
-    logdir: Path to the file output directory to store checkpoints etc.
-    master: TensorFlow session master specification string.
-    num_tasks: Integer number of tasks this model trains/evals on.
-    placeholder_scope: name scope where tf.placeholders are defined.
-    valid: Placeholder for a boolean tensor with shape batch_size to use as a
-      mask when calculating gradient costs.
-
   Args:
-    model_params: dictionary.
     train: If True, model is in training mode.
     logdir: Directory for output files.
   """
 
-  def __init__(self, model_params, logdir, tasks, task_types, train=True,
-               verbosity=None):
+  def __init__(self, n_tasks, n_features, logdir, layer_sizes=[1000],
+               weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
+               penalty_type="l2", dropouts=[0.5], learning_rate=.001,
+               momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
+               train=True, verbosity=None, **kwargs):
     """Constructs the computational graph.
 
     Args:
       train: whether model is in train mode
-      model_params: dictionary of model parameters
       logdir: Location to save data
 
     This function constructs the computational graph for the model. It relies
     subclassed methods (build/cost) to construct specific graphs.
     """
-    self.graph = tf.Graph() 
-    self.model_params = model_params
+    # Save hyperparameters
+    self.n_tasks = n_tasks
+    self.n_features = n_features
     self.logdir = logdir
-    self.tasks = tasks
-    self.task_types = task_types
-    self.num_tasks = len(task_types)
+    self.layer_sizes = layer_sizes
+    self.weight_init_stddevs = weight_init_stddevs
+    self.bias_init_consts = bias_init_consts
+    self.penalty = penalty
+    self.penalty_type = penalty_type
+    self.dropouts = dropouts
+    self.learning_rate = learning_rate
+    self.momentum = momentum
+    self.optimizer = optimizer
+    self.batch_size = batch_size
+    self.n_classes = n_classes
+    self.train = train
     self.verbosity = verbosity
-
-    # Lazily created by _get_shared_session().
-    self._shared_session = None
 
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.
     self._restored_model = False
-
-    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
-    # when subclass-overridden methods use the same scopes.
-    self._name_scopes = {}
-
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
 
-    with self.graph.as_default():
-      model_ops.set_training(train)
-      self.placeholder_root = 'placeholders'
-      with tf.name_scope(self.placeholder_root) as scope:
-        self.placeholder_scope = scope
+    self.train_graph = self.construct_graph(training=True)
+    self.eval_graph = self.construct_graph(training=False)
 
-    self.setup()
-    if train:
-      self.add_training_cost()
-      self.merge_updates()
+
+  def construct_graph(self, training):
+    """Returns a TensorflowGraph object."""
+    graph = tf.Graph() 
+
+    # Lazily created by _get_shared_session().
+    shared_session = None
+
+    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
+    # when subclass-overridden methods use the same scopes.
+    name_scopes = {}
+
+    # Setup graph
+    with graph.as_default():
+      output = self.build(graph, name_scopes, training)
+      labels = self.add_label_placeholders(graph, name_scopes)
+      weights = self.add_example_weight_placeholders(graph, name_scopes)
+
+    if training:
+      loss = self.add_training_cost(graph, name_scopes, output, labels, weights)
     else:
-      self.add_output_ops()  # add softmax heads
+      loss = None
+      output = self.add_output_ops(graph, output)  # add softmax heads
+    return TensorflowGraph(graph=graph,
+                           session=shared_session,
+                           name_scopes=name_scopes,
+                           output=output,
+                           labels=labels,
+                           weights=weights,
+                           loss=loss)
 
-  def setup(self):
-    """Add ops common to training/eval to the graph."""
-    with self.graph.as_default():
-      with tf.name_scope('core_model'):
-        self.build()
-      self.add_label_placeholders()
-      self.add_weight_placeholders()
-
-  def _shared_name_scope(self, name):
-    """Returns a singleton TensorFlow scope with the given name.
-
-    Used to prevent '_1'-appended scopes when sharing scopes with child classes.
-
-    Args:
-      name: String. Name scope for group of operations.
-    Returns:
-      tf.name_scope with the provided name.
-    """
-    if name not in self._name_scopes:
-      with self.graph.as_default():
-        with tf.name_scope(name) as scope:
-          self._name_scopes[name] = scope
-    return tf.name_scope(self._name_scopes[name])
-
-  def add_training_cost(self):
-    with self.graph.as_default():
-      self.require_attributes(['output', 'labels', 'weights'])
+  def add_training_cost(self, graph, name_scopes, output, labels, weights):
+    with graph.as_default():
       epsilon = 1e-3  # small float to avoid dividing by zero
-      model_params = self.model_params
       weighted_costs = []  # weighted costs for each example
       gradient_costs = []  # costs used for gradient calculation
 
-      with self._shared_name_scope('costs'):
-        for task in xrange(self.num_tasks):
-          task_str = str(task).zfill(len(str(self.num_tasks)))
-          with self._shared_name_scope('cost_{}'.format(task_str)):
+      with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
+        for task in range(self.n_tasks):
+          task_str = str(task).zfill(len(str(self.n_tasks)))
+          with TensorflowGraph.shared_name_scope(
+              'cost_{}'.format(task_str), graph, name_scopes):
             with tf.name_scope('weighted'):
-              weighted_cost = self.cost(self.output[task], self.labels[task],
-                                        self.weights[task])
+              weighted_cost = self.cost(output[task], labels[task],
+                                        weights[task])
               weighted_costs.append(weighted_cost)
 
             with tf.name_scope('gradient'):
@@ -153,34 +203,23 @@ class TensorflowGraph(object):
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
               gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                     model_params["batch_size"])
+                                     self.batch_size)
               gradient_costs.append(gradient_cost)
 
         # aggregated costs
-        with self._shared_name_scope('aggregated'):
+        with TensorflowGraph.shared_name_scope('aggregated', graph, name_scopes):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
 
           # weight decay
-          if model_params["penalty"] != 0.0:
-            penalty = model_ops.WeightDecay(model_params)
+          if self.penalty != 0.0:
+            penalty = model_ops.weight_decay(self.penalty_type, self.penalty)
             loss += penalty
 
-        # loss used for gradient calculation
-        self.loss = loss
+      return loss 
 
-      return weighted_costs
-
-  def merge_updates(self):
-    """Group updates into a single op."""
-    with self.graph.as_default():
-      updates = tf.get_default_graph().get_collection('updates')
-      if updates:
-        self.updates = tf.group(*updates, name='updates')
-      else:
-        self.updates = tf.no_op(name='updates')
-
-  def fit(self, dataset, shuffle=True, max_checkpoints_to_keep=5):
+  def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
+          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
     Args:
@@ -191,45 +230,55 @@ class TensorflowGraph(object):
     Raises:
       AssertionError: If model is not in training mode.
     """
-    num_datapoints = len(dataset)
-    batch_size = self.model_params["batch_size"]
-    step_per_epoch = np.ceil(float(num_datapoints)/batch_size)
-    nb_epoch = self.model_params["nb_epoch"]
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
+    n_datapoints = len(dataset)
+    batch_size = self.batch_size
+    step_per_epoch = np.ceil(float(n_datapoints)/batch_size)
     log("Training for %d epochs" % nb_epoch, self.verbosity)
-    with self.graph.as_default():
-      self.require_attributes(['loss', 'updates'])
-      train_op = self.get_training_op()
-      with self._get_shared_session() as sess:
+    with self.train_graph.graph.as_default():
+      train_op = self.get_training_op(
+          self.train_graph.graph, self.train_graph.loss)
+      with self._get_shared_session(train=True) as sess:
         sess.run(tf.initialize_all_variables())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
-          avg_loss, num_batches = 0., 0
+          avg_loss, n_batches = 0., 0
           if shuffle:
             log("About to shuffle dataset before epoch start.", self.verbosity)
             dataset.shuffle()
-          for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size):
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+              dataset.iterbatches(batch_size, pad_batches=True)): # hardcode pad_batches=True to work around limitations in Tensorflow
+            if ind % log_every_N_batches == 0:
+              log("On batch %d" % ind, self.verbosity)
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            fetches = self.output + [
-                train_op, self.loss, self.updates]
+            fetches = self.train_graph.output + [
+                train_op, self.train_graph.loss]
             fetched_values = sess.run(
                 fetches,
                 feed_dict=feed_dict)
-            output = fetched_values[:len(self.output)]
-            _, loss = fetched_values[-3], fetched_values[-2]
+            output = fetched_values[:len(self.train_graph.output)]
+            loss = fetched_values[-1]
             avg_loss += loss
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
-            num_batches += 1
+            n_batches += 1
           saver.save(sess, self._save_path, global_step=epoch)
-          avg_loss = float(avg_loss)/num_batches
+          avg_loss = float(avg_loss)/n_batches
           log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch+1)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1),
+          self.verbosity)
+    ############################################################## TIMING
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -238,7 +287,7 @@ class TensorflowGraph(object):
       dataset: deepchem.datasets.dataset object.
 
     Returns:
-      Tuple of three numpy arrays with shape num_examples x num_tasks (x ...):
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
         output: Model outputs.
         labels: True labels.
         weights: Example weights.
@@ -249,23 +298,23 @@ class TensorflowGraph(object):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
     
     if not self._restored_model:
       self.restore()
-    with self.graph.as_default():
-      assert not model_ops.is_training()
-      self.require_attributes(['output'])
+    with self.eval_graph.graph.as_default():
 
       # run eval data through the model
-      num_tasks = self.num_tasks
+      n_tasks = self.n_tasks
       output = []
       start = time.time()
-      with self._get_shared_session().as_default():
+      with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session().run(
-            self.output, feed_dict=feed_dict)
-        batch_output = np.asarray(data[:num_tasks], dtype=float)
-        # reshape to batch_size x num_tasks x ...
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output, feed_dict=feed_dict)
+        batch_output = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
         elif batch_output.ndim == 2:
@@ -281,16 +330,17 @@ class TensorflowGraph(object):
 
     return np.copy(outputs)
 
-  def add_output_ops(self):
+  def add_output_ops(self, graph, output):
     """Replace logits with softmax outputs."""
-    with self.graph.as_default():
+    with graph.as_default():
       softmax = []
       with tf.name_scope('inference'):
-        for i, logits in enumerate(self.output):
+        for i, logits in enumerate(output):
           softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
-      self.output = softmax
+      output = softmax
+    return output
 
-  def build(self):
+  def build(self, graph, name_scopes, training):
     """Define the core graph.
 
     NOTE(user): Operations defined here should be in their own name scope to
@@ -309,12 +359,12 @@ class TensorflowGraph(object):
     raise NotImplementedError('Must be overridden by concrete subclass')
 
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
       labels_%d: Float label tensor. For classification tasks, this tensor will
-        have shape batch_size x num_classes. For regression tasks, this tensor
+        have shape batch_size x n_classes. For regression tasks, this tensor
         will have shape batch_size.
 
     Raises:
@@ -322,7 +372,7 @@ class TensorflowGraph(object):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def add_weight_placeholders(self):
+  def add_example_weight_placeholders(self, graph, name_scopes):
     """Add Placeholders for example weights for each task.
 
     This method creates the following Placeholders for each task:
@@ -332,12 +382,13 @@ class TensorflowGraph(object):
     feeding and fetching the same tensor.
     """
     weights = []
-    for task in xrange(self.num_tasks):
-      with tf.name_scope(self.placeholder_scope):
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    with placeholder_scope:
+      for task in range(self.n_tasks):
         weights.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None],
                            name='weights_%d' % task)))
-    self.weights = weights
+    return weights
 
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
@@ -353,7 +404,7 @@ class TensorflowGraph(object):
     """
     raise NotImplementedError('Must be overridden by concrete subclass')
 
-  def get_training_op(self):
+  def get_training_op(self, graph, loss):
     """Get training op for applying gradients to variables.
 
     Subclasses that need to do anything fancy with gradients should override
@@ -362,22 +413,23 @@ class TensorflowGraph(object):
     Returns:
     A training op.
     """
-    opt = model_ops.Optimizer(self.model_params)
-    return opt.minimize(self.loss, name='train')
+    with graph.as_default():
+      opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
+      return opt.minimize(loss, name='train')
 
-  def _get_shared_session(self):
-    if not self._shared_session:
-      # allow_soft_placement=True allows ops without a GPU implementation
-      # to run on the CPU instead.
-      config = tf.ConfigProto(allow_soft_placement=True)
-      self._shared_session = tf.Session(config=config)
-    return self._shared_session
-
-  def _get_feed_dict(self, named_values):
-    feed_dict = {}
-    for name, value in named_values.iteritems():
-      feed_dict['{}/{}:0'.format(self.placeholder_root, name)] = value
-    return feed_dict
+  def _get_shared_session(self, train):
+    # allow_soft_placement=True allows ops without a GPU implementation
+    # to run on the CPU instead.
+    if train:
+      if not self.train_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.train_graph.session = tf.Session(config=config)
+      return self.train_graph.session
+    else:
+      if not self.eval_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.eval_graph.session = tf.Session(config=config)
+      return self.eval_graph.session
 
   def restore(self):
     """Restores the model from the provided training checkpoint.
@@ -387,12 +439,12 @@ class TensorflowGraph(object):
     """
     if self._restored_model:
       return
-    with self.graph.as_default():
-      assert not model_ops.is_training()
+    with self.eval_graph.graph.as_default():
       last_checkpoint = self._find_last_checkpoint()
 
+      # TODO(rbharath): Is setting train=Falseright here?
       saver = tf.train.Saver()
-      saver.restore(self._get_shared_session(),
+      saver.restore(self._get_shared_session(train=False),
                     last_checkpoint)
       self._restored_model = True
 
@@ -412,25 +464,11 @@ class TensorflowGraph(object):
           pass
     return os.path.join(self.logdir, last_checkpoint)
           
-  def require_attributes(self, attrs):
-    """Require class attributes to be defined.
-
-    Args:
-      attrs: A list of attribute names that must be defined.
-
-    Raises:
-      AssertionError: if a required attribute is not defined.
-    """
-    for attr in attrs:
-      if getattr(self, attr, None) is None:
-        raise AssertionError(
-            'self.%s must be defined by a concrete subclass' % attr)
-
-class TensorflowClassifier(TensorflowGraph):
+class TensorflowClassifier(TensorflowGraphModel):
   """Classification model.
 
   Subclasses must set the following attributes:
-    output: Logits op(s) used for computing classification loss and predicted
+    output: logits op(s) used for computing classification loss and predicted
       class probabilities for each task.
 
   Class attributes:
@@ -446,8 +484,8 @@ class TensorflowClassifier(TensorflowGraph):
     """Calculate single-task training cost for a batch of examples.
 
     Args:
-      logits: Tensor with shape batch_size x num_classes containing logits.
-      labels: Tensor with shape batch_size x num_classes containing true labels
+      logits: Tensor with shape batch_size x n_classes containing logits.
+      labels: Tensor with shape batch_size x n_classes containing true labels
         in a one-hot encoding.
       weights: Tensor with shape batch_size containing example weights.
 
@@ -458,29 +496,73 @@ class TensorflowClassifier(TensorflowGraph):
     return tf.mul(tf.nn.softmax_cross_entropy_with_logits(logits, labels),
                   weights)
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
-      labels_%d: Label tensor with shape batch_size x num_classes.
+      labels_%d: Label tensor with shape batch_size x n_classes.
 
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    with self.graph.as_default():
-      model_params = self.model_params
-      batch_size = model_params["batch_size"]
-      num_classes = model_params["num_classes"]
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    with graph.as_default():
+      batch_size = self.batch_size 
+      n_classes = self.n_classes
       labels = []
-      for task in xrange(self.num_tasks):
-        with tf.name_scope(self.placeholder_scope):
+      with placeholder_scope:
+        for task in range(self.n_tasks):
           labels.append(tf.identity(
-              tf.placeholder(tf.float32, shape=[None, num_classes],
+              tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
-      self.labels = labels
+      return labels
 
+  def predict_proba_on_batch(self, X, pad_batch=False):
+    """Return model output for the provided input.
 
-class TensorflowRegressor(TensorflowGraph):
+    Restore(checkpoint) must have previously been called on this object.
+
+    Args:
+      dataset: deepchem.datasets.dataset object.
+
+    Returns:
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
+        output: Model outputs.
+      Note that the output arrays may be more than 2D, e.g. for
+      classifier models that return class probabilities.
+
+    Raises:
+      AssertionError: If model is not in evaluation mode.
+      ValueError: If output and labels are not both 3D or both 2D.
+    """
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    if not self._restored_model:
+      self.restore()
+    with self.eval_graph.graph.as_default():
+      # run eval data through the model
+      n_tasks = self.n_tasks
+      with self._get_shared_session(train=False).as_default():
+        feed_dict = self.construct_feed_dict(X)
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output, feed_dict=feed_dict)
+        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
+        if batch_outputs.ndim == 3:
+          batch_outputs = batch_outputs.transpose((1, 0, 2))
+        elif batch_outputs.ndim == 2:
+          batch_outputs = batch_outputs.transpose((1, 0))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output: %s ' %
+              (batch_outputs.shape,))
+
+      # Note that softmax is already applied in construct_grpah
+      outputs = batch_outputs
+
+    return np.copy(outputs)
+
+class TensorflowRegressor(TensorflowGraphModel):
   """Regression model.
 
   Subclasses must set the following attributes:
@@ -496,9 +578,9 @@ class TensorflowRegressor(TensorflowGraph):
   def get_task_type(self):
     return "regressor"
 
-  def add_output_ops(self):
+  def add_output_ops(self, graph, output):
     """No-op for regression models since no softmax."""
-    pass
+    return output
 
   def cost(self, output, labels, weights):
     """Calculate single-task training cost for a batch of examples.
@@ -514,7 +596,7 @@ class TensorflowRegressor(TensorflowGraph):
     """
     return tf.mul(0.5 * tf.square(output - labels), weights)
 
-  def add_label_placeholders(self):
+  def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
 
     This method creates the following Placeholders for each task:
@@ -523,58 +605,133 @@ class TensorflowRegressor(TensorflowGraph):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    with self.graph.as_default():
-      batch_size = self.model_params["batch_size"]
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    with graph.as_default():
+      batch_size = self.batch_size
       labels = []
-      for task in xrange(self.num_tasks):
-        with tf.name_scope(self.placeholder_scope):
+      with placeholder_scope:
+        for task in range(self.n_tasks):
           labels.append(tf.identity(
               tf.placeholder(tf.float32, shape=[None],
                              name='labels_%d' % task)))
-      self.labels = labels
+    return labels
+
+  def predict_on_batch(self, X):
+    """Return model output for the provided input.
+
+    Restore(checkpoint) must have previously been called on this object.
+
+    Args:
+      dataset: deepchem.datasets.dataset object.
+
+    Returns:
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
+        output: Model outputs.
+        labels: True labels.
+        weights: Example weights.
+      Note that the output and labels arrays may be more than 2D, e.g. for
+      classifier models that return class probabilities.
+
+    Raises:
+      AssertionError: If model is not in evaluation mode.
+      ValueError: If output and labels are not both 3D or both 2D.
+    """
+    if not self._restored_model:
+      self.restore()
+    with self.train_graph.graph.as_default():
+
+      # run eval data through the model
+      n_tasks = self.n_tasks
+      outputs = []
+      with self._get_shared_session(train=False).as_default():
+        n_samples = len(X)
+        # TODO(rbharath): Should this be padding there? Shouldn't padding be
+        # turned on in predict?
+        #################################################################### DEBUG
+        # Some tensorflow models can't handle variadic batches,
+        # especially models using tf.pack, tf.split. Pad batch-size
+        # to handle these cases.
+        #X = pad_features(self.batch_size, X)
+        #################################################################### DEBUG
+        feed_dict = self.construct_feed_dict(X)
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output, feed_dict=feed_dict)
+        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
+        if batch_outputs.ndim == 3:
+          batch_outputs = batch_outputs.transpose((1, 0, 2))
+        elif batch_outputs.ndim == 2:
+          batch_outputs = batch_outputs.transpose((1, 0))
+        # Handle edge case when batch-size is 1.
+        elif batch_outputs.ndim == 1:
+          n_samples = len(X)
+          batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output: %s' %
+              (batch_outputs.shape))
+        # Prune away any padding that was added
+        batch_outputs = batch_outputs[:n_samples]
+        outputs.append(batch_outputs)
+
+        outputs = np.squeeze(np.concatenate(outputs)) 
+
+    return np.copy(outputs)
 
 class TensorflowModel(Model):
   """
   Abstract base class shared across all Tensorflow models.
   """
 
-  def __init__(self, tasks, task_types, model_params, logdir, tf_class=None,
-               verbosity=None):
-    """
-    Args:
-      tf_class: Class that inherits from TensorflowGraph
-    """ 
+  def __init__(self, model, logdir, verbosity=None, **kwargs):
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity
-    if tf_class is None:
-      tf_class = TensorflowGraph
-    self.model_params = model_params
-    self.tasks = tasks
-    self.task_types = task_types
-    self.train_model = tf_class(model_params, logdir, tasks, task_types,
-                                train=True, verbosity=verbosity)
-    self.eval_model = tf_class(model_params, logdir, tasks, task_types,
-                                train=False, verbosity=verbosity)
-    self.num_tasks = len(self.task_types)
+    self.model_instance = model
     self.fit_transformers = None
+    if not os.path.exists(logdir):
+      os.makedirs(logdir)
 
-  def fit(self, dataset, shuffle=True):
+  def fit(self, dataset, **kwargs):
     """
     Fits TensorflowGraph to data.
     """
-    self.train_model.fit(dataset, shuffle=shuffle)
+    self.model_instance.fit(dataset, **kwargs)
 
-  def predict_on_batch(self, X):
+  def predict(self, dataset, transformers=[], batch_size=None,
+              pad_batches=False):
+    """
+    Uses self to make predictions on provided Dataset object.
+
+    This is overridden to make sure the batch size is always valid for Tensorflow.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
+    """
+    return Model.predict(self, dataset, transformers,
+                         self.model_instance.batch_size, True)
+
+  def predict_on_batch(self, X, pad_batch=True):
     """
     Makes predictions on batch of data.
     """
-    return self.eval_model.predict_on_batch(X)
+    if pad_batch:
+      len_unpadded = len(X)
+      Xpad = pad_features(self.model_instance.batch_size, X)
+      return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
+    else:
+      return self.model_instance.predict_on_batch(X)
 
-  def predict_proba_on_batch(self, X):
+  def predict_grad_on_batch(self, X):
+    """
+    Calculates gradient of cost function on batch of data.
+    """
+    return self.model_instance.predict_grad_on_batch(X)
+
+  def predict_proba_on_batch(self, X, pad_batch=False):
     """
     Makes predictions on batch of data.
     """
-    return self.eval_model.predict_proba_on_batch(X)
+    return self.model_instance.predict_proba_on_batch(X, pad_batch=pad_batch)
 
   def save(self):
     """
@@ -586,4 +743,7 @@ class TensorflowModel(Model):
     """
     Loads model from disk. Thin wrapper around restore() for consistency.
     """
-    self.eval_model.restore()
+    self.model_instance.restore()
+
+  def get_num_tasks(self):
+    return self.model_instance.n_tasks

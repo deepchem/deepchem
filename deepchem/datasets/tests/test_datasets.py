@@ -14,7 +14,11 @@ import tempfile
 import os
 import shutil
 import numpy as np
-from deepchem.datasets import Dataset
+from deepchem.datasets import sparsify_features
+from deepchem.datasets import densify_features
+from deepchem.datasets import pad_batch
+from deepchem.datasets import pad_features
+from deepchem.datasets import DiskDataset, NumpyDataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.transformers import NormalizationTransformer
@@ -24,6 +28,149 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   """
   Test basic top-level API for dataset objects.
   """
+
+  def test_sparsify_and_densify(self):
+    """Test that sparsify and densify work as inverses."""
+    # Test on identity matrix
+    num_samples = 10
+    num_features = num_samples
+    X = np.eye(num_samples)
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
+
+    # Generate random sparse features dataset
+    np.random.seed(123)
+    p = .05
+    X = np.random.binomial(1, p, size=(num_samples, num_features))
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
+
+    # Test edge case with array of all zeros
+    X = np.zeros((num_samples, num_features))
+    X_sparse = sparsify_features(X)
+    X_reconstructed = densify_features(X_sparse, num_features)
+    np.testing.assert_array_equal(X, X_reconstructed)
+
+  def test_pad_features(self):
+    """Test that pad_features pads features correctly."""
+    batch_size = 100
+    num_features = 10
+    num_tasks = 5
+  
+    # Test cases where n_samples < 2*n_samples < batch_size
+    n_samples = 29
+    X_b = np.zeros((n_samples, num_features))
+  
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test cases where n_samples < batch_size
+    n_samples = 79
+    X_b = np.zeros((n_samples, num_features))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case where n_samples == batch_size
+    n_samples = 100 
+    X_b = np.zeros((n_samples, num_features))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case for object featurization.
+    n_samples = 2
+    X_b = np.array([{"a": 1}, {"b": 2}])
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case for more complicated object featurization
+    n_samples = 2
+    X_b = np.array([(1, {"a": 1}), (2, {"b": 2})])
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+
+    # Test case with multidimensional data
+    n_samples = 50
+    num_atoms = 15
+    d = 3
+    X_b = np.zeros((n_samples, num_atoms, d))
+    X_out = pad_features(batch_size, X_b)
+    assert len(X_out) == batch_size
+  
+
+  def test_pad_batches(self):
+    """Test that pad_batch pads batches correctly."""
+    batch_size = 100
+    num_features = 10
+    num_tasks = 5
+  
+    # Test cases where n_samples < 2*n_samples < batch_size
+    n_samples = 29
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test cases where n_samples < batch_size
+    n_samples = 79
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case where n_samples == batch_size
+    n_samples = 100 
+    X_b = np.zeros((n_samples, num_features))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case for object featurization.
+    n_samples = 2
+    X_b = np.array([{"a": 1}, {"b": 2}])
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case for more complicated object featurization
+    n_samples = 2
+    X_b = np.array([(1, {"a": 1}), (2, {"b": 2})])
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+
+    # Test case with multidimensional data
+    n_samples = 50
+    num_atoms = 15
+    d = 3
+    X_b = np.zeros((n_samples, num_atoms, d))
+    y_b = np.zeros((n_samples, num_tasks))
+    w_b = np.zeros((n_samples, num_tasks))
+    ids_b = np.zeros((n_samples,))
+  
+    X_out, y_out, w_out, ids_out = pad_batch(
+        batch_size, X_b, y_b, w_b, ids_b)
+    assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
+    
   def test_get_task_names(self):
     """Test that get_task_names returns correct task_names"""
     solubility_dataset = self.load_solubility_data()
@@ -51,15 +198,15 @@ class TestBasicDatasetAPI(TestDatasetAPI):
   def test_reshard(self):
     """Test that resharding the dataset works."""
     solubility_dataset = self.load_solubility_data()
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     assert solubility_dataset.get_number_shards() == 1
     solubility_dataset.reshard(shard_size=1)
     assert solubility_dataset.get_shard_size() == 1
-    X_r, y_r, w_r, ids_r = solubility_dataset.to_numpy()
+    X_r, y_r, w_r, ids_r = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     assert solubility_dataset.get_number_shards() == 10
     solubility_dataset.reshard(shard_size=10)
     assert solubility_dataset.get_shard_size() == 10
-    X_rr, y_rr, w_rr, ids_rr = solubility_dataset.to_numpy()
+    X_rr, y_rr, w_rr, ids_rr = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
 
     # Test first resharding worked
     np.testing.assert_array_equal(X, X_r)
@@ -82,12 +229,12 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     y = np.random.randint(2, size=(num_datapoints, num_tasks))
     w = np.ones((num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
 
     select_dir = tempfile.mkdtemp()
     indices = [0, 4, 5, 8]
     select_dataset = dataset.select(select_dir, indices)
-    X_sel, y_sel, w_sel, ids_sel = select_dataset.to_numpy()
+    X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y, select_dataset.w, select_dataset.ids)
     np.testing.assert_array_equal(X[indices], X_sel)
     np.testing.assert_array_equal(y[indices], y_sel)
     np.testing.assert_array_equal(w[indices], w_sel)
@@ -105,53 +252,13 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
     
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
+    dataset = NumpyDataset(X, y, w, ids)
 
     X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
-    print("type(X_shape), type(y_shape), type(w_shape), type(ids_shape)")
-    print(type(X_shape), type(y_shape), type(w_shape), type(ids_shape))
-    print("type(X.shape), type(y.shape), type(w.shape), type(ids.shape)")
-    print(type(X.shape), type(y.shape), type(w.shape), type(ids.shape))
-    print("X_shape, y_shape, w_shape, ids_shape")
-    print(X_shape, y_shape, w_shape, ids_shape)
-    print("X.shape, y.shape, w.shape, ids.shape")
-    print(X.shape, y.shape, w.shape, ids.shape)
     assert X_shape == X.shape
     assert y_shape == y.shape
     assert w_shape == w.shape
     assert ids_shape == ids.shape
-
-
-  def test_to_singletask(self):
-    """Test that to_singletask works."""
-    num_datapoints = 100
-    num_features = 10
-    num_tasks = 10
-    # Generate data
-    X = np.random.rand(num_datapoints, num_features)
-    y = np.random.randint(2, size=(num_datapoints, num_tasks))
-    w = np.random.randint(2, size=(num_datapoints, num_tasks))
-    ids = np.array(["id"] * num_datapoints)
-    
-    dataset = Dataset.from_numpy(self.data_dir, X, y, w, ids, verbosity="high")
-
-    task_dirs = []
-    try:
-      for task in range(num_tasks):
-        task_dirs.append(tempfile.mkdtemp())
-      singletask_datasets = dataset.to_singletask(task_dirs)
-      for task in range(num_tasks):
-        singletask_dataset = singletask_datasets[task]
-        X_task, y_task, w_task, ids_task = singletask_dataset.to_numpy()
-        w_nonzero = w[:, task] != 0
-        np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
-        np.testing.assert_array_equal(y_task.flatten(), y[:, task][w_nonzero != 0])
-        np.testing.assert_array_equal(w_task.flatten(), w[:, task][w_nonzero != 0])
-        np.testing.assert_array_equal(ids_task, ids[w_nonzero != 0])
-    finally:
-      # Cleanup
-      for task_dir in task_dirs:
-        shutil.rmtree(task_dir)
   
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""
@@ -165,12 +272,92 @@ class TestBasicDatasetAPI(TestDatasetAPI):
       assert w_b.shape == (batch_size,) + (len(tasks),)
       assert ids_b.shape == (batch_size,)
 
+  def test_itersamples_numpy(self):
+    """Test that iterating over samples in a NumpyDataset works."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+    # Generate data
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    dataset = NumpyDataset(X, y, w, ids)
+    for i, (sx, sy, sw, sid) in enumerate(dataset.itersamples()):
+        np.testing.assert_array_equal(sx, X[i])
+        np.testing.assert_array_equal(sy, y[i])
+        np.testing.assert_array_equal(sw, w[i])
+        np.testing.assert_array_equal(sid, ids[i])
+
+  def test_itersamples_disk(self):
+    """Test that iterating over samples in a DiskDataset works."""
+    solubility_dataset = self.load_solubility_data()
+    X = solubility_dataset.X
+    y = solubility_dataset.y
+    w = solubility_dataset.w
+    ids = solubility_dataset.ids
+    for i, (sx, sy, sw, sid) in enumerate(solubility_dataset.itersamples()):
+        np.testing.assert_array_equal(sx, X[i])
+        np.testing.assert_array_equal(sy, y[i])
+        np.testing.assert_array_equal(sw, w[i])
+        np.testing.assert_array_equal(sid, ids[i])
+
+  def test_transform_numpy(self):
+    """Test that the transform() method works for NumpyDatasets."""
+    num_datapoints = 100
+    num_features = 10
+    num_tasks = 10
+
+    # Generate data
+
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.random.randint(2, size=(num_datapoints, num_tasks))
+    w = np.random.randint(2, size=(num_datapoints, num_tasks))
+    ids = np.array(["id"] * num_datapoints)
+    dataset = NumpyDataset(X, y, w, ids)
+
+    # Transform it
+
+    def fn(x, y, w):
+      return (2*x, 1.5*y, w)
+    transformed = dataset.transform(fn)
+    np.testing.assert_array_equal(X, dataset.X)
+    np.testing.assert_array_equal(y, dataset.y)
+    np.testing.assert_array_equal(w, dataset.w)
+    np.testing.assert_array_equal(ids, dataset.ids)
+    np.testing.assert_array_equal(2*X, transformed.X)
+    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(w, transformed.w)
+    np.testing.assert_array_equal(ids, transformed.ids)
+
+  def test_transform_disk(self):
+    """Test that the transform() method works for DiskDatasets."""
+    dataset = self.load_solubility_data()
+    X = dataset.X
+    y = dataset.y
+    w = dataset.w
+    ids = dataset.ids
+
+    # Transform it
+
+    def fn(x, y, w):
+      return (2*x, 1.5*y, w)
+    transformed = dataset.transform(fn)
+    np.testing.assert_array_equal(X, dataset.X)
+    np.testing.assert_array_equal(y, dataset.y)
+    np.testing.assert_array_equal(w, dataset.w)
+    np.testing.assert_array_equal(ids, dataset.ids)
+    np.testing.assert_array_equal(2*X, transformed.X)
+    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(w, transformed.w)
+    np.testing.assert_array_equal(ids, transformed.ids)
+
   def test_to_numpy(self):
     """Test that transformation to numpy arrays is sensible."""
     solubility_dataset = self.load_solubility_data()
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
-    X, y, w, ids = solubility_dataset.to_numpy()
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     N_samples = len(solubility_dataset)
     N_tasks = len(tasks)
     
@@ -183,15 +370,15 @@ class TestBasicDatasetAPI(TestDatasetAPI):
     """Test that ordering of labels is consistent over time."""
     solubility_dataset = self.load_solubility_data()
 
-    ids1 = solubility_dataset.get_ids()
-    ids2 = solubility_dataset.get_ids()
+    ids1 = solubility_dataset.ids
+    ids2 = solubility_dataset.ids
 
     assert np.array_equal(ids1, ids2)
 
   def test_get_statistics(self):
     """Test statistics computation of this dataset."""
     solubility_dataset = self.load_solubility_data()
-    X, y, _, _ = solubility_dataset.to_numpy()
+    X, y, _, _ = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
     X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
     X_stds, y_stds = np.std(X, axis=0), np.std(y, axis=0)
     comp_X_means, comp_X_stds, comp_y_means, comp_y_stds = \
