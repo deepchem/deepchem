@@ -20,7 +20,6 @@ from deepchem.datasets.tox21_datasets import load_tox21
 from deepchem.splits import StratifiedSplitter
 from deepchem.splits import RandomSplitter
 
-np.random.seed(123)
 
 # Set some global variables up top
 
@@ -58,7 +57,6 @@ for splitter in splitters:
 
   # Fit Logistic Regression models
   tox_task_types = {task: "regression" for task in tox_tasks}
-
 
   classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                  verbosity=verbosity,
