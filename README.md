@@ -203,11 +203,11 @@ passed a ``Featurizer`` object. ``deepchem`` provides a number of
 different subclasses of ``Featurizer`` for convenience:
 
 ### Performances
-|Dataset   	|Model               |Train score   |Valid score   |Time(loading)/s |Time(running)/s|
-|-----------|--------------------|--------------|--------------|----------------|---------------| 
-|tox21      |tensorflow(MT-DNN)  |0.987         |0.800         |35              |36 				|
-|muv        |tensorflow(MT-DNN)  |0.979         |0.660         |414             |255            |
-|pcba   		|tensorflow(MT-DNN)	|0.949        	|0.791         |1765         	  |7209           |                                         
+|Dataset   	|Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
+|-----------|--------------------|-------------------|-------------------|----------------|---------------| 
+|tox21      |tensorflow(MT-DNN)  |0.987              |0.800              |35              |36             |
+|muv        |tensorflow(MT-DNN)  |0.979              |0.660              |414             |255            |
+|pcba   		|tensorflow(MT-DNN)	|0.949        	     |0.791              |1765            |7209           |                                         
 ## Contributing to DeepChem
 
 We actively encourage community contributions to DeepChem. The first place to start getting involved is by running our examples locally. Afterwards, we encourage contributors to give a shot to improving our documentation. While we take effort to provide good docs, there's plenty of room for improvement. All docs are hosted on Github, either in this `README.md` file, or in the `docs/` directory.
