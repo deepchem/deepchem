@@ -20,8 +20,16 @@ from deepchem.models.keras_models import KerasModel
 np.random.seed(123)
 reload = True
 verbosity = "high"
+model = "logistic"
 
-base_dir = "/tmp/muv_keras"
+base_data_dir = "/scratch/users/apappu/muv"
+
+muv_tasks, dataset, transformers = load_muv(
+    base_data_dir, reload=reload)
+print("len(dataset)")
+print(len(dataset))
+
+base_dir = "/scratch/users/apappu/muv_analysis"
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

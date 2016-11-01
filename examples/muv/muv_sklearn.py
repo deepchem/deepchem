@@ -17,6 +17,7 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
+from muv_datasets import load_muv
 
 np.random.seed(123)
 
@@ -25,7 +26,13 @@ np.random.seed(123)
 reload = True
 verbosity = "high"
 
-base_dir = "/tmp/muv_sklearn"
+base_data_dir = "/scratch/users/apappu/muv"
+
+muv_tasks, dataset, transformers = load_muv(
+    base_data_dir, reload=reload)
+print("len(dataset)")
+print(len(dataset))
+
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)

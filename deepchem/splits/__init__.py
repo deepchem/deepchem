@@ -118,6 +118,37 @@ class Splitter(object):
 
   
 class RandomStratifiedSplitter(Splitter):
+
+  def randomize_arrays(array_list):
+    # assumes that every array is of the same dimension
+    num_rows = array_list[0].shape[0]
+    perm = np.random.permutation(num_rows)
+    array_list = [array[perm] for array in array_list]
+    return array_list
+
+
+  def generate_required_hits(w, frac_split):
+    required_hits = (w != 0).sum(0)  # returns list of per column sum of non zero elements
+    required_hits = [int(col_hits * frac_split) for col_hits in required_hits]
+    return required_hits
+
+  def generate_required_index(w, required_hit_list):
+    col_index = 0
+    index_hits = []
+    # loop through each column and obtain index required to splice out for required fraction of hits
+    for col in w.T:
+      num_hit = 0
+      num_required = required_hit_list[col_index]
+      for index, value in enumerate(col):
+        if value != 0:
+          num_hit += 1
+          if num_hit >= num_required:
+            index_hits.append(index)
+            break
+      col_index += 1
+    return index_hits
+
+class StratifiedSplitter(Splitter):
   """
   RandomStratified Splitter class.
 
@@ -135,6 +166,13 @@ class RandomStratifiedSplitter(Splitter):
   splitter classes.
   """
 
+  def __randomize_arrays(self, array_list):
+    # assumes that every array is of the same dimension
+    num_rows = array_list[0].shape[0]
+    perm = np.random.permutation(num_rows)
+    array_list = [array[perm] for array in array_list]
+    return array_list
+  
   def __generate_required_hits(self, w, frac_split):
     # returns list of per column sum of non zero elements
     required_hits = (w != 0).sum(axis=0)  
@@ -168,7 +206,8 @@ class RandomStratifiedSplitter(Splitter):
 
   # TODO(rbharath): Refactor this split method to match API of other splits (or
   # potentially refactor those to match this.
-  def split(self, dataset, split_dirs, frac_split):
+  #def split(self, dataset, split_dirs, frac_split):
+  def __split(self, X, y, w, ids, frac_split):
     """
     Method that does bulk of splitting dataset.
     """
@@ -181,9 +220,19 @@ class RandomStratifiedSplitter(Splitter):
     X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w, dataset.ids))
     split_indices = self.get_task_split_indices(y, w, frac_split)
 
-    # Create weight matrices fpor two haves. 
+    # Create weight matrices for two haves. 
     w_1, w_2 = np.zeros_like(w), np.zeros_like(w)
-    for task, split_index in enumerate(split_indices):
+    #for task, split_index in enumerate(split_indices):
+    # find the total number of hits for each task and calculate the required
+    # number of hits for split based on frac_split
+    required_hits_list = generate_required_hits(w, frac_split)
+    # finds index cutoff per task in array to get required split calculated
+    index_list = generate_required_index(w, required_hits_list)
+
+    w_1 = w_2 = np.zeros(w.shape)
+
+    # chunk appropriate values into weights matrices
+    for col_index, index in enumerate(index_list):
       # copy over up to required index for weight first_split
       w_1[:split_index, task] = w[:split_index, task]
       w_2[split_index:, task] = w[split_index:, task]
@@ -210,6 +259,8 @@ class RandomStratifiedSplitter(Splitter):
     rem_dir = tempfile.mkdtemp()
     train_dataset, rem_dataset = self.split(
         dataset, [train_dir, rem_dir], frac_train)
+    X, y, w, ids = randomize_arrays(dataset.to_numpy())
+    X_train, y_train, w_train, ids_train, X_test, y_test, w_test, ids_test = self.__split(X, y, w, ids, frac_train)
 
     # calculate percent split for valid (out of test and valid)
     if frac_valid + frac_test > 0:
