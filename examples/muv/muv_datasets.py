@@ -46,7 +46,6 @@ def load_muv(base_dir, reload=True, frac_train=.8):
   # Featurize MUV dataset
   print("About to featurize MUV dataset.")
   featurizer = CircularFingerprint(size=1024)
-<<<<<<< aab35306c853a01a73f6d54f1a2b782e35108ea6
   MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                       'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                       'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
