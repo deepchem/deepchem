@@ -9,30 +9,32 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import os
 import unittest
 import numpy as np
 import pandas as pd
+import deepchem as dc
 import numpy.random as random
-import os
-from deepchem.datasets import DiskDataset
-from deepchem.transformers import LogTransformer
-from deepchem.transformers import NormalizationTransformer
-from deepchem.transformers import BalancingTransformer
-from deepchem.transformers import CDFTransformer
-from deepchem.transformers import PowerTransformer
-from deepchem.datasets.tests import TestDatasetAPI
 
-class TestTransformerAPI(TestDatasetAPI):
-  """Test top-level API for transformer objects."""
+class TestTransformers(unittest.TestCase):
+  """
+  Test top-level API for transformer objects.
+  """
+  def setUp(self):
+    super(TestTransformers, self).setUp()
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+
 
   def test_y_log_transformer(self):
     """Tests logarithmic data transformer."""
-    solubility_dataset = self.load_solubility_data()
-    log_transformer = LogTransformer(
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    log_transformer = dc.transformers.LogTransformer(
         transform_y=True, dataset=solubility_dataset)
-    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = log_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -49,12 +51,14 @@ class TestTransformerAPI(TestDatasetAPI):
 
   def test_X_log_transformer(self):
     """Tests logarithmic data transformer."""
-    solubility_dataset = self.load_solubility_data()
-    log_transformer = LogTransformer(
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    log_transformer = dc.transformers.LogTransformer(
         transform_X=True, dataset=solubility_dataset)
-    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = log_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
     
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -71,7 +75,7 @@ class TestTransformerAPI(TestDatasetAPI):
  
   def test_y_log_transformer_select(self):
     """Tests logarithmic data transformer with selection."""
-    multitask_dataset = self.load_feat_multitask_data()
+    multitask_dataset = dc.datasets.tests.load_feat_multitask_data()
     dfe = pd.read_csv(os.path.join(self.current_dir,
                       "../../models/tests/feat_multitask_example.csv"))
     tid = []
@@ -81,7 +85,7 @@ class TestTransformerAPI(TestDatasetAPI):
       tiid = dfe.columns.get_loc(task)-dfe.columns.get_loc(first_task)
       tid = np.concatenate((tid, np.array([tiid])))
     tasks = tid.astype(int)
-    log_transformer = LogTransformer(
+    log_transformer = dc.transformers.LogTransformer(
         transform_y=True, tasks=tasks,
         dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
@@ -103,7 +107,7 @@ class TestTransformerAPI(TestDatasetAPI):
 
   def test_X_log_transformer_select(self):
     #Tests logarithmic data transformer with selection.
-    multitask_dataset = self.load_feat_multitask_data()
+    multitask_dataset = dc.datasets.tests.load_feat_multitask_data()
     dfe = pd.read_csv(os.path.join(self.current_dir,
                       "../../models/tests/feat_multitask_example.csv"))
     fid = []
@@ -113,7 +117,7 @@ class TestTransformerAPI(TestDatasetAPI):
       fiid = dfe.columns.get_loc(feature)-dfe.columns.get_loc(first_feature)
       fid = np.concatenate((fid, np.array([fiid])))
     features = fid.astype(int)
-    log_transformer = LogTransformer(
+    log_transformer = dc.transformers.LogTransformer(
         transform_X=True, features=features,
         dataset=multitask_dataset)
     X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
@@ -135,12 +139,14 @@ class TestTransformerAPI(TestDatasetAPI):
 
   def test_y_normalization_transformer(self):
     """Tests normalization transformer."""
-    solubility_dataset = self.load_solubility_data()
-    normalization_transformer = NormalizationTransformer(
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    normalization_transformer = dc.transformers.NormalizationTransformer(
         transform_y=True, dataset=solubility_dataset)
-    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = normalization_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
@@ -157,12 +163,14 @@ class TestTransformerAPI(TestDatasetAPI):
 
   def test_X_normalization_transformer(self):
     """Tests normalization transformer."""
-    solubility_dataset = self.load_solubility_data()
-    normalization_transformer = NormalizationTransformer(
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    normalization_transformer = dc.transformers.NormalizationTransformer(
         transform_X=True, dataset=solubility_dataset)
-    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
+                    solubility_dataset.w, solubility_dataset.ids)
     solubility_dataset = normalization_transformer.transform(solubility_dataset)
-    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y, solubility_dataset.w, solubility_dataset.ids)
+    X_t, y_t, w_t, ids_t = (solubility_dataset.X, solubility_dataset.y,
+                            solubility_dataset.w, solubility_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt
@@ -190,9 +198,10 @@ class TestTransformerAPI(TestDatasetAPI):
     """Test CDF transformer on Gaussian normal dataset."""
     target = np.array(np.transpose(np.linspace(0.,1.,1001)))
     target = np.transpose(np.array(np.append([target],[target], axis=0)))
-    gaussian_dataset = self.load_gaussian_cdf_data()
+    gaussian_dataset = dc.datasets.tests.load_gaussian_cdf_data()
     bins=1001
-    cdf_transformer = CDFTransformer(transform_X=True, bins=bins)
+    cdf_transformer = dc.transformers.CDFTransformer(transform_X=True,
+                                                     bins=bins)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
@@ -213,13 +222,16 @@ class TestTransformerAPI(TestDatasetAPI):
     #Test CDF transformer on Gaussian normal dataset.
     target = np.array(np.transpose(np.linspace(0.,1.,1001)))
     target = np.transpose(np.array(np.append([target],[target], axis=0)))
-    gaussian_dataset = self.load_gaussian_cdf_data()
+    gaussian_dataset = dc.datasets.tests.load_gaussian_cdf_data()
     bins=1001
-    cdf_transformer = CDFTransformer(transform_y=True, bins=bins)
-    X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
+    cdf_transformer = dc.transformers.CDFTransformer(transform_y=True, bins=bins)
+    X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
+                    gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
-    gaussian_dataset = DiskDataset(data_dir=gaussian_dataset.data_dir,reload=True)
-    X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
+    gaussian_dataset = dc.datasets.DiskDataset(
+        data_dir=gaussian_dataset.data_dir,reload=True)
+    X_t, y_t, w_t, ids_t = (gaussian_dataset.X, gaussian_dataset.y,
+                            gaussian_dataset.w, gaussian_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -235,12 +247,14 @@ class TestTransformerAPI(TestDatasetAPI):
   
   def test_power_X_transformer(self):
     """Test Power transformer on Gaussian normal dataset."""
-    gaussian_dataset = self.load_gaussian_cdf_data()
+    gaussian_dataset = dc.datasets.tests.load_gaussian_cdf_data()
     powers=[1,2,0.5]
-    power_transformer = PowerTransformer(transform_X=True, powers=powers)
+    power_transformer = dc.transformers.PowerTransformer(
+        transform_X=True, powers=powers)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
     gaussian_dataset = power_transformer.transform(gaussian_dataset)
-    gaussian_dataset = DiskDataset(data_dir=gaussian_dataset.data_dir,reload=True)
+    gaussian_dataset = dc.datasets.DiskDataset(
+        data_dir=gaussian_dataset.data_dir,reload=True)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
 
     # Check ids are unchanged.
@@ -258,8 +272,8 @@ class TestTransformerAPI(TestDatasetAPI):
   def test_singletask_balancing_transformer(self):
     """Test balancing transformer on single-task dataset."""
 
-    classification_dataset = self.load_classification_data()
-    balancing_transformer = BalancingTransformer(
+    classification_dataset = dc.datasets.tests.load_classification_data()
+    balancing_transformer = dc.transformers.BalancingTransformer(
       transform_w=True, dataset=classification_dataset)
     X, y, w, ids = (classification_dataset.X, classification_dataset.y, classification_dataset.w, classification_dataset.ids)
     classification_dataset = balancing_transformer.transform(classification_dataset)
@@ -284,12 +298,14 @@ class TestTransformerAPI(TestDatasetAPI):
 
   def test_multitask_balancing_transformer(self):
     """Test balancing transformer on multitask dataset."""
-    multitask_dataset = self.load_multitask_data()
-    balancing_transformer = BalancingTransformer(
+    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    balancing_transformer = dc.transformers.BalancingTransformer(
       transform_w=True, dataset=multitask_dataset)
-    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
+                    multitask_dataset.w, multitask_dataset.ids)
     multitask_dataset = balancing_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
+                            multitask_dataset.w, multitask_dataset.ids)
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
       assert id_elt == id_t_elt

@@ -5,7 +5,6 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-# TODO(rbharath): Get rid of * import
 from deepchem.transformers.transformers import undo_transforms
 from deepchem.transformers.transformers import undo_grad_transforms
 from deepchem.transformers.transformers import LogTransformer
