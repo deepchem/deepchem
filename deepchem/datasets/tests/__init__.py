@@ -46,7 +46,7 @@ def load_multitask_data():
       verbosity="low")
   return loader.featurize(input_file)
 
-def load_classification_data(self):
+def load_classification_data():
   """Loads classification data from example.csv"""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.featurizers.CircularFingerprint(size=1024)
@@ -73,7 +73,7 @@ def load_sparse_multitask_dataset():
       featurizer=featurizer, verbosity="low")
   return loader.featurize(input_file)
   
-def load_feat_multitask_data(self):
+def load_feat_multitask_data():
   """Load example with numerical features, tasks."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
   features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
@@ -86,7 +86,7 @@ def load_feat_multitask_data(self):
       id_field="id", verbosity="low")
   return loader.featurize(input_file)
 
-def load_gaussian_cdf_data(self):
+def load_gaussian_cdf_data():
   """Load example with numbers sampled from Gaussian normal distribution.
      Each feature and task is a column of values that is sampled
      from a normal distribution of mean 0, stdev 1."""
