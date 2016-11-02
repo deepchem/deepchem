@@ -612,7 +612,7 @@ class PowerTransformer(Transformer):
     # TODO (rbharath): Find a more elegant solution to saving the data?
     shutil.rmtree(dataset.data_dir)
     os.makedirs(dataset.data_dir)
-    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
+    DiskDataset.from_numpy(X_t, y_t, w_t, ids_t, data_dir=dataset.data_dir)
     return dataset
 
   def untransform(self, z):
