@@ -14,3 +14,4 @@ import deepchem.nn
 import deepchem.splits
 import deepchem.transformers
 import deepchem.utils
+import deepchem.loaders

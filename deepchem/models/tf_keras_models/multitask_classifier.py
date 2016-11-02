@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 import sklearn.metrics
+import tempfile
 from keras.engine import Layer
 from keras.layers import Input, Dense
 from keras import initializations, activations
@@ -45,7 +46,7 @@ def get_loss_fn(final_loss):
 
 class MultitaskGraphClassifier(Model):
 
-  def __init__(self, sess, model, n_tasks, logdir, batch_size=50,
+  def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
                beta1=.9, beta2=.999, verbosity=None):
@@ -55,6 +56,11 @@ class MultitaskGraphClassifier(Model):
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model 
+    if logdir is not None:
+      if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    else:
+      logdir = tempfile.mkdtemp()
     self.logdir = logdir
            
     # Extract model info 

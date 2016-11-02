@@ -31,7 +31,7 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, model_instance, model_dir,
+  def __init__(self, model_instance, model_dir=None,
                fit_transformers=None, verbosity=None, **kwargs):
     """Abstract class for all models.
     Parameters:
@@ -41,9 +41,12 @@ class Model(object):
     model_dir: str
       Path to directory where model will be stored.
     """
+    if model_dir is not None:
+      if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    else:
+      model_dir = tempfile.mkdtemp()
     self.model_dir = model_dir
-    if not os.path.exists(self.model_dir):
-      os.makedirs(self.model_dir)
     self.model_instance = model_instance
     self.model_class = model_instance.__class__
     self.fit_transformers = fit_transformers

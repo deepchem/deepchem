@@ -21,8 +21,8 @@ model_dir = tempfile.mkdtemp()
 
 # 4-fold splits
 K = 4
-# 10 positive/negative ligands
-n_pos = 10
+# num positive/negative ligands
+n_pos = 1
 n_neg = 10
 # 10 trials on test-set
 n_trials = 10

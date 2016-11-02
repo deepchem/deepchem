@@ -12,14 +12,11 @@ __license__ = "GPL"
 import os
 import shutil
 import tempfile
+import unittest
+import deepchem as dc
 import numpy as np
-from deepchem.models.tests import TestAPI
-from deepchem.utils.save import load_from_disk
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import DiskDataset
 
-class TestMerge(TestAPI):
+class TestMerge(unittest.TestCase):
   """
   Test singletask/multitask dataset merging.
   """
@@ -27,26 +24,20 @@ class TestMerge(TestAPI):
     """Test that datasets can be merged."""
     verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    first_data_dir = os.path.join(self.base_dir, "first_dataset")
-    second_data_dir = os.path.join(self.base_dir, "second_dataset")
-    merged_data_dir = os.path.join(self.base_dir, "merged_data")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
-    first_dataset = loader.featurize(
-        dataset_file, first_data_dir)
-    second_dataset = loader.featurize(
-        dataset_file, second_data_dir)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
+    first_dataset = loader.featurize(dataset_file)
+    second_dataset = loader.featurize( dataset_file)
 
-    merged_dataset = DiskDataset.merge(
-        merged_data_dir, [first_dataset, second_dataset])
+    merged_dataset = dc.datasets.DiskDataset.merge(
+        [first_dataset, second_dataset])
 
     assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
 
@@ -54,20 +45,19 @@ class TestMerge(TestAPI):
     """Tests that subsetting of datasets works."""
     verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(self.base_dir, "dataset")
-    subset_dir = os.path.join(self.base_dir, "subset")
+    #data_dir = os.path.join(self.base_dir, "dataset")
+    #subset_dir = os.path.join(self.base_dir, "subset")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
     dataset = loader.featurize(
-        dataset_file, data_dir, shard_size=2)
+        dataset_file, shard_size=2)
 
     shard_nums = [1, 2]
 
@@ -75,7 +65,7 @@ class TestMerge(TestAPI):
     _, _, _, ids_1 = dataset.get_shard(1)
     _, _, _, ids_2 = dataset.get_shard(2)
 
-    subset = dataset.subset(subset_dir, shard_nums)
+    subset = dataset.subset(shard_nums)
     after_ids = dataset.ids
 
     assert len(subset) == 4

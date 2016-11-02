@@ -16,7 +16,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
   Key idea is to have bypass layers that feed directly from features to task
   output. Hopefully will allow tasks to route around bad multitasking.
   """
-  def __init__(self, n_tasks, n_features, logdir,
+  def __init__(self, n_tasks, n_features, logdir=None,
                bypass_layer_sizes=[100],
                bypass_weight_init_stddevs=[.02],
                bypass_bias_init_consts=[1.],

@@ -13,11 +13,9 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.models.tests import TestAPI
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.fingerprints import CircularFingerprint
+import deepchem as dc
 
-class TestDataLoader(TestAPI):
+class TestDataLoader(unittest.TestCase):
   """
   Test Data Featurizer class.
   """
@@ -29,10 +27,10 @@ class TestDataLoader(TestAPI):
 
     tasks = ["log-solubility"]
     smiles_field = "smiles"
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=CircularFingerprint(size=1024),
-                        verbosity="low")
-    dataset = loader.featurize(input_file, self.data_dir)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=dc.featurizers.CircularFingerprint(size=1024),
+        verbosity="low")
+    dataset = loader.featurize(input_file)
     
     assert len(dataset) == 10

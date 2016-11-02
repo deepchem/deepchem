@@ -13,7 +13,7 @@ __license__ = "GPL"
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
 
-class SequentialGraphModel(object):
+class SequentialGraph(object):
   """An analog of Keras Sequential class for Graph data.
 
   Like the Sequential class from Keras, but automatically passes topology
@@ -65,7 +65,7 @@ class SequentialGraphModel(object):
   def get_layer(self, layer_id):
     return self.layers[layer_id]
 
-class SequentialSupportGraphModel(object):
+class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""
   def __init__(self, n_feat):
     """

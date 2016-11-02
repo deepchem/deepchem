@@ -12,14 +12,11 @@ __license__ = "GPL"
 import os
 import shutil
 import tempfile
+import unittest
+import deepchem as dc
 import numpy as np
-from deepchem.models.tests import TestAPI
-from deepchem.utils.save import load_from_disk
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import DiskDataset
 
-class TestShuffle(TestAPI):
+class TestShuffle(unittest.TestCase):
   """
   Test singletask/multitask dataset shuffling.
   """
@@ -27,25 +24,25 @@ class TestShuffle(TestAPI):
     """Test that datasets can be merged."""
     verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(self.base_dir, "dataset")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
     dataset = loader.featurize(
-        dataset_file, data_dir, shard_size=2)
+        dataset_file, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
+                                        dataset.ids)
     orig_len = len(dataset)
 
     dataset.shuffle(iterations=5)
-    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
+                                    dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -61,25 +58,25 @@ class TestShuffle(TestAPI):
     """Test that sparse datasets can be shuffled quickly."""
     verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(self.base_dir, "dataset")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
     dataset = loader.featurize(
-        dataset_file, data_dir, shard_size=2)
+        dataset_file, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
+                                        dataset.ids)
     orig_len = len(dataset)
 
     dataset.sparse_shuffle()
-    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
+                                    dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -95,25 +92,25 @@ class TestShuffle(TestAPI):
     """Test that datasets can be merged."""
     verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(self.base_dir, "dataset")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
     dataset = loader.featurize(
-        dataset_file, data_dir, shard_size=2)
+        dataset_file, shard_size=2)
 
-    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
+                                        dataset.ids)
     orig_len = len(dataset)
 
     dataset.reshard_shuffle(reshard_size=1)
-    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
+                                    dataset.ids)
     
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
@@ -135,7 +132,7 @@ class TestShuffle(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
     dataset.reshard(shard_size=10)
 
     dataset.shuffle_each_shard()
@@ -163,7 +160,7 @@ class TestShuffle(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = DiskDataset.from_numpy(self.data_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
     dataset.reshard(shard_size=10)
     dataset.shuffle_shards()
 

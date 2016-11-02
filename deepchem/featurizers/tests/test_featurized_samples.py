@@ -13,19 +13,15 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.datasets import DiskDataset
-from deepchem.models.tests import TestAPI
-from deepchem.splits import RandomSplitter
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import SpecifiedSplitter
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.fingerprints import CircularFingerprint
-#from deepchem.featurizers.featurize import FeaturizedSamples
+import deepchem as dc
 
-class TestFeaturizedSamples(TestAPI):
+class TestFeaturizedSamples(unittest.TestCase):
   """
   Test Featurized Samples class.
   """
+  def setUp(self):
+    super(TestFeaturizedSamples, self).setUp()
+    self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def scaffold_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
@@ -36,21 +32,21 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = CircularFingerprint(size=1024)
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/example.csv")
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity="low")
 
-    dataset = loader.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file)
 
     # Splits featurized samples into train/test
-    splitter = ScaffoldSplitter()
+    splitter = dc.splits.ScaffoldSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset, self.train_dir, self.valid_dir, self.test_dir)
+        dataset)
     assert len(train_dataset) == 8
     assert len(valid_dataset) == 1
     assert len(test_dataset) == 1
@@ -64,21 +60,20 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = CircularFingerprint(size=1024)
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/example.csv")
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity="low")
 
-    dataset = loader.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file)
 
     # Splits featurized samples into train/test
-    splitter = ScaffoldSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
+    splitter = dc.splits.ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(dataset)
     assert len(train_dataset) == 8
     assert len(test_dataset) == 2
 
@@ -90,21 +85,21 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = CircularFingerprint(size=1024)
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/example.csv")
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity="low")
 
-    dataset = loader.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file)
 
     # Splits featurized samples into train/test
-    splitter = RandomSplitter()
+    splitter = dc.splits.RandomSplitter()
     train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset, self.train_dir, self.valid_dir, self.test_dir)
+        dataset)
     assert len(train_dataset) == 8
     assert len(valid_dataset) == 1
     assert len(test_dataset) == 1
@@ -116,36 +111,35 @@ class TestFeaturizedSamples(TestAPI):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(self.current_dir, "example.csv")
-    featurizer = CircularFingerprint(size=1024)
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        featurizer=featurizer,
-                        verbosity="low")
+    input_file = os.path.join(
+        self.current_dir, "../../models/tests/example.csv")
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity="low")
 
-    dataset = loader.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file)
 
     # Splits featurized samples into train/test
-    splitter = RandomSplitter()
-    train_dataset, test_dataset = splitter.train_test_split(
-        dataset, self.train_dir, self.test_dir)
+    splitter = dc.splits.RandomSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(dataset)
     assert len(train_dataset) == 8
     assert len(test_dataset) == 2
 
   def test_samples_move(self):
     """Test that featurized samples can be moved and reloaded."""
     verbosity = "high"
-    data_dir = os.path.join(self.base_dir, "data")
-    moved_data_dir = os.path.join(self.base_dir, "moved_data")
+    base_dir = tempfile.mkdtemp()
+    data_dir = os.path.join(base_dir, "data")
+    moved_data_dir = os.path.join(base_dir, "moved_data")
     dataset_file = os.path.join(
-        self.current_dir, "example.csv")
+        self.current_dir, "../../models/tests/example.csv")
 
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
     featurized_dataset = loader.featurize(
         dataset_file, data_dir)
     n_dataset = len(featurized_dataset)
@@ -153,7 +147,7 @@ class TestFeaturizedSamples(TestAPI):
     # Now perform move
     shutil.move(data_dir, moved_data_dir)
 
-    moved_featurized_dataset = DiskDataset(
+    moved_featurized_dataset = dc.datasets.DiskDataset(
         data_dir=moved_data_dir, reload=True)
 
     assert len(moved_featurized_dataset) == n_dataset

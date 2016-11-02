@@ -1,5 +1,5 @@
 """
-Train low-data siamese models on random forests. Test last fold only.
+Train low-data attn models on random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -12,15 +12,17 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4 
+K = 4
+# Depth of attention module
+max_depth = 4
 # num positive/negative ligands
-n_pos = 3
+n_pos = 5 
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100
 support_batch_size = n_pos + n_neg
-n_train_trials = 3000
-n_eval_trials = 20 
+n_train_trials = 4000
+n_eval_trials = 20
 n_steps_per_trial = 1
 # Sample supports without replacement (all pos/neg should be different)
 replace = False
@@ -44,44 +46,32 @@ test_dataset = fold_datasets[-1]
 support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
-
-# Adding 1st layer
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
-# Need to add batch-norm to test/support due to differing shapes.
+# Need to add batch-norm separately to test/support due to differing
+# shapes.
 # output will be (n_atoms, 64)
 support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-# Addding 2nd layer
 # output will be (n_atoms, 64)
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add(dc.nn.GraphPool())
-# Adding 3rd layer
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
-support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-# Adding 4th layer
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
-support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-## Adding 5th layer
-#support_model.add(dc.nn.GraphConv(64, activation='relu'))
-#support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-#support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-
-# Gather atoms into batches
 support_model.add_test(dc.nn.GraphGather(test_batch_size))
 support_model.add_support(dc.nn.GraphGather(support_batch_size))
+# Apply a residual lstm layer
+support_model.join(dc.nn.ResiLSTMEmbedding(
+    test_batch_size, support_batch_size, max_depth))
+
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=3e-3, verbosity="high")
+    support_batch_size=support_batch_size,
+    learning_rate=1e-3, verbosity="high")
 
   ############################################################ DEBUG
   print("FIT")
   ############################################################ DEBUG
-  model.fit(test_dataset, n_trials=n_train_trials,
+  model.fit(train_dataset, n_trials=n_train_trials,
             n_steps_per_trial=n_steps_per_trial, n_pos=n_pos,
             n_neg=n_neg, replace=False)
   model.save()
@@ -92,5 +82,5 @@ with tf.Session() as sess:
   scores = model.evaluate(
       test_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
       n_trials=n_eval_trials)
-  print("Scores on held-out dataset")
+  print("Scores on evaluation dataset")
   print(scores)

@@ -6,11 +6,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import sklearn
+import tempfile
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
 from deepchem.datasets import DiskDataset
-import sklearn
 from deepchem.transformers import undo_transforms
 
 class SingletaskToMultitask(Model):
@@ -19,16 +20,19 @@ class SingletaskToMultitask(Model):
 
   Warning: This current implementation is only functional for sklearn models. 
   """
-  def __init__(self, tasks, model_builder, model_dir, verbosity=None):
+  def __init__(self, tasks, model_builder, model_dir=None, verbosity=None):
     self.tasks = tasks
+    if model_dir is not None:
+      if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    else:
+      model_dir = tempfile.mkdtemp()
     self.model_dir = model_dir
     self.task_model_dirs = {}
     self.model_builder = model_builder
     self.verbosity = verbosity
     log("About to initialize singletask to multitask model",
         self.verbosity, "high")
-    if not os.path.exists(self.model_dir):
-      os.makedirs(self.model_dir)
     for task in self.tasks:
       task_model_dir = os.path.join(self.model_dir, str(task))
       if not os.path.exists(task_model_dir):

@@ -3,20 +3,77 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-
 import sys
 import traceback
 import tensorflow as tf
+from keras import backend as K
+
+def cosine_distances(test, support):
+  """Computes pairwise cosine distances between provided tensors
+
+  Parameters
+  ----------
+  test: tf.Tensor
+    Of shape (n_test, n_feat)
+  support: tf.Tensor
+    Of shape (n_support, n_feat)
+
+  Returns
+  -------
+  tf.Tensor:
+    Of shape (n_test, n_support)
+  """
+  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
+                     keep_dims=True)) + K.epsilon()
+  rnorm_support = tf.rsqrt(tf.reduce_sum(tf.square(support), 1,
+                           keep_dims=True)) + K.epsilon()
+  test_normalized = test * rnorm_test
+  support_normalized = support * rnorm_support
+
+  # Transpose for mul
+  support_normalized_t = tf.transpose(support_normalized, perm=[1,0])  
+  g = tf.matmul(test_normalized, support_normalized_t)  # Gram matrix
+  return g
+
+def euclidean_distance(test, support, max_dist_sq=20):
+  """Computes pairwise euclidean distances between provided tensors
+
+  TODO(rbharath): BROKEN! THIS DOESN'T WORK!
+
+  Parameters
+  ----------
+  test: tf.Tensor
+    Of shape (n_test, n_feat)
+  support: tf.Tensor
+    Of shape (n_support, n_feat)
+  max_dist_sq: float, optional
+    Maximum pairwise distance allowed.
+
+  Returns
+  -------
+  tf.Tensor:
+    Of shape (n_test, n_support)
+  """
+  test = tf.expand_dims(test, 1)
+  support = tf.expand_dims(support, 0)
+  g = -tf.maximum(tf.reduce_sum(tf.square(test - support), 2), max_dist_sq)
+  return g
 
 def add_bias(tensor, init=None, name=None):
   """Add a bias term to a tensor.
 
-  Args:
-    tensor: Variable tensor.
-    init: Bias initializer. Defaults to zero.
-    name: Name for this op. Defaults to tensor.op.name.
+  Parameters
+  ---------- 
+  tensor: tf.Tensor
+    Variable tensor.
+  init: float
+    Bias initializer. Defaults to zero.
+  name: str
+    Name for this op. Defaults to tensor.op.name.
 
-  Returns:
+  Returns
+  -------
+  tf.Tensor
     A biased tensor with the same shape as the input tensor.
   """
   if init is None:
@@ -40,14 +97,19 @@ def dropout(tensor, dropout_prob, training=True, training_only=True):
     are no training-time differences between networks that use dropout during
     inference and those that do not.
 
-  Args:
-    tensor: Input tensor.
-    dropout_prob: Float giving dropout probability for weights (NOT keep
-      probability).
-    training_only: Boolean. If True (standard dropout), apply dropout only
-      during training. If False, apply dropout during inference as well.
+  Parameters
+  ---------- 
+  tensor: tf.Tensor
+    Input tensor.
+  dropout_prob: float
+    Float giving dropout probability for weights (NOT keep probability).
+  training_only: bool
+    Boolean. If True (standard dropout), apply dropout only
+    during training. If False, apply dropout during inference as well.
 
-  Returns:
+  Returns
+  -------
+  tf.Tensor:
     A tensor with the same shape as the input tensor.
   """
   if not dropout_prob:
@@ -62,18 +124,28 @@ def fully_connected_layer(tensor, size, weight_init=None, bias_init=None,
                           name=None):
   """Fully connected layer.
 
-  Args:
-    tensor: Input tensor.
-    size: Number of nodes in this layer.
-    weight_init: Weight initializer.
-    bias_init: Bias initializer.
-    name: Name for this op. Defaults to 'fully_connected'.
+  Parameters
+  ----------
+  tensor: tf.Tensor
+    Input tensor.
+  size: int
+    Number of nodes in this layer.
+  weight_init: float
+    Weight initializer.
+  bias_init: float
+    Bias initializer.
+  name: str
+    Name for this op. Defaults to 'fully_connected'.
 
-  Returns:
+  Returns
+  -------
+  tf.Tensor:
     A new tensor representing the output of the fully connected layer.
 
-  Raises:
-    ValueError: If input tensor is not 2D.
+  Raises
+  ------
+  ValueError
+    If input tensor is not 2D.
   """
   if len(tensor.get_shape()) != 2:
     raise ValueError('Dense layer input must be 2D, not %dD'
@@ -194,9 +266,17 @@ def softmax_N(tensor, name=None):
 def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):
   """Create model optimizer.
 
-  Args:
+  Parameters
+  ----------
+  optimizer: str, optional
+    Name of optimizer
+  learning_rate: float, optional
+    Learning rate for algorithm
+  momentum: float, optional
+    Momentum rate
 
-  Returns:
+  Returns
+  -------
     A training Optimizer.
 
   Raises:

@@ -10,16 +10,11 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
 import tempfile
+import unittest
 import numpy as np
-from deepchem.datasets import DiskDataset
-from deepchem.splits import RandomSplitter
-from deepchem.splits import IndexSplitter
-from deepchem.splits import ScaffoldSplitter
-from deepchem.splits import RandomStratifiedSplitter
-from deepchem.datasets.tests import TestDatasetAPI
+import deepchem as dc
 
-
-class TestSplitters(TestDatasetAPI):
+class TestSplitters(unittest.TestCase):
   """
   Test some basic splitters.
   """
@@ -28,41 +23,35 @@ class TestSplitters(TestDatasetAPI):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    random_splitter = RandomSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
-            solubility_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(
-        merge_dir, [train_data, valid_data, test_data])
+    merged_dataset = dc.datasets.DiskDataset.merge(
+        [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
 
   def test_singletask_index_split(self):
     """
-    Test singletask RandomSplitter class.
+    Test singletask IndexSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    random_splitter = IndexSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    random_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
-            solubility_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(
-        merge_dir, [train_data, valid_data, test_data])
+    merged_dataset = dc.datasets.DiskDataset.merge(
+        [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
 
@@ -70,13 +59,11 @@ class TestSplitters(TestDatasetAPI):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    scaffold_splitter = ScaffoldSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
         scaffold_splitter.train_valid_test_split(
-            solubility_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -85,13 +72,12 @@ class TestSplitters(TestDatasetAPI):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    random_splitter = RandomSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    random_splitter = dc.splits.RandomSplitter()
     ids_set = set(solubility_dataset.ids)
 
     K = 5
-    fold_dirs = [tempfile.mkdtemp() for i in range(K)]
-    fold_datasets = random_splitter.k_fold_split(solubility_dataset, fold_dirs)
+    fold_datasets = random_splitter.k_fold_split(solubility_dataset, K)
     for fold in range(K):
       fold_dataset = fold_datasets[fold]
       # Verify lengths is 10/k == 2
@@ -107,8 +93,7 @@ class TestSplitters(TestDatasetAPI):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
+    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -117,13 +102,12 @@ class TestSplitters(TestDatasetAPI):
     """
     Test singletask IndexSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    index_splitter = IndexSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    index_splitter = dc.splits.IndexSplitter()
     ids_set = set(solubility_dataset.ids)
 
     K = 5
-    fold_dirs = [tempfile.mkdtemp() for i in range(K)]
-    fold_datasets = index_splitter.k_fold_split(solubility_dataset, fold_dirs)
+    fold_datasets = index_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
       fold_dataset = fold_datasets[fold]
@@ -140,8 +124,7 @@ class TestSplitters(TestDatasetAPI):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
+    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -150,14 +133,12 @@ class TestSplitters(TestDatasetAPI):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = self.load_solubility_data()
-    scaffold_splitter = ScaffoldSplitter()
+    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    scaffold_splitter = dc.splits.ScaffoldSplitter()
     ids_set = set(solubility_dataset.ids)
 
     K = 5
-    fold_dirs = [tempfile.mkdtemp() for i in range(K)]
-    fold_datasets = scaffold_splitter.k_fold_split(
-        solubility_dataset, fold_dirs)
+    fold_datasets = scaffold_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
       fold_dataset = fold_datasets[fold]
@@ -174,8 +155,7 @@ class TestSplitters(TestDatasetAPI):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
+    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -195,7 +175,7 @@ class TestSplitters(TestDatasetAPI):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     ids = np.arange(n_samples)
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     column_indices = stratified_splitter.get_task_split_indices(
         y, w, frac_split=.5)
 
@@ -222,7 +202,7 @@ class TestSplitters(TestDatasetAPI):
     w[:n_positives/2] = 0
     ids = np.arange(n_samples)
 
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     column_indices = stratified_splitter.get_task_split_indices(
         y, w, frac_split=.5)
 
@@ -245,7 +225,7 @@ class TestSplitters(TestDatasetAPI):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
 
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     split_indices = stratified_splitter.get_task_split_indices(
         y, w, frac_split=.5)
 
@@ -269,7 +249,7 @@ class TestSplitters(TestDatasetAPI):
     # Mask half the examples
     w[:n_samples/2] = 0
 
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     split_indices = stratified_splitter.get_task_split_indices(
         y, w, frac_split=.5)
 
@@ -297,13 +277,11 @@ class TestSplitters(TestDatasetAPI):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     ids = np.arange(n_samples)
-    data_dir = tempfile.mkdtemp()
-    dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
 
-    stratified_splitter = RandomStratifiedSplitter()
-    split_dirs = [tempfile.mkdtemp(), tempfile.mkdtemp()]
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     dataset_1, dataset_2 = stratified_splitter.split(
-        dataset, split_dirs, frac_split=.5)
+        dataset, frac_split=.5)
   
     # Should have split cleanly in half (picked random seed to ensure this)
     assert len(dataset_1) == 10
@@ -331,16 +309,13 @@ class TestSplitters(TestDatasetAPI):
     w = np.ones(n_samples)
     ids = np.arange(n_samples)
 
-    data_dir = tempfile.mkdtemp()
-    dataset = DiskDataset.from_numpy(data_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
     
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     ids_set = set(dataset.ids)
 
     K = 5
-    fold_dirs = [tempfile.mkdtemp() for i in range(K)]
-    fold_datasets = stratified_splitter.k_fold_split(
-        dataset, fold_dirs)
+    fold_datasets = stratified_splitter.k_fold_split(dataset, K)
 
     for fold in range(K):
       fold_dataset = fold_datasets[fold]
@@ -361,8 +336,7 @@ class TestSplitters(TestDatasetAPI):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merge_dir = tempfile.mkdtemp()
-    merged_dataset = DiskDataset.merge(merge_dir, fold_datasets)
+    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(dataset.ids))
@@ -372,13 +346,11 @@ class TestSplitters(TestDatasetAPI):
     """
     Test multitask RandomSplitter class.
     """
-    multitask_dataset = self.load_multitask_data()
-    random_splitter = RandomSplitter()
+    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
-            multitask_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -387,13 +359,11 @@ class TestSplitters(TestDatasetAPI):
     """
     Test multitask IndexSplitter class.
     """
-    multitask_dataset = self.load_multitask_data()
-    index_splitter = IndexSplitter()
+    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    index_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
         index_splitter.train_valid_test_split(
-            multitask_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -402,13 +372,11 @@ class TestSplitters(TestDatasetAPI):
     """
     Test multitask ScaffoldSplitter class.
     """
-    multitask_dataset = self.load_multitask_data()
-    scaffold_splitter = ScaffoldSplitter()
+    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
         scaffold_splitter.train_valid_test_split(
-            multitask_dataset,
-            self.train_dir, self.valid_dir, self.test_dir,
-            frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -420,13 +388,11 @@ class TestSplitters(TestDatasetAPI):
     # sparsity is determined by number of w weights that are 0 for a given
     # task structure of w np array is such that each row corresponds to a
     # sample. The loaded sparse dataset has many rows with only zeros
-    sparse_dataset = self.load_sparse_multitask_dataset()
+    sparse_dataset = dc.datasets.tests.load_sparse_multitask_dataset()
     
-    stratified_splitter = RandomStratifiedSplitter()
+    stratified_splitter = dc.splits.RandomStratifiedSplitter()
     datasets = stratified_splitter.train_valid_test_split(
-        sparse_dataset,
-        self.train_dir, self.valid_dir, self.test_dir,
-        frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+        sparse_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     train_data, valid_data, test_data = datasets
 
     for dataset_index, dataset in enumerate(datasets):

@@ -1,16 +1,12 @@
 import os
 import shutil
+import unittest
 import tempfile
+import deepchem as dc
 import numpy as np
-from deepchem.models.tests import TestAPI
-from deepchem.utils.save import load_from_disk
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.datasets import Dataset
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.featurizers.fingerprints import CircularFingerprint
 
-class TestDrop(TestAPI):
+class TestDrop(unittest.TestCase):
   """
   Test how loading of malformed compounds is handled.
 
@@ -25,23 +21,19 @@ class TestDrop(TestAPI):
     len_full = 25
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data_dir = os.path.join(self.base_dir, "dataset")
-    model_dir = os.path.join(self.base_dir, "model")
-
     print("About to load emols dataset.")
     dataset_file = os.path.join(
         current_dir, "mini_emols.csv")
 
     # Featurize emols dataset
     print("About to featurize datasets.")
-    featurizer = CircularFingerprint(size=1024)
+    featurizer = dc.featurizers.CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
-    loader = DataLoader(tasks=emols_tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity=verbosity)
-    dataset = loader.featurize(dataset_file, data_dir, debug=True, logging=False)
+    loader = dc.loaders.DataLoader(
+        tasks=emols_tasks, smiles_field="smiles",
+        featurizer=featurizer, verbosity=verbosity)
+    dataset = loader.featurize(dataset_file, debug=True, logging=False)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     print("ids.shape, X.shape, y.shape, w.shape")
