@@ -9,7 +9,7 @@ import os
 import numpy as np
 import shutil
 from muv_datasets import load_muv
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator

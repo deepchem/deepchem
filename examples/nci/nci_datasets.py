@@ -12,10 +12,10 @@ import sys
 import numpy as np
 import shutil
 from deepchem.utils.save import load_sharded_csv
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.transformers import NormalizationTransformer
+from deepchem.trans import NormalizationTransformer
 
 def load_nci(base_dir, reload=True, force_transform=False,
              shard_size=1000, num_shards_per_batch=4):

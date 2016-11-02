@@ -11,15 +11,15 @@ import sys
 from keras.layers import Input
 from keras import backend as K
 from deepchem.models import Model
-from deepchem.datasets import pad_batch
-from deepchem.datasets import NumpyDataset
+from deepchem.data import pad_batch
+from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
-from deepchem.datasets import SupportGenerator
-from deepchem.datasets import get_task_test
-from deepchem.datasets import get_task_dataset
-from deepchem.datasets import get_task_dataset_minus_support
+from deepchem.data import SupportGenerator
+from deepchem.data import get_task_test
+from deepchem.data import get_task_dataset
+from deepchem.data import get_task_dataset_minus_support
 
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,
@@ -118,7 +118,7 @@ class SupportGraphClassifier(Model):
 
     Parameters
     ----------
-    dataset: deepchem.datasets.Dataset
+    dataset: dc.data.Dataset
       Dataset to fit model on.
     n_trials: int, optional
       Number of (support, test) pairs to sample and train on.
@@ -241,9 +241,9 @@ class SupportGraphClassifier(Model):
     TODO(rbharath): Only for 1 task at a time currently. Is there a better way?
     Parameters
     ----------
-    support: deepchem.datasets.Dataset
+    support: dc.data.Dataset
       The support dataset
-    test: deepchem.datasets.Dataset
+    test: dc.data.Dataset
       The test dataset
     """
     y_preds = []
@@ -309,9 +309,9 @@ class SupportGraphClassifier(Model):
 
     Parameters
     ----------
-    dataset: deepchem.datasets.Dataset
+    dataset: dc.data.Dataset
       Dataset to test on.
-    metrics: deepchem.metrics.Metric
+    metrics: dc.metrics.Metric
       Evaluation metric.
     n_pos: int, optional
       Number of positive samples per support.

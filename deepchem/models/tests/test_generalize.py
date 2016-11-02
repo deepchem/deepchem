@@ -36,8 +36,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
-    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
+    train_dataset = dc.data.NumpyDataset(X_train, y_train)
+    test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(
@@ -65,16 +65,16 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
-    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
+    train_dataset = dc.data.NumpyDataset(X_train, y_train)
+    test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
     # Eval model on train
     transformers = [
-        dc.transformers.NormalizationTransformer(
+        dc.trans.NormalizationTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.transformers.ClippingTransformer(
+        dc.trans.ClippingTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.transformers.NormalizationTransformer(
+        dc.trans.NormalizationTransformer(
             transform_y=True, dataset=train_dataset)]
     for data in [train_dataset, test_dataset]:
       for transformer in transformers:
@@ -112,8 +112,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.DiskDataset.from_numpy(X_train, y_train)
-    test_dataset = dc.datasets.DiskDataset.from_numpy(X_test, y_test)
+    train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
+    test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
@@ -142,8 +142,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.NumpyDataset(X_train, y_train)
-    test_dataset = dc.datasets.NumpyDataset(X_test, y_test)
+    train_dataset = dc.data.NumpyDataset(X_train, y_train)
+    test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     sklearn_model = LogisticRegression()
@@ -172,8 +172,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.DiskDataset.from_numpy(X_train, y_train)
-    test_dataset = dc.datasets.DiskDataset.from_numpy(X_test, y_test)
+    train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
+    test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     def model_builder(model_dir):

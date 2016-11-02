@@ -30,7 +30,7 @@ class TestSingletasktoMultitask(unittest.TestCase):
     y_train = np.random.randint(2, size=(n_train, n_tasks))
     w_train = np.ones_like(y_train)
     ids_train = ["C"] * n_train
-    train_dataset = dc.datasets.DiskDataset.from_numpy(
+    train_dataset = dc.data.DiskDataset.from_numpy(
         X_train, y_train, w_train, ids_train)
 
     # Define test dataset
@@ -39,7 +39,7 @@ class TestSingletasktoMultitask(unittest.TestCase):
     y_test = np.random.randint(2, size=(n_test, n_tasks))
     w_test = np.ones_like(y_test)
     ids_test = ["C"] * n_test
-    test_dataset = dc.datasets.DiskDataset.from_numpy(
+    test_dataset = dc.data.DiskDataset.from_numpy(
         X_test, y_test, w_test, ids_test)
 
     classification_metrics = [dc.metrics.Metric(dc.metrics.roc_auc_score)]
@@ -69,7 +69,7 @@ class TestSingletasktoMultitask(unittest.TestCase):
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
     
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     task_dirs = []
     try:

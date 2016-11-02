@@ -8,7 +8,7 @@ from keras.engine import Layer
 from keras.layers import Input, Dense
 from keras import initializations, activations
 from keras import backend as K
-from deepchem.datasets import pad_features
+from deepchem.data import pad_features
 from deepchem.utils.save import log
 from deepchem.models import Model 
 from deepchem.models.tensorflow_models import model_ops

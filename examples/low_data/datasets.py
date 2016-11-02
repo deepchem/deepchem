@@ -20,12 +20,12 @@ def load_tox21_ecfp(num_train=7200):
       current_dir, "../../datasets/tox21.csv.gz")
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
-  featurizer = dc.featurizers.CircularFingerprint(size=1024)
+  featurizer = dc.feat.CircularFingerprint(size=1024)
   tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
 
-  loader = dc.loaders.DataLoader(
+  loader = dc.load.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer,
       verbosity=verbosity)
   dataset = loader.featurize(
@@ -52,12 +52,12 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
 
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
-  featurizer = dc.featurizers.ConvMolFeaturizer()
+  featurizer = dc.feat.ConvMolFeaturizer()
   tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
 
-  loader = dc.loaders.DataLoader(
+  loader = dc.load.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles",
       featurizer=featurizer, verbosity=verbosity)
   dataset = loader.featurize(

@@ -10,7 +10,7 @@ __license__ = "GPL"
 
 from keras.layers import Input
 from keras import backend as K
-from deepchem.featurizers.mol_graphs import ConvMol
+from deepchem.feat.mol_graphs import ConvMol
 
 def merge_two_dicts(x, y):
   z = x.copy()

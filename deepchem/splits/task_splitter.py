@@ -14,8 +14,8 @@ import numpy as np
 from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
-from deepchem.datasets import NumpyDataset
-from deepchem.featurizers.featurize import load_data
+from deepchem.data import NumpyDataset
+from deepchem.feat.featurize import load_data
 from deepchem.splits import Splitter
 
 def merge_fold_datasets(fold_datasets):
@@ -60,7 +60,7 @@ class TaskSplitter(Splitter):
 
     Parameters
     ----------
-    dataset: deepchem.datasets.Dataset
+    dataset: dc.data.Dataset
       Dataset to be split
     frac_train: float, optional
       Proportion of tasks to be put into train. Rounded to nearest int.
@@ -90,7 +90,7 @@ class TaskSplitter(Splitter):
 
     Parameters
     ----------
-    dataset: deepchem.datasets.Dataset
+    dataset: dc.data.Dataset
       Dataset to be split
     K: int
       Number of splits to be made

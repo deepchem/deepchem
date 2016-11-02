@@ -11,8 +11,8 @@ import tempfile
 import numpy as np
 from deepchem.utils.save import log
 from deepchem.models import Model
-from deepchem.datasets import DiskDataset
-from deepchem.transformers import undo_transforms
+from deepchem.data import DiskDataset
+from deepchem.trans import undo_transforms
 
 class SingletaskToMultitask(Model):
   """

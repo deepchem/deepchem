@@ -32,7 +32,7 @@ class TestReload(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
 
     sklearn_model = RandomForestClassifier()
@@ -68,7 +68,7 @@ class TestReload(unittest.TestCase):
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
       keras_model = dc.models.MultiTaskDNN(
@@ -105,7 +105,7 @@ class TestReload(unittest.TestCase):
     y = np.random.randint(n_classes, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 

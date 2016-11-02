@@ -9,10 +9,10 @@ import os
 import numpy as np
 import shutil
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import DiskDataset
+from deepchem.data import DiskDataset
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.transformers import BalancingTransformer
+from deepchem.trans import BalancingTransformer
 
 def load_pcba(base_dir, reload=True, frac_train=.8):
   """Load PCBA datasets. Does not do train/test split"""

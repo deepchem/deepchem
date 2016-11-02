@@ -23,7 +23,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
@@ -32,7 +32,7 @@ class TestSplitters(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merged_dataset = dc.datasets.DiskDataset.merge(
+    merged_dataset = dc.data.DiskDataset.merge(
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -41,7 +41,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask IndexSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     random_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
@@ -50,7 +50,7 @@ class TestSplitters(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
-    merged_dataset = dc.datasets.DiskDataset.merge(
+    merged_dataset = dc.data.DiskDataset.merge(
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -59,7 +59,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
         scaffold_splitter.train_valid_test_split(
@@ -72,7 +72,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask RandomSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     random_splitter = dc.splits.RandomSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -93,7 +93,7 @@ class TestSplitters(unittest.TestCase):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -102,7 +102,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask IndexSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     index_splitter = dc.splits.IndexSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -124,7 +124,7 @@ class TestSplitters(unittest.TestCase):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -133,7 +133,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test singletask ScaffoldSplitter class.
     """
-    solubility_dataset = dc.datasets.tests.load_solubility_data()
+    solubility_dataset = dc.data.tests.load_solubility_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     ids_set = set(solubility_dataset.ids)
 
@@ -155,7 +155,7 @@ class TestSplitters(unittest.TestCase):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
@@ -277,7 +277,7 @@ class TestSplitters(unittest.TestCase):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     dataset_1, dataset_2 = stratified_splitter.split(
@@ -309,7 +309,7 @@ class TestSplitters(unittest.TestCase):
     w = np.ones(n_samples)
     ids = np.arange(n_samples)
 
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
     
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     ids_set = set(dataset.ids)
@@ -336,7 +336,7 @@ class TestSplitters(unittest.TestCase):
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.datasets.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(dataset)
     assert sorted(merged_dataset.ids) == (
            sorted(dataset.ids))
@@ -346,7 +346,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test multitask RandomSplitter class.
     """
-    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    multitask_dataset = dc.data.tests.load_multitask_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
@@ -359,7 +359,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test multitask IndexSplitter class.
     """
-    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    multitask_dataset = dc.data.tests.load_multitask_data()
     index_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
         index_splitter.train_valid_test_split(
@@ -372,7 +372,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test multitask ScaffoldSplitter class.
     """
-    multitask_dataset = dc.datasets.tests.load_multitask_data()
+    multitask_dataset = dc.data.tests.load_multitask_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
         scaffold_splitter.train_valid_test_split(
@@ -388,7 +388,7 @@ class TestSplitters(unittest.TestCase):
     # sparsity is determined by number of w weights that are 0 for a given
     # task structure of w np array is such that each row corresponds to a
     # sample. The loaded sparse dataset has many rows with only zeros
-    sparse_dataset = dc.datasets.tests.load_sparse_multitask_dataset()
+    sparse_dataset = dc.data.tests.load_sparse_multitask_dataset()
     
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     datasets = stratified_splitter.train_valid_test_split(

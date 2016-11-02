@@ -11,7 +11,7 @@ import shutil
 from nci_datasets import load_nci
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric

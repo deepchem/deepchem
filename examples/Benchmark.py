@@ -31,7 +31,7 @@ import time
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator

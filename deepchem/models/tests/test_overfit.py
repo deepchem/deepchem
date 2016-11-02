@@ -42,7 +42,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(
@@ -70,7 +70,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -100,7 +100,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -133,7 +133,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       y = np.random.rand(n_samples, n_tasks)
       w = np.ones((n_samples, n_tasks))
 
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       regression_metric = dc.metrics.Metric(
@@ -163,7 +163,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(
@@ -200,7 +200,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = dc.metrics.Metric(
@@ -236,7 +236,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       y = np.random.binomial(1, p, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = dc.metrics.Metric(
@@ -267,7 +267,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -302,7 +302,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -347,7 +347,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w_flat[y_flat != 0] = weight_nonzero
     w = np.reshape(w_flat, (n_samples, n_tasks))
   
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -379,7 +379,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, verbosity="high", task_averager=np.mean)
@@ -412,7 +412,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       X = np.random.rand(n_samples, n_features)
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       classification_metric = dc.metrics.Metric(
@@ -444,7 +444,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -477,7 +477,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     regression_metric = dc.metrics.Metric(
         dc.metrics.r2_score, verbosity="high", task_averager=np.mean)
@@ -510,7 +510,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       X = np.random.rand(n_samples, n_features)
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
-      dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
       verbosity = "high"
       regression_metric = dc.metrics.Metric(
@@ -543,7 +543,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(
@@ -579,7 +579,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(
@@ -615,10 +615,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
       n_classes = 2
       
       # Load mini log-solubility dataset.
-      featurizer = dc.featurizers.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.loaders.DataLoader(
+      loader = dc.load.DataLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer,
           verbosity=verbosity)
       dataset = loader.featurize(input_file)
@@ -672,10 +672,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
       replace = False
       
       # Load mini log-solubility dataset.
-      featurizer = dc.featurizers.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.loaders.DataLoader(
+      loader = dc.load.DataLoader(
           tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity=verbosity)
       dataset = loader.featurize(input_file)
@@ -742,10 +742,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
       replace = False
       
       # Load mini log-solubility dataset.
-      featurizer = dc.featurizers.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.loaders.DataLoader(
+      loader = dc.load.DataLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer,
           verbosity="low")
       dataset = loader.featurize(input_file)
@@ -815,10 +815,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
       replace = False
       
       # Load mini log-solubility dataset.
-      featurizer = dc.featurizers.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.loaders.DataLoader(
+      loader = dc.load.DataLoader(
           tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity="low")
       dataset = loader.featurize(input_file)
