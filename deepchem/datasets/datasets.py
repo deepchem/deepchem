@@ -684,9 +684,11 @@ class DiskDataset(Dataset):
     self.save_to_disk()
 
   @staticmethod
-  def from_numpy(data_dir, X, y, w=None, ids=None, tasks=None, verbosity=None,
-                 compute_feature_statistics=True):
+  def from_numpy(X, y, w=None, ids=None, data_dir=None, tasks=None,
+                 verbosity=None, compute_feature_statistics=True):
     """Creates a DiskDataset object from specified Numpy arrays."""
+    if data_dir is None:
+      data_dir = tempfile.mkdtemp()
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -706,10 +708,13 @@ class DiskDataset(Dataset):
                    compute_feature_statistics=compute_feature_statistics)
 
   @staticmethod
-  def merge(merge_dir, datasets):
+  def merge(datasets, merge_dir=None):
     """Merges provided datasets into a merged dataset."""
-    if not os.path.exists(merge_dir):
-      os.makedirs(merge_dir)
+    if merge_dir is not None:
+      if not os.path.exists(merge_dir):
+        os.makedirs(merge_dir)
+    else:
+      merge_dir = tempfile.mkdtemp()
     Xs, ys, ws, all_ids = [], [], [], []
     metadata_rows = []
     for ind, dataset in enumerate(datasets):
@@ -722,10 +727,13 @@ class DiskDataset(Dataset):
                    metadata_rows=metadata_rows,
                    verbosity=dataset.verbosity)
 
-  def subset(self, subset_dir, shard_nums):
+  def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""
-    if not os.path.exists(subset_dir):
-      os.makedirs(subset_dir)
+    if subset_dir is not None:
+      if not os.path.exists(subset_dir):
+        os.makedirs(subset_dir)
+    else:
+      subset_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
     metadata_rows = []
     for shard_num, row in self.metadata_df.iterrows():

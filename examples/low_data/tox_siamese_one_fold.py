@@ -12,15 +12,15 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 12
+K = 4 
 # num positive/negative ligands
 n_pos = 3
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 100
 support_batch_size = n_pos + n_neg
-n_train_trials = 1000
-n_eval_trials = 10 
+n_train_trials = 3000
+n_eval_trials = 20 
 n_steps_per_trial = 1
 # Sample supports without replacement (all pos/neg should be different)
 replace = False
@@ -44,13 +44,15 @@ test_dataset = fold_datasets[-1]
 support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
+
+# Adding 1st layer
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
-# Need to add batch-norm separately to test/support due to differing
-# shapes.
+# Need to add batch-norm to test/support due to differing shapes.
 # output will be (n_atoms, 64)
 support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+# Addding 2nd layer
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
 support_model.add(dc.nn.GraphPool())
@@ -62,10 +64,10 @@ support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
 support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-# Adding 5th layer
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
-support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+## Adding 5th layer
+#support_model.add(dc.nn.GraphConv(64, activation='relu'))
+#support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+#support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 
 # Gather atoms into batches
 support_model.add_test(dc.nn.GraphGather(test_batch_size))

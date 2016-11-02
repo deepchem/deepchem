@@ -15,12 +15,6 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
-#from deepchem.datasets import Dataset
-#from deepchem.featurizers.featurize import DataLoader
-#from deepchem.featurizers.fingerprints import CircularFingerprint
-#from deepchem.featurizers import UserDefinedFeaturizer
-#from deepchem.transformers import NormalizationTransformer
-#from deepchem.models.tests import TestAPI
 
 def load_solubility_data():
   """Loads solubility dataset"""
@@ -52,74 +46,57 @@ def load_multitask_data():
       verbosity="low")
   return loader.featurize(input_file)
 
-class TestDatasets(unittest.TestCase):
-  """
-  Shared API for testing with dataset objects.
-  """
-
-  def load_classification_data(self):
-    """Loads classification data from example.csv"""
-    if os.path.exists(self.data_dir):
-      shutil.rmtree(self.data_dir)
-    featurizer = CircularFingerprint(size=1024)
-    tasks = ["outcome"]
-    task_type = "classification"
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/example_classification.csv")
-    loader = DataLoader(
-        tasks=tasks,
-        smiles_field=self.smiles_field,
-        featurizer=featurizer,
-        verbosity="low")
-    return loader.featurize(input_file, self.data_dir)
+def load_classification_data(self):
+  """Loads classification data from example.csv"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.featurizers.CircularFingerprint(size=1024)
+  tasks = ["outcome"]
+  task_type = "classification"
+  input_file = os.path.join(
+      current_dir, "../../models/tests/example_classification.csv")
+  loader = dc.loaders.DataLoader(
+      tasks=tasks, smiles_field="smiles",
+      featurizer=featurizer, verbosity="low")
+  return loader.featurize(input_file)
 
 
-  def load_sparse_multitask_dataset(self):
-    """Load sparse tox multitask data, sample dataset."""
-    if os.path.exists(self.data_dir):
-      shutil.rmtree(self.data_dir)
-    featurizer = CircularFingerprint(size=1024)
-    tasks = ["task1", "task2", "task3", "task4", "task5", "task6",
-             "task7", "task8", "task9"]
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/sparse_multitask_example.csv")
-    loader = DataLoader(
-        tasks=tasks,
-        smiles_field="smiles",
-        featurizer=featurizer,
-        verbosity="low")
-    return loader.featurize(input_file, self.data_dir)
+def load_sparse_multitask_dataset():
+  """Load sparse tox multitask data, sample dataset."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.featurizers.CircularFingerprint(size=1024)
+  tasks = ["task1", "task2", "task3", "task4", "task5", "task6",
+           "task7", "task8", "task9"]
+  input_file = os.path.join(
+      current_dir, "../../models/tests/sparse_multitask_example.csv")
+  loader = dc.loaders.DataLoader(
+      tasks=tasks, smiles_field="smiles",
+      featurizer=featurizer, verbosity="low")
+  return loader.featurize(input_file)
   
-  def load_feat_multitask_data(self):
-    """Load example with numerical features, tasks."""
-    if os.path.exists(self.data_dir):
-      shutil.rmtree(self.data_dir)
-    features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
-    featurizer = UserDefinedFeaturizer(features)
-    tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/feat_multitask_example.csv")
-    loader = DataLoader(
-        tasks=tasks,
-        featurizer=featurizer,
-        id_field="id",
-        verbosity="low")
-    return loader.featurize(input_file, self.data_dir)
+def load_feat_multitask_data(self):
+  """Load example with numerical features, tasks."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  features = ["feat0", "feat1", "feat2", "feat3", "feat4", "feat5"]
+  featurizer = dc.featurizers.UserDefinedFeaturizer(features)
+  tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
+  input_file = os.path.join(
+      current_dir, "../../models/tests/feat_multitask_example.csv")
+  loader = dc.loaders.DataLoader(
+      tasks=tasks, featurizer=featurizer,
+      id_field="id", verbosity="low")
+  return loader.featurize(input_file)
 
-  def load_gaussian_cdf_data(self):
-    """Load example with numbers sampled from Gaussian normal distribution.
-       Each feature and task is a column of values that is sampled
-       from a normal distribution of mean 0, stdev 1."""
-    if os.path.exists(self.data_dir):
-      shutil.rmtree(self.data_dir)
-    features = ["feat0","feat1"]
-    featurizer = UserDefinedFeaturizer(features)
-    tasks = ["task0","task1"]
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/gaussian_cdf_example.csv")
-    loader = DataLoader(
-        tasks=tasks,
-        featurizer=featurizer,
-        id_field="id",
-        verbosity=None)
-    return loader.featurize(input_file, self.data_dir)
+def load_gaussian_cdf_data(self):
+  """Load example with numbers sampled from Gaussian normal distribution.
+     Each feature and task is a column of values that is sampled
+     from a normal distribution of mean 0, stdev 1."""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  features = ["feat0","feat1"]
+  featurizer = dc.featurizers.UserDefinedFeaturizer(features)
+  tasks = ["task0","task1"]
+  input_file = os.path.join(
+      current_dir, "../../models/tests/gaussian_cdf_example.csv")
+  loader = dc.loaders.DataLoader(
+      tasks=tasks, featurizer=featurizer,
+      id_field="id", verbosity=None)
+  return loader.featurize(input_file)

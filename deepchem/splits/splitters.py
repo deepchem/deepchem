@@ -41,10 +41,14 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def k_fold_split(self, dataset, directories=None, compute_feature_statistics=True):
+  def k_fold_split(self, dataset, k, directories=None,
+                   compute_feature_statistics=True):
     """Does K-fold split of dataset."""
     log("Computing K-fold split", self.verbosity)
-    k = len(directories)
+    if directories is None:
+      directories = [tempfile.mkdtemp() for _ in range(k)]
+    else:
+      assert len(directories) == k
     fold_datasets = []
     # rem_dataset is remaining portion of dataset
     rem_dataset = dataset
@@ -57,11 +61,11 @@ class Splitter(object):
           rem_dataset,
           frac_train=frac_fold, frac_valid=1-frac_fold, frac_test=0)
       fold_dataset = rem_dataset.select( 
-          fold_dir, fold_inds,
+          fold_inds, fold_dir, 
           compute_feature_statistics=compute_feature_statistics)
       rem_dir = tempfile.mkdtemp()
       rem_dataset = rem_dataset.select( 
-          rem_dir, rem_inds,
+          rem_inds, rem_dir,
           compute_feature_statistics=compute_feature_statistics)
       fold_datasets.append(fold_dataset)
     return fold_datasets
@@ -88,16 +92,16 @@ class Splitter(object):
     if test_dir is None:
       test_dir = tempfile.mkdtemp()
     train_dataset = dataset.select( 
-        train_dir, train_inds,
+        train_inds, train_dir, 
         compute_feature_statistics=compute_feature_statistics)
     if frac_valid != 0:
       valid_dataset = dataset.select(
-          valid_dir, valid_inds,
+          valid_inds, valid_dir,
           compute_feature_statistics=compute_feature_statistics)
     else:
       valid_dataset = None
     test_dataset = dataset.select(
-        test_dir, test_inds,
+        test_inds, test_dir,
         compute_feature_statistics=compute_feature_statistics)
 
     return train_dataset, valid_dataset, test_dataset
@@ -174,11 +178,15 @@ class RandomStratifiedSplitter(Splitter):
 
   # TODO(rbharath): Refactor this split method to match API of other splits (or
   # potentially refactor those to match this.
-  def split(self, dataset, split_dirs, frac_split):
+  def split(self, dataset, frac_split, split_dirs=None):
     """
     Method that does bulk of splitting dataset.
     """
-    assert len(split_dirs) == 2
+    if split_dirs is not None:
+      assert len(split_dirs) == 2
+    else:
+      split_dirs = [tempfile.mkdtemp(), tempfile.mkdtemp()]
+    
     # Handle edge case where frac_split is 1
     if frac_split == 1:
       dataset_1 = NumpyDataset(dataset.X, dataset.y, dataset.w, dataset.ids)
@@ -205,17 +213,23 @@ class RandomStratifiedSplitter(Splitter):
 
     return dataset_1, dataset_2 
 
-  def train_valid_test_split(self, dataset, train_dir,
-                             valid_dir, test_dir, frac_train=.8,
+  def train_valid_test_split(self, dataset, train_dir=None,
+                             valid_dir=None, test_dir=None, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
                              log_every_n=1000):
     """Custom split due to raggedness in original split.
     """
+    if train_dir is None:
+      train_dir = tempfile.mkdtemp()
+    if valid_dir is None:
+      valid_dir = tempfile.mkdtemp()
+    if test_dir is None:
+      test_dir = tempfile.mkdtemp()
     # Obtain original x, y, and w arrays and shuffle
     X, y, w, ids = randomize_arrays((dataset.X, dataset.y, dataset.w, dataset.ids))
     rem_dir = tempfile.mkdtemp()
     train_dataset, rem_dataset = self.split(
-        dataset, [train_dir, rem_dir], frac_train)
+        dataset, frac_train, [train_dir, rem_dir])
 
     # calculate percent split for valid (out of test and valid)
     if frac_valid + frac_test > 0:
@@ -224,14 +238,18 @@ class RandomStratifiedSplitter(Splitter):
       return train_dataset, None, None
     # split test data into valid and test, treating sub test set also as sparse
     valid_dataset, test_dataset = self.split(
-        dataset, [valid_dir, test_dir], valid_percentage)
+        dataset, valid_percentage, [valid_dir, test_dir])
 
     return train_dataset, valid_dataset, test_dataset
 
-  def k_fold_split(self, dataset, directories, compute_feature_statistics=True):
+  def k_fold_split(self, dataset, k, directories=None,
+                   compute_feature_statistics=True):
     """Needs custom implementation due to ragged splits for stratification."""
     log("Computing K-fold split", self.verbosity)
-    k = len(directories)
+    if directories is None:
+      directories = [tempfile.mkdtemp() for _ in range(k)]
+    else:
+      assert len(directories) == k
     fold_datasets = []
     # rem_dataset is remaining portion of dataset
     rem_dataset = dataset
@@ -242,7 +260,7 @@ class RandomStratifiedSplitter(Splitter):
       fold_dir = directories[fold]
       rem_dir = tempfile.mkdtemp()
       fold_dataset, rem_dataset = self.split(
-          rem_dataset, [fold_dir, rem_dir], frac_split=frac_fold)
+          rem_dataset, frac_fold, [fold_dir, rem_dir])
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
