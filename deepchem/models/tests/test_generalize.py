@@ -112,10 +112,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X_train, y_train)
-    test_dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X_test, y_test)
+    train_dataset = dc.datasets.DiskDataset.from_numpy(X_train, y_train)
+    test_dataset = dc.datasets.DiskDataset.from_numpy(X_test, y_test)
 
     verbosity = "high"
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
@@ -174,10 +172,8 @@ class TestGeneralization(unittest.TestCase):
     n_train = int(frac_train*n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
-    train_dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X_train, y_train)
-    test_dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X_test, y_test)
+    train_dataset = dc.datasets.DiskDataset.from_numpy(X_train, y_train)
+    test_dataset = dc.datasets.DiskDataset.from_numpy(X_test, y_test)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     def model_builder(model_dir):

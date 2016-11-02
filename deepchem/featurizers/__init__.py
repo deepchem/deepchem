@@ -15,3 +15,4 @@ from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.graph_features import ConvMolFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
 from deepchem.featurizers.basic import RDKitDescriptors
+from deepchem.featurizers.coulomb_matrices import CoulombMatrixEig

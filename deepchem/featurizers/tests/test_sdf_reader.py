@@ -13,12 +13,9 @@ import os
 import unittest
 import tempfile
 import shutil
-from deepchem.splits import RandomSplitter
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.coulomb_matrices import CoulombMatrixEig
-from deepchem.models.tests import TestAPI
+import deepchem as dc
 
-class TestFeaturizedSamples(TestAPI):
+class TestFeaturizedSamples(unittest.TestCase):
   """
   Test Featurized Samples class.
   """
@@ -35,22 +32,18 @@ class TestFeaturizedSamples(TestAPI):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "data/water.sdf")
 
-    featurizer = CoulombMatrixEig(6, remove_hydrogens=False)
+    featurizer = dc.featurizers.CoulombMatrixEig(6, remove_hydrogens=False)
+    loader = dc.loaders.DataLoader(
+        tasks=tasks, smiles_field="smiles",
+        mol_field="mol", featurizer=featurizer,
+        verbosity="low")
 
-    input_file = os.path.join(self.current_dir, input_file)
-    loader = DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
-                        mol_field="mol",
-                        featurizer=featurizer,
-                        verbosity="low")
-
-    dataset = loader.featurize(input_file, self.data_dir)
+    dataset = loader.featurize(input_file)
 
     # Splits featurized samples into train/test
-    splitter = RandomSplitter()
-    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset, self.train_dir, self.valid_dir, self.test_dir)
+    splitter = dc.splits.RandomSplitter()
+    train_dataset, valid_dataset, test_dataset = \
+        splitter.train_valid_test_split(dataset)
     assert len(train_dataset) == 8
     assert len(valid_dataset) == 1
     assert len(test_dataset) == 1
-
