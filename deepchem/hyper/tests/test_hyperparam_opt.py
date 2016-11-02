@@ -52,7 +52,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
       sklearn_model = RandomForestRegressor(**model_params)
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
-    optimizer = dc.hyperparameters.HyperparamOpt(rf_model_builder)
+    optimizer = dc.hyper.HyperparamOpt(rf_model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,
       metric, logdir=None)
@@ -95,7 +95,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
         return dc.models.SklearnModel(sklearn_model, model_dir)
       return dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
 
-    optimizer = dc.hyperparameters.HyperparamOpt(multitask_model_builder)
+    optimizer = dc.hyper.HyperparamOpt(multitask_model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,
       classification_metric, logdir=None)
@@ -130,7 +130,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
       keras_model = dc.models.MultiTaskDNN(
           len(tasks), n_features, task_type, dropout=0., **model_params)
       return dc.models.KerasModel(keras_model, model_dir)
-    optimizer = dc.hyperparameters.HyperparamOpt(model_builder)
+    optimizer = dc.hyper.HyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers,
       metric, logdir=None)
@@ -168,7 +168,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
         tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
             len(tasks), n_features, model_dir, **model_params)
         return dc.models.TensorflowModel(tensorflow_model)
-    optimizer = dc.hyperparameters.HyperparamOpt(model_builder)
+    optimizer = dc.hyper.HyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers, metric,
       logdir=None)
