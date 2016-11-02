@@ -132,8 +132,7 @@ class TestShuffle(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = dc.datasets.DiskDataset.from_numpy(tempfile.mkdtemp(), X, y, w,
-                                                 ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
     dataset.reshard(shard_size=10)
 
     dataset.shuffle_each_shard()
@@ -161,8 +160,7 @@ class TestShuffle(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.random.randint(2, size=(n_samples, n_tasks))
     ids = np.arange(n_samples)
-    dataset = dc.datasets.DiskDataset.from_numpy(tempfile.mkdtemp(), X, y, w,
-                                                 ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
     dataset.reshard(shard_size=10)
     dataset.shuffle_shards()
 

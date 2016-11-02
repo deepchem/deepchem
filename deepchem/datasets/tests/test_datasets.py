@@ -224,8 +224,7 @@ class TestBasicDatasets(unittest.TestCase):
     y = np.random.randint(2, size=(num_datapoints, num_tasks))
     w = np.ones((num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
-    dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
 
     indices = [0, 4, 5, 8]
     select_dataset = dataset.select(indices)

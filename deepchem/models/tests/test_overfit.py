@@ -29,10 +29,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
   def setUp(self):
     super(TestOverfit, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
-    self.train_dir = tempfile.mkdtemp()
-
-  def tearDown(self):
-    shutil.rmtree(self.train_dir)
 
   def test_sklearn_regression_overfit(self):
     """Test that sklearn models can overfit simple regression datasets."""
@@ -351,7 +347,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w_flat[y_flat != 0] = weight_nonzero
     w = np.reshape(w_flat, (n_samples, n_tasks))
   
-    dataset = dc.datasets.DiskDataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
 
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
@@ -383,7 +379,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     X = np.random.rand(n_samples, n_features)
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.DiskDataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, verbosity="high", task_averager=np.mean)
@@ -481,7 +477,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     y = np.random.rand(n_samples, n_tasks)
     w = np.ones((n_samples, n_tasks))
 
-    dataset = dc.datasets.DiskDataset.from_numpy(self.train_dir, X, y, w, ids)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids)
 
     regression_metric = dc.metrics.Metric(
         dc.metrics.r2_score, verbosity="high", task_averager=np.mean)
@@ -704,7 +700,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
-          sess, support_model, n_tasks, test_batch_size=test_batch_size,
+          sess, support_model, test_batch_size=test_batch_size,
           support_batch_size=support_batch_size, learning_rate=1e-3,
           verbosity="high")
 
@@ -720,8 +716,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, range(n_tasks),
-                                classification_metric, n_trials=5,
+        scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
                                 exclude_support=False, replace=False)
 
@@ -780,7 +775,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
-          sess, support_model, n_tasks, test_batch_size=test_batch_size,
+          sess, support_model, test_batch_size=test_batch_size,
           support_batch_size=support_batch_size, learning_rate=1e-3,
           verbosity="high")
 
@@ -796,8 +791,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, range(n_tasks),
-                                classification_metric, n_trials=5,
+        scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
                                 exclude_support=False, replace=False)
 

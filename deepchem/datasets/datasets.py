@@ -684,8 +684,9 @@ class DiskDataset(Dataset):
     self.save_to_disk()
 
   @staticmethod
-  def from_numpy(X, y, w=None, ids=None, data_dir=None, tasks=None,
-                 verbosity=None, compute_feature_statistics=True):
+  def from_numpy(X, y, w=None, ids=None, tasks=None,
+                 verbosity=None, compute_feature_statistics=True,
+                 data_dir=None):
     """Creates a DiskDataset object from specified Numpy arrays."""
     if data_dir is None:
       data_dir = tempfile.mkdtemp()

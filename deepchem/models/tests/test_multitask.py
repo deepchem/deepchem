@@ -57,8 +57,7 @@ class TestMultitaskData(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.DiskDataset.from_numpy(
-        tempfile.mkdtemp(), X, y, w, ids, tasks)
+    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids, tasks)
     np.testing.assert_allclose(X, dataset.X)
     np.testing.assert_allclose(y, dataset.y)
     np.testing.assert_allclose(w, dataset.w)

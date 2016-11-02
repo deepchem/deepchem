@@ -12,3 +12,4 @@ from deepchem.transformers.transformers import LogTransformer
 from deepchem.transformers.transformers import ClippingTransformer
 from deepchem.transformers.transformers import NormalizationTransformer
 from deepchem.transformers.transformers import BalancingTransformer
+from deepchem.transformers.transformers import CDFTransformer

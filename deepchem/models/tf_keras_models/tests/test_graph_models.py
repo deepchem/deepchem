@@ -14,8 +14,8 @@ import tensorflow as tf
 from keras import backend as K
 from tensorflow.python.framework import test_util
 from keras.layers import Dense, BatchNormalization
-from deepchem.models.tf_keras_models.graph_models import SequentialGraphModel
-from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraphModel
+from deepchem.models.tf_keras_models.graph_models import SequentialGraph
+from deepchem.models.tf_keras_models.graph_models import SequentialSupportGraph
 from deepchem.models.tf_keras_models.keras_layers import GraphConv
 from deepchem.models.tf_keras_models.keras_layers import GraphPool
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
@@ -30,11 +30,11 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     self.root = '/tmp'
 
   def test_sequential_graph_model(self):
-    """Simple test that SequentialGraphModel can be initialized."""
+    """Simple test that SequentialGraph can be initialized."""
     n_atoms = 5
     n_feat = 10
     batch_size = 3
-    graph_model = SequentialGraphModel(n_feat)
+    graph_model = SequentialGraph(n_feat)
     assert len(graph_model.layers) == 0
 
   def test_sample_sequential_architecture(self):
@@ -42,7 +42,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     n_atoms = 5
     n_feat = 10
     batch_size = 3
-    graph_model = SequentialGraphModel(n_feat)
+    graph_model = SequentialGraph(n_feat)
 
     graph_model.add(GraphConv(64, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
@@ -68,7 +68,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
       n_feat = 10
       batch_size = 3
 
-      support_model = SequentialSupportGraphModel(n_feat)
+      support_model = SequentialSupportGraph(n_feat)
       
       # Add layers
       support_model.add(GraphConv(64, activation='relu'))

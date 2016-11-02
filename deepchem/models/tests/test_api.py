@@ -27,9 +27,10 @@ class TestAPI(unittest.TestCase):
     splittype = "scaffold"
     featurizer = dc.featurizers.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    input_file = os.path.join(self.current_dir, "example.csv")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "example.csv")
     loader = dc.loaders.DataLoader(
-        tasks=tasks, smiles_field=self.smiles_field,
+        tasks=tasks, smiles_field="smiles",
         featurizer=featurizer, verbosity="low")
     dataset = loader.featurize(input_file)
 
@@ -59,9 +60,10 @@ class TestAPI(unittest.TestCase):
     featurizer = dc.featurizers.UserDefinedFeaturizer(
         ["user-specified1", "user-specified2"])
     tasks = ["log-solubility"]
-    input_file = os.path.join(self.current_dir, "user_specified_example.csv")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "user_specified_example.csv")
     loader = dc.loaders.DataLoader(
-        tasks=tasks, smiles_field=self.smiles_field, featurizer=featurizer,
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer,
         verbosity="low")
     dataset = loader.featurize(input_file, debug=True)
 
@@ -95,9 +97,10 @@ class TestAPI(unittest.TestCase):
     featurizer = dc.featurizers.RDKitDescriptors()
     tasks = ["log-solubility"]
 
-    input_file = os.path.join(self.current_dir, "example.csv")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "example.csv")
     loader = dc.loaders.DataLoader(tasks=tasks,
-                        smiles_field=self.smiles_field,
+                        smiles_field="smiles",
                         featurizer=featurizer,
                         verbosity="low")
     dataset = loader.featurize(input_file)
@@ -138,7 +141,8 @@ class TestAPI(unittest.TestCase):
     K.set_session(sess)
     with g.as_default():
       task_type = "classification"
-      input_file = os.path.join(self.current_dir, "multitask_example.csv")
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      input_file = os.path.join(current_dir, "multitask_example.csv")
       tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
                "task7", "task8", "task9", "task10", "task11", "task12",
                "task13", "task14", "task15", "task16"]
@@ -146,7 +150,7 @@ class TestAPI(unittest.TestCase):
       n_features = 1024
       featurizer = dc.featurizers.CircularFingerprint(size=n_features)
       loader = dc.loaders.DataLoader(
-          tasks=tasks, smiles_field=self.smiles_field,
+          tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity="low")
       dataset = loader.featurize(input_file)
 
@@ -176,10 +180,11 @@ class TestAPI(unittest.TestCase):
     featurizer = dc.featurizers.CircularFingerprint(size=n_features)
 
     tasks = ["outcome"]
-    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "example_classification.csv")
 
     loader = dc.loaders.DataLoader(
-        tasks=tasks, smiles_field=self.smiles_field,
+        tasks=tasks, smiles_field="smiles",
         featurizer=featurizer, verbosity="low")
     dataset = loader.featurize(input_file)
 
