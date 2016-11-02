@@ -9,7 +9,7 @@ import os
 import shutil
 import numpy as np
 from tox21_datasets import load_tox21
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator

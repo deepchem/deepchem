@@ -12,9 +12,9 @@ import pandas as pd
 import shutil
 from rdkit import Chem
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import DiskDataset
+from deepchem.data import DiskDataset
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.transformers import BalancingTransformer
+from deepchem.trans import BalancingTransformer
 from deepchem.featurizers.nnscore import NNScoreComplexFeaturizer
 from deepchem.featurizers.grid_featurizer import GridFeaturizer
 from deepchem.featurizers.atomic_coordinates import NeighborListComplexAtomicCoordinates

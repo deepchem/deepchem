@@ -11,7 +11,7 @@ import shutil
 from muv_datasets import load_muv
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric

@@ -11,7 +11,7 @@ import warnings
 import pandas as pd
 import sklearn
 from deepchem.utils.save import log
-from deepchem.transformers import undo_transforms
+from deepchem.trans import undo_transforms
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"

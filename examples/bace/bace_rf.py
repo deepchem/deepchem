@@ -3,7 +3,7 @@ import os
 import deepchem
 import tempfile, shutil
 from bace_datasets import load_bace
-from deepchem.hyperparameters import HyperparamOpt
+from deepchem.hyper import HyperparamOpt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.sklearn_models import SklearnModel

@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 from pcba_datasets import load_pcba
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot

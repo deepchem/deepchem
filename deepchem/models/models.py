@@ -17,13 +17,13 @@ import os
 import tempfile
 import sklearn
 
-from deepchem.datasets import Dataset, pad_features
-from deepchem.transformers import undo_transforms
-from deepchem.transformers import undo_grad_transforms
+from deepchem.data import Dataset, pad_features
+from deepchem.trans import undo_transforms
+from deepchem.trans import undo_grad_transforms
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
-from deepchem.datasets import pad_batch
+from deepchem.data import pad_batch
 from deepchem.utils.evaluate import Evaluator
 
 
@@ -188,7 +188,7 @@ class Model(object):
   
     Parameters
     ----------
-    dataset: deepchem.datasets.Dataset
+    dataset: dc.data.Dataset
       Dataset object.
     metric: deepchem.metrics.Metric
       Evaluation metric

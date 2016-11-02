@@ -18,7 +18,7 @@ from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
-from deepchem.datasets import pad_features
+from deepchem.data import pad_features
 from tensorflow.contrib.layers.python.layers import batch_norm
 
 def softmax(x):
@@ -296,7 +296,7 @@ class TensorflowGraphModel(object):
     Restore(checkpoint) must have previously been called on this object.
 
     Args:
-      dataset: deepchem.datasets.dataset object.
+      dataset: dc.data.dataset object.
 
     Returns:
       Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
@@ -535,7 +535,7 @@ class TensorflowClassifier(TensorflowGraphModel):
     Restore(checkpoint) must have previously been called on this object.
 
     Args:
-      dataset: deepchem.datasets.dataset object.
+      dataset: dc.data.Dataset object.
 
     Returns:
       Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
@@ -634,7 +634,7 @@ class TensorflowRegressor(TensorflowGraphModel):
     Restore(checkpoint) must have previously been called on this object.
 
     Args:
-      dataset: deepchem.datasets.dataset object.
+      dataset: dc.data.Dataset object.
 
     Returns:
       Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):

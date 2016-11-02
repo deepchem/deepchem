@@ -11,7 +11,7 @@ import numpy as np
 from tox21_datasets import load_tox21
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.utils.save import load_from_disk
-from deepchem.datasets import Dataset
+from deepchem.data import Dataset
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics
 from deepchem.metrics import Metric

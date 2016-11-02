@@ -29,7 +29,7 @@ class TestTaskSplitters(unittest.TestCase):
     X = np.random.rand(n_samples, n_features)
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(X, y)
 
     task_splitter = dc.splits.TaskSplitter()
     train, valid, test = task_splitter.train_valid_test_split(
@@ -49,7 +49,7 @@ class TestTaskSplitters(unittest.TestCase):
     X = np.random.rand(n_samples, n_features)
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(X, y)
     K = 5
 
     task_splitter = dc.splits.TaskSplitter()
@@ -69,7 +69,7 @@ class TestTaskSplitters(unittest.TestCase):
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = dc.datasets.NumpyDataset(X, y, w)
+    dataset = dc.data.NumpyDataset(X, y, w)
     K = 5
 
     task_splitter = dc.splits.TaskSplitter()

@@ -31,9 +31,9 @@ class TestMultitaskData(unittest.TestCase):
              "task7", "task8", "task9", "task10", "task11", "task12",
              "task13", "task14", "task15", "task16"]
 
-    featurizer = dc.featurizers.CircularFingerprint(size=1024)
+    featurizer = dc.feat.CircularFingerprint(size=1024)
 
-    loader = dc.loaders.DataLoader(
+    loader = dc.load.DataLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer, verbosity="low")
     dataset = loader.featurize(input_file)
@@ -57,7 +57,7 @@ class TestMultitaskData(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = dc.datasets.DiskDataset.from_numpy(X, y, w, ids, tasks)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, tasks)
     np.testing.assert_allclose(X, dataset.X)
     np.testing.assert_allclose(y, dataset.y)
     np.testing.assert_allclose(w, dataset.w)

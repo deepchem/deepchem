@@ -25,11 +25,11 @@ class TestAPI(unittest.TestCase):
   def test_singletask_sklearn_rf_ECFP_regression_API(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"
-    featurizer = dc.featurizers.CircularFingerprint(size=1024)
+    featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.loaders.DataLoader(
+    loader = dc.load.DataLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer, verbosity="low")
     dataset = loader.featurize(input_file)
@@ -37,7 +37,7 @@ class TestAPI(unittest.TestCase):
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    transformers = [dc.transformers.NormalizationTransformer(
+    transformers = [dc.trans.NormalizationTransformer(
         transform_y=True, dataset=train_dataset)]
     regression_metrics = [dc.metrics.Metric(dc.metrics.r2_score),
                           dc.metrics.Metric(dc.metrics.mean_squared_error),
@@ -57,12 +57,12 @@ class TestAPI(unittest.TestCase):
   def test_singletask_sklearn_rf_user_specified_regression_API(self):
     """Test of singletask RF USF regression API."""
     splittype = "specified"
-    featurizer = dc.featurizers.UserDefinedFeaturizer(
+    featurizer = dc.feat.UserDefinedFeaturizer(
         ["user-specified1", "user-specified2"])
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "user_specified_example.csv")
-    loader = dc.loaders.DataLoader(
+    loader = dc.load.DataLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer,
         verbosity="low")
     dataset = loader.featurize(input_file, debug=True)
@@ -70,7 +70,7 @@ class TestAPI(unittest.TestCase):
     splitter = dc.splits.SpecifiedSplitter(input_file, "split")
     train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-    transformers = [dc.transformers.NormalizationTransformer(
+    transformers = [dc.trans.NormalizationTransformer(
         transform_y=True, dataset=train_dataset)]
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
@@ -94,12 +94,12 @@ class TestAPI(unittest.TestCase):
   def test_singletask_sklearn_rf_RDKIT_descriptor_regression_API(self):
     """Test of singletask RF RDKIT-descriptor regression API."""
     splittype = "scaffold"
-    featurizer = dc.featurizers.RDKitDescriptors()
+    featurizer = dc.feat.RDKitDescriptors()
     tasks = ["log-solubility"]
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.loaders.DataLoader(tasks=tasks,
+    loader = dc.load.DataLoader(tasks=tasks,
                         smiles_field="smiles",
                         featurizer=featurizer,
                         verbosity="low")
@@ -109,11 +109,11 @@ class TestAPI(unittest.TestCase):
     train_dataset, test_dataset = splitter.train_test_split(dataset)
 
     transformers = [
-        dc.transformers.NormalizationTransformer(
+        dc.trans.NormalizationTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.transformers.ClippingTransformer(
+        dc.trans.ClippingTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.transformers.NormalizationTransformer(
+        dc.trans.NormalizationTransformer(
             transform_y=True, dataset=train_dataset)]
     for dataset in [train_dataset, test_dataset]:
       for transformer in transformers:
@@ -148,8 +148,8 @@ class TestAPI(unittest.TestCase):
                "task13", "task14", "task15", "task16"]
 
       n_features = 1024
-      featurizer = dc.featurizers.CircularFingerprint(size=n_features)
-      loader = dc.loaders.DataLoader(
+      featurizer = dc.feat.CircularFingerprint(size=n_features)
+      loader = dc.load.DataLoader(
           tasks=tasks, smiles_field="smiles",
           featurizer=featurizer, verbosity="low")
       dataset = loader.featurize(input_file)
@@ -177,13 +177,13 @@ class TestAPI(unittest.TestCase):
   def test_singletask_tf_mlp_ECFP_classification_API(self):
     """Test of Tensorflow singletask deepchem classification API."""
     n_features = 1024
-    featurizer = dc.featurizers.CircularFingerprint(size=n_features)
+    featurizer = dc.feat.CircularFingerprint(size=n_features)
 
     tasks = ["outcome"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example_classification.csv")
 
-    loader = dc.loaders.DataLoader(
+    loader = dc.load.DataLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer, verbosity="low")
     dataset = loader.featurize(input_file)
@@ -191,7 +191,7 @@ class TestAPI(unittest.TestCase):
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)
     
-    transformers = [dc.transformers.NormalizationTransformer(
+    transformers = [dc.trans.NormalizationTransformer(
         transform_y=True, dataset=train_dataset)]
 
     for dataset in [train_dataset, test_dataset]:

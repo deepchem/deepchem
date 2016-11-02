@@ -12,7 +12,7 @@ __license__ = "GPL"
 import numpy as np
 import unittest
 import tensorflow as tf
-from deepchem.datasets import NumpyDataset
+from deepchem.data import NumpyDataset
 from deepchem.models.tf_keras_models.support_classifier import SupportGenerator 
 from deepchem.models.tf_keras_models.support_classifier import get_task_dataset_minus_support
 

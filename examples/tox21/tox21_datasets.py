@@ -12,8 +12,8 @@ from deepchem.utils.save import load_from_disk
 from deepchem.featurizers.featurize import DataLoader
 from deepchem.featurizers.graph_features import ConvMolFeaturizer
 from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.datasets import DiskDataset
-from deepchem.transformers import BalancingTransformer
+from deepchem.data import DiskDataset
+from deepchem.trans import BalancingTransformer
 
 def load_tox21(base_dir, reload=True, num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
