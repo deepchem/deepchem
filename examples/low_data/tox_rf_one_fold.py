@@ -1,5 +1,5 @@
 """
-Train low-data models with random forests. Test last fold only.
+Train low-data Tox21 models with random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -10,14 +10,6 @@ import numpy as np
 import deepchem as dc
 from datasets import load_tox21_ecfp
 from sklearn.ensemble import RandomForestClassifier
-from deepchem.metrics import Metric
-from deepchem.splits.task_splitter import merge_fold_datasets
-from deepchem.splits.task_splitter import TaskSplitter
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.models.tf_keras_models.support_classifier import SupportGenerator
-from deepchem.models.tf_keras_models.support_classifier import get_task_dataset_minus_support
-
-model_dir = tempfile.mkdtemp()
 
 # 4-fold splits
 K = 4
@@ -32,18 +24,17 @@ replace = False
 tox21_tasks, dataset, transformers = load_tox21_ecfp()
 
 # Define metric
-metric = Metric(dc.metrics.roc_auc_score, verbosity="high",
-                mode="classification")
+metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 
-task_splitter = TaskSplitter()
+task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
 
 train_folds = fold_datasets[:-1] 
-train_dataset = merge_fold_datasets(train_folds)
+train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
 # Get supports on test-set
-support_generator = SupportGenerator(
+support_generator = dc.data.SupportGenerator(
     test_dataset, range(len(test_dataset.get_task_names())), n_pos, n_neg,
     n_trials, replace)
 
@@ -53,11 +44,12 @@ for (task, support) in support_generator:
   # Train model on support
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=50)
-  model = SklearnModel(sklearn_model, model_dir)
+  model = dc.models.SklearnModel(sklearn_model)
   model.fit(support)
 
   # Test model
-  task_dataset = get_task_dataset_minus_support(test_dataset, support, task)
+  task_dataset = dc.data.get_task_dataset_minus_support(
+      test_dataset, support, task)
   y_pred = model.predict_proba(task_dataset)
   score = metric.compute_metric(
       task_dataset.y, y_pred, task_dataset.w)

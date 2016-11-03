@@ -81,7 +81,7 @@ with tf.Session() as sess:
   ############################################################ DEBUG
   print("FIT")
   ############################################################ DEBUG
-  model.fit(test_dataset, n_trials=n_train_trials,
+  model.fit(train_dataset, n_trials=n_train_trials,
             n_steps_per_trial=n_steps_per_trial, n_pos=n_pos,
             n_neg=n_neg, replace=False)
   model.save()

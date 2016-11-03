@@ -12,18 +12,18 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4
+K = 4 
 # Depth of attention module
-max_depth = 4
+max_depth = 8
 # number positive/negative ligands
-n_pos = 5 
+n_pos = 1 
 n_neg = 10
 # Set batch sizes for network
-test_batch_size = 100
+test_batch_size = 128
 support_batch_size = n_pos + n_neg
-n_train_trials = 2000 
+n_train_trials = 5000
 n_eval_trials = 20
-n_steps_per_trial = 1 
+n_steps_per_trial = 1
 # Sample supports without replacement (all pos/neg should be different)
 replace = False
 # Number of features on conv-mols
@@ -51,18 +51,20 @@ support_model = dc.nn.SequentialSupportGraph(n_feat)
 # Adding 1st layer 
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
-# output will be (n_atoms, 64)
 support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-# output will be (n_atoms, 64)
 support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add(dc.nn.GraphPool())
 # Addding 2nd layer
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add(dc.nn.GraphPool())
 # Adding 3rd layer
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
 support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add(dc.nn.GraphPool())
 
 # Gather into molecules
 support_model.add_test(dc.nn.GraphGather(test_batch_size))

@@ -24,8 +24,8 @@ from deepchem.data import get_task_dataset_minus_support
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,
                test_batch_size=10, support_batch_size=10,
-               learning_rate=.001, similarity="cosine",
-               beta1=.9, beta2=.999, **kwargs):
+               learning_rate=.001, decay_steps=20, decay_rate=1.,
+               similarity="cosine", **kwargs):
     """Builds a support-based classifier.
 
     See https://arxiv.org/pdf/1606.04080v1.pdf for definition of support.
@@ -40,6 +40,10 @@ class SupportGraphClassifier(Model):
       Number of positive examples in support.
     n_neg: int
       Number of negative examples in support.
+    decay_steps: int, optional
+      Corresponds to argument decay_steps in tf.train.exponential_decay
+    decay_rate: float, optional
+      Corresponds to argument decay_rate in tf.train.exponential_decay
     """
     self.sess = sess
     self.similarity = similarity
@@ -48,6 +52,8 @@ class SupportGraphClassifier(Model):
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
+    self.decay_steps = decay_steps
+    self.decay_rate = decay_rate
     self.epsilon = K.epsilon()
 
     self.add_placeholders()
@@ -61,9 +67,17 @@ class SupportGraphClassifier(Model):
 
   def get_training_op(self, loss):
     """Attaches an optimizer to the graph."""
-    opt = tf.train.AdamOptimizer(self.learning_rate)
+    ################################################################# DEBUG
+    global_step = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(
+        self.learning_rate, global_step,
+        self.decay_steps, self.decay_rate, staircase=True)
+    opt = tf.train.AdamOptimizer(learning_rate)
     # Get train function
-    return opt.minimize(self.loss_op, name="train")
+    return opt.minimize(self.loss_op, name="train", global_step=global_step)
+    #opt = tf.train.AdamOptimizer(self.learning_rate)
+    #return opt.minimize(self.loss_op, name="train")
+    ################################################################# DEBUG
 
   def add_placeholders(self):
     """Adds placeholders to graph."""
@@ -139,6 +153,7 @@ class SupportGraphClassifier(Model):
     # Create different support sets
     support_generator = SupportGenerator(dataset, range(n_tasks),
         n_pos, n_neg, n_trials, replace)
+    recent_losses = []
     for ind, (task, support) in enumerate(support_generator):
       if ind % log_every_n_samples == 0:
         print("Sample %d from task %s" % (ind, str(task)))
@@ -150,7 +165,11 @@ class SupportGraphClassifier(Model):
         ############################################################## DEBUG
         _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
         if ind % log_every_n_samples == 0:
-          print("\tloss is %s" % str(loss))
+          mean_loss = np.mean(np.array(recent_losses))
+          print("\tmean loss is %s" % str(mean_loss))
+          recent_losses = []
+        else:
+          recent_losses.append(loss)
         ############################################################## DEBUG
 
   def save(self):
