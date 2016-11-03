@@ -718,7 +718,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
@@ -793,7 +793,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
@@ -867,7 +867,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9

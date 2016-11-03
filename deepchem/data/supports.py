@@ -174,6 +174,10 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
     if episode % log_every_n == 0:
       print("Sampling support %d" % episode)
     # No replacement allowed for supports
+    ############################################################# DEBUG
+    print("len(pos_mols), n_pos, len(neg_mols), n_neg")
+    print(len(pos_mols), n_pos, len(neg_mols), n_neg)
+    ############################################################# DEBUG
     pos_ids = np.random.choice(len(pos_mols), (n_pos,), replace=False)
     neg_ids = np.random.choice(len(neg_mols), (n_neg,), replace=False)
     pos_inds, neg_inds = pos_mols[pos_ids], neg_mols[neg_ids]
@@ -267,6 +271,8 @@ class EpisodeGenerator(object):
 
       return (task, support, test)
 
+  __next__ = next # Python 3.X compatibility
+
 
 class SupportGenerator(object):
   """Generate support sets from a dataset.
@@ -274,7 +280,7 @@ class SupportGenerator(object):
   Iterates over tasks and trials. For each trial, picks one support from
   each task, and returns in a randomized order
   """
-  def __init__(self, dataset, n_pos, n_neg, n_trials, replace):
+  def __init__(self, dataset, n_pos, n_neg, n_trials):
     """
     Parameters
     ----------
@@ -287,8 +293,6 @@ class SupportGenerator(object):
     n_trials: int
       Number of passes over dataset to make. In total, n_tasks*n_trials
       support sets will be sampled by algorithm.
-    replace: bool
-      Whether to use sampling with or without replacement.
     """
       
     self.tasks = range(len(dataset.get_task_names()) )
@@ -297,7 +301,6 @@ class SupportGenerator(object):
     self.dataset = dataset
     self.n_pos = n_pos
     self.n_neg = n_neg
-    self.replace = replace
 
     # Init the iterator
     self.perm_tasks = np.random.permutation(self.tasks)
@@ -321,7 +324,7 @@ class SupportGenerator(object):
       #support = self.supports[task][self.trial_num]
       support = get_single_task_support(
           self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task,
-          replace=self.replace)
+          replace=False)
       # Increment and update logic
       self.task_num += 1
       if self.task_num == self.n_tasks:

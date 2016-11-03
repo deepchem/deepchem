@@ -567,12 +567,10 @@ class DiskDataset(Dataset):
       for i in range(num_shards):
         X, y, w, ids = dataset.get_shard(shard_perm[i])
         n_samples = X.shape[0]
-        #################################################################### DEBUG
         # TODO(rbharath): This happens in tests sometimes, but don't understand why?
         # Handle edge case.
         if n_samples == 0:
           continue
-        #################################################################### DEBUG
         if not deterministic:
           sample_perm = np.random.permutation(n_samples)
         else:
@@ -581,11 +579,6 @@ class DiskDataset(Dataset):
           shard_batch_size = n_samples
         else:
           shard_batch_size = batch_size 
-        #################################################################### DEBUG
-        #print("iterbatch()")
-        #print("n_samples, shard_batch_size")
-        #print(n_samples, shard_batch_size)
-        #################################################################### DEBUG
         interval_points = np.linspace(
             0, n_samples, np.ceil(float(n_samples)/shard_batch_size)+1, dtype=int)
         for j in range(len(interval_points)-1):
@@ -946,20 +939,10 @@ class DiskDataset(Dataset):
       shard_len = len(X)
       # Find indices which rest in this shard
       num_shard_elts = 0
-      ############################################################### DEBUG
-      #print("Dataset.select()")
-      #print("shard_num, shard_len, indices_count, indices_count+num_shard_elts, count, count+shard_len")
-      #print(shard_num, shard_len, indices_count, indices_count+num_shard_elts, count, count+shard_len)
-      ############################################################### DEBUG
       while indices[indices_count+num_shard_elts] < count + shard_len:
         num_shard_elts += 1
         if indices_count + num_shard_elts >= len(indices):
           break
-      ############################################################### DEBUG
-      #print("after while loop")
-      #print("num_shard_elts")
-      #print(num_shard_elts)
-      ############################################################### DEBUG
       # Need to offset indices to fit within shard_size
       shard_inds =  indices[indices_count:indices_count+num_shard_elts] - count
       X_sel = X[shard_inds]

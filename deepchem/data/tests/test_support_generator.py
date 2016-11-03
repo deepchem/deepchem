@@ -13,6 +13,7 @@ import numpy as np
 import unittest
 import tensorflow as tf
 import deepchem as dc
+
 class TestSupports(unittest.TestCase):
   """
   Test that support generation happens properly.
@@ -118,8 +119,7 @@ class TestSupports(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     # Create support generator
-    supp_gen = dc.data.SupportGenerator(
-        dataset, n_pos, n_neg, n_trials, replace=True)
+    supp_gen = dc.data.SupportGenerator(dataset, n_pos, n_neg, n_trials)
 
   def test_simple_episode_generator(self):
     """Conducts simple test that episode generator runs."""
@@ -261,8 +261,7 @@ class TestSupports(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     # Create support generator
-    supp_gen = dc.data.SupportGenerator(
-        dataset, n_pos, n_neg, n_trials, replace=True)
+    supp_gen = dc.data.SupportGenerator(dataset, n_pos, n_neg, n_trials)
     num_supports = 0
     
     for (task, support) in supp_gen:
@@ -291,7 +290,7 @@ class TestSupports(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     support_generator = dc.data.SupportGenerator(dataset, 
-        n_pos, n_neg, n_trials, replace=False)
+        n_pos, n_neg, n_trials)
 
     for ind, (task, support) in enumerate(support_generator):
       task_dataset = dc.data.get_task_dataset_minus_support(
@@ -299,11 +298,7 @@ class TestSupports(unittest.TestCase):
 
       task_y = dataset.y[:, task]
       task_w = dataset.w[:, task]
-      print("Number of y elements (including missing data)")
-      print(len(task_y))
       task_y = task_y[task_w != 0]
-      print("len(task_y), len(support), len(task_dataset)")
-      print(len(task_y), len(support), len(task_dataset))
       assert len(task_y) == len(support) + len(task_dataset)
       print("Verifying that task_dataset doesn't overlap with support.")
       for task_id in task_dataset.ids:

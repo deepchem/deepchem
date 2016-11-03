@@ -27,8 +27,7 @@ from deepchem.data import get_task_dataset_minus_support
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,
                test_batch_size=10, support_batch_size=10,
-               learning_rate=.001, decay_steps=20, decay_rate=1.,
-               similarity="cosine", **kwargs):
+               learning_rate=.001, similarity="cosine", **kwargs):
     """Builds a support-based classifier.
 
     See https://arxiv.org/pdf/1606.04080v1.pdf for definition of support.
@@ -43,10 +42,6 @@ class SupportGraphClassifier(Model):
       Number of positive examples in support.
     n_neg: int
       Number of negative examples in support.
-    decay_steps: int, optional
-      Corresponds to argument decay_steps in tf.train.exponential_decay
-    decay_rate: float, optional
-      Corresponds to argument decay_rate in tf.train.exponential_decay
     """
     self.sess = sess
     self.similarity = similarity
@@ -55,8 +50,6 @@ class SupportGraphClassifier(Model):
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    #self.decay_steps = decay_steps
-    #self.decay_rate = decay_rate
     self.epsilon = K.epsilon()
 
     self.add_placeholders()
@@ -377,8 +370,8 @@ class SupportGraphClassifier(Model):
     ########################################################### DEBUG
     return y_pred_batch
     
-  def evaluate(self, dataset, metric, n_pos=1,
-               n_neg=9, n_trials=1000, exclude_support=True):
+  def evaluate(self, dataset, metric, n_pos,
+               n_neg, n_trials=1000, exclude_support=True):
     """Evaluate performance on dataset according to metrics
 
 
@@ -415,15 +408,9 @@ class SupportGraphClassifier(Model):
     # Get batches
     test_tasks = range(len(dataset.get_task_names()))
     task_scores = {task: [] for task in test_tasks}
-    support_generator = SupportGenerator(dataset, test_tasks,
-        n_pos, n_neg, n_trials)
+    support_generator = SupportGenerator(dataset, n_pos, n_neg, n_trials)
     for ind, (task, support) in enumerate(support_generator):
       print("Eval sample %d from task %s" % (ind, str(task)))
-      ################################################################ DEBUG
-      print("task, len(support)")
-      print(task, len(support))
-      ################################################################ DEBUG
-      
       # TODO(rbharath): Add test for get_task_dataset_minus_support for
       # multitask case with missing data...
       if exclude_support:
@@ -441,22 +428,13 @@ class SupportGraphClassifier(Model):
       task_y = task_y[task_w != 0]
       print("Number of y elements (excluding missing data)")
       print(len(task_y))
+      print("Verifying that no elements were dropped.")
       print("len(task_y), len(support), len(task_dataset)")
       print(len(task_y), len(support), len(task_dataset))
       assert len(task_y) == len(support) + len(task_dataset)
       print("Verifying that task_dataset doesn't overlap with support.")
       for task_id in task_dataset.ids:
         assert task_id not in set(support.ids)
-      print("evaluate()")
-      y_pred_hot = from_one_hot(y_pred)
-      print("y_pred")
-      print(y_pred)
-      print("y_pred_hot")
-      print(y_pred_hot)
-      print("np.count_nonzero(y_pred_hot)")
-      print(np.count_nonzero(y_pred_hot))
-      print("np.count_nonzero(task_dataset.y)")
-      print(np.count_nonzero(task_dataset.y))
       ################################################################ DEBUG
       task_scores[task].append(metric.compute_metric(
           task_dataset.y, y_pred, task_dataset.w))
