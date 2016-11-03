@@ -562,7 +562,7 @@ class AttnLSTMEmbedding(Layer):
 class ResiLSTMEmbedding(Layer):
   """Embeds its inputs using an LSTM layer."""
   def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
-               activation='linear', **kwargs):
+               activation='linear', similarity='cosine', **kwargs):
     """
     Unlike the AttnLSTM model which only modifies the test vectors additively,
     this model allows for an additive update to be performed to both test and
@@ -588,6 +588,7 @@ class ResiLSTMEmbedding(Layer):
     self.max_depth = max_depth
     self.n_test = n_test
     self.n_support = n_support
+    self.similarity = similarity
 
   def build(self, input_shape):
     """Builds this layer.
@@ -658,7 +659,7 @@ class ResiLSTMEmbedding(Layer):
     
     for d in range(self.max_depth):
       # Process support xp using attention
-      e = cos(z+q, xp)
+      e = sim(z+q, xp, self.similarity)
       a = K.softmax(e)
       # Get linear combination of support set
       r = K.dot(a, xp)  
@@ -668,7 +669,7 @@ class ResiLSTMEmbedding(Layer):
       #z = r  
 
       # Process test x using attention
-      x_e = cos(x+p, z)
+      x_e = sim(x+p, z, self.similarity)
       x_a = K.softmax(x_e)
       s = K.dot(x_a, z)
 
@@ -691,6 +692,18 @@ class ResiLSTMEmbedding(Layer):
         return mask
     return [None, None]
 
+def sim(x, y, similarity):
+  if similarity == 'cosine':
+    return cos(x, y)
+  elif similarity == 'euclidean':
+    return -dist(x, y)
+
+def dist(x, y):
+  x = K.expand_dims(x, 1)
+  y = K.expand_dims(y, 0)
+  max_dist_sq = 20  # Prevents vanishing gradients
+  return -K.minimum(K.sum(K.square(x-y), axis=2), max_dist_sq)                    
+      
 def cos(x, y):
   denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
   return K.dot(x, K.transpose(y)) / denom

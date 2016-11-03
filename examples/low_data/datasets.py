@@ -33,7 +33,7 @@ def load_tox21_ecfp(num_train=7200):
 
   # Initialize transformers 
   transformers = [
-      dc.transformers.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
@@ -65,7 +65,7 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
 
   # Initialize transformers 
   transformers = [
-      dc.transformers.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
