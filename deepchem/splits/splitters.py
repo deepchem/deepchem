@@ -331,6 +331,11 @@ class IndexSplitter(Splitter):
     train_cutoff = int(frac_train * num_datapoints)
     valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
     indices = range(num_datapoints)
+    ################################################################ DEBUG
+    print("IndexSplitter.split()")
+    print("train_cutoff, valid_cutoff, len(dataset)")
+    print(train_cutoff, valid_cutoff, len(dataset))
+    ################################################################ DEBUG
     return (indices[:train_cutoff], indices[train_cutoff:valid_cutoff],
             indices[valid_cutoff:])
 

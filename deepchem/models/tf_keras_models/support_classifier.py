@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 import sys 
+import time
 from keras.layers import Input
 from keras import backend as K
 from deepchem.models import Model
@@ -17,8 +18,9 @@ from deepchem.metrics import to_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.data import SupportGenerator
-from deepchem.data import get_task_test
+from deepchem.data import EpisodeGenerator
 from deepchem.data import get_task_dataset
+from deepchem.data import get_single_task_test
 from deepchem.data import get_task_dataset_minus_support
 
 class SupportGraphClassifier(Model):
@@ -115,7 +117,7 @@ class SupportGraphClassifier(Model):
       feed_dict[K.learning_phase()] = training
     return feed_dict
 
-  def fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
+  def old_fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
           n_neg=9, log_every_n_samples=10, replace=True, **kwargs):
     """Fits model on dataset.
 
@@ -124,11 +126,6 @@ class SupportGraphClassifier(Model):
     where for each trial, we randomply sample a support set for each given
     task, and independently a test set from that same task. The
     SupportGenerator class iterates over the tasks in random order.
-
-    # TODO(rbharath): Would it improve performance to sample multiple test sets
-    for each support set or would that only harm performance?
-    
-    # TODO(rbharath): Should replace be an option for sampling the test sets?
 
     Parameters
     ----------
@@ -147,9 +144,11 @@ class SupportGraphClassifier(Model):
     replace: bool, optional
       Whether or not to use replacement when sampling supports/tests.
     """
+    time_start = time.time()
     # Perform the optimization
     n_tasks = len(dataset.get_task_names())
 
+    feed_total, run_total, test_total = 0, 0, 0
     # Create different support sets
     support_generator = SupportGenerator(dataset, range(n_tasks),
         n_pos, n_neg, n_trials, replace)
@@ -158,12 +157,21 @@ class SupportGraphClassifier(Model):
       if ind % log_every_n_samples == 0:
         print("Sample %d from task %s" % (ind, str(task)))
       # Get batch to try it out on
-      test = get_task_test(dataset, self.test_batch_size, task, replace)
+      test_start = time.time()
+      test = get_single_task_test(dataset, self.test_batch_size, task, replace)
+      test_end = time.time()
+      test_total += (test_end - test_start)
+      feed_start = time.time()
       feed_dict = self.construct_feed_dict(test, support)
+      feed_end = time.time()
+      feed_total += (feed_end - feed_start)
       for step in range(n_steps_per_trial):
         # Train on support set, batch pair
         ############################################################## DEBUG
+        run_start = time.time()
         _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
+        run_end = time.time()
+        run_total += (run_end - run_start)
         if ind % log_every_n_samples == 0:
           mean_loss = np.mean(np.array(recent_losses))
           print("\tmean loss is %s" % str(mean_loss))
@@ -171,6 +179,69 @@ class SupportGraphClassifier(Model):
         else:
           recent_losses.append(loss)
         ############################################################## DEBUG
+    time_end = time.time()
+    print("old_fit took %s seconds" % str(time_end-time_start))
+    print("test_total: %s" % str(test_total))
+    print("feed_total: %s" % str(feed_total))
+    print("run_total: %s" % str(run_total))
+
+  def fit(self, dataset, n_episodes_per_epoch=1000, nb_epochs=1, n_pos=1, n_neg=9,
+          log_every_n_samples=10, **kwargs):
+    """Fits model on dataset using cached supports.
+
+    For each epcoh, sample n_episodes_per_epoch (support, test) pairs and does
+    gradient descent.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to fit model on.
+    nb_epochs: int, optional
+      number of epochs of training.
+    n_episodes_per_epoch: int, optional
+      Number of (support, test) pairs to sample and train on per epoch.
+    n_pos: int, optional
+      Number of positive examples per support.
+    n_neg: int, optional
+      Number of negative examples per support.
+    log_every_n_samples: int, optional
+      Displays info every this number of samples
+    """
+    time_start = time.time()
+    # Perform the optimization
+    n_tasks = len(dataset.get_task_names())
+    n_test = self.test_batch_size
+
+    feed_total, run_total = 0, 0
+    for epoch in range(nb_epochs):
+      # Create different support sets
+      episode_generator = EpisodeGenerator(dataset,
+          n_pos, n_neg, n_test, n_episodes_per_epoch)
+      recent_losses = []
+      for ind, (task, support, test) in enumerate(episode_generator):
+        if ind % log_every_n_samples == 0:
+          print("Epoch %d, Sample %d from task %s" % (epoch, ind, str(task)))
+        # Get batch to try it out on
+        feed_start = time.time()
+        feed_dict = self.construct_feed_dict(test, support)
+        feed_end = time.time()
+        feed_total += (feed_end - feed_start)
+        # Train on support set, batch pair
+        run_start = time.time()
+        _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
+        run_end = time.time()
+        run_total += (run_end - run_start)
+        if ind % log_every_n_samples == 0:
+          mean_loss = np.mean(np.array(recent_losses))
+          print("\tmean loss is %s" % str(mean_loss))
+          recent_losses = []
+        else:
+          recent_losses.append(loss)
+    time_end = time.time()
+    print("fit took %s seconds" % str(time_end-time_start))
+    print("feed_total: %s" % str(feed_total))
+    print("run_total: %s" % str(run_total))
+
 
   def save(self):
     """Save all models
@@ -348,6 +419,8 @@ class SupportGraphClassifier(Model):
         n_pos, n_neg, n_trials, replace)
     for ind, (task, support) in enumerate(support_generator):
       print("Eval sample %d from task %s" % (ind, str(task)))
+      # TODO(rbharath): Add test for get_task_dataset_minus_support for
+      # multitask case with missing data...
       if exclude_support:
         print("Removing support datapoints for eval.")
         task_dataset = get_task_dataset_minus_support(dataset, support, task)
@@ -355,10 +428,6 @@ class SupportGraphClassifier(Model):
         print("Keeping support datapoints for eval.")
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
-      ######################################################### DEBUG
-      #print("task_dataset.y.shape, y_pred.shape, task_dataset.w.shape")
-      #print(task_dataset.y.shape, y_pred.shape, task_dataset.w.shape)
-      ######################################################### DEBUG
       task_scores[task].append(metric.compute_metric(
           task_dataset.y, y_pred, task_dataset.w))
 

@@ -12,7 +12,7 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4 
+K = 12 
 # Depth of attention module
 max_depth = 4
 # num positive/negative ligands
@@ -21,9 +21,10 @@ n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
-n_train_trials = 11000
-n_eval_trials = 20
+n_train_trials = 3000 
+n_eval_trials = 5
 n_steps_per_trial = 1
+log_every_n_samples = 50
 # Sample supports without replacement (all pos/neg should be different)
 replace = False
 # Number of features on conv-mols
@@ -79,9 +80,9 @@ with tf.Session() as sess:
   ############################################################ DEBUG
   print("FIT")
   ############################################################ DEBUG
-  model.fit(train_dataset, n_trials=n_train_trials,
+  model.old_fit(test_dataset, n_trials=n_train_trials,
             n_steps_per_trial=n_steps_per_trial, n_pos=n_pos,
-            n_neg=n_neg, replace=False)
+            n_neg=n_neg, log_every_n_samples=log_every_n_samples, replace=False)
   model.save()
 
   ############################################################ DEBUG
