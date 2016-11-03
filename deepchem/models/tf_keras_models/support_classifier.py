@@ -15,6 +15,7 @@ from deepchem.models import Model
 from deepchem.data import pad_batch
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot
+from deepchem.metrics import from_one_hot
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.data import SupportGenerator
@@ -54,8 +55,8 @@ class SupportGraphClassifier(Model):
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    self.decay_steps = decay_steps
-    self.decay_rate = decay_rate
+    #self.decay_steps = decay_steps
+    #self.decay_rate = decay_rate
     self.epsilon = K.epsilon()
 
     self.add_placeholders()
@@ -70,15 +71,15 @@ class SupportGraphClassifier(Model):
   def get_training_op(self, loss):
     """Attaches an optimizer to the graph."""
     ################################################################# DEBUG
-    global_step = tf.Variable(0, trainable=False)
-    learning_rate = tf.train.exponential_decay(
-        self.learning_rate, global_step,
-        self.decay_steps, self.decay_rate, staircase=True)
-    opt = tf.train.AdamOptimizer(learning_rate)
-    # Get train function
-    return opt.minimize(self.loss_op, name="train", global_step=global_step)
-    #opt = tf.train.AdamOptimizer(self.learning_rate)
-    #return opt.minimize(self.loss_op, name="train")
+    #global_step = tf.Variable(0, trainable=False)
+    #learning_rate = tf.train.exponential_decay(
+    #    self.learning_rate, global_step,
+    #    self.decay_steps, self.decay_rate, staircase=True)
+    #opt = tf.train.AdamOptimizer(learning_rate)
+    ## Get train function
+    #return opt.minimize(self.loss_op, name="train", global_step=global_step)
+    opt = tf.train.AdamOptimizer(self.learning_rate)
+    return opt.minimize(self.loss_op, name="train")
     ################################################################# DEBUG
 
   def add_placeholders(self):
@@ -278,8 +279,11 @@ class SupportGraphClassifier(Model):
     # Normalize
     if self.similarity == 'cosine':
       g = model_ops.cosine_distances(test_feat, support_feat)
-    elif self.similarity == 'euclidean':
-      g = model_ops.euclidean_distance(test_feat, support_feat)
+    else:
+      raise ValueError("Only cosine similarity is supported.")
+    # TODO(rbharath): euclidean kernel is broken!
+    #elif self.similarity == 'euclidean':
+    #  g = model_ops.euclidean_distance(test_feat, support_feat)
     # Note that gram matrix g has shape (n_test, n_support)
 
     # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper 
@@ -370,10 +374,23 @@ class SupportGraphClassifier(Model):
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
-    y_pred_batch = to_one_hot(np.round(pred))
+    ########################################################### DEBUG
+    # pred corresponds to prob(example == 1) 
+    y_pred_batch = np.zeros((n_samples, 2))
+    pred = pred[:n_samples]
+    y_pred_batch[:, 1] = pred
+    y_pred_batch[:, 0] = 1-pred
+    print("scores[:5]")
+    print(scores[:5])
+    print("pred[:5]")
+    print(pred[:5])
+    print("y_pred_batch[:5]")
+    print(y_pred_batch[:5])
+    ########################################################### DEBUG
+    #y_pred_batch = to_one_hot(np.round(pred))
     ########################################################### DEBUG
     # Remove padded elements
-    y_pred_batch = y_pred_batch[:n_samples]
+    #y_pred_batch = y_pred_batch[:n_samples]
     ########################################################### DEBUG
     return y_pred_batch
     
@@ -428,6 +445,18 @@ class SupportGraphClassifier(Model):
         print("Keeping support datapoints for eval.")
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
+      ################################################################ DEBUG
+      print("evaluate()")
+      y_pred_hot = from_one_hot(y_pred)
+      print("y_pred")
+      print(y_pred)
+      print("y_pred_hot")
+      print(y_pred_hot)
+      print("np.count_nonzero(y_pred_hot)")
+      print(np.count_nonzero(y_pred_hot))
+      print("np.count_nonzero(task_dataset.y)")
+      print(np.count_nonzero(task_dataset.y))
+      ################################################################ DEBUG
       task_scores[task].append(metric.compute_metric(
           task_dataset.y, y_pred, task_dataset.w))
 
