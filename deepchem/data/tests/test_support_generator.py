@@ -119,7 +119,7 @@ class TestSupports(unittest.TestCase):
 
     # Create support generator
     supp_gen = dc.data.SupportGenerator(
-        dataset, np.arange(n_tasks), n_pos, n_neg, n_trials, replace=True)
+        dataset, n_pos, n_neg, n_trials, replace=True)
 
   def test_simple_episode_generator(self):
     """Conducts simple test that episode generator runs."""
@@ -262,7 +262,7 @@ class TestSupports(unittest.TestCase):
 
     # Create support generator
     supp_gen = dc.data.SupportGenerator(
-        dataset, np.arange(n_tasks), n_pos, n_neg, n_trials, replace=True)
+        dataset, n_pos, n_neg, n_trials, replace=True)
     num_supports = 0
     
     for (task, support) in supp_gen:
@@ -272,3 +272,39 @@ class TestSupports(unittest.TestCase):
       n_supp_pos = np.count_nonzero(support.y)
       assert n_supp_pos == n_pos
     assert num_supports == n_trials
+
+  def test_evaluation_strategy(self):
+    """Tests that sampling supports for eval works properly."""
+    n_samples = 2000
+    n_features = 3
+    n_tasks = 5
+    n_pos = 1
+    n_neg = 5 
+    n_trials = 10
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.random.randint(2, size=(n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    support_generator = dc.data.SupportGenerator(dataset, 
+        n_pos, n_neg, n_trials, replace=False)
+
+    for ind, (task, support) in enumerate(support_generator):
+      task_dataset = dc.data.get_task_dataset_minus_support(
+          dataset, support, task)
+
+      task_y = dataset.y[:, task]
+      task_w = dataset.w[:, task]
+      print("Number of y elements (including missing data)")
+      print(len(task_y))
+      task_y = task_y[task_w != 0]
+      print("len(task_y), len(support), len(task_dataset)")
+      print(len(task_y), len(support), len(task_dataset))
+      assert len(task_y) == len(support) + len(task_dataset)
+      print("Verifying that task_dataset doesn't overlap with support.")
+      for task_id in task_dataset.ids:
+        assert task_id not in set(support.ids)

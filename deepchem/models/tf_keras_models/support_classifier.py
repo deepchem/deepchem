@@ -70,30 +70,19 @@ class SupportGraphClassifier(Model):
 
   def get_training_op(self, loss):
     """Attaches an optimizer to the graph."""
-    ################################################################# DEBUG
-    #global_step = tf.Variable(0, trainable=False)
-    #learning_rate = tf.train.exponential_decay(
-    #    self.learning_rate, global_step,
-    #    self.decay_steps, self.decay_rate, staircase=True)
-    #opt = tf.train.AdamOptimizer(learning_rate)
-    ## Get train function
-    #return opt.minimize(self.loss_op, name="train", global_step=global_step)
     opt = tf.train.AdamOptimizer(self.learning_rate)
     return opt.minimize(self.loss_op, name="train")
-    ################################################################# DEBUG
 
   def add_placeholders(self):
     """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
-        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         name="label_placeholder"))
     self.test_weight_placeholder = Input(
-        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
         name="weight_placeholder"))
 
-    # TODO(rbharath): There should be weights for the support being used! 
+    # TODO(rbharath): Should weights for the support be used?
     # Support labels
     self.support_label_placeholder = Input(
         tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
@@ -222,6 +211,10 @@ class SupportGraphClassifier(Model):
       for ind, (task, support, test) in enumerate(episode_generator):
         if ind % log_every_n_samples == 0:
           print("Epoch %d, Sample %d from task %s" % (epoch, ind, str(task)))
+          ############################################################### DEBUG
+          print("task, len(support), len(test)")
+          print(task, len(support), len(test))
+          ############################################################### DEBUG
         # Get batch to try it out on
         feed_start = time.time()
         feed_dict = self.construct_feed_dict(test, support)
@@ -377,25 +370,15 @@ class SupportGraphClassifier(Model):
     ########################################################### DEBUG
     # pred corresponds to prob(example == 1) 
     y_pred_batch = np.zeros((n_samples, 2))
+    # Remove padded elements
     pred = pred[:n_samples]
     y_pred_batch[:, 1] = pred
     y_pred_batch[:, 0] = 1-pred
-    print("scores[:5]")
-    print(scores[:5])
-    print("pred[:5]")
-    print(pred[:5])
-    print("y_pred_batch[:5]")
-    print(y_pred_batch[:5])
-    ########################################################### DEBUG
-    #y_pred_batch = to_one_hot(np.round(pred))
-    ########################################################### DEBUG
-    # Remove padded elements
-    #y_pred_batch = y_pred_batch[:n_samples]
     ########################################################### DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, metric, n_pos=1,
-               n_neg=9, n_trials=1000, exclude_support=True, replace=True):
+               n_neg=9, n_trials=1000, exclude_support=True):
     """Evaluate performance on dataset according to metrics
 
 
@@ -433,9 +416,14 @@ class SupportGraphClassifier(Model):
     test_tasks = range(len(dataset.get_task_names()))
     task_scores = {task: [] for task in test_tasks}
     support_generator = SupportGenerator(dataset, test_tasks,
-        n_pos, n_neg, n_trials, replace)
+        n_pos, n_neg, n_trials)
     for ind, (task, support) in enumerate(support_generator):
       print("Eval sample %d from task %s" % (ind, str(task)))
+      ################################################################ DEBUG
+      print("task, len(support)")
+      print(task, len(support))
+      ################################################################ DEBUG
+      
       # TODO(rbharath): Add test for get_task_dataset_minus_support for
       # multitask case with missing data...
       if exclude_support:
@@ -446,6 +434,19 @@ class SupportGraphClassifier(Model):
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
       ################################################################ DEBUG
+      task_y = dataset.y[:, task]
+      task_w = dataset.w[:, task]
+      print("Number of y elements (including missing data)")
+      print(len(task_y))
+      task_y = task_y[task_w != 0]
+      print("Number of y elements (excluding missing data)")
+      print(len(task_y))
+      print("len(task_y), len(support), len(task_dataset)")
+      print(len(task_y), len(support), len(task_dataset))
+      assert len(task_y) == len(support) + len(task_dataset)
+      print("Verifying that task_dataset doesn't overlap with support.")
+      for task_id in task_dataset.ids:
+        assert task_id not in set(support.ids)
       print("evaluate()")
       y_pred_hot = from_one_hot(y_pred)
       print("y_pred")

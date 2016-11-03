@@ -8,3 +8,4 @@ from __future__ import unicode_literals
 # TODO(rbharath): Get rid of * import
 from deepchem.data.datasets import *
 from deepchem.data.supports import *
+import deepchem.data.tests

@@ -138,31 +138,6 @@ def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
     List of NumpyDatasets, each of which is a support set.
   """
   return get_task_support(dataset, 1, n_pos, n_neg, task)[0]
-  #y_task = dataset.y[:, task]
-
-  ## Split data into pos and neg lists.
-  #pos_mols = np.where(y_task == 1)[0]
-  #neg_mols = np.where(y_task == 0)[0]
-
-  ## Get randomly sampled pos/neg indices (with replacement)
-  #pos_inds = pos_mols[np.random.choice(len(pos_mols), (n_pos), replace=replace)]
-  #neg_inds = neg_mols[np.random.choice(len(neg_mols), (n_neg), replace=replace)]
-
-  ## Handle one-d vs. non one-d feature matrices
-  #one_dimensional_features = (len(dataset.X.shape) == 1)
-  #if not one_dimensional_features:
-  #  X_trial = np.vstack(
-  #      [dataset.X[pos_inds], dataset.X[neg_inds]])
-  #else:
-  #  X_trial = np.concatenate(
-  #      [dataset.X[pos_inds], dataset.X[neg_inds]])
-  #y_trial = np.concatenate(
-  #    [dataset.y[pos_inds, task], dataset.y[neg_inds, task]])
-  #w_trial = np.concatenate(
-  #    [dataset.w[pos_inds, task], dataset.w[neg_inds, task]])
-  #ids_trial = np.concatenate(
-  #    [dataset.ids[pos_inds], dataset.ids[neg_inds]])
-  #return NumpyDataset(X_trial, y_trial, w_trial, ids_trial)
 
 def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
   """Generates one support set purely for specified task.
@@ -299,28 +274,25 @@ class SupportGenerator(object):
   Iterates over tasks and trials. For each trial, picks one support from
   each task, and returns in a randomized order
   """
-  def __init__(self, dataset, tasks, n_pos, n_neg, n_trials, replace):
+  def __init__(self, dataset, n_pos, n_neg, n_trials, replace):
     """
     Parameters
     ----------
     dataset: dc.data.Dataset
       Holds dataset from which support sets will be sampled.
-    tasks: list
-      Indices of tasks from which supports are sampled.
-      TODO(rbharath): Can this be removed.
     n_pos: int
       Number of positive samples
     n_neg: int
       Number of negative samples.
     n_trials: int
-      Number of passes over tasks to make. In total, n_tasks*n_trials
+      Number of passes over dataset to make. In total, n_tasks*n_trials
       support sets will be sampled by algorithm.
     replace: bool
       Whether to use sampling with or without replacement.
     """
       
-    self.tasks = tasks
-    self.n_tasks = len(tasks)
+    self.tasks = range(len(dataset.get_task_names()) )
+    self.n_tasks = len(self.tasks)
     self.n_trials = n_trials
     self.dataset = dataset
     self.n_pos = n_pos
