@@ -12,16 +12,16 @@ import tensorflow as tf
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4
+K = 4 
 # Depth of attention module
 max_depth = 3
 # num positive/negative ligands
 n_pos = 1
 n_neg = 10
 # Set batch sizes for network
-test_batch_size = 100
+test_batch_size = 128
 support_batch_size = n_pos + n_neg
-n_train_trials = 4000
+n_train_trials = 11000
 n_eval_trials = 20
 n_steps_per_trial = 1
 # Sample supports without replacement (all pos/neg should be different)
@@ -46,24 +46,21 @@ test_dataset = fold_datasets[-1]
 support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
+# 1st conv layer + batchnorm
 # output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
-# Need to add batch-norm separately to test/support due to differing
-# shapes.
+support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+# 2nd conv layer + batchnorm
 # output will be (n_atoms, 64)
-#support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-# output will be (n_atoms, 64)
-#support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 
-support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.GraphConv(128, activation='relu'))
 support_model.add(dc.nn.GraphPool())
 support_model.add(dc.nn.Dense(128, activation='tanh'))
 support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
 support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
 # Apply a residual lstm layer
 support_model.join(dc.nn.ResiLSTMEmbedding(
-    test_batch_size, support_batch_size, max_depth, similarity='euclidean))
+    test_batch_size, support_batch_size, max_depth, similarity='euclidean'))
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
