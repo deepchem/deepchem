@@ -177,37 +177,21 @@ class MultitaskGraphClassifier(Model):
         softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
     return softmax
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False,
+  def fit(self, dataset, nb_epoch=10, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbosity)
   
     # TODO(rbharath): Disabling saving for now to try to debug.
-    ############################################################# DEBUG
-    # Save an initial checkpoint.
-    #saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-    #saver.save(self.sess, self._save_path, global_step=0)
-    ############################################################# DEBUG
     for epoch in range(nb_epoch):
-      # TODO(rbharath): This decay shouldn't be hard-coded.
-      lr = self.learning_rate / (1 + float(epoch) / self.T)
-
       log("Starting epoch %d" % epoch, self.verbosity)
-      # ToDo(hraut->rbharath) : what is the ids_b for? Is it the zero's? 
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          self.batch_size, pad_batches=pad_batches)):
+          self.batch_size, pad_batches=True)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbosity)
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
-      ############################################################# DEBUG
-      #saver.save(self.sess, self._save_path, global_step=epoch)
-      ############################################################# DEBUG
-    ############################################################# DEBUG
-    # Always save a final checkpoint when complete.
-    #saver.save(self.sess, self._save_path, global_step=epoch+1)
-    ############################################################# DEBUG
 
   def save(self):
     """

@@ -6,10 +6,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import sys
 import shutil
 import tempfile
 import numpy as np
 import deepchem as dc
+
+#sys.path.append("..")
+#from muv.muv_datasets import load_muv
 
 def load_tox21_ecfp(num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
@@ -33,7 +37,7 @@ def load_tox21_ecfp(num_train=7200):
 
   # Initialize transformers 
   transformers = [
-      dc.transformers.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
@@ -48,7 +52,6 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
       current_dir, "../../datasets/tox21.csv.gz")
-  #Make directories to store the raw and featurized datasets.
 
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
@@ -65,7 +68,7 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
 
   # Initialize transformers 
   transformers = [
-      dc.transformers.BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
