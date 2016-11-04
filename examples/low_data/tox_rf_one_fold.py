@@ -14,12 +14,10 @@ from sklearn.ensemble import RandomForestClassifier
 # 4-fold splits
 K = 4
 # num positive/negative ligands
-n_pos = 1
+n_pos = 5
 n_neg = 10
 # 10 trials on test-set
-n_trials = 10
-# Sample supports without replacement (all pos/neg should be different)
-replace = False
+n_trials = 20
 
 tox21_tasks, dataset, transformers = load_tox21_ecfp()
 
@@ -35,15 +33,14 @@ test_dataset = fold_datasets[-1]
 
 # Get supports on test-set
 support_generator = dc.data.SupportGenerator(
-    test_dataset, range(len(test_dataset.get_task_names())), n_pos, n_neg,
-    n_trials, replace)
+    test_dataset, n_pos, n_neg, n_trials)
 
 # Compute accuracies
 task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
 for (task, support) in support_generator:
   # Train model on support
   sklearn_model = RandomForestClassifier(
-      class_weight="balanced", n_estimators=50)
+      class_weight="balanced", n_estimators=100)
   model = dc.models.SklearnModel(sklearn_model)
   model.fit(support)
 
@@ -53,7 +50,7 @@ for (task, support) in support_generator:
   y_pred = model.predict_proba(task_dataset)
   score = metric.compute_metric(
       task_dataset.y, y_pred, task_dataset.w)
-  #print("Score on task %s is %s" % (str(task), str(score)))
+  print("Score on task %s is %s" % (str(task), str(score)))
   task_scores[task].append(score)
 
 # Join information for all tasks.
