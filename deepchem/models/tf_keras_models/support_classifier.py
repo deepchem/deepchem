@@ -134,7 +134,7 @@ class SupportGraphClassifier(Model):
     feed_total, run_total, test_total = 0, 0, 0
     # Create different support sets
     support_generator = SupportGenerator(dataset, range(n_tasks),
-        n_pos, n_neg, n_trials, replace)
+        n_pos, n_neg, n_trials)
     recent_losses = []
     for ind, (task, support) in enumerate(support_generator):
       if ind % log_every_n_samples == 0:
@@ -204,10 +204,6 @@ class SupportGraphClassifier(Model):
       for ind, (task, support, test) in enumerate(episode_generator):
         if ind % log_every_n_samples == 0:
           print("Epoch %d, Sample %d from task %s" % (epoch, ind, str(task)))
-          ############################################################### DEBUG
-          print("task, len(support), len(test)")
-          print(task, len(support), len(test))
-          ############################################################### DEBUG
         # Get batch to try it out on
         feed_start = time.time()
         feed_dict = self.construct_feed_dict(test, support)
@@ -402,8 +398,6 @@ class SupportGraphClassifier(Model):
       Number of negative samples per support.
     exclude_support: bool, optional
       Whether support set should be excluded when computing model accuracy.
-    replace: bool, optional
-      Whether or not to use replacement when sampling supports.
     """
     # Get batches
     test_tasks = range(len(dataset.get_task_names()))
@@ -420,22 +414,6 @@ class SupportGraphClassifier(Model):
         print("Keeping support datapoints for eval.")
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
-      ################################################################ DEBUG
-      task_y = dataset.y[:, task]
-      task_w = dataset.w[:, task]
-      print("Number of y elements (including missing data)")
-      print(len(task_y))
-      task_y = task_y[task_w != 0]
-      print("Number of y elements (excluding missing data)")
-      print(len(task_y))
-      print("Verifying that no elements were dropped.")
-      print("len(task_y), len(support), len(task_dataset)")
-      print(len(task_y), len(support), len(task_dataset))
-      assert len(task_y) == len(support) + len(task_dataset)
-      print("Verifying that task_dataset doesn't overlap with support.")
-      for task_id in task_dataset.ids:
-        assert task_id not in set(support.ids)
-      ################################################################ DEBUG
       task_scores[task].append(metric.compute_metric(
           task_dataset.y, y_pred, task_dataset.w))
 

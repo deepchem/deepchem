@@ -174,10 +174,6 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
     if episode % log_every_n == 0:
       print("Sampling support %d" % episode)
     # No replacement allowed for supports
-    ############################################################# DEBUG
-    print("len(pos_mols), n_pos, len(neg_mols), n_neg")
-    print(len(pos_mols), n_pos, len(neg_mols), n_neg)
-    ############################################################# DEBUG
     pos_ids = np.random.choice(len(pos_mols), (n_pos,), replace=False)
     neg_ids = np.random.choice(len(neg_mols), (n_neg,), replace=False)
     pos_inds, neg_inds = pos_mols[pos_ids], neg_mols[neg_ids]
