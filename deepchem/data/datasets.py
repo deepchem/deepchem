@@ -567,6 +567,10 @@ class DiskDataset(Dataset):
       for i in range(num_shards):
         X, y, w, ids = dataset.get_shard(shard_perm[i])
         n_samples = X.shape[0]
+        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
+        # Handle edge case.
+        if n_samples == 0:
+          continue
         if not deterministic:
           sample_perm = np.random.permutation(n_samples)
         else:
@@ -954,6 +958,9 @@ class DiskDataset(Dataset):
       # Updating counts
       indices_count += num_shard_elts
       count += shard_len
+      # Break when all indices have been used up already
+      if indices_count >= len(indices):
+        break
     return DiskDataset(data_dir=select_dir,
                    metadata_rows=metadata_rows,
                    verbosity=self.verbosity)

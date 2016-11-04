@@ -45,7 +45,7 @@ class TestSplitters(unittest.TestCase):
     random_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
         random_splitter.train_valid_test_split(
-            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+            solubility_dataset)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -54,6 +54,10 @@ class TestSplitters(unittest.TestCase):
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (
            sorted(solubility_dataset.ids))
+
+  # TODO(rbharath): The IndexSplitter() had a bug with splitting sharded
+  # data. Make a test for properly splitting of sharded data. Perhaps using
+  # reshard() to handle this?
 
   def test_singletask_scaffold_split(self):
     """
