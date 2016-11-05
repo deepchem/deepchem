@@ -58,6 +58,8 @@ class TaskSplitter(Splitter):
                              frac_test=.1):
     """Performs a train/valid/test split of the tasks for dataset.
 
+    If split is uneven, spillover goes to test.
+
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -69,12 +71,11 @@ class TaskSplitter(Splitter):
     frac_test: float, optional
       Proportion of tasks to be put into test. Rounded to nearest int.
     """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1)
     n_tasks = len(dataset.get_task_names())
     n_train = int(np.round(frac_train * n_tasks))
     n_valid = int(np.round(frac_valid * n_tasks))
-    n_test = int(np.round(frac_test * n_tasks))
-    if n_train + n_valid + n_test != n_tasks:
-      raise ValueError("Train/Valid/Test fractions don't split tasks evenly.")
+    n_test = n_tasks - n_train - n_valid 
 
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
     
@@ -88,6 +89,8 @@ class TaskSplitter(Splitter):
   def k_fold_split(self, dataset, K):
     """Performs a K-fold split of the tasks for dataset.
 
+    If split is uneven, spillover goes to last fold.
+
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -98,13 +101,16 @@ class TaskSplitter(Splitter):
     n_tasks = len(dataset.get_task_names())
     n_per_fold = int(np.round(n_tasks/float(K)))
     if K * n_per_fold != n_tasks:
-      raise ValueError("Cannot perform a valid %d-way split" % K)
+      print("Assigning extra tasks to last fold due to uneven split")
     
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
     fold_datasets = []
     for fold in range(K):
-      fold_tasks = range(fold*n_per_fold, (fold+1)*n_per_fold)
+      if fold != K-1:
+        fold_tasks = range(fold*n_per_fold, (fold+1)*n_per_fold)
+      else:
+        fold_tasks = range(fold*n_per_fold, n_tasks)
       fold_datasets.append(
           NumpyDataset(X, y[:, fold_tasks], w[:, fold_tasks], ids))
     return fold_datasets
