@@ -12,13 +12,9 @@ import tempfile
 import numpy as np
 import deepchem as dc
 
-#sys.path.append("..")
-#from muv.muv_datasets import load_muv
-
 def load_tox21_ecfp(num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
-  verbosity = "high"
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
       current_dir, "../../datasets/tox21.csv.gz")
@@ -31,7 +27,7 @@ def load_tox21_ecfp(num_train=7200):
 
   loader = dc.load.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer,
-      verbosity=verbosity)
+      verbosity="high")
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 
@@ -48,7 +44,6 @@ def load_tox21_ecfp(num_train=7200):
 def load_tox21_convmol(base_dir=None, num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
-  verbosity = "high"
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
       current_dir, "../../datasets/tox21.csv.gz")
@@ -62,7 +57,7 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
 
   loader = dc.load.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles",
-      featurizer=featurizer, verbosity=verbosity)
+      featurizer=featurizer, verbosity="high")
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 
@@ -75,3 +70,61 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
     dataset = transformer.transform(dataset)
 
   return tox21_tasks, dataset, transformers
+
+def load_muv_ecfp():
+  """Load MUV datasets. Does not do train/test split"""
+  # Load MUV dataset
+  print("About to load MUV dataset.")
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../../datasets/muv.csv.gz")
+  # Featurize MUV dataset
+  print("About to featurize MUV dataset.")
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
+                      'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
+                      'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
+                      'MUV-466', 'MUV-832'])
+
+  loader = dc.load.DataLoader(
+      tasks=MUV_tasks, smiles_field="smiles",
+      featurizer=featurizer, verbosity="high")
+  dataset = loader.featurize(dataset_file)
+
+  # Initialize transformers 
+  transformers = [
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+  print("About to transform data")
+  for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
+  return MUV_tasks, dataset, transformers
+
+def load_muv_convmol():
+  """Load MUV datasets. Does not do train/test split"""
+  # Load MUV dataset
+  print("About to load MUV dataset.")
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../../datasets/muv.csv.gz")
+  # Featurize MUV dataset
+  print("About to featurize MUV dataset.")
+  featurizer = dc.feat.ConvMolFeaturizer()
+  MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
+                      'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
+                      'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
+                      'MUV-466', 'MUV-832'])
+
+  loader = dc.load.DataLoader(
+      tasks=MUV_tasks, smiles_field="smiles",
+      featurizer=featurizer, verbosity="high")
+  dataset = loader.featurize(dataset_file)
+
+  # Initialize transformers 
+  transformers = [
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+  print("About to transform data")
+  for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
+  return MUV_tasks, dataset, transformers
