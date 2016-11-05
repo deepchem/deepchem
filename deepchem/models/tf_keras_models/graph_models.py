@@ -12,6 +12,8 @@ __license__ = "GPL"
 
 from deepchem.models.tf_keras_models.keras_layers import GraphGather
 from deepchem.models.tf_keras_models.graph_topology import GraphTopology
+from keras.layers import Input
+from keras import backend as K
 
 class SequentialGraph(object):
   """An analog of Keras Sequential class for Graph data.
@@ -64,7 +66,7 @@ class SequentialGraph(object):
 
   def get_layer(self, layer_id):
     return self.layers[layer_id]
-
+  
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""
   def __init__(self, n_feat):
@@ -143,3 +145,39 @@ class SequentialSupportGraph(object):
   def return_inputs(self):
     return (self.test_graph_topology.get_inputs()
             + self.support_graph_topology.get_inputs())
+
+  def has_support_labels(self):
+    """ Determines whether or not this model has a support label placeholder"""    
+    return False
+  
+class SequentialLabeledSupportGraph(SequentialSupportGraph):
+  """An analog of Keras Sequential model for test/labeld support models."""
+
+  def __init__(self, n_feat, support_batch_size):
+    """
+    Parameters
+    ----------
+    n_feat: int
+      Number of atomic features.
+    support_batch_sz: int
+      Size of the support set.
+    """    
+    super(SequentialLabeledSupportGraph, self).__init__(n_feat)
+                                            
+    self.support_labels_ph = Input(
+      tensor=K.placeholder(shape=[support_batch_size], dtype='float32',
+      name="support_label_placeholder"))
+    
+  def join_labels(self, layer):
+    """Joins test and support and support labels to a three input two output layer"""
+    self.layers.append(layer)
+    self.test, self.support = layer([self.test, self.support, self.support_labels_ph])
+
+  def has_support_labels(self):
+    """ Determines whether or not this model has a support label placeholder"""
+    return True
+
+  def return_support_label_placeholder(self):
+    """ Returns the support_label placeholder for this model"""
+    return self.support_labels_ph
+            

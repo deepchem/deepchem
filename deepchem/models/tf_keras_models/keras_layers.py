@@ -38,6 +38,22 @@ def sum_neigh(atoms, deg_adj_lists, max_deg):
     deg_summed[deg-1] = summed_atoms
   
   return deg_summed
+      
+def sim(x, y, similarity):
+  if similarity == 'cosine':
+    return cos(x, y)
+  elif similarity == 'euclidean':
+    return -dist(x, y)
+
+def dist(x, y):
+  x = K.expand_dims(x, 1)
+  y = K.expand_dims(y, 0)
+  max_dist_sq = 20  # Prevents vanishing gradients
+  return -K.minimum(K.sum(K.square(x-y), axis=2), max_dist_sq)                    
+      
+def cos(x, y):
+  denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
+  return K.dot(x, K.transpose(y)) / denom
 
 def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
                b_list):
@@ -492,10 +508,9 @@ class AttnLSTMEmbedding(Layer):
 
     n_feat = xp_input_shape[1]
 
-    self.lstm = LSTMStep(n_feat)
+    self.lstm = LSTMStep(2*n_feat)
     self.q_init = K.zeros([self.n_test, n_feat])
-    self.r_init = K.zeros([self.n_test, n_feat])
-    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, 2*n_feat])
     
     self.trainable_weights = [self.q_init, self.r_init]
       
@@ -538,7 +553,6 @@ class AttnLSTMEmbedding(Layer):
 
     # Get initializations
     q = self.q_init
-    #r = self.r_init      
     states = self.states_init
     
     for d in range(self.max_depth):
@@ -549,8 +563,9 @@ class AttnLSTMEmbedding(Layer):
       r = K.dot(a, xp)
 
       # Generate new aattention states
-      y = K.concatenate([q, r], axis=1)
-      q, states = self.lstm([y] + states) #+ self.lstm.get_constants(x)
+      states = [K.concatenate([x+q,r], axis=1)] + [states[1]]
+      trash, states = self.lstm([x] + states) #+ self.lstm.get_constants(x)
+      q = states[0][:,0:self.N_feat]
                 
     return [x+q, xp]
 
@@ -692,22 +707,92 @@ class ResiLSTMEmbedding(Layer):
         return mask
     return [None, None]
 
-def sim(x, y, similarity):
-  if similarity == 'cosine':
-    return cos(x, y)
-  elif similarity == 'euclidean':
-    return -dist(x, y)
+class DualResiLSTMEmbedding(Layer):
+  def __init__(self, max_depth, init='glorot_uniform', activation='linear', dropout=None,
+               similarity='euclidean', **kwargs):
+    super(DualResiLSTMEmbedding, self).__init__(**kwargs)
 
-def dist(x, y):
-  x = K.expand_dims(x, 1)
-  y = K.expand_dims(y, 0)
-  max_dist_sq = 20  # Prevents vanishing gradients
-  return -K.minimum(K.sum(K.square(x-y), axis=2), max_dist_sq)                    
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_depth = max_depth
+    self.similarity = similarity
+
+  def build(self, input_shape):
+    x_input_shape, xp_input_shape, yp_input_shape = input_shape  #Unpack
+
+    N_test = x_input_shape[0]
+    N_support = xp_input_shape[0]
+    N_feat = xp_input_shape[1]
+    self.N_feat = N_feat
+    self.N_support = N_support
+    
+    # Support set lstm
+    self.xp_pos_lstm = LSTMStep(2*N_feat)
+    self.xp_pos_states_init = self.xp_pos_lstm.get_initial_states([N_support,2*N_feat])
+    
+    # Support set lstm
+    self.xp_neg_lstm = LSTMStep(2*N_feat)
+    self.xp_neg_states_init = self.xp_neg_lstm.get_initial_states([N_support,2*N_feat])
+    
+    # Prediction lstm
+    self.x_lstm = LSTMStep(2*N_feat)
+    self.x_states_init = self.x_lstm.get_initial_states([N_test,2*N_feat])
+    
+    self.trainable_weights = []
+    
+  def get_output_shape_for(self, input_shape):
+    return input_shape[:-1]
       
-def cos(x, y):
-  denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
-  return K.dot(x, K.transpose(y)) / denom
+  def call(self, argument, mask=None):
+    x, xp, yp = argument  #Unpack
+    
+    # Expand yp dimension
+    y = K.expand_dims(yp, 1)
+    
+    # Get initializations
+    xp_pos_states = self.xp_pos_states_init
+    xp_neg_states = self.xp_neg_states_init
+    
+    # Get initializations
+    x_states = self.x_states_init
+    
+    p = x
+    q = xp
+    
+    for d in range(self.max_depth):
+      # Process using attention
+      e = sim(q, xp, self.similarity)
+      a = K.softmax(e)
+      r = K.dot(a, xp)  # Get soft nearest neighbor location
+      
+      # Process using attention
+      e = sim(p, q, self.similarity)
+      x_a = K.softmax(e)
+      s = K.dot(x_a, q)
+      
+      # Generate new attention states using conditional LSTM
+      xp_pos_states = [K.concatenate([q,r], axis=1)] + [xp_pos_states[1]]
+      xp_neg_states = [K.concatenate([q,r], axis=1)] + [xp_neg_states[1]]
+      q_pos, xp_pos_states = self.xp_pos_lstm([xp] + xp_pos_states)
+      q_neg, xp_neg_states = self.xp_neg_lstm([xp] + xp_neg_states)
 
+      # Extract new updates
+      q_pos = xp_pos_states[0][:,0:self.N_feat]
+      q_neg = xp_neg_states[0][:,0:self.N_feat]
+
+      # Obtain conditional LSTM hidden state
+      q = y * q_pos + (1.-y) * q_neg
+      
+      # Generate new attention states for x
+      x_states = [K.concatenate([p,s], axis=1)] + [x_states[1]]
+      trash, x_states = self.x_lstm([x] + x_states)
+      p = x_states[0][:,0:self.N_feat]
+            
+    return [p, q]
+
+  def compute_mask(self, x, mask=None):
+    return [None, None]
+  
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
 
