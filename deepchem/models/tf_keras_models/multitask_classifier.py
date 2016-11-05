@@ -3,11 +3,12 @@ import sys
 import numpy as np
 import tensorflow as tf
 import sklearn.metrics
+import tempfile
 from keras.engine import Layer
 from keras.layers import Input, Dense
 from keras import initializations, activations
 from keras import backend as K
-from deepchem.datasets import pad_features
+from deepchem.data import pad_features
 from deepchem.utils.save import log
 from deepchem.models import Model 
 from deepchem.models.tensorflow_models import model_ops
@@ -45,7 +46,7 @@ def get_loss_fn(final_loss):
 
 class MultitaskGraphClassifier(Model):
 
-  def __init__(self, sess, model, n_tasks, logdir, batch_size=50,
+  def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
                beta1=.9, beta2=.999, verbosity=None):
@@ -55,6 +56,11 @@ class MultitaskGraphClassifier(Model):
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model 
+    if logdir is not None:
+      if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    else:
+      logdir = tempfile.mkdtemp()
     self.logdir = logdir
            
     # Extract model info 
@@ -171,37 +177,21 @@ class MultitaskGraphClassifier(Model):
         softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
     return softmax
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False,
+  def fit(self, dataset, nb_epoch=10, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbosity)
   
     # TODO(rbharath): Disabling saving for now to try to debug.
-    ############################################################# DEBUG
-    # Save an initial checkpoint.
-    #saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-    #saver.save(self.sess, self._save_path, global_step=0)
-    ############################################################# DEBUG
     for epoch in range(nb_epoch):
-      # TODO(rbharath): This decay shouldn't be hard-coded.
-      lr = self.learning_rate / (1 + float(epoch) / self.T)
-
       log("Starting epoch %d" % epoch, self.verbosity)
-      # ToDo(hraut->rbharath) : what is the ids_b for? Is it the zero's? 
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          self.batch_size, pad_batches=pad_batches)):
+          self.batch_size, pad_batches=True)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbosity)
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
-      ############################################################# DEBUG
-      #saver.save(self.sess, self._save_path, global_step=epoch)
-      ############################################################# DEBUG
-    ############################################################# DEBUG
-    # Always save a final checkpoint when complete.
-    #saver.save(self.sess, self._save_path, global_step=epoch+1)
-    ############################################################# DEBUG
 
   def save(self):
     """

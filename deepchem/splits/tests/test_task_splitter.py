@@ -1,4 +1,3 @@
-
 """
 Tests for splitter objects.
 """
@@ -10,15 +9,12 @@ __author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import unittest
 import tempfile
 import numpy as np
-from deepchem.splits.task_splitter import TaskSplitter
-from deepchem.splits.task_splitter import merge_fold_datasets
-from deepchem.datasets import NumpyDataset
-from deepchem.datasets.tests import TestDatasetAPI
+import deepchem as dc
 
-
-class TestTaskSplitters(TestDatasetAPI):
+class TestTaskSplitters(unittest.TestCase):
   """
   Test some basic splitters.
   """
@@ -33,9 +29,9 @@ class TestTaskSplitters(TestDatasetAPI):
     X = np.random.rand(n_samples, n_features)
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    dataset = NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(X, y)
 
-    task_splitter = TaskSplitter()
+    task_splitter = dc.splits.TaskSplitter()
     train, valid, test = task_splitter.train_valid_test_split(
         dataset, frac_train=.4, frac_valid=.3, frac_test=.3)
 
@@ -53,14 +49,56 @@ class TestTaskSplitters(TestDatasetAPI):
     X = np.random.rand(n_samples, n_features)
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-    dataset = NumpyDataset(X, y)
+    dataset = dc.data.NumpyDataset(X, y)
     K = 5
 
-    task_splitter = TaskSplitter()
+    task_splitter = dc.splits.TaskSplitter()
     fold_datasets = task_splitter.k_fold_split(dataset, K)
 
     for fold_dataset in fold_datasets:
       assert len(fold_dataset.get_task_names()) == 2
+
+  def test_uneven_k_fold_split(self):
+    """
+    Test k-fold-split works when K does not divide n_tasks.
+    """
+    n_samples = 100
+    n_features = 10
+    n_tasks = 17
+    X = np.random.rand(n_samples, n_features)
+    p = .05 # proportion actives
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+    K = 4
+    task_splitter = dc.splits.TaskSplitter()
+    fold_datasets = task_splitter.k_fold_split(dataset, K)
+
+    for fold in range(K-1):
+      fold_dataset = fold_datasets[fold]
+      assert len(fold_dataset.get_task_names()) == 4
+    assert len(fold_datasets[-1].get_task_names()) == 5
+
+
+  def test_uneven_train_valid_test_split(self):
+    """
+    Test train/valid/test split works when proportions don't divide n_tasks.
+    """
+    n_samples = 100
+    n_features = 10
+    n_tasks = 11
+    X = np.random.rand(n_samples, n_features)
+    p = .05 # proportion actives
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y)
+
+    task_splitter = dc.splits.TaskSplitter()
+    train, valid, test = task_splitter.train_valid_test_split(
+        dataset, frac_train=.4, frac_valid=.3, frac_test=.3)
+
+    assert len(train.get_task_names()) == 4
+    assert len(valid.get_task_names()) == 3
+    # Note that the extra task goes to test
+    assert len(test.get_task_names()) == 4
 
   def test_merge_fold_datasets(self):
     """
@@ -73,10 +111,10 @@ class TestTaskSplitters(TestDatasetAPI):
     p = .05 # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
-    dataset = NumpyDataset(X, y, w)
+    dataset = dc.data.NumpyDataset(X, y, w)
     K = 5
 
-    task_splitter = TaskSplitter()
+    task_splitter = dc.splits.TaskSplitter()
     fold_datasets = task_splitter.k_fold_split(dataset, K)
     # Number tasks per fold
     n_per_fold = 2
@@ -84,7 +122,7 @@ class TestTaskSplitters(TestDatasetAPI):
     for fold in range(K):
       train_inds = list(set(range(K)) - set([fold]))
       train_fold_datasets = [fold_datasets[ind] for ind in train_inds]
-      train_dataset = merge_fold_datasets(train_fold_datasets)
+      train_dataset = dc.splits.merge_fold_datasets(train_fold_datasets)
 
       # Find the tasks that correspond to this test fold
       train_tasks = list(

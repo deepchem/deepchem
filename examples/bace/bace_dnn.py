@@ -7,10 +7,8 @@ import numpy.random
 from bace_datasets import load_bace
 from deepchem.utils.save import load_from_disk
 from deepchem.splits import SpecifiedSplitter
-from deepchem.datasets import Dataset
-from deepchem.transformers import NormalizationTransformer
-from deepchem.transformers import ClippingTransformer
-from deepchem.hyperparameters import HyperparamOpt
+from deepchem.data import Dataset
+from deepchem.hyper import HyperparamOpt
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.utils.evaluate import Evaluator

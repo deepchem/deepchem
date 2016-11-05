@@ -20,7 +20,7 @@ import sys
 import shutil
 from pdbbind_datasets import load_core_pdbbind_grid
 from deepchem.featurizers.featurize import DataLoader
-from deepchem.hyperparameters import HyperparamOpt
+from deepchem.hyper import HyperparamOpt
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.tensorflow_models import TensorflowModel
@@ -28,7 +28,7 @@ from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.utils.evaluate import Evaluator
 from deepchem.splits import RandomSplitter
 from deepchem.featurizers.atomic_coordinates import AtomicCoordinates
-from deepchem.datasets import DiskDataset
+from deepchem.data import DiskDataset
 
 verbosity = "high"
 base_dir = "/tmp/PDBBIND-ATOMICNET"

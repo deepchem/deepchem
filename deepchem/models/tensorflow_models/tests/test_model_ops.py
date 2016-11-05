@@ -9,7 +9,8 @@ import tensorflow as tf
 
 from tensorflow.python.framework import test_util
 from tensorflow.python.platform import flags
-from deepchem.models.tensorflow_models import model_ops
+import deepchem as dc
+#from deepchem.models.tensorflow_models import model_ops
 
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102
@@ -23,7 +24,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
   def test_add_bias(self):
     with self.test_session() as sess:
       w_t = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], shape=[2, 3])
-      w_biased_t = model_ops.add_bias(w_t, init=tf.constant(5.0, shape=[3]))
+      w_biased_t = dc.nn.add_bias(w_t, init=tf.constant(5.0, shape=[3]))
       sess.run(tf.initialize_all_variables())
       w, w_biased, bias = sess.run([w_t, w_biased_t] + tf.trainable_variables())
       self.assertAllEqual(w, [[1.0, 2.0, 3.0],
@@ -36,7 +37,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       features = np.random.random((128, 100))
       features_t = tf.constant(features, dtype=tf.float32)
-      dense_t = model_ops.fully_connected_layer(features_t, 50)
+      dense_t = dc.nn.fully_connected_layer(features_t, 50)
       sess.run(tf.initialize_all_variables())
       features, dense, w, b = sess.run(
           [features_t, dense_t] + tf.trainable_variables())
@@ -48,7 +49,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
       num_tasks = 3
       np.random.seed(FLAGS.test_random_seed)
       features = np.random.random((5, 100))
-      logits_t = model_ops.multitask_logits(
+      logits_t = dc.nn.multitask_logits(
           tf.constant(features,
                       dtype=tf.float32),
           num_tasks)
@@ -74,7 +75,7 @@ class TestModelOps(test_util.TensorFlowTestCase):
                           dtype=float)
     with self.test_session() as sess:
       computed = sess.run(
-          model_ops.softmax_N(tf.constant(features,
+          dc.nn.softmax_N(tf.constant(features,
                                          dtype=tf.float32)))
     self.assertAllClose(np.around(computed, 2), expected)
 
@@ -83,6 +84,6 @@ class TestModelOps(test_util.TensorFlowTestCase):
     expected = np.exp(features) / np.exp(features).sum(axis=-1, keepdims=True)
     with self.test_session() as sess:
       computed = sess.run(
-          model_ops.softmax_N(tf.constant(features,
+          dc.nn.softmax_N(tf.constant(features,
                                           dtype=tf.float32)))
       self.assertAllClose(computed, expected)

@@ -9,30 +9,21 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import unittest
+import tempfile
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from deepchem.models.tests import TestAPI
-from deepchem import metrics
-from deepchem.metrics import Metric
-from deepchem.datasets import NumpyDataset
-from deepchem.utils.evaluate import Evaluator
-from deepchem.models.sklearn_models import SklearnModel
-from deepchem.models.keras_models import KerasModel
-from deepchem.models.keras_models.fcnet import MultiTaskDNN
-from deepchem.models.tensorflow_models import TensorflowModel
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+import deepchem as dc
 import tensorflow as tf
 from keras import backend as K
+from sklearn.ensemble import RandomForestClassifier
 
-class TestModelReload(TestAPI):
+class TestReload(unittest.TestCase):
 
   def test_sklearn_reload(self):
     """Test that trained model can be reloaded correctly."""
-    tasks = ["task0"]
-    task_types = {task: "classification" for task in tasks}
     n_samples = 10
     n_features = 3
-    n_tasks = len(tasks)
+    n_tasks = 1 
     
     # Generate dummy dataset
     np.random.seed(123)
@@ -41,27 +32,23 @@ class TestModelReload(TestAPI):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = NumpyDataset(X, y, w, ids)
-
-    verbosity = "high"
-    classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
 
     sklearn_model = RandomForestClassifier()
-    model = SklearnModel(sklearn_model, self.model_dir)
+    model_dir = tempfile.mkdtemp()
+    model = dc.models.SklearnModel(sklearn_model, model_dir)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
 
     # Load trained model
-    reloaded_model = SklearnModel(None, self.model_dir)
+    reloaded_model = dc.models.SklearnModel(None, model_dir)
     reloaded_model.reload()
 
     # Eval model on train
-    transformers = []
-    evaluator = Evaluator(reloaded_model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
-
+    scores = reloaded_model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
   def test_keras_reload(self):
@@ -70,11 +57,9 @@ class TestModelReload(TestAPI):
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-      tasks = ["task0"]
-      task_types = {task: "classification" for task in tasks}
       n_samples = 10
       n_features = 3
-      n_tasks = len(tasks)
+      n_tasks = 1
       
       # Generate dummy dataset
       np.random.seed(123)
@@ -83,31 +68,27 @@ class TestModelReload(TestAPI):
       y = np.random.randint(2, size=(n_samples, n_tasks))
       w = np.ones((n_samples, n_tasks))
     
-      dataset = NumpyDataset(X, y, w, ids)
+      dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-      verbosity = "high"
-      classification_metric = Metric(metrics.roc_auc_score, verbosity=verbosity)
-      keras_model = MultiTaskDNN(n_tasks, n_features, "classification",
-                                 dropout=0.)
-      model = KerasModel(keras_model, self.model_dir)
+      classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+      keras_model = dc.models.MultiTaskDNN(
+          n_tasks, n_features, "classification", dropout=0.)
+      model_dir = tempfile.mkdtemp()
+      model = dc.models.KerasModel(keras_model, model_dir)
 
       # Fit trained model
       model.fit(dataset)
       model.save()
 
       # Load trained model
-      reloaded_keras_model = MultiTaskDNN(
+      reloaded_keras_model = dc.models.MultiTaskDNN(
           n_tasks, n_features, "classification", dropout=0.)
-      reloaded_model = KerasModel(reloaded_keras_model, self.model_dir)
-      reloaded_model.reload(custom_objects={"MultiTaskDNN": MultiTaskDNN})
-      
+      reloaded_model = dc.models.KerasModel(reloaded_keras_model, model_dir)
+      reloaded_model.reload(
+          custom_objects={"MultiTaskDNN": dc.models.MultiTaskDNN})
 
       # Eval model on train
-      transformers = []
-      evaluator = Evaluator(reloaded_model, dataset, transformers,
-                            verbosity=verbosity)
-      scores = evaluator.compute_model_performance([classification_metric])
-
+      scores = reloaded_model.evaluate(dataset, [classification_metric])
       assert scores[classification_metric.name] > .6
 
   def test_tf_reload(self):
@@ -124,30 +105,27 @@ class TestModelReload(TestAPI):
     y = np.random.randint(n_classes, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
-    dataset = NumpyDataset(X, y, w, ids)
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    classification_metric = Metric(metrics.accuracy_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-    tensorflow_model = TensorflowMultiTaskClassifier(
-          n_tasks, n_features, self.model_dir, dropouts=[0.],
-          verbosity=verbosity)
-    model = TensorflowModel(tensorflow_model, self.model_dir)
+    model_dir = tempfile.mkdtemp()
+    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+          n_tasks, n_features, model_dir, dropouts=[0.], verbosity="high")
+    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
 
     # Load trained model
-    reloaded_tensorflow_model = TensorflowMultiTaskClassifier(
-          n_tasks, n_features, self.model_dir, dropouts=[0.],
-          verbosity=verbosity)
-    reloaded_model = TensorflowModel(reloaded_tensorflow_model, self.model_dir)
+    reloaded_tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+        n_tasks, n_features, model_dir, dropouts=[0.],
+        verbosity="high")
+    reloaded_model = dc.models.TensorflowModel(
+        reloaded_tensorflow_model)
     reloaded_model.reload()
 
     # Eval model on train
-    transformers = []
-    evaluator = Evaluator(reloaded_model, dataset, transformers, verbosity=verbosity)
-    scores = evaluator.compute_model_performance([classification_metric])
-
+    scores = reloaded_model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .6
