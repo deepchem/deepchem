@@ -667,9 +667,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
       n_pos = 6
       n_neg = 4
       test_batch_size = 10
-      n_train_trials = 60
+      n_train_trials = 80
       support_batch_size = n_pos + n_neg
-      replace = False
       
       # Load mini log-solubility dataset.
       featurizer = dc.feat.ConvMolFeaturizer()
@@ -705,10 +704,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
           verbosity="high")
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
-        # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
-        # is always passed in to support.
-        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos,
-                  n_neg=n_neg, replace=False)
+        # n_pos/n_neg accordingly.
+        model.fit(dataset, n_episodes_per_epoch=n_train_trials, n_pos=n_pos,
+                  n_neg=n_neg)
         model.save()
 
         # Eval model on train. Dataset has 6 positives and 4 negatives, so set
@@ -718,7 +716,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
@@ -738,8 +736,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       n_neg = 4
       test_batch_size = 10
       support_batch_size = n_pos + n_neg
-      n_train_trials = 60
-      replace = False
+      n_train_trials = 80
       
       # Load mini log-solubility dataset.
       featurizer = dc.feat.ConvMolFeaturizer()
@@ -780,10 +777,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
           verbosity="high")
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
-        # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
-        # is always passed in to support.
-        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos, n_neg=n_neg,
-                  replace=False)
+        # n_pos/n_neg accordingly.
+        model.fit(dataset, n_episodes_per_epoch=n_train_trials, n_pos=n_pos,
+                  n_neg=n_neg)
         model.save()
 
         # Eval model on train. Dataset has 6 positives and 4 negatives, so set
@@ -793,7 +789,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
@@ -811,8 +807,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       n_neg = 4
       test_batch_size = 10
       support_batch_size = n_pos + n_neg
-      n_train_trials = 60
-      replace = False
+      n_train_trials = 80
       
       # Load mini log-solubility dataset.
       featurizer = dc.feat.ConvMolFeaturizer()
@@ -853,11 +848,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
           verbosity="high")
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
-        # n_pos/n_neg accordingly.  Set replace to false to ensure full dataset
-        # is always passed in to support.
+        # n_pos/n_neg accordingly.
 
-        model.fit(dataset, n_trials=n_train_trials, n_pos=n_pos, n_neg=n_neg,
-                  replace=False)
+        model.fit(dataset, n_episodes_per_epoch=n_train_trials, n_pos=n_pos,
+                  n_neg=n_neg)
         model.save()
 
         # Eval model on train. Dataset has 6 positives and 4 negatives, so set
@@ -867,7 +861,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # model has mastered memorization of provided support.
         scores = model.evaluate(dataset, classification_metric, n_trials=5,
                                 n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False, replace=False)
+                                exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9

@@ -1,5 +1,5 @@
 """
-Train low-data Tox21 models with random forests. Test last fold only.
+Train low-data MUV models with random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -8,18 +8,18 @@ from __future__ import unicode_literals
 import tempfile
 import numpy as np
 import deepchem as dc
-from datasets import load_tox21_ecfp
+from datasets import load_muv_ecfp
 from sklearn.ensemble import RandomForestClassifier
 
 # 4-fold splits
 K = 4
 # num positive/negative ligands
-n_pos = 5
-n_neg = 10
+n_pos = 1
+n_neg = 5
 # 10 trials on test-set
 n_trials = 20
 
-tox21_tasks, dataset, transformers = load_tox21_ecfp()
+tox21_tasks, dataset, transformers = load_muv_ecfp()
 
 # Define metric
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
@@ -40,7 +40,7 @@ task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
 for (task, support) in support_generator:
   # Train model on support
   sklearn_model = RandomForestClassifier(
-      class_weight="balanced", n_estimators=100)
+      class_weight="balanced", n_estimators=50)
   model = dc.models.SklearnModel(sklearn_model)
   model.fit(support)
 

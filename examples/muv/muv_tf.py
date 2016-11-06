@@ -24,7 +24,7 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
 tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
     len(muv_tasks), n_features=1024, dropouts=[.25],
     learning_rate=0.001, weight_init_stddevs=[.1],
-    batch_size=64, verbosity=verbosity)
+    batch_size=64, verbosity="high")
 model = dc.models.TensorflowModel(tensorflow_model)
 
 # Fit trained model

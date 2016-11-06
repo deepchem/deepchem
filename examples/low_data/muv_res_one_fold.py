@@ -1,5 +1,5 @@
 """
-Train low-data res models on Tox21. Test last fold only.
+Train low-data res models on MUV. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -9,15 +9,15 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from datasets import load_tox21_convmol
+from datasets import load_muv_convmol
 
 # Number of folds for split 
 K = 4 
 # Depth of attention module
 max_depth = 3
 # num positive/negative ligands
-n_pos = 10
-n_neg = 10
+n_pos = 1
+n_neg = 5
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
@@ -29,7 +29,7 @@ log_every_n_samples = 50
 # Number of features on conv-mols
 n_feat = 71
 
-tox21_tasks, dataset, transformers = load_tox21_convmol()
+muv_tasks, dataset, transformers = load_muv_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(
