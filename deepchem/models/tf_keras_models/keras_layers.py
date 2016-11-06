@@ -466,114 +466,6 @@ class GraphPool(Layer):
 
     return atom_features 
 
-class MNAttnLSTMEmbedding(Layer):
-  """Implements AttnLSTM as in matching networks paper.
-
-  References:
-  Matching Networks for One Shot Learning
-  https://arxiv.org/pdf/1606.04080v1.pdf
-
-  Order Matters: Sequence to sequence for sets
-  https://arxiv.org/abs/1511.06391
-  """
-  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
-               activation='linear', dropout=None, **kwargs):
-    """
-    Parameters
-    ----------
-    n_support: int
-      Size of support set.
-    n_test: int
-      Size of test set.
-    max_depth: int
-      Number of "processing steps" used by sequence-to-sequence for sets model.
-    init: str, optional
-      Type of initialization of weights
-    activation: str, optional
-      Activation for layers.
-    dropout: float, optional
-      Dropout probability
-    """
-    super(MNAttnLSTMEmbedding, self).__init__(**kwargs)
-
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
-    self.max_depth = max_depth
-    self.n_test = n_test
-    self.n_support = n_support
-
-  def build(self, input_shape):
-    """Initializes trainable weights."""
-    x_input_shape, xp_input_shape = input_shape  #Unpack
-
-    n_feat = xp_input_shape[1]
-
-    self.lstm = LSTMStep(2*n_feat)
-    self.q_init = K.zeros([self.n_test, n_feat])
-    self.states_init = self.lstm.get_initial_states([self.n_test, 2*n_feat])
-    
-    self.trainable_weights = [self.q_init, self.r_init]
-      
-  def get_output_shape_for(self, input_shape):
-    """Returns the output shape. Same as input_shape.
-
-    Parameters
-    ----------
-    input_shape: list
-      Will be of form [(n_test, n_feat), (n_support, n_feat)]
-
-    Returns
-    -------
-    list
-      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
-    """
-    x_input_shape, xp_input_shape = input_shape  #Unpack
-
-    return input_shape
-
-  def call(self, x_xp, mask=None):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    x_xp: list
-      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
-      Xp should be of shape (n_support, n_feat) where n_test is the size of
-      the test set, n_support that of the support set, and n_feat is the number
-      of per-atom features.
-
-    Returns
-    -------
-    list
-      Returns two tensors of same shape as input. Namely the output shape will
-      be [(n_test, n_feat), (n_support, n_feat)]
-    """
-    # x is test set, xp is support set.
-    x, xp = x_xp
-
-    # Get initializations
-    q = self.q_init
-    states = self.states_init
-    
-    for d in range(self.max_depth):
-      # Process using attention
-      # Eqn (4), appendix A.1 of Matching Networks paper
-      e = cos(x+q, xp)
-      a = K.softmax(e)
-      r = K.dot(a, xp)
-
-      # Generate new aattention states
-      states = [K.concatenate([x+q,r], axis=1)] + [states[1]]
-      trash, states = self.lstm([x] + states) #+ self.lstm.get_constants(x)
-      q = states[0][:,0:self.N_feat]
-                
-    return [x+q, xp]
-
-  def compute_mask(self, x, mask=None):
-    if not (mask is None):
-        return mask
-    return [None, None]
-
 class AttnLSTMEmbedding(Layer):
   """Implements AttnLSTM similar to matching networks paper, but not
   exactly the same
@@ -681,7 +573,114 @@ class AttnLSTMEmbedding(Layer):
     if not (mask is None):
         return mask
     return [None, None]
+  
+class MNAttnLSTMEmbedding(Layer):
+  """Implements AttnLSTM as in matching networks paper.
 
+  References:
+  Matching Networks for One Shot Learning
+  https://arxiv.org/pdf/1606.04080v1.pdf
+
+  Order Matters: Sequence to sequence for sets
+  https://arxiv.org/abs/1511.06391
+  """
+  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+               activation='linear', dropout=None, **kwargs):
+    """
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    init: str, optional
+      Type of initialization of weights
+    activation: str, optional
+      Activation for layers.
+    dropout: float, optional
+      Dropout probability
+    """
+    super(MNAttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+
+  def build(self, input_shape):
+    """Initializes trainable weights."""
+    x_input_shape, xp_input_shape = input_shape  #Unpack
+
+    n_feat = xp_input_shape[1]
+
+    self.lstm = LSTMStep(2*n_feat)
+    self.q_init = K.zeros([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, 2*n_feat])
+    
+    self.trainable_weights = [self.q_init, self.r_init]
+      
+  def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form [(n_test, n_feat), (n_support, n_feat)]
+
+    Returns
+    -------
+    list
+      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
+    x_input_shape, xp_input_shape = input_shape  #Unpack
+
+    return input_shape
+
+  def call(self, x_xp, mask=None):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x_xp: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    # x is test set, xp is support set.
+    x, xp = x_xp
+
+    # Get initializations
+    q = self.q_init
+    states = self.states_init
+    
+    for d in range(self.max_depth):
+      # Process using attention
+      # Eqn (4), appendix A.1 of Matching Networks paper
+      e = cos(x+q, xp)
+      a = K.softmax(e)
+      r = K.dot(a, xp)
+
+      # Generate new aattention states
+      states = [K.concatenate([x+q,r], axis=1)] + [states[1]]
+      trash, states = self.lstm([x] + states) #+ self.lstm.get_constants(x)
+      q = states[0][:,0:self.N_feat]
+                
+    return [x+q, xp]
+
+  def compute_mask(self, x, mask=None):
+    if not (mask is None):
+        return mask
+    return [None, None]
   
 class ResiLSTMEmbedding(Layer):
   """Embeds its inputs using an LSTM layer."""
