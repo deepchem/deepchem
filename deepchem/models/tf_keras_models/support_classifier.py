@@ -82,22 +82,21 @@ class SupportGraphClassifier(Model):
   def add_placeholders(self):
     """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
-      #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-      tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-      name="label_placeholder"))
+        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        name="label_placeholder"))
     self.test_weight_placeholder = Input(
-      #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-      tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-      name="weight_placeholder"))
+        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        name="weight_placeholder"))
 
     # TODO(rbharath): There should be weights for the support being used! 
     # Support labels
 
     # Initialize the support label placeholders if model does not have it
     if not self.model.has_support_labels():
-      self.support_label_placeholder = Input(
-        tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
-        name="support_label_placeholder"))
+      self.support_label_placeholder = Input(tensor=K.placeholder(
+        shape=[self.support_batch_size], dtype='float32',name="support_label_placeholder"))
     else:
       # Otherwise, get the placeholder from the model
       self.support_label_placeholder = self.model.return_support_label_placeholder()
