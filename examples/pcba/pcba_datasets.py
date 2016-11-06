@@ -15,8 +15,7 @@ def load_pcba():
   
   current_dir = os.path.dirname(os.path.realpath(__file__))
   print("About to load PCBA dataset.")
-  dataset_file = os.path.join(
-      current_dir, "../../datasets/pcba.csv.gz")
+  dataset_file = os.path.join(current_dir, "../../datasets/pcba.csv.gz")
   
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
@@ -49,8 +48,8 @@ def load_pcba():
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
   loader = dc.load.DataLoader(tasks=PCBA_tasks,
-                      smiles_field="smiles",
-                      featurizer=featurizer)
+                      	      smiles_field="smiles",
+	                      featurizer=featurizer)
   
   dataset = loader.featurize(dataset_file)
   # Initialize transformers 
