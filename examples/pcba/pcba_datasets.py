@@ -8,43 +8,19 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from deepchem.utils.save import load_from_disk
-from deepchem.data import DiskDataset
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.trans import BalancingTransformer
+import deepchem as dc
 
-def load_pcba(base_dir, reload=True, frac_train=.8):
+def load_pcba():
   """Load PCBA datasets. Does not do train/test split"""
-  # Set some global variables up top
-  reload = True
-  verbosity = "high"
-  regen = False
-
-  # Create some directories for analysis
-  # The base_dir holds the results of all analysis
-  if not reload:
-    if os.path.exists(base_dir):
-      shutil.rmtree(base_dir)
-  if not os.path.exists(base_dir):
-    os.makedirs(base_dir)
+  
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  #Make directories to store the raw and featurized datasets.
-  data_dir = os.path.join(base_dir, "dataset")
-  train_dir = os.path.join(base_dir, "train_dataset")
-  valid_dir = os.path.join(base_dir, "valid_dataset")
-
-  # Load PCBA dataset
   print("About to load PCBA dataset.")
   dataset_file = os.path.join(
       current_dir, "../../datasets/pcba.csv.gz")
-  dataset = load_from_disk(dataset_file)
-  print("Columns of dataset: %s" % str(dataset.columns.values))
-  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
-
+  
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
-  featurizer = CircularFingerprint(size=1024)
+  featurizer = dc.feat.CircularFingerprint(size=1024)
   PCBA_tasks = [
       'PCBA-1030','PCBA-1379','PCBA-1452','PCBA-1454','PCBA-1457',
       'PCBA-1458','PCBA-1460','PCBA-1461','PCBA-1468','PCBA-1469',
@@ -72,23 +48,21 @@ def load_pcba(base_dir, reload=True, frac_train=.8):
       'PCBA-902','PCBA-903','PCBA-904','PCBA-912','PCBA-914','PCBA-915',
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
-  loader = DataLoader(tasks=PCBA_tasks,
+  loader = dc.load.DataLoader(tasks=PCBA_tasks,
                       smiles_field="smiles",
-                      featurizer=featurizer,
-                      verbosity=verbosity)
-  if not reload or not os.path.exists(data_dir):
-    dataset = loader.featurize(dataset_file, data_dir)
-    regen = True
-  else:
-    dataset = DiskDataset(data_dir, reload=True)
-
+                      featurizer=featurizer)
+  
+  dataset = loader.featurize(dataset_file)
   # Initialize transformers 
   transformers = [
-      BalancingTransformer(transform_w=True, dataset=dataset)]
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
 
-  if regen:
-    print("About to transform data")
-    for transformer in transformers:
-        dataset = transformer.transform(dataset)
+  print("About to transform data")
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
+  
+  splitter = dc.splits.RandomSplitter()
+  print("Performing new split.")
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
-  return PCBA_tasks, dataset, transformers
+  return PCBA_tasks, (train, valid, test), transformers

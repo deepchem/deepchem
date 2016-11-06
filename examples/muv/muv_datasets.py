@@ -35,7 +35,7 @@ def load_muv():
       dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
   print("About to transform data")
   for transformer in transformers:
-      dataset = transformer.transform(dataset)
+    dataset = transformer.transform(dataset)
 
   splitter = dc.splits.IndexSplitter()
   train, valid, test = splitter.train_valid_test_split(dataset)
