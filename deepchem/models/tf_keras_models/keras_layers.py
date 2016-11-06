@@ -707,10 +707,10 @@ class ResiLSTMEmbedding(Layer):
         return mask
     return [None, None]
 
-class DualResiLSTMEmbedding(Layer):
+class DualAttnLSTMEmbedding(Layer):
   def __init__(self, max_depth, init='glorot_uniform', activation='linear', dropout=None,
                similarity='euclidean', **kwargs):
-    super(DualResiLSTMEmbedding, self).__init__(**kwargs)
+    super(DualAttnLSTMEmbedding, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations

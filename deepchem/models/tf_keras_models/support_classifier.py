@@ -34,7 +34,7 @@ class SupportGraphClassifier(Model):
     ----------
     sess: tf.Session
       Session for this model
-    model: SequentialSupportModel 
+    model: SequentialSupportModel or SequentialLabeledSupportModel
       Contains core layers in model. 
     n_pos: int
       Number of positive examples in support.
@@ -82,19 +82,25 @@ class SupportGraphClassifier(Model):
   def add_placeholders(self):
     """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
-        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-        name="label_placeholder"))
+      #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+      tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+      name="label_placeholder"))
     self.test_weight_placeholder = Input(
-        #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
-        name="weight_placeholder"))
+      #tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+      tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+      name="weight_placeholder"))
 
     # TODO(rbharath): There should be weights for the support being used! 
     # Support labels
-    self.support_label_placeholder = Input(
+
+    # Initialize the support label placeholders if model does not have it
+    if not self.model.has_support_labels():
+      self.support_label_placeholder = Input(
         tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
         name="support_label_placeholder"))
+    else:
+      # Otherwise, get the placeholder from the model
+      self.support_label_placeholder = self.model.return_support_label_placeholder()
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""

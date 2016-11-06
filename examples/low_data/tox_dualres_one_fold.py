@@ -57,7 +57,7 @@ support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
 support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
 
 # Apply a residual lstm layer
-support_model.join_labels(dc.nn.DualResiLSTMEmbedding(
+support_model.join_labels(dc.nn.DualAttnLSTMEmbedding(
     test_batch_size, support_batch_size, max_depth, similarity='euclidean'))
 
 with tf.Session() as sess:
