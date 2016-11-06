@@ -513,7 +513,7 @@ class AttnLSTMEmbedding(Layer):
     self.q_init = K.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
     
-    self.trainable_weights = [self.q_init, self.r_init]
+    self.trainable_weights = [self.q_init]
       
   def get_output_shape_for(self, input_shape):
     """Returns the output shape. Same as input_shape.
