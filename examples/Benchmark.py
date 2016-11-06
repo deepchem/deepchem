@@ -54,6 +54,9 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
   base_dir_o, string
       path of working folder, will be combined with '/dataset_name'
   
+  hyper_parameters, dict of list
+      hyper parameters including dropout rate, learning rate, etc.
+ 
   n_features, integer, optional (default=1024)
       number of features, or length of binary fingerprints
   
@@ -149,6 +152,9 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
   transformers, BalancingTransformer struct
       loaded properties of dataset from load_* function
   
+  hyper_parameters, dict of list
+      hyper parameters including dropout rate, learning rate, etc.
+ 
   n_features, integer, optional (default=1024)
       number of features, or length of binary fingerprints
   
@@ -236,4 +242,4 @@ if __name__ == '__main__':
 
   benchmark_loading_datasets(base_dir_o,hyper_parameters,n_features = 1024,
                              dataset_name = dataset_name, model = model,
-                             reload = reload, verbosity = verbosity, out_path='/home/zqwu/deepchem/examples')
+                             reload = reload, verbosity = verbosity)
