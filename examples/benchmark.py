@@ -19,8 +19,10 @@ pcba  - dataloading: 30min
 sider - dataloading: 10s
       - tf: 60s
 toxcast dataloading: 70s
-	tf: 70s
+	tf: 40min
 (will include more)
+
+Total time of running a benchmark test: 3~4h
 """
 from __future__ import print_function
 from __future__ import division
@@ -45,28 +47,28 @@ from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024, 
                                dataset_name='all',model='all',reload = True,
-                               verbosity='high',out_path='/home/zqwu/deepchem/examples'):
+                               verbosity='high',out_path='/tmp'):
   """
   Loading dataset for benchmark test
   
   Parameters
   ----------
-  base_dir_o, string
+  base_dir_o : string
       path of working folder, will be combined with '/dataset_name'
   
-  hyper_parameters, dict of list
+  hyper_parameters : dict of list
       hyper parameters including dropout rate, learning rate, etc.
  
-  n_features, integer, optional (default=1024)
+  n_features : integer, optional (default=1024)
       number of features, or length of binary fingerprints
   
-  dataset_name, string, optional (default='all')
+  dataset_name : string, optional (default='all')
       choice of which dataset to use, 'all' = computing all the datasets
       
-  model string, optional (default='all')
+  model : string,  optional (default='all')
       choice of which model to use, 'all' = running all models on the dataset
   
-  out_path, string, optional(default='/tmp')
+  out_path : string, optional(default='/tmp')
       path of result file
       
   """
@@ -109,7 +111,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
     #time_finish_running-time_finish_loading is the time(s) used for fitting and evaluating
         
     with open(os.path.join(out_path,'results.csv'),'a') as f:
-      f.write ('\n'+dname+',train')
+      f.write('\n'+dname+',train')
       for i in train_score:
         f.write(','+i+','+str(train_score[i]['mean-roc_auc_score']))
       f.write('\n'+dname+',valid')
@@ -137,30 +139,38 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
   
   Parameters
   ----------
-  base_dir, string
+  base_dir : string
       path of working folder
       
-  train_dataset, dataset struct
+  train_dataset : dataset struct
       loaded dataset using load_* or splitter function
       
-  valid_dataset, dataset struct
+  valid_dataset : dataset struct
       loaded dataset using load_* or splitter function
   
-  tasks, list of string
+  tasks : list of string
       list of targets(tasks, datasets)
   
-  transformers, BalancingTransformer struct
+  transformers : BalancingTransformer struct
       loaded properties of dataset from load_* function
   
-  hyper_parameters, dict of list
+  hyper_parameters : dict of list
       hyper parameters including dropout rate, learning rate, etc.
  
-  n_features, integer, optional (default=1024)
+  n_features : integer, optional (default=1024)
       number of features, or length of binary fingerprints
   
-  model, string, optional (default='all')
+  model : string, optional (default='all')
       choice of which model to use, 'all' = running all models on the dataset
-      
+  
+
+  Returns
+  -------
+  train_scores : dict
+	predicting results(AUC, R2) on training set
+  valid_scores : dict
+	predicting results(AUC, R2) on valid set
+
   """
   train_scores = {}
   valid_scores = {}

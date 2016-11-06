@@ -10,14 +10,6 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-'''
-from deepchem.utils.save import load_from_disk
-from deepchem.datasets import DiskDataset
-from deepchem.featurizers.featurize import DataLoader
-from deepchem.featurizers.fingerprints import CircularFingerprint
-from deepchem.transformers import BalancingTransformer
-'''
-
 def load_sider():
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
