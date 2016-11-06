@@ -207,7 +207,10 @@ different subclasses of ``Featurizer`` for convenience:
 |-----------|--------------------|-------------------|-------------------|----------------|---------------| 
 |tox21      |tensorflow(MT-DNN)  |0.987              |0.800              |35              |36             |
 |muv        |tensorflow(MT-DNN)  |0.979              |0.660              |414             |255            |
-|pcba   		|tensorflow(MT-DNN)	|0.949        	     |0.791              |1765            |7209           |                                         
+|pcba       |tensorflow(MT-DNN)	 |0.949        	     |0.791              |1765            |7209           |                                         
+|sider      |tensorflow(MT-DNN)	 |0.864        	     |0.627              |10              |63             |                                         
+|toxcast    |tensorflow(MT-DNN)	 |0.944        	     |0.697              |75              |2374           |                                         
+
 ## Contributing to DeepChem
 
 We actively encourage community contributions to DeepChem. The first place to start getting involved is by running our examples locally. Afterwards, we encourage contributors to give a shot to improving our documentation. While we take effort to provide good docs, there's plenty of room for improvement. All docs are hosted on Github, either in this `README.md` file, or in the `docs/` directory.
