@@ -1,5 +1,5 @@
 """
-Train low-data res models on MUV. Test last fold only.
+Train low-data attn models on random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -9,36 +9,36 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from datasets import load_muv_convmol
+from datasets import load_tox21_convmol
 
-# Number of folds for split
-K = 4
+# Number of folds for split 
+K = 4 
 # Depth of attention module
-max_depth = 3
+max_depth = 4
 # num positive/negative ligands
-n_pos = 1
-n_neg = 5
+n_pos = 1 
+n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
-nb_epochs = 1
-n_train_trials = 2000
+n_train_trials = 11000
 n_eval_trials = 20
-learning_rate = 1e-4
-log_every_n_samples = 50
+n_steps_per_trial = 1
+# Sample supports without replacement (all pos/neg should be different)
+replace = False
 # Number of features on conv-mols
 n_feat = 71
 
-muv_tasks, dataset, transformers = load_muv_convmol()
+tox21_tasks, dataset, transformers = load_tox21_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, verbosity="high", mode="classification")
+    dc.metrics.roc_auc_score, verbosity="high", mode="classification")
 
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
 
-train_folds = fold_datasets[:-1]
+train_folds = fold_datasets[:-1] 
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
@@ -46,37 +46,49 @@ test_dataset = fold_datasets[-1]
 support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
+# 1st conv layer + batchnorm
+# output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
-support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.GraphConv(128, activation='relu'))
-support_model.add(dc.nn.GraphPool())
+support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+# 2nd conv layer + batchnorm
+# output will be (n_atoms, 64)
 support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+# 3nd conv layer + batchnorm
+# output will be (n_atoms, 64)
+support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+
 support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.Dense(128, activation='tanh'))
-
-support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
-support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
-
+support_model.add_test(dc.nn.GraphGather(test_batch_size))
+support_model.add_support(dc.nn.GraphGather(support_batch_size))
 # Apply a residual lstm layer
 support_model.join(dc.nn.ResiLSTMEmbedding(
-      test_batch_size, support_batch_size, max_depth))
+    test_batch_size, support_batch_size, max_depth))
+
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=learning_rate,
-    verbosity="high")
-  
+    support_batch_size=support_batch_size,
+    learning_rate=1e-3, verbosity="high")
+
   ############################################################ DEBUG
   print("FIT")
   ############################################################ DEBUG
-  model.fit(train_dataset, nb_epochs=nb_epochs,
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
+  model.fit(train_dataset, n_trials=n_train_trials,
+            n_steps_per_trial=n_steps_per_trial, n_pos=n_pos,
+            n_neg=n_neg, replace=False)
+  model.save()
+
   ############################################################ DEBUG
   print("EVAL")
-############################################################ DEBUG
-scores = model.evaluate(
-  test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
-print("Scores on evaluation dataset")
-print(scores)
+  ############################################################ DEBUG
+  scores = model.evaluate(
+      test_dataset, metric, n_pos=n_pos, n_neg=n_neg, replace=replace,
+      n_trials=n_eval_trials)
+  print("Scores on evaluation dataset")
+  print(scores)
