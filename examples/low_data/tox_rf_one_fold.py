@@ -14,8 +14,8 @@ from sklearn.ensemble import RandomForestClassifier
 # 4-fold splits
 K = 4
 # num positive/negative ligands
-n_pos = 5
-n_neg = 10
+n_pos = 1
+n_neg = 1
 # 10 trials on test-set
 n_trials = 20
 

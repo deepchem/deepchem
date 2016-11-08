@@ -17,7 +17,7 @@ K = 4
 max_depth = 3
 # num positive/negative ligands
 n_pos = 1
-n_neg = 5
+n_neg = 1
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg

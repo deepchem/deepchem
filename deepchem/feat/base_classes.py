@@ -12,15 +12,15 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "BSD 3-clause"
 
 def resolve_featurizer(name):
-    """
-    Resolve featurizer class from a string.
+  """
+  Resolve featurizer class from a string.
 
-    Parameters
-    ----------
-    name : str
-        Featurizer name.
-    """
-    return get_featurizers()[name]
+  Parameters
+  ----------
+  name : str
+      Featurizer name.
+  """
+  return get_featurizers()[name]
 
 class ComplexFeaturizer(object):
   """"
