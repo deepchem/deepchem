@@ -14,7 +14,7 @@ import tensorflow as tf
 from keras.engine import Layer
 from keras.engine.topology import Container
 from keras.layers import Input, Dense, Dropout, LSTM, Merge
-from keras import initializations, activations
+from keras import initializations, activations, regularizers
 from keras import backend as K
 
 def affine(x, W, b):
@@ -38,6 +38,22 @@ def sum_neigh(atoms, deg_adj_lists, max_deg):
     deg_summed[deg-1] = summed_atoms
   
   return deg_summed
+      
+def sim(x, y, similarity):
+  if similarity == 'cosine':
+    return cos(x, y)
+  elif similarity == 'euclidean':
+    return -dist(x, y)
+
+def dist(x, y):
+  x = K.expand_dims(x, 1)
+  y = K.expand_dims(y, 0)
+  max_dist_sq = 20  # Prevents vanishing gradients
+  return -K.minimum(K.sum(K.square(x-y), axis=2), max_dist_sq)                    
+      
+def cos(x, y):
+  denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
+  return K.dot(x, K.transpose(y)) / denom
 
 def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
                b_list):
@@ -200,7 +216,8 @@ class GraphConv(Layer):
   GraphTopology.get_input_placeholders().
   """
   def __init__(self, nb_filter, init='glorot_uniform', activation='linear',
-               dropout=None, max_deg=6, min_deg=0, **kwargs):
+               dropout=None, max_deg=6, min_deg=0,
+               W_regularizer=None, **kwargs):
     """
     Parameters
     ----------
@@ -216,6 +233,8 @@ class GraphConv(Layer):
       Maximum degree of atoms in molecules.
     min_deg: int, optional
       Minimum degree of atoms in molecules.
+    W_regularizer: keras regularizer object
+      Regularization added to the weights of this layer
     """
     super(GraphConv, self).__init__(**kwargs)
 
@@ -225,6 +244,7 @@ class GraphConv(Layer):
     self.dropout = dropout  # Save dropout params
     self.max_deg = max_deg
     self.min_deg = min_deg
+    self.W_regularizer = regularizers.get(W_regularizer)
     # TODO(rbharath): It's not clear where nb_affine comes from.
     # Is there a solid explanation here?
     self.nb_affine = 2*max_deg + (1-min_deg)        
@@ -451,7 +471,8 @@ class GraphPool(Layer):
     return atom_features 
 
 class AttnLSTMEmbedding(Layer):
-  """Implements AttnLSTM as in matching networks paper.
+  """Implements AttnLSTM similar to matching networks paper, but not
+  exactly the same
 
   References:
   Matching Networks for One Shot Learning
@@ -494,8 +515,114 @@ class AttnLSTMEmbedding(Layer):
 
     self.lstm = LSTMStep(n_feat)
     self.q_init = K.zeros([self.n_test, n_feat])
-    self.r_init = K.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+    
+    self.trainable_weights = [self.q_init]
+      
+  def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form [(n_test, n_feat), (n_support, n_feat)]
+
+    Returns
+    -------
+    list
+      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
+    x_input_shape, xp_input_shape = input_shape  #Unpack
+
+    return input_shape
+
+  def call(self, x_xp, mask=None):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x_xp: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    # x is test set, xp is support set.
+    x, xp = x_xp
+
+    # Get initializations
+    q = self.q_init
+    states = self.states_init
+    
+    for d in range(self.max_depth):
+      # Process using attention
+      # Eqn (4), appendix A.1 of Matching Networks paper
+      e = cos(x+q, xp)
+      a = K.softmax(e)
+      r = K.dot(a, xp)
+
+      # Generate new aattention states
+      y = K.concatenate([q, r], axis=1)
+      q, states = self.lstm([y] + states) #+ self.lstm.get_constants(x)
+                
+    return [x+q, xp]
+
+  def compute_mask(self, x, mask=None):
+    if not (mask is None):
+        return mask
+    return [None, None]
+  
+class MNAttnLSTMEmbedding(Layer):
+  """Implements AttnLSTM as in matching networks paper.
+
+  References:
+  Matching Networks for One Shot Learning
+  https://arxiv.org/pdf/1606.04080v1.pdf
+
+  Order Matters: Sequence to sequence for sets
+  https://arxiv.org/abs/1511.06391
+  """
+  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+               activation='linear', dropout=None, **kwargs):
+    """
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    init: str, optional
+      Type of initialization of weights
+    activation: str, optional
+      Activation for layers.
+    dropout: float, optional
+      Dropout probability
+    """
+    super(MNAttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+
+  def build(self, input_shape):
+    """Initializes trainable weights."""
+    x_input_shape, xp_input_shape = input_shape  #Unpack
+
+    n_feat = xp_input_shape[1]
+
+    self.lstm = LSTMStep(2*n_feat)
+    self.q_init = K.zeros([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, 2*n_feat])
     
     self.trainable_weights = [self.q_init, self.r_init]
       
@@ -538,7 +665,6 @@ class AttnLSTMEmbedding(Layer):
 
     # Get initializations
     q = self.q_init
-    #r = self.r_init      
     states = self.states_init
     
     for d in range(self.max_depth):
@@ -549,8 +675,9 @@ class AttnLSTMEmbedding(Layer):
       r = K.dot(a, xp)
 
       # Generate new aattention states
-      y = K.concatenate([q, r], axis=1)
-      q, states = self.lstm([y] + states) #+ self.lstm.get_constants(x)
+      states = [K.concatenate([x+q,r], axis=1)] + [states[1]]
+      trash, states = self.lstm([x] + states) #+ self.lstm.get_constants(x)
+      q = states[0][:,0:self.N_feat]
                 
     return [x+q, xp]
 
@@ -558,11 +685,11 @@ class AttnLSTMEmbedding(Layer):
     if not (mask is None):
         return mask
     return [None, None]
-
+  
 class ResiLSTMEmbedding(Layer):
   """Embeds its inputs using an LSTM layer."""
   def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
-               activation='linear', **kwargs):
+               activation='linear', similarity='cosine', **kwargs):
     """
     Unlike the AttnLSTM model which only modifies the test vectors additively,
     this model allows for an additive update to be performed to both test and
@@ -588,6 +715,7 @@ class ResiLSTMEmbedding(Layer):
     self.max_depth = max_depth
     self.n_test = n_test
     self.n_support = n_support
+    self.similarity = similarity
 
   def build(self, input_shape):
     """Builds this layer.
@@ -658,7 +786,7 @@ class ResiLSTMEmbedding(Layer):
     
     for d in range(self.max_depth):
       # Process support xp using attention
-      e = cos(z+q, xp)
+      e = sim(z+q, xp, self.similarity)
       a = K.softmax(e)
       # Get linear combination of support set
       r = K.dot(a, xp)  
@@ -668,7 +796,7 @@ class ResiLSTMEmbedding(Layer):
       #z = r  
 
       # Process test x using attention
-      x_e = cos(x+p, z)
+      x_e = sim(x+p, z, self.similarity)
       x_a = K.softmax(x_e)
       s = K.dot(x_a, z)
 
@@ -691,10 +819,241 @@ class ResiLSTMEmbedding(Layer):
         return mask
     return [None, None]
 
-def cos(x, y):
-  denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
-  return K.dot(x, K.transpose(y)) / denom
+class LabeledResiLSTMEmbedding(Layer):
+  """Embeds its inputs using an LSTM layer."""
+  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+               activation='linear', similarity='cosine', **kwargs):
+    """
+    Unlike the AttnLSTM model which only modifies the test vectors additively,
+    this model allows for an additive update to be performed to both test and
+    support using information from each other.
 
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    max_depth: int
+      Number of LSTM Embedding layers.
+    init: string
+      Type of weight initialization (from Keras)
+    activation: string
+      Activation type (ReLu/Linear/etc.)
+    """
+    super(LabeledResiLSTMEmbedding, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.similarity = similarity
+
+  def build(self, input_shape):
+    """Builds this layer.
+
+    Parameters
+    ----------
+    input_shape: tuple
+      Tuple of ((n_test, n_feat), (n_support, n_feat))
+    """
+    _, support_input_shape, trash = input_shape  #Unpack
+    n_feat = support_input_shape[1]
+
+    # Support set lstm
+    self.support_pos_lstm = LSTMStep(n_feat)
+    self.q_pos_init = K.zeros([self.n_support, n_feat])
+    self.support_pos_states_init = self.support_pos_lstm.get_initial_states(
+        [self.n_support, n_feat])
+
+    self.support_neg_lstm = LSTMStep(n_feat)
+    self.q_neg_init = K.zeros([self.n_support, n_feat])    
+    self.support_neg_states_init = self.support_neg_lstm.get_initial_states(
+        [self.n_support, n_feat])    
+    
+    # Test lstm
+    self.test_lstm = LSTMStep(n_feat)
+    self.p_init = K.zeros([self.n_test, n_feat])
+    self.test_states_init = self.test_lstm.get_initial_states(
+        [self.n_test, n_feat])
+    
+    self.trainable_weights = []
+      
+  def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form [(n_test, n_feat), (n_support, n_feat), (n_support)]
+
+    Returns
+    -------
+    list
+      Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
+    return input_shape[:-1]
+
+  def call(self, argument, mask=None):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    argument: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    x, xp, y = argument 
+    y = K.expand_dims(y, 1)
+    # Get initializations
+    p = self.p_init
+    q_pos = self.q_pos_init
+    q_neg = self.q_neg_init
+    q = y * q_pos + (1.-y) * q_neg
+    # Rename support
+    z = xp
+    
+    pos_states = self.support_pos_states_init
+    neg_states = self.support_neg_states_init
+    
+    x_states = self.test_states_init
+    
+    for d in range(self.max_depth):
+      # Process support xp using attention
+      e = sim(z+q, xp, self.similarity)
+      a = K.softmax(e)
+      # Get linear combination of support set
+      r = K.dot(a, xp)  
+
+      # Not sure if it helps to place the update here or later yet.  Will
+      # decide
+      #z = r  
+
+      # Process test x using attention
+      x_e = sim(x+p, z, self.similarity)
+      x_a = K.softmax(x_e)
+      s = K.dot(x_a, z)
+
+      # Generate new support attention states
+      qr = K.concatenate([q, r], axis=1)
+      q_pos, pos_states = self.support_pos_lstm([qr] + pos_states)
+      q_neg, neg_states = self.support_neg_lstm([qr] + neg_states)
+
+      q = y * q_pos + (1.-y) * q_neg
+      #q = q_pos
+
+      # Generate new test attention states
+      ps = K.concatenate([p, s], axis=1)
+      p, x_states = self.test_lstm([ps] + x_states)
+
+      # Redefine  
+      z = r  
+        
+    #return [x+p, z+q]
+    return [x+p, xp+q]
+
+  def compute_mask(self, x, mask=None):
+    if not (mask is None):
+        return mask[:-1]
+    return [None, None]
+  
+class DualAttnLSTMEmbedding(Layer):
+  def __init__(self, max_depth, init='glorot_uniform', activation='linear', dropout=None,
+               similarity='euclidean', **kwargs):
+    super(DualAttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_depth = max_depth
+    self.similarity = similarity
+
+  def build(self, input_shape):
+    x_input_shape, xp_input_shape, yp_input_shape = input_shape  #Unpack
+
+    N_test = x_input_shape[0]
+    N_support = xp_input_shape[0]
+    N_feat = xp_input_shape[1]
+    self.N_feat = N_feat
+    self.N_support = N_support
+    
+    # Support set lstm
+    self.xp_pos_lstm = LSTMStep(2*N_feat)
+    self.xp_pos_states_init = self.xp_pos_lstm.get_initial_states([N_support,2*N_feat])
+    
+    # Support set lstm
+    self.xp_neg_lstm = LSTMStep(2*N_feat)
+    self.xp_neg_states_init = self.xp_neg_lstm.get_initial_states([N_support,2*N_feat])
+    
+    # Prediction lstm
+    self.x_lstm = LSTMStep(2*N_feat)
+    self.x_states_init = self.x_lstm.get_initial_states([N_test,2*N_feat])
+    
+    self.trainable_weights = []
+    
+  def get_output_shape_for(self, input_shape):
+    return input_shape[:-1]
+      
+  def call(self, argument, mask=None):
+    x, xp, yp = argument  #Unpack
+    
+    # Expand yp dimension
+    y = K.expand_dims(yp, 1)
+    
+    # Get initializations
+    xp_pos_states = self.xp_pos_states_init
+    xp_neg_states = self.xp_neg_states_init
+    
+    # Get initializations
+    x_states = self.x_states_init
+    
+    p = x
+    q = xp
+    
+    for d in range(self.max_depth):
+      # Process using attention
+      e = sim(q, xp, self.similarity)
+      a = K.softmax(e)
+      r = K.dot(a, xp)  # Get soft nearest neighbor location
+      
+      # Process using attention
+      e = sim(p, q, self.similarity)
+      x_a = K.softmax(e)
+      s = K.dot(x_a, q)
+      
+      # Generate new attention states using conditional LSTM
+      xp_pos_states = [K.concatenate([q,r], axis=1)] + [xp_pos_states[1]]
+      xp_neg_states = [K.concatenate([q,r], axis=1)] + [xp_neg_states[1]]
+      q_pos, xp_pos_states = self.xp_pos_lstm([xp] + xp_pos_states)
+      q_neg, xp_neg_states = self.xp_neg_lstm([xp] + xp_neg_states)
+
+      # Extract new updates
+      q_pos = xp_pos_states[0][:,0:self.N_feat]
+      q_neg = xp_neg_states[0][:,0:self.N_feat]
+
+      # Obtain conditional LSTM hidden state
+      q = y * q_pos + (1.-y) * q_neg
+      
+      # Generate new attention states for x
+      x_states = [K.concatenate([p,s], axis=1)] + [x_states[1]]
+      trash, x_states = self.x_lstm([x] + x_states)
+      p = x_states[0][:,0:self.N_feat]
+            
+    return [p, q]
+
+  def compute_mask(self, x, mask=None):
+    if not (mask is None):
+      return mask[:-1]
+    return [None, None]
+  
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
 
