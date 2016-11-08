@@ -71,6 +71,35 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
 
   return tox21_tasks, dataset, transformers
 
+def load_tox21_limited_convmol(base_dir=None):
+  """Load Tox21 datasets. Does not do train/test split"""
+  # Set some global variables up top
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../../datasets/tox21_limited.csv.gz")
+
+  # Featurize Tox21 dataset
+  print("About to featurize Tox21 dataset.")
+  featurizer = dc.feat.ConvMolFeaturizer()
+  tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
+                 'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
+                 'SR-HSE', 'SR-MMP', 'SR-p53']
+
+  loader = dc.load.DataLoader(
+      tasks=tox21_tasks, smiles_field="smiles",
+      featurizer=featurizer, verbosity="high")
+  dataset = loader.featurize(
+      dataset_file, shard_size=8192)
+
+  transformers = []
+  
+  print("About to transform data")
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
+
+  return tox21_tasks, dataset, transformers
+
+
 def load_muv_ecfp():
   """Load MUV datasets. Does not do train/test split"""
   # Load MUV dataset

@@ -10,25 +10,27 @@ import numpy as np
 import deepchem as dc
 import tensorflow as tf
 from datasets import load_tox21_convmol
+#from datasets import load_tox21_limited_convmol
 
 # Number of folds for split 
 K = 4 
 # Depth of attention module
 max_depth = 3
 # num positive/negative ligands
-n_pos = 10
+n_pos = 1
 n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
 nb_epochs = 1
-n_train_trials = 2000
-n_eval_trials = 20
+n_train_trials = 200
+n_eval_trials = 2
 learning_rate = 1e-4
 log_every_n_samples = 50
 # Number of features on conv-mols
 n_feat = 71
 
+#tox21_tasks, dataset, transformers = load_tox21_limited_convmol()
 tox21_tasks, dataset, transformers = load_tox21_convmol()
 
 # Define metric
@@ -75,8 +77,14 @@ with tf.Session() as sess:
             n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
   ############################################################ DEBUG
   print("EVAL")
+
+  scores = model.evaluate(
+      train_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials, exclude_support=False)
+  print("Scores on train dataset")
+  print(scores)
+  
   ############################################################ DEBUG
   scores = model.evaluate(
-      test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
+      test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials, exclude_support=False)
   print("Scores on evaluation dataset")
   print(scores)

@@ -25,4 +25,5 @@ from deepchem.models.tensorflow_models.model_ops import softmax_N
 from deepchem.models.tf_keras_models.keras_layers import AttnLSTMEmbedding
 from deepchem.models.tf_keras_models.keras_layers import MNAttnLSTMEmbedding
 from deepchem.models.tf_keras_models.keras_layers import ResiLSTMEmbedding
+from deepchem.models.tf_keras_models.keras_layers import LabeledResiLSTMEmbedding
 from deepchem.models.tf_keras_models.keras_layers import DualAttnLSTMEmbedding
