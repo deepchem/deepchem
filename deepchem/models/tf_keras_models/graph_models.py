@@ -151,7 +151,11 @@ class SequentialSupportGraph(object):
     return False
   
 class SequentialLabeledSupportGraph(SequentialSupportGraph):
-  """An analog of Keras Sequential model for test/labeld support models."""
+  """An analog of Keras Sequential model for test/label support models.
+
+  TODO(rbharath): This class shouldn't be responsible for holding
+  support_labels_ph.
+  """
 
   def __init__(self, n_feat, support_batch_size):
     """

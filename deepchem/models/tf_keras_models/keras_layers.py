@@ -967,8 +967,24 @@ class LabeledResiLSTMEmbedding(Layer):
     return [None, None]
   
 class DualAttnLSTMEmbedding(Layer):
-  def __init__(self, max_depth, init='glorot_uniform', activation='linear', dropout=None,
-               similarity='euclidean', **kwargs):
+  """Implements an Attn embedding that takes labels into account.
+  """
+  def __init__(self, max_depth, init='glorot_uniform', activation='linear',
+               dropout=None, similarity='euclidean', **kwargs):
+    """
+    Parameters
+    ----------
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    init: str, optional
+      Type of initialization of weights
+    activation: str, optional
+      Activation for layers.
+    dropout: float, optional
+      Dropout probability
+    similarity: str, optional
+      Similarity measure used for computation.
+    """
     super(DualAttnLSTMEmbedding, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
@@ -977,32 +993,70 @@ class DualAttnLSTMEmbedding(Layer):
     self.similarity = similarity
 
   def build(self, input_shape):
+    """Initializes trainable weights.
+
+    Parameters
+    ----------
+    input_shape: list
+      Expects input_shape to be a tuple/list of shape
+      [(n_test, n_feat), (n_support, n_feat), (n_support,)]
+    """
     x_input_shape, xp_input_shape, yp_input_shape = input_shape  #Unpack
 
-    N_test = x_input_shape[0]
-    N_support = xp_input_shape[0]
-    N_feat = xp_input_shape[1]
-    self.N_feat = N_feat
-    self.N_support = N_support
+    n_test = x_input_shape[0]
+    n_support = xp_input_shape[0]
+    n_feat = xp_input_shape[1]
+    self.n_feat = n_feat
+    self.n_support = n_support
     
     # Support set lstm
-    self.xp_pos_lstm = LSTMStep(2*N_feat)
-    self.xp_pos_states_init = self.xp_pos_lstm.get_initial_states([N_support,2*N_feat])
+    self.xp_pos_lstm = LSTMStep(2*n_feat)
+    self.xp_pos_states_init = self.xp_pos_lstm.get_initial_states(
+        [n_support,2*n_feat])
     
     # Support set lstm
-    self.xp_neg_lstm = LSTMStep(2*N_feat)
-    self.xp_neg_states_init = self.xp_neg_lstm.get_initial_states([N_support,2*N_feat])
+    self.xp_neg_lstm = LSTMStep(2*n_feat)
+    self.xp_neg_states_init = self.xp_neg_lstm.get_initial_states(
+        [n_support,2*n_feat])
     
     # Prediction lstm
-    self.x_lstm = LSTMStep(2*N_feat)
-    self.x_states_init = self.x_lstm.get_initial_states([N_test,2*N_feat])
+    self.x_lstm = LSTMStep(2*n_feat)
+    self.x_states_init = self.x_lstm.get_initial_states(
+        [n_test,2*n_feat])
     
     self.trainable_weights = []
     
   def get_output_shape_for(self, input_shape):
+    """Returns the output shape. Same as input_shape except last element.
+
+    Parameters
+    ----------
+    input_shape: list
+      Will be of form 
+      [(n_test, n_feat), (n_support, n_feat), (n_support,)]
+
+    Returns
+    -------
+    list
+      Of shape as input [(n_test, n_feat), (n_support, n_feat)]
+    """
     return input_shape[:-1]
       
   def call(self, argument, mask=None):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    argument: list
+      List of three tensors (x, xp, yp). Have shapes
+      [(n_test, n_fest), (n_support, n_feat), (n_support,)]
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
     x, xp, yp = argument  #Unpack
     
     # Expand yp dimension
@@ -1036,8 +1090,8 @@ class DualAttnLSTMEmbedding(Layer):
       q_neg, xp_neg_states = self.xp_neg_lstm([xp] + xp_neg_states)
 
       # Extract new updates
-      q_pos = xp_pos_states[0][:,0:self.N_feat]
-      q_neg = xp_neg_states[0][:,0:self.N_feat]
+      q_pos = xp_pos_states[0][:,0:self.n_feat]
+      q_neg = xp_neg_states[0][:,0:self.n_feat]
 
       # Obtain conditional LSTM hidden state
       q = y * q_pos + (1.-y) * q_neg
@@ -1045,7 +1099,7 @@ class DualAttnLSTMEmbedding(Layer):
       # Generate new attention states for x
       x_states = [K.concatenate([p,s], axis=1)] + [x_states[1]]
       trash, x_states = self.x_lstm([x] + x_states)
-      p = x_states[0][:,0:self.N_feat]
+      p = x_states[0][:,0:self.n_feat]
             
     return [p, q]
 

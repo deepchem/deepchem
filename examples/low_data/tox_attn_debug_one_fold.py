@@ -43,7 +43,7 @@ train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
 # Train support model on train
-support_model = dc.nn.SequentialLabeledSupportGraph(n_feat, support_batch_size)
+support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
 # 1st conv layer + batchnorm
@@ -57,8 +57,8 @@ support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
 support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
 
 # Apply a residual lstm layer
-support_model.join_labels(dc.nn.DualAttnLSTMEmbedding(
-    test_batch_size, support_batch_size, max_depth, similarity='euclidean'))
+support_model.join(dc.nn.AttnLSTMEmbedding(
+    test_batch_size, support_batch_size, max_depth))
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
@@ -71,14 +71,13 @@ with tf.Session() as sess:
   ############################################################ DEBUG
   model.fit(train_dataset, n_episodes_per_epoch=n_train_trials,
             n_steps_per_trial=n_steps_per_trial, n_pos=n_pos,
-            n_neg=n_neg)
+            n_neg=n_neg, replace=False)
   model.save()
 
   ############################################################ DEBUG
   print("EVAL")
   ############################################################ DEBUG
   scores = model.evaluate(
-      test_dataset, metric, n_pos=n_pos, n_neg=n_neg,
-      n_trials=n_eval_trials)
+      test_dataset, metric, n_pos=n_pos, n_neg=n_neg, n_trials=n_eval_trials)
   print("Scores on evaluation dataset")
   print(scores)
