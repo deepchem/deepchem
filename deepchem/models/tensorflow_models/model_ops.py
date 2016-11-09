@@ -38,7 +38,7 @@ def cosine_distances(test, support):
 def euclidean_distance(test, support, max_dist_sq=20):
   """Computes pairwise euclidean distances between provided tensors
 
-  TODO(rbharath): BROKEN! THIS DOESN'T WORK!
+  TODO(rbharath): Just replace max with min to fix broken op
 
   Parameters
   ----------
@@ -56,7 +56,7 @@ def euclidean_distance(test, support, max_dist_sq=20):
   """
   test = tf.expand_dims(test, 1)
   support = tf.expand_dims(support, 0)
-  g = -tf.maximum(tf.reduce_sum(tf.square(test - support), 2), max_dist_sq)
+  g = -tf.minimum(tf.reduce_sum(tf.square(test - support), 2), max_dist_sq)
   return g
 
 def add_bias(tensor, init=None, name=None):

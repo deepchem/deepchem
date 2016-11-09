@@ -36,7 +36,7 @@ class SupportGraphClassifier(Model):
     ----------
     sess: tf.Session
       Session for this model
-    model: SequentialSupportModel 
+    model: SequentialSupportModel or SequentialLabeledSupportModel
       Contains core layers in model. 
     n_pos: int
       Number of positive examples in support.
@@ -63,7 +63,7 @@ class SupportGraphClassifier(Model):
 
   def get_training_op(self, loss):
     """Attaches an optimizer to the graph."""
-    opt = tf.train.AdamOptimizer(self.learning_rate)
+    opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.99)
     return opt.minimize(self.loss_op, name="train")
 
   def add_placeholders(self):
@@ -77,9 +77,17 @@ class SupportGraphClassifier(Model):
 
     # TODO(rbharath): Should weights for the support be used?
     # Support labels
-    self.support_label_placeholder = Input(
-        tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
-        name="support_label_placeholder"))
+
+    # Initialize the support label placeholders if model does not have it
+    if not self.model.has_support_labels():
+      print("ADDING SUPPORT LABEL PLACEHOLDER")
+      self.support_label_placeholder = Input(tensor=K.placeholder(
+        shape=[self.support_batch_size],
+        dtype='float32',name="support_label_placeholder"))
+    else:
+      print("USING EXISTING SUPPORT LABEL PLACEHOLDER")
+      # Otherwise, get the placeholder from the model
+      self.support_label_placeholder = self.model.return_support_label_placeholder()
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
@@ -99,74 +107,6 @@ class SupportGraphClassifier(Model):
     if add_phase:
       feed_dict[K.learning_phase()] = training
     return feed_dict
-
-  def old_fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
-          n_neg=9, log_every_n_samples=10, replace=True, **kwargs):
-    """Fits model on dataset.
-
-    Note that fitting for support models is quite different from fitting for
-    other deep models. Fitting is a two-level process.  We perform n_trials,
-    where for each trial, we randomply sample a support set for each given
-    task, and independently a test set from that same task. The
-    SupportGenerator class iterates over the tasks in random order.
-
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to fit model on.
-    n_trials: int, optional
-      Number of (support, test) pairs to sample and train on.
-    n_steps_per_trial: int, optional
-      Number of gradient descent steps to take per support.
-    n_pos: int, optional
-      Number of positive examples per support.
-    n_neg: int, optional
-      Number of negative examples per support.
-    log_every_n_samples: int, optional
-      Displays info every this number of samples
-    replace: bool, optional
-      Whether or not to use replacement when sampling supports/tests.
-    """
-    time_start = time.time()
-    # Perform the optimization
-    n_tasks = len(dataset.get_task_names())
-
-    feed_total, run_total, test_total = 0, 0, 0
-    # Create different support sets
-    support_generator = SupportGenerator(dataset, range(n_tasks),
-        n_pos, n_neg, n_trials)
-    recent_losses = []
-    for ind, (task, support) in enumerate(support_generator):
-      if ind % log_every_n_samples == 0:
-        print("Sample %d from task %s" % (ind, str(task)))
-      # Get batch to try it out on
-      test_start = time.time()
-      test = get_single_task_test(dataset, self.test_batch_size, task, replace)
-      test_end = time.time()
-      test_total += (test_end - test_start)
-      feed_start = time.time()
-      feed_dict = self.construct_feed_dict(test, support)
-      feed_end = time.time()
-      feed_total += (feed_end - feed_start)
-      for step in range(n_steps_per_trial):
-        # Train on support set, batch pair
-        ############################################################## DEBUG
-        run_start = time.time()
-        _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
-        run_end = time.time()
-        run_total += (run_end - run_start)
-        if ind % log_every_n_samples == 0:
-          mean_loss = np.mean(np.array(recent_losses))
-          print("\tmean loss is %s" % str(mean_loss))
-          recent_losses = []
-        else:
-          recent_losses.append(loss)
-        ############################################################## DEBUG
-    time_end = time.time()
-    print("old_fit took %s seconds" % str(time_end-time_start))
-    print("test_total: %s" % str(test_total))
-    print("feed_total: %s" % str(feed_total))
-    print("run_total: %s" % str(run_total))
 
   def fit(self, dataset, n_episodes_per_epoch=1000, nb_epochs=1, n_pos=1, n_neg=9,
           log_every_n_samples=10, **kwargs):
@@ -200,7 +140,10 @@ class SupportGraphClassifier(Model):
       # Create different support sets
       episode_generator = EpisodeGenerator(dataset,
           n_pos, n_neg, n_test, n_episodes_per_epoch)
+      ####################################################### DEBUG
+      #recent_losses = [[] for i in range(n_tasks)]
       recent_losses = []
+      ###################################################### DEBUG
       for ind, (task, support, test) in enumerate(episode_generator):
         if ind % log_every_n_samples == 0:
           print("Epoch %d, Sample %d from task %s" % (epoch, ind, str(task)))
@@ -214,17 +157,24 @@ class SupportGraphClassifier(Model):
         _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
         run_end = time.time()
         run_total += (run_end - run_start)
+        ###################################################### DEBUG
         if ind % log_every_n_samples == 0:
-          mean_loss = np.mean(np.array(recent_losses))
-          print("\tmean loss is %s" % str(mean_loss))
+          #mean_losses = [np.mean(np.array(l)) for l in recent_losses]
+          #print("\tmean losses are")
+          #print(mean_losses)
+          print("mean_loss")
+          print(np.mean(np.array(recent_losses)))
+          #recent_losses = [[] for i in range(n_tasks)]
           recent_losses = []
         else:
+          #recent_losses[task].append(loss)
+          #recent_losses[task].append(loss)
           recent_losses.append(loss)
+        ###################################################### DEBUG
     time_end = time.time()
     print("fit took %s seconds" % str(time_end-time_start))
     print("feed_total: %s" % str(feed_total))
     print("run_total: %s" % str(run_total))
-
 
   def save(self):
     """Save all models
@@ -340,7 +290,8 @@ class SupportGraphClassifier(Model):
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
-    y_pred_batch = np.round(scores)
+    # y_pred_batch = np.round(scores)
+    y_pred_batch = np.round(pred)
     ########################################################### DEBUG
     # Remove padded elements
     y_pred_batch = y_pred_batch[:n_samples]
@@ -357,7 +308,8 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
     ########################################################### DEBUG
-    # pred corresponds to prob(example == 1) 
+    # pred corresponds to prob(example == 1)
+    #y_pred_batch = scores
     y_pred_batch = np.zeros((n_samples, 2))
     # Remove padded elements
     pred = pred[:n_samples]
@@ -415,7 +367,7 @@ class SupportGraphClassifier(Model):
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
       task_scores[task].append(metric.compute_metric(
-          task_dataset.y, y_pred, task_dataset.w))
+          task_dataset.y, y_pred, task_dataset.w))      
 
     # Join information for all tasks.
     mean_task_scores = {}

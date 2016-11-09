@@ -12,6 +12,7 @@ __license__ = "GPL"
 import numpy as np
 import unittest
 import deepchem as dc
+from keras import backend as K
 from tensorflow.python.framework import test_util
 
 class TestKerasLayers(test_util.TensorFlowTestCase):
@@ -83,9 +84,6 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
 
       attn_embedding_layer = dc.nn.AttnLSTMEmbedding(
           n_test, n_support, max_depth)
-      # Try concatenating the two lists of placeholders
-      feed_dict = {test: np.zeros((n_test, n_feat)),
-                   support: np.zeros((n_support, n_feat))}
       test_out, support_out = attn_embedding_layer([test, support])
       assert test_out.get_shape() == (n_test, n_feat)
       assert support_out.get_shape()[1] == (n_feat)
@@ -106,9 +104,31 @@ class TestKerasLayers(test_util.TensorFlowTestCase):
 
       resi_embedding_layer = dc.nn.ResiLSTMEmbedding(
           n_test, n_support, max_depth)
-      # Try concatenating the two lists of placeholders
-      feed_dict = {test: np.zeros((n_test, n_feat)),
-                   support: np.zeros((n_support, n_feat))}
       test_out, support_out = resi_embedding_layer([test, support])
+      assert test_out.get_shape() == (n_test, n_feat)
+      assert support_out.get_shape()[1] == (n_feat)
+
+  def test_dual_attn_lstm_embedding(self):
+    """Test that attention LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11 
+    n_feat = 10
+    nb_filter = 7
+    with self.test_session() as sess:
+      K.set_session(sess)
+      graph_topology_test = dc.nn.GraphTopology(n_feat)
+      graph_topology_support = dc.nn.GraphTopology(n_feat)
+
+      dual_attn_embedding_layer = dc.nn.DualAttnLSTMEmbedding(
+          n_test, n_support, max_depth, similarity='euclidean')
+
+      test = K.zeros((n_test, n_feat))
+      support = graph_topology_support.get_input_placeholders()[0]
+      support = K.zeros((n_support, n_feat))
+      support_labels = K.zeros((n_support,))
+
+      test_out, support_out = dual_attn_embedding_layer(
+          [test, support, support_labels])
       assert test_out.get_shape() == (n_test, n_feat)
       assert support_out.get_shape()[1] == (n_feat)
