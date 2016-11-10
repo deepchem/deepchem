@@ -46,7 +46,7 @@ from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024, 
-                               dataset_name='all',model='all',reload = True,
+                               dataset_name='all',model='tf',reload = True,
                                verbosity='high',out_path='/tmp'):
   """
   Loading dataset for benchmark test
@@ -65,16 +65,23 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
   dataset_name : string, optional (default='all')
       choice of which dataset to use, 'all' = computing all the datasets
       
-  model : string,  optional (default='all')
-      choice of which model to use, 'all' = running all models on the dataset
+  model : string,  optional (default='tf')
+      choice of which model to use, should be: tf, logreg, graphconv
   
   out_path : string, optional(default='/tmp')
       path of result file
       
   """
-  assert dataset_name in ['all', 'muv', 'nci', 'pcba', 'tox21','sider',
-                          'toxcast']
-  
+  if not dataset_name in ['all','muv','nci','pcba','tox21','sider','toxcast']:
+    raise ValueError('Dataset not supported')
+                          
+  if model in ['graphconv']:
+    method = 'GraphConv'
+  elif model in ['tf','logreg','rf']:
+    method = 'ECFP'
+  else:
+    raise ValueError('Model not supported')
+      
   if dataset_name == 'all':
     #currently not including the nci dataset
     dataset_name = ['tox21','muv','pcba','sider','toxcast']
@@ -93,41 +100,36 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
     
     time_start = time.time()
     #loading datasets     
-    tasks,datasets,transformers = loading_functions[dname]()
+    tasks,datasets,transformers = loading_functions[dname](method = method)
     train_dataset, valid_dataset, test_dataset = datasets
     time_finish_loading = time.time()
     #time_finish_loading-time_start is the time(s) used for dataset loading
     
 
     #running model
-    train_score,valid_score = benchmark_train_and_valid(base_dir,train_dataset,
-                                                        valid_dataset, tasks,
-                                                        transformers,
-                                                        hyper_parameters,
-                                                        n_features=n_features,
-                                                        model = model,
-                                                        verbosity = verbosity)
-    time_finish_running = time.time()
-    #time_finish_running-time_finish_loading is the time(s) used for fitting and evaluating
-        
-    with open(os.path.join(out_path,'results.csv'),'a') as f:
-      f.write('\n'+dname+',train')
-      for i in train_score:
-        f.write(','+i+','+str(train_score[i]['mean-roc_auc_score']))
-      f.write('\n'+dname+',valid')
-      for i in valid_score:
-        f.write(','+i+','+str(valid_score[i]['mean-roc_auc_score'])) 
-      #output timing data: running time include all the model
-      f.write('\n'+dname+',time_for_loading,,'+
-              str(time_finish_loading-time_start)+'seconds')
-      f.write('\n'+dname+',time_for_running,,'+
-              str(time_finish_running-time_finish_loading)+'seconds')
+    for i, hp in enumerate(hyper_parameters[model]):
+      time_start_fitting = time.time()
+      train_score,valid_score = benchmark_train_and_valid(base_dir,
+                                    train_dataset,valid_dataset,tasks,
+                                    transformers,hp,n_features=n_features,
+                                    model = model,verbosity = verbosity)      
+      time_finish_fitting = time.time()
+      
+      with open(os.path.join(out_path,'results.csv'),'a') as f:
+        f.write('\n\n'+str(i))
+        f.write('\n'+dname+',train')
+        for i in train_score:
+          f.write(','+i+','+str(train_score[i]['mean-roc_auc_score']))
+        f.write('\n'+dname+',valid')
+        for i in valid_score:
+          f.write(','+i+','+str(valid_score[i]['mean-roc_auc_score'])) 
+        f.write('\n'+dname+',time_for_running,'+
+              str(time_finish_fitting-time_start_fitting))
     
     #clear workspace         
     del tasks,datasets,transformers
     del train_dataset,valid_dataset, test_dataset
-    del time_start,time_finish_loading,time_finish_running
-
+    
   return None
 
 def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
@@ -180,32 +182,35 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
                                             verbosity=verbosity,
                                             mode="classification")
   
-  assert model in ['all', 'tf', 'rf']
+  assert model in ['graphconv', 'tf', 'rf','logreg']
 
   if model == 'all' or model == 'tf':
     # Initialize model folder
     model_dir_tf = os.path.join(base_dir, "model_tf")
     
-    dropouts = hyper_parameters['tf'][0]
-    learning_rate = hyper_parameters['tf'][1]
-    weight_init_stddevs = hyper_parameters['tf'][2]
-    batch_size = hyper_parameters['tf'][3]
-    # Building tensorflow MultiTaskDNN model
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
-        len(tasks), n_features, dropouts=[dropouts],
-        learning_rate=learning_rate, weight_init_stddevs=[weight_init_stddevs],
-        batch_size=batch_size, verbosity=verbosity)
+      # Building tensorflow MultiTaskDNN model
+    dropouts = hyper_parameters['dropouts']
+    learning_rate = hyper_parameters['learning_rate']
+    layer_sizes = hyper_parameters['layer_sizes']
+    penalty = hyper_parameters['penalty']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+
+    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(len(tasks),
+          n_features,  learning_rate=learning_rate, layer_sizes=layer_sizes, 
+          dropouts=dropouts, penalty=penalty, batch_size=batch_size, 
+          verbosity=verbosity)
     model_tf = dc.models.TensorflowModel(tensorflow_model)
  
     print('-------------------------------------')
     print('Start fitting by tensorflow')
-    model_tf.fit(train_dataset)
-
+    model_tf.fit(train_dataset,nb_epoch = nb_epoch)
+    
     train_scores['tensorflow'] = model_tf.evaluate(train_dataset,
-                                    [classification_metric],transformers)
+                                        [classification_metric],transformers)
 
     valid_scores['tensorflow'] = model_tf.evaluate(valid_dataset,
-                                    [classification_metric],transformers)
+                                        [classification_metric],transformers)
 
   
   if model == 'all' or model == 'rf':
@@ -242,14 +247,17 @@ if __name__ == '__main__':
     shutil.rmtree(base_dir_o)
   os.makedirs(base_dir_o)
   
-  #Datasets and models used in the benchmark test, all=all the datasets(models)
-  dataset_name = sys.argv[1]
-  model = sys.argv[2]
+  #Datasets and models used in the benchmark test, all=all the datasets
+  dataset_name = 'tox21'
+  model = 'tf'
 
   #input hyperparameters
-  #tf: dropouts, learning rate, weight initial stddev, batch_size
-  hyper_parameters = {'tf':[0.25, 0.0003, 0.1, 50]}
+  #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
+  #    batch_size
+  hps = {}
+  hps['tf'] = [{'dropouts':[0.25],'learning_rate':0.001,'layer_sizes':[1000],
+                'penalty':0.0, 'batch_size':50, 'nb_epoch':10}]
 
-  benchmark_loading_datasets(base_dir_o,hyper_parameters,n_features = 1024,
+  benchmark_loading_datasets(base_dir_o,hps,n_features = 1024,
                              dataset_name = dataset_name, model = model,
-                             reload = reload, verbosity = verbosity)
+                             reload = reload, verbosity = 'high')

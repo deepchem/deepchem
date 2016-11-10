@@ -13,7 +13,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_nci(shard_size=1000, num_shards_per_batch=4):
+def load_nci(method = 'ECFP', shard_size=1000, num_shards_per_batch=4):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -29,7 +29,10 @@ def load_nci(shard_size=1000, num_shards_per_batch=4):
 
   # Featurize nci dataset
   print("About to featurize nci dataset.")
-  featurizer = dc.feat.CircularFingerprint(size=1024)
+  if method == 'ECFP':
+      featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif method == 'GraphConv':
+      featurizer = dc.feat.ConvMolFeaturizer()
 
   all_nci_tasks = (['CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226',
                     'SR', 'A549/ATCC', 'EKVX', 'HOP-62', 'HOP-92', 'NCI-H226',
@@ -61,6 +64,7 @@ def load_nci(shard_size=1000, num_shards_per_batch=4):
   
   splitter = dc.splits.RandomSplitter()
   print("Performing new split.")
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  train, valid, test = splitter.train_valid_test_split(dataset,
+	compute_feature_statistics=False)
 
   return all_nci_tasks, (train, valid, test), transformers

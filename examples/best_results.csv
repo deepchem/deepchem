@@ -1,0 +1,8 @@
+sider,tf,train,0.931,valid,0.647,learning_rate,0.0003~0.003,dropouts,0.2~0.3,layer_sizes,1000~1200
+tox21,tf,train,0.996,valid,0.763,learning_rate,0.001~0.003,dropouts,0.4~0.5,layer_sizes,1000~1200
+toxcast,tf,train,0.944,valid,0.699,learning_rate,0.0004,dropouts,0.4,layer_sizes,500
+muv,tf,train,0.980,valid,0.710,learning_rate,0.0008~0.0013,dropouts,0.25~0.4,layer_sizes,1200
+
+pcba,graphconv,train,0.866,valid,0.836,learning_rate,0.0001,learning_rate_decay,1500,layer_structure,2layers&64filters
+muv,graphconv,train,0.881,valid,0.832,learning_rate,0.0004~0.0008,learning_rate_decay,1500,layer_structure,2layers&64~128filters
+tox21,graphconv,train,0.930,valid,0.819,learning_rate,0.0003~0.002,learning_rate_decay,1000~2000,layer_structure,2layers&128filters

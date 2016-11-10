@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_toxcast():
+def load_toxcast(method = 'ECFP'):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -24,7 +24,12 @@ def load_toxcast():
 
   # Featurize TOXCAST dataset
   print("About to featurize TOXCAST dataset.")
-  featurizer = dc.feat.CircularFingerprint(size=1024)
+
+  if method == 'ECFP':
+      featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif method == 'GraphConv':
+      featurizer = dc.feat.ConvMolFeaturizer()
+
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
   loader = dc.load.DataLoader(tasks=TOXCAST_tasks,
@@ -41,6 +46,7 @@ def load_toxcast():
     dataset = transformer.transform(dataset)
 
   splitter = dc.splits.IndexSplitter()
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  train, valid, test = splitter.train_valid_test_split(
+	dataset, compute_feature_statistics=False)
   
   return TOXCAST_tasks, (train, valid, test), transformers
