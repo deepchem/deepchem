@@ -34,8 +34,9 @@ import numpy as np
 import shutil
 import time
 import deepchem as dc
+import tensorflow as tf
+from keras import backend as K
 
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 from muv.muv_datasets import load_muv
@@ -45,7 +46,7 @@ from tox21.tox21_datasets import load_tox21
 from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 
-def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024, 
+def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
                                dataset_name='all',model='tf',reload = True,
                                verbosity='high',out_path='/tmp'):
   """
@@ -58,9 +59,6 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
   
   hyper_parameters : dict of list
       hyper parameters including dropout rate, learning rate, etc.
- 
-  n_features : integer, optional (default=1024)
-      number of features, or length of binary fingerprints
   
   dataset_name : string, optional (default='all')
       choice of which dataset to use, 'all' = computing all the datasets
@@ -77,8 +75,10 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
                           
   if model in ['graphconv']:
     method = 'GraphConv'
+    n_features = 71
   elif model in ['tf','logreg','rf']:
     method = 'ECFP'
+    n_features = 1024
   else:
     raise ValueError('Model not supported')
       
@@ -110,8 +110,8 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
     for i, hp in enumerate(hyper_parameters[model]):
       time_start_fitting = time.time()
       train_score,valid_score = benchmark_train_and_valid(base_dir,
-                                    train_dataset,valid_dataset,tasks,
-                                    transformers,hp,n_features=n_features,
+                                    train_dataset, valid_dataset, tasks,
+                                    transformers, hp, n_features,
                                     model = model,verbosity = verbosity)      
       time_finish_fitting = time.time()
       
@@ -125,16 +125,17 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters, n_features = 1024,
           f.write(','+i+','+str(valid_score[i]['mean-roc_auc_score'])) 
         f.write('\n'+dname+',time_for_running,'+
               str(time_finish_fitting-time_start_fitting))
-    
+
     #clear workspace         
     del tasks,datasets,transformers
     del train_dataset,valid_dataset, test_dataset
-    
+    del time_start,time_finish_loading,time_start_fitting,time_finish_fitting
+
   return None
 
 def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
                               transformers, hyper_parameters,
-                              n_features = 1024,model = 'all',
+                              n_features, model = 'tf',
                               verbosity = 'high'):
   """
   Calculate performance of different models on the specific dataset & tasks
@@ -184,7 +185,7 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
   
   assert model in ['graphconv', 'tf', 'rf','logreg']
 
-  if model == 'all' or model == 'tf':
+  if model == 'tf':
     # Initialize model folder
     model_dir_tf = os.path.join(base_dir, "model_tf")
     
@@ -212,15 +213,84 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
     valid_scores['tensorflow'] = model_tf.evaluate(valid_dataset,
                                         [classification_metric],transformers)
 
-  
-  if model == 'all' or model == 'rf':
+  if model == 'logreg':
+    # Initialize model folder
+    model_dir_logreg = os.path.join(base_dir, "model_logreg")
+    
+    # Building tensorflow logistic regression model
+    learning_rate = hyper_parameters['learning_rate']
+    penalty = hyper_parameters['penalty']
+    penalty_type = hyper_parameters['penalty_type']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+
+    tensorflow_model = dc.models.TensorflowLogisticRegression(len(tasks),
+          n_features, learning_rate=learning_rate, penalty=penalty, 
+          penalty_type=penalty_type, batch_size=batch_size, 
+          verbosity=verbosity)
+    model_logreg = dc.models.TensorflowModel(tensorflow_model)
+ 
+    print('-------------------------------------')
+    print('Start fitting by logistic regression')
+    model_logreg.fit(train_dataset,nb_epoch = nb_epoch)
+    
+    train_scores['logreg'] = model_logreg.evaluate(train_dataset,
+                               [classification_metric],transformers)
+
+    valid_scores['logreg'] = model_logreg.evaluate(valid_dataset,
+                               [classification_metric],transformers)
+  if model == 'graphconv':
+    # Initialize model folder
+    model_dir_graphconv = os.path.join(base_dir, "model_graphconv")
+    
+    
+    learning_rate = hyper_parameters['learning_rate']
+    n_filters = hyper_parameters['n_filters']
+    n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      graph_model = dc.models.SequentialGraphModel(n_features)
+      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      # Gather Projection
+      graph_model.add(dc.nn.Dense(int(n_fully_connected_nodes),
+                                  activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+      with tf.Session() as sess:
+        model_graphconv = dc.models.MultitaskGraphClassifier(
+          sess, graph_model, len(tasks), model_dir_graphconv, 
+          batch_size=batch_size, learning_rate=learning_rate,
+          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+
+        # Fit trained model
+        model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
+    
+        train_scores['graphconv'] = model_graphconv.evaluate(train_dataset,
+                               [classification_metric],transformers)
+
+        valid_scores['graphconv'] = model_graphconv.evaluate(valid_dataset,
+                               [classification_metric],transformers)
+    
+  if model == 'rf':
     # Initialize model folder
     model_dir_rf = os.path.join(base_dir, "model_rf")
     
+    n_estimators = hyper_parameters['n_estimators']
+
     # Building scikit random forest model
     def model_builder(model_dir_rf):
       sklearn_model = RandomForestClassifier(
-        class_weight="balanced", n_estimators=500,n_jobs=-1)
+        class_weight="balanced", n_estimators=n_estimators,n_jobs=-1)
       return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_rf)
     model_rf = dc.models.multitask.SingletaskToMultitask(
 		tasks, model_builder, model_dir_rf)
@@ -257,7 +327,15 @@ if __name__ == '__main__':
   hps = {}
   hps['tf'] = [{'dropouts':[0.25],'learning_rate':0.001,'layer_sizes':[1000],
                 'penalty':0.0, 'batch_size':50, 'nb_epoch':10}]
-
+                
+  hps['logreg'] = [{'learning_rate':0.001, 'penalty':0.05, 
+                'penalty_type': 'l1', 'batch_size':50, 'nb_epoch':10}]
+                
+  hps['graphconv'] = [{'learning_rate':0.001, 'n_filters': 64,
+                'n_fully_connected_nodes':128, 'batch_size':50, 'nb_epoch':10}]
+  
+  hps['rf'] = [{'n_estimators':500}]
+                
   benchmark_loading_datasets(base_dir_o,hps,n_features = 1024,
                              dataset_name = dataset_name, model = model,
                              reload = reload, verbosity = 'high')
