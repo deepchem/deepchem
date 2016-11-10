@@ -19,6 +19,8 @@ from deepchem.metrics import to_one_hot
 from deepchem.data import pad_features
 
 def weight_decay(penalty_type, penalty):
+  # due to the different shape of weight(ndims=2) and bias(ndims=1),
+  # will using this version for logreg
   variables = []
   # exclude bias variables
   for v in tf.trainable_variables():
@@ -60,6 +62,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       bias_init_consts = self.bias_init_consts
       lg_list = []
       for task in range(self.n_tasks):
+        #setting up n_tasks nodes(output nodes)
         lg = model_ops.fully_connected_layer(
             tensor=self.mol_features,
             size = 1,
@@ -73,6 +76,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
     return lg_list
     
   def add_label_placeholders(self, graph, name_scopes):
+    #label placeholders with size batch_size * 1
     labels = []
     placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
     with placeholder_scope:
@@ -114,6 +118,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
 
           # weight decay
           if self.penalty != 0.0:
+            # using self-defined regularization
             penalty = weight_decay(self.penalty_type, self.penalty)
             loss += penalty
 
@@ -124,6 +129,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
                   weights)
       
   def add_output_ops(self, graph, output):
+    # adding output nodes of sigmoid function
     with graph.as_default():
       sigmoid = []
       with tf.name_scope('inference'):
@@ -139,6 +145,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
     for task in range(self.n_tasks):
       if y_b is not None:
         y_2column = to_one_hot(y_b[:, task])
+        # fix the size to be [?,1]
         orig_dict["labels_%d" % task] = y_2column[:,1:2]
       else:
         # Dummy placeholders
@@ -164,13 +171,14 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
         batch_outputs = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
+        # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
         batch_outputs = np.squeeze(np.stack(arrays = [complimentary,
 						      batch_outputs],
                                             axis = 2))
-        if batch_outputs.ndim == 3:
+        # reshape to batch_size x n_tasks x ...
+       if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
           batch_outputs = batch_outputs.transpose((1, 0))
@@ -201,12 +209,13 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
         batch_output = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
+        # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_output))
         complimentary = complimentary - batch_output
         batch_output = np.squeeze(np.stack(arrays = [complimentary,
                                                      batch_output],
                                             axis = 2))
+        # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
         elif batch_output.ndim == 2:
