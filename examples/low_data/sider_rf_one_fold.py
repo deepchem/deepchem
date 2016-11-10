@@ -1,5 +1,5 @@
 """
-Train low-data MUV models with random forests. Test last fold only.
+Train low-data Sider models with random forests. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import tempfile
 import numpy as np
 import deepchem as dc
-from datasets import load_muv_ecfp
+from datasets import load_sider_ecfp
 from sklearn.ensemble import RandomForestClassifier
 
 # 4-fold splits
@@ -19,7 +19,7 @@ n_neg = 1
 # 10 trials on test-set
 n_trials = 20
 
-tox21_tasks, dataset, transformers = load_muv_ecfp()
+sider_tasks, dataset, transformers = load_sider_ecfp()
 
 # Define metric
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")

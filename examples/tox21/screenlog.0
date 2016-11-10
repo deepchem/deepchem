@@ -1,0 +1,3989 @@
+srun --time=00:30:00 -p gpu --qos gpu --gres=gpu:1 --pty bash[1P[C[1@0[C[1P[1P[1@3
+srun: job 10687670 queued and waiting for resources
+sourec  ce activate deepchem
+source ~/.deeprc
+cd ../muv
+python muv_graph_conv_2layers_df.py
+srun: job 10687670 has been allocated resources
+source activate deepchem
+source ~/.deeprc
+cd ../muv
+python muv_graph_conv_2layers_df.py
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/tox21]$ source activate deepchem
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/tox21]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/tox21]$ cd ../muv
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$ python muv_graph_conv_2layers_df.py
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+Using TensorFlow backend.
+Traceback (most recent call last):
+  File "muv_graph_conv_2layers_df.py", line 14, in <module>
+    from muv_datasets import load_muv_convmol
+ImportError: cannot import name load_muv_convmol
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$ [K(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$ python muv_graph_conv_2layers_df.py[Kvimu[K[K muv_graph_conv_2layers_df.py 
+[?1049h[?1h=[1;49r[34l[34h[?25h[23m[24m[0m[H[J[?25l[49;1H"muv_graph_conv_2layers_df.py" 97L, 3322C[1;1H[31m"""
+Script that trains graph-conv models on Tox21 dataset.
+"""[0m
+[35mfrom[0m __future__ [35mimport[0m print_function
+[35mfrom[0m __future__ [35mimport[0m division
+[35mfrom[0m __future__ [35mimport[0m unicode_literals
+
+[35mimport[0m os
+[35mimport[0m shutil
+[35mimport[0m numpy [33mas[0m np
+[35mimport[0m tensorflow [33mas[0m tf
+[35mimport[0m deepchem [33mas[0m dc
+[35mfrom[0m keras [35mimport[0m backend [33mas[0m K
+[35mfrom[0m muv_datasets [35mimport[0m load_muv_convmol
+
+[34m# Only for debug![0m
+np.random.seed([31m123[0m)
+
+g = tf.Graph()
+sess = tf.Session(graph=g)
+K.set_session(sess)
+
+lr_c = [[31m0.0004[0m,[31m0.0006[0m,[31m0.0008[0m,[31m0.001[0m]
+
+lr_decay_c = [[31m1000[0m,[31m1500[0m]
+
+[33mwith[0m g.as_default():
+
+  [34m# Set some global variables up top[0m
+  verbosity = [31m"high"[0m
+
+  [34m#Make directories to store the raw and featurized datasets.[0m
+  base_dir = [31m"/tmp/muv_graphconv"[0m
+  [34m# This is for good debug (to make sure nasty state isn't being passed around)[0m
+  [33mif[0m os.path.exists(base_dir):
+    shutil.rmtree(base_dir)
+  os.makedirs(base_dir)
+  data_dir = os.path.join(base_dir, [31m"dataset"[0m)
+  model_dir = os.path.join(base_dir, [31m"model"[0m)
+
+  [34m# Load muv dataset[0m
+  muv_tasks, muv_datasets, transformers = load_muv(method = [31m'GraphConv'[0m)
+  [34m# Do train/valid split.[0m
+  train_dataset, valid_dataset, test = muv_datasets
+
+  [34m# Fit models[0m
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,[48;45Hverbosity=verbosity,[49;172H1,1[11CTop[1;1H[34h[?25h[?25l[49;172H2[2;1H[34h[?25h[?25l[49;172H3[3;1H[34h[?25h[?25l[49;172H4[4;1H[34h[?25h[?25l[49;172H5[5;1H[34h[?25h[?25l[49;172H6[6;1H[34h[?25h[?25l[49;172H7,0-1[7;1H[34h[?25h[?25l[49;172H8,1  [8;1H[34h[?25h[?25l[49;172H9[9;1H[34h[?25h[?25l[49;172H10,1[10;1H[34h[?25h[?25l[49;173H1[11;1H[34h[?25h[?25l[49;173H2[12;1H[34h[?25h[?25l[49;173H3[13;1H[34h[?25h[?25l[49;173H4[14;1H[34h[?25h[?25l[49;175H41[14;41H[34h[?25h[?25l[49;176H0[14;40H[34h[?25h[?25l[49;175H39[14;39H[34h[?25h[?25lol[14;41H[K[14;39H[34h[?25h[?25ll[14;40H[K[14;39H[34h[?25h[?25l[14;39H[K[49;176H8[14;38H[34h[?25h[?25l[14;38H[K[49;176H7[14;37H[34h[?25h[?25l[14;37H[K[49;176H6[14;36H[34h[?25h[?25l[14;36H[K[49;176H5[14;35H[34h[?25h[?25l[14;35H[K[49;176H4[14;34H[34h[?25h[?25l[14;34H[K[49;176H3[14;33H[34h[?25h[?25l[49;1H[K[49;1H:[34h[?25hw[?25l[34h[?25hq[?25l[34h[?25h[?25l"muv_graph_conv_2layers_df.py" 97L, 3314C written
+[?1l>[34h[?25h[?1049l]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$ vi muv_graph_conv_2layers_df.py python muv_graph_conv_2layers_df.py
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+Using TensorFlow backend.
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: GeForce GTX TITAN Black
+major: 3 minor: 5 memoryClockRate (GHz) 0.98
+pciBusID 0000:89:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX TITAN Black, pci bus id: 0000:89:00.0)
+About to load MUV dataset.
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.113 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.222 s
+TIMING: writing metadata row took 60.707 s
+TIMING: shard featurization took 99.379 s
+TIMING: featurization map function took 99.380 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.114 s
+TIMING: convert_df_to_numpy missing elts computation took 0.085 s
+TIMING: convert_df_to_numpy took 0.220 s
+TIMING: writing metadata row took 60.287 s
+TIMING: shard featurization took 98.716 s
+TIMING: featurization map function took 98.716 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.112 s
+TIMING: convert_df_to_numpy missing elts computation took 0.083 s
+TIMING: convert_df_to_numpy took 0.221 s
+TIMING: writing metadata row took 60.087 s
+TIMING: shard featurization took 98.451 s
+TIMING: featurization map function took 98.451 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.112 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.218 s
+TIMING: writing metadata row took 60.351 s
+TIMING: shard featurization took 98.788 s
+TIMING: featurization map function took 98.788 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.110 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.215 s
+TIMING: writing metadata row took 60.203 s
+TIMING: shard featurization took 98.798 s
+TIMING: featurization map function took 98.798 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.111 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.217 s
+TIMING: writing metadata row took 59.865 s
+TIMING: shard featurization took 98.192 s
+TIMING: featurization map function took 98.192 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.113 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.218 s
+TIMING: writing metadata row took 60.531 s
+TIMING: shard featurization took 98.966 s
+TIMING: featurization map function took 98.967 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.112 s
+TIMING: convert_df_to_numpy missing elts computation took 0.085 s
+TIMING: convert_df_to_numpy took 0.219 s
+TIMING: writing metadata row took 59.608 s
+TIMING: shard featurization took 97.850 s
+TIMING: featurization map function took 97.850 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.112 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.217 s
+TIMING: writing metadata row took 60.480 s
+TIMING: shard featurization took 98.880 s
+TIMING: featurization map function took 98.880 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.111 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.218 s
+TIMING: writing metadata row took 60.743 s
+TIMING: shard featurization took 99.216 s
+TIMING: featurization map function took 99.216 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.111 s
+TIMING: convert_df_to_numpy missing elts computation took 0.085 s
+TIMING: convert_df_to_numpy took 0.217 s
+TIMING: writing metadata row took 60.321 s
+TIMING: shard featurization took 98.964 s
+TIMING: featurization map function took 98.964 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.044 s
+TIMING: convert_df_to_numpy missing elts computation took 0.032 s
+TIMING: convert_df_to_numpy took 0.085 s
+TIMING: writing metadata row took 22.149 s
+TIMING: shard featurization took 36.274 s
+TIMING: featurization map function took 36.274 s
+TIMING: map call on batch took 1125.131 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.011 s high
+About to transform data
+Traceback (most recent call last):
+  File "muv_graph_conv_2layers_df.py", line 42, in <module>
+    muv_tasks, muv_datasets, transformers = load_muv(method = 'GraphConv')
+  File "/home/zqwu/deepchem/examples/muv/muv_datasets.py", line 45, in load_muv
+    dataset = transformer.transform(dataset, compute_feature_statistics=False)
+TypeError: transform() got an unexpected keyword argument 'compute_feature_statistics'
+Exception AttributeError: "'NoneType' object has no attribute 'raise_exception_on_not_ok_status'" in <bound method Session.__del__ of <tensorflow.python.client.session.Session object at 0x7f4779101850>> ignored
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$ python muv_graph_conv_2layers_df.py[3Pvi muv_graph_conv_2layers_df.py 
+[?1049h[?1h=[1;49r[34l[34h[?25h[23m[24m[0m[H[J[?25l[49;1H"muv_graph_conv_2layers_df.py" 97L, 3314C[1;1H[31m"""
+Script that trains graph-conv models on Tox21 dataset.
+"""[0m
+[35mfrom[0m __future__ [35mimport[0m print_function
+[35mfrom[0m __future__ [35mimport[0m division
+[35mfrom[0m __future__ [35mimport[0m unicode_literals
+
+[35mimport[0m os
+[35mimport[0m shutil
+[35mimport[0m numpy [33mas[0m np
+[35mimport[0m tensorflow [33mas[0m tf
+[35mimport[0m deepchem [33mas[0m dc
+[35mfrom[0m keras [35mimport[0m backend [33mas[0m K
+[35mfrom[0m muv_datasets [35mimport[0m load_muv
+
+[34m# Only for debug![0m
+np.random.seed([31m123[0m)
+
+g = tf.Graph()
+sess = tf.Session(graph=g)
+K.set_session(sess)
+
+lr_c = [[31m0.0004[0m,[31m0.0006[0m,[31m0.0008[0m,[31m0.001[0m]
+
+lr_decay_c = [[31m1000[0m,[31m1500[0m]
+
+[33mwith[0m g.as_default():
+
+  [34m# Set some global variables up top[0m
+  verbosity = [31m"high"[0m
+
+  [34m#Make directories to store the raw and featurized datasets.[0m
+  base_dir = [31m"/tmp/muv_graphconv"[0m
+  [34m# This is for good debug (to make sure nasty state isn't being passed around)[0m
+  [33mif[0m os.path.exists(base_dir):
+    shutil.rmtree(base_dir)
+  os.makedirs(base_dir)
+  data_dir = os.path.join(base_dir, [31m"dataset"[0m)
+  model_dir = os.path.join(base_dir, [31m"model"[0m)
+
+  [34m# Load muv dataset[0m
+  muv_tasks, muv_datasets, transformers = load_muv(method = [31m'GraphConv'[0m)
+  [34m# Do train/valid split.[0m
+  train_dataset, valid_dataset, test = muv_datasets
+
+  [34m# Fit models[0m
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,[48;45Hverbosity=verbosity,[49;172H14,1[10CTop[14;1H[34h[?25h[?25l[49;173H5,0-1[15;1H[34h[?25h[?25l[49;173H6,1  [16;1H[34h[?25h[?25l[49;173H7[17;1H[34h[?25h[?25l[49;173H8,0-1[18;1H[34h[?25h[?25l[49;173H9,1  [19;1H[34h[?25h[?25l[49;172H20[20;1H[34h[?25h[?25l[49;173H1[21;1H[34h[?25h[?25l[49;173H2,0-1[22;1H[34h[?25h[?25l[49;173H3,1  [23;1H[34h[?25h[?25l[49;173H4,0-1[24;1H[34h[?25h[?25l[49;173H5,1  [25;1H[34h[?25h[?25l[49;173H6,0-1[26;1H[34h[?25h[?25l[49;173H7,1  [27;1H[34h[?25h[?25l[49;173H8,0-1[28;1H[34h[?25h[?25l[49;173H9,1  [29;1H[34h[?25h[?25l[49;172H30[30;1H[34h[?25h[?25l[49;173H1,0-1[31;1H[34h[?25h[?25l[49;173H2,1  [32;1H[34h[?25h[?25l[49;173H3[33;1H[34h[?25h[?25l[49;173H4[34;1H[34h[?25h[?25l[49;173H5[35;1H[34h[?25h[?25l[49;173H6[36;1H[34h[?25h[?25l[49;173H7[37;1H[34h[?25h[?25l[49;173H8[38;1H[34h[?25h[?25l[49;173H9[39;1H[34h[?25h[?25l[49;172H40,0-1[40;1H[34h[?25h[?25l[49;173H1,1  [41;1H[34h[?25h[?25l[49;173H2[42;1H[34h[?25h[?25l[49;173H3[43;1H[34h[?25h[?25l[49;173H4[44;1H[34h[?25h[?25l[49;173H5,0-1[45;1H[34h[?25h[?25l[49;173H6,1  [46;1H[34h[?25h[?25l[49;173H7[47;1H[34h[?25h[?25l[49;173H8[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;45Hmode=[31m"classification"[0m)[49;1H[K[49;172H49,1[11C2%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[49;172H[K[49;172H50,0-1[9C4%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;3H[34m# Do setup required for tf/keras models[0m[49;172H[K[49;172H51,1[11C6%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;3H[34m# Number of features on conv-mols[0m[49;172H[K[49;172H52,1[11C8%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;3Hn_feat = [31m71[0m[49;172H[K[49;172H53,1[10C10%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;3H[34m# Batch size of models[0m[49;172H[K[49;172H54,1[10C12%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;3H[33mfor[0m _ [33min[0m [36mrange[0m([31m4[0m):[49;172H[K[49;172H55,1[10C14%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hlr = np.random.choice(lr_c)[49;172H[K[49;172H56,1[10C16%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hlr_decay = np.random.choice(lr_decay_c)[49;172H[K[49;172H57,1[10C18%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hnb_ep = [31m15[0m[49;172H[K[49;172H58,1[10C20%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hbatch_size = [31m50[0m[49;172H[K[49;172H59,1[10C22%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[49;172H[K[49;172H60,0-1[8C24%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model = dc.models.tf_keras_models.graph_models.SequentialGraph(n_feat)[49;172H[K[49;172H61,1[10C26%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.GraphConv([31m128[0m, activation=[31m'relu'[0m))[49;172H[K[49;172H62,1[10C28%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.BatchNormalization(epsilon=[31m1e-5[0m, mode=[31m1[0m))[49;172H[K[49;172H63,1[10C30%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.GraphPool())[49;172H[K[49;172H64,1[10C32%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.GraphConv([31m128[0m, activation=[31m'relu'[0m))[49;172H[K[49;172H65,1[10C34%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.BatchNormalization(epsilon=[31m1e-5[0m, mode=[31m1[0m))[49;172H[K[49;172H66,1[10C36%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.GraphPool())[49;172H[K[49;172H67,1[10C38%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5H[34m# Gather Projection[0m[49;172H[K[49;172H68,1[10C40%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.Dense([31m128[0m, activation=[31m'relu'[0m))[49;172H[K[49;172H69,1[10C42%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.BatchNormalization(epsilon=[31m1e-5[0m, mode=[31m1[0m))[49;172H[K[49;172H70,1[10C44%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5Hgraph_model.add(dc.nn.GraphGather(batch_size, activation=[31m"tanh"[0m))[49;172H[K[49;172H71,1[10C46%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5H[34m# Dense post-processing layer[0m[49;172H[K[49;172H72,1[10C48%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[49;172H[K[49;172H73,0-1[8C51%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;5H[33mwith[0m tf.Session() [33mas[0m sess:[49;172H[K[49;172H74,1[10C53%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;7Hmodel = dc.models.MultitaskGraphClassifier([49;172H[K[49;172H75,1[10C55%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;9Hsess, graph_model, [36mlen[0m(muv_tasks), model_dir, batch_size=batch_size,[49;172H[K[49;172H76,1[10C57%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;9Hlearning_rate=lr, learning_rate_decay_time=lr_decay,[49;172H[K[49;172H77,1[10C59%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;9Hoptimizer_type=[31m"adam"[0m, beta1=[31m.9[0m, beta2=[31m.999[0m, verbosity=[31m"high"[0m)[49;172H[K[49;172H78,1[10C61%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[49;172H[K[49;172H79,0-1[8C63%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;7H[34m# Fit trained model[0m[49;172H[K[49;172H80,1[10C65%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;7Hmodel.fit(train_dataset, nb_epoch=nb_ep)[49;172H[K[49;172H81,1[10C67%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[49;172H[K[49;172H82,0-1[8C69%[48;1H[34h[?25h[?25l[1;48r[48;1H
+[1;49r[48;7Htrain_scores = model.evaluate(train_dataset, [classification_metric])[49;172H[K[49;172H83,1[10C71%[48;1H[34h[?25h[?25l[49;173H2,0-1[47;1H[34h[?25h[?25l[49;173H1,1  [46;1H[34h[?25h[?25l[49;173H0[45;1H[34h[?25h[?25l[49;172H79,0-1[44;1H[34h[?25h[?25l[49;173H8,1  [43;1H[34h[?25h[?25l[49;173H7[42;1H[34h[?25h[?25l[49;173H6[41;1H[34h[?25h[?25l[49;173H5[40;1H[34h[?25h[?25l[49;173H4[39;1H[34h[?25h[?25l[49;173H3,0-1[38;1H[34h[?25h[?25l[49;173H2,1  [37;1H[34h[?25h[?25l[49;173H1[36;1H[34h[?25h[?25l[49;173H0[35;1H[34h[?25h[?25l[49;172H69[34;1H[34h[?25h[?25l[49;173H8[33;1H[34h[?25h[?25l[49;173H7[32;1H[34h[?25h[?25l[49;173H6[31;1H[34h[?25h[?25l[49;173H5[30;1H[34h[?25h[?25l[49;173H4[29;1H[34h[?25h[?25l[49;173H3[28;1H[34h[?25h[?25l[49;173H2[27;1H[34h[?25h[?25l[49;173H1[26;1H[34h[?25h[?25l[49;173H0,0-1[25;1H[34h[?25h[?25l[49;172H59,1  [24;1H[34h[?25h[?25l[49;173H8[23;1H[34h[?25h[?25l[49;173H7[22;1H[34h[?25h[?25l[49;173H6[21;1H[34h[?25h[?25l[49;173H5[20;1H[34h[?25h[?25l[49;173H4[19;1H[34h[?25h[?25l[49;173H3[18;1H[34h[?25h[?25l[49;173H2[17;1H[34h[?25h[?25l[49;173H1[16;1H[34h[?25h[?25l[49;173H2[17;1H[34h[?25h[?25l[49;173H1[16;1H[34h[?25h[?25l[49;173H0,0-1[15;1H[34h[?25h[?25l[49;172H49,1  [14;1H[34h[?25h[?25l[49;173H8[13;1H[34h[?25h[?25l[49;173H7[12;1H[34h[?25h[?25l[49;173H6[11;1H[34h[?25h[?25l[49;173H5,0-1[10;1H[34h[?25h[?25l[49;173H4,1  [9;1H[34h[?25h[?25l[49;173H3[8;1H[34h[?25h[?25l[49;173H2[7;1H[34h[?25h[?25l[49;173H1[6;1H[34h[?25h[?25l[49;173H0,0-1[5;1H[34h[?25h[?25l[49;172H39,1  [4;1H[34h[?25h[?25l[49;175H2[4;2H[34h[?25h[?25l[49;172H[K[49;1H:[34h[?25hq[?25l[34h[?25h[?25l[49;1H[K[49;1H[?1l>[34h[?25h[?1049l]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-3 ~/deepchem/examples/muv]$  q[K[Kvi muv_graph_conv_2layers_df.py python muv_graph_conv_2layers_df.py
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+Using TensorFlow backend.
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: GeForce GTX TITAN Black
+major: 3 minor: 5 memoryClockRate (GHz) 0.98
+pciBusID 0000:89:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX TITAN Black, pci bus id: 0000:89:00.0)
+About to load MUV dataset.
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.006 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.083 s
+TIMING: convert_df_to_numpy took 0.217 s
+TIMING: writing metadata row took 59.932 s
+TIMING: shard featurization took 97.965 s
+TIMING: featurization map function took 97.966 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.082 s
+TIMING: convert_df_to_numpy took 0.212 s
+TIMING: writing metadata row took 59.839 s
+TIMING: shard featurization took 97.649 s
+TIMING: featurization map function took 97.649 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.107 s
+TIMING: convert_df_to_numpy missing elts computation took 0.082 s
+TIMING: convert_df_to_numpy took 0.215 s
+TIMING: writing metadata row took 59.632 s
+TIMING: shard featurization took 97.382 s
+TIMING: featurization map function took 97.382 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.213 s
+TIMING: writing metadata row took 59.791 s
+TIMING: shard featurization took 97.636 s
+TIMING: featurization map function took 97.636 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.107 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.212 s
+TIMING: writing metadata row took 59.734 s
+TIMING: shard featurization took 97.687 s
+TIMING: featurization map function took 97.687 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.213 s
+TIMING: writing metadata row took 59.355 s
+TIMING: shard featurization took 97.004 s
+TIMING: featurization map function took 97.004 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.109 s
+TIMING: convert_df_to_numpy missing elts computation took 0.082 s
+TIMING: convert_df_to_numpy took 0.213 s
+TIMING: writing metadata row took 60.244 s
+TIMING: shard featurization took 98.077 s
+TIMING: featurization map function took 98.077 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.107 s
+TIMING: convert_df_to_numpy missing elts computation took 0.084 s
+TIMING: convert_df_to_numpy took 0.213 s
+TIMING: writing metadata row took 59.169 s
+TIMING: shard featurization took 96.826 s
+TIMING: featurization map function took 96.826 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.083 s
+TIMING: convert_df_to_numpy took 0.212 s
+TIMING: writing metadata row took 59.970 s
+TIMING: shard featurization took 97.818 s
+TIMING: featurization map function took 97.818 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.108 s
+TIMING: convert_df_to_numpy missing elts computation took 0.083 s
+TIMING: convert_df_to_numpy took 0.213 s
+TIMING: writing metadata row took 60.081 s
+TIMING: shard featurization took 97.940 s
+TIMING: featurization map function took 97.946 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.107 s
+TIMING: convert_df_to_numpy missing elts computation took 0.082 s
+TIMING: convert_df_to_numpy took 0.211 s
+TIMING: writing metadata row took 59.819 s
+TIMING: shard featurization took 97.819 s
+TIMING: featurization map function took 97.819 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.042 s
+TIMING: convert_df_to_numpy missing elts computation took 0.031 s
+TIMING: convert_df_to_numpy took 0.082 s
+TIMING: writing metadata row took 22.008 s
+TIMING: shard featurization took 35.913 s
+TIMING: featurization map function took 35.913 s
+TIMING: map call on batch took 1112.361 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.011 s high
+About to transform data
+mean-roc_auc_score
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX TITAN Black, pci bus id: 0000:89:00.0)
+/share/sw/free/tensorflow/0.9.0/tensorflow/python/ops/gradients.py:89: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Training for 15 epochs
+Starting epoch 0
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3020 get requests, put_count=2492 evicted_count=1000 eviction_rate=0.401284 and unsatisfied allocation rate=0.539073
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 100 to 110
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 1596 get requests, put_count=1990 evicted_count=1000 eviction_rate=0.502513 and unsatisfied allocation rate=0.39411
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 256 to 281
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 7728 get requests, put_count=7666 evicted_count=1000 eviction_rate=0.130446 and unsatisfied allocation rate=0.145057
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 655 to 720
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 376164 get requests, put_count=376168 evicted_count=1000 eviction_rate=0.00265839 and unsatisfied allocation rate=0.00305718
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 1694 to 1863
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 1
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 3
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 4611492 get requests, put_count=4611493 evicted_count=8000 eviction_rate=0.0017348 and unsatisfied allocation rate=0.00177491
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 4
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 5
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 10085220 get requests, put_count=10085220 evicted_count=18000 eviction_rate=0.00178479 and unsatisfied allocation rate=0.00180323
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 6
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 7
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 8
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 16004776 get requests, put_count=16004777 evicted_count=28000 eviction_rate=0.00174948 and unsatisfied allocation rate=0.00176104
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 9
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 10
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 21692128 get requests, put_count=21692127 evicted_count=38000 eviction_rate=0.00175179 and unsatisfied allocation rate=0.00176041
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 11
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 12
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 27024988 get requests, put_count=27024989 evicted_count=48000 eviction_rate=0.00177613 and unsatisfied allocation rate=0.00178298
+On batch 1450
+Starting epoch 13
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 14
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+srun: Force Terminated job 10687670
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+srun: error: gpu-9-3: task 0: Killed
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [K[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [K[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ srun --time=3:00:00 -p gpu --qos gpu --gres=gpu:1 --pty bash[C[C[C[C[C[1@1[1@0[1P[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1@t[1@e[1@s[1@l[1@a[1@:[C[C[C[C[C[C[C[C[C[C[C[C
+srun: job 10688612 queued and waiting for resources
+source activate deepchem
+source ~/.deeprc
+cd ../muv
+python mu  mu  muv_graph_conv_2layers_df.py
+srun: job 10688612 has been allocated resources
+source activate deepchem
+source ~/.deeprc
+cd ../muv
+python muv_graph_conv_2layers_df.py
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/tox21]$ source activate deepchem
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/tox21]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/tox21]$ cd ../muv
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ python muv_graph_conv_2layers_df.py
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+Using TensorFlow backend.
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:85:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:85:00.0)
+About to load MUV dataset.
+About to featurize MUV dataset.
+Loading raw samples now.
+shard_size: 8192
+num_shards_per_batch: 24
+Spawning workers now.
+About to start processing next batch of shards
+About to start loading CSV from /home/zqwu/deepchem/examples/muv/../../datasets/muv.csv.gz
+Loading shard 1 of size 8192.
+Loading shard 2 of size 8192.
+Loading shard 3 of size 8192.
+Loading shard 4 of size 8192.
+Loading shard 5 of size 8192.
+Loading shard 6 of size 8192.
+Loading shard 7 of size 8192.
+Loading shard 8 of size 8192.
+Loading shard 9 of size 8192.
+Loading shard 10 of size 8192.
+Loading shard 11 of size 8192.
+Loading shard 12 of size 8192.
+Loading shard 1 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.094 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.182 s
+TIMING: writing metadata row took 50.196 s
+TIMING: shard featurization took 81.913 s
+TIMING: featurization map function took 81.915 s
+Loading shard 2 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.094 s
+TIMING: convert_df_to_numpy missing elts computation took 0.067 s
+TIMING: convert_df_to_numpy took 0.178 s
+TIMING: writing metadata row took 49.953 s
+TIMING: shard featurization took 81.518 s
+TIMING: featurization map function took 81.518 s
+Loading shard 3 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.005 s
+TIMING: convert_df_to_numpy x computation took 0.093 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.182 s
+TIMING: writing metadata row took 49.752 s
+TIMING: shard featurization took 81.228 s
+TIMING: featurization map function took 81.228 s
+Loading shard 4 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.093 s
+TIMING: convert_df_to_numpy missing elts computation took 0.069 s
+TIMING: convert_df_to_numpy took 0.180 s
+TIMING: writing metadata row took 49.831 s
+TIMING: shard featurization took 81.486 s
+TIMING: featurization map function took 81.487 s
+Loading shard 5 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.092 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.177 s
+TIMING: writing metadata row took 49.967 s
+TIMING: shard featurization took 81.636 s
+TIMING: featurization map function took 81.637 s
+Loading shard 6 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.092 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.177 s
+TIMING: writing metadata row took 49.781 s
+TIMING: shard featurization took 81.216 s
+TIMING: featurization map function took 81.216 s
+Loading shard 7 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.095 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.181 s
+TIMING: writing metadata row took 50.469 s
+TIMING: shard featurization took 82.093 s
+TIMING: featurization map function took 82.097 s
+Loading shard 8 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.094 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.179 s
+TIMING: writing metadata row took 49.794 s
+TIMING: shard featurization took 81.349 s
+TIMING: featurization map function took 81.350 s
+Loading shard 9 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.003 s
+TIMING: convert_df_to_numpy x computation took 0.093 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.178 s
+TIMING: writing metadata row took 50.510 s
+TIMING: shard featurization took 82.136 s
+TIMING: featurization map function took 82.136 s
+Loading shard 10 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.092 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.178 s
+TIMING: writing metadata row took 50.372 s
+TIMING: shard featurization took 81.962 s
+TIMING: featurization map function took 81.967 s
+Loading shard 11 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+Featurizing sample 4000
+Featurizing sample 5000
+Featurizing sample 6000
+Featurizing sample 7000
+Featurizing sample 8000
+TIMING: convert_df_to_numpy y computation took 0.004 s
+TIMING: convert_df_to_numpy x computation took 0.092 s
+TIMING: convert_df_to_numpy missing elts computation took 0.068 s
+TIMING: convert_df_to_numpy took 0.177 s
+TIMING: writing metadata row took 50.100 s
+TIMING: shard featurization took 81.884 s
+TIMING: featurization map function took 81.884 s
+Loading shard 12 of size 8192 from file.
+About to featurize shard.
+Currently featurizing feature_type: ConvMolFeaturizer
+Featurizing sample 0
+Featurizing sample 1000
+Featurizing sample 2000
+Featurizing sample 3000
+TIMING: convert_df_to_numpy y computation took 0.002 s
+TIMING: convert_df_to_numpy x computation took 0.036 s
+TIMING: convert_df_to_numpy missing elts computation took 0.025 s
+TIMING: convert_df_to_numpy took 0.069 s
+TIMING: writing metadata row took 18.563 s
+TIMING: shard featurization took 30.221 s
+TIMING: featurization map function took 30.221 s
+TIMING: map call on batch took 930.818 s
+Featurized 196608 datapoints
+
+About to start processing next batch of shards
+TIMING: map call on batch took 0.000 s
+TIMING: dataset construction took 0.009 s high
+About to transform data
+mean-roc_auc_score
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:85:00.0)
+/share/sw/free/tensorflow/0.9.0/tensorflow/python/ops/gradients.py:89: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Training for 15 epochs
+Starting epoch 0
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3020 get requests, put_count=2485 evicted_count=1000 eviction_rate=0.402414 and unsatisfied allocation rate=0.541391
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 100 to 110
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 1574 get requests, put_count=1965 evicted_count=1000 eviction_rate=0.508906 and unsatisfied allocation rate=0.401525
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 256 to 281
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 7717 get requests, put_count=7660 evicted_count=1000 eviction_rate=0.130548 and unsatisfied allocation rate=0.144616
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 655 to 720
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 362232 get requests, put_count=362232 evicted_count=1000 eviction_rate=0.00276066 and unsatisfied allocation rate=0.0031858
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 1694 to 1863
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 1
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 3
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 4594464 get requests, put_count=4594464 evicted_count=8000 eviction_rate=0.00174123 and unsatisfied allocation rate=0.00178171
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 4
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 5
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 10062000 get requests, put_count=10061998 evicted_count=18000 eviction_rate=0.00178891 and unsatisfied allocation rate=0.00180759
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 6
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 7
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 8
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 15959884 get requests, put_count=15959884 evicted_count=28000 eviction_rate=0.0017544 and unsatisfied allocation rate=0.00176605
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 9
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 10
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 21619372 get requests, put_count=21619370 evicted_count=38000 eviction_rate=0.00175768 and unsatisfied allocation rate=0.00176638
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 11
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 12
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 26922820 get requests, put_count=26922816 evicted_count=48000 eviction_rate=0.00178287 and unsatisfied allocation rate=0.00178993
+On batch 1400
+On batch 1450
+Starting epoch 13
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 14
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+computed_metrics: [0.71925988225399506, 0.92292704126903646, 0.75482457755034416, 0.88028320007938532, 0.82710984594775616, 0.73063003255096792, 0.73953808980269486, 0.8295194547493745, 0.69865641711229953, 0.76621997471554992, 0.87510960260217785, 0.83655407740152032, 0.84967841335826311, 0.89127557525347578, 0.89355592729227973, 0.81403207400328248, 0.70281095514740377]
+Train scores
+{'mean-roc_auc_score': 0.80776383182881217}
+/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/metrics/__init__.py:247: UserWarning: Error calculating metric mean-roc_auc_score: Only one class present in y_true. ROC AUC score is not defined in that case.
+  % (self.name, e))
+computed_metrics: [0.66343937298294153, 0.88784370477568753, 0.62034805890227573, 0.815644383184011, 0.49988669839111721, 0.74116424116424118, 0.71413116970926294, 0.90804996530187365, 0.88206214689265527, 0.39947089947089942, 0.76635846372688476, 0.59311224489795922, 0.94334470989761088, 0.93062368605466017, 0.88684389911383776, 0.94270486342438375, nan]
+Validation scores
+{'mean-roc_auc_score': 0.76218928174314382}
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:85:00.0)
+Training for 15 epochs
+Starting epoch 0
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 32588096 get requests, put_count=32588096 evicted_count=58000 eviction_rate=0.00177979 and unsatisfied allocation rate=0.0017855
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 1
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 38221268 get requests, put_count=38221266 evicted_count=68000 eviction_rate=0.00177911 and unsatisfied allocation rate=0.00178403
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 3
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 4
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 5
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 43874564 get requests, put_count=43874564 evicted_count=78000 eviction_rate=0.0017778 and unsatisfied allocation rate=0.00178203
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 6
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 7
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 49526312 get requests, put_count=49526305 evicted_count=88000 eviction_rate=0.00177683 and unsatisfied allocation rate=0.00178073
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 8
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 9
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 10
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 55266296 get requests, put_count=55266288 evicted_count=98000 eviction_rate=0.00177323 and unsatisfied allocation rate=0.00177674
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 11
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 12
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 60862316 get requests, put_count=60862313 evicted_count=108000 eviction_rate=0.0017745 and unsatisfied allocation rate=0.0017776
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 13
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 14
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 66280316 get requests, put_count=66280314 evicted_count=118000 eviction_rate=0.00178032 and unsatisfied allocation rate=0.00178315
+On batch 1400
+On batch 1450
+computed_metrics: [0.80255677039529028, 0.97923329047679397, 0.84023119684865444, 0.95999900768336599, 0.89439607055146242, 0.792478061409019, 0.8428712254851094, 0.94486756966612018, 0.87109625668449198, 0.85233881163084702, 0.90453613350304063, 0.88949550794747756, 0.9463347348373401, 0.94427099143949977, 0.92615342105656207, 0.87401860566396095, 0.77701600131506665]
+Train scores
+{'mean-roc_auc_score': 0.88481727391730025}
+computed_metrics: [0.73282618718303361, 0.968451519536903, 0.60053547523427042, 0.83321847002067539, 0.57489236347156125, 0.73157773157773154, 0.5736308316430021, 0.87161693268563489, 0.97598870056497178, 0.7174122174122175, 0.68776671408250345, 0.78677721088435382, 0.96996587030716719, 0.97056762438682553, 0.93694614860259029, 0.91139240506329111, nan]
+Validation scores
+{'mean-roc_auc_score': 0.80272290016604586}
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:85:00.0)
+Training for 15 epochs
+Starting epoch 0
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 1
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 71865100 get requests, put_count=71865100 evicted_count=128000 eviction_rate=0.00178111 and unsatisfied allocation rate=0.0017837
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 3
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 4
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 77222728 get requests, put_count=77222720 evicted_count=138000 eviction_rate=0.00178704 and unsatisfied allocation rate=0.00178955
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 5
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 6
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 7
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 82764568 get requests, put_count=82764563 evicted_count=148000 eviction_rate=0.0017882 and unsatisfied allocation rate=0.00179051
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 8
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 9
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 88151612 get requests, put_count=88151612 evicted_count=158000 eviction_rate=0.00179237 and unsatisfied allocation rate=0.00179448
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 10
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 11
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 94021628 get requests, put_count=94021621 evicted_count=168000 eviction_rate=0.00178682 and unsatisfied allocation rate=0.00178888
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 12
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 13
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 14
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 99628484 get requests, put_count=99628484 evicted_count=178000 eviction_rate=0.00178664 and unsatisfied allocation rate=0.0017885
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ ls -al
+total 589
+drwxr-xr-x  2 zqwu pande   421 Nov  8 19:20 [0m[01;34m.[0m
+drwxr-xr-x 13 zqwu pande   508 Nov  8 13:33 [01;34m..[0m
+-rw-r--r--  1 zqwu pande     0 Nov  1 14:21 __init__.py
+-rw-r--r--  1 zqwu pande   133 Nov  3 20:38 __init__.pyc
+-rw-r--r--  1 zqwu pande 88080 Nov  9 10:36 screenlog.0
+-rw-r--r--  1 zqwu pande  2644 Nov  7 15:43 tox21_datasets.py
+-rw-r--r--  1 zqwu pande  2920 Nov  7 17:56 tox21_datasets.pyc
+-rw-r--r--  1 zqwu pande  3321 Nov  8 12:28 tox21_graph_conv_2layers_doublefilter.py
+-rw-r--r--  1 zqwu pande  3487 Nov  5 23:55 tox21_graph_conv_2layers.py
+-rw-r--r--  1 zqwu pande  3762 Nov  6 09:30 tox21_graph_conv_3layers.py
+-rw-r--r--  1 zqwu pande  2175 Nov  5 17:27 tox21_graph_conv.py
+-rw-r--r--  1 zqwu pande  1208 Nov  5 17:27 tox21_sklearn_models.py
+-rw-r--r--  1 zqwu pande  1165 Nov  5 17:27 tox21_tf_models.py
+[m]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ cd ..
+]0;zqwu@sherlock-ln02:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples]$ cd..
+bash: cd..: command not found
+]0;zqwu@sherlock-ln02:~/deepchem/examples\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples]$ cd ..
+]0;zqwu@sherlock-ln02:~/deepchem\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ python setup.py install
+^CTraceback (most recent call last):
+  File "setup.py", line 1, in <module>
+    from setuptools import setup
+  File "<frozen importlib._bootstrap>", line 969, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 958, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 664, in _load_unlocked
+  File "<frozen importlib._bootstrap>", line 634, in _load_backward_compatible
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/setuptools/__init__.py", line 10, in <module>
+  File "<frozen importlib._bootstrap>", line 969, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 958, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 664, in _load_unlocked
+  File "<frozen importlib._bootstrap>", line 634, in _load_backward_compatible
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/setuptools/extern/__init__.py", line 1, in <module>
+  File "<frozen importlib._bootstrap>", line 969, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 958, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 664, in _load_unlocked
+  File "<frozen importlib._bootstrap>", line 634, in _load_backward_compatible
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 2985, in <module>
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 2971, in _call_aside
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 2998, in _initialize_master_working_set
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 651, in _build_master
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 644, in __init__
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 700, in add_entry
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/setuptools-27.2.0-py3.5.egg/pkg_resources/__init__.py", line 1984, in find_on_path
+  File "/home/zqwu/anaconda3/lib/python3.5/genericpath.py", line 42, in isdir
+    st = os.stat(s)
+KeyboardInterrupt
+]0;zqwu@sherlock-ln02:~/deepchem\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ source activate deepchem
+source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ source ~/.deeprcactivate deepchem[1Ppython setup.py install
+running install
+[pbr] Writing ChangeLog
+[pbr] Generating ChangeLog
+[pbr] ChangeLog complete (0.1s)
+[pbr] Generating AUTHORS
+[pbr] AUTHORS complete (0.1s)
+running build
+running build_py
+copying deepchem/models/tensorflow_models/lr.py -> build/lib/deepchem/models/tensorflow_models
+copying deepchem/models/__init__.py -> build/lib/deepchem/models
+running egg_info
+writing pbr to deepchem.egg-info/pbr.json
+writing deepchem.egg-info/PKG-INFO
+writing top-level names to deepchem.egg-info/top_level.txt
+writing dependency_links to deepchem.egg-info/dependency_links.txt
+[pbr] Processing SOURCES.txt
+[pbr] In git context, generating filelist from git
+warning: no previously-included files found matching '.gitreview'
+warning: no previously-included files matching '*.pyc' found anywhere in distribution
+writing manifest file 'deepchem.egg-info/SOURCES.txt'
+running install_lib
+copying build/lib/deepchem/models/__init__.py -> /home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models
+copying build/lib/deepchem/models/tensorflow_models/lr.py -> /home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tensorflow_models
+byte-compiling /home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/__init__.py to __init__.pyc
+byte-compiling /home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tensorflow_models/lr.py to lr.pyc
+running install_egg_info
+removing '/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem-0.0.1.dev983-py2.7.egg-info' (and everything under it)
+Copying deepchem.egg-info to /home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem-0.0.1.dev983-py2.7.egg-info
+running install_scripts
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ python setup.py install[7Psource ~/.deeprcactivate deepchemcd ..[K[1P..ls -alscreen -Lcd deepchem/examples/tox211M(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ srun --time=00:30:00 -p gpu --qos gpu --gres=gpu:1 --pty bashM(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ [C[15Pcreen -ls
+[KM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Crun --time=00:30:00 -p gppu --qos gpu --gres=gpu:1 --pty bash[C[C[C[C
+]0;zqwu@sherlock-ln02:~/deepchem\[[1m[32mzqwu[m@gpu-9-1 ~/deepchem]$ source activate deepchem
+source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem]$ cd d[Kexamples
+]0;zqwu@sherlock-ln02:~/deepchem/examples\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem/examples]$ cd tox21
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ ls -al
+total 638
+drwxr-xr-x  2 zqwu pande   450 Nov  9 10:39 [0m[01;34m.[0m
+drwxr-xr-x 13 zqwu pande   508 Nov  8 13:33 [01;34m..[0m
+-rw-r--r--  1 zqwu pande     0 Nov  1 14:21 __init__.py
+-rw-r--r--  1 zqwu pande   133 Nov  3 20:38 __init__.pyc
+-rw-r--r--  1 zqwu pande 95489 Nov  9 10:40 screenlog.0
+-rw-r--r--  1 zqwu pande  2644 Nov  7 15:43 tox21_datasets.py
+-rw-r--r--  1 zqwu pande  2920 Nov  7 17:56 tox21_datasets.pyc
+-rw-r--r--  1 zqwu pande  3321 Nov  8 12:28 tox21_graph_conv_2layers_doublefilter.py
+-rw-r--r--  1 zqwu pande  3487 Nov  5 23:55 tox21_graph_conv_2layers.py
+-rw-r--r--  1 zqwu pande  3762 Nov  6 09:30 tox21_graph_conv_3layers.py
+-rw-r--r--  1 zqwu pande  2175 Nov  5 17:27 tox21_graph_conv.py
+-rw-r--r--  1 zqwu pande  1147 Nov  9 10:39 tox21_lr.py
+-rw-r--r--  1 zqwu pande  1208 Nov  5 17:27 tox21_sklearn_models.py
+-rw-r--r--  1 zqwu pande  1165 Nov  5 17:27 tox21_tf_models.py
+[m]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ python tox21_lr.ppy 
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+About to featurize Tox21 dataset.
+TIMING: dataset construction took 0.005 s None
+About to transform data
+mean-roc_auc_score
+Training for 10 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K20Xm
+major: 3 minor: 5 memoryClockRate (GHz) 0.784
+pciBusID 0000:08:00.0
+Total memory: 5.94GiB
+Free memory: 5.87GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:08:00.0)
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3600 get requests, put_count=3568 evicted_count=1000 eviction_rate=0.280269 and unsatisfied allocation rate=0.314444
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 100 to 110
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 0: Average loss 301.141
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 1: Average loss 212.403
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 2: Average loss 185.685
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 3: Average loss 172.653
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 4: Average loss 163.267
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 5: Average loss 158.291
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 6: Average loss 152.284
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 7: Average loss 149.157
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+computed_metrics: [0.75977291841883932, 0.93437154808684786, 0.79553068512314551, 0.90312154461172067, 0.87511860906452332, 0.76051719871318979, 0.80662328228998359, 0.88710551289793804, 0.78313168449197867, 0.86975558364938899, 0.86939789280158397, 0.88175967519004839, 0.90706731331998269, 0.91350251957986761, 0.90398488491927176, 0.81204811503736052, 0.79966882770621095]
+Train scores
+{'mean-roc_auc_score': 0.85073398799422839}
+On batch 200
+Ending epoch 8: Average loss 146.338
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 9: Average loss 143.378
+('TIMING: model fitting took 70.229 s', u'high')
+Evaluating model
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:08:00.0)
+Train scores
+{'mean-roc_auc_score': 0.67510745781197068}
+Validation scores
+{'mean-roc_auc_score': 0.59407264858802289}
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-9-1 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ computed_metrics: [0.70262793914246191, 0.88176555716353111, 0.54029451137884865, 0.7043418332184701, 0.61454792658055746, 0.74024024024024027, 0.75780933062880318, 0.90943789035392086, 0.85487288135593209, 0.61014911014911011, 0.69345661450924612, 0.76583758503401356, 0.95631399317406141, 0.97337070777855639, 0.91002044989775055, 0.98334443704197194, nan]
+Validation scores
+{'mean-roc_auc_score': 0.78740193797796731}
+exit
+]0;zqwu@sherlock-ln02:~/deepchem\(deepchem) [[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem]$ exit
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K20Xm, pci bus id: 0000:85:00.0)
+Training for 15 epochs
+Starting epoch 0
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 1
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 105138960 get requests, put_count=105138960 evicted_count=188000 eviction_rate=0.00178811 and unsatisfied allocation rate=0.00178988
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 3
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 4
+On batch 0
+On batch 50
+On batch 100
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 110776776 get requests, put_count=110776776 evicted_count=198000 eviction_rate=0.00178738 and unsatisfied allocation rate=0.00178906
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 5
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 6
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 116163816 get requests, put_count=116163816 evicted_count=208000 eviction_rate=0.00179057 and unsatisfied allocation rate=0.00179218
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 7
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 8
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 121654572 get requests, put_count=121654567 evicted_count=218000 eviction_rate=0.00179196 and unsatisfied allocation rate=0.00179353
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 9
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 10
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 11
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 127182480 get requests, put_count=127182479 evicted_count=228000 eviction_rate=0.0017927 and unsatisfied allocation rate=0.00179417
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 12
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 13
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 132399240 get requests, put_count=132399239 evicted_count=238000 eviction_rate=0.00179759 and unsatisfied allocation rate=0.00179901
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+On batch 1400
+On batch 1450
+Starting epoch 14
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+On batch 250
+On batch 300
+On batch 350
+On batch 400
+On batch 450
+On batch 500
+On batch 550
+On batch 600
+On batch 650
+On batch 700
+On batch 750
+On batch 800
+On batch 850
+On batch 900
+On batch 950
+On batch 1000
+On batch 1050
+On batch 1100
+On batch 1150
+On batch 1200
+On batch 1250
+On batch 1300
+On batch 1350
+^CProcess PoolWorker-1:
+Traceback (most recent call last):
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    self.run()
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/multiprocessing/pool.py", line 102, in worker
+    task = get()
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/multiprocessing/queues.py", line 378, in get
+Traceback (most recent call last):
+  File "muv_graph_conv_2layers_df.py", line 81, in <module>
+    model.fit(train_dataset, nb_epoch=nb_ep)
+  File "/home/zqwu/anaconda3/envs/deepchem/lib/python2.7/site-packages/deepchem/models/tf_keras_models/multitask_classifier.py", line 194, in fit
+    return recv()
+KeyboardInterrupt
+    feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
+  File "/share/sw/free/tensorflow/0.9.0/tensorflow/python/client/session.py", line 372, in run
+    run_metadata_ptr)
+  File "/share/sw/free/tensorflow/0.9.0/tensorflow/python/client/session.py", line 636, in _run
+    feed_dict_string, options, run_metadata)
+  File "/share/sw/free/tensorflow/0.9.0/tensorflow/python/client/session.py", line 708, in _do_run
+    target_list, options, run_metadata)
+  File "/share/sw/free/tensorflow/0.9.0/tensorflow/python/client/session.py", line 715, in _do_call
+    return fn(*args)
+  File "/share/sw/free/tensorflow/0.9.0/tensorflow/python/client/session.py", line 697, in _run_fn
+    status, run_metadata)
+KeyboardInterrupt
+^C
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ python muv_graph_conv_2layers__df.pyM(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ cd ../muv[K
+[KM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cpython muv_graph_conv_2layers__df.py[1P.py[1P.py[C[1P.py[C[C[C^C
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ s[Kpython muv_graph_conv_2layers__df.pyM(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ cd ../muv[K
+[KM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Csource ~/.deeprcactivate deepchem[15Pcreen -Lcd deepchem/examples/tox21srun --time=00:30:00 -p gpu ---qos gpu --gres=gpu:1 --pty bashM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C^C
+
+]0;zqwu@sherlock-ln02:~/deepchem/examples/muv\(deepchem) [[1m[32mzqwu[m@gpu-9-1 ~/deepchem/examples/muv]$ exit
+srun: error: gpu-9-1: task 0: Exited with exit code 130
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ srun --time=10:00:00 --p gpu --qos gpu --gres=gpu:tesla:1 --pty bash[C[C[C[C[C[C[C[C[C[C[C
+srun: job 10694303 queued and waiting for resources
+srun: job 10694303 has been allocated resources
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ source activate deepche
+CondaEnvironmentNotFoundError: Could not find environment: deepche .
+You can list all discoverable environments with `conda info --envs`.
+
+
+^[[A^[[B^CTraceback (most recent call last):
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/exceptions.py", line 473, in conda_exception_handler
+    return_value = func(*args, **kwargs)
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/cli/main.py", line 93, in _main
+    activate.main()
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/cli/activate.py", line 141, in main
+    prefix = prefix_from_arg(sys.argv[3], shelldict=shelldict)
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/cli/activate.py", line 61, in prefix_from_arg
+    prefix = locate_prefix_by_name(context, arg.replace('/', os.path.sep))
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/base/context.py", line 382, in locate_prefix_by_name
+    raise CondaEnvironmentNotFoundError(name)
+conda.exceptions.CondaEnvironmentNotFoundError: Could not find environment: deepche .
+You can list all discoverable environments with `conda info --envs`.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/zqwu/anaconda3/bin/conda", line 6, in <module>
+    sys.exit(conda.cli.main())
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/cli/main.py", line 150, in main
+    return conda_exception_handler(_main)
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/exceptions.py", line 488, in conda_exception_handler
+    delete_lock()
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/exceptions.py", line 457, in delete_lock
+    locks = list(find_lock(file_ending=file_end, extra_path=extra_path))
+  File "/home/zqwu/anaconda3/lib/python3.5/site-packages/conda/cli/main_clean.py", line 184, in find_lock
+    for dn in os.listdir(dir):
+KeyboardInterrupt
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ source activate deepchem
+source ]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ ]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ srun --time=1:30:00 -pp gpu --qos gpu --gres=gpu:1 --pty bashM[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [K
+[KM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Csrun --time=1:30:00 -pp gpu --qos gpu --gres=gpu:1 --pty bash[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[CM[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C:30:00 -p [1PM[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [C[C[C[C[C[C[C[C[C[C[C[C0:30:00 -p[1@ M[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [C[C[C[C[C[C[C[C[C[C[C[C[C0:30:00 -[1@pM[[1m[32mzqwu[m@sherlock-ln02 [1m[31mlogin_node[m ~/deepchem/examples/tox21]$ [C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+srun: job 10694492 queued and waiting for resources
+source activate deepchem
+source ~/.deeprc
+python tox21_lr.py
+srun: job 10694492 has been allocated resources
+source activate deepchem
+source ~/.deeprc
+python tox21_lr.py
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\[[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ source activate deepchem
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ source ~/.deeprc
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ python tox21_lr.py
+Using TensorFlow backend.
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcublas.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcudnn.so.4 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcufft.so.7.5 locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcuda.so locally
+I tensorflow/stream_executor/dso_loader.cc:108] successfully opened CUDA library libcurand.so.7.5 locally
+About to featurize Tox21 dataset.
+TIMING: dataset construction took 0.002 s None
+About to transform data
+mean-roc_auc_score
+Training for 50 epochs
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:102] Found device 0 with properties: 
+name: Tesla K80
+major: 3 minor: 7 memoryClockRate (GHz) 0.8235
+pciBusID 0000:05:00.0
+Total memory: 11.92GiB
+Free memory: 11.86GiB
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:126] DMA: 0 
+I tensorflow/core/common_runtime/gpu/gpu_init.cc:136] 0:   Y 
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K80, pci bus id: 0000:05:00.0)
+On batch 0
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:244] PoolAllocator: After 3600 get requests, put_count=3568 evicted_count=1000 eviction_rate=0.280269 and unsatisfied allocation rate=0.314444
+I tensorflow/core/common_runtime/gpu/pool_allocator.cc:256] Raising pool_size_limit_ from 100 to 110
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 0: Average loss 166.584
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 1: Average loss 127.987
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 2: Average loss 118.475
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 3: Average loss 113.477
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 4: Average loss 109.327
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 5: Average loss 108.097
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 6: Average loss 105.84
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 7: Average loss 105.887
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 8: Average loss 105.408
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 9: Average loss 104.641
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 10: Average loss 104.499
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 11: Average loss 104.2
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 12: Average loss 103.677
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 13: Average loss 105.037
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 14: Average loss 102.503
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 15: Average loss 103.4
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 16: Average loss 103.516
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 17: Average loss 103.055
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 18: Average loss 103.557
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 19: Average loss 102.999
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 20: Average loss 102.18
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 21: Average loss 102.737
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 22: Average loss 102.875
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 23: Average loss 102.997
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 24: Average loss 103.078
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 25: Average loss 102.499
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 26: Average loss 103.693
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 27: Average loss 102.335
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 28: Average loss 103.316
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 29: Average loss 102.848
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 30: Average loss 101.444
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 31: Average loss 102.005
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 32: Average loss 103.09
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 33: Average loss 102.003
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 34: Average loss 101.663
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 35: Average loss 102.266
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 36: Average loss 102.992
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 37: Average loss 102.085
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 38: Average loss 102.012
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 39: Average loss 102.912
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 40: Average loss 102.547
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 41: Average loss 101.957
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 42: Average loss 101.662
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 43: Average loss 102.543
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 44: Average loss 102.73
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 45: Average loss 102.353
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 46: Average loss 102.185
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 47: Average loss 102.881
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 48: Average loss 102.534
+On batch 0
+On batch 50
+On batch 100
+On batch 150
+On batch 200
+Ending epoch 49: Average loss 102.573
+('TIMING: model fitting took 182.411 s', u'high')
+Evaluating model
+I tensorflow/core/common_runtime/gpu/gpu_device.cc:808] Creating TensorFlow device (/gpu:0) -> (device: 0, name: Tesla K80, pci bus id: 0000:05:00.0)
+Train scores
+{'mean-roc_auc_score': 0.94716752941941829}
+Validation scores
+{'mean-roc_auc_score': 0.75911114423802328}
+]0;zqwu@sherlock-ln02:~/deepchem/examples/tox21\(deepchem) [[1m[32mzqwu[m@gpu-17-35 ~/deepchem/examples/tox21]$ 

@@ -1,21 +1,20 @@
 """
-Train low-data siamese models on Tox21. Test last fold only.
+Train low-data siamese models on MUV. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from datasets import load_tox21_convmol
+from datasets import load_muv_convmol
 
 # Number of folds for split 
 K = 4 
 # num positive/negative ligands
-n_pos = 1
-n_neg = 1
+n_pos = 10
+n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
@@ -28,7 +27,7 @@ log_every_n_samples = 50
 # Number of features on conv-mols
 n_feat = 71
 
-tox21_tasks, dataset, transformers = load_tox21_convmol()
+muv_tasks, dataset, transformers = load_muv_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(
@@ -62,12 +61,13 @@ with tf.Session() as sess:
     support_batch_size=support_batch_size, learning_rate=learning_rate,
     verbosity="high")
 
-  ############################################################ DEBUG
-  print("FIT")
-  ############################################################ DEBUG
-  model.fit(train_dataset, nb_epochs=nb_epochs,
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
+  # Turning off training to gauge the accuracy of the random model.
+  ############################################################# DEBUG
+  #print("FIT")
+  ############################################################# DEBUG
+  #model.fit(train_dataset, nb_epochs=nb_epochs,
+  #          n_episodes_per_epoch=n_train_trials,
+  #          n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
   ############################################################ DEBUG
   print("EVAL")
   ############################################################ DEBUG

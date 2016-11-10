@@ -1,5 +1,5 @@
 """
-Train low-data siamese models on Tox21. Test last fold only.
+Train low-data res models on SIDER. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -9,10 +9,12 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from datasets import load_tox21_convmol
+from datasets import load_sider_convmol
 
 # Number of folds for split 
 K = 4 
+# Depth of attention module
+max_depth = 3
 # num positive/negative ligands
 n_pos = 1
 n_neg = 1
@@ -20,15 +22,14 @@ n_neg = 1
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
 nb_epochs = 1
-n_train_trials = 2000
-n_eval_trials = 20 
-n_steps_per_trial = 1
+n_train_trials = 1000
+n_eval_trials = 20
 learning_rate = 1e-4
 log_every_n_samples = 50
 # Number of features on conv-mols
 n_feat = 71
 
-tox21_tasks, dataset, transformers = load_tox21_convmol()
+sider_tasks, dataset, transformers = load_sider_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(
@@ -55,6 +56,10 @@ support_model.add(dc.nn.Dense(128, activation='tanh'))
 
 support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
 support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
+
+# Apply a residual lstm layer
+support_model.join(dc.nn.ResiLSTMEmbedding(
+    test_batch_size, support_batch_size, max_depth))
 
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(

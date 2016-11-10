@@ -340,7 +340,7 @@ class SupportGraphClassifier(Model):
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
-    y_pred_batch = np.round(scores)
+    y_pred_batch = np.round(pred)
     ########################################################### DEBUG
     # Remove padded elements
     y_pred_batch = y_pred_batch[:n_samples]

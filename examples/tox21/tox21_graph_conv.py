@@ -28,7 +28,7 @@ with g.as_default():
 
   # Load Tox21 dataset
   n_features = 1024
-  tox21_tasks, tox21_datasets, transformers = load_tox21_convmol()
+  tox21_tasks, tox21_datasets, transformers = load_tox21(method = 'GraphConv')
   train_dataset, valid_dataset, test_dataset = tox21_datasets
 
   # Fit models

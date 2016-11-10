@@ -9,6 +9,47 @@ import time
 import numpy as np
 from deepchem.data import NumpyDataset
 
+def remove_dead_examples(dataset):
+  """Removes compounds with no weight.
+
+  Parameters
+  ----------
+  dataset: dc.data.Dataset
+    Source dataset.
+  """
+  w = dataset.w
+  nonzero_inds = np.nonzero(np.sum(w, axis=1))
+
+  # Remove support indices
+  X = dataset.X[nonzero_inds]
+  y = dataset.y[nonzero_inds]
+  w = dataset.w[nonzero_inds]
+  ids = dataset.ids[nonzero_inds]
+
+  return NumpyDataset(X, y, w, ids)
+
+def dataset_difference(dataset, remove):
+  """Removes the compounds in remove from dataset.
+
+  Parameters
+  ----------
+  dataset: dc.data.Dataset
+    Source dataset.
+  remove: dc.data.Dataset
+    Dataset whose overlap will be removed.
+  """
+  remove_ids = set(remove.ids)
+  keep_inds = [ind for ind in range(len(dataset))
+               if dataset.ids[ind] not in remove_ids]
+
+  # Remove support indices
+  X = dataset.X[keep_inds]
+  y = dataset.y[keep_inds]
+  w = dataset.w[keep_inds]
+  ids = dataset.ids[keep_inds]
+
+  return NumpyDataset(X, y, w, ids)
+
 def get_task_dataset_minus_support(dataset, support, task):
   """Gets data for specified task, minus support points.
 

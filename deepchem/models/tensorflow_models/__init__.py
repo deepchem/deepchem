@@ -112,6 +112,7 @@ class TensorflowGraphModel(object):
   def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
+	       learning_rate_decay = 0.9, learning_rate_decay_start = 5,
                momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
                train=True, verbosity=None, **kwargs):
     """Constructs the computational graph.
@@ -138,6 +139,8 @@ class TensorflowGraphModel(object):
     self.penalty_type = penalty_type
     self.dropouts = dropouts
     self.learning_rate = learning_rate
+    self.learning_rate_decay = learning_rate_decay
+    self.learning_rate_decay_start = learning_rate_decay_start 
     self.momentum = momentum
     self.optimizer = optimizer
     self.batch_size = batch_size
@@ -258,6 +261,7 @@ class TensorflowGraphModel(object):
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
+
           avg_loss, n_batches = 0., 0
           if shuffle:
             log("About to shuffle dataset before epoch start.", self.verbosity)

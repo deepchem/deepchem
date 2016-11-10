@@ -1,5 +1,5 @@
 """
-Train low-data siamese models on Tox21. Test last fold only.
+Test low-data siamese models on random forests with no training.
 """
 from __future__ import print_function
 from __future__ import division
@@ -14,8 +14,8 @@ from datasets import load_tox21_convmol
 # Number of folds for split 
 K = 4 
 # num positive/negative ligands
-n_pos = 1
-n_neg = 1
+n_pos = 10
+n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
@@ -62,12 +62,13 @@ with tf.Session() as sess:
     support_batch_size=support_batch_size, learning_rate=learning_rate,
     verbosity="high")
 
+  # Note no training since we want to test models ability with
   ############################################################ DEBUG
-  print("FIT")
+  #print("FIT")
   ############################################################ DEBUG
-  model.fit(train_dataset, nb_epochs=nb_epochs,
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
+  #model.fit(train_dataset, nb_epochs=nb_epochs,
+  #          n_episodes_per_epoch=n_train_trials,
+  #          n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
   ############################################################ DEBUG
   print("EVAL")
   ############################################################ DEBUG
