@@ -178,7 +178,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
 						      batch_outputs],
                                             axis = 2))
         # reshape to batch_size x n_tasks x ...
-       if batch_outputs.ndim == 3:
+        if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
           batch_outputs = batch_outputs.transpose((1, 0))

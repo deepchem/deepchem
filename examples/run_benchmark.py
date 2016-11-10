@@ -11,8 +11,8 @@ import time
 import sys
 from scipy.stats import truncnorm
 
-layer_sizes = [1200]
-dropouts = [0.25,0.30,0.35,0.40,0.45,0.50]
+layer_sizes = [800,1200]
+dropouts = [0.35,0.40,0.45,0.50]
 penalty_distri = truncnorm(-1,1,loc=0.05,scale=0.04)
 penalty_type = ['l1']
 batch_size = [100]
@@ -63,8 +63,8 @@ for i in range(int(sys.argv[3])):
         f.write('\n'+item+',')
         f.write(str(hps[model][i][item]))
 
-benchmark_loading_datasets(base_dir_o, hps, n_features = 1024, 
-                           dataset_name=dname,model=model,reload = True,
+benchmark_loading_datasets(base_dir_o, hps, dataset_name=dname,
+                           model=model,reload = True,
                            verbosity='high', out_path=out_path)
 
 
