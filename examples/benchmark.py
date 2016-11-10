@@ -193,13 +193,12 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
     dropouts = hyper_parameters['dropouts']
     learning_rate = hyper_parameters['learning_rate']
     layer_sizes = hyper_parameters['layer_sizes']
-    penalty = hyper_parameters['penalty']
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
     tensorflow_model = dc.models.TensorflowMultiTaskClassifier(len(tasks),
           n_features,  learning_rate=learning_rate, layer_sizes=layer_sizes, 
-          dropouts=dropouts, penalty=penalty, batch_size=batch_size, 
+          dropouts=dropouts, batch_size=batch_size, 
           verbosity=verbosity)
     model_tf = dc.models.TensorflowModel(tensorflow_model)
  
@@ -326,7 +325,7 @@ if __name__ == '__main__':
   #    batch_size
   hps = {}
   hps['tf'] = [{'dropouts':[0.25],'learning_rate':0.001,'layer_sizes':[1000],
-                'penalty':0.0, 'batch_size':50, 'nb_epoch':10}]
+                'batch_size':50, 'nb_epoch':10}]
                 
   hps['logreg'] = [{'learning_rate':0.001, 'penalty':0.05, 
                 'penalty_type': 'l1', 'batch_size':50, 'nb_epoch':10}]

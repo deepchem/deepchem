@@ -28,7 +28,7 @@ base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
 dname = sys.argv[1]
 model = sys.argv[2]
 
-parameters_printed = {'tf':['dropouts','learning_rate','layer_sizes','penalty',
+parameters_printed = {'tf':['dropouts','learning_rate','layer_sizes',
                             'batch_size','nb_epoch'],
                       'logreg':['learning_rate','penalty','penalty_type',
                                 'batch_size','nb_epoch'],
