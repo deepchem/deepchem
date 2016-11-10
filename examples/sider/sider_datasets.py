@@ -10,7 +10,6 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-<<<<<<< HEAD
 def load_sider(method = 'ECFP'):
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -29,18 +28,6 @@ def load_sider(method = 'ECFP'):
   elif method == 'GraphConv':
     featurizer = dc.feat.ConvMolFeaturizer()
 
-=======
-def load_sider():
-  """Load SIDER datasets. Does not do train/test split"""
-  # Featurize SIDER dataset
-  print("About to featurize SIDER dataset.")
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  dataset_file = os.path.join(
-      current_dir, "./sider.csv.gz")
-  featurizer = dc.feat.CircularFingerprint(size=1024)
-
-  dataset = dc.utils.save.load_from_disk(dataset_file)
->>>>>>> da5be2a805bfba096fe3f029c23c2ca675a195a5
   SIDER_tasks = dataset.columns.values[1:].tolist()
   print("SIDER tasks: %s" % str(SIDER_tasks))
   print("%d tasks in total" % len(SIDER_tasks))
