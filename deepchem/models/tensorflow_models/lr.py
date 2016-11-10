@@ -29,7 +29,7 @@ def weight_decay(penalty_type, penalty):
 
   with tf.name_scope('weight_decay'):
     if penalty_type == 'l1':
-      cost = tf.add_n([tf.reduce_sum(tf.Abs(v)) for v in variables])
+      cost = tf.add_n([tf.reduce_sum(tf.abs(v)) for v in variables])
     elif penalty_type == 'l2':
       cost = tf.add_n([tf.nn.l2_loss(v) for v in variables])
     else:
