@@ -1,15 +1,14 @@
 """
-Train low-data siamese models on Tox21. Test last fold only.
+Train low-data siamese models on SIDER. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from datasets import load_tox21_convmol
+from datasets import load_sider_convmol
 
 # Number of folds for split 
 K = 4 
@@ -20,7 +19,7 @@ n_neg = 1
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
 nb_epochs = 1
-n_train_trials = 2000
+n_train_trials = 1000
 n_eval_trials = 20 
 n_steps_per_trial = 1
 learning_rate = 1e-4
@@ -28,7 +27,7 @@ log_every_n_samples = 50
 # Number of features on conv-mols
 n_feat = 71
 
-tox21_tasks, dataset, transformers = load_tox21_convmol()
+sider_tasks, dataset, transformers = load_sider_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(

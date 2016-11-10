@@ -1,11 +1,10 @@
 """
-Train low-data siamese models on random forests. Test last fold only.
+Train low-data siamese models on MUV. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
@@ -15,7 +14,7 @@ from datasets import load_muv_convmol
 K = 4 
 # num positive/negative ligands
 n_pos = 1
-n_neg = 5
+n_neg = 1
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg

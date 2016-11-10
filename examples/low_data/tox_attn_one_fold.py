@@ -1,5 +1,5 @@
 """
-Train low-data attn models on random forests. Test last fold only.
+Train low-data attn models on Tox21. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -16,8 +16,8 @@ K = 4
 # Depth of attention module
 max_depth = 3
 # number positive/negative ligands
-n_pos = 10
-n_neg = 10
+n_pos = 1
+n_neg = 1
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg

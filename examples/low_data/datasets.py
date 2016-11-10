@@ -12,6 +12,10 @@ import tempfile
 import numpy as np
 import deepchem as dc
 
+def to_numpy_dataset(dataset):
+  """Converts dataset to numpy dataset."""
+  return dc.data.NumpyDataset(dataset.X, dataset.y, dataset.w, dataset.ids)
+
 def load_tox21_ecfp(num_train=7200):
   """Load Tox21 datasets. Does not do train/test split"""
   # Set some global variables up top
@@ -128,3 +132,65 @@ def load_muv_convmol():
       dataset = transformer.transform(dataset)
 
   return MUV_tasks, dataset, transformers
+
+def load_sider_ecfp():
+  """Load SIDER datasets. Does not do train/test split"""
+  # Featurize SIDER dataset
+  print("About to featurize SIDER dataset.")
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../sider/sider.csv.gz")
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+
+  dataset = dc.utils.save.load_from_disk(dataset_file)
+  SIDER_tasks = dataset.columns.values[1:].tolist()
+  print("SIDER tasks: %s" % str(SIDER_tasks))
+  print("%d tasks in total" % len(SIDER_tasks))
+
+
+  loader = dc.load.DataLoader(tasks=SIDER_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity="high")
+  dataset = loader.featurize(dataset_file)
+  print("%d datapoints in SIDER dataset" % len(dataset))
+
+  # Initialize transformers
+  transformers = [
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+  print("About to transform data")
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
+
+  return SIDER_tasks, dataset, transformers
+
+def load_sider_convmol():
+  """Load SIDER datasets. Does not do train/test split"""
+  # Featurize SIDER dataset
+  print("About to featurize SIDER dataset.")
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "../sider/sider.csv.gz")
+  featurizer = dc.feat.ConvMolFeaturizer()
+
+  dataset = dc.utils.save.load_from_disk(dataset_file)
+  SIDER_tasks = dataset.columns.values[1:].tolist()
+  print("SIDER tasks: %s" % str(SIDER_tasks))
+  print("%d tasks in total" % len(SIDER_tasks))
+
+
+  loader = dc.load.DataLoader(tasks=SIDER_tasks,
+                      smiles_field="smiles",
+                      featurizer=featurizer,
+                      verbosity="high")
+  dataset = loader.featurize(dataset_file, debug=True)
+  print("%d datapoints in SIDER dataset" % len(dataset))
+
+  # Initialize transformers
+  transformers = [
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)]
+  print("About to transform data")
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
+
+  return SIDER_tasks, dataset, transformers

@@ -19,6 +19,27 @@ class TestSupports(unittest.TestCase):
   Test that support generation happens properly.
   """
 
+  def test_remove_dead_examples(self):
+    """Tests that examples with zero weight are removed."""
+    n_samples = 100
+    n_features = 3
+    n_tasks = 1
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    p = .05
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.binomial(1, p, size=(n_samples, n_tasks))
+    w = np.random.binomial(1, p, size=(n_samples, n_tasks))
+
+    num_nonzero = np.count_nonzero(np.sum(w, axis=1))
+  
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+  
+    cleared_dataset = dc.data.remove_dead_examples(dataset)
+    assert len(cleared_dataset) == num_nonzero
+
   def test_get_task_support_simple(self):
     """Tests that get_task_support samples correctly."""
     n_samples = 20
@@ -181,6 +202,34 @@ class TestSupports(unittest.TestCase):
     np.testing.assert_array_equal(task_dataset.w, w[n_support:]) 
     np.testing.assert_array_equal(task_dataset.ids, ids[n_support:]) 
 
+  def test_dataset_difference_simple(self):
+    """Test that fixed index can be removed from dataset."""
+    n_samples = 20
+    n_remove = 5
+    n_features = 3
+    n_tasks = 1
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    remove_dataset = dc.data.NumpyDataset(X[:n_remove], y[:n_remove],
+                                          w[:n_remove], ids[:n_remove])
+
+    out_dataset = dc.data.dataset_difference(
+        dataset, remove_dataset)
+
+    # Assert all remove elements have been removed
+    assert len(out_dataset) == n_samples - n_remove
+    np.testing.assert_array_equal(out_dataset.X, X[n_remove:]) 
+    np.testing.assert_array_equal(out_dataset.y, y[n_remove:]) 
+    np.testing.assert_array_equal(out_dataset.w, w[n_remove:]) 
+    np.testing.assert_array_equal(out_dataset.ids, ids[n_remove:]) 
+
   def test_get_task_minus_support(self):
     """Test that random index support can be removed from dataset."""
     n_samples = 10
@@ -211,6 +260,38 @@ class TestSupports(unittest.TestCase):
     np.testing.assert_array_equal(task_dataset.y, y[data_inds]) 
     np.testing.assert_array_equal(task_dataset.w, w[data_inds]) 
     np.testing.assert_array_equal(task_dataset.ids, ids[data_inds]) 
+
+  def test_dataset_difference(self):
+    """Test that random index can be removed from dataset."""
+    n_samples = 10
+    n_remove = 4 
+    n_features = 3
+    n_tasks = 1
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    remove_inds = sorted(np.random.choice(
+        np.arange(n_samples), (n_remove,), replace=False))
+    remove_dataset = dc.data.NumpyDataset(X[remove_inds], y[remove_inds],
+                                          w[remove_inds], ids[remove_inds])
+
+    out_dataset = dc.data.dataset_difference(
+        dataset, remove_dataset)
+
+    # Assert all remove elements have been removed
+    data_inds = sorted(list(set(range(n_samples)) - set(remove_inds)))
+    assert len(out_dataset) == n_samples - n_remove
+    np.testing.assert_array_equal(out_dataset.X, X[data_inds]) 
+    np.testing.assert_array_equal(out_dataset.y, y[data_inds]) 
+    np.testing.assert_array_equal(out_dataset.w, w[data_inds]) 
+    np.testing.assert_array_equal(out_dataset.ids, ids[data_inds]) 
+
 
   def test_get_task_minus_support_missing(self):
     """Test that support can be removed from dataset with missing data"""
