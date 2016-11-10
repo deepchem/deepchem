@@ -24,11 +24,10 @@ def load_sider():
   print("SIDER tasks: %s" % str(SIDER_tasks))
   print("%d tasks in total" % len(SIDER_tasks))
 
-
   loader = dc.load.DataLoader(tasks=SIDER_tasks,
-                      smiles_field="smiles",
-                      featurizer=featurizer,
-                      verbosity="high")
+                              smiles_field="smiles",
+                              featurizer=featurizer,
+                              verbosity='high')
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))
 
