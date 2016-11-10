@@ -107,7 +107,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     
 
     #running model
-    for i, hp in enumerate(hyper_parameters[model]):
+    for count, hp in enumerate(hyper_parameters[model]):
       time_start_fitting = time.time()
       train_score,valid_score = benchmark_train_and_valid(base_dir,
                                     train_dataset, valid_dataset, tasks,
@@ -116,7 +116,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
       time_finish_fitting = time.time()
       
       with open(os.path.join(out_path,'results.csv'),'a') as f:
-        f.write('\n\n'+str(i))
+        f.write('\n\n'+str(count))
         f.write('\n'+dname+',train')
         for i in train_score:
           f.write(','+i+','+str(train_score[i]['mean-roc_auc_score']))
@@ -335,6 +335,5 @@ if __name__ == '__main__':
   
   hps['rf'] = [{'n_estimators':500}]
                 
-  benchmark_loading_datasets(base_dir_o,hps,n_features = 1024,
-                             dataset_name = dataset_name, model = model,
-                             reload = reload, verbosity = 'high')
+  benchmark_loading_datasets(base_dir_o,hps,dataset_name = dataset_name,
+                             model = model,reload = reload,verbosity = 'high')
