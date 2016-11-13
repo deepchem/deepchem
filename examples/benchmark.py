@@ -253,7 +253,7 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
-      graph_model = dc.models.SequentialGraphModel(n_features)
+      graph_model = dc.nn.SequentialGraph(n_features)
       graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphPool())
