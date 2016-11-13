@@ -483,7 +483,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     classification_metric = dc.metrics.Metric(
       dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
     tensorflow_model = dc.models.TensorflowLogisticRegression(
-        n_tasks, n_features, learning_rate=0.01, weight_init_stddevs=[.01],
+        n_tasks, n_features, learning_rate=0.5 weight_init_stddevs=[.01],
         batch_size=n_samples, verbosity=verbosity)
     model = dc.models.TensorflowModel(tensorflow_model)
 
