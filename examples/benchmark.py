@@ -74,10 +74,10 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     raise ValueError('Dataset not supported')
                           
   if model in ['graphconv']:
-    featurize = 'GraphConv'
+    featurizer = 'GraphConv'
     n_features = 71
   elif model in ['tf','logreg','rf']:
-    featurize = 'ECFP'
+    featurizer = 'ECFP'
     n_features = 1024
   else:
     raise ValueError('Model not supported')
@@ -100,7 +100,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     
     time_start = time.time()
     #loading datasets     
-    tasks,datasets,transformers = loading_functions[dname](featurize=featurize)
+    tasks,datasets,transformers = loading_functions[dname](featurizer=featurizer)
     train_dataset, valid_dataset, test_dataset = datasets
     time_finish_loading = time.time()
     #time_finish_loading-time_start is the time(s) used for dataset loading
