@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_sider(method = 'ECFP'):
+def load_sider(featurizer='ECFP'):
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
 	  # Load SIDER dataset
@@ -23,10 +23,10 @@ def load_sider(method = 'ECFP'):
 
   # Featurize SIDER dataset
   print("About to featurize SIDER dataset.")
-  if method == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
-  elif method == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+  if featurizer == 'ECFP':
+    featurizer_func = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer_func = dc.feat.ConvMolFeaturizer()
 
   SIDER_tasks = dataset.columns.values[1:].tolist()
   print("SIDER tasks: %s" % str(SIDER_tasks))
@@ -34,7 +34,7 @@ def load_sider(method = 'ECFP'):
 
   loader = dc.load.DataLoader(tasks=SIDER_tasks,
                               smiles_field="smiles",
-                              featurizer=featurizer,
+                              featurizer=featurizer_func,
                               verbosity='high')
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))

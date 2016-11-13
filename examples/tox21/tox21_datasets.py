@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_tox21(method = 'ECFP'):
+def load_tox21(featurizer='ECFP'):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
@@ -20,13 +20,13 @@ def load_tox21(method = 'ECFP'):
   tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
-  if method == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
-  elif method == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+  if featurizer == 'ECFP':
+    featurizer_func = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer_func = dc.feat.ConvMolFeaturizer()
   loader = dc.load.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles",
-      featurizer=featurizer, verbosity = 'high')
+      featurizer=featurizer_func, verbosity = 'high')
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 

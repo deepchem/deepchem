@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 import deepchem as dc
 from keras import backend as K
-from tox21_datasets import load_tox21_convmol
+from tox21_datasets import load_tox21
 
 # Only for debug!
 np.random.seed(123)
@@ -28,7 +28,7 @@ with g.as_default():
 
   # Load Tox21 dataset
   n_features = 1024
-  tox21_tasks, tox21_datasets, transformers = load_tox21(method = 'GraphConv')
+  tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='GraphConv')
   train_dataset, valid_dataset, test_dataset = tox21_datasets
 
   # Fit models

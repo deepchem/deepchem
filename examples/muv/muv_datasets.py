@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_muv(method = 'ECFP'):
+def load_muv(featurizer='ECFP'):
   """Load MUV datasets. Does not do train/test split"""
   # Load MUV dataset
   print("About to load MUV dataset.")
@@ -20,10 +20,10 @@ def load_muv(method = 'ECFP'):
   # Featurize MUV dataset
   print("About to featurize MUV dataset.")
 
-  if method == 'ECFP':
-      featurizer = dc.feat.CircularFingerprint(size=1024)
-  elif method == 'GraphConv':
-      featurizer = dc.feat.ConvMolFeaturizer()
+  if featurizer == 'ECFP':
+      featurizer_func = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+      featurizer_func = dc.feat.ConvMolFeaturizer()
       
   MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                       'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
@@ -32,7 +32,7 @@ def load_muv(method = 'ECFP'):
 
   loader = dc.load.DataLoader(
       tasks=MUV_tasks, smiles_field="smiles",
-      featurizer=featurizer, verbosity="high")
+      featurizer=featurizer_func, verbosity="high")
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers 
