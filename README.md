@@ -206,20 +206,20 @@ different subclasses of ``Featurizer`` for convenience:
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
 |-----------|--------------------|-------------------|-------------------|----------------|---------------| 
 |tox21      |logistic regression |0.910              |0.759              |30              |30             |
-|           |tensorflow(MT-NN)   |0.987              |0.800              |                |30             |
-|           |graph convolution   |0.930              |0.819              |                |40             |
-|muv        |logistic regression |0.910              |0.744              |400             |800            |
-|           |tensorflow(MT-NN)   |0.980              |0.710              |                |800            |
-|           |graph convolution   |0.881              |0.832              |                |1200           |
+|           |tensorflow(MT-NN)   |0.987              |0.800              |30              |30             |
+|           |graph convolution   |0.930              |0.819              |40              |40             |
+|muv        |logistic regression |0.910              |0.744              |600             |800            |
+|           |tensorflow(MT-NN)   |0.980              |0.710              |600             |800            |
+|           |graph convolution   |0.881              |0.832              |800             |1200           |
 |pcba       |logistic regression |0.759        	     |0.736              |1800            |5400           |                                         
-|           |tensorflow(MT-NN)	 |0.949        	     |0.791              |                |7200           |                                         
-|           |graph convolution   |0.866        	     |0.836              |                |20000          |                                         
-|sider      |logistic regression |0.900        	     |0.620              |20              |40             |                                         
-|           |tensorflow(MT-NN)	 |0.931        	     |0.647              |                |60             |                                         
-|           |graph convolution   |0.845        	     |0.646              |                |60             |                                         
+|           |tensorflow(MT-NN)	 |0.949        	     |0.791              |1800            |7200           |                                         
+|           |graph convolution   |0.866        	     |0.836              |2200            |20000          |                                         
+|sider      |logistic regression |0.900        	     |0.620              |15              |40             |                                         
+|           |tensorflow(MT-NN)	 |0.931        	     |0.647              |15              |60             |                                         
+|           |graph convolution   |0.845        	     |0.646              |20              |60             |                                         
 |toxcast    |logistic regression |0.762        	     |0.622              |80              |2000           |                                         
-|           |tensorflow(MT-NN)	 |0.926        	     |0.705              |                |2400           |                                         
-|           |graph convolution   |0.906        	     |0.725              |                |3000           |                                         
+|           |tensorflow(MT-NN)	 |0.926        	     |0.705              |80              |2400           |                                         
+|           |graph convolution   |0.906        	     |0.725              |80              |3000           |                                         
 
 
 ## Contributing to DeepChem
