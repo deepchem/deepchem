@@ -14,9 +14,8 @@ from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models import TensorflowGraphModel
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.utils.save import log
-from deepchem.datasets import pad_features
-from deepchem.metrics import to_one_hot
 from deepchem.data import pad_features
+from deepchem.metrics import to_one_hot
 
 def weight_decay(penalty_type, penalty):
   # due to the different shape of weight(ndims=2) and bias(ndims=1),
