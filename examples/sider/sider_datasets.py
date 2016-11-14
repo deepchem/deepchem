@@ -10,23 +10,31 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_sider():
-  """Load SIDER datasets. Does not do train/test split"""
-  # Featurize SIDER dataset
-  print("About to featurize SIDER dataset.")
+def load_sider(featurizer='ECFP'):
   current_dir = os.path.dirname(os.path.realpath(__file__))
+
+	  # Load SIDER dataset
+  print("About to load SIDER dataset.")
   dataset_file = os.path.join(
       current_dir, "./sider.csv.gz")
-  featurizer = dc.feat.CircularFingerprint(size=1024)
-
   dataset = dc.utils.save.load_from_disk(dataset_file)
+  print("Columns of dataset: %s" % str(dataset.columns.values))
+  print("Number of examples in dataset: %s" % str(dataset.shape[0]))
+
+  # Featurize SIDER dataset
+  print("About to featurize SIDER dataset.")
+  if featurizer == 'ECFP':
+    featurizer_func = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer_func = dc.feat.ConvMolFeaturizer()
+
   SIDER_tasks = dataset.columns.values[1:].tolist()
   print("SIDER tasks: %s" % str(SIDER_tasks))
   print("%d tasks in total" % len(SIDER_tasks))
 
   loader = dc.load.DataLoader(tasks=SIDER_tasks,
                               smiles_field="smiles",
-                              featurizer=featurizer,
+                              featurizer=featurizer_func,
                               verbosity='high')
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))
@@ -39,6 +47,7 @@ def load_sider():
     dataset = transformer.transform(dataset)
 
   splitter = dc.splits.IndexSplitter()
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  train, valid, test = splitter.train_valid_test_split(dataset,
+      compute_feature_statistics=False)
 
   return SIDER_tasks, (train, valid, test), transformers

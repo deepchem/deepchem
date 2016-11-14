@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_pcba():
+def load_pcba(featurizer='ECFP'):
   """Load PCBA datasets. Does not do train/test split"""
   
   current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -19,7 +19,10 @@ def load_pcba():
   
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
-  featurizer = dc.feat.CircularFingerprint(size=1024)
+  if featurizer == 'ECFP':
+      featurizer_func = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+      featurizer_func = dc.feat.ConvMolFeaturizer()
   PCBA_tasks = [
       'PCBA-1030','PCBA-1379','PCBA-1452','PCBA-1454','PCBA-1457',
       'PCBA-1458','PCBA-1460','PCBA-1461','PCBA-1468','PCBA-1469',
@@ -49,7 +52,7 @@ def load_pcba():
 
   loader = dc.load.DataLoader(tasks=PCBA_tasks,
                       	      smiles_field="smiles",
-	                      featurizer=featurizer)
+	                      featurizer=featurizer_func)
   
   dataset = loader.featurize(dataset_file)
   # Initialize transformers 
@@ -62,6 +65,7 @@ def load_pcba():
   
   splitter = dc.splits.RandomSplitter()
   print("Performing new split.")
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  train, valid, test = splitter.train_valid_test_split(
+	dataset, compute_feature_statistics=False)
 
   return PCBA_tasks, (train, valid, test), transformers
