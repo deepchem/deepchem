@@ -211,8 +211,8 @@ different subclasses of ``Featurizer`` for convenience:
 |muv        |17         |93127      |logistic regression |0.910              |0.744              |600             |800            |
 |           |           |           |tensorflow(MT-NN)   |0.980              |0.710              |600             |800            |
 |           |           |           |graph convolution   |0.881              |0.832              |800             |1200           |
-|pcba       |128        |439863     |logistic regression |0.759        	     |0.736              |1800            |5400           |                                         
-|           |           |           |tensorflow(MT-NN)	 |0.949        	     |0.791              |1800            |7200           |                                         
+|pcba       |128        |439863     |logistic regression |0.794        	     |0.762              |1800            |15000          |                                         
+|           |           |           |tensorflow(MT-NN)	 |0.949        	     |0.791              |1800            |15000          |                                         
 |           |           |           |graph convolution   |0.866        	     |0.836              |2200            |20000          |                                         
 |sider      |27         |1427       |logistic regression |0.900        	     |0.620              |15              |40             |                                         
 |           |           |           |tensorflow(MT-NN)	 |0.931        	     |0.647              |15              |60             |                                         
