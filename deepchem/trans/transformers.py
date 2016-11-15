@@ -533,12 +533,14 @@ class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list."""
   """Acts like a Cumulative Distribution Function (CDF)."""
   def __init__(self, transform_X=False,
-               transform_y=False,
+               transform_y=False, dataset=None,
                bins=2):
     self.transform_X = transform_X
     self.transform_y = transform_y
     self.bins = bins
-  # TODO (flee2): for transform_y, figure out weights, untransform
+    self.y = dataset.y
+    #self.w = dataset.w
+  # TODO (flee2): for transform_y, figure out weights
 
   def transform(self, dataset, bins):
     """Performs CDF transform on data."""
@@ -549,16 +551,16 @@ class CDFTransformer(Transformer):
       X_t = get_cdf_values(X,self.bins)
       y_t = y
     if self.transform_y:
-      print("y will not be transformed by CDFTransformer, for now.")
-      """
-      y_t = get_cdf_values(y,self.bins)
       X_t = X
-      """
+      y_t = get_cdf_values(y,self.bins)
+      #print("y will not be transformed by CDFTransformer, for now.")
     return NumpyDataset(X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    print("Cannot undo CDF Transformer, for now.")
+    # print("Cannot undo CDF Transformer, for now.")
     # Need this for transform_y
+    if self.transform_y:
+      return self.y
 
 def get_cdf_values(array, bins):
   #array = np.transpose(array)
@@ -601,23 +603,23 @@ class PowerTransformer(Transformer):
       	X_t = np.hstack((X_t,np.power(X, self.powers[i])))
       y_t = y
     if self.transform_y:
-      print("y will not be transformed by PowerTransformer, for now.")
-      """
+      # print("y will not be transformed by PowerTransformer, for now.")
       y_t = np.power(y, self.powers[0])
       for i in range(1, n_powers):
       	y_t = np.hstack((y_t,np.power(y, self.powers[i])))
       X_t = X
-      """
-
-    # TODO (rbharath): Find a more elegant solution to saving the data?
+    """
     shutil.rmtree(dataset.data_dir)
     os.makedirs(dataset.data_dir)
-    DiskDataset.from_numpy(X_t, y_t, w_t, ids_t, data_dir=dataset.data_dir)
+    DiskDataset.from_numpy(dataset.data_dir, X_t, y_t, w_t, ids_t)
     return dataset
+    """
+    return NumpyDataset(X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    print("Cannot undo Power Transformer, for now.")    
-    """
-    orig_len = (z.shape[1])/(self.n_powers+1)
+    # print("Cannot undo Power Transformer, for now.")    
+    n_powers = len(self.powers)
+    orig_len = (z.shape[1])/n_powers
     z = z[:,:orig_len]
-    """
+    z = np.power(z, 1/self.powers[0])
+    return z
