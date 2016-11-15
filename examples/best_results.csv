@@ -2,6 +2,7 @@ tox21,logreg,train,0.910,valid,0.759,learning_rate,0.004~0.008,penalty(l1 or l2)
 sider,logreg,train,0.900,valid,0.620,learning_rate,0.004~0.008,penalty(l2),0.4~1
 muv,logreg,train,0.910,valid,0.744,learning_rate,0.002~0.004,penalty(l2),0.4~0.7
 toxcast,logreg,train,0.762,valid,0.622,learning_rate,0.004~0.1,penalty(l2),0.2~0.6
+pcba,logreg,train,0.794,valid,0.762,learning_rate,0.004,penalty(l2),0.3
 
 sider,tf,train,0.931,valid,0.647,learning_rate,0.0003~0.003,dropouts,0.2~0.3,layer_sizes,1000~1200
 tox21,tf,train,0.996,valid,0.763,learning_rate,0.001~0.003,dropouts,0.4~0.5,layer_sizes,1000~1200
