@@ -463,6 +463,38 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  def test_tf_robust_multitask_classification_overfit(self):
+    """Test tf robust multitask overfits tiny data."""
+    n_tasks = 10
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    verbosity = "high"
+    classification_metric = dc.metrics.Metric(
+      dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
+    tensorflow_model = dc.models.RobustMultitaskClassifier(
+        n_tasks, n_features, layer_sizes=[50],
+        bypass_layer_sizes=[10], dropouts=[0.],
+        learning_rate=0.003, weight_init_stddevs=[.1],
+        batch_size=n_samples, verbosity=verbosity)
+    model = dc.models.TensorflowModel(tensorflow_model)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=25)
+    model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+    assert scores[classification_metric.name] > .9
 
   def test_tf_logreg_multitask_classification_overfit(self):
     """Test tf multitask overfits tiny data."""
