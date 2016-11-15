@@ -200,8 +200,7 @@ class TestTransformers(unittest.TestCase):
     target = np.transpose(np.array(np.append([target],[target], axis=0)))
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     bins=1001
-    cdf_transformer = dc.trans.CDFTransformer(transform_X=True,
-                                                     bins=bins)
+    cdf_transformer = dc.trans.CDFTransformer(transform_X=True, dataset=gaussian_dataset, bins=bins)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
     X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
@@ -217,21 +216,16 @@ class TestTransformers(unittest.TestCase):
     sorted = np.sort(X_t,axis=0)
     np.testing.assert_allclose(sorted, target)
 
-  """
   def test_cdf_y_transformer(self):
     #Test CDF transformer on Gaussian normal dataset.
     target = np.array(np.transpose(np.linspace(0.,1.,1001)))
     target = np.transpose(np.array(np.append([target],[target], axis=0)))
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     bins=1001
-    cdf_transformer = dc.trans.CDFTransformer(transform_y=True, bins=bins)
-    X, y, w, ids = (gaussian_dataset.X, gaussian_dataset.y, gaussian_dataset.w,
-                    gaussian_dataset.ids)
+    cdf_transformer = dc.trans.CDFTransformer(transform_y=True, dataset=gaussian_dataset, bins=bins)
+    X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
     gaussian_dataset = cdf_transformer.transform(gaussian_dataset, bins=bins)
-    gaussian_dataset = dc.data.DiskDataset(
-        data_dir=gaussian_dataset.data_dir,reload=True)
-    X_t, y_t, w_t, ids_t = (gaussian_dataset.X, gaussian_dataset.y,
-                            gaussian_dataset.w, gaussian_dataset.ids)
+    X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -243,19 +237,18 @@ class TestTransformers(unittest.TestCase):
     # Check y is now holding the proper values when sorted.
     sorted = np.sort(y_t,axis=0)
     np.testing.assert_allclose(sorted, target)
-  """
+
+    # Check that untransform does the right thing.
+    np.testing.assert_allclose(cdf_transformer.untransform(y_t), y)
   
   def test_power_X_transformer(self):
     """Test Power transformer on Gaussian normal dataset."""
     gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
     powers=[1,2,0.5]
-    power_transformer = dc.trans.PowerTransformer(
-        transform_X=True, powers=powers)
+    power_transformer = dc.trans.PowerTransformer(transform_X=True, powers=powers)
     X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
-    gaussian_dataset = power_transformer.transform(gaussian_dataset)
-    gaussian_dataset = dc.data.DiskDataset(
-        data_dir=gaussian_dataset.data_dir,reload=True)
-    X_t, y_t, w_t, ids_t = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
+    gaussian_dataset2 = power_transformer.transform(gaussian_dataset)
+    X_t, y_t, w_t, ids_t = (gaussian_dataset2.X,gaussian_dataset2.y,gaussian_dataset2.w,gaussian_dataset2.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
@@ -265,10 +258,36 @@ class TestTransformers(unittest.TestCase):
     # Check w is unchanged since this is an X transformer
     np.testing.assert_allclose(w, w_t)
     # Check X is now holding the proper values in each column.
+    np.testing.assert_allclose(X_t.shape[1],len(powers)*X.shape[1])
     np.testing.assert_allclose(X, X_t[:,:2])
     np.testing.assert_allclose(np.power(X,2),X_t[:,2:4])
     np.testing.assert_allclose(np.power(X,0.5),X_t[:,4:])
   
+  def test_power_y_transformer(self):
+    """Test Power transformer on Gaussian normal dataset."""
+    gaussian_dataset = dc.data.tests.load_gaussian_cdf_data()
+    powers=[1,2,0.5]
+    power_transformer = dc.trans.PowerTransformer(transform_y=True, powers=powers)
+    X, y, w, ids = (gaussian_dataset.X,gaussian_dataset.y,gaussian_dataset.w,gaussian_dataset.ids)
+    gaussian_dataset2 = power_transformer.transform(gaussian_dataset)
+    X_t, y_t, w_t, ids_t = (gaussian_dataset2.X,gaussian_dataset2.y,gaussian_dataset2.w,gaussian_dataset2.ids)
+
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check X is unchanged since this is an X transformer
+    np.testing.assert_allclose(X, X_t)
+    # Check w is unchanged since this is an X transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check y is now holding the proper values in each column.
+    np.testing.assert_allclose(y_t.shape[1],len(powers)*y.shape[1])
+    np.testing.assert_allclose(y, y_t[:,:2])
+    np.testing.assert_allclose(np.power(y,2),y_t[:,2:4])
+    np.testing.assert_allclose(np.power(y,0.5),y_t[:,4:])
+
+    # Check that untransform does the right thing.
+    np.testing.assert_allclose(power_transformer.untransform(y_t), y)
+
   def test_singletask_balancing_transformer(self):
     """Test balancing transformer on single-task dataset."""
 
