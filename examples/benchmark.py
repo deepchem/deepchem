@@ -10,16 +10,16 @@ Giving performances of RF(scikit) and MultitaskDNN(TF)
 on datasets: muv, nci, pcba, tox21
 
 time estimation(on a nvidia tesla K20 GPU):
-tox21 - dataloading: 30s
-      - tf: 40s
-muv   - dataloading: 400s
-      - tf: 250s
-pcba  - dataloading: 30min
-      - tf: 2h
-sider - dataloading: 10s
-      - tf: 60s
-toxcast dataloading: 70s
-	tf: 40min
+tox21   - dataloading: 30s
+        - tf: 40s
+muv     - dataloading: 400s
+        - tf: 250s
+pcba    - dataloading: 30min
+        - tf: 2h
+sider   - dataloading: 10s
+        - tf: 60s
+toxcast - dataloading: 70s
+	      - tf: 40min
 (will include more)
 
 Total time of running a benchmark test: 3~4h
@@ -48,7 +48,7 @@ from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
                                dataset_name='all',model='tf',reload = True,
-                               verbosity='high',out_path='/tmp'):
+                               verbosity='high', out_path='/tmp'):
   """
   Loading dataset for benchmark test
   
@@ -76,7 +76,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   if model in ['graphconv']:
     featurizer = 'GraphConv'
     n_features = 71
-  elif model in ['tf','logreg','rf']:
+  elif model in ['tf', 'tf_robust', 'logreg', 'rf']:
     featurizer = 'ECFP'
     n_features = 1024
   else:
@@ -88,9 +88,9 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   else:
     dataset_name = [dataset_name]
   
-  loading_functions = {'tox21':load_tox21, 'muv':load_muv,
-                       'pcba':load_pcba, 'nci':load_nci,
-                       'sider':load_sider, 'toxcast':load_toxcast}
+  loading_functions = {'tox21': load_tox21, 'muv': load_muv,
+                       'pcba': load_pcba, 'nci': load_nci,
+                       'sider': load_sider, 'toxcast': load_toxcast}
   
   for dname in dataset_name:
     print('-------------------------------------')
@@ -112,10 +112,10 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
       train_score,valid_score = benchmark_train_and_valid(base_dir,
                                     train_dataset, valid_dataset, tasks,
                                     transformers, hp, n_features,
-                                    model = model,verbosity = verbosity)      
+                                    model=model,verbosity = verbosity)      
       time_finish_fitting = time.time()
       
-      with open(os.path.join(out_path,'results.csv'),'a') as f:
+      with open(os.path.join(out_path, 'results.csv'),'a') as f:
         f.write('\n\n'+str(count))
         f.write('\n'+dname+',train')
         for i in train_score:
@@ -133,7 +133,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
 
   return None
 
-def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
+def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
                               transformers, hyper_parameters,
                               n_features, model = 'tf',
                               verbosity = 'high'):
@@ -183,39 +183,63 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
                                             verbosity=verbosity,
                                             mode="classification")
   
-  assert model in ['graphconv', 'tf', 'rf','logreg']
+  assert model in ['graphconv', 'tf', 'tf_robust', 'rf','logreg']
 
   if model == 'tf':
-    # Initialize model folder
-    model_dir_tf = os.path.join(base_dir, "model_tf")
-    
-      # Building tensorflow MultiTaskDNN model
+    # Building tensorflow MultiTaskDNN model
     dropouts = hyper_parameters['dropouts']
     learning_rate = hyper_parameters['learning_rate']
     layer_sizes = hyper_parameters['layer_sizes']
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(len(tasks),
-          n_features,  learning_rate=learning_rate, layer_sizes=layer_sizes, 
+    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
+          n_features, learning_rate=learning_rate, layer_sizes=layer_sizes, 
           dropouts=dropouts, batch_size=batch_size, 
           verbosity=verbosity)
-    model_tf = dc.models.TensorflowModel(tensorflow_model)
  
     print('-------------------------------------')
     print('Start fitting by tensorflow')
     model_tf.fit(train_dataset,nb_epoch = nb_epoch)
     
-    train_scores['tensorflow'] = model_tf.evaluate(train_dataset,
-                                        [classification_metric],transformers)
+    train_scores['tensorflow'] = model_tf.evaluate(
+        train_dataset, [classification_metric], transformers)
 
-    valid_scores['tensorflow'] = model_tf.evaluate(valid_dataset,
-                                        [classification_metric],transformers)
+    valid_scores['tensorflow'] = model_tf.evaluate( 
+        valid_dataset, [classification_metric], transformers)
+
+  if model == 'tf_robust':
+    # Building tensorflow MultiTaskDNN model
+    dropouts = hyper_parameters['dropouts']
+    bypass_dropouts = hyper_parameters['bypass_dropouts']
+    learning_rate = hyper_parameters['learning_rate']
+    layer_sizes = hyper_parameters['layer_sizes']
+    bypass_layer_sizes = hyper_parameters['bypass_layer_sizes']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+
+    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
+          n_features, learning_rate=learning_rate, layer_sizes=layer_sizes, 
+          dropouts=dropouts, batch_size=batch_size, 
+          verbosity=verbosity)
+    model_robust = dc.models.RobustMultitaskClassifier(
+        len(tasks), n_features, learning_rate=learning_rate,
+        layer_sizes=layer_sizes, bypass_layer_sizes=bypass_layer_sizes,
+        dropouts=dropouts, bypass_dropouts=bypass_dropouts, 
+        batch_size=batch_size, verbosity="high")
+ 
+    print('-------------------------------------')
+    print('Start fitting by tensorflow')
+    model_robust.fit(train_dataset,nb_epoch = nb_epoch)
+    
+    train_scores['tf_robust'] = model_robust.evaluate(
+        train_dataset, [classification_metric], transformers)
+
+    valid_scores['tf_robust'] = model_robust.evaluate( 
+        valid_dataset, [classification_metric], transformers)
+
 
   if model == 'logreg':
-    # Initialize model folder
-    model_dir_logreg = os.path.join(base_dir, "model_logreg")
-    
     # Building tensorflow logistic regression model
     learning_rate = hyper_parameters['learning_rate']
     penalty = hyper_parameters['penalty']
@@ -223,11 +247,10 @@ def benchmark_train_and_valid(base_dir,train_dataset,valid_dataset,tasks,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
-    tensorflow_model = dc.models.TensorflowLogisticRegression(len(tasks),
+    model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
           n_features, learning_rate=learning_rate, penalty=penalty, 
           penalty_type=penalty_type, batch_size=batch_size, 
           verbosity=verbosity)
-    model_logreg = dc.models.TensorflowModel(tensorflow_model)
  
     print('-------------------------------------')
     print('Start fitting by logistic regression')
@@ -317,23 +340,29 @@ if __name__ == '__main__':
   os.makedirs(base_dir_o)
   
   #Datasets and models used in the benchmark test, all=all the datasets
-  dataset_name = 'tox21'
+  dataset_name = 'muv'
   model = 'tf'
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
   #    batch_size
   hps = {}
-  hps['tf'] = [{'dropouts':[0.25],'learning_rate':0.001,'layer_sizes':[1000],
-                'batch_size':50, 'nb_epoch':10}]
+  hps['tf'] = [{'dropouts': [0.25], 'learning_rate': 0.001,
+                'layer_sizes': [1000], 'batch_size': 50, 'nb_epoch': 10}]
+
+  hps['tf_robust'] = [{'dropouts': [0.5], 'bypass_dropouts': [0.5],
+                       'learning_rate': 0.001,
+                       'layer_sizes': [500], 'bypass_layer_sizes': [100],
+                       'batch_size': 50, 'nb_epoch': 10}]
                 
-  hps['logreg'] = [{'learning_rate':0.001, 'penalty':0.05, 
-                'penalty_type': 'l1', 'batch_size':50, 'nb_epoch':10}]
+  hps['logreg'] = [{'learning_rate': 0.001, 'penalty': 0.05, 
+                    'penalty_type': 'l1', 'batch_size': 50, 'nb_epoch': 10}]
                 
-  hps['graphconv'] = [{'learning_rate':0.001, 'n_filters': 64,
-                'n_fully_connected_nodes':128, 'batch_size':50, 'nb_epoch':10}]
+  hps['graphconv'] = [{'learning_rate': 0.001, 'n_filters': 64,
+                       'n_fully_connected_nodes': 128, 'batch_size': 50,
+                       'nb_epoch': 10}]
   
-  hps['rf'] = [{'n_estimators':500}]
+  hps['rf'] = [{'n_estimators': 500}]
                 
-  benchmark_loading_datasets(base_dir_o,hps,dataset_name = dataset_name,
-                             model = model,reload = reload,verbosity = 'high')
+  benchmark_loading_datasets(base_dir_o, hps, dataset_name=dataset_name,
+                             model=model, reload=reload, verbosity='high')

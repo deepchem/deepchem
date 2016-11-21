@@ -20,7 +20,7 @@ class SingletaskToMultitask(Model):
 
   Warning: This current implementation is only functional for sklearn models. 
   """
-  def __init__(self, tasks, model_builder, model_dir=None, verbosity=None):
+  def __init__(self, tasks, model_builder, model_dir=None, verbosity="high"):
     self.tasks = tasks
     if model_dir is not None:
       if not os.path.exists(model_dir):
