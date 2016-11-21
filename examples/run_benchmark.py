@@ -40,7 +40,7 @@ n_fully_connected_nodes_0 = [100,120,140,160,200,240,300]
 n_estimators_0 = [500]
 seed = None
 
-out_path='/home/zqwu/deepchem/examples'
+out_path='.'
 base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
 
 dname = sys.argv[1]
