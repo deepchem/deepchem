@@ -160,8 +160,6 @@ class TensorflowGraphModel(Model):
     self.train_graph = self.construct_graph(training=True)
     self.eval_graph = self.construct_graph(training=False)
 
-  ################################################################ DEBUG
-
   def save(self):
     """
     No-op since tf models save themselves during fit()
@@ -172,12 +170,10 @@ class TensorflowGraphModel(Model):
     """
     Loads model from disk. Thin wrapper around restore() for consistency.
     """
-    self.model_instance.restore()
+    self.restore()
 
   def get_num_tasks(self):
     return self.n_tasks
-  ################################################################ DEBUG
-
 
   def construct_graph(self, training):
     """Returns a TensorflowGraph object."""
@@ -281,8 +277,8 @@ class TensorflowGraphModel(Model):
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
               ############################################################ DEBUG
               ## hardcode pad_batches=True to work around limitations in Tensorflow
-              #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(batch_size, pad_batches=False)):
+              dataset.iterbatches(batch_size, pad_batches=True)):
+              #dataset.iterbatches(batch_size, pad_batches=False)):
               #dataset.iterbatches(batch_size, pad_batches=pad_batches)):
               ############################################################ DEBUG
             if ind % log_every_N_batches == 0:
@@ -684,8 +680,6 @@ class TensorflowRegressor(TensorflowGraphModel):
       outputs = []
       with self._get_shared_session(train=False).as_default():
         n_samples = len(X)
-        # TODO(rbharath): Should this be padding there? Shouldn't padding be
-        # turned on in predict?
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)

@@ -165,9 +165,8 @@ class TestHyperparamOptAPI(unittest.TestCase):
     params_dict = {"layer_sizes": [(10,), (100,)]}
 
     def model_builder(model_params, model_dir):
-        tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
-            len(tasks), n_features, model_dir, **model_params)
-        return dc.models.TensorflowModel(tensorflow_model)
+      return dc.models.TensorflowMultiTaskClassifier(
+          len(tasks), n_features, model_dir, **model_params)
     optimizer = dc.hyper.HyperparamOpt(model_builder)
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
       params_dict, train_dataset, valid_dataset, transformers, metric,
