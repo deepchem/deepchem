@@ -82,8 +82,6 @@ class TensorflowGraph(object):
       feed_dict['{}/{}:0'.format(placeholder_root, name)] = value
     return feed_dict
 
-
-#class TensorflowGraphModel(object):
 class TensorflowGraphModel(Model):
   """Parent class for deepchem Tensorflow models.
   
@@ -111,7 +109,7 @@ class TensorflowGraphModel(Model):
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
                momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
-               train=True, verbosity=None, **kwargs):
+               train=True, verbosity=None, seed=None, **kwargs):
     """Constructs the computational graph.
 
     Parameters
@@ -142,6 +140,7 @@ class TensorflowGraphModel(Model):
     self.n_classes = n_classes
     self.train = train
     self.verbosity = verbosity
+    self.seed = seed
     
     if logdir is not None:
       if not os.path.exists(logdir):
@@ -157,8 +156,8 @@ class TensorflowGraphModel(Model):
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
 
-    self.train_graph = self.construct_graph(training=True)
-    self.eval_graph = self.construct_graph(training=False)
+    self.train_graph = self.construct_graph(training=True, seed=self.seed)
+    self.eval_graph = self.construct_graph(training=False, seed=self.seed)
 
   def save(self):
     """
@@ -175,7 +174,7 @@ class TensorflowGraphModel(Model):
   def get_num_tasks(self):
     return self.n_tasks
 
-  def construct_graph(self, training):
+  def construct_graph(self, training, seed):
     """Returns a TensorflowGraph object."""
     graph = tf.Graph() 
 
@@ -188,6 +187,8 @@ class TensorflowGraphModel(Model):
 
     # Setup graph
     with graph.as_default():
+      if seed is not None:
+        tf.set_random_seed(seed)
       output = self.build(graph, name_scopes, training)
       labels = self.add_label_placeholders(graph, name_scopes)
       weights = self.add_example_weight_placeholders(graph, name_scopes)
@@ -277,8 +278,8 @@ class TensorflowGraphModel(Model):
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
               ############################################################ DEBUG
               ## hardcode pad_batches=True to work around limitations in Tensorflow
-              dataset.iterbatches(batch_size, pad_batches=True)):
-              #dataset.iterbatches(batch_size, pad_batches=False)):
+              #dataset.iterbatches(batch_size, pad_batches=True)):
+              dataset.iterbatches(batch_size, pad_batches=False)):
               #dataset.iterbatches(batch_size, pad_batches=pad_batches)):
               ############################################################ DEBUG
             if ind % log_every_N_batches == 0:
@@ -545,8 +546,11 @@ class TensorflowClassifier(TensorflowGraphModel):
         outputs = np.array(from_one_hot(
             np.squeeze(np.concatenate(output)), axis=-1))
 
+
     outputs = np.copy(outputs)
-    return outputs[:len_unpadded]
+    outputs = np.reshape(outputs, (len(X), n_tasks))
+    outputs = outputs[:len_unpadded]
+    return outputs
 
   def predict_proba_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
