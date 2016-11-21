@@ -169,11 +169,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, verbosity=verbosity)
     # TODO(rbharath): This breaks with optimizer="momentum". Why?
-    tensorflow_model = dc.models.TensorflowMultiTaskRegressor(
+    model = dc.models.TensorflowMultiTaskRegressor(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -272,11 +271,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
         dc.metrics.accuracy_score, verbosity=verbosity)
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -307,11 +305,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, verbosity=verbosity)
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -352,11 +349,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, verbosity=verbosity)
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[1.],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
@@ -449,11 +445,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
       dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset)
@@ -481,12 +476,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
       dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
-    tensorflow_model = dc.models.RobustMultitaskClassifier(
+    model = dc.models.RobustMultitaskClassifier(
         n_tasks, n_features, layer_sizes=[50],
         bypass_layer_sizes=[10], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
@@ -514,10 +508,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
     verbosity = "high"
     classification_metric = dc.metrics.Metric(
       dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
-    tensorflow_model = dc.models.TensorflowLogisticRegression(
+    model = dc.models.TensorflowLogisticRegression(
         n_tasks, n_features, learning_rate=0.5, weight_init_stddevs=[.01],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset)
@@ -613,11 +606,10 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, verbosity=verbosity,
         task_averager=np.mean, mode="regression")
-    tensorflow_model = dc.models.TensorflowMultiTaskRegressor(
+    model = dc.models.TensorflowMultiTaskRegressor(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
@@ -649,12 +641,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, verbosity=verbosity,
         task_averager=np.mean, mode="regression")
-    tensorflow_model = dc.models.RobustMultitaskRegressor(
+    model = dc.models.RobustMultitaskRegressor(
         n_tasks, n_features, layer_sizes=[50],
         bypass_layer_sizes=[10], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
         batch_size=n_samples, verbosity=verbosity)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)

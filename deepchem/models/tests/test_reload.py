@@ -110,20 +110,17 @@ class TestReload(unittest.TestCase):
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
     model_dir = tempfile.mkdtemp()
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
           n_tasks, n_features, model_dir, dropouts=[0.], verbosity="high")
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(dataset)
     model.save()
 
     # Load trained model
-    reloaded_tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    reloaded_model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, model_dir, dropouts=[0.],
         verbosity="high")
-    reloaded_model = dc.models.TensorflowModel(
-        reloaded_tensorflow_model)
     reloaded_model.reload()
 
     # Eval model on train
