@@ -19,7 +19,7 @@ pcba    - dataloading: 30min
 sider   - dataloading: 10s
         - tf: 60s
 toxcast - dataloading: 70s
-	      - tf: 40min
+        - tf: 40min
 (will include more)
 
 Total time of running a benchmark test: 3~4h
@@ -94,13 +94,14 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   
   for dname in dataset_name:
     print('-------------------------------------')
-    print('Benchmark test on dataset: '+dname)
+    print('Benchmark %s on dataset: %s' % (model, dname))
     print('-------------------------------------')
     base_dir = os.path.join(base_dir_o, dname)
     
     time_start = time.time()
     #loading datasets     
-    tasks,datasets,transformers = loading_functions[dname](featurizer=featurizer)
+    tasks, datasets, transformers = loading_functions[dname](
+        featurizer=featurizer)
     train_dataset, valid_dataset, test_dataset = datasets
     time_finish_loading = time.time()
     #time_finish_loading-time_start is the time(s) used for dataset loading
@@ -135,8 +136,8 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
 
 def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
                               transformers, hyper_parameters,
-                              n_features, model = 'tf',
-                              verbosity = 'high'):
+                              n_features, model='tf', seed=123,
+                              verbosity='high'):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -193,10 +194,10 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
-    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
-          n_features, learning_rate=learning_rate, layer_sizes=layer_sizes, 
-          dropouts=dropouts, batch_size=batch_size, 
-          verbosity=verbosity)
+    model_tf = dc.models.TensorflowMultiTaskClassifier(
+          len(tasks), n_features, learning_rate=learning_rate,
+          layer_sizes=layer_sizes, dropouts=dropouts, batch_size=batch_size, 
+          seed=seed, verbosity=verbosity)
  
     print('-------------------------------------')
     print('Start fitting by tensorflow')
@@ -218,15 +219,11 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
-    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
-          n_features, learning_rate=learning_rate, layer_sizes=layer_sizes, 
-          dropouts=dropouts, batch_size=batch_size, 
-          verbosity=verbosity)
     model_robust = dc.models.RobustMultitaskClassifier(
         len(tasks), n_features, learning_rate=learning_rate,
         layer_sizes=layer_sizes, bypass_layer_sizes=bypass_layer_sizes,
         dropouts=dropouts, bypass_dropouts=bypass_dropouts, 
-        batch_size=batch_size, verbosity="high")
+        batch_size=batch_size, seed=seed, verbosity=verbosity)
  
     print('-------------------------------------')
     print('Start fitting by tensorflow')
@@ -247,10 +244,10 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
 
-    model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
-          n_features, learning_rate=learning_rate, penalty=penalty, 
+    model_logreg = dc.models.TensorflowLogisticRegression(
+          len(tasks), n_features, learning_rate=learning_rate, penalty=penalty, 
           penalty_type=penalty_type, batch_size=batch_size, 
-          verbosity=verbosity)
+          seed=seed, verbosity=verbosity)
  
     print('-------------------------------------')
     print('Start fitting by logistic regression')
@@ -261,6 +258,7 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
 
     valid_scores['logreg'] = model_logreg.evaluate(valid_dataset,
                                [classification_metric],transformers)
+
   if model == 'graphconv':
     # Initialize model folder
     model_dir_graphconv = os.path.join(base_dir, "model_graphconv")
@@ -276,6 +274,7 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     sess = tf.Session(graph=g)
     K.set_session(sess)
     with g.as_default():
+      tf.set_random_seed(seed)
       graph_model = dc.nn.SequentialGraph(n_features)
       graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))

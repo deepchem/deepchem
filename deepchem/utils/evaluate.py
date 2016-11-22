@@ -35,8 +35,11 @@ class Evaluator(object):
   def __init__(self, model, dataset, transformers, verbosity=False):
     self.model = model
     self.dataset = dataset
-    self.output_transformers = [
-        transformer for transformer in transformers if transformer.transform_y]
+    ########################################################## DEBUG
+    #self.output_transformers = [
+    #    transformer for transformer in transformers if transformer.transform_y]
+    self.transformers = transformers
+    ########################################################## DEBUG
     self.task_names = dataset.get_task_names()
     self.verbosity = verbosity
 
@@ -71,19 +74,50 @@ class Evaluator(object):
     Computes statistics of model on test data and saves results to csv.
     """
     y = self.dataset.y
-    y = undo_transforms(y, self.output_transformers)
+    ################################################################ DEBUG
+    #print("self.output_transformers")
+    #print(self.output_transformers)
+    ################################################################ DEBUG
+    ################################################################ DEBUG
+    #y = undo_transforms(y, self.output_transformers)
+    y = undo_transforms(y, self.transformers)
+    ################################################################ DEBUG
     w = self.dataset.w
 
     if not len(metrics):
       return {}
     else:
       mode = metrics[0].mode
+    ################################################################ DEBUG
+    print("mode")
+    print(mode)
+    ################################################################ DEBUG
     if mode == "classification":
-      y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
+      ################################################################ DEBUG
+      #y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
+      #y_pred_print = self.model.predict(
+      #    self.dataset, self.output_transformers).astype(int)
+      y_pred = self.model.predict_proba(self.dataset, self.transformers)
       y_pred_print = self.model.predict(
-          self.dataset, self.output_transformers).astype(int)
+          self.dataset, self.transformers).astype(int)
+      ################################################################ DEBUG
     else:
-      y_pred = self.model.predict(self.dataset, self.output_transformers)
+      ################################################################ DEBUG
+      #y_pred = self.model.predict(self.dataset, self.output_transformers)
+      y_pred = self.model.predict(self.dataset, self.transformers)
+      ################################################################ DEBUG
+      ################################################################ DEBUG
+      print("y_pred.shape")
+      print(y_pred.shape)
+      print("y_pred[:1]")
+      print(y_pred[:1])
+      print("y[:1]")
+      print(y[:1])
+      raw_y = self.model.predict_on_batch(self.dataset.X[:1])
+      raw_y = undo_transforms(raw_y, self.transformers)
+      print("raw_y")
+      print(raw_y)
+      ################################################################ DEBUG
       y_pred_print = y_pred
     multitask_scores = {}
 

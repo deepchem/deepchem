@@ -243,7 +243,7 @@ class TensorflowGraphModel(Model):
 
       return loss 
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
+  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
@@ -258,9 +258,6 @@ class TensorflowGraphModel(Model):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    n_datapoints = len(dataset)
-    batch_size = self.batch_size
-    step_per_epoch = np.ceil(float(n_datapoints)/batch_size)
     log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.train_graph.graph.as_default():
       train_op = self.get_training_op(
@@ -272,14 +269,11 @@ class TensorflowGraphModel(Model):
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
-          if shuffle:
-            log("About to shuffle dataset before epoch start.", self.verbosity)
-            dataset.shuffle()
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
               ############################################################ DEBUG
               ## hardcode pad_batches=True to work around limitations in Tensorflow
               #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(batch_size, pad_batches=False)):
+              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
               #dataset.iterbatches(batch_size, pad_batches=pad_batches)):
               ############################################################ DEBUG
             if ind % log_every_N_batches == 0:
@@ -288,9 +282,7 @@ class TensorflowGraphModel(Model):
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
                 train_op, self.train_graph.loss]
-            fetched_values = sess.run(
-                fetches,
-                feed_dict=feed_dict)
+            fetched_values = sess.run(fetches, feed_dict=feed_dict)
             output = fetched_values[:len(self.train_graph.output)]
             loss = fetched_values[-1]
             avg_loss += loss
@@ -419,8 +411,7 @@ class TensorflowGraphModel(Model):
       return
     with self.eval_graph.graph.as_default():
       last_checkpoint = self._find_last_checkpoint()
-
-      # TODO(rbharath): Is setting train=Falseright here?
+      # TODO(rbharath): Is setting train=False right here?
       saver = tf.train.Saver()
       saver.restore(self._get_shared_session(train=False),
                     last_checkpoint)
@@ -448,13 +439,7 @@ class TensorflowClassifier(TensorflowGraphModel):
   Subclasses must set the following attributes:
     output: logits op(s) used for computing classification loss and predicted
       class probabilities for each task.
-
-  Class attributes:
-    default_metrics: List of metrics to compute by default.
   """
-
-  default_metrics = ['auc']
-
   def get_task_type(self):
     return "classification"
 
@@ -603,13 +588,7 @@ class TensorflowRegressor(TensorflowGraphModel):
   Subclasses must set the following attributes:
     output: Op(s) used for computing regression loss and predicted regression
       outputs for each task.
-
-  Class attributes:
-    default_metrics: List of metrics to compute by default.
   """
-
-  default_metrics = ['r2']
-
   def get_task_type(self):
     return "regressor"
 
@@ -677,7 +656,7 @@ class TensorflowRegressor(TensorflowGraphModel):
     
     if not self._restored_model:
       self.restore()
-    with self.train_graph.graph.as_default():
+    with self.eval_graph.graph.as_default():
 
       # run eval data through the model
       n_tasks = self.n_tasks
