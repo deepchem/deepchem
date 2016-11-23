@@ -162,7 +162,8 @@ class Model(object):
     """
     y_preds = []
     n_tasks = self.get_num_tasks()
-    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
+    ind = 0
+    for (X_batch, _, _, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       n_samples = len(X_batch)
       y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batches)

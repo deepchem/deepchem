@@ -23,10 +23,9 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
                            mode="classification")
 
-tensorflow_model = dc.models.TensorflowLogisticRegression(
+model = dc.models.TensorflowLogisticRegression(
     len(tox21_tasks), n_features, learning_rate=0.006, penalty = 0.05,
     weight_init_stddevs=[0.002],batch_size=32, verbosity="high")
-model = dc.models.TensorflowModel(tensorflow_model)
 
 # Fit trained model
 model.fit(train_dataset,nb_epoch = 50)

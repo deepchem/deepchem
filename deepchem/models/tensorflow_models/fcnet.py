@@ -142,7 +142,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                 stddev=weight_init_stddevs[i]),
             bias_init=tf.constant(value=bias_init_consts[i],
                                   shape=[layer_sizes[i]])))
-        layer = model_ops.dropout(layer, dropouts[i])
+        layer = model_ops.dropout(layer, dropouts[i], training)
         prev_layer = layer
         prev_layer_size = layer_sizes[i]
 

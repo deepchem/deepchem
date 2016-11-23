@@ -104,7 +104,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity=None, mode=None, compute_energy_metric=False):
+               verbosity="high", mode=None, compute_energy_metric=False):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -127,12 +127,14 @@ class Metric(object):
     self.verbosity = verbosity
     self.threshold = threshold
     if mode is None:
-      if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef", "recall_score",
-                       "accuracy_score", "kappa_score", "precision_score"]:
+      if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef",
+                                  "recall_score", "accuracy_score",
+                                  "kappa_score", "precision_score"]:
         mode = "classification"
-      elif self.metric.__name__ in ["pearson_r2_score", "r2_score", "mean_squared_error",
-                         "mean_absolute_error", "rms_score",
-                         "mae_score"]:
+      elif self.metric.__name__ in ["pearson_r2_score", "r2_score",
+                                    "mean_squared_error",
+                                    "mean_absolute_error", "rms_score",
+                                    "mae_score"]:
         mode = "regression"
       else:
         raise ValueError("Must specify mode for new metric.")

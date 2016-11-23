@@ -203,9 +203,8 @@ class TestAPI(unittest.TestCase):
                               dc.metrics.Metric(dc.metrics.recall_score),
                               dc.metrics.Metric(dc.metrics.accuracy_score)]
 
-    tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+    model = dc.models.TensorflowMultiTaskClassifier(
         len(tasks), n_features)
-    model = dc.models.TensorflowModel(tensorflow_model)
 
     # Fit trained model
     model.fit(train_dataset)

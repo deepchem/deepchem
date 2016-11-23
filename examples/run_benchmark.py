@@ -23,18 +23,19 @@ n_filters = [64,96,128]
 n_fully_connected_nodes = [100,120,140,160,200,240,300]
 n_estimators = [500]
 
-out_path='/home/zqwu/deepchem/examples'
+out_path='.'
 base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
 dname = sys.argv[1]
 model = sys.argv[2]
 
-parameters_printed = {'tf':['dropouts','learning_rate','layer_sizes',
-                            'batch_size','nb_epoch'],
-                      'logreg':['learning_rate','penalty','penalty_type',
-                                'batch_size','nb_epoch'],
-                      'graphconv':['learning_rate','n_filters','n_fully_connected_nodes',
-                                   'batch_size','nb_epoch'],
-                      'rf':['n_estimators']}
+parameters_printed = {'tf': ['dropouts', 'learning_rate', 'layer_sizes',
+                             'batch_size', 'nb_epoch'],
+                      'logreg': ['learning_rate', 'penalty', 'penalty_type',
+                                 'batch_size', 'nb_epoch'],
+                      'graphconv': ['learning_rate', 'n_filters',
+                                    'n_fully_connected_nodes',
+                                    'batch_size', 'nb_epoch'],
+                      'rf': ['n_estimators']}
 hps = {}
 hps[model] = []
 for i in range(int(sys.argv[3])):
@@ -53,9 +54,11 @@ for i in range(int(sys.argv[3])):
 
 
 
-  hps[model].append({'dropouts':[dp],'learning_rate':lr,'layer_sizes':[int(ls)],
-                'penalty':pn, 'penalty_type':pt, 'batch_size':int(bs),'nb_epoch':int(ne),
-		'n_filters': 64, 'n_fully_connected_nodes':128, 'n_estimators':500})
+  hps[model].append({'dropouts': [dp], 'learning_rate': lr,
+                     'layer_sizes': [int(ls)], 'penalty': pn,
+                     'penalty_type': pt, 'batch_size': int(bs),
+                     'nb_epoch': int(ne), 'n_filters': 64,
+                     'n_fully_connected_nodes': 128, 'n_estimators': 500})
   with open(os.path.join(out_path,'hps.csv'),'a') as f:        
     f.write('\n\n'+str(i))
     for item in hps[model][i]:
@@ -66,8 +69,3 @@ for i in range(int(sys.argv[3])):
 benchmark_loading_datasets(base_dir_o, hps, dataset_name=dname,
                            model=model,reload = True,
                            verbosity='high', out_path=out_path)
-
-
-
-    
-             

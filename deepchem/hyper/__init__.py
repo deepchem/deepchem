@@ -17,7 +17,7 @@ class HyperparamOpt(object):
   Provides simple hyperparameter search capabilities.
   """
 
-  def __init__(self, model_class, verbosity=None):
+  def __init__(self, model_class, verbosity="high"):
     self.model_class = model_class
     assert verbosity in [None, "low", "high"]
     self.verbosity = verbosity

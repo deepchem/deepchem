@@ -55,9 +55,6 @@ class TensorflowGraph(object):
   def get_placeholder_scope(graph, name_scopes):
     """Gets placeholder scope."""
     placeholder_root = "placeholders"
-    #with graph.as_default():
-    #  with tf.name_scope(placeholder_root) as scope:
-    #    return scope
     return TensorflowGraph.shared_name_scope(placeholder_root, graph, name_scopes)
 
   @staticmethod
@@ -85,8 +82,7 @@ class TensorflowGraph(object):
       feed_dict['{}/{}:0'.format(placeholder_root, name)] = value
     return feed_dict
 
-
-class TensorflowGraphModel(object):
+class TensorflowGraphModel(Model):
   """Parent class for deepchem Tensorflow models.
   
   Classifier:
@@ -113,7 +109,7 @@ class TensorflowGraphModel(object):
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
                momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
-               train=True, verbosity=None, **kwargs):
+               train=True, verbosity=None, seed=None, **kwargs):
     """Constructs the computational graph.
 
     Parameters
@@ -144,6 +140,7 @@ class TensorflowGraphModel(object):
     self.n_classes = n_classes
     self.train = train
     self.verbosity = verbosity
+    self.seed = seed
     
     if logdir is not None:
       if not os.path.exists(logdir):
@@ -159,11 +156,25 @@ class TensorflowGraphModel(object):
     # replicated supervisor's default path.
     self._save_path = os.path.join(logdir, 'model.ckpt')
 
-    self.train_graph = self.construct_graph(training=True)
-    self.eval_graph = self.construct_graph(training=False)
+    self.train_graph = self.construct_graph(training=True, seed=self.seed)
+    self.eval_graph = self.construct_graph(training=False, seed=self.seed)
 
+  def save(self):
+    """
+    No-op since tf models save themselves during fit()
+    """
+    pass
 
-  def construct_graph(self, training):
+  def reload(self):
+    """
+    Loads model from disk. Thin wrapper around restore() for consistency.
+    """
+    self.restore()
+
+  def get_num_tasks(self):
+    return self.n_tasks
+
+  def construct_graph(self, training, seed):
     """Returns a TensorflowGraph object."""
     graph = tf.Graph() 
 
@@ -176,6 +187,8 @@ class TensorflowGraphModel(object):
 
     # Setup graph
     with graph.as_default():
+      if seed is not None:
+        tf.set_random_seed(seed)
       output = self.build(graph, name_scopes, training)
       labels = self.add_label_placeholders(graph, name_scopes)
       weights = self.add_example_weight_placeholders(graph, name_scopes)
@@ -230,7 +243,7 @@ class TensorflowGraphModel(object):
 
       return loss 
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False, shuffle=False,
+  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
@@ -245,9 +258,6 @@ class TensorflowGraphModel(object):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    n_datapoints = len(dataset)
-    batch_size = self.batch_size
-    step_per_epoch = np.ceil(float(n_datapoints)/batch_size)
     log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.train_graph.graph.as_default():
       train_op = self.get_training_op(
@@ -259,20 +269,18 @@ class TensorflowGraphModel(object):
         saver.save(sess, self._save_path, global_step=0)
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
-          if shuffle:
-            log("About to shuffle dataset before epoch start.", self.verbosity)
-            dataset.shuffle()
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              dataset.iterbatches(batch_size, pad_batches=True)): # hardcode pad_batches=True to work around limitations in Tensorflow
+              # Turns out there are valid cases where we don't want pad-batches
+              # on by default.
+              #dataset.iterbatches(batch_size, pad_batches=True)):
+              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbosity)
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
                 train_op, self.train_graph.loss]
-            fetched_values = sess.run(
-                fetches,
-                feed_dict=feed_dict)
+            fetched_values = sess.run(fetches, feed_dict=feed_dict)
             output = fetched_values[:len(self.train_graph.output)]
             loss = fetched_values[-1]
             avg_loss += loss
@@ -289,58 +297,6 @@ class TensorflowGraphModel(object):
     print("TIMING: model fitting took %0.3f s" % (time2-time1),
           self.verbosity)
     ############################################################## TIMING
-
-  def predict_on_batch(self, X, pad_batch=False):
-    """Return model output for the provided input.
-
-    Restore(checkpoint) must have previously been called on this object.
-
-    Args:
-      dataset: dc.data.dataset object.
-
-    Returns:
-      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
-        output: Model outputs.
-        labels: True labels.
-        weights: Example weights.
-      Note that the output and labels arrays may be more than 2D, e.g. for
-      classifier models that return class probabilities.
-
-    Raises:
-      AssertionError: If model is not in evaluation mode.
-      ValueError: If output and labels are not both 3D or both 2D.
-    """
-    if pad_batch:
-      X = pad_features(self.batch_size, X)
-    
-    if not self._restored_model:
-      self.restore()
-    with self.eval_graph.graph.as_default():
-
-      # run eval data through the model
-      n_tasks = self.n_tasks
-      output = []
-      start = time.time()
-      with self._get_shared_session(train=False).as_default():
-        feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session(train=False).run(
-            self.eval_graph.output, feed_dict=feed_dict)
-        batch_output = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
-        if batch_output.ndim == 3:
-          batch_output = batch_output.transpose((1, 0, 2))
-        elif batch_output.ndim == 2:
-          batch_output = batch_output.transpose((1, 0))
-        else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s' %
-              (batch_output.shape,))
-        output.append(batch_output)
-
-        outputs = np.array(from_one_hot(
-            np.squeeze(np.concatenate(output)), axis=-1))
-
-    return np.copy(outputs)
 
   def add_output_ops(self, graph, output):
     """Replace logits with softmax outputs."""
@@ -453,8 +409,7 @@ class TensorflowGraphModel(object):
       return
     with self.eval_graph.graph.as_default():
       last_checkpoint = self._find_last_checkpoint()
-
-      # TODO(rbharath): Is setting train=Falseright here?
+      # TODO(rbharath): Is setting train=False right here?
       saver = tf.train.Saver()
       saver.restore(self._get_shared_session(train=False),
                     last_checkpoint)
@@ -482,13 +437,7 @@ class TensorflowClassifier(TensorflowGraphModel):
   Subclasses must set the following attributes:
     output: logits op(s) used for computing classification loss and predicted
       class probabilities for each task.
-
-  Class attributes:
-    default_metrics: List of metrics to compute by default.
   """
-
-  default_metrics = ['auc']
-
   def get_task_type(self):
     return "classification"
 
@@ -528,6 +477,63 @@ class TensorflowClassifier(TensorflowGraphModel):
               tf.placeholder(tf.float32, shape=[None, n_classes],
                              name='labels_%d' % task)))
       return labels
+
+  def predict_on_batch(self, X, pad_batch=False):
+    """Return model output for the provided input.
+
+    Restore(checkpoint) must have previously been called on this object.
+
+    Args:
+      dataset: dc.data.dataset object.
+
+    Returns:
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
+        output: Model outputs.
+        labels: True labels.
+        weights: Example weights.
+      Note that the output and labels arrays may be more than 2D, e.g. for
+      classifier models that return class probabilities.
+
+    Raises:
+      AssertionError: If model is not in evaluation mode.
+      ValueError: If output and labels are not both 3D or both 2D.
+    """
+    len_unpadded = len(X)
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    
+    if not self._restored_model:
+      self.restore()
+    with self.eval_graph.graph.as_default():
+
+      # run eval data through the model
+      n_tasks = self.n_tasks
+      output = []
+      start = time.time()
+      with self._get_shared_session(train=False).as_default():
+        feed_dict = self.construct_feed_dict(X)
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output, feed_dict=feed_dict)
+        batch_output = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
+        if batch_output.ndim == 3:
+          batch_output = batch_output.transpose((1, 0, 2))
+        elif batch_output.ndim == 2:
+          batch_output = batch_output.transpose((1, 0))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output: %s' %
+              (batch_output.shape,))
+        output.append(batch_output)
+
+        outputs = np.array(from_one_hot(
+            np.squeeze(np.concatenate(output)), axis=-1))
+
+
+    outputs = np.copy(outputs)
+    outputs = np.reshape(outputs, (len(X), n_tasks))
+    outputs = outputs[:len_unpadded]
+    return outputs
 
   def predict_proba_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
@@ -580,13 +586,7 @@ class TensorflowRegressor(TensorflowGraphModel):
   Subclasses must set the following attributes:
     output: Op(s) used for computing regression loss and predicted regression
       outputs for each task.
-
-  Class attributes:
-    default_metrics: List of metrics to compute by default.
   """
-
-  default_metrics = ['r2']
-
   def get_task_type(self):
     return "regressor"
 
@@ -628,7 +628,7 @@ class TensorflowRegressor(TensorflowGraphModel):
                              name='labels_%d' % task)))
     return labels
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -648,23 +648,19 @@ class TensorflowRegressor(TensorflowGraphModel):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    len_unpadded = len(X)
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    
     if not self._restored_model:
       self.restore()
-    with self.train_graph.graph.as_default():
+    with self.eval_graph.graph.as_default():
 
       # run eval data through the model
       n_tasks = self.n_tasks
       outputs = []
       with self._get_shared_session(train=False).as_default():
         n_samples = len(X)
-        # TODO(rbharath): Should this be padding there? Shouldn't padding be
-        # turned on in predict?
-        #################################################################### DEBUG
-        # Some tensorflow models can't handle variadic batches,
-        # especially models using tf.pack, tf.split. Pad batch-size
-        # to handle these cases.
-        #X = pad_features(self.batch_size, X)
-        #################################################################### DEBUG
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
@@ -688,72 +684,5 @@ class TensorflowRegressor(TensorflowGraphModel):
 
         outputs = np.squeeze(np.concatenate(outputs)) 
 
-    return np.copy(outputs)
-
-class TensorflowModel(Model):
-  """
-  Abstract base class shared across all Tensorflow models.
-  """
-
-  def __init__(self, model, verbosity=None, **kwargs):
-    assert verbosity in [None, "low", "high"]
-    self.verbosity = verbosity
-    self.model_instance = model
-    self.fit_transformers = None
-
-  def fit(self, dataset, **kwargs):
-    """
-    Fits TensorflowGraph to data.
-    """
-    self.model_instance.fit(dataset, **kwargs)
-
-  def predict(self, dataset, transformers=[], batch_size=None,
-              pad_batches=False):
-    """
-    Uses self to make predictions on provided Dataset object.
-
-    This is overridden to make sure the batch size is always valid for Tensorflow.
-
-    Returns:
-      y_pred: numpy ndarray of shape (n_samples,)
-    """
-    return Model.predict(self, dataset, transformers,
-                         self.model_instance.batch_size, True)
-
-  def predict_on_batch(self, X, pad_batch=True):
-    """
-    Makes predictions on batch of data.
-    """
-    if pad_batch:
-      len_unpadded = len(X)
-      Xpad = pad_features(self.model_instance.batch_size, X)
-      return self.model_instance.predict_on_batch(Xpad)[:len_unpadded]
-    else:
-      return self.model_instance.predict_on_batch(X)
-
-  def predict_grad_on_batch(self, X):
-    """
-    Calculates gradient of cost function on batch of data.
-    """
-    return self.model_instance.predict_grad_on_batch(X)
-
-  def predict_proba_on_batch(self, X, pad_batch=False):
-    """
-    Makes predictions on batch of data.
-    """
-    return self.model_instance.predict_proba_on_batch(X, pad_batch=pad_batch)
-
-  def save(self):
-    """
-    No-op since tf models save themselves during fit()
-    """
-    pass
-
-  def reload(self):
-    """
-    Loads model from disk. Thin wrapper around restore() for consistency.
-    """
-    self.model_instance.restore()
-
-  def get_num_tasks(self):
-    return self.model_instance.n_tasks
+    outputs = np.copy(outputs)
+    return outputs[:len_unpadded]

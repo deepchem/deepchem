@@ -21,11 +21,10 @@ train_dataset, valid_dataset, test_dataset = muv_datasets
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
                            mode="classification")
 
-tensorflow_model = dc.models.TensorflowMultiTaskClassifier(
+model = dc.models.TensorflowMultiTaskClassifier(
     len(muv_tasks), n_features=1024, dropouts=[.25],
     learning_rate=0.001, weight_init_stddevs=[.1],
     batch_size=64, verbosity="high")
-model = dc.models.TensorflowModel(tensorflow_model)
 
 # Fit trained model
 model.fit(train_dataset)
