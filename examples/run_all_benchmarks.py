@@ -15,7 +15,7 @@ base_dir = tempfile.mkdtemp()
 out_path='.'
 models = ['tf', 'tf_robust', 'logreg', 'graphconv']
 #datasets = ['muv', 'nci', 'tox21', 'sider', 'toxcast']
-datasets = ['tox21']
+datasets = ['tox21', 'muv']
 
 hps = {}
 hps['tf'] = [{'dropouts': [0.25], 'learning_rate': 0.001,

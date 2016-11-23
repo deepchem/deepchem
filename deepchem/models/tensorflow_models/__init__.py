@@ -270,12 +270,10 @@ class TensorflowGraphModel(Model):
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              ############################################################ DEBUG
-              ## hardcode pad_batches=True to work around limitations in Tensorflow
+              # Turns out there are valid cases where we don't want pad-batches
+              # on by default.
               #dataset.iterbatches(batch_size, pad_batches=True)):
               dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
-              #dataset.iterbatches(batch_size, pad_batches=pad_batches)):
-              ############################################################ DEBUG
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbosity)
             # Run training op.

@@ -10,7 +10,6 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.keras_models import KerasModel
 from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
 from deepchem.models.tf_keras_models.support_classifier import SupportGraphClassifier
-#from deepchem.models.tensorflow_models import TensorflowModel
 from deepchem.models.multitask import SingletaskToMultitask
 
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
