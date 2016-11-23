@@ -162,18 +162,9 @@ class Model(object):
     """
     y_preds = []
     n_tasks = self.get_num_tasks()
-    #################################################################### DEBUG
-    #for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
     ind = 0
     for (X_batch, _, _, ids_batch) in dataset.iterbatches(
-    #################################################################### DEBUG
         batch_size, deterministic=True):
-      #################################################################### DEBUG
-      if ind == 0:
-        print("ids_batch[0]")
-        print(ids_batch[0])
-      ind += 1
-      #################################################################### DEBUG
       n_samples = len(X_batch)
       y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batches)
       # Discard any padded predictions
