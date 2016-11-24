@@ -6,8 +6,12 @@ Created on Tue Oct 18 15:53:27 2016
 @author: Michael Wu
 
 Benchmark test
-Giving performances of RF(scikit) and MultitaskDNN(TF)
-on datasets: muv, nci, pcba, tox21
+Giving performances of: Random forest(rf), MultitaskDNN(tf), 
+                        RobustMultitaskDNN(tf_robust),
+                        Logistic regression(logreg),
+                        Graph convolution(graphconv)
+                    
+on datasets: muv, nci, pcba, tox21, sider, toxcast
 
 time estimation(on a nvidia tesla K20 GPU):
 tox21   - dataloading: 30s
@@ -47,7 +51,7 @@ from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
-                               dataset_name='all',model='tf',reload = True,
+                               dataset_name='all', model='tf', reload = True,
                                verbosity='high', out_path='/tmp'):
   """
   Loading dataset for benchmark test
@@ -64,7 +68,8 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
       choice of which dataset to use, 'all' = computing all the datasets
       
   model : string,  optional (default='tf')
-      choice of which model to use, should be: tf, logreg, graphconv
+      choice of which model to use, should be: rf, tf, tf_robust, logreg,
+      graphconv
   
   out_path : string, optional(default='/tmp')
       path of result file
@@ -84,7 +89,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
       
   if dataset_name == 'all':
     #currently not including the nci dataset
-    dataset_name = ['tox21','muv','pcba','sider','toxcast']
+    dataset_name = ['tox21', 'muv', 'pcba', 'sider', 'toxcast']
   else:
     dataset_name = [dataset_name]
   
@@ -100,7 +105,7 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     
     time_start = time.time()
     #loading datasets     
-    tasks, datasets, transformers = loading_functions[dname](
+    tasks,datasets,transformers = loading_functions[dname](
         featurizer=featurizer)
     train_dataset, valid_dataset, test_dataset = datasets
     time_finish_loading = time.time()
@@ -111,21 +116,21 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     for count, hp in enumerate(hyper_parameters[model]):
       time_start_fitting = time.time()
       train_score,valid_score = benchmark_train_and_valid(base_dir,
-                                    train_dataset, valid_dataset, tasks,
+                                    train_dataset, valid_dataset, tasks, 
                                     transformers, hp, n_features,
-                                    model=model,verbosity = verbosity)      
+                                    model=model, verbosity=verbosity)      
       time_finish_fitting = time.time()
       
       with open(os.path.join(out_path, 'results.csv'),'a') as f:
-        f.write('\n\n'+str(count))
-        f.write('\n'+dname+',train')
+        f.write('\n'+str(count)+',')
+        f.write(dname+',train,')
         for i in train_score:
-          f.write(','+i+','+str(train_score[i]['mean-roc_auc_score']))
-        f.write('\n'+dname+',valid')
+          f.write(i+','+str(train_score[i]['mean-roc_auc_score'])+',')
+        f.write('valid,')
         for i in valid_score:
-          f.write(','+i+','+str(valid_score[i]['mean-roc_auc_score'])) 
-        f.write('\n'+dname+',time_for_running,'+
-              str(time_finish_fitting-time_start_fitting))
+          f.write(i+','+str(valid_score[i]['mean-roc_auc_score'])+',')
+        f.write('time_for_running,'+
+              str(time_finish_fitting-time_start_fitting)+',')
 
     #clear workspace         
     del tasks,datasets,transformers
@@ -135,8 +140,8 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   return None
 
 def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
-                              transformers, hyper_parameters,
-                              n_features, model='tf', seed=123,
+                              transformers, hyper_parameters, 
+                              n_features, model='tf', seed=123, 
                               verbosity='high'):
   """
   Calculate performance of different models on the specific dataset & tasks
@@ -161,11 +166,12 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
   hyper_parameters : dict of list
       hyper parameters including dropout rate, learning rate, etc.
  
-  n_features : integer, optional (default=1024)
+  n_features : integer
       number of features, or length of binary fingerprints
   
-  model : string, optional (default='all')
-      choice of which model to use, 'all' = running all models on the dataset
+  model : string,  optional (default='tf')
+      choice of which model to use, should be: rf, tf, tf_robust, logreg,
+      graphconv
   
 
   Returns
@@ -184,95 +190,120 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
                                             verbosity=verbosity,
                                             mode="classification")
   
-  assert model in ['graphconv', 'tf', 'tf_robust', 'rf','logreg']
+  assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'graphconv']
 
   if model == 'tf':
-    # Building tensorflow MultiTaskDNN model
-    dropouts = hyper_parameters['dropouts']
-    learning_rate = hyper_parameters['learning_rate']
+    # Loading hyper parameters
     layer_sizes = hyper_parameters['layer_sizes']
-    batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']
-
-    model_tf = dc.models.TensorflowMultiTaskClassifier(
-          len(tasks), n_features, learning_rate=learning_rate,
-          layer_sizes=layer_sizes, dropouts=dropouts, batch_size=batch_size, 
-          seed=seed, verbosity=verbosity)
- 
-    print('-------------------------------------')
-    print('Start fitting by tensorflow')
-    model_tf.fit(train_dataset,nb_epoch = nb_epoch)
-    
-    train_scores['tensorflow'] = model_tf.evaluate(
-        train_dataset, [classification_metric], transformers)
-
-    valid_scores['tensorflow'] = model_tf.evaluate( 
-        valid_dataset, [classification_metric], transformers)
-
-  if model == 'tf_robust':
-    # Building tensorflow MultiTaskDNN model
+    weight_init_stddevs = hyper_parameters['weight_init_stddevs']
+    bias_init_consts = hyper_parameters['bias_init_consts']
     dropouts = hyper_parameters['dropouts']
-    bypass_dropouts = hyper_parameters['bypass_dropouts']
-    learning_rate = hyper_parameters['learning_rate']
-    layer_sizes = hyper_parameters['layer_sizes']
-    bypass_layer_sizes = hyper_parameters['bypass_layer_sizes']
-    batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']
-
-    model_robust = dc.models.RobustMultitaskClassifier(
-        len(tasks), n_features, learning_rate=learning_rate,
-        layer_sizes=layer_sizes, bypass_layer_sizes=bypass_layer_sizes,
-        dropouts=dropouts, bypass_dropouts=bypass_dropouts, 
-        batch_size=batch_size, seed=seed, verbosity=verbosity)
- 
-    print('-------------------------------------')
-    print('Start fitting by tensorflow')
-    model_robust.fit(train_dataset,nb_epoch = nb_epoch)
-    
-    train_scores['tf_robust'] = model_robust.evaluate(
-        train_dataset, [classification_metric], transformers)
-
-    valid_scores['tf_robust'] = model_robust.evaluate( 
-        valid_dataset, [classification_metric], transformers)
-
-
-  if model == 'logreg':
-    # Building tensorflow logistic regression model
-    learning_rate = hyper_parameters['learning_rate']
     penalty = hyper_parameters['penalty']
     penalty_type = hyper_parameters['penalty_type']
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
 
-    model_logreg = dc.models.TensorflowLogisticRegression(
-          len(tasks), n_features, learning_rate=learning_rate, penalty=penalty, 
-          penalty_type=penalty_type, batch_size=batch_size, 
-          seed=seed, verbosity=verbosity)
+    # Building tensorflow MultiTaskDNN model
+    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
+        n_features, layer_sizes=layer_sizes, 
+        weight_init_stddevs=weight_init_stddevs,
+        bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
+        penalty_type=penalty_type, batch_size=batch_size, 
+        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
  
     print('-------------------------------------')
-    print('Start fitting by logistic regression')
-    model_logreg.fit(train_dataset,nb_epoch = nb_epoch)
+    print('Start fitting by multitask DNN')
+    model_tf.fit(train_dataset, nb_epoch=nb_epoch)
     
-    train_scores['logreg'] = model_logreg.evaluate(train_dataset,
-                               [classification_metric],transformers)
+    # Evaluating tensorflow MultiTaskDNN model
+    train_scores['tensorflow'] = model_tf.evaluate(
+        train_dataset, [classification_metric], transformers)
 
-    valid_scores['logreg'] = model_logreg.evaluate(valid_dataset,
-                               [classification_metric],transformers)
+    valid_scores['tensorflow'] = model_tf.evaluate(
+        valid_dataset, [classification_metric], transformers)
 
+  if model == 'tf_robust':
+    # Loading hyper parameters
+    layer_sizes = hyper_parameters['layer_sizes']
+    weight_init_stddevs = hyper_parameters['weight_init_stddevs']
+    bias_init_consts = hyper_parameters['bias_init_consts']
+    dropouts = hyper_parameters['dropouts']
+
+    bypass_layer_sizes = hyper_parameters['bypass_layer_sizes']
+    bypass_weight_init_stddevs = hyper_parameters['bypass_weight_init_stddevs']
+    bypass_bias_init_consts = hyper_parameters['bypass_bias_init_consts']
+    bypass_dropouts = hyper_parameters['bypass_dropouts']
+  
+    penalty = hyper_parameters['penalty']
+    penalty_type = hyper_parameters['penalty_type']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+
+    # Building tensorflow robust MultiTaskDNN model
+    model_robust = dc.models.RobustMultitaskClassifier(len(tasks),
+        n_features, layer_sizes=layer_sizes, 
+        weight_init_stddevs=weight_init_stddevs,
+        bias_init_consts=bias_init_consts, dropouts=dropouts,
+        bypass_layer_sizes=bypass_layer_sizes,
+        bypass_weight_init_stddevs=bypass_weight_init_stddevs,
+        bypass_bias_init_consts=bypass_bias_init_consts,
+        bypass_dropouts=bypass_dropouts, penalty=penalty, 
+        penalty_type=penalty_type, batch_size=batch_size,
+        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
+ 
+    print('--------------------------------------------')
+    print('Start fitting by robust multitask DNN')
+    model_robust.fit(train_dataset, nb_epoch=nb_epoch)
+
+    # Evaluating tensorflow robust MultiTaskDNN model
+    train_scores['tf_robust'] = model_robust.evaluate(
+        train_dataset, [classification_metric], transformers)
+
+    valid_scores['tf_robust'] = model_robust.evaluate(
+        valid_dataset, [classification_metric], transformers)
+
+  if model == 'logreg':
+    # Loading hyper parameters
+    penalty = hyper_parameters['penalty']
+    penalty_type = hyper_parameters['penalty_type']
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+
+    # Building tensorflow logistic regression model
+    model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
+        n_features, penalty=penalty, penalty_type=penalty_type, 
+        batch_size=batch_size, learning_rate=learning_rate, 
+        verbosity=verbosity, seed=seed)
+    
+    print('-------------------------------------')
+    print('Start fitting by logistic regression')
+    model_logreg.fit(train_dataset, nb_epoch=nb_epoch)
+    
+    # Evaluating tensorflow logistic regression model
+    train_scores['logreg'] = model_logreg.evaluate(
+        train_dataset, [classification_metric], transformers)
+
+    valid_scores['logreg'] = model_logreg.evaluate(
+        valid_dataset, [classification_metric], transformers)
+    
   if model == 'graphconv':
     # Initialize model folder
     model_dir_graphconv = os.path.join(base_dir, "model_graphconv")
-    
-    
+
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']    
     learning_rate = hyper_parameters['learning_rate']
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
-    batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']
-    
+
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
+    # Building graph convolution model
     with g.as_default():
       tf.set_random_seed(seed)
       graph_model = dc.nn.SequentialGraph(n_features)
@@ -292,20 +323,23 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
           sess, graph_model, len(tasks), model_dir_graphconv, 
           batch_size=batch_size, learning_rate=learning_rate,
           optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
-
+        
+        print('-------------------------------------')
+        print('Start fitting by logistic regression')
         # Fit trained model
         model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
-    
-        train_scores['graphconv'] = model_graphconv.evaluate(train_dataset,
-                               [classification_metric],transformers)
+        # Evaluating graph convolution model
+        train_scores['graphconv'] = model_graphconv.evaluate(
+            train_dataset, [classification_metric], transformers)
 
-        valid_scores['graphconv'] = model_graphconv.evaluate(valid_dataset,
-                               [classification_metric],transformers)
+        valid_scores['graphconv'] = model_graphconv.evaluate(
+            valid_dataset, [classification_metric], transformers)
     
   if model == 'rf':
     # Initialize model folder
     model_dir_rf = os.path.join(base_dir, "model_rf")
-    
+
+    # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
 
     # Building scikit random forest model
@@ -319,11 +353,13 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     print('-------------------------------------')
     print('Start fitting by random forest')
     model_rf.fit(train_dataset)
-    train_scores['random_forest'] = model_rf.evaluate(train_dataset,
-                                    [classification_metric],transformers)
+    
+    # Evaluating scikit random forest model
+    train_scores['random_forest'] = model_rf.evaluate(
+        train_dataset, [classification_metric], transformers)
 
-    valid_scores['random_forest'] = model_rf.evaluate(valid_dataset,
-                                    [classification_metric],transformers)
+    valid_scores['random_forest'] = model_rf.evaluate(
+        valid_dataset, [classification_metric], transformers)
 
   return train_scores, valid_scores
 
@@ -339,28 +375,35 @@ if __name__ == '__main__':
   os.makedirs(base_dir_o)
   
   #Datasets and models used in the benchmark test, all=all the datasets
-  dataset_name = 'muv'
+  dataset_name = 'tox21'
   model = 'tf'
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
   #    batch_size
   hps = {}
-  hps['tf'] = [{'dropouts': [0.25], 'learning_rate': 0.001,
-                'layer_sizes': [1000], 'batch_size': 50, 'nb_epoch': 10}]
+  hps = {}
+  hps['tf'] = [{'layer_sizes': [500], 'weight_init_stddevs': [0.02], 
+                'bias_init_consts': [1.], 'dropouts': [0.5], 'penalty': 0, 
+                'penalty_type': 'l2', 'batch_size': 50, 'nb_epoch': 10, 
+                'learning_rate': 0.001}]
 
-  hps['tf_robust'] = [{'dropouts': [0.5], 'bypass_dropouts': [0.5],
-                       'learning_rate': 0.001,
-                       'layer_sizes': [500], 'bypass_layer_sizes': [100],
-                       'batch_size': 50, 'nb_epoch': 10}]
+  hps['tf_robust'] = [{'layer_sizes': [500], 'weight_init_stddevs': [0.02], 
+                       'bias_init_consts': [1.], 'dropouts': [0.5], 
+                       'bypass_layer_sizes': [100], 
+                       'bypass_weight_init_stddevs': [0.02],
+                       'bypass_bias_init_consts': [1.], 
+                       'bypass_dropouts': [0.5], 'penalty': 0,
+                       'penalty_type': 'l2', 'batch_size': 50, 
+                       'nb_epoch': 10, 'learning_rate': 0.001}]
+             
+  hps['logreg'] = [{'penalty': 0, 'penalty_type': 'l2', 'batch_size': 50, 
+                    'nb_epoch': 10, 'learning_rate': 0.001}]
                 
-  hps['logreg'] = [{'learning_rate': 0.001, 'penalty': 0.05, 
-                    'penalty_type': 'l1', 'batch_size': 50, 'nb_epoch': 10}]
-                
-  hps['graphconv'] = [{'learning_rate': 0.001, 'n_filters': 64,
-                       'n_fully_connected_nodes': 128, 'batch_size': 50,
-                       'nb_epoch': 10}]
-  
+  hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 10, 
+                       'learning_rate': 0.001, 'n_filters': 64, 
+                       'n_fully_connected_nodes': 128}]
+
   hps['rf'] = [{'n_estimators': 500}]
                 
   benchmark_loading_datasets(base_dir_o, hps, dataset_name=dataset_name,
