@@ -29,10 +29,10 @@ penalty_type_0 = ['l2']
 
 #general figure
 batch_size_0 = [50]
-nb_epoch_0 = [30]
+nb_epoch_0 = [12]
 
 #learning rate
-learning_rate_0 = truncnorm(-1,1,loc=-2.8,scale=0.5)
+learning_rate_0 = truncnorm(-1,1,loc=-3.2,scale=1.2)
 
 #for graph-conv and random forest
 n_filters_0 = [64,96,128]
