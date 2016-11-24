@@ -210,7 +210,7 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
         penalty_type=penalty_type, batch_size=batch_size, 
-        learning_rate=learning_rate, verbosity=verbosity)
+        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
  
     print('-------------------------------------')
     print('Start fitting by multitask DNN')
@@ -251,7 +251,7 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
         bypass_bias_init_consts=bypass_bias_init_consts,
         bypass_dropouts=bypass_dropouts, penalty=penalty, 
         penalty_type=penalty_type, batch_size=batch_size,
-        learning_rate=learning_rate, verbosity=verbosity)
+        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
  
     print('--------------------------------------------')
     print('Start fitting by robust multitask DNN')
@@ -276,7 +276,7 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
         n_features, penalty=penalty, penalty_type=penalty_type, 
         batch_size=batch_size, learning_rate=learning_rate, 
-        verbosity=verbosity)
+        verbosity=verbosity, seed=seed)
     
     print('-------------------------------------')
     print('Start fitting by logistic regression')
@@ -299,7 +299,6 @@ def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
     learning_rate = hyper_parameters['learning_rate']
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
-    seed = hyper_parameters['seed']
 
     g = tf.Graph()
     sess = tf.Session(graph=g)
@@ -376,7 +375,7 @@ if __name__ == '__main__':
   os.makedirs(base_dir_o)
   
   #Datasets and models used in the benchmark test, all=all the datasets
-  dataset_name = 'muv'
+  dataset_name = 'tox21'
   model = 'tf'
 
   #input hyperparameters
@@ -403,7 +402,7 @@ if __name__ == '__main__':
                 
   hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 10, 
                        'learning_rate': 0.001, 'n_filters': 64, 
-                       'n_fully_connected_nodes': 128, 'seed': None}]
+                       'n_fully_connected_nodes': 128}]
 
   hps['rf'] = [{'n_estimators': 500}]
                 
