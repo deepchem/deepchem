@@ -108,9 +108,12 @@ class TensorflowGraphModel(Model):
   def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
-               momentum=".9", optimizer="adam", batch_size=50, n_classes=2,
-               train=True, verbosity=None, seed=None, **kwargs):
+               momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
+               verbosity="high", seed=None, **kwargs):
     """Constructs the computational graph.
+
+    This function constructs the computational graph for the model. It relies
+    subclassed methods (build/cost) to construct specific graphs.
 
     Parameters
     ----------
@@ -120,9 +123,34 @@ class TensorflowGraphModel(Model):
       Number of features.
     logdir: str
       Location to save data
-
-    This function constructs the computational graph for the model. It relies
-    subclassed methods (build/cost) to construct specific graphs.
+    layer_sizes: list
+      List of layer sizes.
+    weight_init_stddevs: list
+      List of standard deviations for weights (sampled from zero-mean
+      gaussians). One for each layer.
+    bias_init_consts: list
+      List of bias initializations. One for each layer.
+    penalty: float
+      Amount of penalty (l2 or l1 applied)
+    penalty_type: str
+      Either "l2" or "l1"
+    dropouts: list
+      List of dropout amounts. One for each layer.
+    learning_rate: float
+      Learning rate for model.
+    momentum: float
+      Momentum. Only applied if optimizer=="momentum"
+    optimizer: str
+      Type of optimizer applied.
+    batch_size: int
+      Size of minibatches for training.
+    n_classes: int
+      Number of classes if this is for classification.
+      TODO(rbharath): Move this argument to TensorflowClassifier
+    verbosity: str
+      Must be one of ['high', 'low', None]. Amount of logging to do.
+    seed: int
+      If not none, is used as random seed for tensorflow. 
     """
     # Save hyperparameters
     self.n_tasks = n_tasks
@@ -138,7 +166,6 @@ class TensorflowGraphModel(Model):
     self.optimizer = optimizer
     self.batch_size = batch_size
     self.n_classes = n_classes
-    self.train = train
     self.verbosity = verbosity
     self.seed = seed
     
@@ -247,13 +274,24 @@ class TensorflowGraphModel(Model):
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
-    Args:
-      dataset: Dataset object that represents data on disk.
-      max_checkpoints_to_keep: Integer. Maximum number of checkpoints to keep;
-        older checkpoints will be deleted.
+    Parameters
+    ---------- 
+    dataset: dc.data.Dataset
+      Dataset object holding training data 
+    nb_epoch: 10
+      Number of training epochs.
+    pad_batches: bool
+      Whether or not to pad each batch to exactly be of size batch_size.
+    max_checkpoints_to_keep: int
+      Maximum number of checkpoints to keep; older checkpoints will be deleted.
+    log_every_N_batches: int
+      Report every N batches. Useful for training on very large datasets,
+      where epochs can take long time to finish.
 
-    Raises:
-      AssertionError: If model is not in training mode.
+    Raises
+    ------
+    AssertionError
+      If model is not in training mode.
     """
     ############################################################## TIMING
     time1 = time.time()

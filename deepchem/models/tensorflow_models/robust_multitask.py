@@ -118,7 +118,7 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
             bias_init=tf.constant(value=bypass_bias_init_consts[i],
                                   shape=[bypass_layer_sizes[i]])))
     
-          bypass_layer = model_ops.dropout(bypass_layer, bypass_dropouts[i])
+          bypass_layer = model_ops.dropout(bypass_layer, bypass_dropouts[i], training)
           prev_bypass_layer = bypass_layer
           prev_bypass_layer_size = bypass_layer_sizes[i]
         top_bypass_layer = prev_bypass_layer
@@ -255,7 +255,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
             bias_init=tf.constant(value=bypass_bias_init_consts[i],
                                   shape=[bypass_layer_sizes[i]])))
     
-          bypass_layer = model_ops.dropout(bypass_layer, bypass_dropouts[i])
+          bypass_layer = model_ops.dropout(bypass_layer, bypass_dropouts[i], training)
           prev_bypass_layer = bypass_layer
           prev_bypass_layer_size = bypass_layer_sizes[i]
         top_bypass_layer = prev_bypass_layer

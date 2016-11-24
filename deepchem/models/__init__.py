@@ -17,6 +17,7 @@ from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifie
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
+from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskRegressor
 
 # TODO(rbharath): I'm not sure if this model should be exposed. Not in
 # benchmark suite for example.
