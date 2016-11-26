@@ -15,7 +15,6 @@ import tempfile
 import shutil
 import numpy as np
 import tensorflow as tf
-from keras import backend as K
 import deepchem as dc
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -100,40 +99,40 @@ class TestHyperparamOptAPI(unittest.TestCase):
       params_dict, train_dataset, valid_dataset, transformers,
       classification_metric, logdir=None)
 
-  def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
-    """Straightforward test of Keras multitask deepchem classification API."""
-    task_type = "classification"
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(
-        current_dir, "../../models/tests/multitask_example.csv")
-    tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
-             "task7", "task8", "task9", "task10", "task11", "task12",
-             "task13", "task14", "task15", "task16"]
+  #def test_multitask_keras_mlp_ECFP_classification_hyperparam_opt(self):
+  #  """Straightforward test of Keras multitask deepchem classification API."""
+  #  task_type = "classification"
+  #  current_dir = os.path.dirname(os.path.abspath(__file__))
+  #  input_file = os.path.join(
+  #      current_dir, "../../models/tests/multitask_example.csv")
+  #  tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
+  #           "task7", "task8", "task9", "task10", "task11", "task12",
+  #           "task13", "task14", "task15", "task16"]
 
-    n_features = 1024
-    featurizer = dc.feat.CircularFingerprint(size=n_features)
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
-    dataset = loader.featurize(input_file)
+  #  n_features = 1024
+  #  featurizer = dc.feat.CircularFingerprint(size=n_features)
+  #  loader = dc.load.DataLoader(
+  #      tasks=tasks, smiles_field="smiles",
+  #      featurizer=featurizer, verbosity="low")
+  #  dataset = loader.featurize(input_file)
 
-    splitter = dc.splits.ScaffoldSplitter()
-    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-        dataset)
+  #  splitter = dc.splits.ScaffoldSplitter()
+  #  train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+  #      dataset)
 
-    transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.matthews_corrcoef, np.mean, mode="classification")
-    params_dict= {"n_hidden": [5, 10]}
-      
-    def model_builder(model_params, model_dir):
-      keras_model = dc.models.MultiTaskDNN(
-          len(tasks), n_features, task_type, dropout=0., **model_params)
-      return dc.models.KerasModel(keras_model, model_dir)
-    optimizer = dc.hyper.HyperparamOpt(model_builder)
-    best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-      params_dict, train_dataset, valid_dataset, transformers,
-      metric, logdir=None)
+  #  transformers = []
+  #  metric = dc.metrics.Metric(
+  #      dc.metrics.matthews_corrcoef, np.mean, mode="classification")
+  #  params_dict= {"n_hidden": [5, 10]}
+  #    
+  #  def model_builder(model_params, model_dir):
+  #    keras_model = dc.models.MultiTaskDNN(
+  #        len(tasks), n_features, task_type, dropout=0., **model_params)
+  #    return dc.models.KerasModel(keras_model, model_dir)
+  #  optimizer = dc.hyper.HyperparamOpt(model_builder)
+  #  best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
+  #    params_dict, train_dataset, valid_dataset, transformers,
+  #    metric, logdir=None)
 
   def test_multitask_tf_mlp_ECFP_classification_hyperparam_opt(self):
     """Straightforward test of Tensorflow multitask deepchem classification API."""
