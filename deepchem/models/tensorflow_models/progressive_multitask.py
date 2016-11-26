@@ -70,10 +70,10 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         tf.set_random_seed(seed)
       outputs, labels, weights = self.build(graph, name_scopes, training)
 
-    if training:
-      loss = self.add_training_costs(graph, name_scopes, outputs, labels, weights)
-    else:
-      loss = None
+      if training:
+        loss = self.add_training_costs(graph, name_scopes, outputs, labels, weights)
+      else:
+        loss = None
     return TensorflowGraph(graph=graph,
                            session=shared_session,
                            name_scopes=name_scopes,
