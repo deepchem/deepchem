@@ -2,9 +2,12 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import time
 import numpy as np
 import tensorflow as tf
 
+from deepchem.utils.save import log
+from deepchem.metrics import to_one_hot
 from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
@@ -18,6 +21,9 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
   Progressive networks allow for multitask learning where each task
   gets a new column of weights. As a result, there is no exponential
   forgetting where previous tasks are ignored.
+
+  TODO(rbharath): This class is unnecessarily complicated. Can we simplify the
+  structure of the code here?
   """
   def __init__(self, n_tasks, n_features, alpha_init_stddevs=[.02], **kwargs):
     """Creates a progressive network.
@@ -37,6 +43,59 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     super(ProgressiveMultitaskRegressor, self).__init__(
         n_tasks, n_features, **kwargs)
 
+  def construct_graph(self, training, seed):
+    """Returns a TensorflowGraph object."""
+    graph = tf.Graph() 
+
+    # Lazily created by _get_shared_session().
+    shared_session = None
+
+    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
+    # when subclass-overridden methods use the same scopes.
+    name_scopes = {}
+
+    # Setup graph
+    with graph.as_default():
+      if seed is not None:
+        tf.set_random_seed(seed)
+      output = self.build(graph, name_scopes, training)
+      labels = self.add_label_placeholders(graph, name_scopes)
+      weights = self.add_example_weight_placeholders(graph, name_scopes)
+
+    if training:
+      loss = self.add_training_cost(graph, name_scopes, output, labels, weights)
+    else:
+      loss = None
+      output = self.add_output_ops(graph, output)  # add softmax heads
+    return TensorflowGraph(graph=graph,
+                           session=shared_session,
+                           name_scopes=name_scopes,
+                           output=output,
+                           labels=labels,
+                           weights=weights,
+                           loss=loss)
+
+  def add_label_placeholders(self, graph, name_scopes):
+    """Add Placeholders for labels for each task.
+
+    This method creates the following Placeholders for each task:
+      labels_%d: Label tensor with shape batch_size.
+
+    Placeholders are wrapped in identity ops to avoid the error caused by
+    feeding and fetching the same tensor.
+    """
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    with graph.as_default():
+      batch_size = self.batch_size
+      labels = []
+      with placeholder_scope:
+        for task in range(self.n_tasks):
+          labels.append(tf.identity(
+              tf.placeholder(tf.float32, shape=[None],
+                             name='labels_%d' % task)))
+    return labels
+
+
   def build(self, graph, name_scopes, training):
     """Constructs the graph architecture as specified in its config.
 
@@ -54,10 +113,10 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
     # Create the namescopes for each task
-    task_scopes = {}
+    self.task_scopes = {}
     for task in range(self.n_tasks):
       task_root = "task%d" % task
-      task_scopes[task] = TensorflowGraph.shared_name_scope(
+      self.task_scopes[task] = TensorflowGraph.shared_name_scope(
           "task%d" % task, graph, name_scopes)
 
     with graph.as_default():
@@ -85,7 +144,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     all_layers = {}
     for i in range(n_layers):
       for task in range(self.n_tasks):
-        task_scope = task_scopes[task]
+        task_scope = self.task_scopes[task]
         print("Adding weights for task %d, layer %d" % (task, i))
         with task_scope:
           # Create the non-linear adapter
@@ -104,17 +163,23 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
                   [1,], stddev=alpha_init_stddevs[i]))
               prev_layer = tf.mul(alpha, prev_layer)
               prev_layer_size = (task-1)*layer_sizes[i-1]
+              print("Creating V_layer_%d_task%d of shape %s" %
+                    (i, task, str([prev_layer_size, layer_sizes[i-1]])))
               V = tf.Variable(
                   tf.truncated_normal(
                       shape=[prev_layer_size, layer_sizes[i-1]],
                       stddev=weight_init_stddevs[i]),
                   name="V_layer_%d_task%d" % (i, task), dtype=tf.float32)
+              print("Creating b_lat_layer_%d_task%d of shape %s" %
+                    (i, task, str([prev_layer_size])))
               b_lat = tf.Variable(
                   tf.constant(value=bias_init_consts[i],
                               shape=[prev_layer_size]),
                   name='b_lat_layer_%d_task%d' % (i, task),
                   dtype=tf.float32)
               prev_layer = tf.nn.xw_plus_b(prev_layer, V, b_lat)
+              print("Creating V_layer_%d_task%d of shape %s" %
+                    (i, task, str([layer_sizes[i-1], layer_sizes[i]])))
               U = tf.Variable(
                   tf.truncated_normal(
                       shape=[layer_sizes[i-1], layer_sizes[i]],
@@ -126,26 +191,20 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
             prev_layer_size = self.n_features
           else:
             prev_layer_size = layer_sizes[i-1]
+          print("Creating W_layer_%d_task%d of shape %s" %
+                (i, task, str([prev_layer_size, layer_sizes[i]])))
           W = tf.Variable(
               tf.truncated_normal(
                   shape=[prev_layer_size, layer_sizes[i]],
                   stddev=weight_init_stddevs[i]),
               name='W_layer_%d_task%d' % (i, task), dtype=tf.float32)
+          print("Creating b_layer_%d_task%d of shape %s" %
+                (i, task, str([layer_sizes[i]])))
           b = tf.Variable(tf.constant(value=bias_init_consts[i],
                           shape=[layer_sizes[i]]),
                           name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
-          ##################################################### DEBUG
-          print("prev_layer")
-          print(prev_layer)
-          print("prev_layer_size")
-          print(prev_layer_size)
-          print("W")
-          print(W)
-          print("b")
-          print(b)
-          ##################################################### DEBUG
           layer = tf.nn.xw_plus_b(prev_layer, W, b)
-          if task > 0:
+          if i > 0 and task > 0:
             layer = tf.add(layer, lateral_contrib)
           layer = tf.nn.relu(layer)
           # layer is of shape (batch_size, layer_sizes[i])
@@ -155,7 +214,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     outputs = [all_layers[(i, task)] for task in range(self.n_tasks)]
     return outputs
 
-  def add_training_costs(self, graph, name_scopes, outputs, labels, weights):
+  def add_training_cost(self, graph, name_scopes, outputs, labels, weights):
     """Adds the training costs for each task.
     
     Since each task is trained separately, each task is optimized w.r.t a separate
@@ -176,6 +235,10 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     weights: list
       List of weight placeholders for model.
     """
+    ###################################################### DEBUG
+    print("add_training_cost()")
+    ###################################################### DEBUG
+    task_costs = {}
     with graph.as_default():
       epsilon = 1e-3  # small float to avoid dividing by zero
       weighted_costs = []  # weighted costs for each example
@@ -186,7 +249,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           with TensorflowGraph.shared_name_scope(
               'cost_%d' % task, graph, name_scopes):
             with tf.name_scope('weighted'):
-              weighted_cost = self.cost(output[task], labels[task],
+              weighted_cost = self.cost(outputs[task], labels[task],
                                         weights[task])
               weighted_costs.append(weighted_cost)
 
@@ -197,6 +260,10 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
               # calculate with div/sum so it stays on the GPU.
               task_cost = tf.div(tf.reduce_sum(weighted_cost), self.batch_size)
               task_costs[task] = task_cost 
+    ###################################################### DEBUG
+    print("task_costs")
+    print(task_costs)
+    ###################################################### DEBUG
 
     return task_costs
 
@@ -221,22 +288,40 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       If model is not in training mode.
     """
     for task in range(self.n_tasks):
-      self.fit_task(dataset, **kwargs)
+      self.fit_task(dataset, task, **kwargs)
 
-  def get_training_op(self, graph, loss, task):
+  def get_training_op(self, graph, losses, task):
     """Get training op for applying gradients to variables.
 
     Subclasses that need to do anything fancy with gradients should override
     this method.
 
-    Returns:
+    Parameters
+    ----------
+    graph: tf.Graph
+      Graph for this op
+    losses: dict
+      Dictionary mapping task to losses
+
+    Returns
+    -------
     A training op.
     """
     with graph.as_default():
-      task_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                                    self.task_scopes[task])
+      task_loss = losses[task]
+      task_root = "task%d" % task
+      task_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, task_root)
       opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
-      return opt.minimize(loss, name='train', var_list=task_vars)
+      ######################################################## DEBUG
+      print("get_training_op()")
+      print("task")
+      print(task)
+      print("task_root")
+      print(task_root)
+      print("[task_var.name for task_var in task_vars]")
+      print([task_var.name for task_var in task_vars])
+      ######################################################## DEBUG
+      return opt.minimize(task_loss, name='train', var_list=task_vars)
 
 
   def fit_task(self, dataset, task, nb_epoch=10, pad_batches=False,
@@ -291,8 +376,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
               dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbosity)
-            # Run training op.
-            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+            feed_dict = self.construct_feed_dict(task, X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
                 task_train_op, self.train_graph.loss[task]]
             fetched_values = sess.run(fetches, feed_dict=feed_dict)
@@ -312,3 +396,37 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       ############################################################## TIMING
     # Always save a final checkpoint when complete.
     saver.save(sess, self._save_path, global_step=self.n_task*nb_epoch)
+
+  def construct_feed_dict(self, task, X_b, y_b=None, w_b=None, ids_b=None):
+    """Construct a feed dictionary from minibatch data.
+
+    TODO(rbharath): ids_b is not used here. Can we remove it?
+
+    Args:
+      X_b: np.ndarray of shape (batch_size, n_features)
+      y_b: np.ndarray of shape (batch_size, n_tasks)
+      w_b: np.ndarray of shape (batch_size, n_tasks)
+      ids_b: List of length (batch_size) with datapoint identifiers.
+    """ 
+    orig_dict = {}
+    orig_dict["features"] = X_b
+    if y_b is not None:
+      orig_dict["labels_%d" % task] = y_b[:, task] 
+    else:
+      # Dummy placeholders
+      orig_dict["labels_%d" % task] = np.squeeze(
+          np.zeros((self.batch_size,)))
+    if w_b is not None:
+      orig_dict["weights_%d" % task] = w_b[:, task]
+    else:
+      # Dummy placeholders
+      orig_dict["weights_%d" % task] = np.ones(
+          (self.batch_size,)) 
+    ################################################################ DEBUG
+    for key, value in orig_dict.iteritems():
+      print("key")
+      print(key)
+      print("value.shape")
+      print(value.shape)
+    ################################################################ DEBUG
+    return TensorflowGraph.get_feed_dict(orig_dict)
