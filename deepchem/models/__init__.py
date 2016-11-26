@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 from deepchem.models.models import Model
 from deepchem.models.sklearn_models import SklearnModel
-from deepchem.models.keras_models import KerasModel
 from deepchem.models.tf_keras_models.multitask_classifier import MultitaskGraphClassifier
 from deepchem.models.tf_keras_models.support_classifier import SupportGraphClassifier
 from deepchem.models.multitask import SingletaskToMultitask
