@@ -14,7 +14,6 @@ import unittest
 import tempfile
 import shutil
 import tensorflow as tf
-from keras import backend as K
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 
@@ -134,45 +133,45 @@ class TestAPI(unittest.TestCase):
     _ = model.evaluate(train_dataset, regression_metrics, transformers)
     _ = model.evaluate(test_dataset, regression_metrics, transformers)
 
-  def test_multitask_keras_mlp_ECFP_classification_API(self):
-    """Test of Keras multitask deepchem classification API."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      task_type = "classification"
-      current_dir = os.path.dirname(os.path.abspath(__file__))
-      input_file = os.path.join(current_dir, "multitask_example.csv")
-      tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
-               "task7", "task8", "task9", "task10", "task11", "task12",
-               "task13", "task14", "task15", "task16"]
+  #def test_multitask_keras_mlp_ECFP_classification_API(self):
+  #  """Test of Keras multitask deepchem classification API."""
+  #  g = tf.Graph()
+  #  sess = tf.Session(graph=g)
+  #  K.set_session(sess)
+  #  with g.as_default():
+  #    task_type = "classification"
+  #    current_dir = os.path.dirname(os.path.abspath(__file__))
+  #    input_file = os.path.join(current_dir, "multitask_example.csv")
+  #    tasks = ["task0", "task1", "task2", "task3", "task4", "task5", "task6",
+  #             "task7", "task8", "task9", "task10", "task11", "task12",
+  #             "task13", "task14", "task15", "task16"]
 
-      n_features = 1024
-      featurizer = dc.feat.CircularFingerprint(size=n_features)
-      loader = dc.load.DataLoader(
-          tasks=tasks, smiles_field="smiles",
-          featurizer=featurizer, verbosity="low")
-      dataset = loader.featurize(input_file)
+  #    n_features = 1024
+  #    featurizer = dc.feat.CircularFingerprint(size=n_features)
+  #    loader = dc.load.DataLoader(
+  #        tasks=tasks, smiles_field="smiles",
+  #        featurizer=featurizer, verbosity="low")
+  #    dataset = loader.featurize(input_file)
 
-      splitter = dc.splits.ScaffoldSplitter()
-      train_dataset, test_dataset = splitter.train_test_split(dataset)
+  #    splitter = dc.splits.ScaffoldSplitter()
+  #    train_dataset, test_dataset = splitter.train_test_split(dataset)
 
-      metrics = [dc.metrics.Metric(dc.metrics.roc_auc_score),
-                 dc.metrics.Metric(dc.metrics.matthews_corrcoef),
-                 dc.metrics.Metric(dc.metrics.recall_score),
-                 dc.metrics.Metric(dc.metrics.accuracy_score)]
-      
-      keras_model = dc.models.MultiTaskDNN(
-          len(tasks), n_features, "classification", dropout=0.)
-      model = dc.models.KerasModel(keras_model)
+  #    metrics = [dc.metrics.Metric(dc.metrics.roc_auc_score),
+  #               dc.metrics.Metric(dc.metrics.matthews_corrcoef),
+  #               dc.metrics.Metric(dc.metrics.recall_score),
+  #               dc.metrics.Metric(dc.metrics.accuracy_score)]
+  #    
+  #    keras_model = dc.models.MultiTaskDNN(
+  #        len(tasks), n_features, "classification", dropout=0.)
+  #    model = dc.models.KerasModel(keras_model)
 
-      # Fit trained model
-      model.fit(train_dataset)
-      model.save()
+  #    # Fit trained model
+  #    model.fit(train_dataset)
+  #    model.save()
 
-      # Eval model on train/test
-      _ = model.evaluate(train_dataset, metrics)
-      _ = model.evaluate(test_dataset, metrics)
+  #    # Eval model on train/test
+  #    _ = model.evaluate(train_dataset, metrics)
+  #    _ = model.evaluate(test_dataset, metrics)
 
   def test_singletask_tf_mlp_ECFP_classification_API(self):
     """Test of Tensorflow singletask deepchem classification API."""
