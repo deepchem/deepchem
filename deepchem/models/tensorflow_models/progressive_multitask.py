@@ -63,7 +63,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       weights = self.add_example_weight_placeholders(graph, name_scopes)
 
     if training:
-      loss = self.add_training_cost(graph, name_scopes, output, labels, weights)
+      loss = self.add_training_costs(graph, name_scopes, output, labels, weights)
     else:
       loss = None
       output = self.add_output_ops(graph, output)  # add softmax heads
@@ -91,10 +91,27 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       with placeholder_scope:
         for task in range(self.n_tasks):
           labels.append(tf.identity(
-              tf.placeholder(tf.float32, shape=[None],
+              tf.placeholder(tf.float32, shape=[None, 1],
                              name='labels_%d' % task)))
     return labels
 
+  def add_example_weight_placeholders(self, graph, name_scopes):
+    """Add Placeholders for example weights for each task.
+
+    This method creates the following Placeholders for each task:
+      weights_%d: Label tensor with shape batch_size.
+
+    Placeholders are wrapped in identity ops to avoid the error caused by
+    feeding and fetching the same tensor.
+    """
+    weights = []
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    with placeholder_scope:
+      for task in range(self.n_tasks):
+        weights.append(tf.identity(
+            tf.placeholder(tf.float32, shape=[None, 1],
+                           name='weights_%d' % task)))
+    return weights
 
   def build(self, graph, name_scopes, training):
     """Constructs the graph architecture as specified in its config.
@@ -151,6 +168,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           if i == 0:
             prev_layer = self.features
           else:
+            pass
+            ############################################################### DEBUG
             if task > 0:
               prev_layers = []
               # Iterate over all previous tasks.
@@ -186,6 +205,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
                       stddev=weight_init_stddevs[i]),
                   name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
               lateral_contrib = tf.matmul(U, prev_layer)
+            ############################################################### DEBUG
       
           if i == 0:
             prev_layer_size = self.n_features
@@ -204,17 +224,29 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
                           shape=[layer_sizes[i]]),
                           name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
           layer = tf.nn.xw_plus_b(prev_layer, W, b)
+          #################################################### DEBUG
+          print("layer")
+          print(layer)
+          #################################################### DEBUG
           if i > 0 and task > 0:
             layer = tf.add(layer, lateral_contrib)
           layer = tf.nn.relu(layer)
+          #################################################### DEBUG
+          print("layer")
+          print(layer)
+          #################################################### DEBUG
           # layer is of shape (batch_size, layer_sizes[i])
           layer = model_ops.dropout(layer, dropouts[i], training)
+          #################################################### DEBUG
+          print("layer")
+          print(layer)
+          #################################################### DEBUG
           all_layers[(i, task)] = layer
     # Gather up all the outputs to return.
     outputs = [all_layers[(i, task)] for task in range(self.n_tasks)]
     return outputs
 
-  def add_training_cost(self, graph, name_scopes, outputs, labels, weights):
+  def add_training_costs(self, graph, name_scopes, outputs, labels, weights):
     """Adds the training costs for each task.
     
     Since each task is trained separately, each task is optimized w.r.t a separate
@@ -251,6 +283,12 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
             with tf.name_scope('weighted'):
               weighted_cost = self.cost(outputs[task], labels[task],
                                         weights[task])
+              ###################################################### DEBUG
+              print("weighted_cost")
+              print(weighted_cost)
+              print("outputs[task], labels[task], weights[task]")
+              print(outputs[task], labels[task], weights[task])
+              ###################################################### DEBUG
               weighted_costs.append(weighted_cost)
 
             with tf.name_scope('gradient'):
@@ -271,7 +309,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     """No-op for regression models since no softmax."""
     return outputs
 
-  def fit(self, dataset, **kwargs):
+  def fit(self, dataset, max_checkpoints_to_keep=5, **kwargs):
     """Fit the model.
 
     Progressive networks are fit by training one task at a time. Iteratively
@@ -287,8 +325,24 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     AssertionError
       If model is not in training mode.
     """
-    for task in range(self.n_tasks):
-      self.fit_task(dataset, task, **kwargs)
+    with self.train_graph.graph.as_default():
+      task_train_ops = {}
+      for task in range(self.n_tasks):
+        task_train_ops[task] = self.get_training_op(
+            self.train_graph.graph, self.train_graph.loss, task)
+      with self._get_shared_session(train=True) as sess:
+        sess.run(tf.initialize_all_variables())
+        # Save an initial checkpoint.
+        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        saver.save(sess, self._save_path, global_step=0)
+        for task in range(self.n_tasks):
+          ################################################## DEBUG
+          print("FITTING ON TASK %d" % task)
+          ################################################## DEBUG
+          self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
+          saver.save(sess, self._save_path, global_step=task)
+        # Always save a final checkpoint when complete.
+        saver.save(sess, self._save_path, global_step=self.n_tasks)
 
   def get_training_op(self, graph, losses, task):
     """Get training op for applying gradients to variables.
@@ -323,9 +377,28 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       ######################################################## DEBUG
       return opt.minimize(task_loss, name='train', var_list=task_vars)
 
+  def _get_shared_session(self, train):
+    # allow_soft_placement=True allows ops without a GPU implementation
+    # to run on the CPU instead.
+    ############################################### DEBUG
+    print("_get_shared_session")
+    print("self.train_graph.session")
+    print(self.train_graph.session)
+    ############################################### DEBUG
+    if train:
+      if not self.train_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.train_graph.session = tf.Session(config=config)
+      return self.train_graph.session
+    else:
+      if not self.eval_graph.session:
+        config = tf.ConfigProto(allow_soft_placement=True)
+        self.eval_graph.session = tf.Session(config=config)
+      return self.eval_graph.session
 
-  def fit_task(self, dataset, task, nb_epoch=10, pad_batches=False,
-               max_checkpoints_to_keep=5, log_every_N_batches=50):
+
+  def fit_task(self, sess, dataset, task, task_train_op, nb_epoch=10, pad_batches=False,
+               log_every_N_batches=50):
     """Fit the model.
 
     Fit one task.
@@ -359,43 +432,43 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     time1 = time.time()
     ############################################################## TIMING
     log("Training task %d for %d epochs" % (task, nb_epoch), self.verbosity)
-    with self.train_graph.graph.as_default():
-      task_train_op = self.get_training_op(
-          self.train_graph.graph, self.train_graph.loss, task)
-      with self._get_shared_session(train=True) as sess:
-        sess.run(tf.initialize_all_variables())
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-        # Save an initial checkpoint.
-        saver.save(sess, self._save_path, global_step=(task-1)*nb_epoch)
-        for epoch in range(nb_epoch):
-          avg_loss, n_batches = 0., 0
-          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              # Turns out there are valid cases where we don't want pad-batches
-              # on by default.
-              #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
-            if ind % log_every_N_batches == 0:
-              log("On batch %d" % ind, self.verbosity)
-            feed_dict = self.construct_feed_dict(task, X_b, y_b, w_b, ids_b)
-            fetches = self.train_graph.output + [
-                task_train_op, self.train_graph.loss[task]]
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            output = fetched_values[:len(self.train_graph.output)]
-            loss = fetched_values[-1]
-            avg_loss += loss
-            y_pred = np.squeeze(np.array(output))
-            y_b = y_b.flatten()
-            n_batches += 1
-          saver.save(sess, self._save_path, global_step=(task-1)*nb_epoch+epoch)
-          avg_loss = float(avg_loss)/n_batches
-          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
-      ############################################################## TIMING
-      time2 = time.time()
-      print("TIMING: model fitting took %0.3f s" % (time2-time1),
-            self.verbosity)
-      ############################################################## TIMING
-    # Always save a final checkpoint when complete.
-    saver.save(sess, self._save_path, global_step=self.n_task*nb_epoch)
+    ##with self.train_graph.graph.as_default():
+    #  #task_train_op = self.get_training_op(
+    #  #    self.train_graph.graph, self.train_graph.loss, task)
+    #  #with self._get_shared_session(train=True) as sess:
+    #    #sess.run(tf.initialize_all_variables())
+    #    #saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+    #    ## Save an initial checkpoint.
+    #    #saver.save(sess, self._save_path, global_step=0)
+    for epoch in range(nb_epoch):
+      avg_loss, n_batches = 0., 0
+      for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+          # Turns out there are valid cases where we don't want pad-batches
+          # on by default.
+          #dataset.iterbatches(batch_size, pad_batches=True)):
+          dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+        if ind % log_every_N_batches == 0:
+          log("On batch %d" % ind, self.verbosity)
+        feed_dict = self.construct_feed_dict(task, X_b, y_b, w_b, ids_b)
+        fetches = self.train_graph.output + [
+            task_train_op, self.train_graph.loss[task]]
+        fetched_values = sess.run(fetches, feed_dict=feed_dict)
+        output = fetched_values[:len(self.train_graph.output)]
+        loss = fetched_values[-1]
+        avg_loss += loss
+        y_pred = np.squeeze(np.array(output))
+        y_b = y_b.flatten()
+        n_batches += 1
+      #saver.save(sess, self._save_path, global_step=epoch)
+      avg_loss = float(avg_loss)/n_batches
+      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
+    #    ## Always save a final checkpoint when complete.
+    #    #saver.save(sess, self._save_path, global_step=nb_epoch)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1),
+          self.verbosity)
+    ############################################################## TIMING
 
   def construct_feed_dict(self, task, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -410,23 +483,24 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     """ 
     orig_dict = {}
     orig_dict["features"] = X_b
+    n_samples = len(X_b)
     if y_b is not None:
-      orig_dict["labels_%d" % task] = y_b[:, task] 
+      orig_dict["labels_%d" % task] = np.reshape(y_b[:, task], (n_samples, 1))
     else:
       # Dummy placeholders
       orig_dict["labels_%d" % task] = np.squeeze(
           np.zeros((self.batch_size,)))
     if w_b is not None:
-      orig_dict["weights_%d" % task] = w_b[:, task]
+      orig_dict["weights_%d" % task] = np.reshape(w_b[:, task], (n_samples, 1))
     else:
       # Dummy placeholders
       orig_dict["weights_%d" % task] = np.ones(
           (self.batch_size,)) 
     ################################################################ DEBUG
-    for key, value in orig_dict.iteritems():
-      print("key")
-      print(key)
-      print("value.shape")
-      print(value.shape)
+    #for key, value in orig_dict.iteritems():
+    #  print("key")
+    #  print(key)
+    #  print("value.shape")
+    #  print(value.shape)
     ################################################################ DEBUG
     return TensorflowGraph.get_feed_dict(orig_dict)
