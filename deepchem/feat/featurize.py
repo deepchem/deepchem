@@ -138,7 +138,7 @@ class DataLoader(object):
 
   def featurize(self, input_files, data_dir=None, shard_size=8192,
                 num_shards_per_batch=24, worker_pool=None,
-                logging=True, debug=False):
+                logging=True, debug=True):
     """Featurize provided files and write to specified location."""
     ############################################################## TIMING
     time1 = time.time()
