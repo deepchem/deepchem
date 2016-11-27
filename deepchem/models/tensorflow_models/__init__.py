@@ -547,7 +547,6 @@ class TensorflowClassifier(TensorflowGraphModel):
       # run eval data through the model
       n_tasks = self.n_tasks
       output = []
-      start = time.time()
       with self._get_shared_session(train=False).as_default():
         feed_dict = self.construct_feed_dict(X)
         data = self._get_shared_session(train=False).run(

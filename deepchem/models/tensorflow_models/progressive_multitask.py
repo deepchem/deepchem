@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from deepchem.utils.save import log
 from deepchem.metrics import to_one_hot
+from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
@@ -68,10 +69,13 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     with graph.as_default():
       if seed is not None:
         tf.set_random_seed(seed)
-      outputs, labels, weights = self.build(graph, name_scopes, training)
+      features, labels, weights = self.add_placeholders(graph, name_scopes)
+      outputs = self.add_progressive_lattice(graph, name_scopes, features,
+                                             training)
 
       if training:
-        loss = self.add_training_costs(graph, name_scopes, outputs, labels, weights)
+        loss = self.add_training_costs(graph, name_scopes, outputs, labels,
+                                       weights)
       else:
         loss = None
     return TensorflowGraph(graph=graph,
@@ -82,19 +86,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
                            weights=weights,
                            loss=loss)
 
-  def build(self, graph, name_scopes, training):
-    """Constructs the graph architecture as specified in its config.
-
-    Parameters
-    ----------
-    graphs: tf.Graph
-      Graph to build this model within.
-    name_scopes: dict 
-      Stores all the name scopes for this model.
-    training: bool
-      Indicates whether this graph is to be constructed in training
-      or evaluation mode. Mainly used for dropout
-    """
+  def add_placeholders(self, graph, name_scopes):
+    """Adds all placeholders for this model."""
     # Create placeholders
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
@@ -109,6 +102,24 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         labels.append(tf.identity(
             tf.placeholder(tf.float32, shape=[None, 1],
                            name='labels_%d' % task)))
+    return features, labels, weights
+
+  def add_progressive_lattice(self, graph, name_scopes, features, training):
+    """Constructs the progressive lattice structure.
+
+    See figure 1 in https://arxiv.org/pdf/1606.04671v3.pdf for graphical
+    description of model created by this code.
+
+    Parameters
+    ----------
+    graphs: tf.Graph
+      Graph to build this model within.
+    name_scopes: dict 
+      Stores all the name scopes for this model.
+    training: bool
+      Indicates whether this graph is to be constructed in training
+      or evaluation mode. Mainly used for dropout
+    """
 
     # Define graph structure
     layer_sizes = self.layer_sizes
@@ -125,41 +136,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           else:
             prev_layer = all_layers[(i-1, task)]
             if task > 0:
-              prev_layers = []
-              # Iterate over all previous tasks.
-              for prev_task in range(task):
-                prev_layers.append(all_layers[(i-1, prev_task)])
-              # prev_layers is a list with elements of size
-              # (batch_size, layer_sizes[i-1])
-              prev_layer = tf.concat(1, prev_layers)
-              alpha = tf.Variable(tf.truncated_normal(
-                  [1,], stddev=self.alpha_init_stddevs[i]))
-              prev_layer = tf.mul(alpha, prev_layer)
-              prev_layer_size = task*layer_sizes[i-1]
-              print("Creating V_layer_%d_task%d of shape %s" %
-                    (i, task, str([prev_layer_size, layer_sizes[i-1]])))
-              V = tf.Variable(
-                  tf.truncated_normal(
-                      shape=[prev_layer_size, layer_sizes[i-1]],
-                      stddev=self.weight_init_stddevs[i]),
-                  name="V_layer_%d_task%d" % (i, task), dtype=tf.float32)
-              print("Creating b_lat_layer_%d_task%d of shape %s" %
-                    (i, task, str([prev_layer_size])))
-              b_lat = tf.Variable(
-                  tf.constant(value=self.bias_init_consts[i],
-                              shape=[layer_sizes[i-1]]),
-                  name='b_lat_layer_%d_task%d' % (i, task),
-                  dtype=tf.float32)
-              prev_layer = tf.matmul(prev_layer, V) + b_lat
-              print("Creating U_layer_%d_task%d of shape %s" %
-                    (i, task, str([layer_sizes[i-1], layer_sizes[i]])))
-              U = tf.Variable(
-                  tf.truncated_normal(
-                      shape=[layer_sizes[i-1], layer_sizes[i]],
-                      stddev=self.weight_init_stddevs[i]),
-                  name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
-              lateral_contrib = tf.matmul(prev_layer, U)
-      
+              lateral_contrib = self.add_adapter(all_layers, task, i)
           if i == 0:
             prev_layer_size = self.n_features
           else:
@@ -178,14 +155,82 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
                           name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
           layer = tf.matmul(prev_layer, W) + b
           if i > 0 and task > 0:
-            layer = tf.add(layer, lateral_contrib)
+            layer = layer + lateral_contrib
           layer = tf.nn.relu(layer)
           # layer is of shape (batch_size, layer_sizes[i])
           layer = model_ops.dropout(layer, self.dropouts[i], training)
           all_layers[(i, task)] = layer
     # Gather up all the outputs to return.
-    outputs = [all_layers[(i, task)] for task in range(self.n_tasks)]
-    return outputs, labels, weights
+    outputs = []
+    for task in range(self.n_tasks):
+      prev_layer = all_layers[(i, task)]
+      prev_layer_size = layer_sizes[i]
+      if task > 0:
+        # TODO(rbharath): Should there be a lateral contribution on output?
+        lateral_contrib = self.add_adapter(all_layers, task, i+1)
+      W = tf.Variable(
+          tf.truncated_normal(
+              shape=[prev_layer_size, 1],
+              stddev=self.weight_init_stddevs[i]),
+          name='W_output_task%d' % task, dtype=tf.float32)
+      print("Creating b_output_task%d of shape %s" % (task, str([1])))
+      b = tf.Variable(tf.constant(value=self.bias_init_consts[i], shape=[1]),
+                      name='b_output_task%d' % task, dtype=tf.float32)
+      layer = tf.matmul(prev_layer, W) + b
+      if i > 0 and task > 0:
+        layer = layer + lateral_contrib
+      outputs.append(layer)
+    return outputs
+
+  def add_adapter(self, all_layers, task, layer_num):
+    """Add an adapter connection for given task/layer combo"""
+    i = layer_num
+    prev_layers = []
+    # Handle output layer
+    if i < len(self.layer_sizes):
+      layer_sizes = self.layer_sizes
+      alpha_init_stddev = self.alpha_init_stddevs[i]
+      weight_init_stddev = self.weight_init_stddevs[i]
+      bias_init_const = self.bias_init_consts[i]
+    elif i == len(self.layer_sizes):
+      layer_sizes = self.layer_sizes + [1]
+      alpha_init_stddev = self.alpha_init_stddevs[-1]
+      weight_init_stddev = self.weight_init_stddevs[-1]
+      bias_init_const = self.bias_init_consts[-1]
+    else:
+      raise ValueError("layer_num too large for add_adapter.")
+    # Iterate over all previous tasks.
+    for prev_task in range(task):
+      prev_layers.append(all_layers[(i-1, prev_task)])
+    # prev_layers is a list with elements of size
+    # (batch_size, layer_sizes[i-1])
+    prev_layer = tf.concat(1, prev_layers)
+    alpha = tf.Variable(tf.truncated_normal(
+        [1,], stddev=alpha_init_stddev))
+    prev_layer = tf.mul(alpha, prev_layer)
+    prev_layer_size = task*layer_sizes[i-1]
+    print("Creating V_layer_%d_task%d of shape %s" %
+          (i, task, str([prev_layer_size, layer_sizes[i-1]])))
+    V = tf.Variable(
+        tf.truncated_normal(
+            shape=[prev_layer_size, layer_sizes[i-1]],
+            stddev=weight_init_stddev),
+        name="V_layer_%d_task%d" % (i, task), dtype=tf.float32)
+    print("Creating b_lat_layer_%d_task%d of shape %s" %
+          (i, task, str([prev_layer_size])))
+    b_lat = tf.Variable(
+        tf.constant(value=bias_init_const, shape=[layer_sizes[i-1]]),
+        name='b_lat_layer_%d_task%d' % (i, task),
+        dtype=tf.float32)
+    prev_layer = tf.matmul(prev_layer, V) + b_lat
+    print("Creating U_layer_%d_task%d of shape %s" %
+          (i, task, str([layer_sizes[i-1], layer_sizes[i]])))
+    U = tf.Variable(
+        tf.truncated_normal(
+            shape=[layer_sizes[i-1], layer_sizes[i]],
+            stddev=weight_init_stddev),
+        name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
+    return tf.matmul(prev_layer, U)
 
   def add_training_costs(self, graph, name_scopes, outputs, labels, weights):
     """Adds the training costs for each task.
@@ -252,9 +297,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         saver.save(sess, self._save_path, global_step=0)
         for task in range(self.n_tasks):
-          ################################################## DEBUG
-          print("FITTING ON TASK %d" % task)
-          ################################################## DEBUG
+          print("Fitting on task %d" % task)
           self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
           saver.save(sess, self._save_path, global_step=task)
         # Always save a final checkpoint when complete.
@@ -380,12 +423,34 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       orig_dict["labels_%d" % task] = np.reshape(y_b[:, task], (n_samples, 1))
     else:
       # Dummy placeholders
-      orig_dict["labels_%d" % task] = np.squeeze(
-          np.zeros((self.batch_size,)))
+      orig_dict["labels_%d" % task] = np.zeros((self.batch_size, 1))
     if w_b is not None:
       orig_dict["weights_%d" % task] = np.reshape(w_b[:, task], (n_samples, 1))
     else:
       # Dummy placeholders
       orig_dict["weights_%d" % task] = np.ones(
-          (self.batch_size,)) 
+          (self.batch_size, 1)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
+
+  def predict_on_batch(self, X, pad_batch=False):
+    """Make predictions with progressive model.
+
+    Does not pad batches (this model supports arbitrary batches).
+    """
+    if not self._restored_model:
+      self.restore()
+    with self.eval_graph.graph.as_default():
+      # run eval data through the model
+      task_outputs = []
+      for task in range(self.n_tasks):
+        feed_dict = self.construct_feed_dict(task, X)
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output[task], feed_dict=feed_dict)
+        task_output = np.asarray(data, dtype=float)
+        task_outputs.append(task_output)
+      
+      # Batch output will be of shape (n_tasks, n_samples, 1)
+      batch_output = np.hstack([task_outputs])
+      # Reshape to have shape
+      batch_output = np.reshape(batch_output, (len(X), self.n_tasks))
+    return batch_output
