@@ -116,41 +116,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_keras_regression_overfit(self):
-    """Test that keras models can overfit simple regression datasets."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      n_samples = 10
-      n_features = 3
-      n_tasks = 1 
-      
-      # Generate dummy dataset
-      np.random.seed(123)
-      ids = np.arange(n_samples)
-      X = np.random.rand(n_samples, n_features)
-      y = np.random.rand(n_samples, n_tasks)
-      w = np.ones((n_samples, n_tasks))
-
-      dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-      verbosity = "high"
-      regression_metric = dc.metrics.Metric(
-          dc.metrics.r2_score, verbosity=verbosity)
-      keras_model = dc.models.MultiTaskDNN(
-          n_tasks, n_features, "regression",
-          dropout=0., learning_rate=.15, decay=1e-4)
-      model = dc.models.KerasModel(keras_model)
-
-      # Fit trained model
-      model.fit(dataset, nb_epoch=200)
-      model.save()
-
-      # Eval model on train
-      scores = model.evaluate(dataset, [regression_metric])
-      assert scores[regression_metric.name] > .7
-
   def test_tf_regression_overfit(self):
     """Test that TensorFlow models can overfit simple regression datasets."""
     n_samples = 10
@@ -181,77 +146,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
-
-  def test_keras_classification_overfit(self):
-    """Test that keras models can overfit simple classification datasets."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      n_samples = 10
-      n_features = 3
-      n_tasks = 1
-      
-      # Generate dummy dataset
-      np.random.seed(123)
-      ids = np.arange(n_samples)
-      X = np.random.rand(n_samples, n_features)
-      y = np.random.randint(2, size=(n_samples, n_tasks))
-      w = np.ones((n_samples, n_tasks))
-    
-      dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-      verbosity = "high"
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.roc_auc_score, verbosity=verbosity)
-      keras_model = dc.models.MultiTaskDNN(
-          n_tasks, n_features, "classification",
-          learning_rate=.15, decay=1e-4, dropout=0.)
-      model = dc.models.KerasModel(keras_model)
-
-      # Fit trained model
-      model.fit(dataset, nb_epoch=200)
-      model.save()
-
-      # Eval model on train
-      scores = model.evaluate(dataset, [classification_metric])
-      assert scores[classification_metric.name] > .9
-
-  def test_keras_skewed_classification_overfit(self):
-    """Test keras models can overfit 0/1 datasets with few actives."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      n_samples = 100
-      n_features = 3
-      n_tasks = 1
-      
-      # Generate dummy dataset
-      np.random.seed(123)
-      p = .05
-      ids = np.arange(n_samples)
-      X = np.random.rand(n_samples, n_features)
-      y = np.random.binomial(1, p, size=(n_samples, n_tasks))
-      w = np.ones((n_samples, n_tasks))
-    
-      dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-      verbosity = "high"
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.roc_auc_score, verbosity=verbosity)
-      keras_model = dc.models.MultiTaskDNN(
-          n_tasks, n_features, "classification",
-          dropout=0., learning_rate=.15, decay=1e-4)
-      model = dc.models.KerasModel(keras_model)
-
-      # Fit trained model
-      model.fit(dataset, batch_size=n_samples, nb_epoch=200)
-      model.save()
-
-      # Eval model on train
-      scores = model.evaluate(dataset, [classification_metric])
-      assert scores[classification_metric.name] > .9
 
   def test_tf_classification_overfit(self):
     """Test that tensorflow models can overfit simple classification datasets."""
@@ -392,41 +286,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_keras_multitask_classification_overfit(self):
-    """Test keras multitask overfits tiny data."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      n_tasks = 10
-      n_samples = 10
-      n_features = 3
-      
-      # Generate dummy dataset
-      np.random.seed(123)
-      ids = np.arange(n_samples)
-      X = np.random.rand(n_samples, n_features)
-      y = np.random.randint(2, size=(n_samples, n_tasks))
-      w = np.ones((n_samples, n_tasks))
-      dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-      verbosity = "high"
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.roc_auc_score, verbosity=verbosity,
-         task_averager=np.mean, mode="classification")
-      keras_model = dc.models.MultiTaskDNN(
-          n_tasks, n_features, "classification", dropout=0., learning_rate=.15,
-          decay=1e-4)
-      model = dc.models.KerasModel(keras_model, verbosity=verbosity)
-
-      # Fit trained model
-      model.fit(dataset, nb_epoch=50)
-      model.save()
-
-      # Eval model on train
-      scores = model.evaluate(dataset, [classification_metric])
-      assert scores[classification_metric.name] > .9
-
   def test_tf_multitask_classification_overfit(self):
     """Test tf multitask overfits tiny data."""
     n_tasks = 10
@@ -550,41 +409,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] > .7
-
-  def test_keras_multitask_regression_overfit(self):
-    """Test keras multitask overfits tiny data."""
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
-    with g.as_default():
-      n_tasks = 10
-      n_samples = 10
-      n_features = 3
-      
-      # Generate dummy dataset
-      np.random.seed(123)
-      ids = np.arange(n_samples)
-      X = np.random.rand(n_samples, n_features)
-      y = np.random.randint(2, size=(n_samples, n_tasks))
-      w = np.ones((n_samples, n_tasks))
-      dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-      verbosity = "high"
-      regression_metric = dc.metrics.Metric(
-          dc.metrics.r2_score, verbosity=verbosity, task_averager=np.mean,
-          mode="regression")
-      keras_model = dc.models.MultiTaskDNN(
-          n_tasks, n_features, "regression", dropout=0., learning_rate=.1,
-          decay=1e-4)
-      model = dc.models.KerasModel(keras_model, verbosity=verbosity)
-
-      # Fit trained model
-      model.fit(dataset, nb_epoch=100)
-      model.save()
-
-      # Eval model on train
-      scores = model.evaluate(dataset, [regression_metric])
-      assert scores[regression_metric.name] > .75
 
   def test_tf_multitask_regression_overfit(self):
     """Test tf multitask overfits tiny data."""
@@ -920,3 +744,35 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
+
+  def test_tf_progressive_regression_overfit(self):
+    """Test tf progressive multitask overfits tiny data."""
+    np.random.seed(123)
+    n_tasks = 9 
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+  
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error, task_averager=np.mean)
+    model = dc.models.ProgressiveMultitaskRegressor(
+        n_tasks, n_features, layer_sizes=[50], bypass_layer_sizes=[10],
+        dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[.1], seed=123,
+        alpha_init_stddevs=[.02], batch_size=n_samples, verbosity="high")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=25)
+    model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] < .2
