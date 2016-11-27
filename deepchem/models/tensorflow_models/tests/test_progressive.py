@@ -105,3 +105,39 @@ class TestProgressive(test_util.TensorFlowTestCase):
         batch_size=2, verbosity="high")
 
     prog_model.fit(dataset)
+
+  def test_frozen_weights(self):
+    """Test that fitting one task doesn't change predictions of another.
+    
+    Tests that weights are frozen when training different tasks.
+    """
+    n_tasks = 2
+    n_samples = 10
+    n_features = 100
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    n_layers = 3
+    prog_model = dc.models.ProgressiveMultitaskRegressor(
+        n_tasks=n_tasks, n_features=n_features,
+        alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
+        weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
+        dropouts=[0.]*n_layers, learning_rate=0.003,
+        batch_size=2, verbosity="high")
+
+    # Fit just on task zero 
+    # Notice that we keep the session open
+    prog_model.fit(dataset, tasks=[0], close_session=False)
+    y_pred_task_zero = prog_model.predict(dataset)[:, 0]
+
+    # Fit on task one
+    prog_model.fit(dataset, tasks=[1])
+    y_pred_task_zero_after = prog_model.predict(dataset)[:, 0]
+
+    # The predictions for task zero should not change after training
+    # on task one. 
+    np.testing.assert_allclose(y_pred_task_zero, y_pred_task_zero_after)

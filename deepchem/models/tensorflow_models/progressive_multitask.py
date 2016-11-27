@@ -270,7 +270,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
 
     return task_costs
 
-  def fit(self, dataset, max_checkpoints_to_keep=5, **kwargs):
+  def fit(self, dataset, tasks=None, close_session=True,
+          max_checkpoints_to_keep=5, **kwargs):
     """Fit the model.
 
     Progressive networks are fit by training one task at a time. Iteratively
@@ -286,22 +287,28 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     AssertionError
       If model is not in training mode.
     """
+    if tasks is None:
+      tasks = range(self.n_tasks)
     with self.train_graph.graph.as_default():
       task_train_ops = {}
       for task in range(self.n_tasks):
         task_train_ops[task] = self.get_training_op(
             self.train_graph.graph, self.train_graph.loss, task)
-      with self._get_shared_session(train=True) as sess:
-        sess.run(tf.initialize_all_variables())
-        # Save an initial checkpoint.
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-        saver.save(sess, self._save_path, global_step=0)
-        for task in range(self.n_tasks):
-          print("Fitting on task %d" % task)
-          self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
-          saver.save(sess, self._save_path, global_step=task)
-        # Always save a final checkpoint when complete.
-        saver.save(sess, self._save_path, global_step=self.n_tasks)
+
+      sess = self._get_shared_session(train=True)
+      #with self._get_shared_session(train=True) as sess:
+      sess.run(tf.initialize_all_variables())
+      # Save an initial checkpoint.
+      saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+      saver.save(sess, self._save_path, global_step=0)
+      for task in tasks:
+        print("Fitting on task %d" % task)
+        self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
+        saver.save(sess, self._save_path, global_step=task)
+      # Always save a final checkpoint when complete.
+      saver.save(sess, self._save_path, global_step=self.n_tasks)
+      if close_session:
+        sess.close()
 
   def get_training_op(self, graph, losses, task):
     """Get training op for applying gradients to variables.
