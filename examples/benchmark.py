@@ -26,7 +26,7 @@ toxcast - dataloading: 70s
         - tf: 40min
 (will include more)
 
-Total time of running a benchmark test: 3~4h
+Total time of running a benchmark test: 30h
 """
 from __future__ import print_function
 from __future__ import division
@@ -39,6 +39,7 @@ import shutil
 import time
 import deepchem as dc
 import tensorflow as tf
+import argparse
 from keras import backend as K
 
 from sklearn.ensemble import RandomForestClassifier
@@ -51,7 +52,7 @@ from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
-                               dataset_name='all', model='tf', split=None,
+                               dataset='tox21', model='tf', split=None,
                                reload=True, verbosity='high', 
                                out_path='.'):
   """
@@ -65,21 +66,22 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   hyper_parameters : dict of list
       hyper parameters including dropout rate, learning rate, etc.
   
-  dataset_name : string, optional (default='all')
-      choice of which dataset to use, 'all' = computing all the datasets
+  dataset : string, optional (default='tox21')
+      choice of which dataset to use, should be: tox21, muv, sider, 
+      toxcast, pcba
       
   model : string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
       graphconv
 
-  model : string,  optional (default=None)
+  split : string,  optional (default=None)
       choice of splitter function, None = using the default splitter
 
   out_path : string, optional(default='.')
       path of result file
       
   """
-  if not dataset_name in ['all','muv','nci','pcba','tox21','sider','toxcast']:
+  if not dataset in ['muv','nci','pcba','tox21','sider','toxcast']:
     raise ValueError('Dataset not supported')
                           
   if model in ['graphconv']:
@@ -90,62 +92,54 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     n_features = 1024
   else:
     raise ValueError('Model not supported')
-      
-  if dataset_name == 'all':
-    #currently not including the nci dataset
-    dataset_name = ['tox21', 'muv', 'pcba', 'sider', 'toxcast']
-  else:
-    dataset_name = [dataset_name]
+
+  if not split in [None, 'index','random','scaffold']:
+    raise ValueError('Splitter function not supported')
   
   loading_functions = {'tox21': load_tox21, 'muv': load_muv,
                        'pcba': load_pcba, 'nci': load_nci,
                        'sider': load_sider, 'toxcast': load_toxcast}
   
-  for dname in dataset_name:
-    print('-------------------------------------')
-    print('Benchmark %s on dataset: %s' % (model, dname))
-    print('-------------------------------------')
-    base_dir = os.path.join(base_dir_o, dname)
+  print('-------------------------------------')
+  print('Benchmark %s on dataset: %s' % (model, dataset))
+  print('-------------------------------------')
+  base_dir = os.path.join(base_dir_o, dataset)
+  time_start = time.time()
+  #loading datasets
+  if split is not None:
+    print('Splitting function: %s' % split)  
+    tasks,all_dataset,transformers = loading_functions[dataset](
+        featurizer=featurizer, split=split)
+  else:
+    tasks,all_dataset,transformers = loading_functions[dataset](
+        featurizer=featurizer)
+  
+  train_dataset, valid_dataset, test_dataset = all_dataset
+  time_finish_loading = time.time()
+  #time_finish_loading-time_start is the time(s) used for dataset loading
     
-    time_start = time.time()
-    #loading datasets
-    if split is not None:
-      print('Splitting function: %s' % split)  
-      tasks,datasets,transformers = loading_functions[dname](
-          featurizer=featurizer, split=split)
-    else:
-      tasks,datasets,transformers = loading_functions[dname](
-          featurizer=featurizer)
-    train_dataset, valid_dataset, test_dataset = datasets
-    time_finish_loading = time.time()
-    #time_finish_loading-time_start is the time(s) used for dataset loading
+  #running model
+  for count, hp in enumerate(hyper_parameters[model]):
+    time_start_fitting = time.time()
+    train_score,valid_score = benchmark_train_and_valid(base_dir,
+                                  train_dataset, valid_dataset, tasks, 
+                                  transformers, hp, n_features,
+                                  model=model, verbosity=verbosity)      
+    time_finish_fitting = time.time()
     
-
-    #running model
-    for count, hp in enumerate(hyper_parameters[model]):
-      time_start_fitting = time.time()
-      train_score,valid_score = benchmark_train_and_valid(base_dir,
-                                    train_dataset, valid_dataset, tasks, 
-                                    transformers, hp, n_features,
-                                    model=model, verbosity=verbosity)      
-      time_finish_fitting = time.time()
-      
-      with open(os.path.join(out_path, 'results.csv'),'a') as f:
-        f.write('\n'+str(count)+',')
-        f.write(dname+',train,')
-        for i in train_score:
-          f.write(i+','+str(train_score[i]['mean-roc_auc_score'])+',')
-        f.write('valid,')
-        for i in valid_score:
-          f.write(i+','+str(valid_score[i]['mean-roc_auc_score'])+',')
-        f.write('time_for_running,'+
-              str(time_finish_fitting-time_start_fitting)+',')
-
-    #clear workspace         
-    del tasks,datasets,transformers
-    del train_dataset,valid_dataset, test_dataset
-    del time_start,time_finish_loading,time_start_fitting,time_finish_fitting
-
+    with open(os.path.join(out_path, 'results.csv'),'a') as f:
+      f.write('\n'+str(count)+',')
+      f.write(dataset+','+split+',train,')
+      for i in train_score:
+        f.write(i+','+str(train_score[i]['mean-roc_auc_score'])+',')
+      f.write('valid,')
+      for i in valid_score:
+        f.write(i+','+str(valid_score[i]['mean-roc_auc_score'])+',')
+      f.write('time_for_running,'+
+            str(time_finish_fitting-time_start_fitting)+',')
+  #clear workspace         
+  del tasks, all_dataset, transformers
+  del train_dataset, valid_dataset, test_dataset
   return None
 
 def benchmark_train_and_valid(base_dir, train_dataset, valid_dataset, tasks,
@@ -383,9 +377,25 @@ if __name__ == '__main__':
     shutil.rmtree(base_dir_o)
   os.makedirs(base_dir_o)
   
-  #Datasets and models used in the benchmark test, all=all the datasets
-  dataset_name = 'all'
-  models = ['tf', 'tf_robust', 'logreg', 'graphconv']
+  parser = argparse.ArgumentParser(description='deepchem benchmark')
+  parser.add_argument('-s', action='append', dest='splitter_args',
+                      default=[], help='Choice of splitting function')
+  parser.add_argument('-m', action='append', dest='model_args',
+                      default=[], help='Choice of model')
+  parser.add_argument('-d', action='append', dest='dataset_args',
+                      default=[], help='Choice of dataset')
+  args = parser.parse_args()
+  #Datasets and models used in the benchmark test
+  splitters = args.splitter_args
+  models = args.model_args
+  datasets = args.dataset_args
+
+  if len(splitters) == 0:
+    splitters = ['index', 'random', 'scaffold']
+  if len(models) == 0:
+    models = ['tf', 'tf_robust', 'logreg', 'graphconv']
+  if len(datasets) == 0:
+    datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
@@ -415,6 +425,8 @@ if __name__ == '__main__':
 
   hps['rf'] = [{'n_estimators': 500}]
          
-  for model in models:
-    benchmark_loading_datasets(base_dir_o, hps, dataset_name=dataset_name,
-                               model=model, split='random', verbosity='high', out_path='.')
+  for split in splitters:
+    for model in models:
+      for dataset in datasets:
+        benchmark_loading_datasets(base_dir_o, hps, dataset=dataset, model=model, 
+                                   split=split, verbosity='high', out_path='.')
