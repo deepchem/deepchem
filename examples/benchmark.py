@@ -51,8 +51,9 @@ from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
-                               dataset_name='all', model='tf', reload = True,
-                               verbosity='high', out_path='/tmp'):
+                               dataset_name='all', model='tf', split=None,
+                               reload = True, verbosity='high', 
+                               out_path='.'):
   """
   Loading dataset for benchmark test
   
@@ -70,8 +71,11 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   model : string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
       graphconv
-  
-  out_path : string, optional(default='/tmp')
+
+  model : string,  optional (default=None)
+      choice of splitter function, None = using the default splitter
+
+  out_path : string, optional(default='.')
       path of result file
       
   """
@@ -104,9 +108,14 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
     base_dir = os.path.join(base_dir_o, dname)
     
     time_start = time.time()
-    #loading datasets     
-    tasks,datasets,transformers = loading_functions[dname](
-        featurizer=featurizer)
+    #loading datasets
+    if split is not None:
+      print('Splitting function: %s' % split)  
+      tasks,datasets,transformers = loading_functions[dname](
+          featurizer=featurizer, split=split)
+    else:
+      tasks,datasets,transformers = loading_functions[dname](
+          featurizer=featurizer)
     train_dataset, valid_dataset, test_dataset = datasets
     time_finish_loading = time.time()
     #time_finish_loading-time_start is the time(s) used for dataset loading
@@ -375,36 +384,37 @@ if __name__ == '__main__':
   os.makedirs(base_dir_o)
   
   #Datasets and models used in the benchmark test, all=all the datasets
-  dataset_name = 'tox21'
-  model = 'tf'
+  dataset_name = 'all'
+  models = ['tf', 'tf_robust', 'logreg', 'graphconv']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
   #    batch_size
   hps = {}
   hps = {}
-  hps['tf'] = [{'layer_sizes': [500], 'weight_init_stddevs': [0.02], 
-                'bias_init_consts': [1.], 'dropouts': [0.5], 'penalty': 0, 
+  hps['tf'] = [{'layer_sizes': [1500], 'weight_init_stddevs': [0.02], 
+                'bias_init_consts': [1.], 'dropouts': [0.5], 'penalty': 0.1, 
                 'penalty_type': 'l2', 'batch_size': 50, 'nb_epoch': 10, 
                 'learning_rate': 0.001}]
 
-  hps['tf_robust'] = [{'layer_sizes': [500], 'weight_init_stddevs': [0.02], 
+  hps['tf_robust'] = [{'layer_sizes': [1500], 'weight_init_stddevs': [0.02], 
                        'bias_init_consts': [1.], 'dropouts': [0.5], 
-                       'bypass_layer_sizes': [100], 
+                       'bypass_layer_sizes': [200], 
                        'bypass_weight_init_stddevs': [0.02],
                        'bypass_bias_init_consts': [1.], 
-                       'bypass_dropouts': [0.5], 'penalty': 0,
+                       'bypass_dropouts': [0.5], 'penalty': 0.1,
                        'penalty_type': 'l2', 'batch_size': 50, 
-                       'nb_epoch': 10, 'learning_rate': 0.001}]
+                       'nb_epoch': 10, 'learning_rate': 0.0005}]
              
-  hps['logreg'] = [{'penalty': 0, 'penalty_type': 'l2', 'batch_size': 50, 
-                    'nb_epoch': 10, 'learning_rate': 0.001}]
+  hps['logreg'] = [{'penalty': 0.1, 'penalty_type': 'l2', 'batch_size': 50, 
+                    'nb_epoch': 10, 'learning_rate': 0.005}]
                 
   hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 10, 
-                       'learning_rate': 0.001, 'n_filters': 64, 
-                       'n_fully_connected_nodes': 128}]
+                       'learning_rate': 0.0005, 'n_filters': 64, 
+                       'n_fully_connected_nodes': 128, 'seed': 123}]
 
   hps['rf'] = [{'n_estimators': 500}]
-                
-  benchmark_loading_datasets(base_dir_o, hps, dataset_name=dataset_name,
-                             model=model, reload=reload, verbosity='high')
+         
+  for model in models:
+    benchmark_loading_datasets(base_dir_o, hps, dataset_name=dataset_name,
+                               model=model, split='random', verbosity='high', out_path='.')

@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_pcba(featurizer='ECFP'):
+def load_pcba(featurizer='ECFP', split='random'):
   """Load PCBA datasets. Does not do train/test split"""
   
   current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -63,7 +63,10 @@ def load_pcba(featurizer='ECFP'):
   for transformer in transformers:
     dataset = transformer.transform(dataset)
   
-  splitter = dc.splits.RandomSplitter()
+  splitters = {'index': dc.splits.IndexSplitter(),
+               'random': dc.splits.RandomSplitter(),
+               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitter = splitters[split]
   print("Performing new split.")
   train, valid, test = splitter.train_valid_test_split(
 	dataset, compute_feature_statistics=False)
