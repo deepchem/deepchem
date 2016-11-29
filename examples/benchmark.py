@@ -52,7 +52,7 @@ from sider.sider_datasets import load_sider
 
 def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
                                dataset_name='all', model='tf', split=None,
-                               reload = True, verbosity='high', 
+                               reload=True, verbosity='high', 
                                out_path='.'):
   """
   Loading dataset for benchmark test
