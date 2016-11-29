@@ -120,7 +120,7 @@ def dropout(tensor, dropout_prob, training=True, training_only=True):
   return tensor
 
 
-def fully_connected_layer(tensor, size, weight_init=None, bias_init=None,
+def fully_connected_layer(tensor, size=None, weight_init=None, bias_init=None,
                           name=None):
   """Fully connected layer.
 
@@ -129,7 +129,7 @@ def fully_connected_layer(tensor, size, weight_init=None, bias_init=None,
   tensor: tf.Tensor
     Input tensor.
   size: int
-    Number of nodes in this layer.
+    Number of output nodes for this layer.
   weight_init: float
     Weight initializer.
   bias_init: float

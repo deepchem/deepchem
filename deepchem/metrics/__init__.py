@@ -181,6 +181,22 @@ class Metric(object):
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
+    ##################################################################### DEBUG
+   # print("n_tasks")
+   # print(n_tasks)
+   # print("len(computed_metrics)")
+   # print(len(computed_metrics))
+   # print("computed_metrics")
+   # print(computed_metrics)
+   # print("len(computed_metrics)")
+   # print(len(computed_metrics))
+   # print("computed_metrics")
+   # print(computed_metrics)
+   # print("len(computed_metrics)")
+   # print(len(computed_metrics))
+   # print("y_true.shape, y_pred.shape")
+   # print(y_true.shape, y_pred.shape)
+    ##################################################################### DEBUG
     log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]

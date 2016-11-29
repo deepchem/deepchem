@@ -54,57 +54,171 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         }
     assert len(lengths_set) == 1, "All layer params must have same length."
 
-  def construct_graph(self, training, seed):
-    """Returns a TensorflowGraph object."""
-    graph = tf.Graph() 
+  #def construct_graph(self, training, seed):
+  #  """Returns a TensorflowGraph object."""
+  #  graph = tf.Graph() 
 
-    # Lazily created by _get_shared_session().
-    shared_session = None
+  #  # Lazily created by _get_shared_session().
+  #  shared_session = None
 
-    # Cache of TensorFlow scopes, to prevent '_1' appended scope names
-    # when subclass-overridden methods use the same scopes.
-    name_scopes = {}
+  #  # Cache of TensorFlow scopes, to prevent '_1' appended scope names
+  #  # when subclass-overridden methods use the same scopes.
+  #  name_scopes = {}
 
-    # Setup graph
-    with graph.as_default():
-      if seed is not None:
-        tf.set_random_seed(seed)
-      features, labels, weights = self.add_placeholders(graph, name_scopes)
-      outputs = self.add_progressive_lattice(graph, name_scopes, features,
-                                             training)
+  #  # Setup graph
+  #  with graph.as_default():
+  #    if seed is not None:
+  #      tf.set_random_seed(seed)
+  #    features, labels, weights = self.add_placeholders(graph, name_scopes)
+  #    ####################################################### DEBUG
+  #    #outputs = self.add_progressive_lattice(graph, name_scopes, features,
+  #    #                                       training)
+  #    outputs = self.build(graph, name_scopes, training)
+  #    ####################################################### DEBUG
 
-      if training:
-        loss = self.add_training_costs(graph, name_scopes, outputs, labels,
-                                       weights)
-      else:
-        loss = None
-    return TensorflowGraph(graph=graph,
-                           session=shared_session,
-                           name_scopes=name_scopes,
-                           output=outputs,
-                           labels=labels,
-                           weights=weights,
-                           loss=loss)
+  #    if training:
+  #      loss = self.old_add_training_costs(graph, name_scopes, outputs, labels,
+  #                                     weights)
+  #    else:
+  #      loss = None
+  #  return TensorflowGraph(graph=graph,
+  #                         session=shared_session,
+  #                         name_scopes=name_scopes,
+  #                         output=outputs,
+  #                         labels=labels,
+  #                         weights=weights,
+  #                         loss=loss)
 
-  def add_placeholders(self, graph, name_scopes):
-    """Adds all placeholders for this model."""
-    # Create placeholders
+  #def add_placeholders(self, graph, name_scopes):
+  #  """Adds all placeholders for this model."""
+  #  # Create placeholders
+  #  placeholder_scope = TensorflowGraph.get_placeholder_scope(
+  #      graph, name_scopes)
+  #  labels, weights = [], []
+  #  with placeholder_scope:
+  #    self.features = tf.placeholder(
+  #        tf.float32, shape=[None, self.n_features], name='features')
+  #    for task in range(self.n_tasks):
+  #      ####################################################### DEBUG
+  #      weights.append(tf.identity(
+  #          tf.placeholder(tf.float32, shape=[None, 1],
+  #                         name='weights_%d' % task)))
+  #      labels.append(tf.identity(
+  #          tf.placeholder(tf.float32, shape=[None, 1],
+  #                         name='labels_%d' % task)))
+  #      #weights.append(tf.identity(
+  #      #    tf.placeholder(tf.float32, shape=[None,],
+  #      #                   name='weights_%d' % task)))
+  #      #labels.append(tf.identity(
+  #      #    tf.placeholder(tf.float32, shape=[None,],
+  #      #                   name='labels_%d' % task)))
+  #      ####################################################### DEBUG
+  #  ####################################################### DEBUG
+  #  #return features, labels, weights
+  #  return self.features, labels, weights
+  #  ####################################################### DEBUG
+
+  def build(self, graph, name_scopes, training):
+    """Constructs the graph architecture as specified in its config.
+
+    This method creates the following Placeholders:
+      mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
+        batch_size x n_features.
+    """
+    n_features = self.n_features
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
-    labels, weights = [], []
-    with placeholder_scope:
-      features = tf.placeholder(
-          tf.float32, shape=[None, self.n_features], name='features')
-      for task in range(self.n_tasks):
-        weights.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[None, 1],
-                           name='weights_%d' % task)))
-        labels.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[None, 1],
-                           name='labels_%d' % task)))
-    return features, labels, weights
+    with graph.as_default():
+      with placeholder_scope:
+        self.mol_features = tf.placeholder(
+            tf.float32,
+            shape=[None, n_features],
+            name='mol_features')
 
-  def add_progressive_lattice(self, graph, name_scopes, features, training):
+      layer_sizes = self.layer_sizes
+      weight_init_stddevs = self.weight_init_stddevs
+      bias_init_consts = self.bias_init_consts
+      dropouts = self.dropouts
+      lengths_set = {
+          len(layer_sizes),
+          len(weight_init_stddevs),
+          len(bias_init_consts),
+          len(dropouts),
+          }
+      assert len(lengths_set) == 1, 'All layer params must have same length.'
+      n_layers = lengths_set.pop()
+      assert n_layers > 0, 'Must have some layers defined.'
+
+      prev_layer = self.mol_features
+      prev_layer_size = n_features 
+      all_layers = {}
+      for i in range(n_layers):
+        for task in range(self.n_tasks):
+          task_scope = TensorflowGraph.shared_name_scope(
+              "task%d" % task, graph, name_scopes)
+          print("Adding weights for task %d, layer %d" % (task, i))
+          with task_scope as scope:
+            if i == 0:
+              prev_layer = self.mol_features
+              prev_layer_size = self.n_features
+            else:
+              prev_layer = all_layers[(i-1, task)]
+              prev_layer_size = layer_sizes[i-1]
+              if task > 0:
+                ################################################################# DEBUG
+                lateral_contrib = self.add_adapter(all_layers, task, i)
+                ################################################################# DEBUG
+            print("Creating W_layer_%d_task%d of shape %s" %
+                  (i, task, str([prev_layer_size, layer_sizes[i]])))
+            W = tf.Variable(
+                tf.truncated_normal(
+                    shape=[prev_layer_size, layer_sizes[i]],
+                    stddev=self.weight_init_stddevs[i]),
+                name='W_layer_%d_task%d' % (i, task), dtype=tf.float32)
+            print("Creating b_layer_%d_task%d of shape %s" %
+                  (i, task, str([layer_sizes[i]])))
+            b = tf.Variable(tf.constant(value=self.bias_init_consts[i],
+                            shape=[layer_sizes[i]]),
+                            name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
+            layer = tf.matmul(prev_layer, W) + b
+            if i > 0 and task > 0:
+              layer = layer + lateral_contrib
+            layer = tf.nn.relu(layer)
+            layer = model_ops.dropout(layer, dropouts[i], training)
+            all_layers[(i, task)] = layer
+
+      output = []
+      for task in range(self.n_tasks):
+        prev_layer = all_layers[(i, task)]
+        prev_layer_size = layer_sizes[i]
+        task_scope = TensorflowGraph.shared_name_scope(
+            "task%d" % task, graph, name_scopes)
+        with task_scope as scope:
+          if task > 0:
+            ################################################################# DEBUG
+            lateral_contrib = tf.squeeze(self.add_adapter(all_layers, task, i+1))
+            ################################################################# DEBUG
+          weight_init = tf.truncated_normal(
+              shape=[prev_layer_size, 1],
+              stddev=weight_init_stddevs[i])
+          bias_init = tf.constant(value=bias_init_consts[i],
+                                  shape=[1])
+          print("Creating W_output_task%d of shape %s"
+                % (task, str([prev_layer_size, 1])))
+          w = tf.Variable(weight_init, name='W_output_task%d'%task,
+                          dtype=tf.float32)
+          print("Creating b_output_task%d of shape %s" % (task, str([1])))
+          b = tf.Variable(bias_init, name='b_output_task%d'%task,
+                          dtype=tf.float32)
+          layer = tf.squeeze(tf.matmul(prev_layer, w) + b)
+          if i > 0 and task > 0:
+            layer = layer + lateral_contrib
+          output.append(layer)
+
+      return output
+
+  #def add_progressive_lattice(self, graph, name_scopes, features, training):
+  def new_build(self, graph, name_scopes, training):
     """Constructs the progressive lattice structure.
 
     See figure 1 in https://arxiv.org/pdf/1606.04671v3.pdf for graphical
@@ -120,67 +234,84 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       Indicates whether this graph is to be constructed in training
       or evaluation mode. Mainly used for dropout
     """
+    n_features = self.n_features
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
+    with graph.as_default():
+      with placeholder_scope:
+        self.mol_features = tf.placeholder(
+            tf.float32,
+            shape=[None, n_features],
+            name='mol_features')
+      features = self.mol_features
 
-    # Define graph structure
-    layer_sizes = self.layer_sizes
-    all_layers = {}
-    for i in range(len(layer_sizes)):
+      # Define graph structure
+      layer_sizes = self.layer_sizes
+      all_layers = {}
+      for i in range(len(layer_sizes)):
+        for task in range(self.n_tasks):
+          task_scope = TensorflowGraph.shared_name_scope(
+              "task%d" % task, graph, name_scopes)
+          print("Adding weights for task %d, layer %d" % (task, i))
+          with task_scope as scope:
+            # Create the non-linear adapter
+            if i == 0:
+              prev_layer = features
+            else:
+              prev_layer = all_layers[(i-1, task)]
+              if task > 0:
+                ################################################################# DEBUG
+                # TODO(rbharath): FIX ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                lateral_contrib = 0
+                #lateral_contrib = self.add_adapter(all_layers, task, i)
+                ################################################################# DEBUG
+            if i == 0:
+              prev_layer_size = self.n_features
+            else:
+              prev_layer_size = layer_sizes[i-1]
+            print("Creating W_layer_%d_task%d of shape %s" %
+                  (i, task, str([prev_layer_size, layer_sizes[i]])))
+            W = tf.Variable(
+                tf.truncated_normal(
+                    shape=[prev_layer_size, layer_sizes[i]],
+                    stddev=self.weight_init_stddevs[i]),
+                name='W_layer_%d_task%d' % (i, task), dtype=tf.float32)
+            print("Creating b_layer_%d_task%d of shape %s" %
+                  (i, task, str([layer_sizes[i]])))
+            b = tf.Variable(tf.constant(value=self.bias_init_consts[i],
+                            shape=[layer_sizes[i]]),
+                            name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
+            layer = tf.matmul(prev_layer, W) + b
+            if i > 0 and task > 0:
+              layer = layer + lateral_contrib
+            layer = tf.nn.relu(layer)
+            # layer is of shape (batch_size, layer_sizes[i])
+            layer = model_ops.dropout(layer, self.dropouts[i], training)
+            all_layers[(i, task)] = layer
+      # Gather up all the outputs to return.
+      outputs = []
       for task in range(self.n_tasks):
-        task_scope = TensorflowGraph.shared_name_scope(
-            "task%d" % task, graph, name_scopes)
-        print("Adding weights for task %d, layer %d" % (task, i))
-        with task_scope as scope:
-          # Create the non-linear adapter
-          if i == 0:
-            prev_layer = features
-          else:
-            prev_layer = all_layers[(i-1, task)]
-            if task > 0:
-              lateral_contrib = self.add_adapter(all_layers, task, i)
-          if i == 0:
-            prev_layer_size = self.n_features
-          else:
-            prev_layer_size = layer_sizes[i-1]
-          print("Creating W_layer_%d_task%d of shape %s" %
-                (i, task, str([prev_layer_size, layer_sizes[i]])))
-          W = tf.Variable(
-              tf.truncated_normal(
-                  shape=[prev_layer_size, layer_sizes[i]],
-                  stddev=self.weight_init_stddevs[i]),
-              name='W_layer_%d_task%d' % (i, task), dtype=tf.float32)
-          print("Creating b_layer_%d_task%d of shape %s" %
-                (i, task, str([layer_sizes[i]])))
-          b = tf.Variable(tf.constant(value=self.bias_init_consts[i],
-                          shape=[layer_sizes[i]]),
-                          name='b_layer_%d_task%d' % (i, task), dtype=tf.float32)
-          layer = tf.matmul(prev_layer, W) + b
-          if i > 0 and task > 0:
-            layer = layer + lateral_contrib
-          layer = tf.nn.relu(layer)
-          # layer is of shape (batch_size, layer_sizes[i])
-          layer = model_ops.dropout(layer, self.dropouts[i], training)
-          all_layers[(i, task)] = layer
-    # Gather up all the outputs to return.
-    outputs = []
-    for task in range(self.n_tasks):
-      prev_layer = all_layers[(i, task)]
-      prev_layer_size = layer_sizes[i]
-      if task > 0:
-        # TODO(rbharath): Should there be a lateral contribution on output?
-        lateral_contrib = self.add_adapter(all_layers, task, i+1)
-      W = tf.Variable(
-          tf.truncated_normal(
-              shape=[prev_layer_size, 1],
-              stddev=self.weight_init_stddevs[i]),
-          name='W_output_task%d' % task, dtype=tf.float32)
-      print("Creating b_output_task%d of shape %s" % (task, str([1])))
-      b = tf.Variable(tf.constant(value=self.bias_init_consts[i], shape=[1]),
-                      name='b_output_task%d' % task, dtype=tf.float32)
-      layer = tf.matmul(prev_layer, W) + b
-      if i > 0 and task > 0:
-        layer = layer + lateral_contrib
-      outputs.append(layer)
-    return outputs
+        prev_layer = all_layers[(i, task)]
+        prev_layer_size = layer_sizes[i]
+        if task > 0:
+          ################################################################# DEBUG
+          # TODO(rbharath): FIX ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          lateral_contrib = 0
+          #lateral_contrib = self.add_adapter(all_layers, task, i+1)
+          ################################################################# DEBUG
+        W = tf.Variable(
+            tf.truncated_normal(
+                shape=[prev_layer_size, 1],
+                stddev=self.weight_init_stddevs[i]),
+            name='W_output_task%d' % task, dtype=tf.float32)
+        print("Creating b_output_task%d of shape %s" % (task, str([1])))
+        b = tf.Variable(tf.constant(value=self.bias_init_consts[i], shape=[1]),
+                        name='b_output_task%d' % task, dtype=tf.float32)
+        layer = tf.matmul(prev_layer, W) + b
+        if i > 0 and task > 0:
+          layer = layer + lateral_contrib
+        outputs.append(layer)
+      return outputs
 
   def add_adapter(self, all_layers, task, layer_num):
     """Add an adapter connection for given task/layer combo"""
@@ -217,7 +348,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
             stddev=weight_init_stddev),
         name="V_layer_%d_task%d" % (i, task), dtype=tf.float32)
     print("Creating b_lat_layer_%d_task%d of shape %s" %
-          (i, task, str([prev_layer_size])))
+          (i, task, str([layer_sizes[i-1]])))
     b_lat = tf.Variable(
         tf.constant(value=bias_init_const, shape=[layer_sizes[i-1]]),
         name='b_lat_layer_%d_task%d' % (i, task),
@@ -232,107 +363,372 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
     return tf.matmul(prev_layer, U)
 
-  def add_training_costs(self, graph, name_scopes, outputs, labels, weights):
-    """Adds the training costs for each task.
-    
-    Since each task is trained separately, each task is optimized w.r.t a separate
-    task.
-
-    TODO(rbharath): Figure out how to support weight decay for this model.
-    Since each task is trained separately, weight decay should only be used
-    on weights in column for that task.
-
-    Parameters
-    ----------
-    graph: tf.Graph
-      Graph for the model.
-    name_scopes: dict
-      Contains all the scopes for model
-    outputs: list
-      List of output tensors from model.
-    weights: list
-      List of weight placeholders for model.
-    """
-    task_costs = {}
-    with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
-      for task in range(self.n_tasks):
-        with TensorflowGraph.shared_name_scope(
-            'cost_%d' % task, graph, name_scopes):
-          weighted_cost = self.cost(outputs[task], labels[task],
-                                    weights[task])
-
-          # Note that we divide by the batch size and not the number of
-          # non-zero weight examples in the batch.  Also, instead of using
-          # tf.reduce_mean (which can put ops on the CPU) we explicitly
-          # calculate with div/sum so it stays on the GPU.
-          task_cost = tf.div(tf.reduce_sum(weighted_cost), self.batch_size)
-          task_costs[task] = task_cost 
-
-    return task_costs
-
-  def fit(self, dataset, tasks=None, close_session=True,
-          max_checkpoints_to_keep=5, **kwargs):
+  ############################################################ DEBUG
+  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
+          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
-
-    Progressive networks are fit by training one task at a time. Iteratively
-    fits one task at a time with other weights frozen.
 
     Parameters
     ---------- 
     dataset: dc.data.Dataset
       Dataset object holding training data 
+    nb_epoch: 10
+      Number of training epochs.
+    pad_batches: bool
+      Whether or not to pad each batch to exactly be of size batch_size.
+    max_checkpoints_to_keep: int
+      Maximum number of checkpoints to keep; older checkpoints will be deleted.
+    log_every_N_batches: int
+      Report every N batches. Useful for training on very large datasets,
+      where epochs can take long time to finish.
 
     Raises
     ------
     AssertionError
       If model is not in training mode.
     """
-    if tasks is None:
-      tasks = range(self.n_tasks)
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
+    log("Training for %d epochs" % nb_epoch, self.verbosity)
     with self.train_graph.graph.as_default():
-      task_train_ops = {}
-      for task in range(self.n_tasks):
-        task_train_ops[task] = self.get_training_op(
-            self.train_graph.graph, self.train_graph.loss, task)
+      train_op = self.get_training_op(
+          self.train_graph.graph, self.train_graph.loss)
+      with self._get_shared_session(train=True) as sess:
+        sess.run(tf.initialize_all_variables())
+        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        # Save an initial checkpoint.
+        saver.save(sess, self._save_path, global_step=0)
+        for epoch in range(nb_epoch):
+          avg_loss, n_batches = 0., 0
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+              # Turns out there are valid cases where we don't want pad-batches
+              # on by default.
+              #dataset.iterbatches(batch_size, pad_batches=True)):
+              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+            if ind % log_every_N_batches == 0:
+              log("On batch %d" % ind, self.verbosity)
+            # Run training op.
+            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+            fetches = self.train_graph.output + [
+                train_op, self.train_graph.loss]
+            fetched_values = sess.run(fetches, feed_dict=feed_dict)
+            output = fetched_values[:len(self.train_graph.output)]
+            loss = fetched_values[-1]
+            avg_loss += loss
+            y_pred = np.squeeze(np.array(output))
+            y_b = y_b.flatten()
+            n_batches += 1
+          saver.save(sess, self._save_path, global_step=epoch)
+          avg_loss = float(avg_loss)/n_batches
+          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
+        # Always save a final checkpoint when complete.
+        saver.save(sess, self._save_path, global_step=epoch+1)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1),
+          self.verbosity)
+    ############################################################## TIMING
 
-      sess = self._get_shared_session(train=True)
-      #with self._get_shared_session(train=True) as sess:
-      sess.run(tf.initialize_all_variables())
-      # Save an initial checkpoint.
-      saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-      saver.save(sess, self._save_path, global_step=0)
-      for task in tasks:
-        print("Fitting on task %d" % task)
-        self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
-        saver.save(sess, self._save_path, global_step=task)
-      # Always save a final checkpoint when complete.
-      saver.save(sess, self._save_path, global_step=self.n_tasks)
-      if close_session:
-        sess.close()
-
-  def get_training_op(self, graph, losses, task):
+  def get_training_op(self, graph, loss):
     """Get training op for applying gradients to variables.
 
     Subclasses that need to do anything fancy with gradients should override
     this method.
 
-    Parameters
-    ----------
-    graph: tf.Graph
-      Graph for this op
-    losses: dict
-      Dictionary mapping task to losses
-
-    Returns
-    -------
+    Returns:
     A training op.
     """
     with graph.as_default():
-      task_loss = losses[task]
-      task_root = "task%d" % task
-      task_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, task_root)
       opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
-      return opt.minimize(task_loss, name='train', var_list=task_vars)
+      return opt.minimize(loss, name='train')
+
+  def add_training_costs(self, graph, name_scopes, output, labels, weights):
+    with graph.as_default():
+      epsilon = 1e-3  # small float to avoid dividing by zero
+      weighted_costs = []  # weighted costs for each example
+      gradient_costs = []  # costs used for gradient calculation
+
+      with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
+        for task in range(self.n_tasks):
+          task_str = str(task).zfill(len(str(self.n_tasks)))
+          with TensorflowGraph.shared_name_scope(
+              'cost_{}'.format(task_str), graph, name_scopes):
+            with tf.name_scope('weighted'):
+              weighted_cost = self.cost(output[task], labels[task],
+                                        weights[task])
+              weighted_costs.append(weighted_cost)
+
+            with tf.name_scope('gradient'):
+              # Note that we divide by the batch size and not the number of
+              # non-zero weight examples in the batch.  Also, instead of using
+              # tf.reduce_mean (which can put ops on the CPU) we explicitly
+              # calculate with div/sum so it stays on the GPU.
+              gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
+                                     self.batch_size)
+              gradient_costs.append(gradient_cost)
+
+        # aggregated costs
+        with TensorflowGraph.shared_name_scope('aggregated', graph, name_scopes):
+          with tf.name_scope('gradient'):
+            loss = tf.add_n(gradient_costs)
+
+          # weight decay
+          if self.penalty != 0.0:
+            penalty = model_ops.weight_decay(self.penalty_type, self.penalty)
+            loss += penalty
+
+      return loss 
+
+  def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
+    """Construct a feed dictionary from minibatch data.
+
+    TODO(rbharath): ids_b is not used here. Can we remove it?
+
+    Args:
+      X_b: np.ndarray of shape (batch_size, n_features)
+      y_b: np.ndarray of shape (batch_size, n_tasks)
+      w_b: np.ndarray of shape (batch_size, n_tasks)
+      ids_b: List of length (batch_size) with datapoint identifiers.
+    """ 
+    orig_dict = {}
+    orig_dict["mol_features"] = X_b
+    for task in range(self.n_tasks):
+      if y_b is not None:
+        orig_dict["labels_%d" % task] = y_b[:, task]
+      else:
+        # Dummy placeholders
+        orig_dict["labels_%d" % task] = np.squeeze(
+            np.zeros((self.batch_size,)))
+      if w_b is not None:
+        orig_dict["weights_%d" % task] = w_b[:, task]
+      else:
+        # Dummy placeholders
+        orig_dict["weights_%d" % task] = np.ones(
+            (self.batch_size,)) 
+    return TensorflowGraph.get_feed_dict(orig_dict)
+
+  def predict_on_batch(self, X, pad_batch=False):
+    """Return model output for the provided input.
+
+    Restore(checkpoint) must have previously been called on this object.
+
+    Args:
+      dataset: dc.data.Dataset object.
+
+    Returns:
+      Tuple of three numpy arrays with shape n_examples x n_tasks (x ...):
+        output: Model outputs.
+        labels: True labels.
+        weights: Example weights.
+      Note that the output and labels arrays may be more than 2D, e.g. for
+      classifier models that return class probabilities.
+
+    Raises:
+      AssertionError: If model is not in evaluation mode.
+      ValueError: If output and labels are not both 3D or both 2D.
+    """
+    len_unpadded = len(X)
+    if pad_batch:
+      X = pad_features(self.batch_size, X)
+    
+    if not self._restored_model:
+      self.restore()
+    with self.eval_graph.graph.as_default():
+
+      # run eval data through the model
+      n_tasks = self.n_tasks
+      outputs = []
+      with self._get_shared_session(train=False).as_default():
+        n_samples = len(X)
+        feed_dict = self.construct_feed_dict(X)
+        data = self._get_shared_session(train=False).run(
+            self.eval_graph.output, feed_dict=feed_dict)
+        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+        # reshape to batch_size x n_tasks x ...
+        if batch_outputs.ndim == 3:
+          batch_outputs = batch_outputs.transpose((1, 0, 2))
+        elif batch_outputs.ndim == 2:
+          batch_outputs = batch_outputs.transpose((1, 0))
+        # Handle edge case when batch-size is 1.
+        elif batch_outputs.ndim == 1:
+          n_samples = len(X)
+          batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
+        else:
+          raise ValueError(
+              'Unrecognized rank combination for output: %s' %
+              (batch_outputs.shape))
+        # Prune away any padding that was added
+        batch_outputs = batch_outputs[:n_samples]
+        outputs.append(batch_outputs)
+
+        outputs = np.squeeze(np.concatenate(outputs)) 
+
+    outputs = np.copy(outputs)
+    return outputs[:len_unpadded]
+
+  #def fit(self, dataset, tasks=None, close_session=True,
+  #        max_checkpoints_to_keep=5, **kwargs):
+  #  """Fit the model.
+
+  #  Progressive networks are fit by training one task at a time. Iteratively
+  #  fits one task at a time with other weights frozen.
+
+  #  Parameters
+  #  ---------- 
+  #  dataset: dc.data.Dataset
+  #    Dataset object holding training data 
+
+  #  Raises
+  #  ------
+  #  AssertionError
+  #    If model is not in training mode.
+  #  """
+  #  if tasks is None:
+  #    tasks = range(self.n_tasks)
+  #  with self.train_graph.graph.as_default():
+  #    task_train_ops = {}
+  #    for task in tasks:
+  #      task_train_ops[task] = self.get_training_op(
+  #          self.train_graph.graph, self.train_graph.loss, task)
+
+  #    sess = self._get_shared_session(train=True)
+  #    #with self._get_shared_session(train=True) as sess:
+  #    sess.run(tf.initialize_all_variables())
+  #    # Save an initial checkpoint.
+  #    saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+  #    saver.save(sess, self._save_path, global_step=0)
+  #    for task in tasks:
+  #      print("Fitting on task %d" % task)
+  #      self.fit_task(sess, dataset, task, task_train_ops[task], **kwargs)
+  #      saver.save(sess, self._save_path, global_step=task)
+  #    # Always save a final checkpoint when complete.
+  #    saver.save(sess, self._save_path, global_step=self.n_tasks)
+  #    if close_session:
+  #      sess.close()
+#
+  #def get_training_op(self, graph, losses, task):
+  #  """Get training op for applying gradients to variables.
+
+  #  Subclasses that need to do anything fancy with gradients should override
+  #  this method.
+
+  #  Parameters
+  #  ----------
+  #  graph: tf.Graph
+  #    Graph for this op
+  #  losses: dict
+  #    Dictionary mapping task to losses
+
+  #  Returns
+  #  -------
+  #  A training op.
+  #  """
+  #  with graph.as_default():
+  #    task_loss = losses[task]
+  #    task_root = "task%d" % task
+  #    task_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, task_root)
+  #    opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
+  #    return opt.minimize(task_loss, name='train', var_list=task_vars)
+
+  #def add_training_costs(self, graph, name_scopes, outputs, labels, weights):
+  #  """Adds the training costs for each task.
+  #  
+  #  Since each task is trained separately, each task is optimized w.r.t a separate
+  #  task.
+
+  #  TODO(rbharath): Figure out how to support weight decay for this model.
+  #  Since each task is trained separately, weight decay should only be used
+  #  on weights in column for that task.
+
+  #  Parameters
+  #  ----------
+  #  graph: tf.Graph
+  #    Graph for the model.
+  #  name_scopes: dict
+  #    Contains all the scopes for model
+  #  outputs: list
+  #    List of output tensors from model.
+  #  weights: list
+  #    List of weight placeholders for model.
+  #  """
+  #  task_costs = {}
+  #  with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
+  #    for task in range(self.n_tasks):
+  #      with TensorflowGraph.shared_name_scope(
+  #          'cost_%d' % task, graph, name_scopes):
+  #        weighted_cost = self.cost(outputs[task], labels[task],
+  #                                  weights[task])
+
+  #        # Note that we divide by the batch size and not the number of
+  #        # non-zero weight examples in the batch.  Also, instead of using
+  #        # tf.reduce_mean (which can put ops on the CPU) we explicitly
+  #        # calculate with div/sum so it stays on the GPU.
+  #        task_cost = tf.div(tf.reduce_sum(weighted_cost), self.batch_size)
+  #        task_costs[task] = task_cost 
+
+  #  return task_costs
+
+
+  ######################################################### DEBUG
+  ##def construct_feed_dict(self, this_task, X_b, y_b=None, w_b=None, ids_b=None):
+  ######################################################### DEBUG
+  ##  """Construct a feed dictionary from minibatch data.
+
+  ##  TODO(rbharath): ids_b is not used here. Can we remove it?
+
+  ##  Args:
+  ##    X_b: np.ndarray of shape (batch_size, n_features)
+  ##    y_b: np.ndarray of shape (batch_size, n_tasks)
+  ##    w_b: np.ndarray of shape (batch_size, n_tasks)
+  ##    ids_b: List of length (batch_size) with datapoint identifiers.
+  ##  """ 
+  ##  orig_dict = {}
+  ##  orig_dict["features"] = X_b
+  ##  n_samples = len(X_b)
+  ##  ####################################################### DEBUG
+  ##  for task in range(self.n_tasks):
+  ##  ####################################################### DEBUG
+  ##    ####################################################### DEBUG
+  ##    if (this_task == task) and y_b is not None:
+  ##    ####################################################### DEBUG
+  ##      orig_dict["labels_%d" % task] = np.reshape(y_b[:, task], (n_samples, 1))
+  ##    else:
+  ##      # Dummy placeholders
+  ##      orig_dict["labels_%d" % task] = np.zeros((self.batch_size, 1))
+  ##    ####################################################### DEBUG
+  ##    if (this_task == task) and w_b is not None:
+  ##    ####################################################### DEBUG
+  ##      orig_dict["weights_%d" % task] = np.reshape(w_b[:, task], (n_samples, 1))
+  ##    else:
+  ##      # Dummy placeholders
+  ##      orig_dict["weights_%d" % task] = np.ones(
+  ##          (self.batch_size, 1)) 
+  ##  return TensorflowGraph.get_feed_dict(orig_dict)
+
+  #def predict_on_batch(self, X, pad_batch=False):
+  #  """Make predictions with progressive model.
+
+  #  Does not pad batches (this model supports arbitrary batches).
+  #  """
+  #  if not self._restored_model:
+  #    self.restore()
+  #  with self.eval_graph.graph.as_default():
+  #    # run eval data through the model
+  #    task_outputs = []
+  #    for task in range(self.n_tasks):
+  #      feed_dict = self.construct_feed_dict(task, X)
+  #      data = self._get_shared_session(train=False).run(
+  #          self.eval_graph.output[task], feed_dict=feed_dict)
+  #      task_output = np.asarray(data, dtype=float)
+  #      task_outputs.append(task_output)
+  #    
+  #    # Batch output will be of shape (n_tasks, n_samples, 1)
+  #    batch_output = np.hstack([task_outputs])
+  #    # Reshape to have shape
+  #    batch_output = np.reshape(batch_output, (len(X), self.n_tasks))
+  #  return batch_output
+  ############################################################ DEBUG
 
   def _get_shared_session(self, train):
     # allow_soft_placement=True allows ops without a GPU implementation
@@ -349,115 +745,73 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       return self.eval_graph.session
 
 
-  def fit_task(self, sess, dataset, task, task_train_op, nb_epoch=10, pad_batches=False,
-               log_every_N_batches=50):
-    """Fit the model.
+  #def fit_task(self, sess, dataset, task, task_train_op, nb_epoch=10, pad_batches=False,
+  #             log_every_N_batches=50):
+  #  """Fit the model.
 
-    Fit one task.
+  #  Fit one task.
 
-    TODO(rbharath): Figure out if the logging will work correctly with the
-    global_step set as it is.
+  #  TODO(rbharath): Figure out if the logging will work correctly with the
+  #  global_step set as it is.
 
-    Parameters
-    ---------- 
-    dataset: dc.data.Dataset
-      Dataset object holding training data 
-    task: int
-      The index of the task to train on.
-    nb_epoch: 10
-      Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
-    max_checkpoints_to_keep: int
-      Maximum number of checkpoints to keep; older checkpoints will be deleted.
-    log_every_N_batches: int
-      Report every N batches. Useful for training on very large datasets,
-      where epochs can take long time to finish.
+  #  Parameters
+  #  ---------- 
+  #  dataset: dc.data.Dataset
+  #    Dataset object holding training data 
+  #  task: int
+  #    The index of the task to train on.
+  #  nb_epoch: 10
+  #    Number of training epochs.
+  #  pad_batches: bool
+  #    Whether or not to pad each batch to exactly be of size batch_size.
+  #  max_checkpoints_to_keep: int
+  #    Maximum number of checkpoints to keep; older checkpoints will be deleted.
+  #  log_every_N_batches: int
+  #    Report every N batches. Useful for training on very large datasets,
+  #    where epochs can take long time to finish.
 
-    Raises
-    ------
-    AssertionError
-      If model is not in training mode.
-    """
-               
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    log("Training task %d for %d epochs" % (task, nb_epoch), self.verbosity)
-    for epoch in range(nb_epoch):
-      avg_loss, n_batches = 0., 0
-      for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-          # Turns out there are valid cases where we don't want pad-batches
-          # on by default.
-          #dataset.iterbatches(batch_size, pad_batches=True)):
-          dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
-        if ind % log_every_N_batches == 0:
-          log("On batch %d" % ind, self.verbosity)
-        feed_dict = self.construct_feed_dict(task, X_b, y_b, w_b, ids_b)
-        fetches = self.train_graph.output + [
-            task_train_op, self.train_graph.loss[task]]
-        fetched_values = sess.run(fetches, feed_dict=feed_dict)
-        output = fetched_values[:len(self.train_graph.output)]
-        loss = fetched_values[-1]
-        avg_loss += loss
-        y_pred = np.squeeze(np.array(output))
-        y_b = y_b.flatten()
-        n_batches += 1
-      #saver.save(sess, self._save_path, global_step=epoch)
-      avg_loss = float(avg_loss)/n_batches
-      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
-    ############################################################## TIMING
-    time2 = time.time()
-    print("TIMING: model fitting took %0.3f s" % (time2-time1),
-          self.verbosity)
-    ############################################################## TIMING
-
-  def construct_feed_dict(self, task, X_b, y_b=None, w_b=None, ids_b=None):
-    """Construct a feed dictionary from minibatch data.
-
-    TODO(rbharath): ids_b is not used here. Can we remove it?
-
-    Args:
-      X_b: np.ndarray of shape (batch_size, n_features)
-      y_b: np.ndarray of shape (batch_size, n_tasks)
-      w_b: np.ndarray of shape (batch_size, n_tasks)
-      ids_b: List of length (batch_size) with datapoint identifiers.
-    """ 
-    orig_dict = {}
-    orig_dict["features"] = X_b
-    n_samples = len(X_b)
-    if y_b is not None:
-      orig_dict["labels_%d" % task] = np.reshape(y_b[:, task], (n_samples, 1))
-    else:
-      # Dummy placeholders
-      orig_dict["labels_%d" % task] = np.zeros((self.batch_size, 1))
-    if w_b is not None:
-      orig_dict["weights_%d" % task] = np.reshape(w_b[:, task], (n_samples, 1))
-    else:
-      # Dummy placeholders
-      orig_dict["weights_%d" % task] = np.ones(
-          (self.batch_size, 1)) 
-    return TensorflowGraph.get_feed_dict(orig_dict)
-
-  def predict_on_batch(self, X, pad_batch=False):
-    """Make predictions with progressive model.
-
-    Does not pad batches (this model supports arbitrary batches).
-    """
-    if not self._restored_model:
-      self.restore()
-    with self.eval_graph.graph.as_default():
-      # run eval data through the model
-      task_outputs = []
-      for task in range(self.n_tasks):
-        feed_dict = self.construct_feed_dict(task, X)
-        data = self._get_shared_session(train=False).run(
-            self.eval_graph.output[task], feed_dict=feed_dict)
-        task_output = np.asarray(data, dtype=float)
-        task_outputs.append(task_output)
-      
-      # Batch output will be of shape (n_tasks, n_samples, 1)
-      batch_output = np.hstack([task_outputs])
-      # Reshape to have shape
-      batch_output = np.reshape(batch_output, (len(X), self.n_tasks))
-    return batch_output
+  #  Raises
+  #  ------
+  #  AssertionError
+  #    If model is not in training mode.
+  #  """
+  #             
+  #  ############################################################## TIMING
+  #  time1 = time.time()
+  #  ############################################################## TIMING
+  #  log("Training task %d for %d epochs" % (task, nb_epoch), self.verbosity)
+  #  for epoch in range(nb_epoch):
+  #    avg_loss, n_batches = 0., 0
+  #    for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+  #        # Turns out there are valid cases where we don't want pad-batches
+  #        # on by default.
+  #        #dataset.iterbatches(batch_size, pad_batches=True)):
+  #        dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+  #      if ind % log_every_N_batches == 0:
+  #        log("On batch %d" % ind, self.verbosity)
+  #      feed_dict = self.construct_feed_dict(task, X_b, y_b, w_b, ids_b)
+  #      ############################################################## DEBUG
+  #      print("feed_dict.keys()")
+  #      print(feed_dict.keys())
+  #      ############################################################## DEBUG
+  #      ############################################################## DEBUG
+  #      #fetches = self.train_graph.output + [
+  #      #    task_train_op, self.train_graph.loss[task]]
+  #      fetches = self.train_graph.output + [
+  #          task_train_op, self.train_graph.loss]
+  #      ############################################################## DEBUG
+  #      fetched_values = sess.run(fetches, feed_dict=feed_dict)
+  #      output = fetched_values[:len(self.train_graph.output)]
+  #      loss = fetched_values[-1]
+  #      avg_loss += loss
+  #      y_pred = np.squeeze(np.array(output))
+  #      y_b = y_b.flatten()
+  #      n_batches += 1
+  #    #saver.save(sess, self._save_path, global_step=epoch)
+  #    avg_loss = float(avg_loss)/n_batches
+  #    log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
+  #  ############################################################## TIMING
+  #  time2 = time.time()
+  #  print("TIMING: model fitting took %0.3f s" % (time2-time1),
+  #        self.verbosity)
+  #  ############################################################## TIMING

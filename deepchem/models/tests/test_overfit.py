@@ -757,22 +757,32 @@ class TestOverfit(test_util.TensorFlowTestCase):
     np.random.seed(123)
     ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
+    y = np.ones((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
   
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.rms_score, task_averager=np.mean)
     model = dc.models.ProgressiveMultitaskRegressor(
         n_tasks, n_features, layer_sizes=[50], bypass_layer_sizes=[10],
         dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[.1], seed=123,
         alpha_init_stddevs=[.02], batch_size=n_samples, verbosity="high")
 
     # Fit trained model
-    model.fit(dataset, nb_epoch=25)
+    model.fit(dataset, nb_epoch=20)
     model.save()
 
     # Eval model on train
-    scores = model.evaluate(dataset, [regression_metric])
-    assert scores[regression_metric.name] < .2
+    scores = model.evaluate(dataset, [metric])
+    print("scores")
+    print(scores)
+    y_pred = model.predict(dataset)
+    print("y")
+    print(y)
+    print("y_pred")
+    print(y_pred)
+    print("w")
+    print(w)
+    print("metric.compute_metric(y, y_pred, w)")
+    print(metric.compute_metric(y, y_pred, w))
+    assert scores[metric.name] < .2
