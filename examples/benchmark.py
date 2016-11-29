@@ -377,13 +377,14 @@ if __name__ == '__main__':
     shutil.rmtree(base_dir_o)
   os.makedirs(base_dir_o)
   
-  parser = argparse.ArgumentParser(description='deepchem benchmark')
-  parser.add_argument('-s', action='append', dest='splitter_args',
-                      default=[], help='Choice of splitting function')
-  parser.add_argument('-m', action='append', dest='model_args',
-                      default=[], help='Choice of model')
-  parser.add_argument('-d', action='append', dest='dataset_args',
-                      default=[], help='Choice of dataset')
+  parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
+      'giving performances of different learning models on datasets')
+  parser.add_argument('-s', action='append', dest='splitter_args', default=[],
+      help='Choice of splitting function: index, random, scaffold')
+  parser.add_argument('-m', action='append', dest='model_args', default=[], 
+      help='Choice of model: tf, tf_robust, logreg, graphconv')
+  parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
+      help='Choice of dataset: tox21, sider, muv, toxcast, pcba')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
