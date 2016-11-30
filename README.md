@@ -204,6 +204,7 @@ different subclasses of ``Featurizer`` for convenience:
 
 ### Performances
 Index splitting
+
 |Dataset    |N(tasks)	|N(samples) |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
 |-----------|-----------|-----------|--------------------|-------------------|-------------------|----------------|---------------| 
 |tox21      |12         |8014       |logistic regression |0.910              |0.759              |30              |60             |
@@ -225,6 +226,7 @@ Index splitting
 |           |           |           |graph convolution   |0.906        	     |0.725              |80              |900            |
 
 Random splitting(N(tasks), N(samples), Time omitted)
+
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.903              |0.741              |
@@ -249,6 +251,7 @@ Random splitting(N(tasks), N(samples), Time omitted)
 |           |graph convolution   |0.820        	     |0.692              |
 
 Scaffold splitting(N(tasks), N(samples), Time omitted)
+
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.900              |0.650              |
