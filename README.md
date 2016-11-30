@@ -203,7 +203,7 @@ passed a ``Featurizer`` object. DeepChem provides a number of
 different subclasses of ``Featurizer`` for convenience:
 
 ### Performances
-1. Index splitting
+Index splitting
 |Dataset    |N(tasks)	|N(samples) |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
 |-----------|-----------|-----------|--------------------|-------------------|-------------------|----------------|---------------| 
 |tox21      |12         |8014       |logistic regression |0.910              |0.759              |30              |60             |
@@ -224,7 +224,7 @@ different subclasses of ``Featurizer`` for convenience:
 |           |           |           |tensorflow(MT-NN)	 |0.926        	     |0.705              |80              |2300           |
 |           |           |           |graph convolution   |0.906        	     |0.725              |80              |900            |
 
-2. Random splitting(N(tasks), N(samples), Time omitted)
+Random splitting(N(tasks), N(samples), Time omitted)
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.903              |0.741              |
@@ -248,7 +248,7 @@ different subclasses of ``Featurizer`` for convenience:
 |           |robust MT-NN        |0.814              |0.692              |
 |           |graph convolution   |0.820        	     |0.692              |
 
-3. Scaffold splitting(N(tasks), N(samples), Time omitted)
+Scaffold splitting(N(tasks), N(samples), Time omitted)
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.900              |0.650              |
