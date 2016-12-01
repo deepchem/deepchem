@@ -774,15 +774,5 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Eval model on train
     scores = model.evaluate(dataset, [metric])
-    print("scores")
-    print(scores)
     y_pred = model.predict(dataset)
-    print("y")
-    print(y)
-    print("y_pred")
-    print(y_pred)
-    print("w")
-    print(w)
-    print("metric.compute_metric(y, y_pred, w)")
-    print(metric.compute_metric(y, y_pred, w))
     assert scores[metric.name] < .2
