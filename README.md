@@ -205,27 +205,27 @@ different subclasses of ``Featurizer`` for convenience:
 ### Performances
 Index splitting
 
-|Dataset    |N(tasks)	|N(samples) |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
-|-----------|-----------|-----------|--------------------|-------------------|-------------------|----------------|---------------| 
-|tox21      |12         |8014       |logistic regression |0.910              |0.759              |30              |60             |
-|           |           |           |tensorflow(MT-NN)   |0.987              |0.800              |30              |60             |
-|           |           |           |robust MT-NN        |0.979              |0.741              |30              |90             |
-|           |           |           |graph convolution   |0.930              |0.819              |40              |160            |
-|muv        |17         |93127      |logistic regression |0.910              |0.744              |600             |450            |
-|           |           |           |tensorflow(MT-NN)   |0.980              |0.710              |600             |400            |
-|           |           |           |robust MT-NN        |0.986              |0.672              |600             |550            |
-|           |           |           |graph convolution   |0.881              |0.832              |800             |1800           |
-|pcba       |128        |439863     |logistic regression |0.794        	     |0.762              |1800            |10000          |
-|           |           |           |tensorflow(MT-NN)	 |0.949        	     |0.791              |1800            |9000           |
-|           |           |           |graph convolution   |0.866        	     |0.836              |2200            |14000          |
-|sider      |27         |1427       |logistic regression |0.900        	     |0.620              |15              |80             |
-|           |           |           |tensorflow(MT-NN)	 |0.931        	     |0.647              |15              |75             |
-|           |           |           |graph convolution   |0.845        	     |0.646              |20              |50             |
-|toxcast    |617        |8615       |logistic regression |0.762        	     |0.622              |80              |2600           |
-|           |           |           |tensorflow(MT-NN)	 |0.926        	     |0.705              |80              |2300           |
-|           |           |           |graph convolution   |0.906        	     |0.725              |80              |900            |
+|Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|Time(loading)/s |Time(running)/s|
+|-----------|--------------------|-------------------|-------------------|----------------|---------------| 
+|tox21      |logistic regression |0.910              |0.759              |30              |60             |
+|           |tensorflow(MT-NN)   |0.987              |0.800              |30              |60             |
+|           |robust MT-NN        |0.979              |0.741              |30              |90             |
+|           |graph convolution   |0.930              |0.819              |40              |160            |
+|muv        |logistic regression |0.910              |0.744              |600             |450            |
+|           |tensorflow(MT-NN)   |0.980              |0.710              |600             |400            |
+|           |robust MT-NN        |0.986              |0.672              |600             |550            |
+|           |graph convolution   |0.881              |0.832              |800             |1800           |
+|pcba       |logistic regression |0.794        	     |0.762              |1800            |10000          |
+|           |tensorflow(MT-NN)	|0.949        	     |0.791              |1800            |9000           |
+|           |graph convolution   |0.866        	     |0.836              |2200            |14000          |
+|sider      |logistic regression |0.900        	     |0.620              |15              |80             |
+|           |tensorflow(MT-NN)	|0.931        	     |0.647              |15              |75             |
+|           |graph convolution   |0.845        	     |0.646              |20              |50             |
+|toxcast    |logistic regression |0.762        	     |0.622              |80              |2600           |
+|           |tensorflow(MT-NN)	|0.926        	     |0.705              |80              |2300           |
+|           |graph convolution   |0.906        	     |0.725              |80              |900            |
 
-Random splitting(N(tasks), N(samples), Time omitted)
+Random splitting(Time omitted)
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
@@ -238,19 +238,19 @@ Random splitting(N(tasks), N(samples), Time omitted)
 |           |robust MT-NN        |0.914              |0.667              |
 |           |graph convolution   |0.846              |0.776              |
 |pcba       |logistic regression |0.807        	     |0.772              |
-|           |tensorflow(MT-NN)	 |0.811        	     |0.787              |
+|           |tensorflow(MT-NN)	|0.811        	     |0.787              |
 |           |robust MT-NN        |0.809              |0.778              |
 |           |graph convolution   |0.875       	     |0.844              |
 |sider      |logistic regression |0.932        	     |0.628              |
-|           |tensorflow(MT-NN)	 |0.779        	     |0.665              |
+|           |tensorflow(MT-NN)	|0.779        	     |0.665              |
 |           |robust MT-NN        |0.761              |0.621              |
 |           |graph convolution   |0.706        	     |0.638              |
 |toxcast    |logistic regression |0.737        	     |0.543              |
-|           |tensorflow(MT-NN)	 |0.831        	     |0.684              |
+|           |tensorflow(MT-NN)	|0.831        	     |0.684              |
 |           |robust MT-NN        |0.814              |0.692              |
 |           |graph convolution   |0.820        	     |0.692              |
 
-Scaffold splitting(N(tasks), N(samples), Time omitted)
+Scaffold splitting(Time omitted)
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
@@ -263,17 +263,27 @@ Scaffold splitting(N(tasks), N(samples), Time omitted)
 |           |robust MT-NN        |0.944              |0.726              |
 |           |graph convolution   |0.872              |0.795              |
 |pcba       |logistic regression |0.810              |0.742              |
-|           |tensorflow(MT-NN)	 |0.814              |0.760              |
+|           |tensorflow(MT-NN)   |0.814              |0.760              |
 |           |robust MT-NN        |0.812              |0.756              |
 |           |graph convolution   |0.874              |0.817              |
 |sider      |logistic regression |0.926              |0.592              |
-|           |tensorflow(MT-NN)	 |0.776              |0.557              |
+|           |tensorflow(MT-NN)	|0.776              |0.557              |
 |           |robust MT-NN        |0.797              |0.560              |
 |           |graph convolution   |0.722              |0.583              |
 |toxcast    |logistic regression |0.716              |0.492              |
-|           |tensorflow(MT-NN)	 |0.828              |0.617              |
+|           |tensorflow(MT-NN)	|0.828              |0.617              |
 |           |robust MT-NN        |0.830              |0.614              |
 |           |graph convolution   |0.832              |0.638              |
+
+Number of tasks and examples in the datasets
+
+|Dataset    |N(tasks)	|N(samples) |
+|-----------|-----------|-----------| 
+|tox21      |12         |8014       |
+|muv        |17         |93127      |
+|pcba       |128        |439863     |
+|sider      |27         |1427       |
+|toxcast    |617        |8615       |
 
 ## Contributing to DeepChem
 
