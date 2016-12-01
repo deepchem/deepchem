@@ -177,14 +177,6 @@ class Model(object):
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples = len(dataset)
-    ############################################################ DEBUG
-    #print("y_pred[:10]")
-    #print(y_pred[:10])
-    #print("dataset.y[:10]")
-    #print(dataset.y[:10])
-    #print("y_pred.shape")
-    #print(y_pred.shape)
-    ############################################################ DEBUG
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
