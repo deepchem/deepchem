@@ -11,7 +11,7 @@ import tempfile
 import shutil
 import numpy as np
 import deepchem as dc
-from MERCK_datasets import load_kaggle
+from kaggle_datasets import load_kaggle
 
 # Set numpy seed
 np.random.seed(123)

@@ -31,7 +31,7 @@ install:
 - pip install nglview
 - conda install -c omnia mdtraj
 - python setup.py install
-- conda install -c https://conda.anaconda.org/jjhelmus tensorflow
+- conda install -c https://conda.anaconda.org/jjhelmus tensorflow=0.10.0rc0
 script:
 - nosetests -v deepchem --nologcapture
 after_success:
