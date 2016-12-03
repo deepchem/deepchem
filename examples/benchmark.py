@@ -13,20 +13,9 @@ Giving performances of: Random forest(rf), MultitaskDNN(tf),
                     
 on datasets: muv, nci, pcba, tox21, sider, toxcast
 
-time estimation(on a nvidia tesla K20 GPU):
-tox21   - dataloading: 30s
-        - tf: 40s
-muv     - dataloading: 400s
-        - tf: 250s
-pcba    - dataloading: 30min
-        - tf: 2h
-sider   - dataloading: 10s
-        - tf: 60s
-toxcast - dataloading: 70s
-        - tf: 40min
-(will include more)
+time estimation listed in README file
 
-Total time of running a benchmark test: 30h
+Total time of running a benchmark test(for one splitting function): 20h
 """
 from __future__ import print_function
 from __future__ import division
