@@ -13,7 +13,8 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_nci(featurizer='ECFP', shard_size=1000, num_shards_per_batch=4):
+def load_nci(featurizer='ECFP', shard_size=1000, 
+             num_shards_per_batch=4, split='random'):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -62,7 +63,10 @@ def load_nci(featurizer='ECFP', shard_size=1000, num_shards_per_batch=4):
   for transformer in transformers:
     dataset = transformer.transform(dataset)
   
-  splitter = dc.splits.RandomSplitter()
+  splitters = {'index': dc.splits.IndexSplitter(),
+               'random': dc.splits.RandomSplitter(),
+               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitter = splitters[split]
   print("Performing new split.")
   train, valid, test = splitter.train_valid_test_split(dataset,
 	compute_feature_statistics=False)

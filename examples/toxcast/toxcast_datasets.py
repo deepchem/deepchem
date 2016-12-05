@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_toxcast(featurizer='ECFP'):
+def load_toxcast(featurizer='ECFP', split='index'):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -45,7 +45,11 @@ def load_toxcast(featurizer='ECFP'):
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
-  splitter = dc.splits.IndexSplitter()
+  splitters = {'index': dc.splits.IndexSplitter(),
+               'random': dc.splits.RandomSplitter(),
+               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitter = splitters[split]
+
   train, valid, test = splitter.train_valid_test_split(
 	dataset, compute_feature_statistics=False)
   

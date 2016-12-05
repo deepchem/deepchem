@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_tox21(featurizer='ECFP'):
+def load_tox21(featurizer='ECFP', split='index'):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
   print("About to featurize Tox21 dataset.")
@@ -38,7 +38,10 @@ def load_tox21(featurizer='ECFP'):
   for transformer in transformers:
       dataset = transformer.transform(dataset)
 
-  splitter = dc.splits.IndexSplitter()
+  splitters = {'index': dc.splits.IndexSplitter(),
+               'random': dc.splits.RandomSplitter(),
+               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset,
       compute_feature_statistics=False)
   return tox21_tasks, (train, valid, test), transformers
