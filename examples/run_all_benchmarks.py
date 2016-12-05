@@ -36,6 +36,6 @@ hps['graphconv'] = [{'learning_rate': 0.001, 'n_filters': 64,
 for model in models:
   for dataset in datasets:
     print("Benchmarking %s on dataset %s" % (model, dataset))
-    benchmark_loading_datasets(base_dir, hps, dataset_name=dataset,
+    benchmark_loading_datasets(base_dir, hps, dataset=dataset,
                                model=model, reload=True,
                                verbosity='high', out_path=out_path)
