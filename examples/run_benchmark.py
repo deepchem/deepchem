@@ -108,7 +108,7 @@ for i in range(int(sys.argv[3])):
         f.write(item+',')
         f.write(str(hps[model][i][item])+',')
 
-benchmark_loading_datasets(base_dir_o, hps, dataset_name=dname,
+benchmark_loading_datasets(base_dir_o, hps, dataset=dname,
                            model=model, reload=True,
                            verbosity='high', out_path=out_path)
 
