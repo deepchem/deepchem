@@ -10,7 +10,10 @@ import shutil
 import time
 import numpy as np
 import deepchem as dc
-from kaggle_features import merck_descriptors 
+try:
+  from kaggle_features import merck_descriptors 
+except ImportError:
+  from kaggle.kaggle_features import merck_descriptors
 
 def remove_missing_entries(dataset):
   """Remove missing entries.
