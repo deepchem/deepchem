@@ -461,13 +461,14 @@ def benchmark_regression(base_dir, train_dataset, valid_dataset, tasks,
     model_tf_regression.fit(train_dataset, nb_epoch=nb_epoch)
     
     # Evaluating tensorflow MultiTaskDNN model
-    train_scores['tensorflow'] = model_tf_regression.evaluate(
+    train_scores['tf_regression'] = model_tf_regression.evaluate(
         train_dataset, [regression_metric], transformers)
 
-    valid_scores['tensorflow'] = model_tf_regression.evaluate(
+    valid_scores['tf_regression'] = model_tf_regression.evaluate(
         valid_dataset, [regression_metric], transformers)
 
-    
+  return train_scores, valid_scores
+
     
 if __name__ == '__main__':
   # Global variables
@@ -535,7 +536,7 @@ if __name__ == '__main__':
                            'bias_init_consts': [1., 1.], 
                            'dropouts': [0.25, 0.25], 
                            'penalty': 0.0005, 'penalty_type': 'l2', 
-                           'batch_size': 128, 'nb_epoch': 50, 
+                           'batch_size': 128, 'nb_epoch': 5, 
                            'learning_rate': 0.00008}]
          
   for split in splitters:
@@ -552,3 +553,4 @@ if __name__ == '__main__':
              benchmark_loading_datasets(base_dir_o, hps, dataset=dataset, 
                                         model=model, split=split, 
                                         verbosity='high', out_path='.')
+
