@@ -536,7 +536,7 @@ if __name__ == '__main__':
                            'bias_init_consts': [1., 1.], 
                            'dropouts': [0.25, 0.25], 
                            'penalty': 0.0005, 'penalty_type': 'l2', 
-                           'batch_size': 128, 'nb_epoch': 5, 
+                           'batch_size': 128, 'nb_epoch': 50, 
                            'learning_rate': 0.00008}]
          
   for split in splitters:
