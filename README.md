@@ -203,7 +203,7 @@ passed a ``Featurizer`` object. DeepChem provides a number of
 different subclasses of ``Featurizer`` for convenience:
 
 ### Performances
-1. Classification
+* Classification
 
 Index splitting
 
@@ -280,7 +280,7 @@ Scaffold splitting
 |           |robust MT-NN        |0.830              |0.614              |
 |           |graph convolution   |0.832              |0.638              |
 
-2. Regression
+* Regression
 
 |Dataset    |Model               |Splitting   |Train score/R2|Valid score/R2|
 |-----------|--------------------|------------|--------------|--------------|
@@ -289,7 +289,7 @@ Scaffold splitting
 |           |MT-NN regression    |Scaffold    |0.782         |0.426         |
 |kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
 
-3. General features
+* General features
 
 Number of tasks and examples in the datasets
 
