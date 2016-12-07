@@ -31,7 +31,7 @@ def remove_missing_entries(dataset):
     dataset.set_shard(i, X, y, w, ids)
 
 # Set shard size low to avoid memory problems.
-def load_kaggle(shard_size=10000, num_shards_per_batch=4, 
+def load_kaggle(shard_size=2000, num_shards_per_batch=4, 
                 featurizer=None):
   """Load KAGGLE datasets. Does not do train/test split"""
   ############################################################## TIMING
