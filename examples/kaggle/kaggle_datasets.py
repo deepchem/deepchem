@@ -10,6 +10,8 @@ import shutil
 import time
 import numpy as np
 import deepchem as dc
+import sys
+sys.path.append(".")
 from kaggle_features import merck_descriptors 
 
 def remove_missing_entries(dataset):
@@ -29,15 +31,17 @@ def remove_missing_entries(dataset):
     dataset.set_shard(i, X, y, w, ids)
 
 # Set shard size low to avoid memory problems.
-def load_kaggle(shard_size=10000, num_shards_per_batch=4):
+def load_kaggle(shard_size=2000, num_shards_per_batch=4, 
+                featurizer=None):
   """Load KAGGLE datasets. Does not do train/test split"""
   ############################################################## TIMING
   time1 = time.time()
   ############################################################## TIMING
   # Set some global variables up top
-  train_files = ("./KAGGLE_training_disguised_combined_full.csv.gz")
-  valid_files = ("./KAGGLE_test1_disguised_combined_full.csv.gz")
-  test_files = ("./KAGGLE_test2_disguised_combined_full.csv.gz")
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  train_files = os.path.join(current_dir,"KAGGLE_training_disguised_combined_full.csv.gz")
+  valid_files = os.path.join(current_dir,"KAGGLE_test1_disguised_combined_full.csv.gz")
+  test_files = os.path.join(current_dir,"KAGGLE_test2_disguised_combined_full.csv.gz")
 
   # Featurize KAGGLE dataset
   print("About to featurize KAGGLE dataset.")
