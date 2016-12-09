@@ -9,7 +9,7 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
-from delaney_dataset import load_delaney
+from delaney_datasets import load_delaney
 
 # Only for debug!
 np.random.seed(123)
