@@ -11,7 +11,7 @@ import tempfile
 import shutil
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
-from MERCK_datasets import load_kaggle
+from kaggle_datasets import load_kaggle
 
 ###Load data###
 np.random.seed(123)
