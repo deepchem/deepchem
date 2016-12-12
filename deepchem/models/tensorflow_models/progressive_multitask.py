@@ -282,7 +282,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       train_op = self.get_training_op(
           self.train_graph.graph, self.train_graph.loss)
       with self._get_shared_session(train=True) as sess:
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
