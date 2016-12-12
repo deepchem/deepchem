@@ -461,10 +461,10 @@ class TensorflowGraphModel(Model):
       # self._save_path is "logdir/model.ckpt"
       if os.path.basename(self._save_path) in filename:
         try:
-          N = int(filename.split("-")[-1])
+          N = int(filename.split("-")[1].split(".")[0])
           if N > highest_num:
             highest_num = N
-            last_checkpoint = filename
+            last_checkpoint = "model.ckpt-"+str(N)
         except ValueError:
           pass
     return os.path.join(self.logdir, last_checkpoint)
