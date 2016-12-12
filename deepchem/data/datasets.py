@@ -469,10 +469,11 @@ class DiskDataset(Dataset):
     if y is not None:
       save_to_disk(y, os.path.join(data_dir, out_y))
       save_to_disk(y, os.path.join(data_dir, out_y_transformed))
-      y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
-      save_to_disk(y_sums, os.path.join(data_dir, out_y_sums))
-      save_to_disk(y_sum_squares, os.path.join(data_dir, out_y_sum_squares))
-      save_to_disk(y_n, os.path.join(data_dir, out_y_n))
+      if compute_feature_statistics:
+        y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
+        save_to_disk(y_sums, os.path.join(data_dir, out_y_sums))
+        save_to_disk(y_sum_squares, os.path.join(data_dir, out_y_sum_squares))
+        save_to_disk(y_n, os.path.join(data_dir, out_y_n))
     if w is not None:
       save_to_disk(w, os.path.join(data_dir, out_w))
       save_to_disk(w, os.path.join(data_dir, out_w_transformed))
