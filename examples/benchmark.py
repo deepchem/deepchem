@@ -501,7 +501,7 @@ if __name__ == '__main__':
     models = ['tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'kaggle', 'delaney']
+                'delaney', 'kaggle']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
@@ -538,7 +538,7 @@ if __name__ == '__main__':
                            'penalty': 0.0005, 'penalty_type': 'l2', 
                            'batch_size': 128, 'nb_epoch': 50, 
                            'learning_rate': 0.00008}]
-         
+
   for split in splitters:
     for dataset in datasets:
       if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba']:
@@ -548,6 +548,8 @@ if __name__ == '__main__':
                                        model=model, split=split, 
                                        verbosity='high', out_path='.')
       else:
+        if dataset in ['kaggle']:
+          datasets.remove('kaggle') #kaggle only needs to be run once
         for model in models:
           if model in ['tf_regression']:
              benchmark_loading_datasets(base_dir_o, hps, dataset=dataset, 
