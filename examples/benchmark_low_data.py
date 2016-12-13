@@ -112,7 +112,9 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
         f.write(dataset+','+model+',')
         f.write('valid,')
         for i in valid_scores:
-          f.write(str(valid_scores[i])+',')
+          f.write(str(i)+',')
+          for count in valid_scores[i]:
+            f.write(str(valid_scores[i][count])+',')
         f.write('time_for_running,'+
               str(time_finish_fitting-time_start_fitting)+',')
 
@@ -245,11 +247,15 @@ if __name__ == '__main__':
       help='Choice of model: siamese, attn, res')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
       help='Choice of dataset: tox21, sider, muv')
+  parser.add_argument('--cv', action='store_true', dest='cross_valid', 
+      default=False, help='whether to implement cross validation')
+
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
   models = args.model_args
   datasets = args.dataset_args
+  cross_valid = args.cross_valid
 
   if len(splitters) == 0:
     splitters = ['task']
@@ -274,7 +280,8 @@ if __name__ == '__main__':
   for split in splitters:
     for dataset in datasets:
       for model in models:
-        low_data_benchmark_loading_datasets(hps, dataset=dataset, 
-                                            model=model, split=split, 
-                                            verbosity='high', out_path='.')
+        low_data_benchmark_loading_datasets(hps, cross_valid=cross_valid, 
+                                            dataset=dataset, model=model, 
+                                            split=split, verbosity='high', 
+                                            out_path='.')
 

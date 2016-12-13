@@ -25,10 +25,10 @@
 0,tox21,random,classification,train,tf_robust,0.8549658589,valid,tf_robust,0.7735497329,time_for_running,88.9351768494
 0,tox21,random,classification,train,logreg,0.9028113641,valid,logreg,0.7350604574,time_for_running,60.2267189026
 0,tox21,random,classification,train,graphconv,0.8649231702,valid,graphconv,0.8268737631,time_for_running,159.461936951
-0,sider,random,classification,train,tf,0.7786895104,valid,tf,0.665646893,time_for_running,75.2554209232
-0,sider,random,classification,train,tf_robust,0.7607831717,valid,tf_robust,0.620646631,time_for_running,145.425393105
-0,sider,random,classification,train,logreg,0.9315624982,valid,logreg,0.628537773,time_for_running,83.4710030556
-0,sider,random,classification,train,graphconv,0.7059736283,valid,graphconv,0.6376782717,time_for_running,52.9893791676
+0,sider,random,classification,train,tf,0.7771974636,valid,tf,0.6549811615,time_for_running,77.9807980061
+0,sider,random,classification,train,tf_robust,0.8047109857,valid,tf_robust,0.6303796949,time_for_running,144.951164961
+0,sider,random,classification,train,logreg,0.9293807224,valid,logreg,0.6562281389,time_for_running,88.3968729973
+0,sider,random,classification,train,graphconv,0.7049051898,valid,graphconv,0.6176319797,time_for_running,52.2268190384
 0,muv,random,classification,train,tf,0.8953200915,valid,tf,0.7396286547,time_for_running,376.079932213
 0,muv,random,classification,train,tf_robust,0.9142442363,valid,tf_robust,0.6672445505,time_for_running,564.25266695
 0,muv,random,classification,train,logreg,0.9608985781,valid,logreg,0.6956532843,time_for_running,446.927948952
