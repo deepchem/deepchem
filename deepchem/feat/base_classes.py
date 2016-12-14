@@ -11,17 +11,6 @@ __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "BSD 3-clause"
 
-def resolve_featurizer(name):
-  """
-  Resolve featurizer class from a string.
-
-  Parameters
-  ----------
-  name : str
-      Featurizer name.
-  """
-  return get_featurizers()[name]
-
 class ComplexFeaturizer(object):
   """"
   Abstract class for calculating features for mol/protein complexes.
@@ -33,7 +22,8 @@ class ComplexFeaturizer(object):
   """
   name = None
 
-  def featurize_complexes(self, mol_pdbs, protein_pdbs, verbosity=None, log_every_n=1000):
+  def featurize_complexes(self, mol_pdbs, protein_pdbs, verbose=True,
+                          log_every_n=1000):
     """
     Calculate features for mol/protein complexes.
 
@@ -49,7 +39,7 @@ class ComplexFeaturizer(object):
 
     features = []
     for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
-      if verbosity is not None and i % log_every_n == 0:
+      if verbose and i % log_every_n == 0:
         log("Featurizing %d / %d" % (i, len(mol_pdbs)))
       features.append(self._featurize_complex(mol_pdb, protein_pdb))
     features = np.asarray(features)
@@ -98,8 +88,7 @@ class Featurizer(object):
   name = None
   topo_view = False
 
-  def featurize(self, mols, parallel=False, client_kwargs=None,
-                view_flags=None, verbosity=None, log_every_n=1000):
+  def featurize(self, mols, verbose=True, log_every_n=1000):
     """
     Calculate features for molecules.
 
@@ -107,44 +96,18 @@ class Featurizer(object):
     ----------
     mols : iterable
         RDKit Mol objects.
-    parallel : bool, optional
-        Whether to train subtrainers in parallel using
-        IPython.parallel (default False).
-    client_kwargs : dict, optional
-        Keyword arguments for IPython.parallel Client.
-    view_flags : dict, optional
-        Flags for IPython.parallel LoadBalancedView.
     """
     if self.conformers and isinstance(mols, types.GeneratorType):
       mols = list(mols)
-    assert verbosity in [None, "low", "high"]
 
-    if parallel:
-      from IPython.parallel import Client
-
-      if client_kwargs is None:
-          client_kwargs = {}
-      if view_flags is None:
-          view_flags = {}
-      client = Client(**client_kwargs)
-      client.direct_view().use_dill()  # use dill
-      view = client.load_balanced_view()
-      view.set_flags(**view_flags)
-      call = view.map(self._featurize, mols, block=False)
-      features = call.get()
-
-      # get output from engines
-      call.display_outputs()
-
-    else:
-      features = []
-      for i, mol in enumerate(mols):
-        if verbosity is not None and i % log_every_n == 0:
-          log("Featurizing %d / %d" % (i, len(mols)))
-        if mol is not None:
-          features.append(self._featurize(mol))
-        else:
-          features.append(np.array([]))
+    features = []
+    for i, mol in enumerate(mols):
+      if verbose and i % log_every_n == 0:
+        log("Featurizing %d / %d" % (i, len(mols)))
+      if mol is not None:
+        features.append(self._featurize(mol))
+      else:
+        features.append(np.array([]))
 
     if self.conformers:
       features = self.conformer_container(mols, features)
@@ -163,8 +126,7 @@ class Featurizer(object):
     """
     raise NotImplementedError('Featurizer is not defined.')
 
-  def __call__(self, mols, parallel=False, client_kwargs=None,
-               view_flags=None):
+  def __call__(self, mols):
     """
     Calculate features for molecules.
 
@@ -172,15 +134,8 @@ class Featurizer(object):
     ----------
     mols : iterable
         RDKit Mol objects.
-    parallel : bool, optional
-        Whether to train subtrainers in parallel using
-        IPython.parallel (default False).
-    client_kwargs : dict, optional
-        Keyword arguments for IPython.parallel Client.
-    view_flags : dict, optional
-        Flags for IPython.parallel LoadBalancedView.
     """
-    return self.featurize(mols, parallel, client_kwargs, view_flags)
+    return self.featurize(mols)
 
   def conformer_container(self, mols, features):
     """

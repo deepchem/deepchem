@@ -37,13 +37,13 @@ class Splitter(object):
   """
   Abstract base class for chemically aware splits..
   """
-  def __init__(self, verbosity=None):
+  def __init__(self, verbose=False):
     """Creates splitter object."""
-    self.verbosity = verbosity
+    self.verbose = verbose
 
   def k_fold_split(self, dataset, k, directories=None):
     """Does K-fold split of dataset."""
-    log("Computing K-fold split", self.verbosity)
+    log("Computing K-fold split", self.verbose)
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
@@ -76,7 +76,7 @@ class Splitter(object):
 
     Returns Dataset objects.
     """
-    log("Computing train/valid/test indices", self.verbosity)
+    log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
       dataset,
       frac_train=frac_train, frac_test=frac_test,
@@ -236,7 +236,7 @@ class RandomStratifiedSplitter(Splitter):
 
   def k_fold_split(self, dataset, k, directories=None):
     """Needs custom implementation due to ragged splits for stratification."""
-    log("Computing K-fold split", self.verbosity)
+    log("Computing K-fold split", self.verbose)
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
@@ -338,11 +338,11 @@ class ScaffoldSplitter(Splitter):
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     scaffolds = {}
-    log("About to generate scaffolds", self.verbosity)
+    log("About to generate scaffolds", self.verbose)
     data_len = len(dataset)
     for ind, smiles in enumerate(dataset.ids):
       if ind % log_every_n == 0:
-        log("Generating scaffold %d/%d" % (ind, data_len), self.verbosity)
+        log("Generating scaffold %d/%d" % (ind, data_len), self.verbose)
       scaffold = generate_scaffold(smiles)
       if scaffold not in scaffolds:
         scaffolds[scaffold] = [ind]
@@ -354,7 +354,7 @@ class ScaffoldSplitter(Splitter):
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
     train_inds, valid_inds, test_inds = [], [], []
-    log("About to sort in scaffold sets", self.verbosity)
+    log("About to sort in scaffold sets", self.verbose)
     for scaffold_set in scaffold_sets:
       if len(train_inds) + len(scaffold_set) > train_cutoff:
         if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
@@ -371,11 +371,11 @@ class SpecifiedSplitter(Splitter):
   Class that splits data according to user specification.
   """
 
-  def __init__(self, input_file, split_field, verbosity=None):
+  def __init__(self, input_file, split_field, verbose=False):
     """Provide input information for splits."""
     raw_df = next(load_data([input_file], shard_size=None))
     self.splits = raw_df[split_field].values
-    self.verbosity = verbosity
+    self.verbose = verbose
 
   def split(self, dataset, frac_train=.8, frac_valid=.1, frac_test=.1,
             log_every_n=1000):

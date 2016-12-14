@@ -39,9 +39,7 @@ class TestGeneralization(unittest.TestCase):
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
     test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
-    verbosity = "high"
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.r2_score, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
 
     sklearn_model = LinearRegression()
     model = dc.models.SklearnModel(sklearn_model)
@@ -115,7 +113,6 @@ class TestGeneralization(unittest.TestCase):
     train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
     test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
-    verbosity = "high"
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     def model_builder(model_dir):
       sklearn_model = LinearRegression()

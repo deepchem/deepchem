@@ -32,13 +32,13 @@ def threshold_predictions(y, threshold):
 class Evaluator(object):
   """Class that evaluates a model on a given dataset."""
 
-  def __init__(self, model, dataset, transformers, verbosity=False):
+  def __init__(self, model, dataset, transformers, verbose=False):
     self.model = model
     self.dataset = dataset
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y]
     self.task_names = dataset.get_task_names()
-    self.verbosity = verbosity
+    self.verbose = verbose
 
   def output_statistics(self, scores, stats_out):
     """
@@ -88,7 +88,7 @@ class Evaluator(object):
     multitask_scores = {}
 
     if csv_out is not None:
-      log("Saving predictions to %s" % csv_out, self.verbosity)
+      log("Saving predictions to %s" % csv_out, self.verbose)
       self.output_predictions(y_pred_print, csv_out)
 
     # Compute multitask metrics
@@ -96,7 +96,7 @@ class Evaluator(object):
       multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
     
     if stats_out is not None:
-      log("Saving stats to %s" % stats_out, self.verbosity)
+      log("Saving stats to %s" % stats_out, self.verbose)
       self.output_statistics(multitask_scores, stats_out)
   
     return multitask_scores

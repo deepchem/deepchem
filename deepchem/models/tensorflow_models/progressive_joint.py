@@ -229,7 +229,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    log("Training for %d epochs" % nb_epoch, self.verbosity)
+    log("Training for %d epochs" % nb_epoch, self.verbose)
     with self.train_graph.graph.as_default():
       train_op = self.get_training_op(
           self.train_graph.graph, self.train_graph.loss)
@@ -246,7 +246,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
               #dataset.iterbatches(batch_size, pad_batches=True)):
               dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
             if ind % log_every_N_batches == 0:
-              log("On batch %d" % ind, self.verbosity)
+              log("On batch %d" % ind, self.verbose)
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
@@ -260,13 +260,14 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
             n_batches += 1
           saver.save(sess, self._save_path, global_step=epoch)
           avg_loss = float(avg_loss)/n_batches
-          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
+          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
+              self.verbose)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch+1)
     ############################################################## TIMING
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
     ############################################################## TIMING
 
   def get_training_op(self, graph, loss):

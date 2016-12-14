@@ -54,7 +54,7 @@ class TestPredict(test_util.TensorFlowTestCase):
     model = dc.models.ProgressiveMultitaskRegressor(
         n_tasks, n_features, layer_sizes=[50], bypass_layer_sizes=[10],
         dropouts=[.25], learning_rate=0.003, weight_init_stddevs=[.1],
-        alpha_init_stddevs=[.02], batch_size=n_samples, verbosity="high")
+        alpha_init_stddevs=[.02], batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)

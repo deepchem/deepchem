@@ -175,9 +175,9 @@ class Dataset(object):
 
     >>> newx, newy, neww = fn(x, y, w)
 
-    It might be called only once with the whole dataset, or multiple times with different
-    subsets of the data.  Each time it is called, it should transform the samples and return
-    the transformed data.
+    It might be called only once with the whole dataset, or multiple times with
+    different subsets of the data.  Each time it is called, it should transform
+    the samples and return the transformed data.
 
     Parameters
     ----------
@@ -317,7 +317,8 @@ class NumpyDataset(Dataset):
     >>>   print(x, y, w, id)
     """
     n_samples = self._X.shape[0]
-    return ((self._X[i], self._y[i], self._w[i], self._ids[i]) for i in range(n_samples))
+    return ((self._X[i], self._y[i], self._w[i], self._ids[i])
+            for i in range(n_samples))
 
   def transform(self, fn, **args):
     """Construct a new dataset by applying a transformation to every sample in this dataset.
@@ -326,9 +327,9 @@ class NumpyDataset(Dataset):
 
     >>> newx, newy, neww = fn(x, y, w)
 
-    It might be called only once with the whole dataset, or multiple times with different
-    subsets of the data.  Each time it is called, it should transform the samples and return
-    the transformed data.
+    It might be called only once with the whole dataset, or multiple times with
+    different subsets of the data.  Each time it is called, it should transform
+    the samples and return the transformed data.
 
     Parameters
     ----------
@@ -416,8 +417,7 @@ class DiskDataset(Dataset):
     """
     metadata_df = pd.DataFrame(
         metadata_entries,
-        columns=('basename','task_names', 'ids',
-                 'X', 'y', 'w'))
+        columns=('basename','task_names', 'ids', 'X', 'y', 'w'))
     return metadata_df
 
   @staticmethod
@@ -597,47 +597,8 @@ class DiskDataset(Dataset):
       newx, newy, neww = fn(X, y, w)
       basename = "dataset-%d" % shard_num
       metadata_rows.append(DiskDataset.write_data_to_disk(
-          out_dir, basename, tasks, newx, newy, neww, ids, False))
+          out_dir, basename, tasks, newx, newy, neww, ids))
     return DiskDataset(data_dir=out_dir, metadata_rows=metadata_rows)
-
-  def reshard(self, shard_size):
-    """Reshards data to have specified shard size."""
-    # Create temp directory to store resharded version
-    reshard_dir = tempfile.mkdtemp()
-    new_metadata = []
-    # Write data in new shards
-    ind = 0
-    tasks = self.get_task_names() 
-    X_next = np.zeros((0,) + self.get_data_shape())
-    y_next = np.zeros((0,) + (len(tasks),))
-    w_next = np.zeros((0,) + (len(tasks),))
-    ids_next = np.zeros((0,), dtype=object)
-    for (X, y, w, ids) in self.itershards():
-      X_next = np.vstack([X_next, X])
-      y_next = np.vstack([y_next, y])
-      w_next = np.vstack([w_next, w])
-      ids_next = np.concatenate([ids_next, ids])
-      while len(X_next) > shard_size:
-        X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
-        y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
-        w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
-        ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
-        new_basename = "reshard-%d" % ind
-        new_metadata.append(DiskDataset.write_data_to_disk(
-            reshard_dir, new_basename, tasks, X_batch, y_batch, w_batch, ids_batch))
-        ind += 1
-    # Handle spillover from last shard
-    new_basename = "reshard-%d" % ind
-    new_metadata.append(DiskDataset.write_data_to_disk(
-        reshard_dir, new_basename, tasks, X_next, y_next, w_next, ids_next))
-    ind += 1
-    # Get new metadata rows
-    resharded_dataset = DiskDataset(
-        data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata)
-    shutil.rmtree(self.data_dir)
-    shutil.move(reshard_dir, self.data_dir)
-    self.metadata_df = resharded_dataset.metadata_df
-    self.save_to_disk()
 
   @staticmethod
   def from_numpy(X, y, w=None, ids=None, tasks=None, data_dir=None):
@@ -695,27 +656,6 @@ class DiskDataset(Dataset):
       metadata_rows.append(DiskDataset.write_data_to_disk(
           subset_dir, basename, tasks, X, y, w, ids))
     return DiskDataset(data_dir=subset_dir, metadata_rows=metadata_rows)
-
-  def reshard_shuffle(self, reshard_size=10, num_reshards=3):
-    """Shuffles by resharding, shuffling shards, undoing resharding."""
-    #########################################################  TIMING
-    time1 = time.time()
-    #########################################################  TIMING
-    for i in range(num_reshards):
-      orig_shard_size = self.get_shard_size()
-      log("Resharding to shard-size %d." % reshard_size, self.verbose)
-      self.reshard(shard_size=reshard_size)
-      log("Shuffling shard order.", self.verbose)
-      self.shuffle_shards()
-      log("Resharding to original shard-size %d." % orig_shard_size,
-          self.verbose)
-      self.reshard(shard_size=orig_shard_size)
-      self.shuffle_each_shard()
-    #########################################################  TIMING
-    time2 = time.time()
-    log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
-        self.verbose)
-    #########################################################  TIMING
 
   def sparse_shuffle(self):
     """Shuffling that exploits data sparsity to shuffle large datasets.
