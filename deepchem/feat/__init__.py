@@ -11,7 +11,6 @@ __license__ = "GPL"
 
 # TODO(rbharath): Handle this * import and replace with explicit imports later
 from deepchem.feat.base_classes import *
-from deepchem.feat.featurize import DataLoader
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.feat.basic import RDKitDescriptors
