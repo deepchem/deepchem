@@ -71,7 +71,7 @@ def load_sdf_files(input_files):
     raw_df = next(load_csv_files([input_file+".csv"], shard_size=None))
     # Structures are stored in .sdf file
     print("Reading structures from %s." % input_file)
-    suppl = Chem.SDMolSupplier(str(input_file), removeHs=False)
+    suppl = Chem.SDMolSupplier(str(input_file), sanitize=False, removeHs=False, strictParsing=False)
     df_rows = []
     for ind, mol in enumerate(suppl):
       if mol is not None:
