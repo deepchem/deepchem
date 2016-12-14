@@ -22,7 +22,6 @@ class TestMerge(unittest.TestCase):
   """
   def test_merge(self):
     """Test that datasets can be merged."""
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     dataset_file = os.path.join(
@@ -30,9 +29,9 @@ class TestMerge(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
+    loader = dc.data.DataLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+        featurizer=featurizer)
     first_dataset = loader.featurize(dataset_file)
     second_dataset = loader.featurize( dataset_file)
 
@@ -43,19 +42,16 @@ class TestMerge(unittest.TestCase):
 
   def test_subset(self):
     """Tests that subsetting of datasets works."""
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    #data_dir = os.path.join(self.base_dir, "dataset")
-    #subset_dir = os.path.join(self.base_dir, "subset")
 
     dataset_file = os.path.join(
         current_dir, "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
+    loader = dc.data.DataLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+        featurizer=featurizer)
     dataset = loader.featurize(
         dataset_file, shard_size=2)
 

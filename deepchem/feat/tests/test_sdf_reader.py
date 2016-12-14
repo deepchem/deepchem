@@ -33,10 +33,9 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_file = os.path.join(current_dir, "data/water.sdf")
 
     featurizer = dc.feat.CoulombMatrixEig(6, remove_hydrogens=False)
-    loader = dc.load.DataLoader(
+    loader = dc.data.DataLoader(
         tasks=tasks, smiles_field="smiles",
-        mol_field="mol", featurizer=featurizer,
-        verbosity="low")
+        mol_field="mol", featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 

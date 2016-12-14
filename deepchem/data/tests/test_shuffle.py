@@ -22,7 +22,6 @@ class TestShuffle(unittest.TestCase):
   """
   def test_shuffle(self):
     """Test that datasets can be merged."""
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     dataset_file = os.path.join(
@@ -30,11 +29,9 @@ class TestShuffle(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
-    dataset = loader.featurize(
-        dataset_file, shard_size=2)
+    loader = dc.data.DataLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(dataset_file, shard_size=2)
 
     X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
                                         dataset.ids)
@@ -56,7 +53,6 @@ class TestShuffle(unittest.TestCase):
 
   def test_sparse_shuffle(self):
     """Test that sparse datasets can be shuffled quickly."""
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     dataset_file = os.path.join(
@@ -64,9 +60,8 @@ class TestShuffle(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+    loader = dc.data.DataLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(
         dataset_file, shard_size=2)
 
@@ -90,7 +85,6 @@ class TestShuffle(unittest.TestCase):
 
   def test_reshard_shuffle(self):
     """Test that datasets can be merged."""
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     dataset_file = os.path.join(
@@ -98,9 +92,8 @@ class TestShuffle(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+    loader = dc.data.DataLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(
         dataset_file, shard_size=2)
 

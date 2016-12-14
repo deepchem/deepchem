@@ -15,12 +15,10 @@ import numpy as np
 import os
 from rdkit import Chem
 
-def log(string, verbosity=None, level="low"):
+def log(string, verbose=True):
   """Print string if verbose."""
-  assert level in ["low", "high"]
-  if verbosity is not None:
-    if verbosity == "high" or level == verbosity:
-      print(string)
+  if verbose:
+    print(string)
 
 def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
@@ -43,7 +41,7 @@ def get_input_type(input_file):
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
 
-def load_data(input_files, shard_size=None, verbosity=None):
+def load_data(input_files, shard_size=None, verbose=True):
   """Loads data from disk.
      
   For CSV files, supports sharded loading for large files.
@@ -53,11 +51,11 @@ def load_data(input_files, shard_size=None, verbosity=None):
   input_type = get_input_type(input_files[0])
   if input_type == "sdf":
     if shard_size is not None:
-      log("Ignoring shard_size for sdf input.", verbosity)
+      log("Ignoring shard_size for sdf input.", verbose)
     for value in load_sdf_files(input_files):
       yield value
   elif input_type == "csv":
-    for value in load_csv_files(input_files, shard_size, verbosity=verbosity):
+    for value in load_csv_files(input_files, shard_size, verbose=verbose):
       yield value
   elif input_type == "pandas-pickle":
     for input_file in input_files:
@@ -81,7 +79,7 @@ def load_sdf_files(input_files):
     dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
   return dataframes
 
-def load_csv_files(filenames, shard_size=None, verbosity=None):
+def load_csv_files(filenames, shard_size=None, verbose=True):
   """Load data as pandas dataframe."""
   # First line of user-specified CSV *must* be header.
   shard_num = 1
@@ -89,10 +87,10 @@ def load_csv_files(filenames, shard_size=None, verbosity=None):
     if shard_size is None:
       yield pd.read_csv(filename)
     else:
-      log("About to start loading CSV from %s" % filename, verbosity)
+      log("About to start loading CSV from %s" % filename, verbose)
       for df in pd.read_csv(filename, chunksize=shard_size):
         log("Loading shard %d of size %s." % (shard_num, str(shard_size)),
-            verbosity)
+            verbose)
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df

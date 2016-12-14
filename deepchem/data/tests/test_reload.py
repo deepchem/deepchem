@@ -21,7 +21,7 @@ class TestReload(unittest.TestCase):
   """
   Test reload for datasets.
   """
-  def _run_muv_experiment(self, dataset_file, reload=False, verbosity=None):
+  def _run_muv_experiment(self, dataset_file, reload=False):
     """Loads or reloads a small version of MUV dataset."""
     # Load MUV dataset
     print("About to featurize compounds")
@@ -31,14 +31,13 @@ class TestReload(unittest.TestCase):
                  'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                  'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                  'MUV-466', 'MUV-832']
-    loader = dc.load.DataLoader(
-        tasks=MUV_tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+    loader = dc.data.DataLoader(
+        tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
     assert len(dataset) == len(raw_dataset)
 
     print("About to split compounds into train/valid/test")
-    splitter = dc.splits.ScaffoldSplitter(verbosity=verbosity)
+    splitter = dc.splits.ScaffoldSplitter()
     frac_train, frac_valid, frac_test = .8, .1, .1
     train_dataset, valid_dataset, test_dataset = \
         splitter.train_valid_test_split(
@@ -69,18 +68,17 @@ class TestReload(unittest.TestCase):
   def test_reload_after_gen(self):
     """Check num samples for loaded and reloaded datasets is equal."""
     reload = False 
-    verbosity = None
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_file = os.path.join(
         current_dir, "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time without reload.")
     (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload, verbosity)
+        dataset_file, reload)
 
     print("Running experiment for second time with reload.")
     reload = True 
     (len_reload_train, len_reload_valid, len_reload_test) = (
-        self._run_muv_experiment(dataset_file, reload, verbosity))
+        self._run_muv_experiment(dataset_file, reload))
     assert len_train == len_reload_train
     assert len_valid == len_reload_valid
     assert len_test == len_reload_valid
@@ -88,17 +86,16 @@ class TestReload(unittest.TestCase):
   def test_reload_twice(self):
     """Check ability to repeatedly run experiments with reload set True."""
     reload = True 
-    verbosity = "high"
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_file = os.path.join(
         current_dir, "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time with reload.")
     (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload, verbosity)
+        dataset_file, reload)
 
     print("Running experiment for second time with reload.")
     (len_reload_train, len_reload_valid, len_reload_test) = (
-        self._run_muv_experiment(dataset_file, reload, verbosity))
+        self._run_muv_experiment(dataset_file, reload))
     assert len_train == len_reload_train
     assert len_valid == len_reload_valid
     assert len_test == len_reload_valid

@@ -17,4 +17,5 @@ from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRe
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
 from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskRegressor
+from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskClassifier
 from deepchem.models.tensorflow_models.progressive_joint import ProgressiveJointRegressor

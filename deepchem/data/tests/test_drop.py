@@ -17,7 +17,6 @@ class TestDrop(unittest.TestCase):
     """Test on dataset where RDKit fails on some strings."""
     # Set some global variables up top
     reload = True
-    verbosity = "high"
     len_full = 25
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -30,9 +29,9 @@ class TestDrop(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
-    loader = dc.load.DataLoader(
+    loader = dc.data.DataLoader(
         tasks=emols_tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+        featurizer=featurizer)
     dataset = loader.featurize(dataset_file, debug=True, logging=False)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
