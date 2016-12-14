@@ -102,7 +102,7 @@ class DataLoader(object):
     basename = "shard-%d" % shard_num 
     time1 = time.time()
     metadata_row = DiskDataset.write_dataframe(
-        (basename, df_shard), data_dir=data_dir,
+        basename, df_shard, data_dir=data_dir,
         featurizer=self.featurizer, tasks=self.tasks,
         mol_id_field=self.id_field)
     time2 = time.time()

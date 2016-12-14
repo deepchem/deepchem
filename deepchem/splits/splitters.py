@@ -41,8 +41,7 @@ class Splitter(object):
     """Creates splitter object."""
     self.verbosity = verbosity
 
-  def k_fold_split(self, dataset, k, directories=None,
-                   compute_feature_statistics=True):
+  def k_fold_split(self, dataset, k, directories=None):
     """Does K-fold split of dataset."""
     log("Computing K-fold split", self.verbosity)
     if directories is None:
@@ -61,20 +60,17 @@ class Splitter(object):
           rem_dataset,
           frac_train=frac_fold, frac_valid=1-frac_fold, frac_test=0)
       fold_dataset = rem_dataset.select( 
-          fold_inds, fold_dir, 
-          compute_feature_statistics=compute_feature_statistics)
+          fold_inds, fold_dir)
       rem_dir = tempfile.mkdtemp()
       rem_dataset = rem_dataset.select( 
-          rem_inds, rem_dir,
-          compute_feature_statistics=compute_feature_statistics)
+          rem_inds, rem_dir)
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
   def train_valid_test_split(self, dataset, train_dir=None,
                              valid_dir=None, test_dir=None, frac_train=.8,
                              frac_valid=.1, frac_test=.1, seed=None,
-                             log_every_n=1000,
-                             compute_feature_statistics=True):
+                             log_every_n=1000):
     """
     Splits self into train/validation/test sets.
 
@@ -92,22 +88,19 @@ class Splitter(object):
     if test_dir is None:
       test_dir = tempfile.mkdtemp()
     train_dataset = dataset.select( 
-        train_inds, train_dir, 
-        compute_feature_statistics=compute_feature_statistics)
+        train_inds, train_dir)
     if frac_valid != 0:
       valid_dataset = dataset.select(
-          valid_inds, valid_dir,
-          compute_feature_statistics=compute_feature_statistics)
+          valid_inds, valid_dir)
     else:
       valid_dataset = None
     test_dataset = dataset.select(
-        test_inds, test_dir,
-        compute_feature_statistics=compute_feature_statistics)
+        test_inds, test_dir)
 
     return train_dataset, valid_dataset, test_dataset
 
   def train_test_split(self, samples, train_dir=None, test_dir=None, seed=None,
-                       frac_train=.8, compute_feature_statistics=True):
+                       frac_train=.8):
     """
     Splits self into train/test sets.
     Returns Dataset objects.
@@ -115,8 +108,7 @@ class Splitter(object):
     valid_dir = tempfile.mkdtemp()
     train_samples, _, test_samples = self.train_valid_test_split(
       samples, train_dir, valid_dir, test_dir,
-      frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.,
-      compute_feature_statistics=compute_feature_statistics)
+      frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
     return train_samples, test_samples
 
   def split(self, dataset, frac_train=None, frac_valid=None, frac_test=None,
@@ -242,8 +234,7 @@ class RandomStratifiedSplitter(Splitter):
 
     return train_dataset, valid_dataset, test_dataset
 
-  def k_fold_split(self, dataset, k, directories=None,
-                   compute_feature_statistics=True):
+  def k_fold_split(self, dataset, k, directories=None):
     """Needs custom implementation due to ragged splits for stratification."""
     log("Computing K-fold split", self.verbosity)
     if directories is None:

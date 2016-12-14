@@ -226,7 +226,7 @@ class Dataset(object):
 class NumpyDataset(Dataset):
   """A Dataset defined by in-memory numpy arrays."""
 
-  def __init__(self, X, y, w=None, ids=None, verbosity=None):
+  def __init__(self, X, y, w=None, ids=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -242,7 +242,6 @@ class NumpyDataset(Dataset):
     self._y = y
     self._w = w
     self._ids = np.array(ids, dtype=object)
-    self.verbosity = verbosity
 
   def __len__(self):
     """
@@ -341,24 +340,22 @@ class NumpyDataset(Dataset):
     a newly constructed Dataset object
     """
     newx, newy, neww = fn(self._X, self._y, self._w)
-    return NumpyDataset(newx, newy, neww, self._ids[:], self.verbosity)
+    return NumpyDataset(newx, newy, neww, self._ids[:])
 
 
 class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
   """
-  def __init__(self, data_dir=None, tasks=[], metadata_rows=None, #featurizers=None, 
-               raw_data=None, verbosity=None, reload=False,
-               compute_feature_statistics=True):
+  def __init__(self, data_dir=None, tasks=[], metadata_rows=None,
+               raw_data=None, reload=False, verbose=False):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
     if not os.path.exists(data_dir):
       os.makedirs(data_dir)
     self.data_dir = data_dir
-    assert verbosity in [None, "low", "high"]
-    self.verbosity = verbosity
+    self.verbose = verbose
 
     if not reload or not os.path.exists(self._get_metadata_filename()):
       if metadata_rows is not None:
@@ -369,8 +366,7 @@ class DiskDataset(Dataset):
         ids, X, y, w = raw_data
         metadata_rows.append(
             DiskDataset.write_data_to_disk(
-                self.data_dir, "data", tasks, X, y, w, ids,
-                compute_feature_statistics=compute_feature_statistics))
+                self.data_dir, "data", tasks, X, y, w, ids))
         self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
         self.save_to_disk()
       else:
@@ -382,48 +378,34 @@ class DiskDataset(Dataset):
         self.save_to_disk()
 
     else:
-      log("Loading pre-existing metadata file.", self.verbosity)
+      log("Loading pre-existing metadata file.", self.verbose)
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
       else:
         raise ValueError("No metadata found.")
 
   @staticmethod
-  def write_dataframe(val, data_dir, featurizer=None, tasks=None,
-                      raw_data=None, basename=None, mol_id_field="mol_id",
-                      verbosity=None, compute_feature_statistics=None):
+  def write_dataframe(basename, df, data_dir, featurizer=None, tasks=None,
+                      raw_data=None, mol_id_field="mol_id",
+                      verbose=False):
     """Writes data from dataframe to disk."""
     if featurizer is not None and tasks is not None:
       feature_type = featurizer.__class__.__name__
-      (basename, df) = val
       # TODO(rbharath): This is a hack. clean up.
       if not len(df):
         return None
-      if compute_feature_statistics is None:
-        if hasattr(featurizer, "dtype"):
-          dtype = featurizer.dtype
-          compute_feature_statistics = False
-        else:
-          dtype = float
-          compute_feature_statistics = True
-      ############################################################## TIMING
       time1 = time.time()
-      ############################################################## TIMING
-      ids, X, y, w = convert_df_to_numpy(df, feature_type, tasks, mol_id_field,
-                                         dtype, verbosity)
-      ############################################################## TIMING
+      ids, X, y, w = convert_df_to_numpy(
+          df, feature_type, tasks, mol_id_field)
       time2 = time.time()
-      log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbosity)
-      ############################################################## TIMING
+      log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbose)
     else:
       ids, X, y, w = raw_data
-      basename = ""
       assert X.shape[0] == y.shape[0]
       assert y.shape == w.shape
       assert len(ids) == X.shape[0]
     return DiskDataset.write_data_to_disk(
-        data_dir, basename, tasks, X, y, w, ids,
-        compute_feature_statistics=compute_feature_statistics)
+        data_dir, basename, tasks, X, y, w, ids)
 
   @staticmethod
   def construct_metadata(metadata_entries):
@@ -435,54 +417,26 @@ class DiskDataset(Dataset):
     metadata_df = pd.DataFrame(
         metadata_entries,
         columns=('basename','task_names', 'ids',
-                 'X', 'X-transformed', 'y', 'y-transformed',
-                 'w', 'w-transformed',
-                 'X_sums', 'X_sum_squares', 'X_n',
-                 'y_sums', 'y_sum_squares', 'y_n'))
+                 'X', 'y', 'w'))
     return metadata_df
 
   @staticmethod
-  def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None, ids=None,
-                         compute_feature_statistics=True):
+  def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None,
+                         ids=None):
     out_X = "%s-X.joblib" % basename
-    out_X_transformed = "%s-X-transformed.joblib" % basename
-    out_X_sums = "%s-X_sums.joblib" % basename
-    out_X_sum_squares = "%s-X_sum_squares.joblib" % basename
-    out_X_n = "%s-X_n.joblib" % basename
     out_y = "%s-y.joblib" % basename
-    out_y_transformed = "%s-y-transformed.joblib" % basename
-    out_y_sums = "%s-y_sums.joblib" % basename
-    out_y_sum_squares = "%s-y_sum_squares.joblib" % basename
-    out_y_n = "%s-y_n.joblib" % basename
     out_w = "%s-w.joblib" % basename
-    out_w_transformed = "%s-w-transformed.joblib" % basename
     out_ids = "%s-ids.joblib" % basename
 
     if X is not None:
       save_to_disk(X, os.path.join(data_dir, out_X))
-      save_to_disk(X, os.path.join(data_dir, out_X_transformed))
-      if compute_feature_statistics:
-        X_sums, X_sum_squares, X_n = compute_sums_and_nb_sample(X)
-        save_to_disk(X_sums, os.path.join(data_dir, out_X_sums))
-        save_to_disk(X_sum_squares, os.path.join(data_dir, out_X_sum_squares))
-        save_to_disk(X_n, os.path.join(data_dir, out_X_n))
     if y is not None:
       save_to_disk(y, os.path.join(data_dir, out_y))
-      save_to_disk(y, os.path.join(data_dir, out_y_transformed))
-      if compute_feature_statistics:
-        y_sums, y_sum_squares, y_n = compute_sums_and_nb_sample(y, w)
-        save_to_disk(y_sums, os.path.join(data_dir, out_y_sums))
-        save_to_disk(y_sum_squares, os.path.join(data_dir, out_y_sum_squares))
-        save_to_disk(y_n, os.path.join(data_dir, out_y_n))
     if w is not None:
       save_to_disk(w, os.path.join(data_dir, out_w))
-      save_to_disk(w, os.path.join(data_dir, out_w_transformed))
     if ids is not None:
       save_to_disk(ids, os.path.join(data_dir, out_ids))
-    return [basename, tasks, out_ids, out_X, out_X_transformed, out_y,
-            out_y_transformed, out_w, out_w_transformed,
-            out_X_sums, out_X_sum_squares, out_X_n,
-            out_y_sums, out_y_sum_squares, out_y_n]
+    return [basename, tasks, out_ids, out_X, out_y, out_w]
 
   def save_to_disk(self):
     """Save dataset to disk."""
@@ -506,7 +460,7 @@ class DiskDataset(Dataset):
     sample_X = load_from_disk(
         os.path.join(
             self.data_dir,
-            next(self.metadata_df.iterrows())[1]['X-transformed']))[0]
+            next(self.metadata_df.iterrows())[1]['X']))[0]
     return np.shape(sample_X)
 
   def get_shard_size(self):
@@ -516,7 +470,7 @@ class DiskDataset(Dataset):
     sample_y = load_from_disk(
         os.path.join(
             self.data_dir,
-            next(self.metadata_df.iterrows())[1]['y-transformed']))
+            next(self.metadata_df.iterrows())[1]['y']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -543,11 +497,11 @@ class DiskDataset(Dataset):
     def iterate(dataset):
       for _, row in dataset.metadata_df.iterrows():
         X = np.array(load_from_disk(
-            os.path.join(dataset.data_dir, row['X-transformed'])))
+            os.path.join(dataset.data_dir, row['X'])))
         y = np.array(load_from_disk(
-            os.path.join(dataset.data_dir, row['y-transformed'])))
+            os.path.join(dataset.data_dir, row['y'])))
         w = np.array(load_from_disk(
-            os.path.join(dataset.data_dir, row['w-transformed'])))
+            os.path.join(dataset.data_dir, row['w'])))
         ids = np.array(load_from_disk(
             os.path.join(dataset.data_dir, row['ids'])), dtype=object)
         yield (X, y, w, ids)
@@ -644,9 +598,7 @@ class DiskDataset(Dataset):
       basename = "dataset-%d" % shard_num
       metadata_rows.append(DiskDataset.write_data_to_disk(
           out_dir, basename, tasks, newx, newy, neww, ids, False))
-    return DiskDataset(data_dir=out_dir,
-                   metadata_rows=metadata_rows,
-                   verbosity=self.verbosity)
+    return DiskDataset(data_dir=out_dir, metadata_rows=metadata_rows)
 
   def reshard(self, shard_size):
     """Reshards data to have specified shard size."""
@@ -681,17 +633,14 @@ class DiskDataset(Dataset):
     ind += 1
     # Get new metadata rows
     resharded_dataset = DiskDataset(
-        data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata,
-        verbosity=self.verbosity)
+        data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata)
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     self.metadata_df = resharded_dataset.metadata_df
     self.save_to_disk()
 
   @staticmethod
-  def from_numpy(X, y, w=None, ids=None, tasks=None,
-                 verbosity=None, compute_feature_statistics=True,
-                 data_dir=None):
+  def from_numpy(X, y, w=None, ids=None, tasks=None, data_dir=None):
     """Creates a DiskDataset object from specified Numpy arrays."""
     if data_dir is None:
       data_dir = tempfile.mkdtemp()
@@ -709,9 +658,7 @@ class DiskDataset(Dataset):
     if tasks is None:
       tasks = np.arange(n_tasks)
     raw_data = (ids, X, y, w)
-    return DiskDataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data,
-                   verbosity=verbosity,
-                   compute_feature_statistics=compute_feature_statistics)
+    return DiskDataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
 
   @staticmethod
   def merge(datasets, merge_dir=None):
@@ -729,9 +676,7 @@ class DiskDataset(Dataset):
       tasks = dataset.get_task_names()
       metadata_rows.append(
           DiskDataset.write_data_to_disk(merge_dir, basename, tasks, X, y, w, ids))
-    return DiskDataset(data_dir=merge_dir,
-                   metadata_rows=metadata_rows,
-                   verbosity=dataset.verbosity)
+    return DiskDataset(data_dir=merge_dir, metadata_rows=metadata_rows)
 
   def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""
@@ -749,9 +694,7 @@ class DiskDataset(Dataset):
       basename = "dataset-%d" % shard_num
       metadata_rows.append(DiskDataset.write_data_to_disk(
           subset_dir, basename, tasks, X, y, w, ids))
-    return DiskDataset(data_dir=subset_dir,
-                   metadata_rows=metadata_rows,
-                   verbosity=self.verbosity)
+    return DiskDataset(data_dir=subset_dir, metadata_rows=metadata_rows)
 
   def reshard_shuffle(self, reshard_size=10, num_reshards=3):
     """Shuffles by resharding, shuffling shards, undoing resharding."""
@@ -760,18 +703,18 @@ class DiskDataset(Dataset):
     #########################################################  TIMING
     for i in range(num_reshards):
       orig_shard_size = self.get_shard_size()
-      log("Resharding to shard-size %d." % reshard_size, self.verbosity)
+      log("Resharding to shard-size %d." % reshard_size, self.verbose)
       self.reshard(shard_size=reshard_size)
-      log("Shuffling shard order.", self.verbosity)
+      log("Shuffling shard order.", self.verbose)
       self.shuffle_shards()
       log("Resharding to original shard-size %d." % orig_shard_size,
-          self.verbosity)
+          self.verbose)
       self.reshard(shard_size=orig_shard_size)
       self.shuffle_each_shard()
     #########################################################  TIMING
     time2 = time.time()
     log("TIMING: reshard_shuffle took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     #########################################################  TIMING
 
   def sparse_shuffle(self):
@@ -813,7 +756,7 @@ class DiskDataset(Dataset):
     #########################################################  TIMING
     time2 = time.time()
     log("TIMING: sparse_shuffle took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     #########################################################  TIMING
 
   def shuffle(self, iterations=1):
@@ -889,11 +832,11 @@ class DiskDataset(Dataset):
     """Retrieves data for the i-th shard from disk."""
     row = self.metadata_df.iloc[i]
     X = np.array(load_from_disk(
-        os.path.join(self.data_dir, row['X-transformed'])))
+        os.path.join(self.data_dir, row['X'])))
     y = np.array(load_from_disk(
-        os.path.join(self.data_dir, row['y-transformed'])))
+        os.path.join(self.data_dir, row['y'])))
     w = np.array(load_from_disk(
-        os.path.join(self.data_dir, row['w-transformed'])))
+        os.path.join(self.data_dir, row['w'])))
     ids = np.array(load_from_disk(
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
@@ -904,13 +847,9 @@ class DiskDataset(Dataset):
     tasks = self.get_task_names()
     DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
 
-  def set_verbosity(self, new_verbosity):
-    """Sets verbosity."""
-    self.verbosity = new_verbosity
-
   # TODO(rbharath): This change for general object types seems a little
   # kludgey.  Is there a more principled approach to support general objects?
-  def select(self, indices, select_dir=None, compute_feature_statistics=False):
+  def select(self, indices, select_dir=None):
     """Creates a new dataset from a selection of indices from self.
 
     Parameters
@@ -919,9 +858,6 @@ class DiskDataset(Dataset):
       Path to new directory that the selected indices will be copied to.
     indices: list
       List of indices to select.
-    compute_feature_statistics: bool
-      Whether or not to compute moments of features. Only meaningful if features
-      are np.ndarrays. Not meaningful for other featurizations.
     """
     if select_dir is not None:
       if not os.path.exists(select_dir):
@@ -931,7 +867,7 @@ class DiskDataset(Dataset):
     # Handle edge case with empty indices
     if not len(indices):
       return DiskDataset(
-          data_dir=select_dir, metadata_rows=[], verbosity=self.verbosity)
+          data_dir=select_dir, metadata_rows=[])
     indices = np.array(sorted(indices)).astype(int)
     count, indices_count = 0, 0
     metadata_rows = []
@@ -953,18 +889,14 @@ class DiskDataset(Dataset):
       basename = "dataset-%d" % shard_num
       metadata_rows.append(
           DiskDataset.write_data_to_disk(
-              select_dir, basename, tasks,
-              X_sel, y_sel, w_sel, ids_sel,
-              compute_feature_statistics=compute_feature_statistics))
+              select_dir, basename, tasks, X_sel, y_sel, w_sel, ids_sel))
       # Updating counts
       indices_count += num_shard_elts
       count += shard_len
       # Break when all indices have been used up already
       if indices_count >= len(indices):
         break
-    return DiskDataset(data_dir=select_dir,
-                   metadata_rows=metadata_rows,
-                   verbosity=self.verbosity)
+    return DiskDataset(data_dir=select_dir, metadata_rows=metadata_rows)
 
   @property
   def ids(self):
@@ -1012,7 +944,7 @@ class DiskDataset(Dataset):
     """
     total = 0
     for _, row in self.metadata_df.iterrows():
-      y = load_from_disk(os.path.join(self.data_dir, row['y-transformed']))
+      y = load_from_disk(os.path.join(self.data_dir, row['y']))
       total += len(y)
     return total
 
@@ -1044,39 +976,9 @@ class DiskDataset(Dataset):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
 
-def compute_sums_and_nb_sample(tensor, W=None):
-  """
-  Computes sums, squared sums of tensor along axis 0.
-
-  If W is specified, only nonzero weight entries of tensor are used.
-  """
-  if len(np.shape(tensor)) == 1:
-    tensor = np.reshape(tensor, (len(tensor), 1))
-  if W is not None and len(np.shape(W)) == 1:
-    W = np.reshape(W, (len(W), 1))
-  if W is None:
-    sums = np.sum(tensor, axis=0)
-    sum_squares = np.sum(np.square(tensor), axis=0)
-    nb_sample = np.shape(tensor)[0]
-  else:
-    nb_task = np.shape(tensor)[1]
-    sums = np.zeros(nb_task)
-    sum_squares = np.zeros(nb_task)
-    nb_sample = np.zeros(nb_task)
-    for task in range(nb_task):
-      y_task = tensor[:, task]
-      W_task = W[:, task]
-      nonzero_indices = np.nonzero(W_task)[0]
-      y_task_nonzero = y_task[nonzero_indices]
-      sums[task] = np.sum(y_task_nonzero)
-      sum_squares[task] = np.dot(y_task_nonzero, y_task_nonzero)
-      nb_sample[task] = np.shape(y_task_nonzero)[0]
-  return (sums, sum_squares, nb_sample)
-
 # The following are all associated with Dataset, but are separate functions to
 # make it easy to use multiprocessing.
-def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, dtype,
-                        verbosity=None):
+def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, verbose=False):
   """Transforms a dataframe containing deepchem input into numpy arrays"""
   if feature_type not in df.keys():
     raise ValueError(
@@ -1084,22 +986,19 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, dtype,
   # perform common train/test split across all tasks
   n_samples = df.shape[0]
   n_tasks = len(tasks)
-  ############################################################## TIMING
+
   time1 = time.time()
-  ############################################################## TIMING
   y = np.hstack([
       np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
-  ############################################################## TIMING
   time2 = time.time()
   log("TIMING: convert_df_to_numpy y computation took %0.3f s" % (time2-time1),
-      verbosity)
-  ############################################################## TIMING
+      verbose)
+
   w = np.ones((n_samples, n_tasks))
   missing = np.zeros_like(y).astype(int)
   feature_shape = None
-  ############################################################## TIMING
+
   time1 = time.time()
-  ############################################################## TIMING
   for ind in range(n_samples):
     for task in range(n_tasks):
       if y[ind, task] == "":
@@ -1108,36 +1007,25 @@ def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, dtype,
   valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
   x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
   x = np.squeeze(np.array(x_list))
-  ############################################################## TIMING
   time2 = time.time()
   log("TIMING: convert_df_to_numpy x computation took %0.3f s" % (time2-time1),
-      verbosity)
-  ############################################################## TIMING
-  sorted_ids = df[mol_id_field].values
+      verbose)
 
+  sorted_ids = df[mol_id_field].values
   # Set missing data to have weight zero
-  ############################################################## TIMING
   time1 = time.time()
-  ############################################################## TIMING
   for ind in range(n_samples):
     for task in range(n_tasks):
       if missing[ind, task]:
         y[ind, task] = 0.
         w[ind, task] = 0.
-  ############################################################## TIMING
   time2 = time.time()
   log("TIMING: convert_df_to_numpy missing elts computation took %0.3f s"
-      % (time2-time1), verbosity)
-  ############################################################## TIMING
+      % (time2-time1), verbose)
 
   sorted_ids = sorted_ids[valid_inds]
   y = y[valid_inds]
   w = w[valid_inds]
   # Adding this assertion in to avoid ill-formed outputs.
   assert len(sorted_ids) == len(x) == len(y) == len(w)
-  if dtype == float:
-    return sorted_ids, x.astype(float), y.astype(float), w.astype(float)
-  elif dtype == object:
-    return sorted_ids, x, y.astype(float), w.astype(float)
-  else:
-    raise ValueError("Unrecognized dtype for featurizer.")
+  return sorted_ids, x, y.astype(float), w.astype(float)
