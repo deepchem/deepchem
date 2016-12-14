@@ -67,20 +67,12 @@ def compute_pdbbind_coordinate_features(
 def load_core_pdbbind_coordinates(pdbbind_dir, base_dir, reload=True):
   """Load PDBBind datasets. Does not do train/test split"""
   # Set some global variables up top
-  reload = True
-  verbosity = "high"
-  model = "logistic"
   regen = False
   neighbor_cutoff = 4
   max_num_neighbors = 10
 
   # Create some directories for analysis
   # The base_dir holds the results of all analysis
-  if not reload:
-    if os.path.exists(base_dir):
-      shutil.rmtree(base_dir)
-  if not os.path.exists(base_dir):
-    os.makedirs(base_dir)
   current_dir = os.path.dirname(os.path.realpath(__file__))
   #Make directories to store the raw and featurized datasets.
   data_dir = os.path.join(base_dir, "dataset")
@@ -117,9 +109,6 @@ def load_core_pdbbind_coordinates(pdbbind_dir, base_dir, reload=True):
 def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
   """Load PDBBind datasets. Does not do train/test split"""
   # Set some global variables up top
-  reload = True
-  verbosity = "high"
-  model = "logistic"
   regen = False
 
   # Create some directories for analysis
@@ -151,8 +140,7 @@ def load_core_pdbbind_grid(pdbbind_dir, base_dir, reload=True):
       #"salt_bridge"], ecfp_power=9, splif_power=9,
       voxel_feature_types=["ecfp", "splif", "hbond", 
       "salt_bridge"], ecfp_power=9, splif_power=9,
-      parallel=True, flatten=True,
-      verbosity=verbosity)
+      parallel=True, flatten=True)
   compound_featurizers = [CircularFingerprint(size=1024)]
   complex_featurizers = [grid_featurizer]
   

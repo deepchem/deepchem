@@ -63,7 +63,7 @@ class TestAPI(unittest.TestCase):
     input_file = os.path.join(current_dir, "user_specified_example.csv")
     loader = dc.data.DataLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(input_file, debug=True)
+    dataset = loader.featurize(input_file)
 
     splitter = dc.splits.SpecifiedSplitter(input_file, "split")
     train_dataset, test_dataset = splitter.train_test_split(dataset)

@@ -32,7 +32,7 @@ class TestDrop(unittest.TestCase):
     loader = dc.data.DataLoader(
         tasks=emols_tasks, smiles_field="smiles",
         featurizer=featurizer)
-    dataset = loader.featurize(dataset_file, debug=True, logging=False)
+    dataset = loader.featurize(dataset_file)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     print("ids.shape, X.shape, y.shape, w.shape")

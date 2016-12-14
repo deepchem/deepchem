@@ -26,8 +26,7 @@ def load_tox21(featurizer='ECFP', split='index'):
     featurizer_func = dc.feat.ConvMolFeaturizer()
   loader = dc.data.DataLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer_func)
-  dataset = loader.featurize(
-      dataset_file, shard_size=8192)
+  dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Initialize transformers 
   transformers = [

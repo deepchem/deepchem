@@ -14,13 +14,7 @@ __license__ = "BSD 3-clause"
 class ComplexFeaturizer(object):
   """"
   Abstract class for calculating features for mol/protein complexes.
-
-  Class Attributes
-  ----------------
-  name : str or list
-      Name (or names) of this featurizer (used for scripting).
   """
-  name = None
 
   def featurize_complexes(self, mol_pdbs, protein_pdbs, verbose=True,
                           log_every_n=1000):
@@ -36,7 +30,6 @@ class ComplexFeaturizer(object):
       List of PDBs for proteins. Each PDB should be a list of lines of the
       PDB file.
     """
-
     features = []
     for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
       if verbose and i % log_every_n == 0:
@@ -63,30 +56,8 @@ class Featurizer(object):
   Abstract class for calculating a set of features for a molecule.
 
   Child classes implement the _featurize method for calculating features
-  for a single molecule. The feature matrix returned by featurize has a
-  shape that is inferred from the shape of the features returned by
-  _featurize, and is either indexed by molecules or by molecules and
-  conformers depending on the value of the conformers class attribute.
-
-  Class Attributes
-  ----------------
-  conformers : bool, optional (default False)
-      Whether features are calculated for conformers. If True, the first
-      two axes of the feature matrix will index molecules and conformers,
-      respectively. If False, only molecule-level features are calculated
-      and the feature matrix will not have a separate conformer dimension.
-      This is a class attribute because some featurizers take 3D
-      conformation into account and others do not, and this is not
-      typically an instance-level decision.
-  name : str or list
-      Name (or names) of this featurizer (used for scripting).
-  topo_view : bool (default False)
-      Whether the calculated features represent a topological view of the
-      data.
+  for a single molecule.
   """
-  conformers = False
-  name = None
-  topo_view = False
 
   def featurize(self, mols, verbose=True, log_every_n=1000):
     """
@@ -109,10 +80,7 @@ class Featurizer(object):
       else:
         features.append(np.array([]))
 
-    if self.conformers:
-      features = self.conformer_container(mols, features)
-    else:
-      features = np.asarray(features)
+    features = np.asarray(features)
     return features
 
   def _featurize(self, mol):
@@ -137,57 +105,6 @@ class Featurizer(object):
     """
     return self.featurize(mols)
 
-  def conformer_container(self, mols, features):
-    """
-    Put features into a container with an extra dimension for
-    conformers. Conformer indices that are not used are masked.
-
-    For example, if mols contains 3 molecules with 1, 2, 5 conformers,
-    respectively, then the final container will have 3 entries on its
-    first axis and 5 entries on its second axis. The remaining axes
-    correspond to feature dimensions.
-
-    Parameters
-    ----------
-    mols : iterable
-        RDKit Mol objects.
-    features : list
-        Features calculated for molecule conformers. Each element
-        corresponds to the features for a molecule and should be an
-        ndarray with conformers on the first axis.
-    """
-
-    # get the maximum number of conformers
-    max_confs = max([mol.GetNumConformers() for mol in mols])
-    if not max_confs:
-      max_confs = 1
-
-    # construct the new container
-    # - first axis = # mols
-    # - second axis = max # conformers
-    # - remaining axes = determined by feature shape
-    features_shape = None
-    for i in range(len(features)):
-      for j in range(len(features[i])):
-        if features[i][j] is not None:
-          features_shape = features[i][0].shape
-          break
-      if features_shape is not None:
-        break
-    if features_shape is None:
-      raise ValueError('Cannot find any features.')
-    shape = (len(mols), max_confs) + features_shape
-    x = np.ma.masked_all(shape)
-
-    # fill in the container
-    for i, (mol, mol_features) in enumerate(zip(mols, features)):
-      n_confs = max(mol.GetNumConformers(), 1)
-      try:
-        x[i, :n_confs] = mol_features
-      except ValueError:  # handle None conformer values
-        for j in range(n_confs):
-          x[i, j] = mol_features[j]
-    return x
 
 class UserDefinedFeaturizer(Featurizer):
   """Directs usage of user-computed featurizations."""
@@ -195,4 +112,3 @@ class UserDefinedFeaturizer(Featurizer):
   def __init__(self, feature_fields):
     """Creates user-defined-featurizer."""
     self.feature_fields = feature_fields
-
