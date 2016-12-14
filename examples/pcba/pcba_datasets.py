@@ -20,9 +20,9 @@ def load_pcba(featurizer='ECFP', split='random'):
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
   if featurizer == 'ECFP':
-      featurizer_func = dc.feat.CircularFingerprint(size=1024)
+      featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-      featurizer_func = dc.feat.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
   PCBA_tasks = [
       'PCBA-1030','PCBA-1379','PCBA-1452','PCBA-1454','PCBA-1457',
       'PCBA-1458','PCBA-1460','PCBA-1461','PCBA-1468','PCBA-1469',
@@ -50,9 +50,8 @@ def load_pcba(featurizer='ECFP', split='random'):
       'PCBA-902','PCBA-903','PCBA-904','PCBA-912','PCBA-914','PCBA-915',
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
-  loader = dc.load.DataLoader(tasks=PCBA_tasks,
-                      	      smiles_field="smiles",
-	                      featurizer=featurizer_func)
+  loader = dc.data.DataLoader(
+      tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
   
   dataset = loader.featurize(dataset_file)
   # Initialize transformers 
@@ -68,7 +67,6 @@ def load_pcba(featurizer='ECFP', split='random'):
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
   print("Performing new split.")
-  train, valid, test = splitter.train_valid_test_split(
-	dataset, compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
   return PCBA_tasks, (train, valid, test), transformers

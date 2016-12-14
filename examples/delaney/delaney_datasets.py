@@ -19,12 +19,11 @@ def load_delaney(featurizer='ECFP', split='index'):
       current_dir, "../../datasets/delaney-processed.csv")
   delaney_tasks = ['measured log solubility in mols per litre']
   if featurizer == 'ECFP':
-    featurizer_func = dc.feat.CircularFingerprint(size=1024)
+    featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer_func = dc.feat.ConvMolFeaturizer()
-  loader = dc.load.DataLoader(
-      tasks=delaney_tasks, smiles_field="smiles",
-      featurizer=featurizer_func, verbosity = 'high')
+    featurizer = dc.feat.ConvMolFeaturizer()
+  loader = dc.data.DataLoader(
+      tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
 
@@ -40,6 +39,5 @@ def load_delaney(featurizer='ECFP', split='index'):
                'random': dc.splits.RandomSplitter(),
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset,
-      compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
   return delaney_tasks, (train, valid, test), transformers

@@ -50,9 +50,8 @@ def load_kaggle(shard_size=2000, num_shards_per_batch=4,
                   'NK1', 'OX1', 'OX2', 'PGP', 'PPB', 'RAT_F', 'TDI',
                   'THROMBIN']
 
-  loader = dc.load.DataLoader(
-      tasks=KAGGLE_tasks, id_field="Molecule",
-      featurizer=featurizer, verbosity="high")
+  loader = dc.data.DataLoader(
+      tasks=KAGGLE_tasks, id_field="Molecule", featurizer=featurizer)
   train_datasets, valid_datasets, test_datasets = [], [], []
   print("Featurizing train datasets")
   train_dataset = loader.featurize(

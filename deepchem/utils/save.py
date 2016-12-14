@@ -143,4 +143,3 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
-
