@@ -35,15 +35,6 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
   missing = np.zeros_like(y).astype(int)
   feature_shape = None
 
-  #for ind in range(n_samples):
-  #  for task in range(n_tasks):
-  #    if y[ind, task] == "":
-  #      missing[ind, task] = 1
-  #x_list = list(df[feature_type].values)
-  #valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
-  #x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
-  #x = np.squeeze(np.array(x_list))
-
   sorted_ids = df[id_field].values
   # Set missing data to have weight zero
   for ind in range(n_samples):
@@ -52,33 +43,8 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
         y[ind, task] = 0.
         w[ind, task] = 0.
 
-  #sorted_ids = sorted_ids[valid_inds]
-  #y = y[valid_inds]
-  #w = w[valid_inds]
-  # Adding this assertion in to avoid ill-formed outputs.
-  #assert len(sorted_ids) == len(x) == len(y) == len(w)
   assert len(sorted_ids) == len(y) == len(w)
-  #return sorted_ids, x, y.astype(float), w.astype(float)
   return sorted_ids, y.astype(float), w.astype(float)
-
-#def write_dataframe(basename, df, data_dir, feature_type, tasks=None,
-#                    raw_data=None, mol_id_field="mol_id",
-#                    verbose=False):
-#  """Writes data from dataframe to disk."""
-#  if featurizer is not None and tasks is not None:
-#    feature_type = featurizer.__class__.__name__
-#    time1 = time.time()
-#    ids, X, y, w = convert_df_to_numpy(
-#        df, feature_type, tasks, mol_id_field)
-#    time2 = time.time()
-#    log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbose)
-#  else:
-#    ids, X, y, w = raw_data
-#    assert X.shape[0] == y.shape[0]
-#    assert y.shape == w.shape
-#    assert len(ids) == X.shape[0]
-#  return DiskDataset.write_data_to_disk(
-#      data_dir, basename, tasks, X, y, w, ids)
 
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
@@ -180,7 +146,7 @@ class DataLoader(object):
         time2 = time.time()
         log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
             self.verbose)
-        yield ids, X, y, w
+        yield X, y, w, ids
     return DiskDataset(shard_generator(), data_dir, self.tasks)
 
   def get_shards(self, input_files, shard_size):
@@ -190,7 +156,6 @@ class DataLoader(object):
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
     raise NotImplementedError
-
 
 class CSVLoader(DataLoader):
   """
@@ -206,7 +171,6 @@ class CSVLoader(DataLoader):
         % self.featurizer.__class__.__name__, self.verbose)
     return featurize_smiles_df(shard, self.featurizer,
                                field=self.smiles_field)
-
 class UserCSVLoader(DataLoader):
   """
   Handles loading of CSV files with user-defined featurizers.

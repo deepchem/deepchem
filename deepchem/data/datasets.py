@@ -370,7 +370,7 @@ class DiskDataset(Dataset):
 
     metadata_rows = []
     time1 = time.time()
-    for shard_num, (ids, X, y, w) in enumerate(shard_generator):
+    for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num 
       metadata_rows.append(
           DiskDataset.write_data_to_disk(
@@ -600,7 +600,7 @@ class DiskDataset(Dataset):
       for shard_num, row in self.metadata_df.iterrows():
         X, y, w, ids = self.get_shard(shard_num)
         newx, newy, neww = fn(X, y, w)
-        yield (ids, X, y, w)
+        yield (X, y, w, ids)
     return DiskDataset(generator(), data_dir=out_dir)
 
   @staticmethod
@@ -621,7 +621,7 @@ class DiskDataset(Dataset):
       w = np.ones_like(y)
     if tasks is None:
       tasks = np.arange(n_tasks)
-    raw_data = (ids, X, y, w)
+    raw_data = (X, y, w, ids)
     return DiskDataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
 
   @staticmethod
@@ -635,7 +635,7 @@ class DiskDataset(Dataset):
     def generator():
       for ind, dataset in enumerate(datasets):
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-        yield (ids, X, y, w)
+        yield (X, y, w, ids)
     return DiskDataset(generator(), data_dir=merge_dir)
 
   def subset(self, shard_nums, subset_dir=None):
@@ -653,7 +653,7 @@ class DiskDataset(Dataset):
         if shard_num not in shard_nums:
           continue
         X, y, w, ids = self.get_shard(shard_num)
-        yield (ids, X, y, w)
+        yield (X, y, w, ids)
     return DiskDataset(generator(), data_dir=subset_dir)
 
   def sparse_shuffle(self):
