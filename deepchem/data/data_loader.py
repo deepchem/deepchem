@@ -16,13 +16,126 @@ from rdkit import Chem
 import time
 import sys
 from deepchem.utils.save import log
-from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import load_pickle_from_disk
-from deepchem.feat import Featurizer, ComplexFeaturizer
+from deepchem.utils.save import load_csv_files
+from deepchem.utils.save import load_sdf_files
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
-from deepchem.utils.save import load_data
-from deepchem.utils.save import get_input_type
+
+def convert_df_to_numpy(df, tasks, id_field, verbose=False):
+  """Transforms a dataframe containing deepchem input into numpy arrays"""
+  n_samples = df.shape[0]
+  n_tasks = len(tasks)
+
+  time1 = time.time()
+  y = np.hstack([
+      np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+  time2 = time.time()
+
+  w = np.ones((n_samples, n_tasks))
+  missing = np.zeros_like(y).astype(int)
+  feature_shape = None
+
+  #for ind in range(n_samples):
+  #  for task in range(n_tasks):
+  #    if y[ind, task] == "":
+  #      missing[ind, task] = 1
+  #x_list = list(df[feature_type].values)
+  #valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
+  #x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
+  #x = np.squeeze(np.array(x_list))
+
+  sorted_ids = df[id_field].values
+  # Set missing data to have weight zero
+  for ind in range(n_samples):
+    for task in range(n_tasks):
+      if missing[ind, task]:
+        y[ind, task] = 0.
+        w[ind, task] = 0.
+
+  #sorted_ids = sorted_ids[valid_inds]
+  #y = y[valid_inds]
+  #w = w[valid_inds]
+  # Adding this assertion in to avoid ill-formed outputs.
+  #assert len(sorted_ids) == len(x) == len(y) == len(w)
+  assert len(sorted_ids) == len(y) == len(w)
+  #return sorted_ids, x, y.astype(float), w.astype(float)
+  return sorted_ids, y.astype(float), w.astype(float)
+
+#def write_dataframe(basename, df, data_dir, feature_type, tasks=None,
+#                    raw_data=None, mol_id_field="mol_id",
+#                    verbose=False):
+#  """Writes data from dataframe to disk."""
+#  if featurizer is not None and tasks is not None:
+#    feature_type = featurizer.__class__.__name__
+#    time1 = time.time()
+#    ids, X, y, w = convert_df_to_numpy(
+#        df, feature_type, tasks, mol_id_field)
+#    time2 = time.time()
+#    log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbose)
+#  else:
+#    ids, X, y, w = raw_data
+#    assert X.shape[0] == y.shape[0]
+#    assert y.shape == w.shape
+#    assert len(ids) == X.shape[0]
+#  return DiskDataset.write_data_to_disk(
+#      data_dir, basename, tasks, X, y, w, ids)
+
+def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
+  """Featurize individual compounds in dataframe.
+
+  Given a featurizer that operates on individual chemical compounds 
+  or macromolecules, compute & add features for that compound to the 
+  features dataframe
+  """
+  sample_elems = df[field].tolist()
+
+  features = []
+  for ind, elem in enumerate(sample_elems):
+    mol = Chem.MolFromSmiles(elem)
+    if ind % log_every_N == 0:
+      log("Featurizing sample %d" % ind, verbose)
+    features.append(featurizer.featurize([mol]))
+  return np.array(features)
+
+def get_user_specified_features(df, featurizer, verbose=True):
+  """Extract and merge user specified features. 
+
+  Merge features included in dataset provided by user
+  into final features dataframe
+
+  Three types of featurization here:
+
+    1) Molecule featurization
+      -) Smiles string featurization
+      -) Rdkit MOL featurization
+    2) Complex featurization
+      -) PDB files for interacting molecules.
+    3) User specified featurizations.
+  """
+  time1 = time.time()
+  df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(pd.to_numeric)
+  X_shard = df.as_matrix(columns=featurizer.feature_fields)
+  time2 = time.time()
+  log("TIMING: user specified processing took %0.3f s" % (time2-time1), verbose)
+  return X_shard
+
+def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
+  """Featurize individual compounds in dataframe.
+
+  Featurizes .sdf files, so the 3-D structure should be preserved
+  so we use the rdkit "mol" object created from .sdf instead of smiles
+  string. Some featurizers such as CoulombMatrix also require a 3-D
+  structure.  Featurizing from .sdf is currently the only way to
+  perform CM feautization.
+  """
+  sample_elems = df[field].tolist()
+
+  features = []
+  for ind, mol in enumerate(sample_elems):
+    if ind % log_every_N == 0:
+      log("Featurizing sample %d" % ind, verbose)
+    features.append(featurizer.featurize([mol]))
+  return np.array(features)
 
 class DataLoader(object):
   """
@@ -57,110 +170,68 @@ class DataLoader(object):
     log("Loading raw samples now.", self.verbose)
     log("shard_size: %d" % shard_size, self.verbose)
 
-    # Allow users to specify a single file for featurization
     if not isinstance(input_files, list):
       input_files = [input_files]
+    def shard_generator():
+      for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
+        time1 = time.time()
+        X = self.featurize_shard(shard)
+        ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
+        time2 = time.time()
+        log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
+            self.verbose)
+        yield ids, X, y, w
+    return DiskDataset(shard_generator(), data_dir, self.tasks)
 
-    if data_dir is not None:
-      if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    else:
-      data_dir = tempfile.mkdtemp()
+  def get_shards(self, input_files, shard_size):
+    """Stub for children classes."""
+    raise NotImplementedError
 
-    if not len(input_files):
-      return None
-    input_type = get_input_type(input_files[0])
-
-    metadata_rows = []
-    for shard_num, elt in enumerate(load_data(input_files, shard_size)):
-      time1 = time.time()
-      metadata_row = self._featurize_shard(elt, data_dir, shard_num, input_type)
-      if metadata_row is not None:
-        metadata_rows.append(metadata_row)
-      time2 = time.time()
-      log("TIMING: shard %d took %0.3f s" % (shard_num, time2-time1),
-          self.verbose)
-    time1 = time.time()
-    dataset = DiskDataset(data_dir=data_dir, metadata_rows=metadata_rows,
-                          reload=True)
-    time2 = time.time()
-    print("TIMING: dataset construction took %0.3f s" % (time2-time1),
-          self.verbose)
-    return dataset 
-
-  def _featurize_shard(self, df_shard, data_dir, shard_num, input_type):
+  def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    field = self.mol_field if input_type == "sdf" else self.smiles_field 
-    field_type = "mol" if input_type == "sdf" else "smiles" 
+    raise NotImplementedError
+
+
+class CSVLoader(DataLoader):
+  """
+  Handles loading of CSV files.
+  """
+  def get_shards(self, input_files, shard_size, verbose=True):
+    """Defines a generator which returns data for each shard"""
+    return load_csv_files(input_files, shard_size, verbose=verbose)
+
+  def featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
     log("Currently featurizing feature_type: %s"
         % self.featurizer.__class__.__name__, self.verbose)
-    if isinstance(self.featurizer, UserDefinedFeaturizer):
-      self._add_user_specified_features(df_shard, self.featurizer)
-    elif isinstance(self.featurizer, Featurizer):
-      self._featurize_mol(df_shard, self.featurizer, field=field,
-                          field_type=field_type)
-    basename = "shard-%d" % shard_num 
-    time1 = time.time()
-    metadata_row = DiskDataset.write_dataframe(
-        basename, df_shard, data_dir=data_dir,
-        featurizer=self.featurizer, tasks=self.tasks,
-        mol_id_field=self.id_field)
-    time2 = time.time()
-    log("TIMING: writing metadata row took %0.3f s" % (time2-time1),
-        self.verbose)
-    return metadata_row
+    return featurize_smiles_df(shard, self.featurizer,
+                               field=self.smiles_field)
 
-  def _featurize_mol(self, df, featurizer, parallel=True, field_type="mol",
-                     field=None):    
-    """Featurize individual compounds.
+class UserCSVLoader(DataLoader):
+  """
+  Handles loading of CSV files with user-defined featurizers.
+  """
+  def get_shards(self, input_files, shard_size):
+    """Defines a generator which returns data for each shard"""
+    return load_csv_files(input_files, shard_size, verbose=verbose)
 
-    Given a featurizer that operates on individual chemical compounds 
-    or macromolecules, compute & add features for that compound to the 
-    features dataframe
+  def featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    log("Currently featurizing feature_type: %s"
+        % self.featurizer.__class__.__name__, self.verbose)
+    assert isinstance(self.featurizer, UserDefinedFeaturizer)
+    return get_user_specified_features(shard, self.featurizer)
 
-    When featurizing a .sdf file, the 3-D structure should be preserved
-    so we use the rdkit "mol" object created from .sdf instead of smiles
-    string. Some featurizers such as CoulombMatrix also require a 3-D
-    structure.  Featurizing from .sdf is currently the only way to
-    perform CM feautization.
+class SDFLoader(DataLoader):
+  """
+  Handles loading of SDF files.
+  """
+  def get_shard(self, input_files, shard_size):
+    """Defines a generator which returns data for each shard"""
+    return load_sdf_files(input_files)
 
-    TODO(rbharath): Needs to be merged with _featurize_compounds
-    """
-    assert field_type in ["mol", "smiles"]
-    assert field is not None
-    sample_elems = df[field].tolist()
-
-    features = []
-    for ind, elem in enumerate(sample_elems):
-      if field_type == "smiles":
-        mol = Chem.MolFromSmiles(elem)
-      else:
-        mol = elem
-      if ind % self.log_every_n == 0:
-        log("Featurizing sample %d" % ind, self.verbose)
-      features.append(featurizer.featurize([mol]))
-
-    df[featurizer.__class__.__name__] = features
-
-  def _add_user_specified_features(self, df, featurizer):
-    """Merge user specified features. 
-
-    Merge features included in dataset provided by user
-    into final features dataframe
-
-    Three types of featurization here:
-
-      1) Molecule featurization
-        -) Smiles string featurization
-        -) Rdkit MOL featurization
-      2) Complex featurization
-        -) PDB files for interacting molecules.
-      3) User specified featurizations.
-    """
-    time1 = time.time()
-    df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(pd.to_numeric)
-    X_shard = df.as_matrix(columns=featurizer.feature_fields)
-    df[featurizer.__class__.__name__] = [np.array(elt) for elt in X_shard.tolist()]
-    time2 = time.time()
-    log("TIMING: user specified processing took %0.3f s" % (time2-time1),
-        self.verbose)
+  def featurize_shard(self, shard):
+    """Featurizes a shard of an input dataframe."""
+    log("Currently featurizing feature_type: %s"
+        % self.featurizer.__class__.__name__, self.verbose)
+    return featurize_mol_df(shard, self.featurizer, field=self.mol_field)

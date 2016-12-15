@@ -68,9 +68,7 @@ class Featurizer(object):
     mols : iterable
         RDKit Mol objects.
     """
-    if self.conformers and isinstance(mols, types.GeneratorType):
-      mols = list(mols)
-
+    mols = list(mols)
     features = []
     for i, mol in enumerate(mols):
       if verbose and i % log_every_n == 0:

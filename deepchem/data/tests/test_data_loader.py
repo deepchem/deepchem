@@ -37,7 +37,7 @@ class TestDataLoader(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
 
@@ -65,7 +65,7 @@ class TestDataLoader(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
 
@@ -90,7 +90,7 @@ class TestDataLoader(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
 
@@ -114,7 +114,7 @@ class TestDataLoader(unittest.TestCase):
     input_file = os.path.join(
         self.current_dir, "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
 
@@ -134,15 +134,15 @@ class TestDataLoader(unittest.TestCase):
 
     tasks = ["log-solubility"]
     smiles_field = "smiles"
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=dc.feat.CircularFingerprint(size=1024))
     dataset = loader.featurize(input_file)
     
     assert len(dataset) == 10
 
-  def test_samples_move(self):
-    """Test that featurized samples can be moved and reloaded."""
+  def test_dataset_move(self):
+    """Test that dataset can be moved and reloaded."""
     base_dir = tempfile.mkdtemp()
     data_dir = os.path.join(base_dir, "data")
     moved_data_dir = os.path.join(base_dir, "moved_data")
@@ -151,7 +151,7 @@ class TestDataLoader(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
     featurized_dataset = loader.featurize(

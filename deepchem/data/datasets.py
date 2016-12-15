@@ -343,70 +343,43 @@ class NumpyDataset(Dataset):
     newx, newy, neww = fn(self._X, self._y, self._w)
     return NumpyDataset(newx, newy, neww, self._ids[:])
 
-
 class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
   """
-  def __init__(self, data_dir=None, tasks=[], metadata_rows=None,
-               raw_data=None, reload=False, verbose=False):
+  def __init__(self, shard_generator=None, data_dir=None, tasks=[],
+               reload=False, verbose=True):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
-    if not os.path.exists(data_dir):
-      os.makedirs(data_dir)
+    if data_dir is not None:
+      if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    else:
+      data_dir = tempfile.mkdtemp()
     self.data_dir = data_dir
     self.verbose = verbose
 
-    if not reload or not os.path.exists(self._get_metadata_filename()):
-      if metadata_rows is not None:
-        self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
-        self.save_to_disk()
-      elif raw_data is not None:
-        metadata_rows = []
-        ids, X, y, w = raw_data
-        metadata_rows.append(
-            DiskDataset.write_data_to_disk(
-                self.data_dir, "data", tasks, X, y, w, ids))
-        self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
-        self.save_to_disk()
-      else:
-        # Create an empty metadata dataframe to be filled at a later time
-        basename = "metadata"
-        metadata_rows = [DiskDataset.write_data_to_disk(
-            self.data_dir, basename, tasks)]
-        self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
-        self.save_to_disk()
-
-    else:
-      log("Loading pre-existing metadata file.", self.verbose)
+    if reload:
+      log("Loading pre-existing dataset.", self.verbose)
       if os.path.exists(self._get_metadata_filename()):
         self.metadata_df = load_from_disk(self._get_metadata_filename())
       else:
         raise ValueError("No metadata found.")
+      return
 
-  @staticmethod
-  def write_dataframe(basename, df, data_dir, featurizer=None, tasks=None,
-                      raw_data=None, mol_id_field="mol_id",
-                      verbose=False):
-    """Writes data from dataframe to disk."""
-    if featurizer is not None and tasks is not None:
-      feature_type = featurizer.__class__.__name__
-      # TODO(rbharath): This is a hack. clean up.
-      if not len(df):
-        return None
-      time1 = time.time()
-      ids, X, y, w = convert_df_to_numpy(
-          df, feature_type, tasks, mol_id_field)
-      time2 = time.time()
-      log("TIMING: convert_df_to_numpy took %0.3f s" % (time2-time1), verbose)
-    else:
-      ids, X, y, w = raw_data
-      assert X.shape[0] == y.shape[0]
-      assert y.shape == w.shape
-      assert len(ids) == X.shape[0]
-    return DiskDataset.write_data_to_disk(
-        data_dir, basename, tasks, X, y, w, ids)
+    metadata_rows = []
+    time1 = time.time()
+    for shard_num, (ids, X, y, w) in enumerate(shard_generator):
+      basename = "shard-%d" % shard_num 
+      metadata_rows.append(
+          DiskDataset.write_data_to_disk(
+              self.data_dir, basename, tasks, X, y, w, ids))
+    self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
+    self.save_to_disk()
+    time2 = time.time()
+    print("TIMING: dataset construction took %0.3f s" % (time2-time1),
+          self.verbose)
 
   @staticmethod
   def construct_metadata(metadata_entries):
@@ -457,35 +430,26 @@ class DiskDataset(Dataset):
     reshard_dir = tempfile.mkdtemp()
     new_metadata = []
     # Write data in new shards
-    ind = 0
-    tasks = self.get_task_names()
-    X_next = np.zeros((0,) + self.get_data_shape())
-    y_next = np.zeros((0,) + (len(tasks),))
-    w_next = np.zeros((0,) + (len(tasks),))
-    ids_next = np.zeros((0,), dtype=object)
-    for (X, y, w, ids) in self.itershards():
-      X_next = np.vstack([X_next, X])
-      y_next = np.vstack([y_next, y])
-      w_next = np.vstack([w_next, w])
-      ids_next = np.concatenate([ids_next, ids])
-      while len(X_next) > shard_size:
-        X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
-        y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
-        w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
-        ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
-        new_basename = "reshard-%d" % ind
-        new_metadata.append(DiskDataset.write_data_to_disk(
-            reshard_dir, new_basename, tasks, X_batch, y_batch, w_batch, ids_batch))
-        ind += 1
-    # Handle spillover from last shard
-    new_basename = "reshard-%d" % ind
-    new_metadata.append(DiskDataset.write_data_to_disk(
-        reshard_dir, new_basename, tasks, X_next, y_next, w_next, ids_next))
-    ind += 1
-    # Get new metadata rows
-    resharded_dataset = DiskDataset(
-        data_dir=reshard_dir, tasks=tasks, metadata_rows=new_metadata,
-        verbosity=self.verbosity)
+    def generator():
+      tasks = self.get_task_names()
+      X_next = np.zeros((0,) + self.get_data_shape())
+      y_next = np.zeros((0,) + (len(tasks),))
+      w_next = np.zeros((0,) + (len(tasks),))
+      ids_next = np.zeros((0,), dtype=object)
+      for (X, y, w, ids) in self.itershards():
+        X_next = np.vstack([X_next, X])
+        y_next = np.vstack([y_next, y])
+        w_next = np.vstack([w_next, w])
+        ids_next = np.concatenate([ids_next, ids])
+        while len(X_next) > shard_size:
+          X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
+          y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
+          w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
+          ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
+          yield (ids_batch, X_batch, y_batch, w_batch)
+      # Handle spillover from last shard
+      yield (ids_next, X_next, y_next, w_next)
+    resharded_dataset = DiskDataset(generator(), data_dir=reshard_dir)
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     self.metadata_df = resharded_dataset.metadata_df
@@ -632,13 +596,12 @@ class DiskDataset(Dataset):
         out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
     metadata_rows = []
-    for shard_num, row in self.metadata_df.iterrows():
-      X, y, w, ids = self.get_shard(shard_num)
-      newx, newy, neww = fn(X, y, w)
-      basename = "dataset-%d" % shard_num
-      metadata_rows.append(DiskDataset.write_data_to_disk(
-          out_dir, basename, tasks, newx, newy, neww, ids))
-    return DiskDataset(data_dir=out_dir, metadata_rows=metadata_rows)
+    def generator():
+      for shard_num, row in self.metadata_df.iterrows():
+        X, y, w, ids = self.get_shard(shard_num)
+        newx, newy, neww = fn(X, y, w)
+        yield (ids, X, y, w)
+    return DiskDataset(generator(), data_dir=out_dir)
 
   @staticmethod
   def from_numpy(X, y, w=None, ids=None, tasks=None, data_dir=None):
@@ -669,15 +632,11 @@ class DiskDataset(Dataset):
         os.makedirs(merge_dir)
     else:
       merge_dir = tempfile.mkdtemp()
-    Xs, ys, ws, all_ids = [], [], [], []
-    metadata_rows = []
-    for ind, dataset in enumerate(datasets):
-      X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-      basename = "dataset-%d" % ind
-      tasks = dataset.get_task_names()
-      metadata_rows.append(
-          DiskDataset.write_data_to_disk(merge_dir, basename, tasks, X, y, w, ids))
-    return DiskDataset(data_dir=merge_dir, metadata_rows=metadata_rows)
+    def generator():
+      for ind, dataset in enumerate(datasets):
+        X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+        yield (ids, X, y, w)
+    return DiskDataset(generator(), data_dir=merge_dir)
 
   def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""
@@ -688,14 +647,14 @@ class DiskDataset(Dataset):
       subset_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
     metadata_rows = []
-    for shard_num, row in self.metadata_df.iterrows():
-      if shard_num not in shard_nums:
-        continue
-      X, y, w, ids = self.get_shard(shard_num)
-      basename = "dataset-%d" % shard_num
-      metadata_rows.append(DiskDataset.write_data_to_disk(
-          subset_dir, basename, tasks, X, y, w, ids))
-    return DiskDataset(data_dir=subset_dir, metadata_rows=metadata_rows)
+    
+    def generator():
+      for shard_num, row in self.metadata_df.iterrows():
+        if shard_num not in shard_nums:
+          continue
+        X, y, w, ids = self.get_shard(shard_num)
+        yield (ids, X, y, w)
+    return DiskDataset(generator(), data_dir=subset_dir)
 
   def sparse_shuffle(self):
     """Shuffling that exploits data sparsity to shuffle large datasets.
@@ -738,51 +697,6 @@ class DiskDataset(Dataset):
     log("TIMING: sparse_shuffle took %0.3f s" % (time2-time1),
         self.verbose)
     #########################################################  TIMING
-
-  def shuffle(self, iterations=1):
-    """Shuffles this dataset on disk to have random order."""
-    #np.random.seed(9452)
-    for _ in range(iterations):
-      metadata_rows = []
-      tasks = self.get_task_names()
-      # Shuffle the arrays corresponding to each row in metadata_df
-      n_rows = len(self.metadata_df.index)
-      len_data = len(self)
-      print("ABOUT TO SHUFFLE DATA ONCE")
-      for i in range(n_rows):
-        # Select random row to swap with
-        j = np.random.randint(n_rows)
-        row_i, row_j = self.metadata_df.iloc[i], self.metadata_df.iloc[j]
-        metadata_rows.append(row_i)
-        # Useful to avoid edge cases, but perhaps there's a better solution
-        if i == j:
-          continue
-        basename_i, basename_j = row_i["basename"], row_j["basename"]
-        X_i, y_i, w_i, ids_i = self.get_shard(i)
-        X_j, y_j, w_j, ids_j = self.get_shard(j)
-        n_i, n_j = X_i.shape[0], X_j.shape[0]
-
-        # Join two shards and shuffle them at random.
-        X = np.vstack([X_i, X_j])
-        y = np.vstack([y_i, y_j])
-        w = np.vstack([w_i, w_j])
-        ids = np.concatenate([ids_i, ids_j])
-        permutation = np.random.permutation(n_i + n_j)
-        X, y, w, ids = (X[permutation], y[permutation],
-                        w[permutation], ids[permutation])
-
-        X_i, y_i, w_i, ids_i = X[:n_i], y[:n_i], w[:n_i], ids[:n_i]
-        X_j, y_j, w_j, ids_j = X[n_i:], y[n_i:], w[n_i:], ids[n_i:]
-
-        DiskDataset.write_data_to_disk(
-            self.data_dir, basename_i, tasks, X_i, y_i, w_i, ids_i)
-        DiskDataset.write_data_to_disk(
-            self.data_dir, basename_j, tasks, X_j, y_j, w_j, ids_j)
-        assert len(self) == len_data
-      # Now shuffle order of rows in metadata_df
-      random.shuffle(metadata_rows)
-      self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
-      self.save_to_disk()
 
   def shuffle_each_shard(self):
     """Shuffles elements within each shard of the datset."""
@@ -827,8 +741,6 @@ class DiskDataset(Dataset):
     tasks = self.get_task_names()
     DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w, ids)
 
-  # TODO(rbharath): This change for general object types seems a little
-  # kludgey.  Is there a more principled approach to support general objects?
   def select(self, indices, select_dir=None):
     """Creates a new dataset from a selection of indices from self.
 
@@ -846,37 +758,34 @@ class DiskDataset(Dataset):
       select_dir = tempfile.mkdtemp()
     # Handle edge case with empty indices
     if not len(indices):
-      return DiskDataset(
-          data_dir=select_dir, metadata_rows=[])
+      return DiskDataset([], data_dir=select_dir)
     indices = np.array(sorted(indices)).astype(int)
     count, indices_count = 0, 0
     metadata_rows = []
     tasks = self.get_task_names()
-    for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
-      shard_len = len(X)
-      # Find indices which rest in this shard
-      num_shard_elts = 0
-      while indices[indices_count+num_shard_elts] < count + shard_len:
-        num_shard_elts += 1
-        if indices_count + num_shard_elts >= len(indices):
-          break
-      # Need to offset indices to fit within shard_size
-      shard_inds =  indices[indices_count:indices_count+num_shard_elts] - count
-      X_sel = X[shard_inds]
-      y_sel = y[shard_inds]
-      w_sel = w[shard_inds]
-      ids_sel = ids[shard_inds]
-      basename = "dataset-%d" % shard_num
-      metadata_rows.append(
-          DiskDataset.write_data_to_disk(
-              select_dir, basename, tasks, X_sel, y_sel, w_sel, ids_sel))
-      # Updating counts
-      indices_count += num_shard_elts
-      count += shard_len
-      # Break when all indices have been used up already
-      if indices_count >= len(indices):
-        break
-    return DiskDataset(data_dir=select_dir, metadata_rows=metadata_rows)
+    def generator():
+      for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
+        shard_len = len(X)
+        # Find indices which rest in this shard
+        num_shard_elts = 0
+        while indices[indices_count+num_shard_elts] < count + shard_len:
+          num_shard_elts += 1
+          if indices_count + num_shard_elts >= len(indices):
+            break
+        # Need to offset indices to fit within shard_size
+        shard_inds =  indices[indices_count:indices_count+num_shard_elts] - count
+        X_sel = X[shard_inds]
+        y_sel = y[shard_inds]
+        w_sel = w[shard_inds]
+        ids_sel = ids[shard_inds]
+        yield (ids_sel, X_sel, y_sel, w_sel)
+        # Updating counts
+        indices_count += num_shard_elts
+        count += shard_len
+        # Break when all indices have been used up already
+        if indices_count >= len(indices):
+          return 
+    return DiskDataset(generator(), data_dir=select_dir)
 
   @property
   def ids(self):
@@ -955,57 +864,3 @@ class DiskDataset(Dataset):
   def get_label_stds(self):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
-
-# The following are all associated with Dataset, but are separate functions to
-# make it easy to use multiprocessing.
-def convert_df_to_numpy(df, feature_type, tasks, mol_id_field, verbose=False):
-  """Transforms a dataframe containing deepchem input into numpy arrays"""
-  if feature_type not in df.keys():
-    raise ValueError(
-        "Featurized data does not support requested feature_type %s." % feature_type)
-  # perform common train/test split across all tasks
-  n_samples = df.shape[0]
-  n_tasks = len(tasks)
-
-  time1 = time.time()
-  y = np.hstack([
-      np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
-  time2 = time.time()
-  log("TIMING: convert_df_to_numpy y computation took %0.3f s" % (time2-time1),
-      verbose)
-
-  w = np.ones((n_samples, n_tasks))
-  missing = np.zeros_like(y).astype(int)
-  feature_shape = None
-
-  time1 = time.time()
-  for ind in range(n_samples):
-    for task in range(n_tasks):
-      if y[ind, task] == "":
-        missing[ind, task] = 1
-  x_list = list(df[feature_type].values)
-  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in x_list], dtype=bool)
-  x_list = [elt for (is_valid, elt) in zip(valid_inds, x_list) if is_valid]
-  x = np.squeeze(np.array(x_list))
-  time2 = time.time()
-  log("TIMING: convert_df_to_numpy x computation took %0.3f s" % (time2-time1),
-      verbose)
-
-  sorted_ids = df[mol_id_field].values
-  # Set missing data to have weight zero
-  time1 = time.time()
-  for ind in range(n_samples):
-    for task in range(n_tasks):
-      if missing[ind, task]:
-        y[ind, task] = 0.
-        w[ind, task] = 0.
-  time2 = time.time()
-  log("TIMING: convert_df_to_numpy missing elts computation took %0.3f s"
-      % (time2-time1), verbose)
-
-  sorted_ids = sorted_ids[valid_inds]
-  y = y[valid_inds]
-  w = w[valid_inds]
-  # Adding this assertion in to avoid ill-formed outputs.
-  assert len(sorted_ids) == len(x) == len(y) == len(w)
-  return sorted_ids, x, y.astype(float), w.astype(float)
