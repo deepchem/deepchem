@@ -234,26 +234,26 @@ Random splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.903              |0.741              |
-|           |Multitask network   |0.846              |0.812              |
-|           |robust MT-NN        |0.844              |0.793              |
-|           |graph convolution   |0.872              |0.816              |
-|muv        |logistic regression |0.961              |0.696              |
-|           |Multitask network   |0.895              |0.740              |
-|           |robust MT-NN        |0.914              |0.667              |
-|           |graph convolution   |0.846              |0.776              |
-|pcba       |logistic regression |0.807        	     |0.772              |
-|           |Multitask network   |0.811        	     |0.787              |
-|           |robust MT-NN        |0.809              |0.778              |
-|           |graph convolution   |0.875       	     |0.844              |
-|sider      |logistic regression |0.932        	     |0.628              |
-|           |Multitask network   |0.779        	     |0.665              |
-|           |robust MT-NN        |0.761              |0.621              |
-|           |graph convolution   |0.706        	     |0.638              |
-|toxcast    |logistic regression |0.737        	     |0.543              |
-|           |Multitask network   |0.831        	     |0.684              |
-|           |robust MT-NN        |0.814              |0.692              |
-|           |graph convolution   |0.820        	     |0.692              |
+|tox21      |logistic regression |0.903              |0.735              |
+|           |Multitask network   |0.856              |0.783              |
+|           |robust MT-NN        |0.855              |0.773              |
+|           |graph convolution   |0.865              |0.827              |
+|muv        |logistic regression |0.957              |0.719              |
+|           |Multitask network   |0.902              |0.734              |
+|           |robust MT-NN        |0.933              |0.732              |
+|           |graph convolution   |0.860              |0.730              |
+|pcba       |logistic regression |0.808        	     |0.776              |
+|           |Multitask network   |0.811        	     |0.778              |
+|           |robust MT-NN        |0.811              |0.771              |
+|           |graph convolution   |0.872       	     |0.844              |
+|sider      |logistic regression |0.929        	     |0.656              |
+|           |Multitask network   |0.777        	     |0.655              |
+|           |robust MT-NN        |0.804              |0.630              |
+|           |graph convolution   |0.705        	     |0.618              |
+|toxcast    |logistic regression |0.725        	     |0.586              |
+|           |Multitask network   |0.836        	     |0.684              |
+|           |robust MT-NN        |0.822              |0.681              |
+|           |graph convolution   |0.820        	     |0.717              |
 
 Scaffold splitting
 

@@ -85,7 +85,7 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
   splitter = splitters[split]
 
   #running model
-  for count, hp in enumerate(hyper_parameters[model]):
+  for count_hp, hp in enumerate(hyper_parameters[model]):
     # Loading general settings
     # Number of folds for split 
     K = hp['K']
@@ -108,7 +108,7 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
                          model=model, verbosity=verbosity)
       time_finish_fitting = time.time() 
       with open(os.path.join(out_path, 'results.csv'),'a') as f:
-        f.write('\n'+str(count)+','+str(count_iter)+',')
+        f.write('\n'+str(count_hp)+','+str(count_iter)+',')
         f.write(dataset+','+model+',')
         f.write('valid,')
         for i in valid_scores:
