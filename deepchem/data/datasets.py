@@ -446,9 +446,9 @@ class DiskDataset(Dataset):
           y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
           w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
           ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
-          yield (ids_batch, X_batch, y_batch, w_batch)
+          yield (X_batch, y_batch, w_batch, ids_batch)
       # Handle spillover from last shard
-      yield (ids_next, X_next, y_next, w_next)
+      yield (X_next, y_next, w_next, ids_next)
     resharded_dataset = DiskDataset(generator(), data_dir=reshard_dir)
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
@@ -595,7 +595,6 @@ class DiskDataset(Dataset):
     else:
         out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
-    metadata_rows = []
     def generator():
       for shard_num, row in self.metadata_df.iterrows():
         X, y, w, ids = self.get_shard(shard_num)
@@ -606,8 +605,8 @@ class DiskDataset(Dataset):
   @staticmethod
   def from_numpy(X, y, w=None, ids=None, tasks=None, data_dir=None):
     """Creates a DiskDataset object from specified Numpy arrays."""
-    if data_dir is None:
-      data_dir = tempfile.mkdtemp()
+    #if data_dir is None:
+    #  data_dir = tempfile.mkdtemp()
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -621,8 +620,8 @@ class DiskDataset(Dataset):
       w = np.ones_like(y)
     if tasks is None:
       tasks = np.arange(n_tasks)
-    raw_data = (X, y, w, ids)
-    return DiskDataset(data_dir=data_dir, tasks=tasks, raw_data=raw_data)
+    #raw_data = (X, y, w, ids)
+    return DiskDataset([(X, y, w, ids)], data_dir=data_dir, tasks=tasks)
 
   @staticmethod
   def merge(datasets, merge_dir=None):
@@ -646,8 +645,6 @@ class DiskDataset(Dataset):
     else:
       subset_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
-    metadata_rows = []
-    
     def generator():
       for shard_num, row in self.metadata_df.iterrows():
         if shard_num not in shard_nums:
@@ -662,9 +659,7 @@ class DiskDataset(Dataset):
     Only for 1-dimensional feature vectors (does not work for tensorial
     featurizations).
     """
-    #########################################################  TIMING
     time1 = time.time()
-    #########################################################  TIMING
     shard_size = self.get_shard_size()
     num_shards = self.get_number_shards()
     X_sparses, ys, ws, ids = [], [], [], []
@@ -692,11 +687,9 @@ class DiskDataset(Dataset):
           X_sparse[start:stop], y[start:stop], w[start:stop], ids[start:stop])
       X_s = densify_features(X_sparse_s, num_features)
       self.set_shard(i, X_s, y_s, w_s, ids_s)
-    #########################################################  TIMING
     time2 = time.time()
     log("TIMING: sparse_shuffle took %0.3f s" % (time2-time1),
         self.verbose)
-    #########################################################  TIMING
 
   def shuffle_each_shard(self):
     """Shuffles elements within each shard of the datset."""
@@ -760,10 +753,9 @@ class DiskDataset(Dataset):
     if not len(indices):
       return DiskDataset([], data_dir=select_dir)
     indices = np.array(sorted(indices)).astype(int)
-    count, indices_count = 0, 0
-    metadata_rows = []
     tasks = self.get_task_names()
     def generator():
+      count, indices_count = 0, 0
       for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
         shard_len = len(X)
         # Find indices which rest in this shard
@@ -778,7 +770,7 @@ class DiskDataset(Dataset):
         y_sel = y[shard_inds]
         w_sel = w[shard_inds]
         ids_sel = ids[shard_inds]
-        yield (ids_sel, X_sel, y_sel, w_sel)
+        yield (X_sel, y_sel, w_sel, ids_sel)
         # Updating counts
         indices_count += num_shard_elts
         count += shard_len

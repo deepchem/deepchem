@@ -28,9 +28,8 @@ class TestAPI(unittest.TestCase):
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.data.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
@@ -61,7 +60,7 @@ class TestAPI(unittest.TestCase):
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "user_specified_example.csv")
-    loader = dc.data.DataLoader(
+    loader = dc.data.UserCSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
@@ -97,9 +96,8 @@ class TestAPI(unittest.TestCase):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.data.DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
@@ -140,9 +138,8 @@ class TestAPI(unittest.TestCase):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example_classification.csv")
 
-    loader = dc.data.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()

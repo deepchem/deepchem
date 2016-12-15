@@ -16,12 +16,12 @@ import shutil
 import unittest
 import deepchem as dc
 
-class TestMultitaskData(unittest.TestCase):
+class TestMultitask(unittest.TestCase):
   """
   Sanity tests for multitask data.
   """
   def setUp(self):
-    super(TestMultitaskData, self).setUp()
+    super(TestMultitask, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def test_multitask_order(self):
@@ -33,14 +33,19 @@ class TestMultitaskData(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
-    loader = dc.data.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)
   
+    ######################################################## DEBUG
+    print("train_dataset.get_task_names()")
+    print(train_dataset.get_task_names())
+    print("tasks")
+    print(tasks)
+    ######################################################## DEBUG
     assert train_dataset.get_task_names() == tasks
     assert test_dataset.get_task_names() == tasks
 

@@ -35,7 +35,12 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
   missing = np.zeros_like(y).astype(int)
   feature_shape = None
 
-  sorted_ids = df[id_field].values
+  for ind in range(n_samples):
+    for task in range(n_tasks):
+      if y[ind, task] == "":
+        missing[ind, task] = 1
+
+  ids = df[id_field].values
   # Set missing data to have weight zero
   for ind in range(n_samples):
     for task in range(n_tasks):
@@ -43,8 +48,7 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
         y[ind, task] = 0.
         w[ind, task] = 0.
 
-  assert len(sorted_ids) == len(y) == len(w)
-  return sorted_ids, y.astype(float), w.astype(float)
+  return ids, y.astype(float), w.astype(float)
 
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
@@ -60,7 +64,7 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
     mol = Chem.MolFromSmiles(elem)
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
-    features.append(featurizer.featurize([mol]))
+    features.append(np.squeeze(featurizer.featurize([mol])))
   return np.array(features)
 
 def get_user_specified_features(df, featurizer, verbose=True):
@@ -143,6 +147,7 @@ class DataLoader(object):
         time1 = time.time()
         X = self.featurize_shard(shard)
         ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
+        assert len(X) == len(ids) == len(y) == len(w)
         time2 = time.time()
         log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
             self.verbose)
@@ -167,8 +172,6 @@ class CSVLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s"
-        % self.featurizer.__class__.__name__, self.verbose)
     return featurize_smiles_df(shard, self.featurizer,
                                field=self.smiles_field)
 class UserCSVLoader(DataLoader):
@@ -177,12 +180,10 @@ class UserCSVLoader(DataLoader):
   """
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
-    return load_csv_files(input_files, shard_size, verbose=verbose)
+    return load_csv_files(input_files, shard_size)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s"
-        % self.featurizer.__class__.__name__, self.verbose)
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
     return get_user_specified_features(shard, self.featurizer)
 

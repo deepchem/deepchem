@@ -14,4 +14,6 @@ from deepchem.data.datasets import DiskDataset
 from deepchem.data.supports import *
 from deepchem.data.data_loader import DataLoader
 from deepchem.data.data_loader import CSVLoader
+from deepchem.data.data_loader import UserCSVLoader
+from deepchem.data.data_loader import SDFLoader
 import deepchem.data.tests
