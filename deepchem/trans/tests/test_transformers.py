@@ -43,14 +43,6 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(X, X_t)
     # Check w is unchanged since this is a y transformer
     np.testing.assert_allclose(w, w_t)
-    ###################################################### DEBUG
-    print("y") 
-    print(y) 
-    print("np.log(y+1)")
-    print(np.log(y+1))
-    print("y_t")
-    print(y_t)
-    ###################################################### DEBUG
     # Check y is now a logarithmic version of itself
     np.testing.assert_allclose(y_t, np.log(y+1))
 

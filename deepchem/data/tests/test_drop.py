@@ -34,8 +34,4 @@ class TestDrop(unittest.TestCase):
     dataset = loader.featurize(dataset_file)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
-    ############################################################ DEBUG
-    print("ids.shape, X.shape, y.shape, w.shape")
-    print(ids.shape, X.shape, y.shape, w.shape)
-    ############################################################ DEBUG
     assert len(X) == len(y) == len(w) == len(ids)

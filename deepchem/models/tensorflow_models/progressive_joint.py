@@ -101,9 +101,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
               prev_layer = all_layers[(i-1, task)]
               prev_layer_size = layer_sizes[i-1]
               if task > 0:
-                ################################################################# DEBUG
                 lateral_contrib = self.add_adapter(all_layers, task, i)
-                ################################################################# DEBUG
             print("Creating W_layer_%d_task%d of shape %s" %
                   (i, task, str([prev_layer_size, layer_sizes[i]])))
             W = tf.Variable(
@@ -131,9 +129,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
             "task%d" % task, graph, name_scopes)
         with task_scope as scope:
           if task > 0:
-            ################################################################# DEBUG
             lateral_contrib = tf.squeeze(self.add_adapter(all_layers, task, i+1))
-            ################################################################# DEBUG
           weight_init = tf.truncated_normal(
               shape=[prev_layer_size, 1],
               stddev=weight_init_stddevs[i])

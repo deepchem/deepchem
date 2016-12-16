@@ -57,10 +57,6 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   or macromolecules, compute & add features for that compound to the 
   features dataframe
   """
-  ######################################################## DEBUG
-  print("field")
-  print(field)
-  ######################################################## DEBUG
   sample_elems = df[field].tolist()
 
   features = []
@@ -69,12 +65,10 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  ########################################################## DEBUG
   valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
                         dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
-  ########################################################### DEBUG
 
 def get_user_specified_features(df, featurizer, verbose=True):
   """Extract and merge user specified features. 
@@ -114,12 +108,10 @@ def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  ########################################################## DEBUG
   valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
                         dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
-  ########################################################### DEBUG
 
 class DataLoader(object):
   """
@@ -148,10 +140,6 @@ class DataLoader(object):
       self.user_specified_features = featurizer.feature_fields 
     self.featurizer = featurizer
     self.log_every_n = log_every_n
-    ##################################################### DEBUG
-    print("self.smiles_field")
-    print(self.smiles_field)
-    ##################################################### DEBUG
 
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location."""
@@ -163,10 +151,6 @@ class DataLoader(object):
     def shard_generator():
       for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
         time1 = time.time()
-        ##################################################### DEBUG
-        print("self.smiles_field")
-        print(self.smiles_field)
-        ##################################################### DEBUG
         X, valid_inds = self.featurize_shard(shard)
         ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
         # Filter out examples where featurization failed.
@@ -196,10 +180,6 @@ class CSVLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    ######################################################### DEBUG
-    print("self.smiles_field")
-    print(self.smiles_field)
-    ######################################################### DEBUG
     return featurize_smiles_df(shard, self.featurizer,
                                field=self.smiles_field)
 

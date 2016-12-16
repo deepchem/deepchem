@@ -25,10 +25,6 @@ def load_solubility_data():
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  ##################################################### DEBUG
-  print("loader.smiles_field")
-  print(loader.smiles_field)
-  ##################################################### DEBUG
   
   return loader.featurize(input_file)
 

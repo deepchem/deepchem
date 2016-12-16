@@ -39,10 +39,6 @@ class TestLoad(unittest.TestCase):
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     shutil.move(data_dir, moved_data_dir)
 
-    ################################################ DEBUG
-    print("data_dir, moved_data_dir")
-    print(data_dir, moved_data_dir)
-    ################################################ DEBUG
     moved_dataset = dc.data.DiskDataset(
         data_dir=moved_data_dir, reload=True)
 

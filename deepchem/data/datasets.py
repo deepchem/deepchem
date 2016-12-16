@@ -366,12 +366,6 @@ class DiskDataset(Dataset):
         (self.tasks, self.metadata_df) = load_from_disk(
             self._get_metadata_filename())
       else:
-        ################################################ DEBUG
-        print("self.data_dir")
-        print(self.data_dir)
-        print("os.listdir(self.data_dir)")
-        print(os.listdir(self.data_dir))
-        ################################################ DEBUG
         raise ValueError("No metadata found.")
       return
 

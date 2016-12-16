@@ -84,11 +84,6 @@ class SupportGraphClassifier(Model):
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
     # Generate dictionary elements for support 
-    ############################################################## DEBUG
-    print("construct_feed_dict()")
-    print("support.X")
-    print(support.X)
-    ############################################################## DEBUG
     feed_dict = (
         self.model.support_graph_topology.batch_to_feed_dict(support.X))
     feed_dict[self.support_label_placeholder] = np.squeeze(support.y)
@@ -155,7 +150,6 @@ class SupportGraphClassifier(Model):
       feed_total += (feed_end - feed_start)
       for step in range(n_steps_per_trial):
         # Train on support set, batch pair
-        ############################################################## DEBUG
         run_start = time.time()
         _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
         run_end = time.time()
@@ -166,7 +160,6 @@ class SupportGraphClassifier(Model):
           recent_losses = []
         else:
           recent_losses.append(loss)
-        ############################################################## DEBUG
     time_end = time.time()
     print("old_fit took %s seconds" % str(time_end-time_start))
     print("test_total: %s" % str(test_total))
@@ -346,10 +339,8 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
     y_pred_batch = np.round(pred)
-    ########################################################### DEBUG
     # Remove padded elements
     y_pred_batch = y_pred_batch[:n_samples]
-    ########################################################### DEBUG
     return y_pred_batch
 
   def predict_proba_on_batch(self, support, test_batch):
@@ -361,14 +352,12 @@ class SupportGraphClassifier(Model):
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
     pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
-    ########################################################### DEBUG
     # pred corresponds to prob(example == 1) 
     y_pred_batch = np.zeros((n_samples, 2))
     # Remove padded elements
     pred = pred[:n_samples]
     y_pred_batch[:, 1] = pred
     y_pred_batch[:, 0] = 1-pred
-    ########################################################### DEBUG
     return y_pred_batch
     
   def evaluate(self, dataset, metric, n_pos,
