@@ -16,7 +16,7 @@ import shutil
 import numpy as np
 import deepchem as dc
 
-class TestBasicDatasets(unittest.TestCase):
+class TestDatasets(unittest.TestCase):
   """
   Test basic top-level API for dataset objects.
   """

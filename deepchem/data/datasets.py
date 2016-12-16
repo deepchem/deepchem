@@ -608,7 +608,7 @@ class DiskDataset(Dataset):
       for shard_num, row in self.metadata_df.iterrows():
         X, y, w, ids = self.get_shard(shard_num)
         newx, newy, neww = fn(X, y, w)
-        yield (X, y, w, ids)
+        yield (newx, newy, neww, ids)
     return DiskDataset(generator(), data_dir=out_dir)
 
   @staticmethod

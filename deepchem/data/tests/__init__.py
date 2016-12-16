@@ -23,9 +23,14 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
-  featurizer = dc.data.CSVLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-  return featurizer.featurize(input_file)
+  ##################################################### DEBUG
+  print("loader.smiles_field")
+  print(loader.smiles_field)
+  ##################################################### DEBUG
+  
+  return loader.featurize(input_file)
 
 def load_multitask_data():
   """Load example multitask data."""
@@ -73,7 +78,7 @@ def load_feat_multitask_data():
   tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
   input_file = os.path.join(
       current_dir, "../../models/tests/feat_multitask_example.csv")
-  loader = dc.data.CSVLoader(
+  loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.featurize(input_file)
 
@@ -87,6 +92,6 @@ def load_gaussian_cdf_data():
   tasks = ["task0","task1"]
   input_file = os.path.join(
       current_dir, "../../models/tests/gaussian_cdf_example.csv")
-  loader = dc.data.CSVLoader(
+  loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.featurize(input_file)

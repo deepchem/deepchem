@@ -57,6 +57,10 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   or macromolecules, compute & add features for that compound to the 
   features dataframe
   """
+  ######################################################## DEBUG
+  print("field")
+  print(field)
+  ######################################################## DEBUG
   sample_elems = df[field].tolist()
 
   features = []
@@ -144,6 +148,10 @@ class DataLoader(object):
       self.user_specified_features = featurizer.feature_fields 
     self.featurizer = featurizer
     self.log_every_n = log_every_n
+    ##################################################### DEBUG
+    print("self.smiles_field")
+    print(self.smiles_field)
+    ##################################################### DEBUG
 
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location."""
@@ -155,6 +163,10 @@ class DataLoader(object):
     def shard_generator():
       for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
         time1 = time.time()
+        ##################################################### DEBUG
+        print("self.smiles_field")
+        print(self.smiles_field)
+        ##################################################### DEBUG
         X, valid_inds = self.featurize_shard(shard)
         ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
         # Filter out examples where featurization failed.
@@ -184,8 +196,13 @@ class CSVLoader(DataLoader):
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
+    ######################################################### DEBUG
+    print("self.smiles_field")
+    print(self.smiles_field)
+    ######################################################### DEBUG
     return featurize_smiles_df(shard, self.featurizer,
                                field=self.smiles_field)
+
 class UserCSVLoader(DataLoader):
   """
   Handles loading of CSV files with user-defined featurizers.
@@ -198,7 +215,7 @@ class UserCSVLoader(DataLoader):
     """Featurizes a shard of an input dataframe."""
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
     X = get_user_specified_features(shard, self.featurizer)
-    return (X, np.ones(len(X)))
+    return (X, np.ones(len(X), dtype=bool))
 
 class SDFLoader(DataLoader):
   """

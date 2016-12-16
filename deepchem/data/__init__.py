@@ -11,6 +11,8 @@ from deepchem.data.datasets import pad_batch
 from deepchem.data.datasets import Dataset
 from deepchem.data.datasets import NumpyDataset
 from deepchem.data.datasets import DiskDataset
+from deepchem.data.datasets import sparsify_features
+from deepchem.data.datasets import densify_features
 from deepchem.data.supports import *
 from deepchem.data.data_loader import DataLoader
 from deepchem.data.data_loader import CSVLoader

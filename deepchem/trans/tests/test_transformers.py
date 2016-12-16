@@ -43,6 +43,14 @@ class TestTransformers(unittest.TestCase):
     np.testing.assert_allclose(X, X_t)
     # Check w is unchanged since this is a y transformer
     np.testing.assert_allclose(w, w_t)
+    ###################################################### DEBUG
+    print("y") 
+    print(y) 
+    print("np.log(y+1)")
+    print(np.log(y+1))
+    print("y_t")
+    print(y_t)
+    ###################################################### DEBUG
     # Check y is now a logarithmic version of itself
     np.testing.assert_allclose(y_t, np.log(y+1))
 
@@ -120,9 +128,11 @@ class TestTransformers(unittest.TestCase):
     log_transformer = dc.trans.LogTransformer(
         transform_X=True, features=features,
         dataset=multitask_dataset)
-    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
+                    multitask_dataset.w, multitask_dataset.ids)
     multitask_dataset = log_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
+                            multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):
