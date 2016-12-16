@@ -29,12 +29,13 @@ class TestDrop(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
     emols_tasks = ['activity']
 
-    loader = dc.data.DataLoader(
-        tasks=emols_tasks, smiles_field="smiles",
-        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=emols_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
+    ############################################################ DEBUG
     print("ids.shape, X.shape, y.shape, w.shape")
     print(ids.shape, X.shape, y.shape, w.shape)
+    ############################################################ DEBUG
     assert len(X) == len(y) == len(w) == len(ids)

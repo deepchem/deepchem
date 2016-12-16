@@ -60,7 +60,9 @@ class SingletaskToMultitask(Model):
     tasks = dataset.get_task_names()
     assert len(tasks) == len(task_dirs)
     log("Splitting multitask dataset into singletask datasets", dataset.verbose)
-    task_metadata_rows = {task: [] for task in tasks}
+    task_datasets = [DiskDataset(data_dir=task_dirs[task_num], tasks=[task])
+                    for (task_num, task) in enumerate(tasks)]
+    #task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
       log("Processing shard %d" % shard_num, dataset.verbose)
       basename = "dataset-%d" % shard_num
@@ -76,16 +78,19 @@ class SingletaskToMultitask(Model):
         w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
         ids_nonzero = ids[w_task != 0]
 
-        if X_nonzero.size > 0: 
-          task_metadata_rows[task].append(
-            DiskDataset.write_data_to_disk(
-                task_dirs[task_num], basename, [task],
-                X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
+        task_datasets[task_num].add_shard(X_nonzero, y_nonzero, w_nonzero,
+                                          ids_nonzero)
+
+        #if X_nonzero.size > 0: 
+        #  task_metadata_rows[task].append(
+        #    DiskDataset.write_data_to_disk(
+        #        task_dirs[task_num], basename, [task],
+        #        X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
     
-    task_datasets = [
-        DiskDataset(data_dir=task_dirs[task_num],
-                metadata_rows=task_metadata_rows[task])
-        for (task_num, task) in enumerate(tasks)]
+    #task_datasets = [
+    #    DiskDataset(data_dir=task_dirs[task_num],
+    #            metadata_rows=task_metadata_rows[task])
+    #    for (task_num, task) in enumerate(tasks)]
     return task_datasets
 
 

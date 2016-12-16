@@ -40,12 +40,6 @@ class TestMultitask(unittest.TestCase):
     splitter = dc.splits.ScaffoldSplitter()
     train_dataset, test_dataset = splitter.train_test_split(dataset)
   
-    ######################################################## DEBUG
-    print("train_dataset.get_task_names()")
-    print(train_dataset.get_task_names())
-    print("tasks")
-    print(tasks)
-    ######################################################## DEBUG
     assert train_dataset.get_task_names() == tasks
     assert test_dataset.get_task_names() == tasks
 

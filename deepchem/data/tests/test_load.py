@@ -32,15 +32,19 @@ class TestLoad(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file, data_dir)
 
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     shutil.move(data_dir, moved_data_dir)
 
+    ################################################ DEBUG
+    print("data_dir, moved_data_dir")
+    print(data_dir, moved_data_dir)
+    ################################################ DEBUG
     moved_dataset = dc.data.DiskDataset(
-        moved_data_dir, reload=True)
+        data_dir=moved_data_dir, reload=True)
 
     X_moved, y_moved, w_moved, ids_moved = (moved_dataset.X, moved_dataset.y,
                                             moved_dataset.w, moved_dataset.ids)
@@ -74,7 +78,7 @@ class TestLoad(unittest.TestCase):
     all_tasks = ["task%d"%i for i in range(17)] 
 
     ####### Do featurization
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=all_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file, data_dir)
 
@@ -87,7 +91,7 @@ class TestLoad(unittest.TestCase):
     y_tasks, w_tasks, = [], []
     for ind, task in enumerate(all_tasks):
       print("Processing task %s" % task)
-      dataset = dc.data.DiskDataset(data_dir, reload=reload)
+      dataset = dc.data.DiskDataset(data_dir=data_dir, reload=reload)
 
       X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
                                           dataset.ids)
@@ -131,7 +135,7 @@ class TestLoad(unittest.TestCase):
     tasks = all_tasks[0:n_tasks]
 
     ####### Do multitask load
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file, data_dir)
 
@@ -145,7 +149,7 @@ class TestLoad(unittest.TestCase):
       print("Processing task %s" % task)
       if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
-      loader = dc.data.DataLoader(
+      loader = dc.data.CSVLoader(
           tasks=[task], smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(dataset_file, data_dir)
 

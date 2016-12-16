@@ -479,7 +479,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.DataLoader(
+      loader = dc.data.CSVLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
@@ -533,7 +533,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.DataLoader(
+      loader = dc.data.CSVLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
@@ -598,7 +598,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.DataLoader(
+      loader = dc.data.CSVLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
@@ -665,7 +665,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.DataLoader(
+      loader = dc.data.CSVLoader(
           tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
@@ -746,38 +746,3 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [metric])
     y_pred = model.predict(dataset)
     assert scores[metric.name] < .2
-
-  # TODO: Put this in once progressive multitask is supported. Or remove this
-  # test.
-  #def test_tf_progressive_classification_overfit(self):
-  #  """Test tf progressive multitask overfits tiny data."""
-  #  np.random.seed(123)
-  #  n_tasks = 9 
-  #  n_samples = 10
-  #  n_features = 3
-  #  n_classes = 2
-  #  
-  #  # Generate dummy dataset
-  #  np.random.seed(123)
-  #  ids = np.arange(n_samples)
-  #  X = np.random.rand(n_samples, n_features)
-  #  y = np.zeros((n_samples, n_tasks))
-  #  w = np.ones((n_samples, n_tasks))
-  #
-  #  dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-  #  metric = dc.metrics.Metric(dc.metrics.rms_score, task_averager=np.mean)
-  #  metric = dc.metrics.Metric(dc.metrics.accuracy_score, task_averager=np.mean)
-  #  model = dc.models.ProgressiveMultitaskClassifier(
-  #      n_tasks, n_features, layer_sizes=[50], bypass_layer_sizes=[10],
-  #      dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[.1], seed=123,
-  #      alpha_init_stddevs=[.02], batch_size=n_samples)
-
-  #  # Fit trained model
-  #  model.fit(dataset, nb_epoch=20)
-  #  model.save()
-
-  #  # Eval model on train
-  #  scores = model.evaluate(dataset, [metric])
-  #  y_pred = model.predict(dataset)
-  #  assert scores[metric.name] < .2

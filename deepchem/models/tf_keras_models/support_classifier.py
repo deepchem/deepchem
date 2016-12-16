@@ -84,6 +84,11 @@ class SupportGraphClassifier(Model):
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
     # Generate dictionary elements for support 
+    ############################################################## DEBUG
+    print("construct_feed_dict()")
+    print("support.X")
+    print(support.X)
+    ############################################################## DEBUG
     feed_dict = (
         self.model.support_graph_topology.batch_to_feed_dict(support.X))
     feed_dict[self.support_label_placeholder] = np.squeeze(support.y)

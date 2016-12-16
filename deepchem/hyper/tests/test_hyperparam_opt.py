@@ -29,7 +29,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "../../models/tests/example.csv")
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
@@ -112,7 +112,7 @@ class TestHyperparamOptAPI(unittest.TestCase):
     n_features = 1024
     featurizer = dc.feat.CircularFingerprint(size=n_features)
 
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 

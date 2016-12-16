@@ -23,7 +23,7 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   task_type = "regression"
   input_file = os.path.join(current_dir, "../../models/tests/example.csv")
-  featurizer = dc.data.DataLoader(
+  featurizer = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
   return featurizer.featurize(input_file)
 
@@ -36,7 +36,7 @@ def load_multitask_data():
            "task13", "task14", "task15", "task16"]
   input_file = os.path.join(
       current_dir, "../../models/tests/multitask_example.csv")
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
   return loader.featurize(input_file)
 
@@ -48,7 +48,7 @@ def load_classification_data():
   task_type = "classification"
   input_file = os.path.join(
       current_dir, "../../models/tests/example_classification.csv")
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
   return loader.featurize(input_file)
 
@@ -61,7 +61,7 @@ def load_sparse_multitask_dataset():
            "task7", "task8", "task9"]
   input_file = os.path.join(
       current_dir, "../../models/tests/sparse_multitask_example.csv")
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, smiles_field="smiles", featurizer=featurizer)
   return loader.featurize(input_file)
   
@@ -73,7 +73,7 @@ def load_feat_multitask_data():
   tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
   input_file = os.path.join(
       current_dir, "../../models/tests/feat_multitask_example.csv")
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.featurize(input_file)
 
@@ -87,6 +87,6 @@ def load_gaussian_cdf_data():
   tasks = ["task0","task1"]
   input_file = os.path.join(
       current_dir, "../../models/tests/gaussian_cdf_example.csv")
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.featurize(input_file)

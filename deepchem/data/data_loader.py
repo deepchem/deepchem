@@ -64,8 +64,13 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
     mol = Chem.MolFromSmiles(elem)
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
-    features.append(np.squeeze(featurizer.featurize([mol])))
-  return np.array(features)
+    features.append(featurizer.featurize([mol]))
+  ########################################################## DEBUG
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
+                        dtype=bool)
+  features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
+  return np.squeeze(np.array(features)), valid_inds
+  ########################################################### DEBUG
 
 def get_user_specified_features(df, featurizer, verbose=True):
   """Extract and merge user specified features. 
@@ -105,7 +110,12 @@ def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  return np.array(features)
+  ########################################################## DEBUG
+  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
+                        dtype=bool)
+  features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
+  return np.squeeze(np.array(features)), valid_inds
+  ########################################################### DEBUG
 
 class DataLoader(object):
   """
@@ -145,8 +155,10 @@ class DataLoader(object):
     def shard_generator():
       for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
         time1 = time.time()
-        X = self.featurize_shard(shard)
+        X, valid_inds = self.featurize_shard(shard)
         ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
+        # Filter out examples where featurization failed.
+        ids, y, w = (ids[valid_inds], y[valid_inds], w[valid_inds])
         assert len(X) == len(ids) == len(y) == len(w)
         time2 = time.time()
         log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
@@ -185,13 +197,14 @@ class UserCSVLoader(DataLoader):
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
     assert isinstance(self.featurizer, UserDefinedFeaturizer)
-    return get_user_specified_features(shard, self.featurizer)
+    X = get_user_specified_features(shard, self.featurizer)
+    return (X, np.ones(len(X)))
 
 class SDFLoader(DataLoader):
   """
   Handles loading of SDF files.
   """
-  def get_shard(self, input_files, shard_size):
+  def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
     return load_sdf_files(input_files)
 

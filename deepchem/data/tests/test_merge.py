@@ -29,7 +29,7 @@ class TestMerge(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
         featurizer=featurizer)
     first_dataset = loader.featurize(dataset_file)
@@ -49,9 +49,8 @@ class TestMerge(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.data.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(
         dataset_file, shard_size=2)
 

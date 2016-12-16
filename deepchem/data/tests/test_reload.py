@@ -31,7 +31,7 @@ class TestReload(unittest.TestCase):
                  'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
                  'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                  'MUV-466', 'MUV-832']
-    loader = dc.data.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
     assert len(dataset) == len(raw_dataset)

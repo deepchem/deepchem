@@ -99,17 +99,17 @@ class Splitter(object):
 
     return train_dataset, valid_dataset, test_dataset
 
-  def train_test_split(self, samples, train_dir=None, test_dir=None, seed=None,
+  def train_test_split(self, dataset, train_dir=None, test_dir=None, seed=None,
                        frac_train=.8):
     """
     Splits self into train/test sets.
     Returns Dataset objects.
     """
     valid_dir = tempfile.mkdtemp()
-    train_samples, _, test_samples = self.train_valid_test_split(
-      samples, train_dir, valid_dir, test_dir,
+    train_dataset, _, test_dataset = self.train_valid_test_split(
+      dataset, train_dir, valid_dir, test_dir,
       frac_train=frac_train, frac_test=1-frac_train, frac_valid=0.)
-    return train_samples, test_samples
+    return train_dataset, test_dataset
 
   def split(self, dataset, frac_train=None, frac_valid=None, frac_test=None,
             log_every_n=None):

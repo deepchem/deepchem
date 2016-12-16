@@ -123,6 +123,12 @@ class GraphTopology(object):
       Can be merged with other feed_dicts for input into tensorflow
     """
     # Merge mol conv objects
+    ################################################## DEBUG
+    print("batch")
+    print(batch)
+    print("type(batch)")
+    print(type(batch))
+    ################################################## DEBUG
     batch = ConvMol.agglomerate_mols(batch)
     atoms = batch.get_atom_features()
     deg_adj_lists = [batch.deg_adj_lists[deg]

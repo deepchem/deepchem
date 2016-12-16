@@ -347,7 +347,7 @@ class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
   """
-  def __init__(self, shard_generator=None, data_dir=None, tasks=[],
+  def __init__(self, shard_generator=[], data_dir=None, tasks=[],
                reload=False, verbose=True):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
@@ -363,8 +363,15 @@ class DiskDataset(Dataset):
     if reload:
       log("Loading pre-existing dataset.", self.verbose)
       if os.path.exists(self._get_metadata_filename()):
-        self.metadata_df = load_from_disk(self._get_metadata_filename())
+        (self.tasks, self.metadata_df) = load_from_disk(
+            self._get_metadata_filename())
       else:
+        ################################################ DEBUG
+        print("self.data_dir")
+        print(self.data_dir)
+        print("os.listdir(self.data_dir)")
+        print(os.listdir(self.data_dir))
+        ################################################ DEBUG
         raise ValueError("No metadata found.")
       return
 
@@ -375,6 +382,7 @@ class DiskDataset(Dataset):
       metadata_rows.append(
           DiskDataset.write_data_to_disk(
               self.data_dir, basename, tasks, X, y, w, ids))
+    self.tasks = tasks
     self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
     self.save_to_disk()
     time2 = time.time()
@@ -414,15 +422,16 @@ class DiskDataset(Dataset):
   def save_to_disk(self):
     """Save dataset to disk."""
     save_to_disk(
-        self.metadata_df, self._get_metadata_filename())
+        (self.tasks, self.metadata_df), self._get_metadata_filename())
 
   def get_task_names(self):
     """
     Gets learning tasks associated with this dataset.
     """
-    if not len(self.metadata_df):
-      raise ValueError("No data in dataset.")
-    return next(self.metadata_df.iterrows())[1]['task_names']
+    return self.tasks
+    #if not len(self.metadata_df):
+    #  raise ValueError("No data in dataset.")
+    #return next(self.metadata_df.iterrows())[1]['task_names']
 
   def reshard(self, shard_size):
     """Reshards data to have specified shard size."""
@@ -728,6 +737,18 @@ class DiskDataset(Dataset):
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
 
+  def add_shard(self, X, y, w, ids):
+    """Adds a data shard."""
+    metadata_rows = self.metadata_df.values.tolist()
+    shard_num = len(metadata_rows)
+    basename = "shard-%d" % shard_num 
+    tasks = self.get_task_names()
+    metadata_rows.append(
+        DiskDataset.write_data_to_disk(
+            self.data_dir, basename, tasks, X, y, w, ids))
+    self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
+    self.save_to_disk()
+
   def set_shard(self, shard_num, X, y, w, ids):
     """Writes data shard to disk"""
     basename = "shard-%d" % shard_num 
@@ -777,7 +798,7 @@ class DiskDataset(Dataset):
         # Break when all indices have been used up already
         if indices_count >= len(indices):
           return 
-    return DiskDataset(generator(), data_dir=select_dir)
+    return DiskDataset(generator(), data_dir=select_dir, tasks=tasks)
 
   @property
   def ids(self):
