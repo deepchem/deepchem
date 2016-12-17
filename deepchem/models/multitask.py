@@ -20,7 +20,7 @@ class SingletaskToMultitask(Model):
 
   Warning: This current implementation is only functional for sklearn models. 
   """
-  def __init__(self, tasks, model_builder, model_dir=None, verbosity="high"):
+  def __init__(self, tasks, model_builder, model_dir=None, verbose=True):
     self.tasks = tasks
     if model_dir is not None:
       if not os.path.exists(model_dir):
@@ -30,15 +30,13 @@ class SingletaskToMultitask(Model):
     self.model_dir = model_dir
     self.task_model_dirs = {}
     self.model_builder = model_builder
-    self.verbosity = verbosity
-    log("About to initialize singletask to multitask model",
-        self.verbosity, "high")
+    self.verbose = True 
+    log("About to initialize singletask to multitask model", self.verbose)
     for task in self.tasks:
       task_model_dir = os.path.join(self.model_dir, str(task))
       if not os.path.exists(task_model_dir):
         os.makedirs(task_model_dir)
-      log("Initializing directory for task %s" % task,
-          self.verbosity, "high")
+      log("Initializing directory for task %s" % task, self.verbose)
       self.task_model_dirs[task] = task_model_dir
 
   def _create_task_datasets(self, dataset):
@@ -51,10 +49,9 @@ class SingletaskToMultitask(Model):
       os.makedirs(task_data_dir)
       task_data_dirs.append(task_data_dir)
     task_datasets = self._to_singletask(dataset, task_data_dirs)
-    if self.verbosity is not None:
-      for task, task_dataset in zip(self.tasks, task_datasets):
-        log("Dataset for task %s has shape %s"
-            % (task, str(task_dataset.get_shape())), self.verbosity)
+    for task, task_dataset in zip(self.tasks, task_datasets):
+      log("Dataset for task %s has shape %s"
+          % (task, str(task_dataset.get_shape())), self.verbose)
     return task_datasets
 
   @staticmethod
@@ -62,13 +59,15 @@ class SingletaskToMultitask(Model):
     """Transforms a multitask dataset to a collection of singletask datasets."""
     tasks = dataset.get_task_names()
     assert len(tasks) == len(task_dirs)
-    log("Splitting multitask dataset into singletask datasets", dataset.verbosity)
-    task_metadata_rows = {task: [] for task in tasks}
+    log("Splitting multitask dataset into singletask datasets", dataset.verbose)
+    task_datasets = [DiskDataset(data_dir=task_dirs[task_num], tasks=[task])
+                    for (task_num, task) in enumerate(tasks)]
+    #task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
-      log("Processing shard %d" % shard_num, dataset.verbosity)
+      log("Processing shard %d" % shard_num, dataset.verbose)
       basename = "dataset-%d" % shard_num
       for task_num, task in enumerate(tasks):
-        log("\tTask %s" % task, dataset.verbosity)
+        log("\tTask %s" % task, dataset.verbose)
         w_task = w[:, task_num]
         y_task = y[:, task_num]
 
@@ -79,17 +78,19 @@ class SingletaskToMultitask(Model):
         w_nonzero = np.reshape(w_task[w_task != 0], (num_datapoints, 1))
         ids_nonzero = ids[w_task != 0]
 
-        if X_nonzero.size > 0: 
-          task_metadata_rows[task].append(
-            DiskDataset.write_data_to_disk(
-                task_dirs[task_num], basename, [task],
-                X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
+        task_datasets[task_num].add_shard(X_nonzero, y_nonzero, w_nonzero,
+                                          ids_nonzero)
+
+        #if X_nonzero.size > 0: 
+        #  task_metadata_rows[task].append(
+        #    DiskDataset.write_data_to_disk(
+        #        task_dirs[task_num], basename, [task],
+        #        X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
     
-    task_datasets = [
-        DiskDataset(data_dir=task_dirs[task_num],
-                metadata_rows=task_metadata_rows[task],
-                verbosity=dataset.verbosity)
-        for (task_num, task) in enumerate(tasks)]
+    #task_datasets = [
+    #    DiskDataset(data_dir=task_dirs[task_num],
+    #            metadata_rows=task_metadata_rows[task])
+    #    for (task_num, task) in enumerate(tasks)]
     return task_datasets
 
 
@@ -101,10 +102,10 @@ class SingletaskToMultitask(Model):
     """
     if not isinstance(dataset, DiskDataset):
       raise ValueError('SingletaskToMultitask only works with DiskDatasets')
-    log("About to create task-specific datasets", self.verbosity, "high")
+    log("About to create task-specific datasets", self.verbose)
     task_datasets = self._create_task_datasets(dataset)
     for ind, task in enumerate(self.tasks):
-      log("Fitting model for task %s" % task, self.verbosity, "high")
+      log("Fitting model for task %s" % task, self.verbose)
       task_model = self.model_builder(
           self.task_model_dirs[task])
       task_model.fit(task_datasets[ind], **kwargs)

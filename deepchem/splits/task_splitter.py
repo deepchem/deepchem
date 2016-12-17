@@ -15,7 +15,7 @@ from rdkit import Chem
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
-from deepchem.feat.featurize import load_data
+from deepchem.utils.save import load_data
 from deepchem.splits import Splitter
 
 def merge_fold_datasets(fold_datasets):

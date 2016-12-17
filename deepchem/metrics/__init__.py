@@ -104,7 +104,7 @@ class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
   def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbosity="high", mode=None, compute_energy_metric=False):
+               verbose=True, mode=None, compute_energy_metric=False):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -123,8 +123,7 @@ class Metric(object):
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
-    print(self.name)
-    self.verbosity = verbosity
+    self.verbose = verbose 
     self.threshold = threshold
     if mode is None:
       if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef",
@@ -181,7 +180,7 @@ class Metric(object):
       metric_value = self.compute_singletask_metric(
           y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
-    log("computed_metrics: %s" % str(computed_metrics), self.verbosity)
+    log("computed_metrics: %s" % str(computed_metrics), self.verbose)
     if n_tasks == 1:
       computed_metrics = computed_metrics[0]
     if not self.is_multitask:

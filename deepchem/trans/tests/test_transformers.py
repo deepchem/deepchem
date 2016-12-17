@@ -120,9 +120,11 @@ class TestTransformers(unittest.TestCase):
     log_transformer = dc.trans.LogTransformer(
         transform_X=True, features=features,
         dataset=multitask_dataset)
-    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X, y, w, ids = (multitask_dataset.X, multitask_dataset.y,
+                    multitask_dataset.w, multitask_dataset.ids)
     multitask_dataset = log_transformer.transform(multitask_dataset)
-    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w, multitask_dataset.ids)
+    X_t, y_t, w_t, ids_t = (multitask_dataset.X, multitask_dataset.y,
+                            multitask_dataset.w, multitask_dataset.ids)
 
     # Check ids are unchanged.
     for id_elt, id_t_elt in zip(ids, ids_t):

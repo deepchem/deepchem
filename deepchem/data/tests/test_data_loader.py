@@ -15,12 +15,12 @@ import tempfile
 import shutil
 import deepchem as dc
 
-class TestFeaturizedSamples(unittest.TestCase):
+class TestDataLoader(unittest.TestCase):
   """
-  Test Featurized Samples class.
+  Test DataLoader 
   """
   def setUp(self):
-    super(TestFeaturizedSamples, self).setUp()
+    super(TestDataLoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def scaffold_test_train_valid_test_split(self):
@@ -37,9 +37,9 @@ class TestFeaturizedSamples(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.load.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -65,9 +65,9 @@ class TestFeaturizedSamples(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.load.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -90,9 +90,9 @@ class TestFeaturizedSamples(unittest.TestCase):
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
-    loader = dc.load.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -114,9 +114,9 @@ class TestFeaturizedSamples(unittest.TestCase):
     input_file = os.path.join(
         self.current_dir, "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    loader = dc.load.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+        featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -126,9 +126,23 @@ class TestFeaturizedSamples(unittest.TestCase):
     assert len(train_dataset) == 8
     assert len(test_dataset) == 2
 
-  def test_samples_move(self):
-    """Test that featurized samples can be moved and reloaded."""
-    verbosity = "high"
+  def test_log_solubility_dataset(self):
+    """Test of loading for simple log-solubility dataset."""
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    input_file = "../../models/tests/example.csv"
+    input_file = os.path.join(current_dir, input_file)
+
+    tasks = ["log-solubility"]
+    smiles_field = "smiles"
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles",
+        featurizer=dc.feat.CircularFingerprint(size=1024))
+    dataset = loader.featurize(input_file)
+    
+    assert len(dataset) == 10
+
+  def test_dataset_move(self):
+    """Test that dataset can be moved and reloaded."""
     base_dir = tempfile.mkdtemp()
     data_dir = os.path.join(base_dir, "data")
     moved_data_dir = os.path.join(base_dir, "moved_data")
@@ -137,9 +151,9 @@ class TestFeaturizedSamples(unittest.TestCase):
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
-    loader = dc.load.DataLoader(
+    loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity=verbosity)
+        featurizer=featurizer)
     featurized_dataset = loader.featurize(
         dataset_file, data_dir)
     n_dataset = len(featurized_dataset)
