@@ -24,18 +24,16 @@ def load_sider(featurizer='ECFP', split='index'):
   # Featurize SIDER dataset
   print("About to featurize SIDER dataset.")
   if featurizer == 'ECFP':
-    featurizer_func = dc.feat.CircularFingerprint(size=1024)
+    featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer_func = dc.feat.ConvMolFeaturizer()
+    featurizer = dc.feat.ConvMolFeaturizer()
 
   SIDER_tasks = dataset.columns.values[1:].tolist()
   print("SIDER tasks: %s" % str(SIDER_tasks))
   print("%d tasks in total" % len(SIDER_tasks))
 
-  loader = dc.load.DataLoader(tasks=SIDER_tasks,
-                              smiles_field="smiles",
-                              featurizer=featurizer_func,
-                              verbosity='high')
+  loader = dc.data.DataLoader(
+      tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))
 
@@ -50,7 +48,6 @@ def load_sider(featurizer='ECFP', split='index'):
                'random': dc.splits.RandomSplitter(),
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset,
-      compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
   return SIDER_tasks, (train, valid, test), transformers

@@ -24,11 +24,9 @@ def load_tox21(featurizer='ECFP', split='index'):
     featurizer_func = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer_func = dc.feat.ConvMolFeaturizer()
-  loader = dc.load.DataLoader(
-      tasks=tox21_tasks, smiles_field="smiles",
-      featurizer=featurizer_func, verbosity = 'high')
-  dataset = loader.featurize(
-      dataset_file, shard_size=8192)
+  loader = dc.data.DataLoader(
+      tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer_func)
+  dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Initialize transformers 
   transformers = [
@@ -42,6 +40,5 @@ def load_tox21(featurizer='ECFP', split='index'):
                'random': dc.splits.RandomSplitter(),
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset,
-      compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
   return tox21_tasks, (train, valid, test), transformers

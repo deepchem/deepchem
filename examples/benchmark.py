@@ -42,35 +42,26 @@ from sider.sider_datasets import load_sider
 from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
 
-def benchmark_loading_datasets(base_dir_o, hyper_parameters, 
+def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
-                               reload=True, verbosity='high', 
-                               out_path='.'):
+                               reload=True, out_path='.'):
   """
   Loading dataset for benchmark test
   
   Parameters
   ----------
-  base_dir_o : string
-      path of working folder, will be combined with '/dataset_name'
-  
-  hyper_parameters : dict of list
+  hyper_parameters: dict of list
       hyper parameters including dropout rate, learning rate, etc.
-  
-  dataset : string, optional (default='tox21')
+  dataset: string, optional (default='tox21')
       choice of which dataset to use, should be: tox21, muv, sider, 
       toxcast, pcba
-      
-  model : string,  optional (default='tf')
+  model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
       graphconv
-  
-  split : string,  optional (default=None)
+  split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
-
-  out_path : string, optional(default='.')
+  out_path: string, optional(default='.')
       path of result file
-      
   """
   
   if dataset in ['muv','nci','pcba','tox21','sider','toxcast']:
@@ -107,7 +98,6 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
   print('-------------------------------------')
-  base_dir = os.path.join(base_dir_o, dataset)
   time_start = time.time()
   #loading datasets
   if split is not None:
@@ -129,15 +119,15 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
   for count, hp in enumerate(hyper_parameters[model]):
     time_start_fitting = time.time()
     if mode == 'classification':
-      train_score, valid_score = benchmark_classification(base_dir,
-                                     train_dataset, valid_dataset, tasks, 
-                                     transformers, hp, n_features,
-                                     model=model, verbosity=verbosity)      
+      train_score, valid_score = benchmark_classification(
+          train_dataset, valid_dataset, tasks, 
+          transformers, hp, n_features,
+          model=model)      
     elif mode == 'regression':
-      train_score, valid_score = benchmark_regression(base_dir,
-                                     train_dataset, valid_dataset, tasks, 
-                                     transformers, hp, n_features,
-                                     model=model, verbosity=verbosity)  
+      train_score, valid_score = benchmark_regression(
+          train_dataset, valid_dataset, tasks, 
+          transformers, hp, n_features,
+          model=model)  
     time_finish_fitting = time.time()
     
     with open(os.path.join(out_path, 'results.csv'),'a') as f:
@@ -158,39 +148,27 @@ def benchmark_loading_datasets(base_dir_o, hyper_parameters,
       f.write('time_for_running,'+
               str(time_finish_fitting-time_start_fitting)+',')
 
-  return None
-
-def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
-                            transformers, hyper_parameters, 
-                            n_features, model='tf', seed=123, 
-                            verbosity='high'):
+def benchmark_classification(train_dataset, valid_dataset, tasks,
+                             transformers, hyper_parameters, 
+                             n_features, model='tf', seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
   Parameters
   ----------
-  base_dir : string
-      path of working folder
-      
-  train_dataset : dataset struct
+  train_dataset: dataset struct
       loaded dataset using load_* or splitter function
-      
-  valid_dataset : dataset struct
+  valid_dataset: dataset struct
       loaded dataset using load_* or splitter function
-  
-  tasks : list of string
+  tasks: list of string
       list of targets(tasks, datasets)
-  
-  transformers : BalancingTransformer struct
+  transformers: BalancingTransformer struct
       loaded properties of dataset from load_* function
-  
-  hyper_parameters : dict
+  hyper_parameters: dict
       hyper parameters including dropout rate, learning rate, etc.
- 
-  n_features : integer
+  n_features: integer
       number of features, or length of binary fingerprints
-  
-  model : string,  optional (default='tf')
+  model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
       graphconv
   
@@ -207,9 +185,7 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
   valid_scores = {}
   
   # Initialize metrics
-  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                                            verbosity=verbosity,
-                                            mode="classification")
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
   
   assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'graphconv']
 
@@ -231,7 +207,7 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
         penalty_type=penalty_type, batch_size=batch_size, 
-        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
+        learning_rate=learning_rate, seed=seed)
  
     print('-------------------------------------')
     print('Start fitting by multitask DNN')
@@ -272,7 +248,7 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
         bypass_bias_init_consts=bypass_bias_init_consts,
         bypass_dropouts=bypass_dropouts, penalty=penalty, 
         penalty_type=penalty_type, batch_size=batch_size,
-        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
+        learning_rate=learning_rate, seed=seed)
  
     print('--------------------------------------------')
     print('Start fitting by robust multitask DNN')
@@ -297,7 +273,7 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
     model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
         n_features, penalty=penalty, penalty_type=penalty_type, 
         batch_size=batch_size, learning_rate=learning_rate, 
-        verbosity=verbosity, seed=seed)
+        seed=seed)
     
     print('-------------------------------------')
     print('Start fitting by logistic regression')
@@ -312,7 +288,6 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
     
   if model == 'graphconv':
     # Initialize model folder
-    model_dir_graphconv = os.path.join(base_dir, "model_graphconv")
 
     # Loading hyper parameters
     batch_size = hyper_parameters['batch_size']
@@ -341,9 +316,9 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
       graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
       with tf.Session() as sess:
         model_graphconv = dc.models.MultitaskGraphClassifier(
-          sess, graph_model, len(tasks), model_dir_graphconv, 
+          sess, graph_model, len(tasks), 
           batch_size=batch_size, learning_rate=learning_rate,
-          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+          optimizer_type="adam", beta1=.9, beta2=.999)
         
         print('-------------------------------------')
         print('Start fitting by graph convolution')
@@ -358,7 +333,6 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
     
   if model == 'rf':
     # Initialize model folder
-    model_dir_rf = os.path.join(base_dir, "model_rf")
 
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -369,7 +343,7 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
         class_weight="balanced", n_estimators=n_estimators,n_jobs=-1)
       return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_rf)
     model_rf = dc.models.multitask.SingletaskToMultitask(
-		tasks, model_builder, model_dir_rf)
+        tasks, model_builder)
     
     print('-------------------------------------')
     print('Start fitting by random forest')
@@ -385,54 +359,42 @@ def benchmark_classification(base_dir, train_dataset, valid_dataset, tasks,
   return train_scores, valid_scores
 
   
-def benchmark_regression(base_dir, train_dataset, valid_dataset, tasks,
+def benchmark_regression(train_dataset, valid_dataset, tasks,
                          transformers, hyper_parameters, 
-                         n_features, model='tf_regression', seed=123, 
-                         verbosity='high'):
+                         n_features, model='tf_regression', seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
   Parameters
   ----------
-  base_dir : string
-      path of working folder
-      
-  train_dataset : dataset struct
+  train_dataset: dataset struct
       loaded dataset using load_* or splitter function
-      
-  valid_dataset : dataset struct
+  valid_dataset: dataset struct
       loaded dataset using load_* or splitter function
-  
-  tasks : list of string
+  tasks: list of string
       list of targets(tasks, datasets)
-  
-  transformers : BalancingTransformer struct
+  transformers: BalancingTransformer struct
       loaded properties of dataset from load_* function
-  
-  hyper_parameters : dict
+  hyper_parameters: dict
       hyper parameters including dropout rate, learning rate, etc.
- 
-  n_features : integer
+  n_features: integer
       number of features, or length of binary fingerprints
-  
-  model : string,  optional (default='tf_regression')
+  model: string,  optional (default='tf_regression')
       choice of which model to use, should be: tf_regression
   
 
   Returns
   -------
-  train_scores : dict
-	predicting results(R2) on training set
-  valid_scores : dict
-	predicting results(R2) on valid set
-
+  train_scores: dict
+      predicting results(R2) on training set
+  valid_scores: dict
+      predicting results(R2) on valid set
   """
   train_scores = {}
   valid_scores = {}
   
   # Initialize metrics
-  regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean,
-                                        verbosity=verbosity)
+  regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
   
   assert model in ['tf_regression']
 
@@ -454,7 +416,7 @@ def benchmark_regression(base_dir, train_dataset, valid_dataset, tasks,
         weight_init_stddevs=weight_init_stddevs,
         bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
         penalty_type=penalty_type, batch_size=batch_size, 
-        learning_rate=learning_rate, verbosity=verbosity, seed=seed)
+        learning_rate=learning_rate, seed=seed)
  
     print('-----------------------------------------')
     print('Start fitting by multitask DNN regression')
@@ -473,13 +435,6 @@ def benchmark_regression(base_dir, train_dataset, valid_dataset, tasks,
 if __name__ == '__main__':
   # Global variables
   np.random.seed(123)
-  verbosity = 'high'
-  
-  #Working folder initialization
-  base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
-  if os.path.exists(base_dir_o):
-    shutil.rmtree(base_dir_o)
-  os.makedirs(base_dir_o)
   
   parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
       'giving performances of different learning models on datasets')
@@ -544,15 +499,12 @@ if __name__ == '__main__':
       if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba']:
         for model in models:
           if model in ['tf', 'tf_robust', 'logreg', 'graphconv']:
-            benchmark_loading_datasets(base_dir_o, hps, dataset=dataset, 
-                                       model=model, split=split, 
-                                       verbosity='high', out_path='.')
+            benchmark_loading_datasets(
+                hps, dataset=dataset, model=model, split=split, out_path='.')
       else:
         if dataset in ['kaggle']:
           datasets.remove('kaggle') #kaggle only needs to be run once
         for model in models:
           if model in ['tf_regression']:
-             benchmark_loading_datasets(base_dir_o, hps, dataset=dataset, 
-                                        model=model, split=split, 
-                                        verbosity='high', out_path='.')
-
+            benchmark_loading_datasets(
+                hps, dataset=dataset, model=model, split=split, out_path='.')

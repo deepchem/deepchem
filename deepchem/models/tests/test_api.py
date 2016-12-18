@@ -28,9 +28,8 @@ class TestAPI(unittest.TestCase):
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
@@ -61,10 +60,9 @@ class TestAPI(unittest.TestCase):
     tasks = ["log-solubility"]
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "user_specified_example.csv")
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles", featurizer=featurizer,
-        verbosity="low")
-    dataset = loader.featurize(input_file, debug=True)
+    loader = dc.data.UserCSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
 
     splitter = dc.splits.SpecifiedSplitter(input_file, "split")
     train_dataset, test_dataset = splitter.train_test_split(dataset)
@@ -98,10 +96,8 @@ class TestAPI(unittest.TestCase):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example.csv")
-    loader = dc.load.DataLoader(tasks=tasks,
-                        smiles_field="smiles",
-                        featurizer=featurizer,
-                        verbosity="low")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()
@@ -142,9 +138,8 @@ class TestAPI(unittest.TestCase):
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "example_classification.csv")
 
-    loader = dc.load.DataLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer, verbosity="low")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(input_file)
 
     splitter = dc.splits.ScaffoldSplitter()

@@ -32,7 +32,7 @@ class TestProgressive(test_util.TensorFlowTestCase):
     prog_model = dc.models.ProgressiveMultitaskRegressor(
         n_tasks=1, n_features=100, alpha_init_stddevs=[.08], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-        batch_size=200, verbosity="high")
+        batch_size=200)
 
   def test_fit(self):
     """Test that progressive models can fit without crash."""
@@ -50,7 +50,7 @@ class TestProgressive(test_util.TensorFlowTestCase):
         n_tasks=n_tasks, n_features=n_features, alpha_init_stddevs=[.08],
         dropouts=[0.], learning_rate=0.003,
         weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-        batch_size=2, verbosity="high")
+        batch_size=2)
 
     prog_model.fit(dataset)
 
@@ -76,7 +76,7 @@ class TestProgressive(test_util.TensorFlowTestCase):
         alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
         weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
         dropouts=[0.]*n_layers, learning_rate=0.003,
-        batch_size=2, verbosity="high")
+        batch_size=2)
 
     prog_model.fit(dataset)
 
@@ -102,7 +102,7 @@ class TestProgressive(test_util.TensorFlowTestCase):
         alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
         weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
         dropouts=[0.]*n_layers, learning_rate=0.003,
-        batch_size=2, verbosity="high")
+        batch_size=2)
 
     prog_model.fit(dataset)
 
@@ -127,7 +127,7 @@ class TestProgressive(test_util.TensorFlowTestCase):
         alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
         weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
         dropouts=[0.]*n_layers, learning_rate=0.003,
-        batch_size=2, verbosity="high")
+        batch_size=2)
 
     # Fit just on task zero 
     # Notice that we keep the session open

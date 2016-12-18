@@ -5,8 +5,6 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
-import shutil
 import numpy as np
 import tensorflow as tf
 import deepchem as dc
@@ -21,11 +19,6 @@ sess = tf.Session(graph=g)
 K.set_session(sess)
 
 with g.as_default():
-
-  # Set some global variables up top
-  verbosity = "high"
-
-
   # Load Tox21 dataset
   n_features = 1024
   tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='GraphConv')
@@ -57,7 +50,7 @@ with g.as_default():
     model = dc.models.MultitaskGraphClassifier(
       sess, graph_model, len(tox21_tasks), batch_size=batch_size,
       learning_rate=1e-3, learning_rate_decay_time=1000,
-      optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+      optimizer_type="adam", beta1=.9, beta2=.999)
 
     # Fit trained model
     model.fit(train_dataset, nb_epoch=10)

@@ -79,9 +79,7 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
       prev_layer_size = num_features 
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        ########################################################## DEBUG
         print("Adding weights of shape %s" % str([prev_layer_size, layer_sizes[i]]))
-        ########################################################## DEBUG
         layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -105,10 +103,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
         prev_bypass_layer_size = num_features
         for i in range(num_bypass_layers):
           # bypass_layer has shape [None, bypass_layer_sizes[i]]
-          ########################################################## DEBUG
           print("Adding bypass weights of shape %s"
                 % str([prev_bypass_layer_size, bypass_layer_sizes[i]]))
-          ########################################################## DEBUG
           bypass_layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor = prev_bypass_layer,
             size = bypass_layer_sizes[i],
@@ -130,14 +126,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
         else:
           task_layer = top_multitask_layer
           task_layer_size = layer_sizes[-1]
-        ########################################################## DEBUG
         print("Adding output weights of shape %s"
               % str([task_layer_size, 1]))
-        ########################################################## DEBUG
-        #################################################### DEBUG
-        print("task_layer_size")
-        print(task_layer_size)
-        #################################################### DEBUG
         output.append(tf.squeeze(
             model_ops.logits(task_layer, num_classes=2,
                 weight_init=tf.truncated_normal(
@@ -216,9 +206,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
       prev_layer_size = num_features 
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        ########################################################## DEBUG
         print("Adding weights of shape %s" % str([prev_layer_size, layer_sizes[i]]))
-        ########################################################## DEBUG
         layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor=prev_layer,
             size=layer_sizes[i],
@@ -242,10 +230,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
         prev_bypass_layer_size = num_features
         for i in range(num_bypass_layers):
           # bypass_layer has shape [None, bypass_layer_sizes[i]]
-          ########################################################## DEBUG
           print("Adding bypass weights of shape %s"
                 % str([prev_bypass_layer_size, bypass_layer_sizes[i]]))
-          ########################################################## DEBUG
           bypass_layer = tf.nn.relu(model_ops.fully_connected_layer(
             tensor = prev_bypass_layer,
             size = bypass_layer_sizes[i],
@@ -267,14 +253,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
         else:
           task_layer = top_multitask_layer
           task_layer_size = layer_sizes[-1]
-        ########################################################## DEBUG
         print("Adding output weights of shape %s"
               % str([task_layer_size, 1]))
-        ########################################################## DEBUG
-        #################################################### DEBUG
-        print("task_layer_size")
-        print(task_layer_size)
-        #################################################### DEBUG
         output.append(tf.squeeze(
             model_ops.fully_connected_layer(
                 tensor=task_layer, size=1,

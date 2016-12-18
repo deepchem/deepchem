@@ -13,6 +13,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
+    * [Performances](#performances)
 * [Contributing to DeepChem](#contributing-to-deepchem)
     * [Code Style Guidelines](#code-style-guidelines)
     * [Documentation Style Guidelines](#documentation-style-guidelines)
