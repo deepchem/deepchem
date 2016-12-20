@@ -67,7 +67,7 @@ class MultitaskGraphRegressor(Model):
   def build(self):
     # Create target inputs
     self.label_placeholder = Input(tensor=K.placeholder(
-      shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
+      shape=(None,self.n_tasks), name="label_placeholder", dtype='float32'))
     self.weight_placeholder = Input(tensor=K.placeholder(
           shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
 
@@ -136,8 +136,8 @@ class MultitaskGraphRegressor(Model):
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
-      task_loss = loss_fn(outputs[task], task_label_vector,
-                          task_weight_vector) 
+      task_loss = loss_fn(outputs[task], tf.squeeze(task_label_vector),
+                          tf.squeeze(task_weight_vector)) 
       task_losses.append(task_loss)
     # It's ok to divide by just the batch_size rather than the number of nonzero
     # examples (effect averages out)
