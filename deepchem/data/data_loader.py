@@ -10,7 +10,6 @@ import pandas as pd
 import numpy as np
 import csv
 import numbers
-import dill
 import tempfile
 from rdkit import Chem
 import time
@@ -84,6 +83,7 @@ def get_user_specified_features(df, featurizer, verbose=True):
     2) Complex featurization
       -) PDB files for interacting molecules.
     3) User specified featurizations.
+
   """
   time1 = time.time()
   df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(pd.to_numeric)

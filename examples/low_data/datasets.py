@@ -29,7 +29,7 @@ def load_tox21_ecfp(num_train=7200):
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
@@ -58,7 +58,7 @@ def load_tox21_convmol(base_dir=None, num_train=7200):
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(
       dataset_file, shard_size=8192)
@@ -88,7 +88,7 @@ def load_muv_ecfp():
                       'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                       'MUV-466', 'MUV-832'])
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
@@ -116,7 +116,7 @@ def load_muv_convmol():
                       'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                       'MUV-466', 'MUV-832'])
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
@@ -144,7 +144,7 @@ def load_sider_ecfp():
   print("%d tasks in total" % len(SIDER_tasks))
 
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))
@@ -173,7 +173,7 @@ def load_sider_convmol():
   print("%d tasks in total" % len(SIDER_tasks))
 
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, debug=True)
   print("%d datapoints in SIDER dataset" % len(dataset))

@@ -31,17 +31,19 @@ def remove_missing_entries(dataset):
     dataset.set_shard(i, X, y, w, ids)
 
 # Set shard size low to avoid memory problems.
-def load_kaggle(shard_size=2000, num_shards_per_batch=4, 
-                featurizer=None):
+def load_kaggle(shard_size=2000, featurizer=None):
   """Load KAGGLE datasets. Does not do train/test split"""
   ############################################################## TIMING
   time1 = time.time()
   ############################################################## TIMING
   # Set some global variables up top
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  train_files = os.path.join(current_dir,"KAGGLE_training_disguised_combined_full.csv.gz")
-  valid_files = os.path.join(current_dir,"KAGGLE_test1_disguised_combined_full.csv.gz")
-  test_files = os.path.join(current_dir,"KAGGLE_test2_disguised_combined_full.csv.gz")
+  train_files = os.path.join(current_dir,
+      "KAGGLE_training_disguised_combined_full.csv.gz")
+  valid_files = os.path.join(current_dir,
+      "KAGGLE_test1_disguised_combined_full.csv.gz")
+  test_files = os.path.join(current_dir,
+      "KAGGLE_test2_disguised_combined_full.csv.gz")
 
   # Featurize KAGGLE dataset
   print("About to featurize KAGGLE dataset.")
@@ -50,13 +52,12 @@ def load_kaggle(shard_size=2000, num_shards_per_batch=4,
                   'NK1', 'OX1', 'OX2', 'PGP', 'PPB', 'RAT_F', 'TDI',
                   'THROMBIN']
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.UserCSVLoader(
       tasks=KAGGLE_tasks, id_field="Molecule", featurizer=featurizer)
   train_datasets, valid_datasets, test_datasets = [], [], []
   print("Featurizing train datasets")
   train_dataset = loader.featurize(
-      train_files,
-      shard_size=shard_size, num_shards_per_batch=num_shards_per_batch)
+      train_files, shard_size=shard_size)
 
   print("Featurizing valid datasets")
   valid_dataset = loader.featurize(

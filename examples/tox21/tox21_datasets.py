@@ -24,7 +24,7 @@ def load_tox21(featurizer='ECFP', split='index'):
     featurizer_func = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer_func = dc.feat.ConvMolFeaturizer()
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 

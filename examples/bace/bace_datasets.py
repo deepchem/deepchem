@@ -31,7 +31,7 @@ def load_bace(mode="regression", transform=True, split="20-80"):
   elif mode == "classification":
     bace_tasks = ["Class"]
   featurizer = dc.feat.UserDefinedFeaturizer(user_specified_features)
-  loader = dc.data.DataLoader(
+  loader = dc.data.UserCSVLoader(
       tasks=bace_tasks, smiles_field="mol", id_field="CID",
       featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
