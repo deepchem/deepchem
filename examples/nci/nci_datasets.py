@@ -48,7 +48,7 @@ def load_nci(featurizer='ECFP', shard_size=1000,
                     'MDA-MB-231/ATCC', 'MDA-MB-468', 'HS 578T', 'BT-549',
                     'T-47D'])
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=all_nci_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_paths, shard_size=shard_size,

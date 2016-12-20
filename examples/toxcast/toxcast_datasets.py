@@ -32,7 +32,7 @@ def load_toxcast(featurizer='ECFP', split='index'):
 
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=TOXCAST_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 

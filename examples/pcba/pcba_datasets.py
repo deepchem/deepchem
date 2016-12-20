@@ -50,7 +50,7 @@ def load_pcba(featurizer='ECFP', split='random'):
       'PCBA-902','PCBA-903','PCBA-904','PCBA-912','PCBA-914','PCBA-915',
       'PCBA-924','PCBA-925','PCBA-926','PCBA-927','PCBA-938','PCBA-995']
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
   
   dataset = loader.featurize(dataset_file)

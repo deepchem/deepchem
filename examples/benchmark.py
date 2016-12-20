@@ -443,7 +443,7 @@ if __name__ == '__main__':
   parser.add_argument('-m', action='append', dest='model_args', default=[], 
       help='Choice of model: tf, tf_robust, logreg, graphconv')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
-      help='Choice of dataset: tox21, sider, muv, toxcast, pcba')
+      help='Choice of dataset: tox21, sider, muv, toxcast, pcba, kaggle, delaney')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args

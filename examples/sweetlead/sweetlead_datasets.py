@@ -23,7 +23,7 @@ def load_sweet(base_dir, frac_train=.8):
   featurizer = dc.feat.CircularFingerprint(size=1024)
   SWEET_tasks = dataset.columns.values[1:].tolist()
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=SWEET_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
