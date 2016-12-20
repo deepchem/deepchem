@@ -3,7 +3,7 @@
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
 chemistry. DeepChem is a package developed by the [Pande group](https://pande.stanford.edu/) at
-Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/). 
+Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/).
 
 ### Table of contents:
 
