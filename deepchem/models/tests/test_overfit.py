@@ -512,6 +512,57 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       assert scores[classification_metric.name] > .75
 
+  def test_graph_conv_singletask_regression_overfit(self):
+    """Test graph-conv multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      n_tasks = 1
+      n_samples = 10
+      n_features = 3
+      n_classes = 2
+      
+      # Load mini log-solubility dataset.
+      featurizer = dc.feat.ConvMolFeaturizer()
+      tasks = ["outcome"]
+      input_file = os.path.join(self.current_dir, "example_regression.csv")
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      dataset = loader.featurize(input_file)
+
+      classification_metric = dc.metrics.Metric(
+          dc.metrics.mean_squared_error,
+          task_averager=np.mean)
+
+      n_feat = 71
+      batch_size = 10
+      graph_model = dc.nn.SequentialGraph(n_feat)
+      graph_model.add(dc.nn.GraphConv(64, activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      # Gather Projection
+      graph_model.add(dc.nn.Dense(128, activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+
+      with self.test_session() as sess:
+        model = dc.models.MultitaskGraphRegressor(
+          sess, graph_model, n_tasks, batch_size=batch_size,
+          learning_rate=1e-2, learning_rate_decay_time=1000,
+          optimizer_type="adam", beta1=.9, beta2=.999)
+
+        # Fit trained model
+        model.fit(dataset, nb_epoch=20)
+        model.save()
+
+        # Eval model on train
+        scores = model.evaluate(dataset, [classification_metric])
+
+      assert scores[classification_metric.name] < .2
+
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
     np.random.seed(123)

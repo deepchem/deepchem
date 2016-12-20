@@ -20,8 +20,8 @@ K.set_session(sess)
 
 with g.as_default():
   # Load Tox21 dataset
-
-  delaney_tasks, delaney_datasets, transformers = load_delaney(featurizer='GraphConv')
+  tf.set_random_seed(123)
+  delaney_tasks, delaney_datasets, transformers = load_delaney(featurizer='GraphConv',split='index')
   train_dataset, valid_dataset, test_dataset = delaney_datasets
 
   # Fit models
@@ -52,7 +52,7 @@ with g.as_default():
       optimizer_type="adam", beta1=.9, beta2=.999)
 
     # Fit trained model
-    model.fit(train_dataset, nb_epoch=10)
+    model.fit(train_dataset, nb_epoch=20)
 
     print("Evaluating model")
     train_scores = model.evaluate(train_dataset, [metric], transformers)
