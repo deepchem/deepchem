@@ -506,8 +506,11 @@ class DiskDataset(Dataset):
             os.path.join(dataset.data_dir, row['X'])))
         y = np.array(load_from_disk(
             os.path.join(dataset.data_dir, row['y'])))
-        w = np.array(load_from_disk(
-            os.path.join(dataset.data_dir, row['w'])))
+        w_filename = os.path.join(dataset.data_dir, row['w'])
+        if os.path.exists(w_filename):
+            w = np.array(load_from_disk(w_filename))
+        else:
+            w = np.ones(y.shape)
         ids = np.array(load_from_disk(
             os.path.join(dataset.data_dir, row['ids'])), dtype=object)
         yield (X, y, w, ids)
@@ -724,8 +727,11 @@ class DiskDataset(Dataset):
         os.path.join(self.data_dir, row['X'])))
     y = np.array(load_from_disk(
         os.path.join(self.data_dir, row['y'])))
-    w = np.array(load_from_disk(
-        os.path.join(self.data_dir, row['w'])))
+    w_filename = os.path.join(self.data_dir, row['w'])
+    if os.path.exists(w_filename):
+        w = np.array(load_from_disk(w_filename))
+    else:
+        w = np.ones(y.shape)
     ids = np.array(load_from_disk(
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
