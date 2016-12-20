@@ -26,7 +26,6 @@ install:
 - conda install six
 - conda install dill
 - conda install runipy
-- conda install ipyparallel
 - pip install runipy
 - pip install nglview
 - conda install -c omnia mdtraj

@@ -19,7 +19,6 @@ from deepchem.utils.save import log
 import tempfile
 import os
 import shutil
-import multiprocessing as mp
 import time
 
 

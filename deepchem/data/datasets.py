@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import pandas as pd
-import multiprocessing as mp
 import random
 from functools import partial
 from deepchem.utils.save import save_to_disk
