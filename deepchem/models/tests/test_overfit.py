@@ -555,7 +555,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
           optimizer_type="adam", beta1=.9, beta2=.999)
 
         # Fit trained model
-        model.fit(dataset, nb_epoch=20)
+        model.fit(dataset, nb_epoch=40)
         model.save()
 
         # Eval model on train
