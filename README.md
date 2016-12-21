@@ -3,7 +3,7 @@
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
 chemistry. DeepChem is a package developed by the [Pande group](https://pande.stanford.edu/) at
-Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/). 
+Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/).
 
 ### Table of contents:
 
@@ -13,6 +13,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
+    * [Performances](#performances)
 * [Contributing to DeepChem](#contributing-to-deepchem)
     * [Code Style Guidelines](#code-style-guidelines)
     * [Documentation Style Guidelines](#documentation-style-guidelines)
@@ -29,9 +30,6 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
 * [keras](http://keras.io)
-* [six](https://pypi.python.org/pypi/six)
-* [dill](https://pypi.python.org/pypi/dill)
-* [ipyparallel](https://ipyparallel.readthedocs.io/en/latest/)
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
@@ -79,31 +77,17 @@ Installation from source is the only currently supported format. ```deepchem``` 
    ```
    See [keras docs](https://keras.io/backend/) for more details and alternate methods of setting backend.
 
-8. `six`
-   ```bash
-   conda install six
-   ```
-9. `dill`
-    ```bash
-    conda install dill
-    ```
-
-10. `ipyparallel`
-    ```bash
-    conda install ipyparallel
-    ```
-
-11. `mdtraj`
+8. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
    ```
    
-12. `scikit-learn`
-    ```bash
-    conda install scikit-learn 
-    ```
+9. `scikit-learn`
+   ```bash
+   conda install scikit-learn 
+   ```
 
-13. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+10. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -111,12 +95,12 @@ Installation from source is the only currently supported format. ```deepchem``` 
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-14. `h5py`:
+11. `h5py`:
     ```
     conda install h5py
     ```
 
-15. `deepchem`: Clone the `deepchem` github repo:
+12. `deepchem`: Clone the `deepchem` github repo:
     ```bash
     git clone https://github.com/deepchem/deepchem.git
     ```
@@ -125,7 +109,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     python setup.py install
     ```
 
-16. To run test suite, install `nosetests`:
+13. To run test suite, install `nosetests`:
     ```bash
     pip install nose --user
     ```
@@ -136,7 +120,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     You might need to uninstall a system install of `nosetests` if
     there is a conflict.
 
-17. If installation has been successful, all tests in test suite should pass:
+14. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
@@ -285,8 +269,11 @@ Scaffold splitting
 |Dataset    |Model               |Splitting   |Train score/R2|Valid score/R2|
 |-----------|--------------------|------------|--------------|--------------|
 |delaney    |MT-NN regression    |Index       |0.773         |0.574         |
+|           |graphconv regression|Index       |0.964         |0.829         |
 |           |MT-NN regression    |Random      |0.769         |0.591         |
+|           |graphconv regression|Random      |0.959         |0.821         |
 |           |MT-NN regression    |Scaffold    |0.782         |0.426         |
+|           |graphconv regression|Scaffold    |0.976         |0.581         |
 |kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
@@ -338,7 +325,11 @@ We actively encourage community contributions to DeepChem. The first place to st
 Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
 
 ### Code Style Guidelines
-DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/). Aim for a score of at least 8/10 on contributed files.
+DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/) with the following command
+```
+pylint --disable=invalid-name --indent-string "  " --extension-pkg-whitelist=numpy [file.py]
+```
+Aim for a score of at least 8/10 on contributed files.
 
 ### Documentation Style Guidelines
 DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io). 

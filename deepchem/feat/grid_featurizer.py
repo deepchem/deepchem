@@ -19,10 +19,7 @@ from deepchem.utils.save import log
 import tempfile
 import os
 import shutil
-import multiprocessing as mp
-############################################################## DEBUG
 import time
-############################################################## DEBUG
 
 
 """
@@ -842,12 +839,8 @@ class GridFeaturizer(ComplexFeaturizer):
                save_intermediates=False, ligand_only=False,
                box_width=16.0, voxel_width=1.0, voxelize_features=True, 
                voxel_feature_types=[], flatten=False, parallel=False,
-               verbosity=None, **kwargs):
-    self.verbosity = verbosity
-    #################################################### DEBUG
-    print("self.verbosity")
-    print(self.verbosity)
-    #################################################### DEBUG
+               verbose=True, **kwargs):
+    self.verbose = verbose
     self.parallel = parallel
     self.flatten = flatten
 
@@ -893,8 +886,7 @@ class GridFeaturizer(ComplexFeaturizer):
       mol_f.writelines(ligand_pdb_lines)
     ############################################################## TIMING
     time2 = time.time()
-    log("TIMING: Writing ligand took %0.3f s" % (time2-time1),
-        self.verbosity)
+    log("TIMING: Writing ligand took %0.3f s" % (time2-time1), self.verbose)
     ############################################################## TIMING
 
     ############################################################## TIMING
@@ -905,8 +897,7 @@ class GridFeaturizer(ComplexFeaturizer):
       protein_f.writelines(protein_pdb_lines)
     ############################################################## TIMING
     time2 = time.time()
-    log("TIMING: Writing protein took %0.3f s" % (time2-time1),
-        self.verbosity)
+    log("TIMING: Writing protein took %0.3f s" % (time2-time1), self.verbose)
     ############################################################## TIMING
 
     features_dict = self._transform(protein_pdb_file, ligand_pdb_file)
@@ -959,7 +950,7 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
     ############################################################## TIMING
     time1 = time.time()
@@ -969,17 +960,8 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
-
-    ############################################################# DEBUG
-    print("self.feature_types")
-    print(self.feature_types)
-    ############################################################# DEBUG
-    ############################################################# DEBUG
-    print("self.voxel_feature_types")
-    print(self.voxel_feature_types)
-    ############################################################# DEBUG
 
     if "ecfp" in self.feature_types:
       ecfp_array = _compute_ecfp_features(
@@ -996,7 +978,7 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Centroid processing took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
 
     if "splif" in self.feature_types:
@@ -1020,7 +1002,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: ecfp voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
     if "splif" in self.voxel_feature_types: 
       ############################################################## TIMING
@@ -1032,7 +1014,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: splif voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "hbond" in self.voxel_feature_types:
@@ -1047,7 +1029,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: hbond voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "sybyl" in self.voxel_feature_types:
@@ -1060,7 +1042,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: sybyl voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "pi_stack" in self.voxel_feature_types:
@@ -1073,7 +1055,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: pi_stack voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "cation_pi" in self.voxel_feature_types:
@@ -1086,7 +1068,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: cation_pi voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "salt_bridge" in self.voxel_feature_types:
@@ -1099,7 +1081,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: salt_bridge voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "charge" in self.voxel_feature_types:
@@ -1111,7 +1093,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: charge voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     transformed_systems = {}

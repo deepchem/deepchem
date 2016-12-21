@@ -30,7 +30,6 @@ class MetricsTest(googletest.TestCase):
 
   def test_r2_score(self):
     """Test that R^2 metric passes basic sanity tests"""
-    verbosity = "high"
     np.random.seed(123)
     n_samples = 10
     y_true = np.random.rand(n_samples,)

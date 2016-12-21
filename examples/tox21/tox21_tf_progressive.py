@@ -1,10 +1,12 @@
 """
-Script that trains multitask models on Tox21 dataset.
+Script that trains progressive multitask models on Tox21 dataset.
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
+import shutil
 import numpy as np
 import deepchem as dc
 from tox21_datasets import load_tox21
@@ -20,12 +22,12 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorflowMultiTaskClassifier(
+model = dc.models.ProgressiveMultitaskClassifier(
     len(tox21_tasks), n_features, layer_sizes=[1000], dropouts=[.25],
     learning_rate=0.001, batch_size=50)
 
 # Fit trained model
-model.fit(train_dataset)
+model.fit(train_dataset, nb_epoch=10)
 model.save()
 
 print("Evaluating model")

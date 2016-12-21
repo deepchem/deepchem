@@ -17,10 +17,9 @@ class HyperparamOpt(object):
   Provides simple hyperparameter search capabilities.
   """
 
-  def __init__(self, model_class, verbosity="high"):
+  def __init__(self, model_class, verbose=True):
     self.model_class = model_class
-    assert verbosity in [None, "low", "high"]
-    self.verbosity = verbosity
+    self.verbose = verbose
 
   # TODO(rbharath): This function is complicated and monolithic. Is there a nice
   # way to refactor this?
@@ -53,20 +52,20 @@ class HyperparamOpt(object):
     for ind, hyperparameter_tuple in enumerate(itertools.product(*hyperparam_vals)):
       model_params = {}
       log("Fitting model %d/%d" % (ind+1, number_combinations),
-          self.verbosity, "high")
+          self.verbose)
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
-      log("hyperparameters: %s" % str(model_params),
-          self.verbosity, "high")
+      log("hyperparameters: %s" % str(model_params), self.verbose)
 
       if logdir is not None:
         model_dir = os.path.join(logdir, str(ind))
-        log("model_dir is %s" % model_dir, self.verbosity, "high")
+        log("model_dir is %s" % model_dir, self.verbose)
         try: 
           os.makedirs(model_dir)
         except OSError:
           if not os.path.isdir(model_dir):
-            log("Error creating model_dir, using tempfile directory", self.verbosity, "high")
+            log("Error creating model_dir, using tempfile directory",
+                self.verbose)
             model_dir = tempfile.mkdtemp()
       else:
         model_dir = tempfile.mkdtemp()
@@ -94,11 +93,11 @@ class HyperparamOpt(object):
   
       log("Model %d/%d, Metric %s, Validation set %s: %f" %
           (ind+1, number_combinations, metric.name, ind, valid_score),
-          self.verbosity, "low")
+          self.verbose)
       log("\tbest_validation_score so far: %f" % best_validation_score,
-          self.verbosity, "low")
+          self.verbose)
     if best_model is None:
-      log("No models trained correctly.", self.verbosity, "low")
+      log("No models trained correctly.", self.verbose)
       # arbitrarily return last model
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
@@ -109,7 +108,7 @@ class HyperparamOpt(object):
         [metric], train_csv_out.name, train_stats_out.name)
     train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(best_hyperparams),
-        self.verbosity, "low")
-    log("train_score: %f" % train_score, self.verbosity, "low")
-    log("validation_score: %f" % best_validation_score, self.verbosity, "low")
+        self.verbose)
+    log("train_score: %f" % train_score, self.verbose)
+    log("validation_score: %f" % best_validation_score, self.verbose)
     return best_model, best_hyperparams, all_scores

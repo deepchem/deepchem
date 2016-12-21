@@ -23,10 +23,19 @@ guess_mime_type = True
 '''.format(**os.environ))
   f.flush()
 
+  ############################################################ DEBUG
+  print("f.name")
+  print(f.name)
+  ############################################################ DEBUG
+
   #s3cmd -M -H sync docs/_build/ s3://deepchem.io/
   template = ('s3cmd -M -H --config {config} '
               'sync docs/_build/ s3://{bucket}/')
   cmd = template.format(
           config=f.name,
           bucket=BUCKET_NAME)
+  ############################################################ DEBUG
+  print("cmd")
+  print(cmd)
+  ############################################################ DEBUG
   subprocess.call(cmd.split())

@@ -26,16 +26,14 @@ def load_toxcast(featurizer='ECFP', split='index'):
   print("About to featurize TOXCAST dataset.")
 
   if featurizer == 'ECFP':
-      featurizer_func = dc.feat.CircularFingerprint(size=1024)
+      featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-      featurizer_func = dc.feat.ConvMolFeaturizer()
+      featurizer = dc.feat.ConvMolFeaturizer()
 
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
-  loader = dc.load.DataLoader(tasks=TOXCAST_tasks,
-                              smiles_field="smiles",
-                              featurizer=featurizer_func,
-                              verbosity="high")
+  loader = dc.data.CSVLoader(
+      tasks=TOXCAST_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers 
@@ -50,7 +48,6 @@ def load_toxcast(featurizer='ECFP', split='index'):
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
 
-  train, valid, test = splitter.train_valid_test_split(
-	dataset, compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
   
   return TOXCAST_tasks, (train, valid, test), transformers

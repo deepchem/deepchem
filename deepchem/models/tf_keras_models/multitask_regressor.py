@@ -14,49 +14,16 @@ from deepchem.models import Model
 from deepchem.models.tensorflow_models import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
 from deepchem.models.tf_keras_models.graph_topology import merge_dicts
+from deepchem.models.tf_keras_models.multitask_classifier import get_loss_fn
 
-def get_loss_fn(final_loss):
-  # Obtain appropriate loss function
-  if final_loss=='L2':
-    def loss_fn(x, t):
-      diff = tf.sub(x, t)
-      return tf.reduce_sum(tf.square(diff), 0)
-  elif final_loss=='weighted_L2':
-    def loss_fn(x, t, w):
-      diff = tf.sub(x, t)
-      weighted_diff = tf.mul(diff,w)
-      return tf.reduce_sum(tf.square(weighted_diff), 0)
-  elif final_loss=='L1':
-    def loss_fn(x, t):
-      diff = tf.sub(x, t)
-      return tf.reduce_sum(tf.abs(diff), 0)
-  elif final_loss=='huber':
-    def loss_fn(x, t):
-      diff = tf.sub(x, t)
-      return tf.reduce_sum(
-          tf.minimum(0.5*tf.square(diff),
-                     huber_d*(tf.abs(diff)-0.5*huber_d)), 0)
-  elif final_loss=='cross_entropy':
-    def loss_fn(x, t, w):
-      costs = tf.nn.sigmoid_cross_entropy_with_logits(x, t)
-      weighted_costs = tf.mul(costs, w)
-      return tf.reduce_sum(weighted_costs)
-  elif final_loss=='hinge':
-    def loss_fn(x, t, w):
-      t = tf.mul(2.0, t) - 1
-      costs = tf.maximum(0.0, 1.0 - tf.mul(t, x))
-      weighted_costs = tf.mul(costs, w)
-      return tf.reduce_sum(weighted_costs)
-  return loss_fn
-
-class MultitaskGraphClassifier(Model):
+class MultitaskGraphRegressor(Model):
 
   def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
-               final_loss='cross_entropy', learning_rate=.001,
+               final_loss='weighted_L2', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
-               beta1=.9, beta2=.999, verbose=True):
+               beta1=.9, beta2=.999, verbosity=None):
 
-    self.verbose = verbose
+    self.verbosity = verbosity
     self.sess = sess
     self.n_tasks = n_tasks
     self.final_loss = final_loss
@@ -74,10 +41,9 @@ class MultitaskGraphClassifier(Model):
     self.graph_topology = self.model.get_graph_topology()
     self.feat_dim = self.model.get_num_output_features()
 
-    # Raw logit outputs
-    self.logits = self.build()
-    self.loss_op = self.add_training_loss(self.final_loss, self.logits)
-    self.outputs = self.add_softmax(self.logits)
+    # Building outputs
+    self.outputs = self.build()
+    self.loss_op = self.add_training_loss(self.final_loss, self.outputs)
 
     self.learning_rate = learning_rate 
     self.T = learning_rate_decay_time 
@@ -101,15 +67,25 @@ class MultitaskGraphClassifier(Model):
   def build(self):
     # Create target inputs
     self.label_placeholder = Input(tensor=K.placeholder(
-      shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
+      shape=(None,self.n_tasks), name="label_placeholder", dtype='float32'))
     self.weight_placeholder = Input(tensor=K.placeholder(
           shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
 
     # Create final dense layer from keras 
     feat = self.model.return_outputs()
-    output = model_ops.multitask_logits(
-        feat, self.n_tasks)
-    return output
+    feat_size = feat.get_shape()[-1].value
+    outputs = []
+    for task in range(self.n_tasks):
+      outputs.append(tf.squeeze(
+          model_ops.fully_connected_layer(
+              tensor=feat,
+              size=1,
+              weight_init=tf.truncated_normal(
+                  shape=[feat_size, 1],
+                  stddev=0.01),
+              bias_init=tf.constant(value=0.,
+                                    shape=[1]))))
+    return outputs
 
   def add_optimizer(self):
     if self.optimizer_type == "adam":
@@ -149,7 +125,7 @@ class MultitaskGraphClassifier(Model):
                              keras_dict])
     return feed_dict
 
-  def add_training_loss(self, final_loss, logits):
+  def add_training_loss(self, final_loss, outputs):
     """Computes loss using logits."""
     loss_fn = get_loss_fn(final_loss)  # Get loss function
     task_losses = []
@@ -160,13 +136,8 @@ class MultitaskGraphClassifier(Model):
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
-      # Convert the labels into one-hot vector encodings.
-      one_hot_labels = tf.to_float(
-          tf.one_hot(tf.to_int32(tf.squeeze(task_label_vector)), 2))
-      # Since we use tf.nn.softmax_cross_entropy_with_logits note that we pass in
-      # un-softmaxed logits rather than softmax outputs.
-      task_loss = loss_fn(logits[task], one_hot_labels,
-                          task_weight_vector) 
+      task_loss = loss_fn(outputs[task], tf.squeeze(task_label_vector),
+                          tf.squeeze(task_weight_vector)) 
       task_losses.append(task_loss)
     # It's ok to divide by just the batch_size rather than the number of nonzero
     # examples (effect averages out)
@@ -174,26 +145,18 @@ class MultitaskGraphClassifier(Model):
     total_loss = tf.div(total_loss, self.batch_size)
     return total_loss
 
-  def add_softmax(self, outputs):
-    """Replace logits with softmax outputs."""
-    softmax = []
-    with tf.name_scope('inference'):
-      for i, logits in enumerate(outputs):
-        softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
-    return softmax
-
   def fit(self, dataset, nb_epoch=10, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
-    log("Training for %d epochs" % nb_epoch, self.verbose)
+    log("Training for %d epochs" % nb_epoch, self.verbosity)
   
     # TODO(rbharath): Disabling saving for now to try to debug.
     for epoch in range(nb_epoch):
-      log("Starting epoch %d" % epoch, self.verbose)
+      log("Starting epoch %d" % epoch, self.verbosity)
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
           self.batch_size, pad_batches=True)):
         if batch_num % log_every_N_batches == 0:
-          log("On batch %d" % batch_num, self.verbose)
+          log("On batch %d" % batch_num, self.verbosity)
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
@@ -206,14 +169,8 @@ class MultitaskGraphClassifier(Model):
 
   def predict(self, dataset, transformers=[], **kwargs):
     """Wraps predict to set batch_size/padding."""
-    return super(MultitaskGraphClassifier, self).predict(
+    return super(MultitaskGraphRegressor, self).predict(
         dataset, transformers, batch_size=self.batch_size, pad_batches=True)
-
-  def predict_proba(self, dataset, transformers=[], n_classes=2, **kwargs):
-    """Wraps predict_proba to set batch_size/padding."""
-    return super(MultitaskGraphClassifier, self).predict_proba(
-        dataset, transformers, n_classes=n_classes,
-        batch_size=self.batch_size, pad_batches=True)
 
   def predict_on_batch(self, X, pad_batch=False):
     """Return model output for the provided input.
@@ -231,25 +188,8 @@ class MultitaskGraphClassifier(Model):
     n_samples = len(X)
     outputs = np.zeros((n_samples, self.n_tasks))
     for task, output in enumerate(batch_outputs):
-      outputs[:, task] = np.argmax(output, axis=1)
+      outputs[:, task] = output
     return outputs 
-
-  def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):
-    """Returns class probabilities on batch"""
-    # run eval data through the model
-    if pad_batch:
-      X = pad_features(self.batch_size, X)
-    n_tasks = self.n_tasks
-    with self.sess.as_default():
-      feed_dict = self.construct_feed_dict(X)
-      batch_outputs = self.sess.run(
-          self.outputs, feed_dict=feed_dict)
-
-    n_samples = len(X)
-    outputs = np.zeros((n_samples, self.n_tasks, n_classes))
-    for task, output in enumerate(batch_outputs):
-      outputs[:, task, :] = output
-    return outputs
 
   def get_num_tasks(self):
     """Needed to use Model.predict() from superclass."""

@@ -44,9 +44,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.r2_score, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     sklearn_model = RandomForestRegressor()
     model = dc.models.SklearnModel(sklearn_model)
 
@@ -72,9 +70,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     sklearn_model = RandomForestClassifier()
     model = dc.models.SklearnModel(sklearn_model)
 
@@ -102,9 +98,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
   
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     sklearn_model = RandomForestClassifier()
     model = dc.models.SklearnModel(sklearn_model)
 
@@ -130,14 +124,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, verbosity=verbosity)
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     # TODO(rbharath): This breaks with optimizer="momentum". Why?
     model = dc.models.TensorflowMultiTaskRegressor(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -162,13 +154,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
-    classification_metric = dc.metrics.Metric(
-        dc.metrics.accuracy_score, verbosity=verbosity)
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
     model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -196,13 +186,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
   
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     classification_metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, verbosity=verbosity)
+        dc.metrics.roc_auc_score)
     model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -240,13 +229,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
   
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
-    verbosity = "high"
     classification_metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, verbosity=verbosity)
+        dc.metrics.roc_auc_score)
     model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[1.],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
@@ -272,7 +260,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, verbosity="high", task_averager=np.mean)
+        dc.metrics.roc_auc_score, task_averager=np.mean)
     def model_builder(model_dir):
       sklearn_model = RandomForestClassifier()
       return dc.models.SklearnModel(sklearn_model, model_dir)
@@ -301,13 +289,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
+      dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.TensorflowMultiTaskClassifier(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset)
@@ -332,14 +319,13 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
+      dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.RobustMultitaskClassifier(
         n_tasks, n_features, layer_sizes=[50],
         bypass_layer_sizes=[10], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
@@ -364,12 +350,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     classification_metric = dc.metrics.Metric(
-      dc.metrics.accuracy_score, verbosity=verbosity, task_averager=np.mean)
+      dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.TensorflowLogisticRegression(
         n_tasks, n_features, learning_rate=0.5, weight_init_stddevs=[.01],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset)
@@ -396,7 +381,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     regression_metric = dc.metrics.Metric(
-        dc.metrics.r2_score, verbosity="high", task_averager=np.mean)
+        dc.metrics.r2_score, task_averager=np.mean)
     def model_builder(model_dir):
       sklearn_model = RandomForestRegressor()
       return dc.models.SklearnModel(sklearn_model, model_dir)
@@ -426,14 +411,13 @@ class TestOverfit(test_util.TensorFlowTestCase):
   
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, verbosity=verbosity,
+        dc.metrics.mean_squared_error,
         task_averager=np.mean, mode="regression")
     model = dc.models.TensorflowMultiTaskRegressor(
         n_tasks, n_features, dropouts=[0.],
         learning_rate=0.0003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
@@ -461,15 +445,14 @@ class TestOverfit(test_util.TensorFlowTestCase):
   
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    verbosity = "high"
     regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, verbosity=verbosity,
+        dc.metrics.mean_squared_error,
         task_averager=np.mean, mode="regression")
     model = dc.models.RobustMultitaskRegressor(
         n_tasks, n_features, layer_sizes=[50],
         bypass_layer_sizes=[10], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[.1],
-        batch_size=n_samples, verbosity=verbosity)
+        batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=25)
@@ -486,7 +469,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
-    verbosity = "high"
     with g.as_default():
       n_tasks = 1
       n_samples = 10
@@ -497,13 +479,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.load.DataLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer,
-          verbosity=verbosity)
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
       classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score, verbosity=verbosity)
+          dc.metrics.accuracy_score)
 
       n_feat = 71
       batch_size = 10
@@ -520,7 +501,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         model = dc.models.MultitaskGraphClassifier(
           sess, graph_model, n_tasks, batch_size=batch_size,
           learning_rate=1e-3, learning_rate_decay_time=1000,
-          optimizer_type="adam", beta1=.9, beta2=.999, verbosity="high")
+          optimizer_type="adam", beta1=.9, beta2=.999)
 
         # Fit trained model
         model.fit(dataset, nb_epoch=20)
@@ -531,6 +512,57 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
       assert scores[classification_metric.name] > .75
 
+  def test_graph_conv_singletask_regression_overfit(self):
+    """Test graph-conv multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    with g.as_default():
+      n_tasks = 1
+      n_samples = 10
+      n_features = 3
+      n_classes = 2
+      
+      # Load mini log-solubility dataset.
+      featurizer = dc.feat.ConvMolFeaturizer()
+      tasks = ["outcome"]
+      input_file = os.path.join(self.current_dir, "example_regression.csv")
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+      dataset = loader.featurize(input_file)
+
+      classification_metric = dc.metrics.Metric(
+          dc.metrics.mean_squared_error,
+          task_averager=np.mean)
+
+      n_feat = 71
+      batch_size = 10
+      graph_model = dc.nn.SequentialGraph(n_feat)
+      graph_model.add(dc.nn.GraphConv(64, activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      # Gather Projection
+      graph_model.add(dc.nn.Dense(128, activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+
+      with self.test_session() as sess:
+        model = dc.models.MultitaskGraphRegressor(
+          sess, graph_model, n_tasks, batch_size=batch_size,
+          learning_rate=1e-2, learning_rate_decay_time=1000,
+          optimizer_type="adam", beta1=.9, beta2=.999)
+
+        # Fit trained model
+        model.fit(dataset, nb_epoch=40)
+        model.save()
+
+        # Eval model on train
+        scores = model.evaluate(dataset, [classification_metric])
+
+      assert scores[classification_metric.name] < .2
+
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
     np.random.seed(123)
@@ -538,7 +570,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     g = tf.Graph()
     sess = tf.Session(graph=g)
     K.set_session(sess)
-    verbosity = "high"
     with g.as_default():
       n_tasks = 1
       n_feat = 71
@@ -553,13 +584,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.load.DataLoader(
-          tasks=tasks, smiles_field="smiles",
-          featurizer=featurizer, verbosity=verbosity)
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score, verbosity=verbosity)
+      classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
@@ -579,8 +608,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
           sess, support_model, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=1e-3,
-          verbosity="high")
+          support_batch_size=support_batch_size, learning_rate=1e-3)
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.
@@ -621,14 +649,11 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.load.DataLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer,
-          verbosity="low")
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
-      verbosity = "high"
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score, verbosity=verbosity)
+      classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
@@ -652,8 +677,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
           sess, support_model, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=1e-3,
-          verbosity="high")
+          support_batch_size=support_batch_size, learning_rate=1e-3)
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.
@@ -692,14 +716,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
       featurizer = dc.feat.ConvMolFeaturizer()
       tasks = ["outcome"]
       input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.load.DataLoader(
-          tasks=tasks, smiles_field="smiles",
-          featurizer=featurizer, verbosity="low")
+      loader = dc.data.CSVLoader(
+          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
       dataset = loader.featurize(input_file)
 
-      verbosity = "high"
       classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score, verbosity=verbosity)
+          dc.metrics.accuracy_score)
 
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
@@ -723,8 +745,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       with self.test_session() as sess:
         model = dc.models.SupportGraphClassifier(
           sess, support_model, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=1e-3,
-          verbosity="high")
+          support_batch_size=support_batch_size, learning_rate=1e-3)
 
         # Fit trained model. Dataset has 6 positives and 4 negatives, so set
         # n_pos/n_neg accordingly.
@@ -766,7 +787,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     model = dc.models.ProgressiveMultitaskRegressor(
         n_tasks, n_features, layer_sizes=[50], bypass_layer_sizes=[10],
         dropouts=[0.], learning_rate=0.003, weight_init_stddevs=[.1], seed=123,
-        alpha_init_stddevs=[.02], batch_size=n_samples, verbosity="high")
+        alpha_init_stddevs=[.02], batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=20)

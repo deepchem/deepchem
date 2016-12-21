@@ -32,7 +32,7 @@ class Model(object):
   Abstract base class for different ML models.
   """
   def __init__(self, model_instance, model_dir=None,
-               fit_transformers=None, verbosity=None, **kwargs):
+               fit_transformers=None, verbose=True, **kwargs):
     """Abstract class for all models.
     Parameters:
     -----------
@@ -51,8 +51,7 @@ class Model(object):
     self.model_class = model_instance.__class__
     self.fit_transformers = fit_transformers
 
-    assert verbosity in [None, "low", "high"]
-    self.verbosity = verbosity
+    self.verbose = verbose
 
   def fit_on_batch(self, X, y, w):
     """
@@ -126,7 +125,7 @@ class Model(object):
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
     for epoch in range(nb_epoch):
-      log("Starting epoch %s" % str(epoch+1), self.verbosity)
+      log("Starting epoch %s" % str(epoch+1), self.verbose)
       losses = []
       for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
           batch_size, pad_batches=pad_batches):
@@ -139,7 +138,7 @@ class Model(object):
         
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
       log("Avg loss for epoch %d: %f"
-          % (epoch+1,np.array(losses).mean()),self.verbosity)
+          % (epoch+1,np.array(losses).mean()),self.verbose)
 
 
   def transform_on_batch(self, X, y, w):
@@ -201,8 +200,7 @@ class Model(object):
     dict
       Maps tasks to scores under metric.
     """
-    evaluator = Evaluator(self, dataset, transformers,
-                          verbosity=self.verbosity)
+    evaluator = Evaluator(self, dataset, transformers)
     scores = evaluator.compute_model_performance(metrics)
     return scores
 
