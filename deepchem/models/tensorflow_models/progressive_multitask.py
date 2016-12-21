@@ -246,8 +246,6 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
     return tf.matmul(prev_layer, U)
 
-<<<<<<< HEAD
-  ########################################################### DEBUG
   def old_fit(self, dataset, nb_epoch=10, pad_batches=False, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
@@ -314,8 +312,6 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           self.verbosity)
     ############################################################## TIMING
 
-=======
->>>>>>> 929fd14be5fb03f556b4256aa1864b942f0911c2
   def get_training_op(self, graph, loss):
     """Get training op for applying gradients to variables.
 

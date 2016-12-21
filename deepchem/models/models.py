@@ -182,7 +182,7 @@ class Model(object):
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[]):
+  def evaluate(self, dataset, metrics, transformers=[], pad_batches=False):
     """
     Evaluates the performance of this model on specified dataset.
   
@@ -201,7 +201,7 @@ class Model(object):
       Maps tasks to scores under metric.
     """
     evaluator = Evaluator(self, dataset, transformers)
-    scores = evaluator.compute_model_performance(metrics)
+    scores = evaluator.compute_model_performance(metrics, pad_batches=pad_batches)
     return scores
 
   def predict_grad(self, dataset, transformers=[], batch_size=50):
