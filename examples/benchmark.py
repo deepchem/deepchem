@@ -36,6 +36,7 @@ import deepchem as dc
 import tensorflow as tf
 import argparse
 from keras import backend as K
+import csv
 
 from sklearn.ensemble import RandomForestClassifier
 
@@ -135,23 +136,25 @@ def benchmark_loading_datasets(hyper_parameters,
           model=model)  
     time_finish_fitting = time.time()
     
-    with open(os.path.join(out_path, 'results.csv'),'a') as f:
-      f.write('\n'+str(count)+',')
-      f.write(dataset+','+str(split)+','+mode+',train,')
+    
+    with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+      writer = csv.writer(f)
       if mode == 'classification':
         for i in train_score:
-          f.write(i+','+str(train_score[i]['mean-roc_auc_score'])+',')
-        f.write('valid,')
-        for i in valid_score:
-          f.write(i+','+str(valid_score[i]['mean-roc_auc_score'])+',')
+          output_line = [count, dataset, str(split), mode, 'train', i, 
+                         train_score[i]['mean-roc_auc_score'], 'valid', i, 
+                         valid_score[i]['mean-roc_auc_score'],
+                         'time_for_running',
+                         time_finish_fitting-time_start_fitting]
+          writer.writerow(output_line)
       else:
         for i in train_score:
-          f.write(i+','+str(train_score[i]['mean-pearson_r2_score'])+',')
-        f.write('valid,')
-        for i in valid_score:
-          f.write(i+','+str(valid_score[i]['mean-pearson_r2_score'])+',')
-      f.write('time_for_running,'+
-              str(time_finish_fitting-time_start_fitting)+',')
+          output_line = [count, dataset, str(split), mode, 'train', i, 
+                         train_score[i]['mean-pearson_r2_score'], 'valid', i, 
+                         valid_score[i]['mean-pearson_r2_score'], 
+                         'time_for_running',
+                         time_finish_fitting-time_start_fitting]
+          writer.writerow(output_line)
 
 def benchmark_classification(train_dataset, valid_dataset, tasks,
                              transformers, hyper_parameters, 

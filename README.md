@@ -274,6 +274,9 @@ Scaffold splitting
 |           |graphconv regression|Random      |0.996         |0.873         |
 |           |MT-NN regression    |Scaffold    |0.782         |0.426         |
 |           |graphconv regression|Scaffold    |0.994         |0.606         |
+|nci        |MT-NN regression    |Index       |0.890         |0.890         |
+|           |MT-NN regression    |Random      |0.891         |0.888         |
+|           |MT-NN regression    |Scaffold    |0.912         |0.020         |
 |kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
@@ -289,6 +292,7 @@ Number of tasks and examples in the datasets
 |toxcast    |617        |8615       |
 |delaney    |1          |1128       |
 |kaggle     |15         |173065     |
+|nci        |60         |1057371    |
 
 Time needed for benchmark test(~20h in total)
 
@@ -315,6 +319,8 @@ Time needed for benchmark test(~20h in total)
 |           |robust MT-NN        |80              |4000           |
 |           |graph convolution   |80              |900            |
 |delaney    |MT-NN regression    |10              |40             |
+|           |graphconv regression|10              |40             |
+|nci        |MT-NN regression    |2000            |30000          |
 |kaggle     |MT-NN regression    |2200            |3200           |
 
 
