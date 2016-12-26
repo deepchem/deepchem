@@ -32,7 +32,7 @@ def load_sider(featurizer='ECFP', split='index'):
   print("SIDER tasks: %s" % str(SIDER_tasks))
   print("%d tasks in total" % len(SIDER_tasks))
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))

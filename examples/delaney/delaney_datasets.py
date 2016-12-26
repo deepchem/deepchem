@@ -22,7 +22,7 @@ def load_delaney(featurizer='ECFP', split='index'):
     featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = dc.feat.ConvMolFeaturizer()
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(
       dataset_file, shard_size=8192)

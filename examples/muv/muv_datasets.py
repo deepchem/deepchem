@@ -30,7 +30,7 @@ def load_muv(featurizer='ECFP', split='index'):
                       'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                       'MUV-466', 'MUV-832'])
 
-  loader = dc.data.DataLoader(
+  loader = dc.data.CSVLoader(
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file)
 

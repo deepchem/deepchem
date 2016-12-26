@@ -71,8 +71,6 @@ class Featurizer(object):
     mols = list(mols)
     features = []
     for i, mol in enumerate(mols):
-      if verbose and i % log_every_n == 0:
-        log("Featurizing %d / %d" % (i, len(mols)))
       if mol is not None:
         features.append(self._featurize(mol))
       else:
