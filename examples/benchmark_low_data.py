@@ -33,7 +33,7 @@ from low_data.datasets import load_sider_convmol
 
 def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
                                dataset='tox21', model='siamese', split='task',
-                               verbosity='high', out_path='.'):
+                               out_path='.'):
   """
   Loading dataset for low data benchmark test
   
@@ -105,7 +105,7 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
       time_start_fitting = time.time()
       valid_scores = low_data_benchmark_classification(
                          train_dataset, valid_dataset, hp, n_feat,
-                         model=model, verbosity=verbosity)
+                         model=model)
       time_finish_fitting = time.time() 
       with open(os.path.join(out_path, 'results.csv'),'a') as f:
         f.write('\n'+str(count_hp)+','+str(count_iter)+',')
@@ -122,8 +122,7 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
 
 def low_data_benchmark_classification(train_dataset, valid_dataset, 
                                       hyper_parameters, n_features, 
-                                      model='siamese', seed=123, 
-                                      verbosity='high'):
+                                      model='siamese', seed=123):
   """
   Calculate low data benchmark performance
   
@@ -154,7 +153,6 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
   
   # Initialize metrics
   classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                                            verbosity=verbosity,
                                             mode="classification")
 
   assert model in ['siamese','attn','res']
@@ -210,8 +208,7 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
     with tf.Session() as sess:
       model_low_data = dc.models.SupportGraphClassifier(
           sess, support_graph, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=learning_rate,
-          verbosity="high")
+          support_batch_size=support_batch_size, learning_rate=learning_rate)
         
       print('-------------------------------------')
       print('Start fitting by graph convolution')
@@ -231,13 +228,6 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
 if __name__ == '__main__':
   # Global variables
   np.random.seed(123)
-  verbosity = 'high'
-  
-  #Working folder initialization
-  base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
-  if os.path.exists(base_dir_o):
-    shutil.rmtree(base_dir_o)
-  os.makedirs(base_dir_o)
   
   parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
       'giving performances of different learning models on datasets')
@@ -282,6 +272,5 @@ if __name__ == '__main__':
       for model in models:
         low_data_benchmark_loading_datasets(hps, cross_valid=cross_valid, 
                                             dataset=dataset, model=model, 
-                                            split=split, verbosity='high', 
-                                            out_path='.')
+                                            split=split, out_path='.')
 

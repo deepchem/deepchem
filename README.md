@@ -269,11 +269,11 @@ Scaffold splitting
 |Dataset    |Model               |Splitting   |Train score/R2|Valid score/R2|
 |-----------|--------------------|------------|--------------|--------------|
 |delaney    |MT-NN regression    |Index       |0.773         |0.574         |
-|           |graphconv regression|Index       |0.964         |0.829         |
+|           |graphconv regression|Index       |0.991         |0.825         |
 |           |MT-NN regression    |Random      |0.769         |0.591         |
-|           |graphconv regression|Random      |0.959         |0.821         |
+|           |graphconv regression|Random      |0.996         |0.873         |
 |           |MT-NN regression    |Scaffold    |0.782         |0.426         |
-|           |graphconv regression|Scaffold    |0.976         |0.581         |
+|           |graphconv regression|Scaffold    |0.994         |0.606         |
 |kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
