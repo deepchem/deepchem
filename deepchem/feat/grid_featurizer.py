@@ -6,20 +6,19 @@ __author__ = "Bharath Ramsundar and Evan Feinberg"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-from copy import deepcopy
-import numpy as np
-import time
-from collections import deque
-import hashlib
-import sys
-import openbabel as ob
-from functools import partial
-from deepchem.feat import ComplexFeaturizer
-from deepchem.utils.save import log
-import tempfile
 import os
 import shutil
 import time
+import tempfile
+import hashlib
+import sys
+import numpy as np
+from copy import deepcopy
+import openbabel as ob
+from collections import deque
+from functools import partial
+from deepchem.feat import ComplexFeaturizer
+from deepchem.utils.save import log
 
 
 """
@@ -30,7 +29,11 @@ def get_xyz_from_ob(ob_mol):
   returns an m x 3 np array of 3d coords
   of given openbabel molecule
   """
-
+  ######################################################### DEBUG
+  #print("get_xyz_from_ob")
+  #print("ob_mol.NumAtoms()")
+  #print(ob_mol.NumAtoms())
+  ######################################################### DEBUG
   xyz = np.zeros((ob_mol.NumAtoms(), 3))
   for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
     xyz[i, 0] = atom.x()
@@ -38,6 +41,16 @@ def get_xyz_from_ob(ob_mol):
     xyz[i, 2] = atom.z()
   return(xyz)
 
+def get_ligand_filetype(ligand_filename):
+  """Returns the filetype of ligand."""
+  if ".mol2" in ligand_filename:
+    return ".mol2"
+  elif ".sdf" in ligand_filename:
+    return "sdf"
+  elif ".pdb" in ligand_filename:
+    return ".pdb"
+  else:
+    raise ValueError("Unrecognized_filename")
 
 def load_molecule(molecule_file, remove_hydrogens=True,
                   calc_charges=False):
@@ -875,15 +888,19 @@ class GridFeaturizer(ComplexFeaturizer):
                         "S3", "S3+", "S2", "So2", "Sox" "Sac" "SO", "P3", 
                         "P", "P3+", "F", "Cl", "Br", "I"]
 
-  def _featurize_complex(self, ligand_pdb_lines, protein_pdb_lines):
+  def _featurize_complex(self, ligand_ext, ligand_lines, protein_pdb_lines):
     tempdir = tempfile.mkdtemp()
 
+    ############################################################### DEBUG
+    #print("ligand_lines")
+    #print(ligand_lines)
+    ############################################################### DEBUG
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_pdb_file = os.path.join(tempdir, "ligand.pdb")
-    with open(ligand_pdb_file, "w") as mol_f:
-      mol_f.writelines(ligand_pdb_lines)
+    ligand_file = os.path.join(tempdir, "ligand.%s" % ligand_ext)
+    with open(ligand_file, "w") as mol_f:
+      mol_f.writelines(ligand_lines)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Writing ligand took %0.3f s" % (time2-time1), self.verbose)
@@ -900,32 +917,36 @@ class GridFeaturizer(ComplexFeaturizer):
     log("TIMING: Writing protein took %0.3f s" % (time2-time1), self.verbose)
     ############################################################## TIMING
 
-    features_dict = self._transform(protein_pdb_file, ligand_pdb_file)
+    features_dict = self._transform(protein_pdb_file, ligand_file)
     shutil.rmtree(tempdir)
     return features_dict.values()
 
-  def featurize_complexes(self, mol_pdbs, protein_pdbs, log_every_n=1000):
+  def featurize_complexes(self, mol_files, protein_pdbs, log_every_n=1000):
     """
     Calculate features for mol/protein complexes.
 
     Parameters
     ----------
-    mol_pdbs: list
-      List of PDBs for molecules. Each PDB should be a list of lines of the
-      PDB file.
+    mols: list
+      List of PDB filenames for molecules.
     protein_pdbs: list
-      List of PDBs for proteins. Each PDB should be a list of lines of the
-      PDB file.
+      List of PDB filenames for proteins.
     """
     features = []
-    for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
+    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       if i % log_every_n == 0:
-        log("Featurizing %d / %d" % (i, len(mol_pdbs)))
-      features += self._featurize_complex(mol_pdb, protein_pdb)
+        log("Featurizing %d / %d" % (i, len(mol_files)))
+      ligand_ext = get_ligand_filetype(mol_file)
+      with open(mol_file) as mol_f:
+        mol_lines = mol_f.readlines()
+      with open(protein_pdb) as protein_file:
+        protein_pdb_lines = protein_file.readlines()
+      features += self._featurize_complex(ligand_ext, mol_lines,
+                                          protein_pdb_lines)
     features = np.asarray(features)
     return features
 
-  def _transform(self, protein_pdb, ligand_pdb):
+  def _transform(self, protein_pdb, ligand_file):
     """Computes featurization of protein/ligand complex.
 
     Takes as input files (strings) for pdb of the protein, pdb of the ligand,
@@ -947,6 +968,12 @@ class GridFeaturizer(ComplexFeaturizer):
     if not self.ligand_only:
       protein_xyz, protein_ob = load_molecule(
           protein_pdb, calc_charges=False)
+      ############################################################ DEBUG
+      #print("protein_pdb")
+      #print(protein_pdb)
+      #print("protein_xyz")
+      #print(protein_xyz)
+      ############################################################ DEBUG
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2-time1),
@@ -956,7 +983,7 @@ class GridFeaturizer(ComplexFeaturizer):
     time1 = time.time()
     ############################################################## TIMING
     ligand_xyz, ligand_ob = load_molecule(
-        ligand_pdb, calc_charges=False)
+        ligand_file, calc_charges=False)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2-time1),
@@ -999,6 +1026,10 @@ class GridFeaturizer(ComplexFeaturizer):
           _featurize_binding_pocket_ecfp(
               protein_xyz, protein_ob, ligand_xyz, ligand_ob,
               pairwise_distances, cutoff=4.5, ecfp_degree=self.ecfp_degree))
+      ################################################################ DEBUG
+      #print("protein_ecfp_dict")
+      #print(protein_ecfp_dict)
+      ################################################################ DEBUG
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: ecfp voxel computataion took %0.3f s" % (time2-time1),

@@ -16,3 +16,4 @@ from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.feat.basic import RDKitDescriptors
 from deepchem.feat.coulomb_matrices import CoulombMatrixEig
+from deepchem.feat.grid_featurizer import GridFeaturizer
