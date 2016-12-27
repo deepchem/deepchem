@@ -37,7 +37,7 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   features = np.squeeze(features)
   return features
 
-def load_core_pdbbind_grid(split="index", feat="grid"):
+def load_pdbbind_grid(split="index", feat="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   # Set some global variables up top
   regen = False
@@ -45,10 +45,16 @@ def load_core_pdbbind_grid(split="index", feat="grid"):
   # Create some directories for analysis
   current_dir = os.path.dirname(os.path.realpath(__file__))
   pdbbind_dir = os.path.join(current_dir, "v2015")
-  #Make directories to store the raw and featurized datasets.
 
   # Load PDBBind dataset
-  labels_file = os.path.join(pdbbind_dir, "INDEX_core_data.2013")
+  if subset == "core":
+    labels_file = os.path.join(pdbbind_dir, "INDEX_core_data.2013")
+  elif subset == "refined":
+    labels_file = os.path.join(pdbbind_dir, "INDEX_refined_data.2015")
+  elif subset == "full":
+    labels_file = os.path.join(pdbbind_dir, "INDEX_general_PL_data.2015")
+  else:
+    raise ValueError("Only core, refined, and full subsets supported.")
   tasks = ["-logKd/Ki"]
   print("About to load contents.")
   contents_df = load_pdbbind_labels(labels_file)

@@ -11,12 +11,12 @@ __license__ = "GPL"
 
 import deepchem as dc
 import numpy as np
-from pdbbind_datasets import load_core_pdbbind_grid
+from pdbbind_datasets import load_pdbbind_grid
 
 # For stable runs 
 np.random.seed(123)
 
-pdbbind_tasks, pdbbind_datasets, transformers = load_core_pdbbind_grid()
+pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_grid()
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets 
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
