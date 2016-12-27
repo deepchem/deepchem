@@ -32,12 +32,6 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  ################################################################ DEBUG
-  #print("protein_file")
-  #print(protein_file)
-  #print("ligand_file")
-  #print(ligand_file)
-  ################################################################ DEBUG
   features = grid_featurizer.featurize_complexes(
     [ligand_file], [protein_file])
   features = np.squeeze(features)
@@ -85,12 +79,8 @@ def load_core_pdbbind_grid(split="index", feat="grid"):
   feature_len = None
   y_inds = []
   for ind, pdb_code in enumerate(ids):
-    print("Processing %s" % str(pdb_code))
+    print("Processing complex %d, %s" % (ind, str(pdb_code)))
     pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
-    ######################################################## DEBUG
-    #print("pdb_subdir, pdb_code")
-    #print(pdb_subdir, pdb_code)
-    ######################################################## DEBUG
     computed_feature = compute_pdbbind_features(
         featurizer, pdb_subdir, pdb_code)
     if feature_len is None:
@@ -100,13 +90,6 @@ def load_core_pdbbind_grid(split="index", feat="grid"):
       continue
     y_inds.append(ind)
     features.append(computed_feature)
-    ######################################################## DEBUG
-    #print("np.count_nonzero(computed_feature)")
-    #print(np.count_nonzero(computed_feature))
-    #print("computed_feature")
-    #print(computed_feature)
-    ##assert 0 == 1
-    ######################################################## DEBUG
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)

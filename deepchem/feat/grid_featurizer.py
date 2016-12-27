@@ -29,11 +29,6 @@ def get_xyz_from_ob(ob_mol):
   returns an m x 3 np array of 3d coords
   of given openbabel molecule
   """
-  ######################################################### DEBUG
-  #print("get_xyz_from_ob")
-  #print("ob_mol.NumAtoms()")
-  #print(ob_mol.NumAtoms())
-  ######################################################### DEBUG
   xyz = np.zeros((ob_mol.NumAtoms(), 3))
   for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
     xyz[i, 0] = atom.x()
@@ -891,10 +886,6 @@ class GridFeaturizer(ComplexFeaturizer):
   def _featurize_complex(self, ligand_ext, ligand_lines, protein_pdb_lines):
     tempdir = tempfile.mkdtemp()
 
-    ############################################################### DEBUG
-    #print("ligand_lines")
-    #print(ligand_lines)
-    ############################################################### DEBUG
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
@@ -968,12 +959,6 @@ class GridFeaturizer(ComplexFeaturizer):
     if not self.ligand_only:
       protein_xyz, protein_ob = load_molecule(
           protein_pdb, calc_charges=False)
-      ############################################################ DEBUG
-      #print("protein_pdb")
-      #print(protein_pdb)
-      #print("protein_xyz")
-      #print(protein_xyz)
-      ############################################################ DEBUG
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2-time1),
@@ -1026,10 +1011,6 @@ class GridFeaturizer(ComplexFeaturizer):
           _featurize_binding_pocket_ecfp(
               protein_xyz, protein_ob, ligand_xyz, ligand_ob,
               pairwise_distances, cutoff=4.5, ecfp_degree=self.ecfp_degree))
-      ################################################################ DEBUG
-      #print("protein_ecfp_dict")
-      #print(protein_ecfp_dict)
-      ################################################################ DEBUG
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: ecfp voxel computataion took %0.3f s" % (time2-time1),
