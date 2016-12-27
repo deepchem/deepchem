@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow models on PDBbind dataset.
+Script that trains Sklearn RF models on PDBbind dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -11,20 +11,21 @@ __license__ = "GPL"
 
 import deepchem as dc
 import numpy as np
+from sklearn.ensemble import RandomForestRegressor
 from pdbbind_datasets import load_pdbbind_grid
 
 # For stable runs 
 np.random.seed(123)
 
-pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_grid(subset="core")
+pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_grid(
+    subset="core")
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets 
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
 n_features = train_dataset.X.shape[1]
-model = dc.models.TensorflowMultiTaskRegressor(
-    len(pdbbind_tasks), n_features, dropouts=[.25], learning_rate=0.0003,
-    weight_init_stddevs=[.1], batch_size=64)
+sklearn_model = RandomForestRegressor(n_estimators=500)
+model = dc.models.SklearnModel(sklearn_model)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)
