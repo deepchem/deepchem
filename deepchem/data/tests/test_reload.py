@@ -15,7 +15,6 @@ import unittest
 import tempfile
 import deepchem as dc
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 
 class TestReload(unittest.TestCase):
   """
