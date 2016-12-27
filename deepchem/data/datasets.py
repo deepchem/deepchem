@@ -346,27 +346,38 @@ class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
   """
-  def __init__(self, shard_generator=[], data_dir=None, tasks=[],
-               reload=False, verbose=True):
+  def __init__(self, data_dir, verbose=True):
     """
     Turns featurized dataframes into numpy files, writes them & metadata to disk.
     """
-    if data_dir is not None:
-      if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    else:
-      data_dir = tempfile.mkdtemp()
     self.data_dir = data_dir
     self.verbose = verbose
 
-    if reload:
-      log("Loading pre-existing dataset.", self.verbose)
-      if os.path.exists(self._get_metadata_filename()):
-        (self.tasks, self.metadata_df) = load_from_disk(
-            self._get_metadata_filename())
-      else:
-        raise ValueError("No metadata found.")
-      return
+    log("Loading dataset from disk.", self.verbose)
+    if os.path.exists(self._get_metadata_filename()):
+      (self.tasks, self.metadata_df) = load_from_disk(
+          self._get_metadata_filename())
+    else:
+      raise ValueError("No metadata found on disk.")
+
+
+  @staticmethod
+  def create_dataset(shard_generator, data_dir=None, tasks=[]):
+    """Creates a new DiskDataset
+
+    Parameters
+    ----------
+    shard_generator: Iterable
+      An iterable (either a list or generator) that provides tuples of data
+      (X, y, w, ids). Each tuple will be written to a separate shard on disk.
+    data_dir: str
+      Filename for data directory. Creates a temp directory if none specified.
+    tasks: list
+      List of tasks for this dataset.
+    """
+    if data_dir is None:
+      self.data_dir = tempfile.mkdtemp()
+    self.data_dir = data_dir
 
     metadata_rows = []
     time1 = time.time()
@@ -376,14 +387,15 @@ class DiskDataset(Dataset):
           DiskDataset.write_data_to_disk(
               self.data_dir, basename, tasks, X, y, w, ids))
     self.tasks = tasks
-    self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
+    self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
     time2 = time.time()
     print("TIMING: dataset construction took %0.3f s" % (time2-time1),
           self.verbose)
+    return DiskDataset(data_dir)
 
   @staticmethod
-  def construct_metadata(metadata_entries):
+  def _construct_metadata(metadata_entries):
     """Construct a dataframe containing metadata.
   
     metadata_entries should have elements returned by write_data_to_disk
@@ -717,7 +729,7 @@ class DiskDataset(Dataset):
     """Shuffles the order of the shards for this dataset."""
     metadata_rows = self.metadata_df.values.tolist()
     random.shuffle(metadata_rows)
-    self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
+    self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
 
   def get_shard(self, i):
@@ -745,7 +757,7 @@ class DiskDataset(Dataset):
     metadata_rows.append(
         DiskDataset.write_data_to_disk(
             self.data_dir, basename, tasks, X, y, w, ids))
-    self.metadata_df = DiskDataset.construct_metadata(metadata_rows)
+    self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
 
   def set_shard(self, shard_num, X, y, w, ids):

@@ -160,7 +160,7 @@ class DataLoader(object):
         log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
             self.verbose)
         yield X, y, w, ids
-    return DiskDataset(shard_generator(), data_dir, self.tasks)
+    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
 
   def get_shards(self, input_files, shard_size):
     """Stub for children classes."""

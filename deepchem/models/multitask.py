@@ -60,7 +60,7 @@ class SingletaskToMultitask(Model):
     tasks = dataset.get_task_names()
     assert len(tasks) == len(task_dirs)
     log("Splitting multitask dataset into singletask datasets", dataset.verbose)
-    task_datasets = [DiskDataset(data_dir=task_dirs[task_num], tasks=[task])
+    task_datasets = [DiskDataset.create_dataset([], task_dirs[task_num], [task])
                     for (task_num, task) in enumerate(tasks)]
     #task_metadata_rows = {task: [] for task in tasks}
     for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
@@ -81,16 +81,6 @@ class SingletaskToMultitask(Model):
         task_datasets[task_num].add_shard(X_nonzero, y_nonzero, w_nonzero,
                                           ids_nonzero)
 
-        #if X_nonzero.size > 0: 
-        #  task_metadata_rows[task].append(
-        #    DiskDataset.write_data_to_disk(
-        #        task_dirs[task_num], basename, [task],
-        #        X_nonzero, y_nonzero, w_nonzero, ids_nonzero))
-    
-    #task_datasets = [
-    #    DiskDataset(data_dir=task_dirs[task_num],
-    #            metadata_rows=task_metadata_rows[task])
-    #    for (task_num, task) in enumerate(tasks)]
     return task_datasets
 
 
