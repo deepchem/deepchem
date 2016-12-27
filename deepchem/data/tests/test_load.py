@@ -39,8 +39,7 @@ class TestLoad(unittest.TestCase):
     X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
     shutil.move(data_dir, moved_data_dir)
 
-    moved_dataset = dc.data.DiskDataset(
-        data_dir=moved_data_dir, reload=True)
+    moved_dataset = dc.data.DiskDataset(moved_data_dir)
 
     X_moved, y_moved, w_moved, ids_moved = (moved_dataset.X, moved_dataset.y,
                                             moved_dataset.w, moved_dataset.ids)
@@ -55,9 +54,6 @@ class TestLoad(unittest.TestCase):
     """
     # Only for debug!
     np.random.seed(123)
-
-    # Set some global variables up top
-    reload = True
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ##Make directories to store the raw and featurized datasets.
@@ -85,9 +81,9 @@ class TestLoad(unittest.TestCase):
 
     ####### Do singletask load
     y_tasks, w_tasks, = [], []
+    dataset = dc.data.DiskDataset(data_dir)
     for ind, task in enumerate(all_tasks):
       print("Processing task %s" % task)
-      dataset = dc.data.DiskDataset(data_dir=data_dir, reload=reload)
 
       X_task, y_task, w_task, ids_task = (dataset.X, dataset.y, dataset.w,
                                           dataset.ids)
