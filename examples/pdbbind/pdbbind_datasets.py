@@ -10,6 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 import shutil
+import time
 from rdkit import Chem
 import deepchem as dc
 
@@ -37,13 +38,13 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   features = np.squeeze(features)
   return features
 
-def load_pdbbind_grid(split="index", feat="grid", subset="core"):
-  """Load PDBBind datasets. Does not do train/test split"""
-  # Set some global variables up top
-  regen = False
-
-  # Create some directories for analysis
+def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
+  """Featurizes pdbbind according to provided featurization"""
+  tasks = ["-logKd/Ki"]
   current_dir = os.path.dirname(os.path.realpath(__file__))
+  data_dir = os.path.join(current_dir, "%s_%s" % (subset, feat))
+  if os.path.exists(data_dir):
+    return dc.data.DiskDataset(data_dir), tasks
   pdbbind_dir = os.path.join(current_dir, "v2015")
 
   # Load PDBBind dataset
@@ -55,8 +56,9 @@ def load_pdbbind_grid(split="index", feat="grid", subset="core"):
     labels_file = os.path.join(pdbbind_dir, "INDEX_general_PL_data.2015")
   else:
     raise ValueError("Only core, refined, and full subsets supported.")
-  tasks = ["-logKd/Ki"]
   print("About to load contents.")
+  if not os.path.exists(labels_file):
+    raise ValueError("Run get_pdbbind.sh to download dataset.")
   contents_df = load_pdbbind_labels(labels_file)
   ids = contents_df["PDB code"].values
   y = np.array([float(val) for val in contents_df["-logKd/Ki"].values])
@@ -79,11 +81,12 @@ def load_pdbbind_grid(split="index", feat="grid", subset="core"):
         max_num_neighbors, neighbor_cutoff)
   else:
     raise ValueError("feat not defined.")
-  
+
   # Featurize Dataset
   features = []
   feature_len = None
   y_inds = []
+  time1 = time.time()
   for ind, pdb_code in enumerate(ids):
     print("Processing complex %d, %s" % (ind, str(pdb_code)))
     pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
@@ -96,11 +99,18 @@ def load_pdbbind_grid(split="index", feat="grid", subset="core"):
       continue
     y_inds.append(ind)
     features.append(computed_feature)
+  time2 = time.time()
+  print("TIMING: PDBBind Featurization took %0.3f s" % (time2-time1))
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)
    
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
+  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
+  return dataset, tasks
+
+def load_pdbbind_grid(split="index", feat="grid", subset="core"):
+  """Load PDBBind datasets. Does not do train/test split"""
+  dataset, tasks = featurize_pdbbind(feat=feat, subset=subset)
   transformers = []
 
   splitters = {'index': dc.splits.IndexSplitter(),
