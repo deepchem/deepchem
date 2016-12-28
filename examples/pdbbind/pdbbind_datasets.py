@@ -11,18 +11,29 @@ import numpy as np
 import pandas as pd
 import shutil
 import time
+import re
 from rdkit import Chem
 import deepchem as dc
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
+  # Some complexes have labels but no PDB files. Filter these manually
+  missing_pdbs = ["1d2v", "1jou", "1s8j", "1cam", "4mlt", "4o7d"]
   contents = []
   with open(labels_file) as f:
     for line in f:
       if line.startswith("#"):
         continue
       else:
-        contents.append(line.split())
+        # Some of the ligand-names are of form (FMN ox). Use regex
+        # to merge into form (FMN-ox)
+        p = re.compile('\(([^\)\s]*) ([^\)\s]*)\)')
+        line = p.sub('(\\1-\\2)', line)
+        elts = line.split()
+        # Filter if missing PDB files
+        if elts[0] in missing_pdbs:
+          continue
+        contents.append(elts)
   contents_df = pd.DataFrame(
       contents,
       columns=("PDB code", "resolution", "release year", "-logKd/Ki", "Kd/Ki",
@@ -86,10 +97,15 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   features = []
   feature_len = None
   y_inds = []
+  missing_pdbs = []
   time1 = time.time()
   for ind, pdb_code in enumerate(ids):
     print("Processing complex %d, %s" % (ind, str(pdb_code)))
     pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
+    if not os.path.exists(pdb_subdir):
+      print("%s is missing!" % pdb_subdir)
+      missing_pdbs.append(pdb_subdir)
+      continue
     computed_feature = compute_pdbbind_features(
         featurizer, pdb_subdir, pdb_code)
     if feature_len is None:
@@ -101,6 +117,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     features.append(computed_feature)
   time2 = time.time()
   print("TIMING: PDBBind Featurization took %0.3f s" % (time2-time1))
+  print("missing_pdbs")
+  print(missing_pdbs)
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)
@@ -114,8 +132,7 @@ def load_pdbbind_grid(split="index", feat="grid", subset="core"):
   transformers = []
 
   splitters = {'index': dc.splits.IndexSplitter(),
-               'random': dc.splits.RandomSplitter(),
-               'scaffold': dc.splits.ScaffoldSplitter()}
+               'random': dc.splits.RandomSplitter()}
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
   
