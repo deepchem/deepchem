@@ -51,7 +51,7 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
                                             hyd_output=None,
                                             pdbqt_output=None,
                                             protein=True,
-                                            verbose=False):
+                                            verbose=True):
   """Outputs a hydrogenated pdb and a pdbqt with partial charges.
 
   Takes an input file in specified format. Generates two outputs:
@@ -77,39 +77,62 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
   if verbose:
     print("Create pdb with hydrogens added")
   hyd_conversion = openbabel.OBConversion()
-  hyd_conversion.SetInAndOutFormats(str(input_format), str("pdb"))
+  hyd_conv = hyd_conversion.SetInAndOutFormats(str(input_format), str("pdb"))
+  ############################################################ DEBUG
+  print("input_format")
+  print(input_format)
+  print("hyd_conv")
+  print(hyd_conv)
+  ############################################################ DEBUG
   mol = openbabel.OBMol()
   hyd_conversion.ReadFile(mol, str(input_file))
   # AddHydrogens(not-polaronly, correctForPH, pH)
   mol.AddHydrogens(False, True, 7.4)
-  hyd_conversion.WriteFile(mol, str(hyd_output))
+  hyd_out = hyd_conversion.WriteFile(mol, str(hyd_output))
+  ############################################################ DEBUG
+  print("hyd_out")
+  print(hyd_out)
+  print("os.path.exists(hyd_output)")
+  print(os.path.exists(hyd_output))
+  ############################################################ DEBUG
 
   if verbose:
     print("Create a pdbqt file from the hydrogenated pdb above.")
   charge_conversion = openbabel.OBConversion()
-  charge_conversion.SetInAndOutFormats(str("pdb"), str("pdbqt"))
+  charge_conv = charge_conversion.SetInAndOutFormats(str("pdb"), str("pdbqt"))
+  ############################################################ DEBUG
+  print("charge_conv")
+  print(charge_conv)
+  ############################################################ DEBUG
 
-  if protein and verbose:
-    print("Make protein rigid.")
   if protein:
-    charge_conversion.AddOption(str("c"), charge_conversion.OUTOPTIONS)
+    print("Make protein rigid.")
     charge_conversion.AddOption(str("r"), charge_conversion.OUTOPTIONS)
-  if verbose:
-    print("Preserve hydrogens")
+    charge_conversion.AddOption(str("c"), charge_conversion.OUTOPTIONS)
+  print("Preserve hydrogens")
   charge_conversion.AddOption(str("h"), charge_conversion.OUTOPTIONS)
-  if verbose:
-    print("Preserve atom indices")
+  print("Preserve atom indices")
   charge_conversion.AddOption(str("p"), charge_conversion.OUTOPTIONS)
-  if verbose:
-    print("preserve atom indices.")
+  print("preserve atom indices.")
   charge_conversion.AddOption(str("n"), charge_conversion.OUTOPTIONS)
 
-  if verbose:
-    print("About to run obabel conversion.")
+  print("About to run obabel conversion.")
   mol = openbabel.OBMol()
   charge_conversion.ReadFile(mol, str(hyd_output))
   force_partial_charge_computation(mol)
   charge_conversion.WriteFile(mol, str(pdbqt_output))
+
+  if protein:
+    print("Removing ROOT/ENDROOT/TORSDOF")
+    with open(pdbqt_output) as f:
+      pdbqt_lines = f.readlines()
+    filtered_lines = []
+    for line in pdbqt_lines:
+      if "ROOT" in line or "ENDROOT" in line or "TORSDOF" in line:
+        continue
+      filtered_lines.append(line)
+    with open(pdbqt_output, "w") as f:
+      f.writelines(filtered_lines)
 
 class AromaticRing(object):
   """Holds information about an aromatic ring."""
