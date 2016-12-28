@@ -535,7 +535,7 @@ if __name__ == '__main__':
   hps['logreg'] = [{'penalty': 0.1, 'penalty_type': 'l2', 'batch_size': 50, 
                     'nb_epoch': 10, 'learning_rate': 0.005}]
                 
-  hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 10, 
+  hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 15, 
                        'learning_rate': 0.0005, 'n_filters': 64, 
                        'n_fully_connected_nodes': 128, 'seed': 123}]
 
