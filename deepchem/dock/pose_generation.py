@@ -91,6 +91,8 @@ class VinaPoseGenerator(object):
                                             protein=True)
     # Get protein centroid and range
     receptor_pybel = next(pybel.readfile(str("pdb"), str(protein_hyd)))
+    # TODO(rbharath): Need to add some way to identify binding pocket, or this is
+    # going to be extremely slow!
     protein_centroid, protein_range = get_molecule_data(receptor_pybel)
     box_dims = protein_range + 5.0
 

@@ -22,16 +22,36 @@ class TestPoseScoring(unittest.TestCase):
   """
   Does sanity checks on pose generation. 
   """
+  def setUp(self):
+    """Downloads dataset."""
+    call("wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".split())
+    call("tar -zxvf core_grid.tar.gz".split())
+    self.core_dataset = dc.data.DiskDataset("core_grid/")
+
+  def tearDown(self):
+    """Removes dataset"""
+    call("rm -rf core_grid/".split())
 
   def test_pose_scorer_init(self):
     """Tests that pose-score works."""
-    call("wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".split())
-    call("tar -zxvf core_grid.tar.gz".split())
-    core_dataset = dc.data.DiskDataset("core_grid/")
+    sklearn_model = RandomForestRegressor(n_estimators=10)
+    model = dc.models.SklearnModel(sklearn_model)
+    print("About to fit model on core set")
+    model.fit(self.core_dataset)
+
+    pose_scorer = dc.dock.PoseScorer(model, feat="grid")
+
+  def test_pose_scorer_score(self):
+    """Tests that scores are generated"""
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
     print("About to fit model on core set")
-    model.fit(core_dataset)
+    model.fit(self.core_dataset)
 
     pose_scorer = dc.dock.PoseScorer(model, feat="grid")
+    score = pose_scorer.score(protein_file, ligand_file)
+    assert score.shape == (1,)

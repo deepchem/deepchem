@@ -42,6 +42,8 @@ def get_ligand_filetype(ligand_filename):
     return ".mol2"
   elif ".sdf" in ligand_filename:
     return "sdf"
+  elif ".pdbqt" in ligand_filename:
+    return ".pdbqt"
   elif ".pdb" in ligand_filename:
     return ".pdb"
   else:
@@ -63,6 +65,11 @@ def load_molecule(molecule_file, remove_hydrogens=True,
   elif ".sdf" in molecule_file:
     obConversion = ob.OBConversion()
     obConversion.SetInAndOutFormats(str("sdf"), str("sdf"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(molecule_file))
+  elif ".pdbqt" in molecule_file:
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("pdbqt"), str("pdbqt"))
     ob_mol = ob.OBMol()
     obConversion.ReadFile(ob_mol, str(molecule_file))
   elif ".pdb" in molecule_file:
