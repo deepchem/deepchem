@@ -161,7 +161,6 @@ class TestDataLoader(unittest.TestCase):
     # Now perform move
     shutil.move(data_dir, moved_data_dir)
 
-    moved_featurized_dataset = dc.data.DiskDataset(
-        data_dir=moved_data_dir, reload=True)
+    moved_featurized_dataset = dc.data.DiskDataset(moved_data_dir)
 
     assert len(moved_featurized_dataset) == n_dataset
