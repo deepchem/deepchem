@@ -82,7 +82,7 @@ def benchmark_loading_datasets(hyper_parameters,
   #assigning featurizer
   if model in ['graphconv', 'graphconvreg']:
     featurizer = 'GraphConv'
-    n_features = 71
+    n_features = 75
   elif model in ['tf', 'tf_robust', 'logreg', 'rf', 'tf_regression']:
     featurizer = 'ECFP'
     n_features = 1024
@@ -548,7 +548,8 @@ if __name__ == '__main__':
                            'penalty': 0.0005, 'penalty_type': 'l2', 
                            'batch_size': 128, 'nb_epoch': 50, 
                            'learning_rate': 0.00008}]
-  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 50, 
+  
+  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 20, 
                           'learning_rate': 0.0005, 'n_filters': 128, 
                           'n_fully_connected_nodes': 256, 'seed': 123}]
 
