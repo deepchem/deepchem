@@ -50,10 +50,11 @@ def get_molecule_data(pybel_molecule):
 
 class VinaPoseGenerator(object):
 
-  def __init__(self):
+  def __init__(self, exhaustiveness=1):
     """Initializes Vina Pose generation"""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.vina_dir = os.path.join(current_dir, "autodock_vina_1_1_2_linux_x86")
+    self.exhaustiveness = exhaustiveness
     if not os.path.exists(self.vina_dir):
       print("Vina not available. Downloading")
       # TODO(rbharath): May want to move this file to S3 so we can ensure it's
@@ -79,10 +80,6 @@ class VinaPoseGenerator(object):
 
     # Prepare receptor 
     receptor_name = os.path.basename(protein_file).split(".")[0]
-    ################################################### DEBUG
-    print("receptor_name")
-    print(receptor_name)
-    ################################################### DEBUG
     protein_hyd = os.path.join(out_dir, "%s.pdb" % receptor_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % receptor_name)
     hydrogenate_and_compute_partial_charges(protein_file, "pdb",
@@ -98,10 +95,6 @@ class VinaPoseGenerator(object):
 
     # Prepare receptor
     ligand_name = os.path.basename(ligand_file).split(".")[0]
-    ################################################### DEBUG
-    print("ligand_name")
-    print(ligand_name)
-    ################################################### DEBUG
     ligand_hyd = os.path.join(out_dir, "%s.pdb" % ligand_name)
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
@@ -114,7 +107,7 @@ class VinaPoseGenerator(object):
     # Write Vina conf file
     conf_file = os.path.join(out_dir, "conf.txt")
     write_conf(protein_pdbqt, ligand_pdbqt, protein_centroid,
-               box_dims, conf_file, exhaustiveness=1)
+               box_dims, conf_file, exhaustiveness=self.exhaustiveness)
 
     # Define locations of log and output files
     log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)

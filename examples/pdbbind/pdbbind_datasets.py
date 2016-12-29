@@ -129,11 +129,18 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 def load_pdbbind_grid(split="index", feat="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=feat, subset=subset)
-  transformers = []
 
   splitters = {'index': dc.splits.IndexSplitter(),
                'random': dc.splits.RandomSplitter()}
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  transformers = []
+  for transformer in transformers:
+    train = transformer.transform(train)
+  for transformer in transformers:
+    valid = transformer.transform(valid)
+  for transformer in transformers:
+    test = transformer.transform(test)
   
   return tasks, (train, valid, test), transformers

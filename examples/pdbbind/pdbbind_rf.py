@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import os
 import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -17,18 +18,23 @@ from pdbbind_datasets import load_pdbbind_grid
 # For stable runs 
 np.random.seed(123)
 
+split = "random"
+subset = "full"
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_grid(
-    subset="core")
+    split=split, subset=subset)
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets 
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
-n_features = train_dataset.X.shape[1]
+current_dir = os.path.dirname(os.path.realpath(__file__))
+model_dir = os.path.join(current_dir, "%s_%s_RF" % (split, subset))
+
 sklearn_model = RandomForestRegressor(n_estimators=500)
-model = dc.models.SklearnModel(sklearn_model)
+model = dc.models.SklearnModel(sklearn_model, model_dir=model_dir)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=20)
+print("Fitting model on train dataset")
+model.fit(train_dataset)
 model.save()
 
 print("Evaluating model")

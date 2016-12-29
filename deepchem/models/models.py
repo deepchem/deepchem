@@ -31,7 +31,7 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, model_instance, model_dir=None,
+  def __init__(self, model_instance=None, model_dir=None,
                fit_transformers=None, verbose=True, **kwargs):
     """Abstract class for all models.
     Parameters:

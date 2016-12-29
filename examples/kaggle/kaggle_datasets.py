@@ -77,6 +77,8 @@ def load_kaggle(shard_size=2000, featurizer=None):
       dc.trans.LogTransformer(transform_X=True),
       dc.trans.NormalizationTransformer(transform_y=True,
                                         dataset=train_dataset)]
+
+  # TODO(rbharath): Is this a bug in the Kaggle data transformation?
   for transformer in transformers:
     print("Performing transformations with %s"
           % transformer.__class__.__name__)
