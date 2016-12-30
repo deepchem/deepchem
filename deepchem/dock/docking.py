@@ -81,6 +81,4 @@ class VinaGridDNNDocker(object):
     protein_docked, ligand_docked = self.pose_generator.generate_poses(
         protein_file, ligand_file)
     score = self.pose_scorer.score(protein_docked, ligand_docked)
-    #score = self.pose_scorer.score(protein_file, ligand_file)
     return (score, (protein_docked, ligand_docked))
-    #return (score, (protein_file, ligand_file))

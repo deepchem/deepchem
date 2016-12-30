@@ -78,32 +78,16 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
     print("Create pdb with hydrogens added")
   hyd_conversion = openbabel.OBConversion()
   hyd_conv = hyd_conversion.SetInAndOutFormats(str(input_format), str("pdb"))
-  ############################################################ DEBUG
-  print("input_format")
-  print(input_format)
-  print("hyd_conv")
-  print(hyd_conv)
-  ############################################################ DEBUG
   mol = openbabel.OBMol()
   hyd_conversion.ReadFile(mol, str(input_file))
   # AddHydrogens(not-polaronly, correctForPH, pH)
   mol.AddHydrogens(False, True, 7.4)
   hyd_out = hyd_conversion.WriteFile(mol, str(hyd_output))
-  ############################################################ DEBUG
-  print("hyd_out")
-  print(hyd_out)
-  print("os.path.exists(hyd_output)")
-  print(os.path.exists(hyd_output))
-  ############################################################ DEBUG
 
   if verbose:
     print("Create a pdbqt file from the hydrogenated pdb above.")
   charge_conversion = openbabel.OBConversion()
   charge_conv = charge_conversion.SetInAndOutFormats(str("pdb"), str("pdbqt"))
-  ############################################################ DEBUG
-  print("charge_conv")
-  print(charge_conv)
-  ############################################################ DEBUG
 
   if protein:
     print("Make protein rigid.")
