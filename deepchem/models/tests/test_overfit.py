@@ -510,7 +510,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # Eval model on train
         scores = model.evaluate(dataset, [classification_metric])
 
-      assert scores[classification_metric.name] > .75
+      assert scores[classification_metric.name] > .65
 
   def test_graph_conv_singletask_regression_overfit(self):
     """Test graph-conv multitask overfits tiny data."""

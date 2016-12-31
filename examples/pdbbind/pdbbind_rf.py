@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow models on PDBbind dataset.
+Script that trains Sklearn RF models on PDBbind dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -10,14 +10,13 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
 import os
+import deepchem as dc
 import numpy as np
-import tensorflow as tf
+from sklearn.ensemble import RandomForestRegressor
+from pdbbind_datasets import load_pdbbind_grid
+
 # For stable runs 
 np.random.seed(123)
-tf.set_random_seed(123)
-
-import deepchem as dc
-from pdbbind_datasets import load_pdbbind_grid
 
 split = "random"
 subset = "full"
@@ -28,15 +27,14 @@ train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-model_dir = os.path.join(current_dir, "%s_%s_DNN" % (split, subset))
+model_dir = os.path.join(current_dir, "%s_%s_RF" % (split, subset))
 
-n_features = train_dataset.X.shape[1]
-model = dc.models.TensorflowMultiTaskRegressor(
-    len(pdbbind_tasks), n_features, logdir=model_dir, dropouts=[.25],
-    learning_rate=0.0003, weight_init_stddevs=[.1], batch_size=64)
+sklearn_model = RandomForestRegressor(n_estimators=500)
+model = dc.models.SklearnModel(sklearn_model, model_dir=model_dir)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=100)
+print("Fitting model on train dataset")
+model.fit(train_dataset)
 model.save()
 
 print("Evaluating model")
