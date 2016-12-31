@@ -16,6 +16,13 @@ import tempfile
 from deepchem.feat import hydrogenate_and_compute_partial_charges
 from subprocess import call
 
+class PoseGenerator(object):
+  """Abstract superclass for all pose-generation routines."""
+
+  def generate_poses(self, protein_file, ligand_file, out_dir=None):
+    """Generates the docked complex and outputs files for docked complex."""
+    raise NotImplementedError
+
 def write_conf(receptor_filename, ligand_filename, centroid, box_dims,
                conf_filename, exhaustiveness=None):
   """Writes Vina configuration file to disk."""
@@ -48,7 +55,7 @@ def get_molecule_data(pybel_molecule):
   return protein_centroid, protein_range
 
 
-class VinaPoseGenerator(object):
+class VinaPoseGenerator(PoseGenerator):
 
   def __init__(self, exhaustiveness=1):
     """Initializes Vina Pose generation"""

@@ -17,6 +17,13 @@ from deepchem.data import NumpyDataset
 from subprocess import call
 
 class PoseScorer(object):
+  """Abstract superclass for all scoring methods."""
+
+  def score(self, protein_file, ligand_file):
+    """Returns a score for a protein/ligand pair."""
+    raise NotImplementedError
+
+class GridPoseScorer(object):
 
   def __init__(self, model, feat="grid"):
     """Initializes a pose-scorer."""

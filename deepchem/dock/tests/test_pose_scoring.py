@@ -39,7 +39,7 @@ class TestPoseScoring(unittest.TestCase):
     print("About to fit model on core set")
     model.fit(self.core_dataset)
 
-    pose_scorer = dc.dock.PoseScorer(model, feat="grid")
+    pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")
 
   def test_pose_scorer_score(self):
     """Tests that scores are generated"""
@@ -52,6 +52,6 @@ class TestPoseScoring(unittest.TestCase):
     print("About to fit model on core set")
     model.fit(self.core_dataset)
 
-    pose_scorer = dc.dock.PoseScorer(model, feat="grid")
+    pose_scorer = dc.dock.GridPoseScorer(model, feat="grid")
     score = pose_scorer.score(protein_file, ligand_file)
     assert score.shape == (1,)

@@ -16,7 +16,7 @@ from deepchem.feat import GridFeaturizer
 from deepchem.data import DiskDataset
 from deepchem.models import SklearnModel
 from deepchem.models import TensorflowMultiTaskRegressor
-from deepchem.dock.pose_scoring import PoseScorer
+from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
@@ -27,7 +27,7 @@ class Docker(object):
   def dock(self, protein_file, ligand_file):
     raise NotImplementedError
 
-class VinaGridRFDocker(object):
+class VinaGridRFDocker(Docker):
   """Vina pose-generation, RF-models on grid-featurization of complexes."""
 
   def __init__(self):
@@ -43,7 +43,7 @@ class VinaGridRFDocker(object):
     model = SklearnModel(model_dir=self.model_dir)
     model.reload()
 
-    self.pose_scorer = PoseScorer(model, feat="grid")
+    self.pose_scorer = GridPoseScorer(model, feat="grid")
     self.pose_generator = VinaPoseGenerator() 
 
   def dock(self, protein_file, ligand_file):
@@ -73,7 +73,7 @@ class VinaGridDNNDocker(object):
         learning_rate=0.0003, weight_init_stddevs=[.1], batch_size=64)
     model.reload()
 
-    self.pose_scorer = PoseScorer(model, feat="grid")
+    self.pose_scorer = GridPoseScorer(model, feat="grid")
     self.pose_generator = VinaPoseGenerator() 
 
   def dock(self, protein_file, ligand_file):
