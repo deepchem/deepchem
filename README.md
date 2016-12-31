@@ -46,48 +46,28 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install -c omnia openbabel=2.4.0
    ``` 
 
-3. `pandas`
-   ```bash
-   conda install pandas 
-   ```
-
-4. `rdkit`
+3. `rdkit`
    ```bash
    conda install -c omnia rdkit
    ```
 
-5. `boost`
-   ```bash
-   conda install -c omnia boost=1.59.0
-   ```
-
-6. `joblib`
+4. `joblib`
    ```bash
    conda install joblib 
    ```
 
-7. `keras`
+5. `keras`
    ```bash
-   pip install keras --user
+   pip install keras
    ```
-   `deepchem` only supports the `tensorflow` backend for keras. To set the backend to `tensorflow`,
-   add the following line to your `~/.bashrc`
-   ```bash
-   export KERAS_BACKEND=tensorflow
-   ```
-   See [keras docs](https://keras.io/backend/) for more details and alternate methods of setting backend.
-
-8. `mdtraj`
+   `deepchem` only supports the `tensorflow` (default) backend for keras.
+   
+6. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
    ```
-   
-9. `scikit-learn`
-   ```bash
-   conda install scikit-learn 
-   ```
 
-10. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+7. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -95,32 +75,27 @@ Installation from source is the only currently supported format. ```deepchem``` 
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-11. `h5py`:
-    ```
-    conda install h5py
-    ```
+8. `deepchem`: Clone the `deepchem` github repo:
+   ```bash
+   git clone https://github.com/deepchem/deepchem.git
+   ```
+   `cd` into the `deepchem` directory and execute
+   ```bash
+   python setup.py install
+   ```
 
-12. `deepchem`: Clone the `deepchem` github repo:
-    ```bash
-    git clone https://github.com/deepchem/deepchem.git
-    ```
-    `cd` into the `deepchem` directory and execute
-    ```bash
-    python setup.py install
-    ```
+9. To run test suite, install `nosetests`:
+   ```bash
+   pip install nose
+   ```
+   Make sure that the correct version of `nosetests` is active by running
+   ```bash
+   which nosetests 
+   ```
+   You might need to uninstall a system install of `nosetests` if
+   there is a conflict.
 
-13. To run test suite, install `nosetests`:
-    ```bash
-    pip install nose --user
-    ```
-    Make sure that the correct version of `nosetests` is active by running
-    ```bash
-    which nosetests 
-    ```
-    You might need to uninstall a system install of `nosetests` if
-    there is a conflict.
-
-14. If installation has been successful, all tests in test suite should pass:
+10. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
@@ -181,10 +156,12 @@ Environmental Protection Agency, Environmental Research Laboratory, 1987.
 Most machine learning algorithms require that input data form vectors.
 However, input data for drug-discovery datasets routinely come in the
 format of lists of molecules and associated experimental readouts. To
-transform lists of molecules into vectors, we need to use the DeepChem
-loader class ``dc.load.DataLoader``. Instances of this class must be
-passed a ``Featurizer`` object. DeepChem provides a number of
-different subclasses of ``Featurizer`` for convenience:
+transform lists of molecules into vectors, we need to subclasses of DeepChem
+loader class ```dc.data.DataLoader``` such as ```dc.data.CSVLoader``` or 
+```dc.data.SDFLoader```. Users can subclass ```dc.data.DataLoader``` to
+load arbitrary file formats. All loaders must be
+passed a ```dc.feat.Featurizer``` object. DeepChem provides a number of
+different subclasses of ```dc.feat.Featurizer``` for convenience.
 
 ### Performances
 * Classification
