@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import sys
 import unittest
 import tempfile
 import os

@@ -738,8 +738,8 @@ def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
 
   protein_atom_index = contact[0]
   ligand_atom_index = contact[1]
-  protein_atom = protein.GetAtom(protein_atom_index+1)
-  ligand_atom = ligand.GetAtom(ligand_atom_index+1)
+  protein_atom = protein.GetAtom(int(protein_atom_index+1))
+  ligand_atom = ligand.GetAtom(int(ligand_atom_index+1))
   if protein_atom.IsHbondAcceptor() and ligand_atom.IsHbondDonor():
     for atom in ob.OBAtomAtomIter(ligand_atom):
       if atom.GetAtomicNum() == 1:
