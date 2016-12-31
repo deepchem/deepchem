@@ -546,7 +546,7 @@ def _featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
 def _compute_ring_center(mol, ring):
   ring_xyz = np.zeros((len(ring._path), 3))
   for i, atom_idx in enumerate(ring._path):
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     ring_xyz[i, :] = [atom.x(), atom.y(), atom.z()]
   ring_centroid = _compute_centroid(ring_xyz)
   return ring_centroid
@@ -555,7 +555,7 @@ def _compute_ring_normal(mol, ring):
   points = np.zeros((3,3))
   for i, atom_idx in enumerate(ring._path):
     if i == 3: break
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     points[i,:] = [atom.x(), atom.y(), atom.z()]
 
   v1 = points[1,:] - points[0,:]
@@ -718,8 +718,8 @@ def _compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand, pairwise_dis
   contacts = np.nonzero(pairwise_distances < 5.0)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
-    protein_atom = protein.GetAtom(contact[0]+1)
-    ligand_atom = ligand.GetAtom(contact[1]+1)
+    protein_atom = protein.GetAtom(int(contact[0]+1))
+    ligand_atom = ligand.GetAtom(int(contact[1]+1))
     if _is_salt_bridge(protein_atom, ligand_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
