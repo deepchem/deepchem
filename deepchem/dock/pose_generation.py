@@ -26,7 +26,7 @@ class PoseGenerator(object):
 def write_conf(receptor_filename, ligand_filename, centroid, box_dims,
                conf_filename, exhaustiveness=None):
   """Writes Vina configuration file to disk."""
-  with open(conf_filename, "wb") as f:
+  with open(conf_filename, "w") as f:
     f.write("receptor = %s\n" % receptor_filename)
     f.write("ligand = %s\n\n" % ligand_filename)
 
