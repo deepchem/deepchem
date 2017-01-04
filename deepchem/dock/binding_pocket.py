@@ -1,12 +1,12 @@
 """
-Generates protein-ligand docked poses using Autodock Vina.
+Computes putative binding pockets on protein.
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
-__copyright__ = "Copyright 2016, Stanford University"
+__copyright__ = "Copyright 2017, Stanford University"
 __license__ = "GPL"
 
 import numpy as np
@@ -160,7 +160,6 @@ def merge_overlapping_boxes(mapping, boxes, threshold=.8):
     boxes = new_boxes
     mapping = new_mapping
   return outputs, mapping
-
 
 class BindingPocketFinder(object):
   """Abstract superclass for binding pocket detectors"""

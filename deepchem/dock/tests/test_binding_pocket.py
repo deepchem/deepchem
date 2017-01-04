@@ -1,5 +1,5 @@
 """
-Tests for Pose Generation 
+Tests for binding pocket detection. 
 """
 from __future__ import print_function
 from __future__ import division
@@ -55,7 +55,7 @@ class TestPoseGeneration(unittest.TestCase):
 
     mapping = dc.dock.binding_pocket.boxes_to_atoms(coords, boxes)
     assert isinstance(mapping, dict)
-    for box, box_atoms in mapping.iteritems():
+    for box, box_atoms in mapping.items():
       (x_min, x_max), (y_min, y_max), (z_min, z_max) = box
       for atom_ind in box_atoms:
         atom = coords[atom_ind]
@@ -137,11 +137,6 @@ class TestPoseGeneration(unittest.TestCase):
     active_site_box, active_site_atoms, active_site_coords = (
         dc.dock.binding_pocket.extract_active_site(
             protein_file, ligand_file))
-    print("active_site_box")
-    print(active_site_box)
-    print("len(active_site_atoms)")
-    print(len(active_site_atoms))
-
     finder = dc.dock.ConvexHullPocketFinder()
     pockets, pocket_atoms = finder.find_pockets(protein_file, ligand_file)
 
