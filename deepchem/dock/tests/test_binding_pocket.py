@@ -124,7 +124,7 @@ class TestPoseGeneration(unittest.TestCase):
     finder = dc.dock.ConvexHullPocketFinder()
 
     all_pockets = finder.find_all_pockets(protein_file)
-    pockets = finder.find_pockets(protein_file, ligand_file)
+    pockets, _, _ = finder.find_pockets(protein_file, ligand_file)
 
     assert len(pockets) < len(all_pockets)
 
@@ -138,7 +138,7 @@ class TestPoseGeneration(unittest.TestCase):
         dc.dock.binding_pocket.extract_active_site(
             protein_file, ligand_file))
     finder = dc.dock.ConvexHullPocketFinder()
-    pockets, pocket_atoms = finder.find_pockets(protein_file, ligand_file)
+    pockets, pocket_atoms, _ = finder.find_pockets(protein_file, ligand_file)
 
     # Add active site to dict
     print("active_site_box")

@@ -164,7 +164,7 @@ def merge_overlapping_boxes(mapping, boxes, threshold=.8):
 class BindingPocketFinder(object):
   """Abstract superclass for binding pocket detectors"""
 
-  def find_pockets(self, protein_file):
+  def find_pockets(self, protein_file, ligand_file):
     """Finds potential binding pockets in proteins."""
     raise NotImplementedError
 
@@ -188,5 +188,12 @@ class ConvexHullPocketFinder(BindingPocketFinder):
     ligand_coords = load_molecule(ligand_file)[0]
     boxes = get_all_boxes(protein_coords, self.pad)
     mapping = boxes_to_atoms(protein_coords, boxes)
-    merged_boxes, mapping = merge_overlapping_boxes(mapping, boxes)
-    return merged_boxes, mapping
+    pockets, pocket_atoms = merge_overlapping_boxes(mapping, boxes)
+    pocket_coords = []
+    for pocket in pockets:
+      atoms = pocket_atoms[pocket]
+      coords = np.zeros((len(atoms), 3))
+      for ind, atom in enumerate(atoms):
+        coords[ind] = protein_coords[atom]
+      pocket_coords.append(coords)
+    return pockets, pocket_atoms, pocket_coords
