@@ -25,6 +25,7 @@ import deepchem as dc
 import tensorflow as tf
 import argparse
 from keras import backend as K
+import csv
 
 from low_data.datasets import load_tox21_convmol
 from low_data.datasets import load_muv_convmol
@@ -107,16 +108,16 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
                          train_dataset, valid_dataset, hp, n_feat,
                          model=model)
       time_finish_fitting = time.time() 
-      with open(os.path.join(out_path, 'results.csv'),'a') as f:
-        f.write('\n'+str(count_hp)+','+str(count_iter)+',')
-        f.write(dataset+','+model+',')
-        f.write('valid,')
+      with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+        writer = csv.writer(f)
+        output_line = [count_hp, count_iter, dataset, model, 'valid']
         for i in valid_scores:
-          f.write(str(i)+',')
+          output_line.append(i)
           for count in valid_scores[i]:
-            f.write(str(valid_scores[i][count])+',')
-        f.write('time_for_running,'+
-              str(time_finish_fitting-time_start_fitting)+',')
+            output_line.append(valid_scores[i][count])
+        output_line.append('time_for_running')
+        output_line.append(time_finish_fitting-time_start_fitting)
+        writer.writerow(output_line)
 
   return None
 
@@ -211,7 +212,7 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
           support_batch_size=support_batch_size, learning_rate=learning_rate)
         
       print('-------------------------------------')
-      print('Start fitting by graph convolution')
+      print('Start fitting by low data model: ' + model)
       # Fit trained model
       model_low_data.fit(train_dataset, nb_epochs=nb_epochs,
             n_episodes_per_epoch=n_train_trials,
@@ -259,7 +260,7 @@ if __name__ == '__main__':
   #    batch_size
   hps = {}
   hps = {}
-  hps['siamese'] = [{'K': 4, 'n_feat': 71, 'n_pos': 1, 'n_neg': 1,
+  hps['siamese'] = [{'K': 4, 'n_feat': 75, 'n_pos': 1, 'n_neg': 1,
                      'test_batch_size': 128, 'n_filters': [64, 128, 64],
                      'n_fully_connected_nodes': [128], 'max_depth': 3,
                      'nb_epochs': 1, 'n_train_trials': 2000, 

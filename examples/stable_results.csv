@@ -20,6 +20,7 @@
 0,pcba,index,classification,train,logreg,0.8087514041,valid,logreg,0.7757913202,time_for_running,11075.2340579
 0,pcba,index,classification,train,graphconv,0.87647472,valid,graphconv,0.8523348204,time_for_running,14497.7339029
 0,delaney,index,regression,train,tf_regression,0.7830983671,valid,tf_regression,0.5789729655,time_for_running,41.1367759705
+0,delaney,index,regression,train,graphconvreg,0.9911206824,valid,graphconvreg,0.7892057714,time_for_running,101.8902909756
 0,kaggle,None,regression,train,tf_regression,0.7480423542,valid,tf_regression,0.4516795145,time_for_running,3238.91535401
 0,tox21,random,classification,train,tf,0.8565178786,valid,tf,0.7834036936,time_for_running,53.8197240829
 0,tox21,random,classification,train,tf_robust,0.8549658589,valid,tf_robust,0.7735497329,time_for_running,88.9351768494
@@ -42,6 +43,7 @@
 0,pcba,random,classification,train,logreg,0.8075221378,valid,logreg,0.7758407198,time_for_running,8754.5542872
 0,pcba,random,classification,train,graphconv,0.872172184,valid,graphconv,0.8435271472,time_for_running,11502.8221002
 0,delaney,random,regression,train,tf_regression,0.7791066217,valid,tf_regression,0.6164873014,time_for_running,35.6433098316
+0,delaney,random,regression,train,graphconvreg,0.9951851944,valid,graphconvreg,0.8397307618,time_for_running,102.9403319359
 0,tox21,scaffold,classification,train,tf,0.8626085326,valid,tf,0.7030201614,time_for_running,63.5685660839
 0,tox21,scaffold,classification,train,tf_robust,0.8608722489,valid,tf_robust,0.7100530015,time_for_running,101.614424944
 0,tox21,scaffold,classification,train,logreg,0.9004137009,valid,logreg,0.650190286,time_for_running,60.018599987
@@ -63,3 +65,4 @@
 0,pcba,scaffold,classification,train,logreg,0.8099796593,valid,logreg,0.7423270057,time_for_running,9959.83747697
 0,pcba,scaffold,classification,train,graphconv,0.8743221913,valid,graphconv,0.8166550236,time_for_running,14184.1512611
 0,delaney,scaffold,regression,train,tf_regression,0.7893516465,valid,tf_regression,0.4218847009,time_for_running,35.2720739841
+0,delaney,scaffold,regression,train,graphconvreg,0.992822139,valid,graphconvreg,0.5578625785,time_for_running,100.2594189644
