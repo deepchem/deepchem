@@ -13,8 +13,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_nci(featurizer='ECFP', shard_size=1000, 
-             num_shards_per_batch=4, split='random'):
+def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -51,8 +50,7 @@ def load_nci(featurizer='ECFP', shard_size=1000,
   loader = dc.data.CSVLoader(
       tasks=all_nci_tasks, smiles_field="smiles", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_paths, shard_size=shard_size,
-                             num_shards_per_batch=num_shards_per_batch)
+  dataset = loader.featurize(dataset_paths, shard_size=shard_size)
 
   # Initialize transformers
   print("About to transform data")

@@ -23,7 +23,7 @@ class TestGraphTopology(unittest.TestCase):
     n_atoms = 5
     n_feat = 10
     batch_size = 3
-    max_deg = 6
+    max_deg = 10
     min_deg = 0
     topology = GraphTopology(n_feat)
 

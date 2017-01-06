@@ -30,7 +30,7 @@ with g.as_default():
 
   # Do setup required for tf/keras models
   # Number of features on conv-mols
-  n_feat = 71
+  n_feat = 75
   # Batch size of models
   batch_size = 50
   graph_model = dc.nn.SequentialGraph(n_feat)

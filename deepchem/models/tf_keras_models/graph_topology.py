@@ -26,7 +26,7 @@ def merge_dicts(l):
 
 class GraphTopology(object):
   """Manages placeholders associated with batch of graphs and their topology"""
-  def __init__(self, n_feat, name='topology', max_deg=6,
+  def __init__(self, n_feat, name='topology', max_deg=10,
                min_deg=0):
     """
     Note that batch size is not specified in a GraphTopology object. A batch

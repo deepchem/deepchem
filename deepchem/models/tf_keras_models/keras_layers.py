@@ -200,7 +200,7 @@ class GraphConv(Layer):
   GraphTopology.get_input_placeholders().
   """
   def __init__(self, nb_filter, init='glorot_uniform', activation='linear',
-               dropout=None, max_deg=6, min_deg=0, **kwargs):
+               dropout=None, max_deg=10, min_deg=0, **kwargs):
     """
     Parameters
     ----------
@@ -388,7 +388,7 @@ class GraphPool(Layer):
   in bond-graph. Returns a tensor of the same size as the input.
   """
 
-  def __init__(self, max_deg=6, min_deg=0, **kwargs):        
+  def __init__(self, max_deg=10, min_deg=0, **kwargs):        
     """
     Parameters
     ----------
