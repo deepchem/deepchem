@@ -25,7 +25,7 @@ class TestPoseScoring(unittest.TestCase):
   """
   def setUp(self):
     """Downloads dataset."""
-    call("wget http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".split())
+    call("wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".split())
     call("tar -zxvf core_grid.tar.gz".split())
     self.core_dataset = dc.data.DiskDataset("core_grid/")
 
