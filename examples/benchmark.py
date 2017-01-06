@@ -5,13 +5,19 @@ Created on Tue Oct 18 15:53:27 2016
 
 @author: Michael Wu
 
-Benchmark test
-Giving performances of: Random forest(rf), MultitaskDNN(tf), 
-                        RobustMultitaskDNN(tf_robust),
-                        Logistic regression(logreg),
-                        Graph convolution(graphconv)
-                    
-on datasets: muv, nci, pcba, tox21, sider, toxcast
+Benchmark test:
+
+Giving classification performances of: 
+    Random forest(rf), MultitaskDNN(tf), 
+    RobustMultitaskDNN(tf_robust),
+    Logistic regression(logreg),
+    Graph convolution(graphconv)                 
+on datasets: muv, pcba, tox21, sider, toxcast
+
+Giving regression performances of:
+    MultitaskDNN(tf_regression),
+    Graph convolution regression(graphconvreg)
+on datasets: delaney, nci, kaggle
 
 time estimation listed in README file
 
@@ -30,6 +36,7 @@ import deepchem as dc
 import tensorflow as tf
 import argparse
 from keras import backend as K
+import csv
 
 from sklearn.ensemble import RandomForestClassifier
 
@@ -41,6 +48,7 @@ from toxcast.toxcast_datasets import load_toxcast
 from sider.sider_datasets import load_sider
 from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
+from nci.nci_datasets import load_nci
 
 def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
@@ -54,39 +62,37 @@ def benchmark_loading_datasets(hyper_parameters,
       hyper parameters including dropout rate, learning rate, etc.
   dataset: string, optional (default='tox21')
       choice of which dataset to use, should be: tox21, muv, sider, 
-      toxcast, pcba
+      toxcast, pcba, delaney, kaggle, nci
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      graphconv
+      graphconv, tf_regression, graphconvreg
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
   out_path: string, optional(default='.')
       path of result file
   """
   
-  if dataset in ['muv','nci','pcba','tox21','sider','toxcast']:
+  if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney']:
+  elif dataset in ['kaggle', 'delaney', 'nci']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
   
   #assigning featurizer
-  if model in ['graphconv']:
+  if model in ['graphconv', 'graphconvreg']:
     featurizer = 'GraphConv'
     n_features = 71
-  elif model in ['tf', 'tf_robust', 'logreg', 'rf']:
-    featurizer = 'ECFP'
-    n_features = 1024
-  elif model in ['tf_regression']:
-    if dataset in ['kaggle']:
-      featurizer = None #kaggle dataset use its own features
-      split = None #kaggle dataset is already splitted
+  elif model in ['tf', 'tf_robust', 'logreg', 'rf', 'tf_regression']:
     featurizer = 'ECFP'
     n_features = 1024
   else:
     raise ValueError('Model not supported')
-
+  
+  if dataset in ['kaggle']:
+    featurizer = None #kaggle dataset use its own features
+    split = None #kaggle dataset is already splitted
+  
   if not split in [None, 'index','random','scaffold']:
     raise ValueError('Splitter function not supported')
   
@@ -130,23 +136,25 @@ def benchmark_loading_datasets(hyper_parameters,
           model=model)  
     time_finish_fitting = time.time()
     
-    with open(os.path.join(out_path, 'results.csv'),'a') as f:
-      f.write('\n'+str(count)+',')
-      f.write(dataset+','+str(split)+','+mode+',train,')
+    
+    with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+      writer = csv.writer(f)
       if mode == 'classification':
         for i in train_score:
-          f.write(i+','+str(train_score[i]['mean-roc_auc_score'])+',')
-        f.write('valid,')
-        for i in valid_score:
-          f.write(i+','+str(valid_score[i]['mean-roc_auc_score'])+',')
+          output_line = [count, dataset, str(split), mode, 'train', i, 
+                         train_score[i]['mean-roc_auc_score'], 'valid', i, 
+                         valid_score[i]['mean-roc_auc_score'],
+                         'time_for_running',
+                         time_finish_fitting-time_start_fitting]
+          writer.writerow(output_line)
       else:
         for i in train_score:
-          f.write(i+','+str(train_score[i]['mean-pearson_r2_score'])+',')
-        f.write('valid,')
-        for i in valid_score:
-          f.write(i+','+str(valid_score[i]['mean-pearson_r2_score'])+',')
-      f.write('time_for_running,'+
-              str(time_finish_fitting-time_start_fitting)+',')
+          output_line = [count, dataset, str(split), mode, 'train', i, 
+                         train_score[i]['mean-pearson_r2_score'], 'valid', i, 
+                         valid_score[i]['mean-pearson_r2_score'], 
+                         'time_for_running',
+                         time_finish_fitting-time_start_fitting]
+          writer.writerow(output_line)
 
 def benchmark_classification(train_dataset, valid_dataset, tasks,
                              transformers, hyper_parameters, 
@@ -380,7 +388,7 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
   n_features: integer
       number of features, or length of binary fingerprints
   model: string,  optional (default='tf_regression')
-      choice of which model to use, should be: tf_regression
+      choice of which model to use, should be: tf_regression, graphconvreg
   
 
   Returns
@@ -396,7 +404,7 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
   # Initialize metrics
   regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
   
-  assert model in ['tf_regression']
+  assert model in ['tf_regression', 'graphconvreg']
 
   if model == 'tf_regression':
     # Loading hyper parameters
@@ -428,6 +436,50 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
 
     valid_scores['tf_regression'] = model_tf_regression.evaluate(
         valid_dataset, [regression_metric], transformers)
+  if model == 'graphconvreg':
+    # Initialize model folder
+
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']    
+    learning_rate = hyper_parameters['learning_rate']
+    n_filters = hyper_parameters['n_filters']
+    n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
+
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    K.set_session(sess)
+    # Building graph convoluwtion model
+    with g.as_default():
+      tf.set_random_seed(seed)
+      graph_model = dc.nn.SequentialGraph(n_features)
+      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphPool())
+      # Gather Projection
+      graph_model.add(dc.nn.Dense(int(n_fully_connected_nodes),
+                                  activation='relu'))
+      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+      with tf.Session() as sess:
+        model_graphconvreg = dc.models.MultitaskGraphRegressor(
+          sess, graph_model, len(tasks), 
+          batch_size=batch_size, learning_rate=learning_rate,
+          optimizer_type="adam", beta1=.9, beta2=.999)
+        
+        print('-------------------------------------')
+        print('Start fitting by graph convolution')
+        # Fit trained model
+        model_graphconvreg.fit(train_dataset, nb_epoch=nb_epoch)
+        # Evaluating graph convolution model
+        train_scores['graphconvreg'] = model_graphconvreg.evaluate(
+            train_dataset, [regression_metric], transformers)
+
+        valid_scores['graphconvreg'] = model_graphconvreg.evaluate(
+            valid_dataset, [regression_metric], transformers)
 
   return train_scores, valid_scores
 
@@ -441,9 +493,11 @@ if __name__ == '__main__':
   parser.add_argument('-s', action='append', dest='splitter_args', default=[],
       help='Choice of splitting function: index, random, scaffold')
   parser.add_argument('-m', action='append', dest='model_args', default=[], 
-      help='Choice of model: tf, tf_robust, logreg, graphconv')
+      help='Choice of model: tf, tf_robust, logreg, graphconv, ' + 
+           'tf_regression, graphconvreg')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
-      help='Choice of dataset: tox21, sider, muv, toxcast, pcba, kaggle, delaney')
+      help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' + 
+           'kaggle, delaney, nci')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
@@ -453,10 +507,11 @@ if __name__ == '__main__':
   if len(splitters) == 0:
     splitters = ['index', 'random', 'scaffold']
   if len(models) == 0:
-    models = ['tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression']
+    models = ['tf', 'tf_robust', 'logreg', 'graphconv', 
+              'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'kaggle', 'delaney']
+                'delaney', 'kaggle', 'nci']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
@@ -493,7 +548,11 @@ if __name__ == '__main__':
                            'penalty': 0.0005, 'penalty_type': 'l2', 
                            'batch_size': 128, 'nb_epoch': 50, 
                            'learning_rate': 0.00008}]
-         
+  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 50, 
+                          'learning_rate': 0.0005, 'n_filters': 128, 
+                          'n_fully_connected_nodes': 256, 'seed': 123}]
+
+
   for split in splitters:
     for dataset in datasets:
       if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba']:
@@ -502,7 +561,9 @@ if __name__ == '__main__':
             benchmark_loading_datasets(
                 hps, dataset=dataset, model=model, split=split, out_path='.')
       else:
+        if dataset in ['kaggle']:
+          datasets.remove('kaggle') #kaggle only needs to be run once
         for model in models:
-          if model in ['tf_regression']:
+          if model in ['tf_regression', 'graphconvreg']:
             benchmark_loading_datasets(
                 hps, dataset=dataset, model=model, split=split, out_path='.')
