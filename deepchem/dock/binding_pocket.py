@@ -21,8 +21,8 @@ from subprocess import call
 
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site."""
-  protein_coords = load_molecule(protein_file)[0]
-  ligand_coords = load_molecule(ligand_file)[0]
+  protein_coords = load_molecule(protein_file, add_hydrogens=False)[0]
+  ligand_coords = load_molecule(ligand_file, add_hydrogens=False)[0]
   num_ligand_atoms = len(ligand_coords)
   num_protein_atoms = len(protein_coords)
   pocket_inds = []
@@ -179,13 +179,17 @@ class ConvexHullPocketFinder(BindingPocketFinder):
   def find_all_pockets(self, protein_file):
     """Find list of binding pockets on protein."""
     # protein_coords is (N, 3) tensor
-    coords = load_molecule(protein_file)[0]
+    coords = load_molecule(protein_file, add_hydrogens=False)[0]
     return get_all_boxes(coords, self.pad)
 
   def find_pockets(self, protein_file, ligand_file):
     """Find list of suitable binding pockets on protein."""
-    protein_coords = load_molecule(protein_file)[0]
-    ligand_coords = load_molecule(ligand_file)[0]
+    protein_coords = load_molecule(protein_file, add_hydrogens=False)[0]
+    ######################################################################### DEBUG
+    #print("protein_coords")
+    #print(protein_coords)
+    ######################################################################### DEBUG
+    ligand_coords = load_molecule(ligand_file, add_hydrogens=False)[0]
     boxes = get_all_boxes(protein_coords, self.pad)
     mapping = boxes_to_atoms(protein_coords, boxes)
     pockets, pocket_atoms = merge_overlapping_boxes(mapping, boxes)

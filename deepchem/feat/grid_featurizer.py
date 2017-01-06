@@ -48,7 +48,7 @@ def get_ligand_filetype(ligand_filename):
   else:
     raise ValueError("Unrecognized_filename")
 
-def load_molecule(molecule_file, remove_hydrogens=True,
+def load_molecule(molecule_file, add_hydrogens=True,
                   calc_charges=False):
   """Converts molecule file to (xyz-coords, obmol object)
 
@@ -85,7 +85,7 @@ def load_molecule(molecule_file, remove_hydrogens=True,
     ob_mol.UnsetImplicitValencePerceived()
     ob_mol.CorrectForPH(7.4)
     ob_mol.AddHydrogens()
-  else:
+  elif add_hydrogens:
     ob_mol.AddHydrogens()
 
   xyz = get_xyz_from_ob(ob_mol)

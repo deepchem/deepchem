@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import mdtraj as md
 import unittest
 import tempfile
 import os
@@ -16,12 +17,12 @@ import shutil
 import numpy as np
 import deepchem as dc
 
-class TestPoseGeneration(unittest.TestCase):
+class TestBindingPocket(unittest.TestCase):
   """
-  Does sanity checks on pose generation. 
+  Does sanity checks on binding pocket generation. 
   """
 
-  def test_convex_rf_init(self):
+  def test_convex_init(self):
     """Tests that ConvexHullPocketFinder can be initialized."""
     finder = dc.dock.ConvexHullPocketFinder()
 
@@ -115,16 +116,36 @@ class TestPoseGeneration(unittest.TestCase):
     assert len(merged_boxes) == 1
     assert merged_boxes[0] == ((1, 3), (1, 3), (1, 3))
 
-  def test_convex_rf_find_pockets(self):
+  def test_convex_find_pockets(self):
     """Test that some pockets are filtered out."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
-    finder = dc.dock.ConvexHullPocketFinder()
+    protein = md.load(protein_file)
 
+    finder = dc.dock.ConvexHullPocketFinder()
     all_pockets = finder.find_all_pockets(protein_file)
-    pockets, _, _ = finder.find_pockets(protein_file, ligand_file)
+    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(
+        protein_file, ligand_file)
+    # Test that every atom in pocket maps exists
+    n_protein_atoms = protein.xyz.shape[1]
+    print("protein.xyz.shape")
+    print(protein.xyz.shape)
+    print("n_protein_atoms")
+    print(n_protein_atoms)
+    ############################################################## DEBUG
+    #from deepchem.feat.grid_featurizer import load_molecule
+    #protein_coords = load_molecule(protein_file, add_hydrogens=False)[0]
+    #print("protein_coords.shape")
+    #print(protein_coords.shape)
+    ############################################################## DEBUG
+    for pocket in pockets:
+      pocket_atoms = pocket_atoms_map[pocket]
+      for atom in pocket_atoms:
+        # Check that the atoms is actually in protein
+        assert atom >= 0
+        assert atom < n_protein_atoms
 
     assert len(pockets) < len(all_pockets)
 
