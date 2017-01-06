@@ -486,7 +486,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
       classification_metric = dc.metrics.Metric(
           dc.metrics.accuracy_score)
 
-      n_feat = 71
+      n_feat = 75
       batch_size = 10
       graph_model = dc.nn.SequentialGraph(n_feat)
       graph_model.add(dc.nn.GraphConv(64, activation='relu'))
@@ -537,7 +537,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
           dc.metrics.mean_squared_error,
           task_averager=np.mean)
 
-      n_feat = 71
+      n_feat = 75
       batch_size = 10
       graph_model = dc.nn.SequentialGraph(n_feat)
       graph_model.add(dc.nn.GraphConv(64, activation='relu'))
@@ -572,7 +572,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     K.set_session(sess)
     with g.as_default():
       n_tasks = 1
-      n_feat = 71
+      n_feat = 75
       max_depth = 4
       n_pos = 6
       n_neg = 4
@@ -637,7 +637,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     K.set_session(sess)
     with g.as_default():
       n_tasks = 1
-      n_feat = 71
+      n_feat = 75
       max_depth = 4
       n_pos = 6
       n_neg = 4
@@ -704,7 +704,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     K.set_session(sess)
     with g.as_default():
       n_tasks = 1
-      n_feat = 71
+      n_feat = 75
       max_depth = 4
       n_pos = 6
       n_neg = 4
