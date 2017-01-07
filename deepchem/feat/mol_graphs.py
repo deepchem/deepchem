@@ -47,7 +47,7 @@ class ConvMol(object):
   Resorts order of atoms internally to be in order of increasing degree. Note
   that only heavy atoms (hydrogens excluded) are considered here.
   """
-  def __init__(self, atom_features, adj_list, max_deg=6, min_deg=0):
+  def __init__(self, atom_features, adj_list, max_deg=10, min_deg=0):
     """
     Parameters
     ----------
@@ -223,7 +223,7 @@ class ConvMol(object):
 
   # TODO(rbharath): Can this be removed?
   @staticmethod
-  def get_null_mol(n_feat, max_deg=6, min_deg=0):
+  def get_null_mol(n_feat, max_deg=10, min_deg=0):
     """Constructs a null molecules
 
     Get one molecule with one atom of each degree, with all the atoms 
@@ -243,7 +243,7 @@ class ConvMol(object):
     return ConvMol(atom_features, canon_adj_list)
 
   @staticmethod
-  def agglomerate_mols(mols, max_deg=6, min_deg=0):
+  def agglomerate_mols(mols, max_deg=10, min_deg=0):
     """Concatenates list of ConvMol's into one mol object that can be used to feed 
     into tensorflow placeholders. The indexing of the molecules are preseved during the
     combination, but the indexing of the atoms are greatly changed.
