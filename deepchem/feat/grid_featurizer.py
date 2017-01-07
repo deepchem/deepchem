@@ -20,7 +20,6 @@ from functools import partial
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log
 
-
 """
 http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
 """
@@ -42,6 +41,8 @@ def get_ligand_filetype(ligand_filename):
     return ".mol2"
   elif ".sdf" in ligand_filename:
     return "sdf"
+  elif ".pdbqt" in ligand_filename:
+    return ".pdbqt"
   elif ".pdb" in ligand_filename:
     return ".pdb"
   else:
@@ -63,6 +64,11 @@ def load_molecule(molecule_file, remove_hydrogens=True,
   elif ".sdf" in molecule_file:
     obConversion = ob.OBConversion()
     obConversion.SetInAndOutFormats(str("sdf"), str("sdf"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(molecule_file))
+  elif ".pdbqt" in molecule_file:
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("pdbqt"), str("pdbqt"))
     ob_mol = ob.OBMol()
     obConversion.ReadFile(ob_mol, str(molecule_file))
   elif ".pdb" in molecule_file:
@@ -539,7 +545,7 @@ def _featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
 def _compute_ring_center(mol, ring):
   ring_xyz = np.zeros((len(ring._path), 3))
   for i, atom_idx in enumerate(ring._path):
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     ring_xyz[i, :] = [atom.x(), atom.y(), atom.z()]
   ring_centroid = _compute_centroid(ring_xyz)
   return ring_centroid
@@ -548,7 +554,7 @@ def _compute_ring_normal(mol, ring):
   points = np.zeros((3,3))
   for i, atom_idx in enumerate(ring._path):
     if i == 3: break
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     points[i,:] = [atom.x(), atom.y(), atom.z()]
 
   v1 = points[1,:] - points[0,:]
@@ -711,8 +717,8 @@ def _compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand, pairwise_dis
   contacts = np.nonzero(pairwise_distances < 5.0)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
-    protein_atom = protein.GetAtom(contact[0]+1)
-    ligand_atom = ligand.GetAtom(contact[1]+1)
+    protein_atom = protein.GetAtom(int(contact[0]+1))
+    ligand_atom = ligand.GetAtom(int(contact[1]+1))
     if _is_salt_bridge(protein_atom, ligand_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
@@ -731,8 +737,8 @@ def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
 
   protein_atom_index = contact[0]
   ligand_atom_index = contact[1]
-  protein_atom = protein.GetAtom(protein_atom_index+1)
-  ligand_atom = ligand.GetAtom(ligand_atom_index+1)
+  protein_atom = protein.GetAtom(int(protein_atom_index+1))
+  ligand_atom = ligand.GetAtom(int(ligand_atom_index+1))
   if protein_atom.IsHbondAcceptor() and ligand_atom.IsHbondDonor():
     for atom in ob.OBAtomAtomIter(ligand_atom):
       if atom.GetAtomicNum() == 1:

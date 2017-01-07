@@ -722,4 +722,10 @@ class TensorflowRegressor(TensorflowGraphModel):
         outputs = np.squeeze(np.concatenate(outputs)) 
 
     outputs = np.copy(outputs)
-    return outputs[:len_unpadded]
+
+    # Handle case of 0-dimensional scalar output
+    if len(outputs.shape) > 0:
+      return outputs[:len_unpadded]
+    else:
+      outputs = np.reshape(outputs, (1,))
+      return outputs
