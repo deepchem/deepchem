@@ -13,8 +13,9 @@ import numpy as np
 import os
 import pybel
 import tempfile
-from deepchem.feat import hydrogenate_and_compute_partial_charges
 from subprocess import call
+from deepchem.feat import hydrogenate_and_compute_partial_charges
+from deepchem.dock.binding_pocket import RFConvexHullPocketFinder
 
 class PoseGenerator(object):
   """Abstract superclass for all pose-generation routines."""
@@ -58,11 +59,14 @@ def get_molecule_data(pybel_molecule):
 class VinaPoseGenerator(PoseGenerator):
   """Uses Autodock Vina to generate binding poses."""
 
-  def __init__(self, exhaustiveness=1):
+  def __init__(self, exhaustiveness=10, detect_pockets=True):
     """Initializes Vina Pose generation"""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     self.vina_dir = os.path.join(current_dir, "autodock_vina_1_1_2_linux_x86")
     self.exhaustiveness = exhaustiveness
+    self.detect_pockets = detect_pockets
+    if self.detect_pockets:
+      self.pocket_finder = RFConvexHullPocketFinder()
     if not os.path.exists(self.vina_dir):
       print("Vina not available. Downloading")
       # TODO(rbharath): May want to move this file to S3 so we can ensure it's
@@ -98,8 +102,25 @@ class VinaPoseGenerator(PoseGenerator):
     receptor_pybel = next(pybel.readfile(str("pdb"), str(protein_hyd)))
     # TODO(rbharath): Need to add some way to identify binding pocket, or this is
     # going to be extremely slow!
-    protein_centroid, protein_range = get_molecule_data(receptor_pybel)
-    box_dims = protein_range + 5.0
+    if not self.detect_pockets:
+      protein_centroid, protein_range = get_molecule_data(receptor_pybel)
+      box_dims = protein_range + 5.0
+    else:
+      print("About to find putative binding pockets")
+      pockets, pocket_atoms_maps, pocket_coords = self.pocket_finder.find_pockets(
+          protein_file, ligand_file)
+      # TODO(rbharath): Handle multiple pockets instead of arbitrarily selecting
+      # first pocket. 
+      print("Computing centroid and size of proposed pocket.")
+      pocket_coord = pocket_coords[0]
+      protein_centroid = np.mean(pocket_coord, axis=1)
+      pocket = pockets[0]
+      (x_min, x_max), (y_min, y_max), (z_min, z_max) = pocket
+      x_box = (x_max - x_min)/2.
+      y_box = (y_max - y_min)/2.
+      z_box = (z_max - z_min)/2.
+      box_dims = (x_box, y_box, z_box)
+
 
     # Prepare receptor
     ligand_name = os.path.basename(ligand_file).split(".")[0]
