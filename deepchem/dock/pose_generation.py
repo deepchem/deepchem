@@ -56,6 +56,7 @@ def get_molecule_data(pybel_molecule):
 
 
 class VinaPoseGenerator(PoseGenerator):
+  """Uses Autodock Vina to generate binding poses."""
 
   def __init__(self, exhaustiveness=1):
     """Initializes Vina Pose generation"""
