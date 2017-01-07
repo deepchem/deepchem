@@ -137,7 +137,7 @@ def benchmark_loading_datasets(hyper_parameters,
     time_finish_fitting = time.time()
     
     
-    with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+    with open(os.path.join(out_path, 'results.csv'),'a') as f:
       writer = csv.writer(f)
       if mode == 'classification':
         for i in train_score:
@@ -546,10 +546,10 @@ if __name__ == '__main__':
                            'bias_init_consts': [1., 1.], 
                            'dropouts': [0.25, 0.25], 
                            'penalty': 0.0005, 'penalty_type': 'l2', 
-                           'batch_size': 128, 'nb_epoch': 50, 
+                           'batch_size': 128, 'nb_epoch': 300, 
                            'learning_rate': 0.00008}]
   
-  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 20, 
+  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 300, 
                           'learning_rate': 0.0005, 'n_filters': 128, 
                           'n_fully_connected_nodes': 256, 'seed': 123}]
 
