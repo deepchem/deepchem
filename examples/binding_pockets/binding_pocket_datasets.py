@@ -45,6 +45,7 @@ def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
   pocket_features = pocket_featurizer.featurize(
       protein_file, pockets, pocket_atoms, pocket_coords)
   # Note broadcast operation
+  features[:, :n_pocket_features] = pocket_features
   features[:, n_pocket_features:] = ligand_features
 
   # Compute labels for pockets
@@ -126,7 +127,7 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
       print("%s is missing!" % pdb_subdir)
       missing_pdbs.append(pdb_subdir)
       continue
-    features, labels= compute_binding_pocket_features(
+    features, labels = compute_binding_pocket_features(
         pocket_featurizer, ligand_featurizer, pdb_subdir, pdb_code)
     if features is None:
       print("FEATURIZATION FAILED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

@@ -9,15 +9,20 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "GPL"
 
-import numpy as np
 import os
-import pybel
 import tempfile
+import numpy as np
+import openbabel as ob
+from rdkit import Chem
+from subprocess import call
 from scipy.spatial import ConvexHull
 from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.grid_featurizer import load_molecule
-from subprocess import call
+from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer 
+from deepchem.feat.fingerprints import CircularFingerprint 
+from deepchem.models.sklearn_models import SklearnModel
+from deepchem.data.datasets import NumpyDataset
 
 def extract_active_site(protein_file, ligand_file, cutoff=4):
   """Extracts a box for the active site."""
@@ -185,19 +190,118 @@ class ConvexHullPocketFinder(BindingPocketFinder):
   def find_pockets(self, protein_file, ligand_file):
     """Find list of suitable binding pockets on protein."""
     protein_coords = load_molecule(protein_file, add_hydrogens=False)[0]
-    ######################################################################### DEBUG
-    #print("protein_coords")
-    #print(protein_coords)
-    ######################################################################### DEBUG
     ligand_coords = load_molecule(ligand_file, add_hydrogens=False)[0]
     boxes = get_all_boxes(protein_coords, self.pad)
     mapping = boxes_to_atoms(protein_coords, boxes)
-    pockets, pocket_atoms = merge_overlapping_boxes(mapping, boxes)
+    pockets, pocket_atoms_map = merge_overlapping_boxes(mapping, boxes)
     pocket_coords = []
     for pocket in pockets:
-      atoms = pocket_atoms[pocket]
+      atoms = pocket_atoms_map[pocket]
       coords = np.zeros((len(atoms), 3))
       for ind, atom in enumerate(atoms):
         coords[ind] = protein_coords[atom]
       pocket_coords.append(coords)
-    return pockets, pocket_atoms, pocket_coords
+    return pockets, pocket_atoms_map, pocket_coords
+
+class RFConvexHullPocketFinder(BindingPocketFinder):
+  """Uses pre-trained RF model + ConvexHulPocketFinder to select pockets."""
+
+  def __init__(self, pad=5):
+    self.pad = pad
+    self.convex_finder = ConvexHullPocketFinder(pad)
+
+    # Load binding pocket model
+    self.base_dir = tempfile.mkdtemp()
+    print("About to download trained model.")
+    # TODO(rbharath): Shift refined to full once trained.
+    call(("wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/pocket_random_refined_RF.tar.gz").split())
+    call(("tar -zxvf pocket_random_refined_RF.tar.gz").split())
+    call(("mv pocket_random_refined_RF %s" % (self.base_dir)).split())
+    self.model_dir = os.path.join(self.base_dir, "pocket_random_refined_RF")
+
+    # Fit model on dataset
+    self.model = SklearnModel(model_dir=self.model_dir)
+    self.model.reload()
+
+    # Create featurizers
+    self.pocket_featurizer = BindingPocketFeaturizer()
+    self.ligand_featurizer = CircularFingerprint(size=1024)
+
+  def find_pockets(self, protein_file, ligand_file):
+    """Compute features for a given complex
+
+    TODO(rbharath): This has a log of code overlap with
+    compute_binding_pocket_features in
+    examples/binding_pockets/binding_pocket_datasets.py. Find way to refactor
+    to avoid code duplication.
+    """
+    ##################################################### DEBUG
+    #print("ENTERING!!!!!!!!!!!!!!!!!!!!")
+    ##################################################### DEBUG
+    if not ligand_file.endswith(".sdf"):
+      raise ValueError("Only .sdf ligand files can be featurized.")
+    ligand_basename = os.path.basename(ligand_file).split(".")[0]
+    ligand_mol2 = os.path.join(
+        self.base_dir, ligand_basename + ".mol2")
+
+    # Write mol2 file for ligand
+    obConversion = ob.OBConversion()
+    conv_out = obConversion.SetInAndOutFormats(str("sdf"), str("mol2"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(ligand_file))
+    obConversion.WriteFile(ob_mol, str(ligand_mol2))
+      
+    # Featurize ligand
+    mol = Chem.MolFromMol2File(str(ligand_mol2), removeHs=False)
+    if mol is None:
+      return None, None
+    # Default for CircularFingerprint
+    n_ligand_features = 1024
+    ligand_features = self.ligand_featurizer.featurize([mol])
+
+    # Featurize pocket
+    pockets, pocket_atoms_map, pocket_coords = self.convex_finder.find_pockets(
+        protein_file, ligand_file)
+    n_pockets = len(pockets)
+    n_pocket_features = BindingPocketFeaturizer.n_features
+
+    features = np.zeros((n_pockets, n_pocket_features+n_ligand_features))
+    pocket_features = self.pocket_featurizer.featurize(
+        protein_file, pockets, pocket_atoms_map, pocket_coords)
+    # Note broadcast operation
+    features[:, :n_pocket_features] = pocket_features
+    features[:, n_pocket_features:] = ligand_features
+    dataset = NumpyDataset(X=features)
+    pocket_preds = self.model.predict(dataset)
+    ############################################################# DEBUG
+    pocket_pred_proba = np.squeeze(self.model.predict_proba(dataset))
+    #print("pockets")
+    #print(pockets)
+    #print("pocket_features")
+    #print(pocket_features)
+    #print("features")
+    #print(features)
+    #print("n_pockets")
+    #print(n_pockets)
+    #print("pocket_pred_proba")
+    #print(pocket_pred_proba)
+    ############################################################# DEBUG
+
+    # Find pockets which are active
+    active_pockets = []
+    active_pocket_atoms_map = {}
+    active_pocket_coords = []
+    for pocket_ind in range(len(pockets)):
+      #################################################### DEBUG
+      # TODO(rbharath): FIX THIS! For now since models are broken, using a bogus
+      # cutoff.
+      #if pocket_preds[pocket_ind] == 1:
+      #print("pocket_pred_proba.shape")
+      #print(pocket_pred_proba.shape)
+      if pocket_pred_proba[pocket_ind][1] > .15:
+      #################################################### DEBUG
+        pocket = pockets[pocket_ind]
+        active_pockets.append(pocket)
+        active_pocket_atoms_map[pocket] = pocket_atoms_map[pocket]
+        active_pocket_coords.append(pocket_coords[pocket_ind])
+    return active_pockets, active_pocket_atoms_map, active_pocket_coords

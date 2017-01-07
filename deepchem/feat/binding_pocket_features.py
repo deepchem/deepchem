@@ -44,18 +44,8 @@ class BindingPocketFeaturizer(Featurizer):
     all_features = np.zeros((n_pockets, n_residues)) 
     for pocket_num, (pocket, coords) in enumerate(zip(pockets, pocket_coords)):
       pocket_atoms = pocket_atoms_map[pocket]
-      ################################################ DEBUG
-      #print("len(pocket_atoms)")
-      #print(len(pocket_atoms))
-      #print("protein.top")
-      #print(protein.top)
-      ################################################ DEBUG
       for ind, atom in enumerate(pocket_atoms):
         atom_name = str(protein.top.atom(atom))
-        ################################################ DEBUG
-        #print("ind, atom, atom_name")
-        #print(ind, atom, atom_name)
-        ################################################ DEBUG
         # atom_name is of format RESX-ATOMTYPE
         # where X is a 1 to 4 digit number
         residue = atom_name[:3]

@@ -134,12 +134,6 @@ class TestBindingPocket(unittest.TestCase):
     print(protein.xyz.shape)
     print("n_protein_atoms")
     print(n_protein_atoms)
-    ############################################################## DEBUG
-    #from deepchem.feat.grid_featurizer import load_molecule
-    #protein_coords = load_molecule(protein_file, add_hydrogens=False)[0]
-    #print("protein_coords.shape")
-    #print(protein_coords.shape)
-    ############################################################## DEBUG
     for pocket in pockets:
       pocket_atoms = pocket_atoms_map[pocket]
       for atom in pocket_atoms:
@@ -148,6 +142,32 @@ class TestBindingPocket(unittest.TestCase):
         assert atom < n_protein_atoms
 
     assert len(pockets) < len(all_pockets)
+
+  def test_rf_convex_find_pockets(self):
+    """Test that filter with pre-trained RF models works."""
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
+
+    protein = md.load(protein_file)
+
+    finder = dc.dock.RFConvexHullPocketFinder()
+    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(
+        protein_file, ligand_file)
+    # Test that every atom in pocket maps exists
+    n_protein_atoms = protein.xyz.shape[1]
+    print("protein.xyz.shape")
+    print(protein.xyz.shape)
+    print("n_protein_atoms")
+    print(n_protein_atoms)
+    print("len(pockets)")
+    print(len(pockets))
+    for pocket in pockets:
+      pocket_atoms = pocket_atoms_map[pocket]
+      for atom in pocket_atoms:
+        # Check that the atoms is actually in protein
+        assert atom >= 0
+        assert atom < n_protein_atoms
 
   def test_extract_active_site(self):
     """Test that computed pockets have strong overlap with true binding pocket."""
