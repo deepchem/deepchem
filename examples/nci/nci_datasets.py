@@ -19,12 +19,8 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
 
   # Load nci dataset
   print("About to load NCI dataset.")
-  dataset_file1_path = os.path.join(
-      current_dir, "../../datasets/nci_1.csv.gz")
-  dataset_file2_path = os.path.join(
-      current_dir, "../../datasets/nci_2.csv.gz")
-
-  dataset_paths = [dataset_file1_path, dataset_file2_path]
+  dataset_path = os.path.join(
+      current_dir, "../../datasets/nci_unique.csv")
 
 
   # Featurize nci dataset
@@ -50,7 +46,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
   loader = dc.data.CSVLoader(
       tasks=all_nci_tasks, smiles_field="smiles", featurizer=featurizer)
 
-  dataset = loader.featurize(dataset_paths, shard_size=shard_size)
+  dataset = loader.featurize(dataset_path, shard_size=shard_size)
 
   # Initialize transformers
   print("About to transform data")

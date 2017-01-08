@@ -137,7 +137,7 @@ def benchmark_loading_datasets(hyper_parameters,
     time_finish_fitting = time.time()
     
     
-    with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+    with open(os.path.join(out_path, 'results.csv'),'a') as f:
       writer = csv.writer(f)
       if mode == 'classification':
         for i in train_score:
@@ -511,7 +511,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'delaney', 'kaggle', 'nci']
+                'delaney', 'nci', 'kaggle']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
