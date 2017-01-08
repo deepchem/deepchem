@@ -57,7 +57,7 @@ class TestDocking(unittest.TestCase):
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
     docker = dc.dock.VinaGridRFDocker(
-        exhaustivness=1, detect_pockets=False)
+        exhaustiveness=1, detect_pockets=False)
     (score, (protein_docked, ligand_docked)) = docker.dock(
         protein_file, ligand_file)
 
