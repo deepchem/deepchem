@@ -130,7 +130,7 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
     features, labels = compute_binding_pocket_features(
         pocket_featurizer, ligand_featurizer, pdb_subdir, pdb_code)
     if features is None:
-      print("FEATURIZATION FAILED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      print("Featurization failed!")
       continue
     all_features.append(features)
     all_labels.append(labels)
@@ -138,21 +138,10 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
     all_ids.append(ids)
   time2 = time.time()
   print("TIMING: PDBBind Pocket Featurization took %0.3f s" % (time2-time1))
-  ################################################################## DEBUG
-  print("[features.shape for features in all_features]")
-  print([features.shape for features in all_features])
-  print("[labels.shape for labels in all_labels]")
-  print([labels.shape for labels in all_labels])
-  ################################################################## DEBUG
   X = np.vstack(all_features)
   y = np.concatenate(all_labels)
   w = np.ones_like(y)
   ids = np.concatenate(all_ids)
-  ################################################################## DEBUG
-  print("ids.shape")
-  print(ids.shape)
-  ################################################################## DEBUG
-
    
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
   return dataset, tasks

@@ -235,9 +235,6 @@ class RFConvexHullPocketFinder(BindingPocketFinder):
     examples/binding_pockets/binding_pocket_datasets.py. Find way to refactor
     to avoid code duplication.
     """
-    ##################################################### DEBUG
-    #print("ENTERING!!!!!!!!!!!!!!!!!!!!")
-    ##################################################### DEBUG
     if not ligand_file.endswith(".sdf"):
       raise ValueError("Only .sdf ligand files can be featurized.")
     ligand_basename = os.path.basename(ligand_file).split(".")[0]
@@ -273,19 +270,7 @@ class RFConvexHullPocketFinder(BindingPocketFinder):
     features[:, n_pocket_features:] = ligand_features
     dataset = NumpyDataset(X=features)
     pocket_preds = self.model.predict(dataset)
-    ############################################################# DEBUG
     pocket_pred_proba = np.squeeze(self.model.predict_proba(dataset))
-    #print("pockets")
-    #print(pockets)
-    #print("pocket_features")
-    #print(pocket_features)
-    #print("features")
-    #print(features)
-    #print("n_pockets")
-    #print(n_pockets)
-    #print("pocket_pred_proba")
-    #print(pocket_pred_proba)
-    ############################################################# DEBUG
 
     # Find pockets which are active
     active_pockets = []
@@ -293,11 +278,8 @@ class RFConvexHullPocketFinder(BindingPocketFinder):
     active_pocket_coords = []
     for pocket_ind in range(len(pockets)):
       #################################################### DEBUG
-      # TODO(rbharath): FIX THIS! For now since models are broken, using a bogus
-      # cutoff.
+      # TODO(rbharath): For now, using a weak cutoff. Fix later.
       #if pocket_preds[pocket_ind] == 1:
-      #print("pocket_pred_proba.shape")
-      #print(pocket_pred_proba.shape)
       if pocket_pred_proba[pocket_ind][1] > .15:
       #################################################### DEBUG
         pocket = pockets[pocket_ind]
