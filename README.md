@@ -274,9 +274,12 @@ Scaffold splitting
 |           |graphconv regression|Random      |0.996         |0.873         |
 |           |MT-NN regression    |Scaffold    |0.782         |0.426         |
 |           |graphconv regression|Scaffold    |0.994         |0.606         |
-|nci        |MT-NN regression    |Index       |0.890         |0.890         |
-|           |MT-NN regression    |Random      |0.891         |0.888         |
-|           |MT-NN regression    |Scaffold    |0.912         |0.020         |
+|nci        |MT-NN regression    |Index       |0.171         |0.062         |
+|           |graphconv regression|Index       |0.123         |0.048         |
+|           |MT-NN regression    |Random      |0.168         |0.085         |
+|           |graphconv regression|Random      |0.117         |0.076         |
+|           |MT-NN regression    |Scaffold    |0.180         |0.052         |
+|           |graphconv regression|Scaffold    |0.131         |0.046         |
 |kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
@@ -292,7 +295,7 @@ Number of tasks and examples in the datasets
 |toxcast    |617        |8615       |
 |delaney    |1          |1128       |
 |kaggle     |15         |173065     |
-|nci        |60         |1057371    |
+|nci        |60         |19127      |
 
 Time needed for benchmark test(~20h in total)
 
@@ -320,7 +323,8 @@ Time needed for benchmark test(~20h in total)
 |           |graph convolution   |80              |900            |
 |delaney    |MT-NN regression    |10              |40             |
 |           |graphconv regression|10              |40             |
-|nci        |MT-NN regression    |2000            |30000          |
+|nci        |MT-NN regression    |400             |1200           |
+|           |graphconv regression|400             |2500           |
 |kaggle     |MT-NN regression    |2200            |3200           |
 
 
