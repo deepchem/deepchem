@@ -30,7 +30,7 @@ class Docker(object):
 class VinaGridRFDocker(Docker):
   """Vina pose-generation, RF-models on grid-featurization of complexes."""
 
-  def __init__(self):
+  def __init__(self, exhaustiveness=10, detect_pockets=False):
     """Builds model."""
     self.base_dir = tempfile.mkdtemp()
     print("About to download trained model.")
@@ -44,7 +44,8 @@ class VinaGridRFDocker(Docker):
     model.reload()
 
     self.pose_scorer = GridPoseScorer(model, feat="grid")
-    self.pose_generator = VinaPoseGenerator() 
+    self.pose_generator = VinaPoseGenerator(
+        exhaustiveness=exhaustiveness, detect_pockets=detect_pockets) 
 
   def dock(self, protein_file, ligand_file):
     """Docks using Vina and RF."""
@@ -56,7 +57,7 @@ class VinaGridRFDocker(Docker):
 class VinaGridDNNDocker(object):
   """Vina pose-generation, DNN-models on grid-featurization of complexes."""
 
-  def __init__(self, n_trees=100):
+  def __init__(self, exhaustiveness=10, detect_pockets=False):
     """Builds model."""
     self.base_dir = tempfile.mkdtemp()
     print("About to download trained model.")
@@ -74,7 +75,8 @@ class VinaGridDNNDocker(object):
     model.reload()
 
     self.pose_scorer = GridPoseScorer(model, feat="grid")
-    self.pose_generator = VinaPoseGenerator() 
+    self.pose_generator = VinaPoseGenerator(
+        exhaustiveness=exhaustiveness, detect_pockets=detect_pockets) 
 
   def dock(self, protein_file, ligand_file):
     """Docks using Vina and DNNs."""
