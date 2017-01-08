@@ -21,9 +21,9 @@
 0,pcba,index,classification,train,graphconv,0.87647472,valid,graphconv,0.8523348204,time_for_running,14497.7339029
 0,delaney,index,regression,train,tf_regression,0.7830983671,valid,tf_regression,0.5789729655,time_for_running,41.1367759705
 0,delaney,index,regression,train,graphconvreg,0.9911206824,valid,graphconvreg,0.7892057714,time_for_running,101.8902909756
-0,kaggle,None,regression,train,tf_regression,0.7480423542,valid,tf_regression,0.4516795145,time_for_running,3238.91535401
 0,nci,index,regression,train,tf_regression,0.1705293978,valid,tf_regression,0.0623320607,time_for_running,1206.9139225483
 0,nci,index,regression,train,graphconvreg,0.1232265163,valid,graphconvreg,0.0479731306,time_for_running,2324.3746082783
+0,kaggle,None,regression,train,tf_regression,0.7480423542,valid,tf_regression,0.4516795145,time_for_running,3238.91535401
 0,tox21,random,classification,train,tf,0.8565178786,valid,tf,0.7834036936,time_for_running,53.8197240829
 0,tox21,random,classification,train,tf_robust,0.8549658589,valid,tf_robust,0.7735497329,time_for_running,88.9351768494
 0,tox21,random,classification,train,logreg,0.9028113641,valid,logreg,0.7350604574,time_for_running,60.2267189026
