@@ -511,7 +511,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'delaney', 'kaggle', 'nci']
+                'delaney', 'nci', 'kaggle']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
@@ -546,10 +546,10 @@ if __name__ == '__main__':
                            'bias_init_consts': [1., 1.], 
                            'dropouts': [0.25, 0.25], 
                            'penalty': 0.0005, 'penalty_type': 'l2', 
-                           'batch_size': 128, 'nb_epoch': 300, 
+                           'batch_size': 128, 'nb_epoch': 50, 
                            'learning_rate': 0.00008}]
   
-  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 300, 
+  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 20, 
                           'learning_rate': 0.0005, 'n_filters': 128, 
                           'n_fully_connected_nodes': 256, 'seed': 123}]
 
