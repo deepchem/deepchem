@@ -17,7 +17,7 @@ on datasets: muv, pcba, tox21, sider, toxcast
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney, nci, kaggle
+on datasets: delaney, nci, kaggle, pdbbind
 
 time estimation listed in README file
 
@@ -49,6 +49,7 @@ from sider.sider_datasets import load_sider
 from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
 from nci.nci_datasets import load_nci
+from pdbbind.pdbbind_datasets import load_pdbbind_grid
 
 def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
@@ -74,7 +75,7 @@ def benchmark_loading_datasets(hyper_parameters,
   
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney', 'nci']:
+  elif dataset in ['kaggle', 'delaney', 'nci','pdbbind']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
@@ -92,6 +93,12 @@ def benchmark_loading_datasets(hyper_parameters,
   if dataset in ['kaggle']:
     featurizer = None #kaggle dataset use its own features
     split = None #kaggle dataset is already splitted
+  if dataset in ['pdbbind']:
+    featurizer = 'grid' #pdbbind use grid featurizer
+    if split in ['scaffold']:
+      return #skip the scaffold splitting of pdbbind
+    elif not model in ['tf_regression']:
+      return
   
   if not split in [None, 'index','random','scaffold']:
     raise ValueError('Splitter function not supported')
@@ -99,7 +106,8 @@ def benchmark_loading_datasets(hyper_parameters,
   loading_functions = {'tox21': load_tox21, 'muv': load_muv,
                        'pcba': load_pcba, 'nci': load_nci,
                        'sider': load_sider, 'toxcast': load_toxcast,
-                       'kaggle': load_kaggle, 'delaney': load_delaney}
+                       'kaggle': load_kaggle, 'delaney': load_delaney,
+                       'pdbbind': load_pdbbind_grid}
   
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
@@ -117,7 +125,7 @@ def benchmark_loading_datasets(hyper_parameters,
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
   #time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle']:
+  if dataset in ['kaggle','pdbbind']:
     n_features = train_dataset.get_data_shape()[0]
     #kaggle dataset has customized features
     
@@ -497,7 +505,7 @@ if __name__ == '__main__':
            'tf_regression, graphconvreg')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' + 
-           'kaggle, delaney, nci')
+           'kaggle, delaney, nci, pdbbind')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
@@ -511,7 +519,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'delaney', 'nci', 'kaggle']
+                'delaney', 'nci', 'kaggle', 'pdbbind']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
