@@ -34,6 +34,7 @@ dataset = featurizer.featurize(input_file, data_dir)
 random_splitter = dc.splits.RandomSplitter()
 train_dataset, test_dataset = random_splitter.train_test_split(dataset, train_dir, test_dir)
 transformers = [dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset), dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+#transformers = [dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
 
 for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)
@@ -44,7 +45,7 @@ regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regr
 
 def model_builder(model_dir):
   sklearn_model = KernelRidge(
-      kernel="laplacian", alpha=0.0001, gamma=0.0001)
+      kernel="laplacian", alpha=0.05, gamma=0.1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
 model = dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
 
