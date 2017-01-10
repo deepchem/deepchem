@@ -92,12 +92,18 @@ def benchmark_loading_datasets(hyper_parameters,
   
   if dataset in ['kaggle']:
     featurizer = None #kaggle dataset use its own features
-    split = None #kaggle dataset is already splitted
+    if split in ['random', 'scaffold']:
+      return
+    else:
+      split = None #kaggle dataset is already splitted
+    if not model in ['tf_regression']:
+      return
+
   if dataset in ['pdbbind']:
     featurizer = 'grid' #pdbbind use grid featurizer
     if split in ['scaffold']:
       return #skip the scaffold splitting of pdbbind
-    elif not model in ['tf_regression']:
+    if not model in ['tf_regression']:
       return
   
   if not split in [None, 'index','random','scaffold']:
@@ -570,8 +576,6 @@ if __name__ == '__main__':
             benchmark_loading_datasets(
                 hps, dataset=dataset, model=model, split=split, out_path='.')
       else:
-        if dataset in ['kaggle']:
-          datasets.remove('kaggle') #kaggle only needs to be run once
         for model in models:
           if model in ['tf_regression', 'graphconvreg']:
             benchmark_loading_datasets(
