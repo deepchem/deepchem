@@ -126,9 +126,9 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
   return dataset, tasks
 
-def load_pdbbind_grid(split="index", feat="grid", subset="core"):
+def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
   """Load PDBBind datasets. Does not do train/test split"""
-  dataset, tasks = featurize_pdbbind(feat=feat, subset=subset)
+  dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
 
   splitters = {'index': dc.splits.IndexSplitter(),
                'random': dc.splits.RandomSplitter()}

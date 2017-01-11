@@ -48,6 +48,7 @@
 0,delaney,random,regression,train,graphconvreg,0.9951851944,valid,graphconvreg,0.8397307618,time_for_running,102.9403319359
 0,nci,random,regression,train,tf_regression,0.167724376,valid,tf_regression,0.0846994662,time_for_running,1255.847104311
 0,nci,random,regression,train,graphconvreg,0.1173603957,valid,graphconvreg,0.0762376225,time_for_running,2608.3014204502
+0,pdbbind,random,regression,train,tf_regression,0.9826504619,valid,tf_regression,0.5282495192,time_for_running,59.4712688923
 0,tox21,scaffold,classification,train,tf,0.8626085326,valid,tf,0.7030201614,time_for_running,63.5685660839
 0,tox21,scaffold,classification,train,tf_robust,0.8608722489,valid,tf_robust,0.7100530015,time_for_running,101.614424944
 0,tox21,scaffold,classification,train,logreg,0.9004137009,valid,logreg,0.650190286,time_for_running,60.018599987

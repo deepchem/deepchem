@@ -243,66 +243,77 @@ Scaffold splitting
 
 * Regression
 
-|Dataset    |Model               |Splitting   |Train score/R2|Valid score/R2|
-|-----------|--------------------|------------|--------------|--------------|
-|delaney    |MT-NN regression    |Index       |0.773         |0.574         |
-|           |graphconv regression|Index       |0.991         |0.825         |
-|           |MT-NN regression    |Random      |0.769         |0.591         |
-|           |graphconv regression|Random      |0.996         |0.873         |
-|           |MT-NN regression    |Scaffold    |0.782         |0.426         |
-|           |graphconv regression|Scaffold    |0.994         |0.606         |
-|nci        |MT-NN regression    |Index       |0.171         |0.062         |
-|           |graphconv regression|Index       |0.123         |0.048         |
-|           |MT-NN regression    |Random      |0.168         |0.085         |
-|           |graphconv regression|Random      |0.117         |0.076         |
-|           |MT-NN regression    |Scaffold    |0.180         |0.052         |
-|           |graphconv regression|Scaffold    |0.131         |0.046         |
-|kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
+|Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
+|----------------|--------------------|------------|--------------|--------------|
+|delaney         |MT-NN regression    |Index       |0.773         |0.574         |
+|                |graphconv regression|Index       |0.991         |0.825         |
+|                |MT-NN regression    |Random      |0.769         |0.591         |
+|                |graphconv regression|Random      |0.996         |0.873         |
+|                |MT-NN regression    |Scaffold    |0.782         |0.426         |
+|                |graphconv regression|Scaffold    |0.994         |0.606         |
+|nci             |MT-NN regression    |Index       |0.171         |0.062         |
+|                |graphconv regression|Index       |0.123         |0.048         |
+|                |MT-NN regression    |Random      |0.168         |0.085         |
+|                |graphconv regression|Random      |0.117         |0.076         |
+|                |MT-NN regression    |Scaffold    |0.180         |0.052         |
+|                |graphconv regression|Scaffold    |0.131         |0.046         |
+|pdbbind(core)   |MT-NN regression    |Random      |0.973         |0.494         |
+|pdbbind(refined)|MT-NN regression    |Random      |0.987         |0.503         |
+|pdbbind(full)   |MT-NN regression    |Random      |0.983         |0.528         |
+|kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
 
 Number of tasks and examples in the datasets
 
-|Dataset    |N(tasks)	|N(samples) |
-|-----------|-----------|-----------| 
-|tox21      |12         |8014       |
-|muv        |17         |93127      |
-|pcba       |128        |439863     |
-|sider      |27         |1427       |
-|toxcast    |617        |8615       |
-|delaney    |1          |1128       |
-|kaggle     |15         |173065     |
-|nci        |60         |19127      |
+|Dataset         |N(tasks)	|N(samples) |
+|----------------|-----------|-----------| 
+|tox21           |12         |8014       |
+|muv             |17         |93127      |
+|pcba            |128        |439863     |
+|sider           |27         |1427       |
+|toxcast         |617        |8615       |
+|delaney         |1          |1128       |
+|kaggle          |15         |173065     |
+|nci             |60         |19127      |
+|pdbbind(core)   |1          |195        |
+|pdbbind(refined)|1          |3706       |
+|pdbbind(full)   |1          |11908      |
+
+
 
 Time needed for benchmark test(~20h in total)
 
-|Dataset    |Model               |Time(loading)/s |Time(running)/s|
-|-----------|--------------------|----------------|---------------| 
-|tox21      |logistic regression |30              |60             |
-|           |Multitask network   |30              |60             |
-|           |robust MT-NN        |30              |90             |
-|           |graph convolution   |40              |160            |
-|muv        |logistic regression |600             |450            |
-|           |Multitask network   |600             |400            |
-|           |robust MT-NN        |600             |550            |
-|           |graph convolution   |800             |1800           |
-|pcba       |logistic regression |1800            |10000          |
-|           |Multitask network 	 |1800            |9000           |
-|           |robust MT-NN        |1800            |14000          |
-|           |graph convolution   |2200            |14000          |
-|sider      |logistic regression |15              |80             |
-|           |Multitask network 	 |15              |75             |
-|           |robust MT-NN        |15              |150            |
-|           |graph convolution   |20              |50             |
-|toxcast    |logistic regression |80              |2600           |
-|           |Multitask network   |80              |2300           |
-|           |robust MT-NN        |80              |4000           |
-|           |graph convolution   |80              |900            |
-|delaney    |MT-NN regression    |10              |40             |
-|           |graphconv regression|10              |40             |
-|nci        |MT-NN regression    |400             |1200           |
-|           |graphconv regression|400             |2500           |
-|kaggle     |MT-NN regression    |2200            |3200           |
+|Dataset         |Model               |Time(loading)/s |Time(running)/s|
+|----------------|--------------------|----------------|---------------| 
+|tox21           |logistic regression |30              |60             |
+|                |Multitask network   |30              |60             |
+|                |robust MT-NN        |30              |90             |
+|                |graph convolution   |40              |160            |
+|muv             |logistic regression |600             |450            |
+|                |Multitask network   |600             |400            |
+|                |robust MT-NN        |600             |550            |
+|                |graph convolution   |800             |1800           |
+|pcba            |logistic regression |1800            |10000          |
+|                |Multitask network   |1800            |9000           |
+|                |robust MT-NN        |1800            |14000          |
+|                |graph convolution   |2200            |14000          |
+|sider           |logistic regression |15              |80             |
+|                |Multitask network   |15              |75             |
+|                |robust MT-NN        |15              |150            |
+|                |graph convolution   |20              |50             |
+|toxcast         |logistic regression |80              |2600           |
+|                |Multitask network   |80              |2300           |
+|                |robust MT-NN        |80              |4000           |
+|                |graph convolution   |80              |900            |
+|delaney         |MT-NN regression    |10              |40             |
+|                |graphconv regression|10              |40             |
+|nci             |MT-NN regression    |400             |1200           |
+|                |graphconv regression|400             |2500           |
+|pdbbind(core)   |MT-NN regression    |0(featurized)   |30             |
+|pdbbind(refined)|MT-NN regression    |0(featurized)   |40             |
+|pdbbind(full)   |MT-NN regression    |0(featurized)   |60             |
+|kaggle          |MT-NN regression    |2200            |3200           |
 
 
 ## Contributing to DeepChem
