@@ -56,9 +56,6 @@ class GraphTopology(object):
         tensor=K.placeholder(
             shape=(None, self.n_feat), dtype='float32',
             name=self.name+'_atom_features'))
-        #tensor=K.placeholder(
-        #    shape=(self.n_atoms, self.n_feat), dtype='float32',
-        #    name=self.name+'_atom_features'))
     self.deg_adj_lists_placeholders = [
         Input(tensor=K.placeholder(
           shape=(None, deg), dtype='int32', name=self.name+'_deg_adj'+str(deg)))
