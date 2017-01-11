@@ -24,12 +24,8 @@ install:
 - export KERAS_BACKEND=tensorflow
 - conda install -c omnia mdtraj
 - python setup.py install
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.0rc1-cp27-none-linux_x86_64.whl;
-  -O else export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.0rc1-cp35-cp35m-linux_x86_64.whl;
-  -O fi 
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then pip install --ignore-installed --upgrade $TF_BINARY_URL;
-  -O else pip3 install --ignore-installed --upgrade $TF_BINARY_URL;
-  -O fi
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.0rc1-cp27-none-linux_x86_64.whl; else export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.0rc1-cp35-cp35m-linux_x86_64.whl; fi 
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then pip install --ignore-installed --upgrade $TF_BINARY_URL; else pip3 install --ignore-installed --upgrade $TF_BINARY_URL; fi
 #- conda install -c https://conda.anaconda.org/jjhelmus tensorflow=0.10.0rc0
 script:
 - nosetests -v deepchem --nologcapture
