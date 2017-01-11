@@ -269,7 +269,8 @@ class MolecularWeightSplitter(Splitter):
     """
 
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    np.random.seed(seed)
+    if not seed is None:
+      np.random.seed(seed)
 
     mws = []
     for smiles in dataset.ids:

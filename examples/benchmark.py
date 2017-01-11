@@ -101,8 +101,8 @@ def benchmark_loading_datasets(hyper_parameters,
 
   if dataset in ['pdbbind']:
     featurizer = 'grid' #pdbbind use grid featurizer
-    if split in ['scaffold']:
-      return #skip the scaffold splitting of pdbbind
+    if split in ['scaffold', 'index']:
+      return #skip the scaffold and index splitting of pdbbind
     if not model in ['tf_regression']:
       return
   
