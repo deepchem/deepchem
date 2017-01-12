@@ -22,7 +22,7 @@ model = dc.models.TensorflowMultiTaskRegressor(
     learning_rate=.001, momentum=.8, batch_size=512,
     weight_init_stddevs=[1/np.sqrt(2000),1/np.sqrt(800),1/np.sqrt(800),1/np.sqrt(1000)],
     bias_init_consts=[0.,0.,0.,0.], layer_sizes=[2000,800,800,1000], 
-    dropouts=[0.1,0.1,0.1,0.1])
+    dropouts=[0.1,0.1,0.1,0.1], seed=123)
 
 # Fit trained model
 model.fit(train_dataset)
