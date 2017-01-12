@@ -78,7 +78,7 @@ def add_bias(tensor, init=None, name=None):
   """
   if init is None:
     init = tf.zeros([tensor.get_shape()[-1].value])
-  with tf.op_scope([tensor], name, tensor.op.name):
+  with tf.name_scope(name, tensor.op.name, [tensor]):
     b = tf.Variable(init, name='b')
     return tf.nn.bias_add(tensor, b)
 
@@ -156,7 +156,7 @@ def fully_connected_layer(tensor, size=None, weight_init=None, bias_init=None,
   if bias_init is None:
     bias_init = tf.zeros([size])
 
-  with tf.op_scope([tensor], name, 'fully_connected'):
+  with tf.name_scope(name, 'fully_connected', [tensor]):
     w = tf.Variable(weight_init, name='w', dtype=tf.float32)
     b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
@@ -211,8 +211,8 @@ def multitask_logits(features, num_tasks, num_classes=2, weight_init=None,
   logits_list = []
   with tf.name_scope('multitask_logits'):
     for task_idx in range(num_tasks):
-      with tf.op_scope([features], name,
-                       ('task' + str(task_idx).zfill(len(str(num_tasks))))):
+      with tf.name_scope(name,
+                       ('task' + str(task_idx).zfill(len(str(num_tasks)))), [features]):
         logits_list.append(
             logits(features, num_classes, weight_init=weight_init,
                    bias_init=bias_init, dropout_prob=dropout_prob))
@@ -238,7 +238,7 @@ def logits(features, num_classes=2, weight_init=None, bias_init=None,
   Returns:
     A logits tensor with shape batch_size x num_classes.
   """
-  with tf.op_scope([features], name, 'logits') as name:
+  with tf.name_scope(name, 'logits', [features]) as name:
     return dropout(
         fully_connected_layer(features, num_classes, weight_init=weight_init,
                               bias_init=bias_init, name=name),
@@ -255,7 +255,7 @@ def softmax_N(tensor, name=None):
   Returns:
     A tensor with softmax-normalized values on the last dimension.
   """
-  with tf.op_scope([tensor], name, 'softmax_N'):
+  with tf.name_scope(name, 'softmax_N', [tensor]):
     exp_tensor = tf.exp(tensor)
     reduction_indices = [tensor.get_shape().ndims - 1]
     return tf.div(exp_tensor,

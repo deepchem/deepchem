@@ -162,6 +162,8 @@ class Model(object):
     y_preds = []
     n_tasks = self.get_num_tasks()
     ind = 0
+    if pad_batches and not batch_size:
+      batch_size = self.batch_size 
     for (X_batch, _, _, ids_batch) in dataset.iterbatches(
         batch_size, deterministic=True):
       n_samples = len(X_batch)
@@ -182,7 +184,7 @@ class Model(object):
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[]):
+  def evaluate(self, dataset, metrics, transformers=[], pad_batches=False):
     """
     Evaluates the performance of this model on specified dataset.
   
@@ -201,7 +203,7 @@ class Model(object):
       Maps tasks to scores under metric.
     """
     evaluator = Evaluator(self, dataset, transformers)
-    scores = evaluator.compute_model_performance(metrics)
+    scores = evaluator.compute_model_performance(metrics, pad_batches=pad_batches)
     return scores
 
   def predict_grad(self, dataset, transformers=[], batch_size=50):

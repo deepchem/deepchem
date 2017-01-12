@@ -301,7 +301,7 @@ class TensorflowGraphModel(Model):
       train_op = self.get_training_op(
           self.train_graph.graph, self.train_graph.loss)
       with self._get_shared_session(train=True) as sess:
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
@@ -461,10 +461,10 @@ class TensorflowGraphModel(Model):
       # self._save_path is "logdir/model.ckpt"
       if os.path.basename(self._save_path) in filename:
         try:
-          N = int(filename.split("-")[-1])
+          N = int(filename.split("-")[1].split(".")[0])
           if N > highest_num:
             highest_num = N
-            last_checkpoint = filename
+            last_checkpoint = "model.ckpt-"+str(N)
         except ValueError:
           pass
     return os.path.join(self.logdir, last_checkpoint)
