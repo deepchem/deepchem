@@ -49,13 +49,14 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(GraphPool())
 
-    # Gather Projection
-    graph_model.add(Dense(128, activation='relu'))
+    ## Gather Projection
+    #graph_model.add(Dense(128, activation='relu'))
     graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(GraphGather(batch_size, activation="tanh"))
 
     # There should be 8 layers in graph_model
-    assert len(graph_model.layers) == 6
+    #assert len(graph_model.layers) == 6
+    assert len(graph_model.layers) == 5
 
   def test_sample_attn_lstm_architecture(self):
     """Tests that an attention architecture can be created without crash."""
@@ -83,7 +84,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
       support_model.join(AttnLSTMEmbedding(n_test, n_support, max_depth))
 
       # Gather Projection
-      support_model.add(Dense(128, activation='relu'))
+      #support_model.add(Dense(128, activation='relu'))
       support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
       support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
       support_model.add(GraphGather(batch_size, activation="tanh"))

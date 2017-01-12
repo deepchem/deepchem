@@ -1,6 +1,5 @@
 #from __future__ import absolute_import
 from keras import backend as K
-#from .utils.generic_utils import get_from_module
 
 def get_from_module(identifier, module_params, module_name,
                     instantiate=False, kwargs=None):
@@ -25,7 +24,7 @@ def get_from_module(identifier, module_params, module_name,
     # Raises
         ValueError: if the identifier cannot be found.
     """
-    if isinstance(identifier, str):
+    if isinstance(identifier, str) or isinstance(identifier, unicode):
         res = module_params.get(identifier)
         if not res:
             raise ValueError('Invalid ' + str(module_name) + ': ' +

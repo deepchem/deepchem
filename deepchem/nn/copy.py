@@ -9,6 +9,10 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+from . import initializations
+from . import regularizers
+from . import activations
+from . import constraints
 from keras import backend as K
 
 def to_list(x):

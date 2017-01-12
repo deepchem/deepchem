@@ -1,5 +1,5 @@
 """
-Test that Keras Layers work as advertised.
+Test that Layers work as advertised.
 """
 from __future__ import print_function
 from __future__ import division
@@ -14,15 +14,15 @@ import unittest
 import deepchem as dc
 from tensorflow.python.framework import test_util
 
-class TestKerasLayers(test_util.TensorFlowTestCase):
+class TestLayers(test_util.TensorFlowTestCase):
   """
-  Test Keras Layers.
+  Test Layers.
 
   The tests in this class only do basic sanity checks to make sure that
   produced tensors have the right shape.
   """
   def setUp(self):
-    super(TestKerasLayers, self).setUp()
+    super(TestLayers, self).setUp()
     self.root = '/tmp'
 
   def test_graph_convolution(self):
