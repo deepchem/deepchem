@@ -9,20 +9,20 @@ import numpy as np
 import tensorflow as tf
 import sys 
 import time
-from keras.layers import Input
 from keras import backend as K
 from deepchem.models import Model
 from deepchem.data import pad_batch
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
-from deepchem.models.tf_keras_models.graph_topology import merge_dicts
+from deepchem.models.tf_new_models.graph_topology import merge_dicts
 from deepchem.models.tensorflow_models import model_ops
 from deepchem.data import SupportGenerator
 from deepchem.data import EpisodeGenerator
 from deepchem.data import get_task_dataset
 from deepchem.data import get_single_task_test
 from deepchem.data import get_task_dataset_minus_support
+from deepchem.nn.copy import Input
 
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,
@@ -95,7 +95,6 @@ class SupportGraphClassifier(Model):
     feed_dict[self.test_label_placeholder] = np.squeeze(test.y)
     feed_dict[self.test_weight_placeholder] = np.squeeze(test.w)
 
-    # Get information for keras 
     if add_phase:
       feed_dict[K.learning_phase()] = training
     return feed_dict

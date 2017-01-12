@@ -8,8 +8,8 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-from keras.layers import Input
 from keras import backend as K
+from deepchem.nn.copy import Input
 from deepchem.feat.mol_graphs import ConvMol
 
 def merge_two_dicts(x, y):

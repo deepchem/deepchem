@@ -9,15 +9,14 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-
-from deepchem.models.tf_keras_models.keras_layers import GraphGather
-from deepchem.models.tf_keras_models.graph_topology import GraphTopology
+from deepchem.nn.layers import GraphGather
+from deepchem.models.tf_new_models.graph_topology import GraphTopology
 
 class SequentialGraph(object):
   """An analog of Keras Sequential class for Graph data.
 
   Like the Sequential class from Keras, but automatically passes topology
-  placeholders from GraphTopology to each graph layer (from keras_layers) added
+  placeholders from GraphTopology to each graph layer (from layers) added
   to the network. Non graph layers don't get the extra placeholders. 
   """
   def __init__(self, n_feat):

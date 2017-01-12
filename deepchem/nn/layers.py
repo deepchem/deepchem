@@ -11,11 +11,13 @@ __license__ = "GPL"
 
 import numpy as np
 import tensorflow as tf
-from keras.engine import Layer
-from keras.engine.topology import Container
-from keras.layers import Input, Dense, Dropout, LSTM, Merge
-from keras import initializations, activations
 from keras import backend as K
+from . import activations
+from . import initializations
+from deepchem.nn.copy import Layer
+from deepchem.nn.copy import Input
+from deepchem.nn.copy import Dense
+from deepchem.nn.copy import Dropout
 
 def affine(x, W, b):
   return tf.matmul(x, W) + b

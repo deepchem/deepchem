@@ -349,8 +349,8 @@ class ConvMol(object):
     return concat_mol
 
 class MultiConvMol(object):
-  """Holds information about multiple molecules, for use in feeding information into
-  tensorflow or keras. Generated using the agglomerate_mols function
+  """Holds information about multiple molecules, for use in feeding information
+     into tensorflow. Generated using the agglomerate_mols function
   """
   def __init__(self, nodes, deg_adj_lists, deg_slice, membership, num_mols):
 

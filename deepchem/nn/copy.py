@@ -11,6 +11,31 @@ __license__ = "GPL"
 
 from keras import backend as K
 
+class InputSpec(object):
+    """This specifies the ndim, dtype and shape of every input to a layer.
+    Every layer should expose (if appropriate) an `input_spec` attribute:
+    a list of instances of InputSpec (one per input tensor).
+
+    A None entry in a shape is compatible with any dimension,
+    a None shape is compatible with any shape.
+    """
+
+    def __init__(self, dtype=None, shape=None, ndim=None):
+        if isinstance(ndim, str):
+            if '+' not in ndim:
+                raise ValueError('When passing a str "ndim", '
+                                 'it should have the form "2+", "3+", etc.')
+            int_ndim = ndim[:ndim.find('+')]
+            if not int_ndim.isdigit():
+                raise ValueError('When passing a str "ndim", '
+                                 'it should have the form "2+", "3+", etc.')
+        if shape is not None:
+            self.ndim = len(shape)
+        else:
+            self.ndim = ndim
+        self.dtype = dtype
+        self.shape = shape
+
 class Layer(object):
     """Abstract base layer class.
 
@@ -992,3 +1017,348 @@ def Input(shape=None, batch_shape=None,
         return outputs[0]
     else:
         return outputs
+
+class Dense(Layer):
+    """Just your regular densely-connected NN layer.
+
+    # Example
+
+    ```python
+        # as first layer in a sequential model:
+        model = Sequential()
+        model.add(Dense(32, input_dim=16))
+        # now the model will take as input arrays of shape (*, 16)
+        # and output arrays of shape (*, 32)
+
+        # this is equivalent to the above:
+        model = Sequential()
+        model.add(Dense(32, input_shape=(16,)))
+
+        # after the first layer, you don't need to specify
+        # the size of the input anymore:
+        model.add(Dense(32))
+    ```
+
+    # Arguments
+        output_dim: int > 0.
+        init: name of initialization function for the weights of the layer
+            (see [initializations](../initializations.md)),
+            or alternatively, Theano function to use for weights
+            initialization. This parameter is only relevant
+            if you don't pass a `weights` argument.
+        activation: name of activation function to use
+            (see [activations](../activations.md)),
+            or alternatively, elementwise Theano function.
+            If you don't specify anything, no activation is applied
+            (ie. "linear" activation: a(x) = x).
+        weights: list of Numpy arrays to set as initial weights.
+            The list should have 2 elements, of shape `(input_dim, output_dim)`
+            and (output_dim,) for weights and biases respectively.
+        W_regularizer: instance of [WeightRegularizer](../regularizers.md)
+            (eg. L1 or L2 regularization), applied to the main weights matrix.
+        b_regularizer: instance of [WeightRegularizer](../regularizers.md),
+            applied to the bias.
+        activity_regularizer: instance of [ActivityRegularizer](../regularizers.md),
+            applied to the network output.
+        W_constraint: instance of the [constraints](../constraints.md) module
+            (eg. maxnorm, nonneg), applied to the main weights matrix.
+        b_constraint: instance of the [constraints](../constraints.md) module,
+            applied to the bias.
+        bias: whether to include a bias
+            (i.e. make the layer affine rather than linear).
+        input_dim: dimensionality of the input (integer). This argument
+            (or alternatively, the keyword argument `input_shape`)
+            is required when using this layer as the first layer in a model.
+
+    # Input shape
+        nD tensor with shape: `(nb_samples, ..., input_dim)`.
+        The most common situation would be
+        a 2D input with shape `(nb_samples, input_dim)`.
+
+    # Output shape
+        nD tensor with shape: `(nb_samples, ..., output_dim)`.
+        For instance, for a 2D input with shape `(nb_samples, input_dim)`,
+        the output would have shape `(nb_samples, output_dim)`.
+    """
+
+    def __init__(self, output_dim, init='glorot_uniform',
+                 activation=None, weights=None,
+                 W_regularizer=None, b_regularizer=None, activity_regularizer=None,
+                 W_constraint=None, b_constraint=None,
+                 bias=True, input_dim=None, **kwargs):
+        self.init = initializations.get(init)
+        self.activation = activations.get(activation)
+        self.output_dim = output_dim
+        self.input_dim = input_dim
+
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.b_regularizer = regularizers.get(b_regularizer)
+        self.activity_regularizer = regularizers.get(activity_regularizer)
+
+        self.W_constraint = constraints.get(W_constraint)
+        self.b_constraint = constraints.get(b_constraint)
+
+        self.bias = bias
+        self.initial_weights = weights
+        self.input_spec = [InputSpec(ndim='2+')]
+
+        if self.input_dim:
+            kwargs['input_shape'] = (self.input_dim,)
+        super(Dense, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) >= 2
+        input_dim = input_shape[-1]
+        self.input_dim = input_dim
+        self.input_spec = [InputSpec(dtype=K.floatx(),
+                                     ndim='2+')]
+
+        self.W = self.add_weight((input_dim, self.output_dim),
+                                 initializer=self.init,
+                                 name='{}_W'.format(self.name),
+                                 regularizer=self.W_regularizer,
+                                 constraint=self.W_constraint)
+        if self.bias:
+            self.b = self.add_weight((self.output_dim,),
+                                     initializer='zero',
+                                     name='{}_b'.format(self.name),
+                                     regularizer=self.b_regularizer,
+                                     constraint=self.b_constraint)
+        else:
+            self.b = None
+
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
+        self.built = True
+
+    def call(self, x, mask=None):
+        output = K.dot(x, self.W)
+        if self.bias:
+            output += self.b
+        return self.activation(output)
+
+    def get_output_shape_for(self, input_shape):
+        assert input_shape and len(input_shape) >= 2
+        assert input_shape[-1] and input_shape[-1] == self.input_dim
+        output_shape = list(input_shape)
+        output_shape[-1] = self.output_dim
+        return tuple(output_shape)
+
+    def get_config(self):
+        config = {'output_dim': self.output_dim,
+                  'init': self.init.__name__,
+                  'activation': self.activation.__name__,
+                  'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
+                  'b_regularizer': self.b_regularizer.get_config() if self.b_regularizer else None,
+                  'activity_regularizer': self.activity_regularizer.get_config() if self.activity_regularizer else None,
+                  'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
+                  'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
+                  'bias': self.bias,
+                  'input_dim': self.input_dim}
+        base_config = super(Dense, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+class Dropout(Layer):
+    """Applies Dropout to the input.
+
+    Dropout consists in randomly setting
+    a fraction `p` of input units to 0 at each update during training time,
+    which helps prevent overfitting.
+
+    # Arguments
+        p: float between 0 and 1. Fraction of the input units to drop.
+        noise_shape: 1D integer tensor representing the shape of the
+            binary dropout mask that will be multiplied with the input.
+            For instance, if your inputs ahve shape
+            `(batch_size, timesteps, features)` and
+            you want the dropout mask to be the same for all timesteps,
+            you can use `noise_shape=(batch_size, 1, features)`.
+        seed: A Python integer to use as random seed.
+
+    # References
+        - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf)
+    """
+
+    def __init__(self, p, noise_shape=None, seed=None, **kwargs):
+        self.p = p
+        self.noise_shape = noise_shape
+        self.seed = seed
+        if 0. < self.p < 1.:
+            self.uses_learning_phase = True
+        self.supports_masking = True
+        super(Dropout, self).__init__(**kwargs)
+
+    def _get_noise_shape(self, _):
+        return self.noise_shape
+
+    def call(self, x, mask=None):
+        if 0. < self.p < 1.:
+            noise_shape = self._get_noise_shape(x)
+
+            def dropped_inputs():
+                return K.dropout(x, self.p, noise_shape, seed=self.seed)
+            x = K.in_train_phase(dropped_inputs, lambda: x)
+        return x
+
+    def get_config(self):
+        config = {'p': self.p}
+        base_config = super(Dropout, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+class BatchNormalization(Layer):
+    """Batch normalization layer (Ioffe and Szegedy, 2014).
+
+    Normalize the activations of the previous layer at each batch,
+    i.e. applies a transformation that maintains the mean activation
+    close to 0 and the activation standard deviation close to 1.
+
+    # Arguments
+        epsilon: small float > 0. Fuzz parameter.
+            Theano expects epsilon >= 1e-5.
+        mode: integer, 0, 1 or 2.
+            - 0: feature-wise normalization.
+                Each feature map in the input will
+                be normalized separately. The axis on which
+                to normalize is specified by the `axis` argument.
+                Note that if the input is a 4D image tensor
+                using Theano conventions (samples, channels, rows, cols)
+                then you should set `axis` to `1` to normalize along
+                the channels axis.
+                During training we use per-batch statistics to normalize
+                the data, and during testing we use running averages
+                computed during the training phase.
+            - 1: sample-wise normalization. This mode assumes a 2D input.
+            - 2: feature-wise normalization, like mode 0, but
+                using per-batch statistics to normalize the data during both
+                testing and training.
+        axis: integer, axis along which to normalize in mode 0. For instance,
+            if your input tensor has shape (samples, channels, rows, cols),
+            set axis to 1 to normalize per feature map (channels axis).
+        momentum: momentum in the computation of the
+            exponential average of the mean and standard deviation
+            of the data, for feature-wise normalization.
+        weights: Initialization weights.
+            List of 2 Numpy arrays, with shapes:
+            `[(input_shape,), (input_shape,)]`
+            Note that the order of this list is [gamma, beta, mean, std]
+        beta_init: name of initialization function for shift parameter
+            (see [initializations](../initializations.md)), or alternatively,
+            Theano/TensorFlow function to use for weights initialization.
+            This parameter is only relevant if you don't pass a `weights` argument.
+        gamma_init: name of initialization function for scale parameter (see
+            [initializations](../initializations.md)), or alternatively,
+            Theano/TensorFlow function to use for weights initialization.
+            This parameter is only relevant if you don't pass a `weights` argument.
+        gamma_regularizer: instance of [WeightRegularizer](../regularizers.md)
+            (eg. L1 or L2 regularization), applied to the gamma vector.
+        beta_regularizer: instance of [WeightRegularizer](../regularizers.md),
+            applied to the beta vector.
+
+    # Input shape
+        Arbitrary. Use the keyword argument `input_shape`
+        (tuple of integers, does not include the samples axis)
+        when using this layer as the first layer in a model.
+
+    # Output shape
+        Same shape as input.
+
+    # References
+        - [Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift](https://arxiv.org/abs/1502.03167)
+    """
+
+    def __init__(self, epsilon=1e-3, mode=0, axis=-1, momentum=0.99,
+                 weights=None, beta_init='zero', gamma_init='one',
+                 gamma_regularizer=None, beta_regularizer=None, **kwargs):
+        self.supports_masking = True
+        self.beta_init = initializations.get(beta_init)
+        self.gamma_init = initializations.get(gamma_init)
+        self.epsilon = epsilon
+        self.mode = mode
+        self.axis = axis
+        self.momentum = momentum
+        self.gamma_regularizer = regularizers.get(gamma_regularizer)
+        self.beta_regularizer = regularizers.get(beta_regularizer)
+        self.initial_weights = weights
+        if self.mode == 0:
+            self.uses_learning_phase = True
+        super(BatchNormalization, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.input_spec = [InputSpec(shape=input_shape)]
+        shape = (input_shape[self.axis],)
+
+        self.gamma = self.add_weight(shape,
+                                     initializer=self.gamma_init,
+                                     regularizer=self.gamma_regularizer,
+                                     name='{}_gamma'.format(self.name))
+        self.beta = self.add_weight(shape,
+                                    initializer=self.beta_init,
+                                    regularizer=self.beta_regularizer,
+                                    name='{}_beta'.format(self.name))
+        self.running_mean = self.add_weight(shape, initializer='zero',
+                                            name='{}_running_mean'.format(self.name),
+                                            trainable=False)
+        self.running_std = self.add_weight(shape, initializer='one',
+                                           name='{}_running_std'.format(self.name),
+                                           trainable=False)
+
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
+        self.built = True
+
+    def call(self, x, mask=None):
+        if self.mode == 0 or self.mode == 2:
+            assert self.built, 'Layer must be built before being called'
+            input_shape = K.int_shape(x)
+
+            reduction_axes = list(range(len(input_shape)))
+            del reduction_axes[self.axis]
+            broadcast_shape = [1] * len(input_shape)
+            broadcast_shape[self.axis] = input_shape[self.axis]
+
+            x_normed, mean, std = K.normalize_batch_in_training(
+                x, self.gamma, self.beta, reduction_axes,
+                epsilon=self.epsilon)
+
+            if self.mode == 0:
+                self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
+                                 K.moving_average_update(self.running_std, std, self.momentum)], x)
+
+                if sorted(reduction_axes) == range(K.ndim(x))[:-1]:
+                    x_normed_running = K.batch_normalization(
+                        x, self.running_mean, self.running_std,
+                        self.beta, self.gamma,
+                        epsilon=self.epsilon)
+                else:
+                    # need broadcasting
+                    broadcast_running_mean = K.reshape(self.running_mean, broadcast_shape)
+                    broadcast_running_std = K.reshape(self.running_std, broadcast_shape)
+                    broadcast_beta = K.reshape(self.beta, broadcast_shape)
+                    broadcast_gamma = K.reshape(self.gamma, broadcast_shape)
+                    x_normed_running = K.batch_normalization(
+                        x, broadcast_running_mean, broadcast_running_std,
+                        broadcast_beta, broadcast_gamma,
+                        epsilon=self.epsilon)
+
+                # pick the normalized form of x corresponding to the training phase
+                x_normed = K.in_train_phase(x_normed, x_normed_running)
+
+        elif self.mode == 1:
+            # sample-wise normalization
+            m = K.mean(x, axis=-1, keepdims=True)
+            std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
+            x_normed = (x - m) / (std + self.epsilon)
+            x_normed = self.gamma * x_normed + self.beta
+        return x_normed
+
+    def get_config(self):
+        config = {'epsilon': self.epsilon,
+                  'mode': self.mode,
+                  'axis': self.axis,
+                  'gamma_regularizer': self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
+                  'beta_regularizer': self.beta_regularizer.get_config() if self.beta_regularizer else None,
+                  'momentum': self.momentum}
+        base_config = super(BatchNormalization, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
