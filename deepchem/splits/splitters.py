@@ -269,7 +269,8 @@ class MolecularWeightSplitter(Splitter):
     """
 
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    np.random.seed(seed)
+    if not seed is None:
+      np.random.seed(seed)
 
     mws = []
     for smiles in dataset.ids:
@@ -299,7 +300,8 @@ class RandomSplitter(Splitter):
     Splits internal compounds randomly into train/validation/test.
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    np.random.seed(seed)
+    if not seed is None:
+      np.random.seed(seed)
     num_datapoints = len(dataset)
     train_cutoff = int(frac_train * num_datapoints)
     valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
