@@ -73,12 +73,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       outputs = self.add_progressive_lattice(graph, name_scopes, training)
 
       if training:
-        ############################################################ DEBUG
-        #loss = self.add_training_costs(graph, name_scopes, outputs, labels,
-        #                               weights)
         loss = self.add_task_training_costs(graph, name_scopes, outputs, labels,
                                            weights)
-        ############################################################ DEBUG
       else:
         loss = None
     return TensorflowGraph(graph=graph,
@@ -249,73 +245,6 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
             stddev=weight_init_stddev),
         name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
     return tf.matmul(prev_layer, U)
-
-  ########################################################### DEBUG
-  def old_fit(self, dataset, nb_epoch=10, pad_batches=False, 
-          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
-    """Fit the model.
-
-    Parameters
-    ---------- 
-    dataset: dc.data.Dataset
-      Dataset object holding training data 
-    nb_epoch: 10
-      Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
-    max_checkpoints_to_keep: int
-      Maximum number of checkpoints to keep; older checkpoints will be deleted.
-    log_every_N_batches: int
-      Report every N batches. Useful for training on very large datasets,
-      where epochs can take long time to finish.
-
-    Raises
-    ------
-    AssertionError
-      If model is not in training mode.
-    """
-    ############################################################## TIMING
-    time1 = time.time()
-    ############################################################## TIMING
-    log("Training for %d epochs" % nb_epoch, self.verbosity)
-    with self.train_graph.graph.as_default():
-      train_op = self.get_training_op(
-          self.train_graph.graph, self.train_graph.loss)
-      with self._get_shared_session(train=True) as sess:
-        sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-        # Save an initial checkpoint.
-        saver.save(sess, self._save_path, global_step=0)
-        for epoch in range(nb_epoch):
-          avg_loss, n_batches = 0., 0
-          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              # Turns out there are valid cases where we don't want pad-batches
-              # on by default.
-              #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
-            if ind % log_every_N_batches == 0:
-              log("On batch %d" % ind, self.verbosity)
-            # Run training op.
-            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
-            fetches = self.train_graph.output + [
-                train_op, self.train_graph.loss]
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            output = fetched_values[:len(self.train_graph.output)]
-            loss = fetched_values[-1]
-            avg_loss += loss
-            y_pred = np.squeeze(np.array(output))
-            y_b = y_b.flatten()
-            n_batches += 1
-          saver.save(sess, self._save_path, global_step=epoch)
-          avg_loss = float(avg_loss)/n_batches
-          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
-        # Always save a final checkpoint when complete.
-        saver.save(sess, self._save_path, global_step=epoch+1)
-    ############################################################## TIMING
-    time2 = time.time()
-    print("TIMING: model fitting took %0.3f s" % (time2-time1),
-          self.verbosity)
-    ############################################################## TIMING
 
   def get_training_op(self, graph, loss):
     """Get training op for applying gradients to variables.
@@ -506,13 +435,6 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       task_loss = losses[task]
       task_root = "task%d_ops" % task
       task_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, task_root)
-      ##################################################################### DEBUG
-      print("get_task_training_op for task %d" % task)
-      print("len(task_vars)")
-      print(len(task_vars))
-      print("[task_var.name for task_var in task_vars]")
-      print([task_var.name for task_var in task_vars])
-      ##################################################################### DEBUG
       opt = model_ops.optimizer(self.optimizer, self.learning_rate, self.momentum)
       return opt.minimize(task_loss, name='train', var_list=task_vars)
 
@@ -555,9 +477,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     return task_costs
 
 
-  ####################################################### DEBUG
   def construct_task_feed_dict(self, this_task, X_b, y_b=None, w_b=None, ids_b=None):
-  ####################################################### DEBUG
     """Construct a feed dictionary from minibatch data.
 
     TODO(rbharath): ids_b is not used here. Can we remove it?
@@ -637,7 +557,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    log("Training task %d for %d epochs" % (task, nb_epoch), self.verbosity)
+    log("Training task %d for %d epochs" % (task, nb_epoch), self.verbose)
     for epoch in range(nb_epoch):
       avg_loss, n_batches = 0., 0
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
@@ -646,12 +566,10 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           #dataset.iterbatches(batch_size, pad_batches=True)):
           dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
         if ind % log_every_N_batches == 0:
-          log("On batch %d" % ind, self.verbosity)
+          log("On batch %d" % ind, self.verbose)
         feed_dict = self.construct_task_feed_dict(task, X_b, y_b, w_b, ids_b)
-        ############################################################## DEBUG
         fetches = self.train_graph.output + [
             task_train_op, self.train_graph.loss[task]]
-        ############################################################## DEBUG
         fetched_values = sess.run(fetches, feed_dict=feed_dict)
         output = fetched_values[:len(self.train_graph.output)]
         loss = fetched_values[-1]
@@ -661,9 +579,9 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         n_batches += 1
       #saver.save(sess, self._save_path, global_step=epoch)
       avg_loss = float(avg_loss)/n_batches
-      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbosity)
+      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbose)
     ############################################################## TIMING
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
     ############################################################## TIMING

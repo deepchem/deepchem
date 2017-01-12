@@ -6,24 +6,19 @@ __author__ = "Bharath Ramsundar and Evan Feinberg"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-from copy import deepcopy
-import numpy as np
+import os
+import shutil
 import time
-from collections import deque
+import tempfile
 import hashlib
 import sys
+import numpy as np
+from copy import deepcopy
 import openbabel as ob
+from collections import deque
 from functools import partial
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log
-import tempfile
-import os
-import shutil
-import multiprocessing as mp
-############################################################## DEBUG
-import time
-############################################################## DEBUG
-
 
 """
 http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
@@ -33,7 +28,6 @@ def get_xyz_from_ob(ob_mol):
   returns an m x 3 np array of 3d coords
   of given openbabel molecule
   """
-
   xyz = np.zeros((ob_mol.NumAtoms(), 3))
   for i, atom in enumerate(ob.OBMolAtomIter(ob_mol)):
     xyz[i, 0] = atom.x()
@@ -41,8 +35,20 @@ def get_xyz_from_ob(ob_mol):
     xyz[i, 2] = atom.z()
   return(xyz)
 
+def get_ligand_filetype(ligand_filename):
+  """Returns the filetype of ligand."""
+  if ".mol2" in ligand_filename:
+    return ".mol2"
+  elif ".sdf" in ligand_filename:
+    return "sdf"
+  elif ".pdbqt" in ligand_filename:
+    return ".pdbqt"
+  elif ".pdb" in ligand_filename:
+    return ".pdb"
+  else:
+    raise ValueError("Unrecognized_filename")
 
-def load_molecule(molecule_file, remove_hydrogens=True,
+def load_molecule(molecule_file, add_hydrogens=True,
                   calc_charges=False):
   """Converts molecule file to (xyz-coords, obmol object)
 
@@ -60,6 +66,11 @@ def load_molecule(molecule_file, remove_hydrogens=True,
     obConversion.SetInAndOutFormats(str("sdf"), str("sdf"))
     ob_mol = ob.OBMol()
     obConversion.ReadFile(ob_mol, str(molecule_file))
+  elif ".pdbqt" in molecule_file:
+    obConversion = ob.OBConversion()
+    obConversion.SetInAndOutFormats(str("pdbqt"), str("pdbqt"))
+    ob_mol = ob.OBMol()
+    obConversion.ReadFile(ob_mol, str(molecule_file))
   elif ".pdb" in molecule_file:
     obConversion = ob.OBConversion()
     obConversion.SetInAndOutFormats(str("pdb"), str("pdb"))
@@ -74,7 +85,7 @@ def load_molecule(molecule_file, remove_hydrogens=True,
     ob_mol.UnsetImplicitValencePerceived()
     ob_mol.CorrectForPH(7.4)
     ob_mol.AddHydrogens()
-  else:
+  elif add_hydrogens:
     ob_mol.AddHydrogens()
 
   xyz = get_xyz_from_ob(ob_mol)
@@ -534,7 +545,7 @@ def _featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
 def _compute_ring_center(mol, ring):
   ring_xyz = np.zeros((len(ring._path), 3))
   for i, atom_idx in enumerate(ring._path):
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     ring_xyz[i, :] = [atom.x(), atom.y(), atom.z()]
   ring_centroid = _compute_centroid(ring_xyz)
   return ring_centroid
@@ -543,7 +554,7 @@ def _compute_ring_normal(mol, ring):
   points = np.zeros((3,3))
   for i, atom_idx in enumerate(ring._path):
     if i == 3: break
-    atom = mol.GetAtom(atom_idx)
+    atom = mol.GetAtom(int(atom_idx))
     points[i,:] = [atom.x(), atom.y(), atom.z()]
 
   v1 = points[1,:] - points[0,:]
@@ -706,8 +717,8 @@ def _compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand, pairwise_dis
   contacts = np.nonzero(pairwise_distances < 5.0)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
-    protein_atom = protein.GetAtom(contact[0]+1)
-    ligand_atom = ligand.GetAtom(contact[1]+1)
+    protein_atom = protein.GetAtom(int(contact[0]+1))
+    ligand_atom = ligand.GetAtom(int(contact[1]+1))
     if _is_salt_bridge(protein_atom, ligand_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
@@ -726,8 +737,8 @@ def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
 
   protein_atom_index = contact[0]
   ligand_atom_index = contact[1]
-  protein_atom = protein.GetAtom(protein_atom_index+1)
-  ligand_atom = ligand.GetAtom(ligand_atom_index+1)
+  protein_atom = protein.GetAtom(int(protein_atom_index+1))
+  ligand_atom = ligand.GetAtom(int(ligand_atom_index+1))
   if protein_atom.IsHbondAcceptor() and ligand_atom.IsHbondDonor():
     for atom in ob.OBAtomAtomIter(ligand_atom):
       if atom.GetAtomicNum() == 1:
@@ -842,12 +853,8 @@ class GridFeaturizer(ComplexFeaturizer):
                save_intermediates=False, ligand_only=False,
                box_width=16.0, voxel_width=1.0, voxelize_features=True, 
                voxel_feature_types=[], flatten=False, parallel=False,
-               verbosity=None, **kwargs):
-    self.verbosity = verbosity
-    #################################################### DEBUG
-    print("self.verbosity")
-    print(self.verbosity)
-    #################################################### DEBUG
+               verbose=True, **kwargs):
+    self.verbose = verbose
     self.parallel = parallel
     self.flatten = flatten
 
@@ -882,19 +889,18 @@ class GridFeaturizer(ComplexFeaturizer):
                         "S3", "S3+", "S2", "So2", "Sox" "Sac" "SO", "P3", 
                         "P", "P3+", "F", "Cl", "Br", "I"]
 
-  def _featurize_complex(self, ligand_pdb_lines, protein_pdb_lines):
+  def _featurize_complex(self, ligand_ext, ligand_lines, protein_pdb_lines):
     tempdir = tempfile.mkdtemp()
 
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_pdb_file = os.path.join(tempdir, "ligand.pdb")
-    with open(ligand_pdb_file, "w") as mol_f:
-      mol_f.writelines(ligand_pdb_lines)
+    ligand_file = os.path.join(tempdir, "ligand.%s" % ligand_ext)
+    with open(ligand_file, "w") as mol_f:
+      mol_f.writelines(ligand_lines)
     ############################################################## TIMING
     time2 = time.time()
-    log("TIMING: Writing ligand took %0.3f s" % (time2-time1),
-        self.verbosity)
+    log("TIMING: Writing ligand took %0.3f s" % (time2-time1), self.verbose)
     ############################################################## TIMING
 
     ############################################################## TIMING
@@ -905,36 +911,39 @@ class GridFeaturizer(ComplexFeaturizer):
       protein_f.writelines(protein_pdb_lines)
     ############################################################## TIMING
     time2 = time.time()
-    log("TIMING: Writing protein took %0.3f s" % (time2-time1),
-        self.verbosity)
+    log("TIMING: Writing protein took %0.3f s" % (time2-time1), self.verbose)
     ############################################################## TIMING
 
-    features_dict = self._transform(protein_pdb_file, ligand_pdb_file)
+    features_dict = self._transform(protein_pdb_file, ligand_file)
     shutil.rmtree(tempdir)
     return features_dict.values()
 
-  def featurize_complexes(self, mol_pdbs, protein_pdbs, log_every_n=1000):
+  def featurize_complexes(self, mol_files, protein_pdbs, log_every_n=1000):
     """
     Calculate features for mol/protein complexes.
 
     Parameters
     ----------
-    mol_pdbs: list
-      List of PDBs for molecules. Each PDB should be a list of lines of the
-      PDB file.
+    mols: list
+      List of PDB filenames for molecules.
     protein_pdbs: list
-      List of PDBs for proteins. Each PDB should be a list of lines of the
-      PDB file.
+      List of PDB filenames for proteins.
     """
     features = []
-    for i, (mol_pdb, protein_pdb) in enumerate(zip(mol_pdbs, protein_pdbs)):
+    for i, (mol_file, protein_pdb) in enumerate(zip(mol_files, protein_pdbs)):
       if i % log_every_n == 0:
-        log("Featurizing %d / %d" % (i, len(mol_pdbs)))
-      features += self._featurize_complex(mol_pdb, protein_pdb)
+        log("Featurizing %d / %d" % (i, len(mol_files)))
+      ligand_ext = get_ligand_filetype(mol_file)
+      with open(mol_file) as mol_f:
+        mol_lines = mol_f.readlines()
+      with open(protein_pdb) as protein_file:
+        protein_pdb_lines = protein_file.readlines()
+      features += self._featurize_complex(ligand_ext, mol_lines,
+                                          protein_pdb_lines)
     features = np.asarray(features)
     return features
 
-  def _transform(self, protein_pdb, ligand_pdb):
+  def _transform(self, protein_pdb, ligand_file):
     """Computes featurization of protein/ligand complex.
 
     Takes as input files (strings) for pdb of the protein, pdb of the ligand,
@@ -959,27 +968,18 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
     ligand_xyz, ligand_ob = load_molecule(
-        ligand_pdb, calc_charges=False)
+        ligand_file, calc_charges=False)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
-
-    ############################################################# DEBUG
-    print("self.feature_types")
-    print(self.feature_types)
-    ############################################################# DEBUG
-    ############################################################# DEBUG
-    print("self.voxel_feature_types")
-    print(self.voxel_feature_types)
-    ############################################################# DEBUG
 
     if "ecfp" in self.feature_types:
       ecfp_array = _compute_ecfp_features(
@@ -996,7 +996,7 @@ class GridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Centroid processing took %0.3f s" % (time2-time1),
-        self.verbosity)
+        self.verbose)
     ############################################################## TIMING
 
     if "splif" in self.feature_types:
@@ -1020,7 +1020,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: ecfp voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
     if "splif" in self.voxel_feature_types: 
       ############################################################## TIMING
@@ -1032,7 +1032,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: splif voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "hbond" in self.voxel_feature_types:
@@ -1047,7 +1047,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: hbond voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "sybyl" in self.voxel_feature_types:
@@ -1060,7 +1060,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: sybyl voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "pi_stack" in self.voxel_feature_types:
@@ -1073,7 +1073,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: pi_stack voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "cation_pi" in self.voxel_feature_types:
@@ -1086,7 +1086,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: cation_pi voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "salt_bridge" in self.voxel_feature_types:
@@ -1099,7 +1099,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: salt_bridge voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     if "charge" in self.voxel_feature_types:
@@ -1111,7 +1111,7 @@ class GridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: charge voxel computataion took %0.3f s" % (time2-time1),
-          self.verbosity)
+          self.verbose)
       ############################################################## TIMING
 
     transformed_systems = {}

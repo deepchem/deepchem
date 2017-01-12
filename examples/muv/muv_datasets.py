@@ -30,9 +30,8 @@ def load_muv(featurizer='ECFP', split='index'):
                       'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
                       'MUV-466', 'MUV-832'])
 
-  loader = dc.load.DataLoader(
-      tasks=MUV_tasks, smiles_field="smiles",
-      featurizer=featurizer_func, verbosity="high")
+  loader = dc.data.CSVLoader(
+      tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers 
@@ -46,8 +45,7 @@ def load_muv(featurizer='ECFP', split='index'):
                'random': dc.splits.RandomSplitter(),
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(
-	dataset, compute_feature_statistics=False)
+  train, valid, test = splitter.train_valid_test_split(dataset)
   return MUV_tasks, (train, valid, test), transformers
 
 

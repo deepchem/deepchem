@@ -14,4 +14,4 @@ import deepchem.nn
 import deepchem.splits
 import deepchem.trans
 import deepchem.utils
-import deepchem.load
+import deepchem.dock

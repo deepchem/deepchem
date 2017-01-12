@@ -21,6 +21,11 @@ def get_loss_fn(final_loss):
     def loss_fn(x, t):
       diff = tf.sub(x, t)
       return tf.reduce_sum(tf.square(diff), 0)
+  elif final_loss=='weighted_L2':
+    def loss_fn(x, t, w):
+      diff = tf.sub(x, t)
+      weighted_diff = tf.mul(diff,w)
+      return tf.reduce_sum(tf.square(weighted_diff), 0)
   elif final_loss=='L1':
     def loss_fn(x, t):
       diff = tf.sub(x, t)
@@ -49,9 +54,9 @@ class MultitaskGraphClassifier(Model):
   def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
-               beta1=.9, beta2=.999, verbosity=None):
+               beta1=.9, beta2=.999, verbose=True):
 
-    self.verbosity = verbosity
+    self.verbose = verbose
     self.sess = sess
     self.n_tasks = n_tasks
     self.final_loss = final_loss
@@ -180,15 +185,15 @@ class MultitaskGraphClassifier(Model):
   def fit(self, dataset, nb_epoch=10, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     # Perform the optimization
-    log("Training for %d epochs" % nb_epoch, self.verbosity)
+    log("Training for %d epochs" % nb_epoch, self.verbose)
   
     # TODO(rbharath): Disabling saving for now to try to debug.
     for epoch in range(nb_epoch):
-      log("Starting epoch %d" % epoch, self.verbosity)
+      log("Starting epoch %d" % epoch, self.verbose)
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
           self.batch_size, pad_batches=True)):
         if batch_num % log_every_N_batches == 0:
-          log("On batch %d" % batch_num, self.verbosity)
+          log("On batch %d" % batch_num, self.verbose)
         self.sess.run(
             self.train_op,
             feed_dict=self.construct_feed_dict(X_b, y_b, w_b))

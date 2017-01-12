@@ -3,7 +3,7 @@
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
 chemistry. DeepChem is a package developed by the [Pande group](https://pande.stanford.edu/) at
-Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/). 
+Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/).
 
 ### Table of contents:
 
@@ -13,6 +13,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
     * [Data Featurization](#data-featurization)
+    * [Performances](#performances)
 * [Contributing to DeepChem](#contributing-to-deepchem)
     * [Code Style Guidelines](#code-style-guidelines)
     * [Documentation Style Guidelines](#documentation-style-guidelines)
@@ -29,9 +30,6 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
 * [keras](http://keras.io)
-* [six](https://pypi.python.org/pypi/six)
-* [dill](https://pypi.python.org/pypi/dill)
-* [ipyparallel](https://ipyparallel.readthedocs.io/en/latest/)
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
@@ -48,62 +46,28 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install -c omnia openbabel=2.4.0
    ``` 
 
-3. `pandas`
-   ```bash
-   conda install pandas 
-   ```
-
-4. `rdkit`
+3. `rdkit`
    ```bash
    conda install -c omnia rdkit
    ```
 
-5. `boost`
-   ```bash
-   conda install -c omnia boost=1.59.0
-   ```
-
-6. `joblib`
+4. `joblib`
    ```bash
    conda install joblib 
    ```
 
-7. `keras`
+5. `keras`
    ```bash
-   pip install keras --user
+   pip install keras
    ```
-   `deepchem` only supports the `tensorflow` backend for keras. To set the backend to `tensorflow`,
-   add the following line to your `~/.bashrc`
-   ```bash
-   export KERAS_BACKEND=tensorflow
-   ```
-   See [keras docs](https://keras.io/backend/) for more details and alternate methods of setting backend.
-
-8. `six`
-   ```bash
-   conda install six
-   ```
-9. `dill`
-    ```bash
-    conda install dill
-    ```
-
-10. `ipyparallel`
-    ```bash
-    conda install ipyparallel
-    ```
-
-11. `mdtraj`
+   `deepchem` only supports the `tensorflow` (default) backend for keras.
+   
+6. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
    ```
-   
-12. `scikit-learn`
-    ```bash
-    conda install scikit-learn 
-    ```
 
-13. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+7. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -111,32 +75,27 @@ Installation from source is the only currently supported format. ```deepchem``` 
     conda install -c https://conda.anaconda.org/jjhelmus tensorflow
     ```
 
-14. `h5py`:
-    ```
-    conda install h5py
-    ```
+8. `deepchem`: Clone the `deepchem` github repo:
+   ```bash
+   git clone https://github.com/deepchem/deepchem.git
+   ```
+   `cd` into the `deepchem` directory and execute
+   ```bash
+   python setup.py install
+   ```
 
-15. `deepchem`: Clone the `deepchem` github repo:
-    ```bash
-    git clone https://github.com/deepchem/deepchem.git
-    ```
-    `cd` into the `deepchem` directory and execute
-    ```bash
-    python setup.py install
-    ```
+9. To run test suite, install `nosetests`:
+   ```bash
+   pip install nose
+   ```
+   Make sure that the correct version of `nosetests` is active by running
+   ```bash
+   which nosetests 
+   ```
+   You might need to uninstall a system install of `nosetests` if
+   there is a conflict.
 
-16. To run test suite, install `nosetests`:
-    ```bash
-    pip install nose --user
-    ```
-    Make sure that the correct version of `nosetests` is active by running
-    ```bash
-    which nosetests 
-    ```
-    You might need to uninstall a system install of `nosetests` if
-    there is a conflict.
-
-17. If installation has been successful, all tests in test suite should pass:
+10. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
@@ -197,10 +156,12 @@ Environmental Protection Agency, Environmental Research Laboratory, 1987.
 Most machine learning algorithms require that input data form vectors.
 However, input data for drug-discovery datasets routinely come in the
 format of lists of molecules and associated experimental readouts. To
-transform lists of molecules into vectors, we need to use the DeepChem
-loader class ``dc.load.DataLoader``. Instances of this class must be
-passed a ``Featurizer`` object. DeepChem provides a number of
-different subclasses of ``Featurizer`` for convenience:
+transform lists of molecules into vectors, we need to subclasses of DeepChem
+loader class ```dc.data.DataLoader``` such as ```dc.data.CSVLoader``` or 
+```dc.data.SDFLoader```. Users can subclass ```dc.data.DataLoader``` to
+load arbitrary file formats. All loaders must be
+passed a ```dc.feat.Featurizer``` object. DeepChem provides a number of
+different subclasses of ```dc.feat.Featurizer``` for convenience.
 
 ### Performances
 * Classification
@@ -234,26 +195,26 @@ Random splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.903              |0.741              |
-|           |Multitask network   |0.846              |0.812              |
-|           |robust MT-NN        |0.844              |0.793              |
-|           |graph convolution   |0.872              |0.816              |
-|muv        |logistic regression |0.961              |0.696              |
-|           |Multitask network   |0.895              |0.740              |
-|           |robust MT-NN        |0.914              |0.667              |
-|           |graph convolution   |0.846              |0.776              |
-|pcba       |logistic regression |0.807        	     |0.772              |
-|           |Multitask network   |0.811        	     |0.787              |
-|           |robust MT-NN        |0.809              |0.778              |
-|           |graph convolution   |0.875       	     |0.844              |
-|sider      |logistic regression |0.932        	     |0.628              |
-|           |Multitask network   |0.779        	     |0.665              |
-|           |robust MT-NN        |0.761              |0.621              |
-|           |graph convolution   |0.706        	     |0.638              |
-|toxcast    |logistic regression |0.737        	     |0.543              |
-|           |Multitask network   |0.831        	     |0.684              |
-|           |robust MT-NN        |0.814              |0.692              |
-|           |graph convolution   |0.820        	     |0.692              |
+|tox21      |logistic regression |0.903              |0.735              |
+|           |Multitask network   |0.856              |0.783              |
+|           |robust MT-NN        |0.855              |0.773              |
+|           |graph convolution   |0.865              |0.827              |
+|muv        |logistic regression |0.957              |0.719              |
+|           |Multitask network   |0.902              |0.734              |
+|           |robust MT-NN        |0.933              |0.732              |
+|           |graph convolution   |0.860              |0.730              |
+|pcba       |logistic regression |0.808        	     |0.776              |
+|           |Multitask network   |0.811        	     |0.778              |
+|           |robust MT-NN        |0.811              |0.771              |
+|           |graph convolution   |0.872       	     |0.844              |
+|sider      |logistic regression |0.929        	     |0.656              |
+|           |Multitask network   |0.777        	     |0.655              |
+|           |robust MT-NN        |0.804              |0.630              |
+|           |graph convolution   |0.705        	     |0.618              |
+|toxcast    |logistic regression |0.725        	     |0.586              |
+|           |Multitask network   |0.836        	     |0.684              |
+|           |robust MT-NN        |0.822              |0.681              |
+|           |graph convolution   |0.820        	     |0.717              |
 
 Scaffold splitting
 
@@ -282,53 +243,77 @@ Scaffold splitting
 
 * Regression
 
-|Dataset    |Model               |Splitting   |Train score/R2|Valid score/R2|
-|-----------|--------------------|------------|--------------|--------------|
-|delaney    |MT-NN regression    |Index       |0.773         |0.574         |
-|           |MT-NN regression    |Random      |0.769         |0.591         |
-|           |MT-NN regression    |Scaffold    |0.782         |0.426         |
-|kaggle     |MT-NN regression    |User-defined|0.748         |0.452         |
+|Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
+|----------------|--------------------|------------|--------------|--------------|
+|delaney         |MT-NN regression    |Index       |0.773         |0.574         |
+|                |graphconv regression|Index       |0.991         |0.825         |
+|                |MT-NN regression    |Random      |0.769         |0.591         |
+|                |graphconv regression|Random      |0.996         |0.873         |
+|                |MT-NN regression    |Scaffold    |0.782         |0.426         |
+|                |graphconv regression|Scaffold    |0.994         |0.606         |
+|nci             |MT-NN regression    |Index       |0.171         |0.062         |
+|                |graphconv regression|Index       |0.123         |0.048         |
+|                |MT-NN regression    |Random      |0.168         |0.085         |
+|                |graphconv regression|Random      |0.117         |0.076         |
+|                |MT-NN regression    |Scaffold    |0.180         |0.052         |
+|                |graphconv regression|Scaffold    |0.131         |0.046         |
+|pdbbind(core)   |MT-NN regression    |Random      |0.973         |0.494         |
+|pdbbind(refined)|MT-NN regression    |Random      |0.987         |0.503         |
+|pdbbind(full)   |MT-NN regression    |Random      |0.983         |0.528         |
+|kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 * General features
 
 Number of tasks and examples in the datasets
 
-|Dataset    |N(tasks)	|N(samples) |
-|-----------|-----------|-----------| 
-|tox21      |12         |8014       |
-|muv        |17         |93127      |
-|pcba       |128        |439863     |
-|sider      |27         |1427       |
-|toxcast    |617        |8615       |
-|delaney    |1          |1128       |
-|kaggle     |15         |173065     |
+|Dataset         |N(tasks)	|N(samples) |
+|----------------|-----------|-----------| 
+|tox21           |12         |8014       |
+|muv             |17         |93127      |
+|pcba            |128        |439863     |
+|sider           |27         |1427       |
+|toxcast         |617        |8615       |
+|delaney         |1          |1128       |
+|kaggle          |15         |173065     |
+|nci             |60         |19127      |
+|pdbbind(core)   |1          |195        |
+|pdbbind(refined)|1          |3706       |
+|pdbbind(full)   |1          |11908      |
+
+
 
 Time needed for benchmark test(~20h in total)
 
-|Dataset    |Model               |Time(loading)/s |Time(running)/s|
-|-----------|--------------------|----------------|---------------| 
-|tox21      |logistic regression |30              |60             |
-|           |Multitask network   |30              |60             |
-|           |robust MT-NN        |30              |90             |
-|           |graph convolution   |40              |160            |
-|muv        |logistic regression |600             |450            |
-|           |Multitask network   |600             |400            |
-|           |robust MT-NN        |600             |550            |
-|           |graph convolution   |800             |1800           |
-|pcba       |logistic regression |1800            |10000          |
-|           |Multitask network 	 |1800            |9000           |
-|           |robust MT-NN        |1800            |14000          |
-|           |graph convolution   |2200            |14000          |
-|sider      |logistic regression |15              |80             |
-|           |Multitask network 	 |15              |75             |
-|           |robust MT-NN        |15              |150            |
-|           |graph convolution   |20              |50             |
-|toxcast    |logistic regression |80              |2600           |
-|           |Multitask network   |80              |2300           |
-|           |robust MT-NN        |80              |4000           |
-|           |graph convolution   |80              |900            |
-|delaney    |MT-NN regression    |10              |40             |
-|kaggle     |MT-NN regression    |2200            |3200           |
+|Dataset         |Model               |Time(loading)/s |Time(running)/s|
+|----------------|--------------------|----------------|---------------| 
+|tox21           |logistic regression |30              |60             |
+|                |Multitask network   |30              |60             |
+|                |robust MT-NN        |30              |90             |
+|                |graph convolution   |40              |160            |
+|muv             |logistic regression |600             |450            |
+|                |Multitask network   |600             |400            |
+|                |robust MT-NN        |600             |550            |
+|                |graph convolution   |800             |1800           |
+|pcba            |logistic regression |1800            |10000          |
+|                |Multitask network   |1800            |9000           |
+|                |robust MT-NN        |1800            |14000          |
+|                |graph convolution   |2200            |14000          |
+|sider           |logistic regression |15              |80             |
+|                |Multitask network   |15              |75             |
+|                |robust MT-NN        |15              |150            |
+|                |graph convolution   |20              |50             |
+|toxcast         |logistic regression |80              |2600           |
+|                |Multitask network   |80              |2300           |
+|                |robust MT-NN        |80              |4000           |
+|                |graph convolution   |80              |900            |
+|delaney         |MT-NN regression    |10              |40             |
+|                |graphconv regression|10              |40             |
+|nci             |MT-NN regression    |400             |1200           |
+|                |graphconv regression|400             |2500           |
+|pdbbind(core)   |MT-NN regression    |0(featurized)   |30             |
+|pdbbind(refined)|MT-NN regression    |0(featurized)   |40             |
+|pdbbind(full)   |MT-NN regression    |0(featurized)   |60             |
+|kaggle          |MT-NN regression    |2200            |3200           |
 
 
 ## Contributing to DeepChem
@@ -338,7 +323,11 @@ We actively encourage community contributions to DeepChem. The first place to st
 Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
 
 ### Code Style Guidelines
-DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/). Aim for a score of at least 8/10 on contributed files.
+DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/) with the following command
+```
+pylint --disable=invalid-name --indent-string "  " --extension-pkg-whitelist=numpy [file.py]
+```
+Aim for a score of at least 8/10 on contributed files.
 
 ### Documentation Style Guidelines
 DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io). 

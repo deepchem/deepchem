@@ -71,7 +71,7 @@ class TestReload(unittest.TestCase):
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.TensorflowMultiTaskClassifier(
-          n_tasks, n_features, model_dir, dropouts=[0.], verbosity="high")
+          n_tasks, n_features, model_dir, dropouts=[0.])
 
     # Fit trained model
     model.fit(dataset)
@@ -79,8 +79,7 @@ class TestReload(unittest.TestCase):
 
     # Load trained model
     reloaded_model = dc.models.TensorflowMultiTaskClassifier(
-        n_tasks, n_features, model_dir, dropouts=[0.],
-        verbosity="high")
+        n_tasks, n_features, model_dir, dropouts=[0.])
     reloaded_model.reload()
 
     # Eval model on train
