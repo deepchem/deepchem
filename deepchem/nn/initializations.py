@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import numpy as np
-from . import backend as K
+from keras import backend as K
 from .activations import get_from_module
 
 def get_fans(shape, dim_ordering='th'):

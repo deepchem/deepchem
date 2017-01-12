@@ -25,7 +25,7 @@ def get_from_module(identifier, module_params, module_name,
     # Raises
         ValueError: if the identifier cannot be found.
     """
-    if isinstance(identifier, six.string_types):
+    if isinstance(identifier, str):
         res = module_params.get(identifier)
         if not res:
             raise ValueError('Invalid ' + str(module_name) + ': ' +

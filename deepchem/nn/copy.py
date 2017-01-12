@@ -11,6 +11,16 @@ __license__ = "GPL"
 
 from keras import backend as K
 
+def to_list(x):
+    """This normalizes a list/tensor into a list.
+
+    If a tensor is passed, we return
+    a list of size 1 containing the tensor.
+    """
+    if isinstance(x, list):
+        return x
+    return [x]
+
 class InputSpec(object):
     """This specifies the ndim, dtype and shape of every input to a layer.
     Every layer should expose (if appropriate) an `input_spec` attribute:
@@ -35,6 +45,162 @@ class InputSpec(object):
             self.ndim = ndim
         self.dtype = dtype
         self.shape = shape
+
+class Node(object):
+    """A `Node` describes the connectivity between two layers.
+
+    Each time a layer is connected to some new input,
+    a node is added to `layer.inbound_nodes`.
+    Each time the output of a layer is used by another layer,
+    a node is added to `layer.outbound_nodes`.
+
+    # Attributes
+        outbound_layer: the layer that takes
+            `input_tensors` and turns them into `output_tensors`.
+        inbound_layers: a list of layers, the same length as `input_tensors`,
+            the layers from where `input_tensors` originate.
+        node_indices: a list of integers, the same length as `inbound_layers`.
+            `node_indices[i]` is the origin node of `input_tensors[i]`
+            (necessary since each inbound layer might have several nodes,
+            e.g. if the layer is being shared with a different data stream).
+        tensor_indices: a list of integers,
+            the same length as `inbound_layers`.
+            `tensor_indices[i]` is the index of `input_tensors[i]` within the
+            output of the inbound layer
+            (necessary since each inbound layer might
+            have multiple tensor outputs, with each one being
+            independently manipulable).
+        input_tensors: list of input tensors.
+        output_tensors: list of output tensors.
+        input_masks: list of input masks (a mask can be a tensor, or None).
+        output_masks: list of output masks (a mask can be a tensor, or None).
+        input_shapes: list of input shape tuples.
+        output_shapes: list of output shape tuples.
+
+    `node_indices` and `tensor_indices` are basically fine-grained coordinates
+    describing the origin of the `input_tensors`, verifying the following:
+
+    `input_tensors[i] == inbound_layers[i].inbound_nodes[node_indices[i]].output_tensors[tensor_indices[i]]`
+
+    A node from layer A to layer B is added to:
+        A.outbound_nodes
+        B.inbound_nodes
+    """
+
+    def __init__(self, outbound_layer,
+                 inbound_layers, node_indices, tensor_indices,
+                 input_tensors, output_tensors,
+                 input_masks, output_masks,
+                 input_shapes, output_shapes):
+        # Layer instance (NOT a list).
+        # this is the layer that takes a list of input tensors
+        # and turns them into a list of output tensors.
+        # the current node will be added to
+        # the inbound_nodes of outbound_layer.
+        self.outbound_layer = outbound_layer
+
+        # The following 3 properties describe where
+        # the input tensors come from: which layers,
+        # and for each layer, which node and which
+        # tensor output of each node.
+
+        self.inbound_layers = inbound_layers  # List of layer instances
+        self.node_indices = node_indices  # List of integers, 1:1 mapping with inbound_layers.
+        self.tensor_indices = tensor_indices  # List of integers, 1:1 mapping with inbound_layers.
+
+        # Tensor inputs and outputs of outbound_layer.
+        self.input_tensors = input_tensors  # List of tensors. 1:1 mapping with inbound_layers.
+        self.output_tensors = output_tensors  # List of tensors, created by outbound_layer.call().
+
+        # input and output masks
+        self.input_masks = input_masks  # List of tensors, 1:1 mapping with input_tensor.
+        self.output_masks = output_masks  # List of tensors, created by outbound_layer.compute_mask().
+
+        # input and output shapes
+        self.input_shapes = input_shapes  # List of shape tuples, shapes of input_tensors.
+        self.output_shapes = output_shapes  # List of shape tuples, shapes of output_tensors.
+
+        # Add nodes to all layers involved.
+        for layer in inbound_layers:
+            if layer is not None:
+                layer.outbound_nodes.append(self)
+        outbound_layer.inbound_nodes.append(self)
+
+    @classmethod
+    def create_node(cls, outbound_layer,
+                    inbound_layers, node_indices=None, tensor_indices=None):
+        if not node_indices:
+            node_indices = [0 for _ in range(len(inbound_layers))]
+        else:
+            assert len(node_indices) == len(inbound_layers)
+        if not tensor_indices:
+            tensor_indices = [0 for _ in range(len(inbound_layers))]
+
+        input_tensors = []
+        input_masks = []
+        input_shapes = []
+
+        for inbound_layer, node_index, tensor_index in zip(inbound_layers, node_indices, tensor_indices):
+            inbound_node = inbound_layer.inbound_nodes[node_index]
+            input_tensors.append(inbound_node.output_tensors[tensor_index])
+            input_masks.append(inbound_node.output_masks[tensor_index])
+            input_shapes.append(inbound_node.output_shapes[tensor_index])
+
+        assert len(input_shapes) == len(input_tensors) == len(input_masks)
+
+        if len(input_tensors) == 1:
+            output_tensors = to_list(outbound_layer.call(input_tensors[0], mask=input_masks[0]))
+            output_masks = to_list(outbound_layer.compute_mask(input_tensors[0], input_masks[0]))
+            # TODO: try to auto-infer shape
+            # if exception is raised by get_output_shape_for.
+            output_shapes = to_list(outbound_layer.get_output_shape_for(input_shapes[0]))
+        else:
+            output_tensors = to_list(outbound_layer.call(input_tensors, mask=input_masks))
+            output_masks = to_list(outbound_layer.compute_mask(input_tensors, input_masks))
+            output_shapes = to_list(outbound_layer.get_output_shape_for(input_shapes))
+
+        if not output_tensors or output_tensors[0] is None:
+            raise TypeError('The `call` method of layer "' +
+                            outbound_layer.name +
+                            '" should return a tensor. Found: ' +
+                            str(output_tensors[0]))
+        if len(output_tensors) != len(output_shapes):
+            raise ValueError('The `get_output_shape_for` method of layer "' +
+                             outbound_layer.name +
+                             '"" should return one shape tuple per '
+                             'output tensor of the layer. Found: ' +
+                             str(output_shapes))
+        if len(output_tensors) != len(output_masks):
+            raise ValueError('The `compute_mask` method of layer "' +
+                             outbound_layer.name +
+                             '" should return one mask tensor per '
+                             'output tensor of the layer. Found: ' +
+                             str(output_masks))
+
+        for i in range(len(output_tensors)):
+            output_tensors[i]._keras_shape = output_shapes[i]
+            output_tensors[i]._uses_learning_phase = any([x._uses_learning_phase for x in input_tensors]) or outbound_layer.uses_learning_phase
+            output_tensors[i]._keras_history = (outbound_layer, len(outbound_layer.inbound_nodes), i)
+
+        return cls(outbound_layer,
+                   inbound_layers, node_indices, tensor_indices,
+                   input_tensors, output_tensors,
+                   input_masks, output_masks,
+                   input_shapes, output_shapes)
+
+    def get_config(self):
+        inbound_names = []
+        for layer in self.inbound_layers:
+            if layer:
+                inbound_names.append(layer.name)
+            else:
+                inbound_names.append(None)
+        return {'outbound_layer': self.outbound_layer.name if self.outbound_layer else None,
+                'inbound_layers': inbound_names,
+                'node_indices': self.node_indices,
+                'tensor_indices': self.tensor_indices}
+
+
 
 class Layer(object):
     """Abstract base layer class.
