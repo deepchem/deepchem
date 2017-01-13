@@ -200,18 +200,6 @@ class Node(object):
                input_masks, output_masks,
                input_shapes, output_shapes)
 
-  def get_config(self):
-    inbound_names = []
-    for layer in self.inbound_layers:
-      if layer:
-        inbound_names.append(layer.name)
-      else:
-        inbound_names.append(None)
-    return {'outbound_layer': self.outbound_layer.name if self.outbound_layer else None,
-            'inbound_layers': inbound_names,
-            'node_indices': self.node_indices,
-            'tensor_indices': self.tensor_indices}
-
 class Layer(object):
   """Abstract base layer class.
 
@@ -261,7 +249,6 @@ class Layer(object):
             - Build from x._keras_shape
     get_weights()
     set_weights(weights)
-    get_config()
     count_params()
     get_output_shape_for(input_shape)
     compute_mask(x, mask)
@@ -271,9 +258,6 @@ class Layer(object):
     get_output_shape_at(node_index)
     get_input_mask_at(node_index)
     get_output_mask_at(node_index)
-
-  # Class Methods
-    from_config(config)
 
   # Internal methods:
     build(input_shape)
@@ -975,37 +959,6 @@ class Layer(object):
     params = self.weights
     return K.batch_get_value(params)
 
-  def get_config(self):
-    """Returns a Python dictionary (serializable)
-    containing the configuration of a layer.
-    The same layer can be reinstantiated later
-    (without its trained weights) from this configuration.
-
-    The config of a layer does not include connectivity
-    information, nor the layer class name. These are handled
-    by Container (one layer of abstraction above).
-    """
-    config = {'name': self.name,
-              'trainable': self.trainable}
-    if hasattr(self, 'batch_input_shape'):
-      config['batch_input_shape'] = self.batch_input_shape
-    if hasattr(self, 'input_dtype'):
-      config['input_dtype'] = self.input_dtype
-    return config
-
-  @classmethod
-  def from_config(cls, config):
-    """This method is the reverse of get_config,
-    capable of instantiating the same layer from the config
-    dictionary. It does not handle layer connectivity
-    (handled by Container), nor weights (handled by `set_weights`).
-
-    # Arguments
-        config: A Python dictionary, typically the
-            output of get_config.
-    """
-    return cls(**config)
-
 class InputLayer(Layer):
     """Layer to be used as an entry point into a graph.
     It can either wrap an existing tensor (pass an `input_tensor` argument)
@@ -1094,13 +1047,6 @@ class InputLayer(Layer):
            output_masks=[None],
            input_shapes=[batch_input_shape],
            output_shapes=[batch_input_shape])
-
-    def get_config(self):
-      config = {'batch_input_shape': self.batch_input_shape,
-                'input_dtype': self.input_dtype,
-                'name': self.name}
-      return config
-
 
 def Input(shape=None, batch_shape=None,
           name=None, dtype=K.floatx(), tensor=None):
@@ -1285,20 +1231,6 @@ class Dense(Layer):
     output_shape[-1] = self.output_dim
     return tuple(output_shape)
 
-  def get_config(self):
-    config = {'output_dim': self.output_dim,
-              'init': self.init.__name__,
-              'activation': self.activation.__name__,
-              'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
-              'b_regularizer': self.b_regularizer.get_config() if self.b_regularizer else None,
-              'activity_regularizer': self.activity_regularizer.get_config() if self.activity_regularizer else None,
-              'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
-              'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
-              'bias': self.bias,
-              'input_dim': self.input_dim}
-    base_config = super(Dense, self).get_config()
-    return dict(list(base_config.items()) + list(config.items()))
-
 class Dropout(Layer):
   """Applies Dropout to the input.
 
@@ -1341,11 +1273,6 @@ class Dropout(Layer):
         return tf.nn.dropout(x * 1., retain_prob, noise_shape, seed=self.seed)
       x = K.in_train_phase(dropped_inputs, lambda: x)
     return x
-
-  def get_config(self):
-    config = {'p': self.p}
-    base_config = super(Dropout, self).get_config()
-    return dict(list(base_config.items()) + list(config.items()))
 
 class BatchNormalization(Layer):
   """Batch normalization layer (Ioffe and Szegedy, 2014).
@@ -1493,13 +1420,3 @@ class BatchNormalization(Layer):
       x_normed = (x - m) / (std + self.epsilon)
       x_normed = self.gamma * x_normed + self.beta
     return x_normed
-
-  def get_config(self):
-    config = {'epsilon': self.epsilon,
-              'mode': self.mode,
-              'axis': self.axis,
-              'gamma_regularizer': self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
-              'beta_regularizer': self.beta_regularizer.get_config() if self.beta_regularizer else None,
-              'momentum': self.momentum}
-    base_config = super(BatchNormalization, self).get_config()
-    return dict(list(base_config.items()) + list(config.items()))
