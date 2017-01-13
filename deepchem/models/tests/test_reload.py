@@ -14,7 +14,6 @@ import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
-from keras import backend as K
 from sklearn.ensemble import RandomForestClassifier
 
 class TestReload(unittest.TestCase):

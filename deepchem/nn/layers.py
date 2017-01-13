@@ -249,22 +249,6 @@ class GraphConv(Layer):
     # Generate the nb_affine weights and biases
     atom_features_shape = input_shape[0]
     n_features = atom_features_shape[1]
-    ############################################################### DEBUG
-    print("self.nb_affine")
-    print(self.nb_affine)
-    print("type(self.nb_affine)")
-    print(type(self.nb_affine))
-    print("self.nb_filter, type(self.nb_filter)")
-    print(self.nb_filter, type(self.nb_filter))
-    print("range(self.nb_affine)")
-    print(range(self.nb_affine))
-    print("K.zeros(shape=[self.nb_filter,])")
-    print(K.zeros(shape=[self.nb_filter,]))
-    print("self.init")
-    print(self.init)
-    print("type(self.init)")
-    print(type(self.init))
-    ############################################################### DEBUG
     self.W_list = [self.init([n_features, self.nb_filter]) 
                    for k in range(self.nb_affine)]
     self.b_list = [K.zeros(shape=[self.nb_filter,])

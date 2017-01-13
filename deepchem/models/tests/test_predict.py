@@ -17,7 +17,6 @@ import sklearn
 import shutil
 import tensorflow as tf
 import deepchem as dc
-from keras import backend as K
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor

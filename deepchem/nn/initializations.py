@@ -1,7 +1,50 @@
 from __future__ import absolute_import
 import numpy as np
-from keras import backend as K
+import tensorflow as tf
 from .activations import get_from_module
+from .activations import _convert_string_dtype
+
+def variable(value, dtype=tf.float32, name=None):
+  """Instantiates a variable and returns it.
+
+  # Arguments
+      value: Numpy array, initial value of the tensor.
+      dtype: Tensor type.
+      name: Optional name string for the tensor.
+
+  # Returns
+      A variable instance (with Keras metadata included).
+  """
+  v = tf.Variable(value, dtype=_convert_string_dtype(dtype), name=name)
+  elif hasattr(value, 'get_shape'):
+    v._keras_shape = tuple(map(int, value.get_shape()))
+  v._uses_learning_phase = False
+  return v
+
+def random_uniform_variable(shape, low, high, dtype=tf.float32,
+                            name=None, seed=None):
+  """Instantiates an Keras variable filled with
+  samples drawn from a uniform distribution and returns it.
+
+  # Arguments
+    shape: Tuple of integers, shape of returned Keras variable.
+    low: Float, lower boundary of the output inteval.
+    high: Float, upper boundary of the output interval.
+    dtype: String, dtype of returned Keras variable.
+    name: String, name of returned Keras variable.
+    seed: Integer, random seed.
+
+  # Returns
+      A Keras variable, filled with drawn samples.
+  """
+  shape = tuple(map(int, shape))
+  tf_dtype = _convert_string_dtype(dtype)
+  if seed is None:
+      # ensure that randomness is conditioned by the Numpy RNG
+      seed = np.random.randint(10e8)
+  value = tf.random_uniform_initializer(
+      low, high, dtype=tf_dtype, seed=seed)(shape)
+  return variable(value, dtype=dtype, name=name)
 
 def get_fans(shape, dim_ordering='th'):
     if len(shape) == 2:
@@ -29,11 +72,11 @@ def get_fans(shape, dim_ordering='th'):
 
 
 def uniform(shape, scale=0.05, name=None):
-    return K.random_uniform_variable(shape, -scale, scale, name=name)
+    return random_uniform_variable(shape, -scale, scale, name=name)
 
 
 def normal(shape, scale=0.05, name=None):
-    return K.random_normal_variable(shape, 0.0, scale, name=name)
+    return random_normal_variable(shape, 0.0, scale, name=name)
 
 
 def lecun_uniform(shape, name=None, dim_ordering='th'):
@@ -96,7 +139,7 @@ def orthogonal(shape, scale=1.1, name=None):
     # Pick the one with the correct shape.
     q = u if u.shape == flat_shape else v
     q = q.reshape(shape)
-    return K.variable(scale * q[:shape[0], :shape[1]], name=name)
+    return variable(scale * q[:shape[0], :shape[1]], name=name)
 
 
 def identity(shape, scale=1, name=None):
@@ -104,15 +147,15 @@ def identity(shape, scale=1, name=None):
         raise ValueError('Identity matrix initialization can only be used '
                          'for 2D square matrices.')
     else:
-        return K.variable(scale * np.identity(shape[0]), name=name)
+        return variable(scale * np.identity(shape[0]), name=name)
 
 
 def zero(shape, name=None):
-    return K.zeros(shape, name=name)
+    return tf.zeros(shape, name=name)
 
 
 def one(shape, name=None):
-    return K.ones(shape, name=name)
+    return tf.ones(shape, name=name)
 
 
 def get(identifier, **kwargs):

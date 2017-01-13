@@ -9,7 +9,6 @@ import numpy as np
 import tensorflow as tf
 import sys 
 import time
-from keras import backend as K
 from deepchem.models import Model
 from deepchem.data import pad_batch
 from deepchem.data import NumpyDataset
@@ -50,7 +49,7 @@ class SupportGraphClassifier(Model):
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    self.epsilon = K.epsilon()
+    self.epsilon = 1e-7 
 
     self.add_placeholders()
     self.pred_op, self.scores_op, self.loss_op = self.add_training_loss()
@@ -69,17 +68,19 @@ class SupportGraphClassifier(Model):
   def add_placeholders(self):
     """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=(self.test_batch_size),
         name="label_placeholder"))
     self.test_weight_placeholder = Input(
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=(self.test_batch_size),
         name="weight_placeholder"))
 
     # TODO(rbharath): Should weights for the support be used?
     # Support labels
     self.support_label_placeholder = Input(
-        tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=[self.support_batch_size],
         name="support_label_placeholder"))
+    self.phase = tf.placeholder(dtype='bool',
+                                name='keras_learning_phase')
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
@@ -96,7 +97,7 @@ class SupportGraphClassifier(Model):
     feed_dict[self.test_weight_placeholder] = np.squeeze(test.w)
 
     if add_phase:
-      feed_dict[K.learning_phase()] = training
+      feed_dict[self.phase] = training
     return feed_dict
 
   def old_fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
@@ -281,7 +282,7 @@ class SupportGraphClassifier(Model):
 
     # Clip softmax probabilities to range [epsilon, 1-epsilon]
     # Shape (n_test,)
-    pred = tf.clip_by_value(pred, K.epsilon(), 1.-K.epsilon())
+    pred = tf.clip_by_value(pred, 1e-7, 1.-1e-7)
 
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)

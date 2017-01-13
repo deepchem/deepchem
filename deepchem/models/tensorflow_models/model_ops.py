@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 import sys
 import traceback
 import tensorflow as tf
-from keras import backend as K
 
 def cosine_distances(test, support):
   """Computes pairwise cosine distances between provided tensors
@@ -24,9 +23,9 @@ def cosine_distances(test, support):
     Of shape (n_test, n_support)
   """
   rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
-                     keep_dims=True)) + K.epsilon()
+                     keep_dims=True)) + 1e-7 
   rnorm_support = tf.rsqrt(tf.reduce_sum(tf.square(support), 1,
-                           keep_dims=True)) + K.epsilon()
+                           keep_dims=True)) + 1e-7 
   test_normalized = test * rnorm_test
   support_normalized = support * rnorm_support
 
