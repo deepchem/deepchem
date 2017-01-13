@@ -1,5 +1,5 @@
 """
-Script that trains graph-conv models on Tox21 dataset.
+Script that trains graph-conv models on ChEMBL dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -57,7 +57,6 @@ with g.as_default():
     print("Evaluating model")
     train_scores = model.evaluate(train_dataset, [metric], transformers)
     valid_scores = model.evaluate(valid_dataset, [metric], transformers)
-    # Only use for final evaluation
     test_scores = model.evaluate(test_dataset, [metric], transformers)
 
     print("Train scores")
