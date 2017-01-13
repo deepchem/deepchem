@@ -1,5 +1,5 @@
 """
-KAGGLE dataset loader.
+ChEMBL dataset loader.
 """
 from __future__ import print_function
 from __future__ import division
