@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow Multitask models on KAGGLE datasets.
+Script that trains Tensorflow Multitask models on ChEMBL dataset.
 """
 
 from __future__ import print_function
@@ -51,7 +51,6 @@ model.fit(train_dataset, nb_epoch=nb_epoch)
 
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)
-#Only use for final evaluation
 test_scores = model.evaluate(test_dataset, [metric], transformers)
 
 print("Train scores")
