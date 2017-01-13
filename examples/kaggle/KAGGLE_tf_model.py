@@ -18,10 +18,9 @@ np.random.seed(123)
 
 ###Load data###
 shard_size = 2000
-num_shards_per_batch = 4
 print("About to load MERCK data.")
 KAGGLE_tasks, datasets, transformers = load_kaggle(
-    shard_size=shard_size, num_shards_per_batch=num_shards_per_batch)
+    shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("KAGGLE_tasks")
