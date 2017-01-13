@@ -11,14 +11,8 @@ __license__ = "GPL"
 
 import unittest
 import tensorflow as tf
-from keras import backend as K
+import deepchem as dc
 from tensorflow.python.framework import test_util
-from deepchem.nn.copy import Dense
-from deepchem.nn.copy import BatchNormalization
-from deepchem.nn.layers import GraphConv
-from deepchem.nn.layers import GraphPool
-from deepchem.nn.layers import GraphGather
-from deepchem.nn.layers import AttnLSTMEmbedding
 from deepchem.models.tf_new_models.graph_models import SequentialGraph
 from deepchem.models.tf_new_models.graph_models import SequentialSupportGraph
 
@@ -45,14 +39,14 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     batch_size = 3
     graph_model = SequentialGraph(n_feat)
 
-    graph_model.add(GraphConv(64, activation='relu'))
-    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(GraphPool())
+    graph_model.add(dc.nn.GraphConv(64, activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
 
     ## Gather Projection
-    #graph_model.add(Dense(128, activation='relu'))
-    graph_model.add(BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(GraphGather(batch_size, activation="tanh"))
+    #graph_model.add(dc.nn.Dense(128, activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 
     # There should be 8 layers in graph_model
     #assert len(graph_model.layers) == 6
@@ -61,8 +55,6 @@ class TestGraphModels(test_util.TensorFlowTestCase):
   def test_sample_attn_lstm_architecture(self):
     """Tests that an attention architecture can be created without crash."""
     g = tf.Graph()
-    sess = tf.Session(graph=g)
-    K.set_session(sess)
     with g.as_default():
       max_depth = 5
       n_test = 5
@@ -73,18 +65,18 @@ class TestGraphModels(test_util.TensorFlowTestCase):
       support_model = SequentialSupportGraph(n_feat)
       
       # Add layers
-      support_model.add(GraphConv(64, activation='relu'))
+      support_model.add(dc.nn.GraphConv(64, activation='relu'))
       # Need to add batch-norm separately to test/support due to differing
       # shapes.
-      support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(GraphPool())
+      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add(dc.nn.GraphPool())
 
       # Apply an attention lstm layer
-      support_model.join(AttnLSTMEmbedding(n_test, n_support, max_depth))
+      support_model.join(dc.nn.AttnLSTMEmbedding(n_test, n_support, max_depth))
 
       # Gather Projection
-      #support_model.add(Dense(128, activation='relu'))
-      support_model.add_test(BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(GraphGather(batch_size, activation="tanh"))
+      support_model.add(dc.nn.Dense(128, activation='relu'))
+      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+      support_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))

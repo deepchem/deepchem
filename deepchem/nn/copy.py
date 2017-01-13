@@ -15,6 +15,31 @@ from . import constraints
 import tensorflow as tf
 from keras import backend as K
 
+def get_ndim(x):
+  """Returns the number of axes in a tensor, as an integer.
+
+  # Arguments
+      x: Tensor or variable.
+
+  # Returns
+      Integer (scalar), number of axes.
+  """
+  dims = x.get_shape()._dims
+  if dims is not None:
+    return len(dims)
+  return None
+
+def dtype(x):
+  """Returns the dtype of a Keras tensor or variable, as a string.
+
+  # Arguments
+      x: Tensor or variable.
+
+  # Returns
+      String, dtype of `x`.
+  """
+  return x.dtype.name
+
 def to_list(x):
   """This normalizes a list/tensor into a list.
 
@@ -140,8 +165,8 @@ class Node(object):
     outbound_layer.inbound_nodes.append(self)
 
   @classmethod
-  def create_node(cls, outbound_layer,
-                inbound_layers, node_indices=None, tensor_indices=None):
+  def create_node(cls, outbound_layer, inbound_layers, node_indices=None,
+                  tensor_indices=None):
     if not node_indices:
         node_indices = [0 for _ in range(len(inbound_layers))]
     else:
@@ -153,7 +178,8 @@ class Node(object):
     input_masks = []
     input_shapes = []
 
-    for inbound_layer, node_index, tensor_index in zip(inbound_layers, node_indices, tensor_indices):
+    for inbound_layer, node_index, tensor_index in zip(
+        inbound_layers, node_indices, tensor_indices):
       inbound_node = inbound_layer.inbound_nodes[node_index]
       input_tensors.append(inbound_node.output_tensors[tensor_index])
       input_masks.append(inbound_node.output_masks[tensor_index])
@@ -162,8 +188,10 @@ class Node(object):
     assert len(input_shapes) == len(input_tensors) == len(input_masks)
 
     if len(input_tensors) == 1:
-      output_tensors = to_list(outbound_layer.call(input_tensors[0], mask=input_masks[0]))
-      output_masks = to_list(outbound_layer.compute_mask(input_tensors[0], input_masks[0]))
+      output_tensors = to_list(outbound_layer.call(
+          input_tensors[0], mask=input_masks[0]))
+      output_masks = to_list(outbound_layer.compute_mask(
+          input_tensors[0], input_masks[0]))
       # TODO: try to auto-infer shape
       # if exception is raised by get_output_shape_for.
       output_shapes = to_list(outbound_layer.get_output_shape_for(input_shapes[0]))
@@ -192,8 +220,11 @@ class Node(object):
 
     for i in range(len(output_tensors)):
       output_tensors[i]._keras_shape = output_shapes[i]
-      output_tensors[i]._uses_learning_phase = any([x._uses_learning_phase for x in input_tensors]) or outbound_layer.uses_learning_phase
-      output_tensors[i]._keras_history = (outbound_layer, len(outbound_layer.inbound_nodes), i)
+      output_tensors[i]._uses_learning_phase = (
+          any([x._uses_learning_phase for x in input_tensors])
+          or outbound_layer.uses_learning_phase)
+      output_tensors[i]._keras_history = (
+          outbound_layer, len(outbound_layer.inbound_nodes), i)
 
     return cls(outbound_layer,
                inbound_layers, node_indices, tensor_indices,
@@ -264,7 +295,6 @@ class Layer(object):
     build(input_shape)
     add_inbound_node(layer, index=0)
     create_input_layer()
-    assert_input_compatibility()
   """
 
   def __init__(self, **kwargs):
@@ -321,7 +351,7 @@ class Layer(object):
       elif 'input_shape' in kwargs:
         batch_input_shape = (None,) + tuple(kwargs['input_shape'])
       self.batch_input_shape = batch_input_shape
-      input_dtype = kwargs.get('input_dtype', tf.float32())
+      input_dtype = kwargs.get('input_dtype', tf.float32)
       self.input_dtype = input_dtype
 
   @property
@@ -351,10 +381,10 @@ class Layer(object):
   def create_input_layer(self, batch_input_shape,
                          input_dtype=None, name=None):
     if not name:
-        prefix = self.__class__.__name__.lower() + '_input_'
-        name = prefix + str(K.get_uid(prefix))
+      prefix = self.__class__.__name__.lower() + '_input_'
+      name = prefix + str(K.get_uid(prefix))
     if not input_dtype:
-        input_dtype = K.floatx()
+      input_dtype = tf.float32
 
     self.batch_input_shape = batch_input_shape
     self.input_dtype = input_dtype
@@ -393,72 +423,6 @@ class Layer(object):
       self._non_trainable_weights.append(weight)
     return weight
 
-  def assert_input_compatibility(self, input):
-    """This checks that the tensor(s) `input`
-    verify the input assumptions of the layer
-    (if any). If not, exceptions are raised.
-    """
-    if not self.input_spec:
-      return True
-    if not isinstance(self.input_spec, list):
-      raise TypeError('input_spec must be a list of '
-                      'InputSpec instances. Found: ' +
-                      str(self.input_spec))
-    inputs = to_list(input)
-    if len(self.input_spec) > 1:
-      if len(inputs) != len(self.input_spec):
-        raise ValueError('Layer ' + self.name + ' expects ' +
-                         str(len(self.input_spec)) + ' inputs, '
-                         'but it received ' + str(len(inputs)) +
-                         ' input tensors. Input received: ' +
-                         str(input))
-    for input_index, (x, spec) in enumerate(zip(inputs, self.input_spec)):
-      if spec is None:
-        continue
-
-      # Check ndim.
-      if spec.ndim is not None:
-        if isinstance(spec.ndim, str):
-          int_ndim = spec.ndim[:spec.ndim.find('+')]
-          ndim = int(int_ndim)
-          if K.ndim(x) < ndim:
-            raise ValueError('Input ' + str(input_index) +
-                             ' is incompatible with layer ' +
-                             self.name + ': expected ndim >= ' +
-                             str(ndim) + ', found ndim=' +
-                             str(K.ndim(x)))
-        else:
-          if K.ndim(x) != spec.ndim:
-            raise ValueError('Input ' + str(input_index) +
-                             ' is incompatible with layer ' +
-                             self.name + ': expected ndim=' +
-                             str(spec.ndim) + ', found ndim=' +
-                             str(K.ndim(x)))
-      if spec.dtype is not None:
-        if K.dtype(x) != spec.dtype:
-          raise ValueError('Input ' + str(input_index) +
-                           ' is incompatible with layer ' +
-                           self.name + ': expected dtype=' +
-                           str(spec.dtype) + ', found dtype=' +
-                           str(K.dtype(x)))
-      if spec.shape is not None:
-        if hasattr(x, '_keras_shape'):
-          x_shape = x._keras_shape
-        elif hasattr(K, 'int_shape'):
-          # Tensorflow shape inference.
-          x_shape = K.int_shape(x)
-        else:
-          continue
-        for spec_dim, dim in zip(spec.shape, x_shape):
-          if spec_dim is not None:
-            if spec_dim != dim:
-              raise ValueError(
-                'Input ' + str(input_index) +
-                ' is incompatible with layer ' +
-                self.name + ': expected shape=' +
-                str(spec.shape) + ', found shape=' +
-                str(x_shape))
-
   def call(self, x, mask=None):
     """This is where the layer's logic lives.
 
@@ -491,10 +455,6 @@ class Layer(object):
       mask: Tensor or list/tuple of tensors.
     """
     if not self.built:
-      # Raise exceptions in case the input is not compatible
-      # with the input_spec specified in the layer constructor.
-      self.assert_input_compatibility(x)
-
       # Collect input shapes to build layer.
       input_shapes = []
       for x_elem in to_list(x):
@@ -514,10 +474,6 @@ class Layer(object):
       else:
         self.build(input_shapes)
       self.built = True
-
-    # Raise exceptions in case the input is not compatible
-    # with the input_spec set at build time.
-    self.assert_input_compatibility(x)
 
     input_tensors = to_list(x)
     inbound_layers = []
@@ -1021,17 +977,17 @@ class InputLayer(Layer):
 
       if not input_dtype:
         if input_tensor is None:
-          input_dtype = tf.float32()
+          input_dtype = tf.float32
         else:
-          input_dtype = K.dtype(input_tensor)
+          input_dtype = dtype(input_tensor)
 
       self.batch_input_shape = batch_input_shape
       self.input_dtype = input_dtype
 
       if input_tensor is None:
-        input_tensor = K.placeholder(dtype=input_dtype,
-                                     shape=batch_input_shape,
-                                     name=self.name)
+        input_tensor = tf.placeholder(dtype=input_dtype,
+                                      shape=batch_input_shape,
+                                      name=self.name)
       else:
         input_tensor._keras_shape = batch_input_shape
       # Create an input node to add to self.outbound_node
@@ -1050,7 +1006,7 @@ class InputLayer(Layer):
            output_shapes=[batch_input_shape])
 
 def Input(shape=None, batch_shape=None,
-          name=None, dtype=K.floatx(), tensor=None):
+          name=None, dtype=tf.float32, tensor=None):
   """`Input()` is used to instantiate a Keras tensor.
   A Keras tensor is a tensor object from the underlying backend
   (TensorFlow), which we augment with certain
@@ -1195,7 +1151,7 @@ class Dense(Layer):
     assert len(input_shape) >= 2
     input_dim = input_shape[-1]
     self.input_dim = input_dim
-    self.input_spec = [InputSpec(dtype=K.floatx(),
+    self.input_spec = [InputSpec(dtype=tf.float32,
                                  ndim='2+')]
 
     self.W = self.add_weight((input_dim, self.output_dim),
@@ -1388,7 +1344,7 @@ class BatchNormalization(Layer):
         self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
                          K.moving_average_update(self.running_std, std, self.momentum)], x)
 
-        if sorted(reduction_axes) == range(K.ndim(x))[:-1]:
+        if sorted(reduction_axes) == range(get_ndim(x))[:-1]:
           x_normed_running = K.batch_normalization(
               x, self.running_mean, self.running_std,
               self.beta, self.gamma,

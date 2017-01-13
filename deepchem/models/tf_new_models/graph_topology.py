@@ -8,7 +8,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
-from keras import backend as K
+import tensorflow as tf
 from deepchem.nn.copy import Input
 from deepchem.feat.mol_graphs import ConvMol
 
@@ -53,20 +53,20 @@ class GraphTopology(object):
     self.min_deg = min_deg
 
     self.atom_features_placeholder = Input(
-        tensor=K.placeholder(
-            shape=(None, self.n_feat), dtype='float32',
+        tensor=tf.placeholder(
+            dtype='float32', shape=(None, self.n_feat),
             name=self.name+'_atom_features'))
     self.deg_adj_lists_placeholders = [
-        Input(tensor=K.placeholder(
-          shape=(None, deg), dtype='int32', name=self.name+'_deg_adj'+str(deg)))
+        Input(tensor=tf.placeholder(
+          dtype='int32', shape=(None, deg), name=self.name+'_deg_adj'+str(deg)))
         for deg in range(1, self.max_deg+1)]
     self.deg_slice_placeholder = Input(
-        tensor=K.placeholder(
-            shape=(self.max_deg-self.min_deg+1,2),
-            name="deg_slice", dtype='int32'),
+        tensor=tf.placeholder(
+            dtype='int32', shape=(self.max_deg-self.min_deg+1,2),
+            name="deg_slice",),
         name=self.name+'_deg_slice')
     self.membership_placeholder = Input(
-          tensor=K.placeholder(shape=(None,), dtype='int32', name="membership"),
+          tensor=tf.placeholder(dtype='int32', shape=(None,), name="membership"),
           name=self.name+'_membership')
 
     # Define the list of tensors to be used as topology
