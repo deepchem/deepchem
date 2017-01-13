@@ -1052,7 +1052,7 @@ def Input(shape=None, batch_shape=None,
           name=None, dtype=K.floatx(), tensor=None):
   """`Input()` is used to instantiate a Keras tensor.
   A Keras tensor is a tensor object from the underlying backend
-  (Theano or TensorFlow), which we augment with certain
+  (TensorFlow), which we augment with certain
   attributes that allow us to build a Keras model
   just by knowing the inputs and outputs of the model.
   For instance, if a, b and c and Keras tensors,
@@ -1128,13 +1128,11 @@ class Dense(Layer):
   # Arguments
     output_dim: int > 0.
     init: name of initialization function for the weights of the layer
-      (see [initializations](../initializations.md)),
-      or alternatively, Theano function to use for weights
-      initialization. This parameter is only relevant
+      (see [initializations](../initializations.md)),.
+      This parameter is only relevant
       if you don't pass a `weights` argument.
     activation: name of activation function to use
-      (see [activations](../activations.md)),
-      or alternatively, elementwise Theano function.
+      (see [activations](../activations.md)).
       If you don't specify anything, no activation is applied
       (ie. "linear" activation: a(x) = x).
     weights: list of Numpy arrays to set as initial weights.
@@ -1283,16 +1281,11 @@ class BatchNormalization(Layer):
 
   # Arguments
     epsilon: small float > 0. Fuzz parameter.
-      Theano expects epsilon >= 1e-5.
     mode: integer, 0, 1 or 2.
       - 0: feature-wise normalization.
           Each feature map in the input will
           be normalized separately. The axis on which
           to normalize is specified by the `axis` argument.
-          Note that if the input is a 4D image tensor
-          using Theano conventions (samples, channels, rows, cols)
-          then you should set `axis` to `1` to normalize along
-          the channels axis.
           During training we use per-batch statistics to normalize
           the data, and during testing we use running averages
           computed during the training phase.
@@ -1312,11 +1305,11 @@ class BatchNormalization(Layer):
       Note that the order of this list is [gamma, beta, mean, std]
     beta_init: name of initialization function for shift parameter
       (see [initializations](../initializations.md)), or alternatively,
-      Theano/TensorFlow function to use for weights initialization.
+      TensorFlow function to use for weights initialization.
       This parameter is only relevant if you don't pass a `weights` argument.
     gamma_init: name of initialization function for scale parameter (see
       [initializations](../initializations.md)), or alternatively,
-      Theano/TensorFlow function to use for weights initialization.
+      TensorFlow function to use for weights initialization.
       This parameter is only relevant if you don't pass a `weights` argument.
     gamma_regularizer: instance of [WeightRegularizer](../regularizers.md)
       (eg. L1 or L2 regularization), applied to the gamma vector.
