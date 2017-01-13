@@ -51,7 +51,7 @@ class MultitaskGraphRegressor(Model):
     self.optimizer_beta2 = beta2 
     
     # Set epsilon
-    self.epsilon = K.epsilon()
+    self.epsilon = 1e-7 
     self.add_optimizer()
 
     # Initialize
@@ -64,10 +64,10 @@ class MultitaskGraphRegressor(Model):
 
   def build(self):
     # Create target inputs
-    self.label_placeholder = Input(tensor=K.placeholder(
-      shape=(None,self.n_tasks), name="label_placeholder", dtype='float32'))
-    self.weight_placeholder = Input(tensor=K.placeholder(
-          shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
+    self.label_placeholder = Input(tensor=tf.placeholder(
+        dtype='float32', shape=(None,self.n_tasks), name="label_placeholder"))
+    self.weight_placeholder = Input(tensor=tf.placeholder(
+        dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
 
     feat = self.model.return_outputs()
     feat_size = feat.get_shape()[-1].value
@@ -116,7 +116,6 @@ class MultitaskGraphRegressor(Model):
 
     # Get other optimizer information
     # TODO(rbharath): Figure out how to handle phase appropriately
-    # old_dict = {K.learning_phase() : training}
     feed_dict = merge_dicts([targets_dict, atoms_dict])
     return feed_dict
 

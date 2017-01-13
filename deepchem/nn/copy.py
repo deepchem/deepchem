@@ -12,6 +12,7 @@ from . import initializations
 from . import regularizers
 from . import activations
 from . import constraints
+import tensorflow as tf
 from keras import backend as K
 
 def to_list(x):
