@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from deepchem.nn.copy import Input
 from deepchem.nn.copy import Dense
+from deepchem.nn.copy import Dropout
 from deepchem.nn.copy import BatchNormalization
 from deepchem.nn.layers import GraphConv
 from deepchem.nn.layers import GraphPool
