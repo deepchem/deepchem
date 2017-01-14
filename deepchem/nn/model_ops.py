@@ -421,6 +421,18 @@ def concatenate(tensors, axis=-1):
     except AttributeError:
       return tf.concat(axis, [to_dense(x) for x in tensors])
 
+def _normalize_axis(axis, ndim):
+  if isinstance(axis, tuple):
+    axis = list(axis)
+  if isinstance(axis, list):
+    for i, a in enumerate(axis):
+      if a is not None and a < 0:
+        axis[i] = a % ndim
+  else:
+    if axis is not None and axis < 0:
+      axis = axis % ndim
+  return axis
+
 def mean(x, axis=None, keepdims=False):
   """Mean of a tensor, alongside the specified axis.
 

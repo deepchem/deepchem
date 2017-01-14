@@ -248,7 +248,7 @@ class Layer(object):
   # Methods
     call(x, mask=None): Where the layer's logic lives.
     __call__(x, mask=None): Wrapper around the layer logic (`call`).
-        If x is a Keras tensor:
+        If x is a tensor:
             - Connect current layer with last layer from tensor:
                 `self.add_inbound_node(last_layer)`
             - Add layer to tensor history
@@ -269,7 +269,6 @@ class Layer(object):
   # Internal methods:
     build(input_shape)
     add_inbound_node(layer, index=0)
-    create_input_layer()
   """
 
   def __init__(self, **kwargs):
@@ -353,25 +352,6 @@ class Layer(object):
   def non_trainable_weights(self, weights):
     self._non_trainable_weights = weights
 
-  def create_input_layer(self, batch_input_shape,
-                         input_dtype=None, name=None):
-    if not name:
-      prefix = self.__class__.__name__.lower() + '_input_'
-      name = prefix + str(model_ops.get_uid(prefix))
-    if not input_dtype:
-      input_dtype = tf.float32
-
-    self.batch_input_shape = batch_input_shape
-    self.input_dtype = input_dtype
-
-    # Instantiate the input layer.
-    x = Input(batch_shape=batch_input_shape,
-              dtype=input_dtype, name=name)
-    # This will build the current layer
-    # and create the node connecting the current layer
-    # to the input layer we just created.
-    self(x)
-
   def add_weight(self, shape, initializer, name=None,
                  trainable=True,
                  regularizer=None,
@@ -414,7 +394,7 @@ class Layer(object):
     """Wrapper around self.call(), for handling
     internal Keras references.
 
-    If a Keras tensor is passed:
+    If a tensor is passed:
       - We call self.add_inbound_node().
       - If necessary, we `build` the layer to match
           the _keras_shape of the input(s).
@@ -449,7 +429,7 @@ class Layer(object):
     tensor_indices = []
     for input_tensor in input_tensors:
       if hasattr(input_tensor, '_keras_history') and input_tensor._keras_history:
-        # This is a Keras tensor.
+        # This is a tensor.
         previous_layer, node_index, tensor_index = input_tensor._keras_history
         inbound_layers.append(previous_layer)
         node_indices.append(node_index)
@@ -464,7 +444,7 @@ class Layer(object):
       # Outputs were already computed when calling self.add_inbound_node.
       outputs = self.inbound_nodes[-1].output_tensors
     else:
-      # This case appears if the input was not a Keras tensor.
+      # This case appears if the input was not a tensor.
       outputs = to_list(self.call(x, mask))
 
     # Apply activity regularizer if any:
@@ -513,8 +493,10 @@ class Layer(object):
     if not self.built:
       # collect input_shapes for call to build()
       input_shapes = []
-      for layer, node_index, tensor_index in zip(inbound_layers, node_indices, tensor_indices):
-          input_shapes.append(layer.inbound_nodes[node_index].output_shapes[tensor_index])
+      for layer, node_index, tensor_index in zip(
+          inbound_layers, node_indices, tensor_indices):
+          input_shapes.append(
+              layer.inbound_nodes[node_index].output_shapes[tensor_index])
       # call build()
       if len(input_shapes) == 1:
           self.build(input_shape=input_shapes[0])
@@ -574,8 +556,8 @@ class Layer(object):
     Must be implemented on all layers that have weights.
 
     # Arguments
-      input_shape: Keras tensor (future input to layer)
-        or list/tuple of Keras tensors to reference
+      input_shape: tensor (future input to layer)
+        or list/tuple of tensors to reference
         for weight shape computations.
     """
     self.built = True
@@ -975,12 +957,12 @@ class InputLayer(Layer):
 
 def Input(shape=None, batch_shape=None,
           name=None, dtype=tf.float32, tensor=None):
-  """`Input()` is used to instantiate a Keras tensor.
-  A Keras tensor is a tensor object from the underlying backend
+  """`Input()` is used to instantiate a tensor.
+  A tensor is a tensor object from the underlying backend
   (TensorFlow), which we augment with certain
-  attributes that allow us to build a Keras model
+  attributes that allow us to build a model
   just by knowing the inputs and outputs of the model.
-  For instance, if a, b and c and Keras tensors,
+  For instance, if a, b and c and tensors,
   it becomes possible to do:
   `model = Model(input=[a, b], output=c)`
   The added Keras attributes are:
