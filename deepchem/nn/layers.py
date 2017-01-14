@@ -11,8 +11,8 @@ __license__ = "GPL"
 
 import numpy as np
 import tensorflow as tf
-from . import activations
-from . import initializations
+from deepchem.nn import activations
+from deepchem.nn import initializations
 from deepchem.nn.copy import Layer
 from deepchem.nn.copy import Input
 from deepchem.nn.copy import Dense

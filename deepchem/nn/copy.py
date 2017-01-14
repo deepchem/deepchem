@@ -8,11 +8,11 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-from . import initializations
-from . import regularizers
-from . import activations
-from . import constraints
 import tensorflow as tf
+from deepchem.nn import initializations
+from deepchem.nn import regularizers
+from deepchem.nn import activations
+from deepchem.nn import constraints
 from deepchem.nn.model_ops import get_ndim
 from deepchem.nn.model_ops import get_dtype
 
