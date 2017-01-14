@@ -238,8 +238,6 @@ class Layer(object):
           - Add layer to tensor history
       If layer is not built:
           - Build from x._keras_shape
-  get_weights()
-  set_weights(weights)
   count_params()
   get_output_shape_for(input_shape)
   get_input_at(node_index)
@@ -732,46 +730,6 @@ class Layer(object):
   def weights(self):
     return self.trainable_weights + self.non_trainable_weights
 
-  def set_weights(self, weights):
-    """Sets the weights of the layer, from Numpy arrays.
-
-    # Arguments
-      weights: a list of Numpy arrays. The number
-        of arrays and their shape must match
-        number of the dimensions of the weights
-        of the layer (i.e. it should match the
-        output of `get_weights`).
-    """
-    params = self.weights
-    if len(params) != len(weights):
-      raise ValueError('You called `set_weights(weights)` on layer "' +
-                       self.name +
-                       '" with a  weight list of length ' +
-                       str(len(weights)) +
-                       ', but the layer was expecting ' +
-                       str(len(params)) +
-                       ' weights. Provided weights: ' +
-                       str(weights)[:50] + '...')
-    if not params:
-        return
-    weight_value_tuples = []
-    param_values = model_ops.batch_get_value(params)
-    for pv, p, w in zip(param_values, params, weights):
-      if pv.shape != w.shape:
-        raise ValueError('Layer weight shape ' +
-                         str(pv.shape) +
-                         ' not compatible with '
-                         'provided weight shape ' + str(w.shape))
-      weight_value_tuples.append((p, w))
-    model_ops.batch_set_value(weight_value_tuples)
-
-  def get_weights(self):
-    """Returns the current weights of the layer,
-    as a list of numpy arrays.
-    """
-    params = self.weights
-    return model_ops.batch_get_value(params)
-
 class InputLayer(Layer):
     """Layer to be used as an entry point into a graph.
     It can either wrap an existing tensor (pass an `input_tensor` argument)
@@ -935,48 +893,41 @@ class Dense(Layer):
       model.add(Dense(32))
   ```
 
-  # Arguments
-    output_dim: int > 0.
-    init: name of initialization function for the weights of the layer
-      (see [initializations](../initializations.md)),.
-      This parameter is only relevant
-      if you don't pass a `weights` argument.
-    activation: name of activation function to use
-      (see [activations](../activations.md)).
-      If you don't specify anything, no activation is applied
-      (ie. "linear" activation: a(x) = x).
-    weights: list of Numpy arrays to set as initial weights.
-      The list should have 2 elements, of shape `(input_dim, output_dim)`
-      and (output_dim,) for weights and biases respectively.
-    W_regularizer: instance of [WeightRegularizer](../regularizers.md)
-      (eg. L1 or L2 regularization), applied to the main weights matrix.
-    b_regularizer: instance of [WeightRegularizer](../regularizers.md),
-      applied to the bias.
-    activity_regularizer: instance of [ActivityRegularizer](../regularizers.md),
-      applied to the network output.
-    W_constraint: instance of the [constraints](../constraints.md) module
-      (eg. maxnorm, nonneg), applied to the main weights matrix.
-    b_constraint: instance of the [constraints](../constraints.md) module,
-      applied to the bias.
-    bias: whether to include a bias
-      (i.e. make the layer affine rather than linear).
-    input_dim: dimensionality of the input (integer). This argument
-      (or alternatively, the keyword argument `input_shape`)
-      is required when using this layer as the first layer in a model.
+  Parameters
+  ----------
+  output_dim: int > 0.
+  init: name of initialization function for the weights of the layer
+  activation: name of activation function to use
+    (see [activations](../activations.md)).
+    If you don't specify anything, no activation is applied
+    (ie. "linear" activation: a(x) = x).
+  W_regularizer: (eg. L1 or L2 regularization), applied to the main weights matrix.
+  b_regularizer: instance of regularize applied to the bias.
+  activity_regularizer: instance of [ActivityRegularizer](../regularizers.md),
+    applied to the network output.
+  W_constraint: instance of the [constraints](../constraints.md) module
+    (eg. maxnorm, nonneg), applied to the main weights matrix.
+  b_constraint: instance of the [constraints](../constraints.md) module,
+    applied to the bias.
+  bias: whether to include a bias
+    (i.e. make the layer affine rather than linear).
+  input_dim: dimensionality of the input (integer). This argument
+    (or alternatively, the keyword argument `input_shape`)
+    is required when using this layer as the first layer in a model.
 
   # Input shape
-    nD tensor with shape: `(nb_samples, ..., input_dim)`.
+    nD tensor with shape: (nb_samples, ..., input_dim).
     The most common situation would be
-    a 2D input with shape `(nb_samples, input_dim)`.
+    a 2D input with shape (nb_samples, input_dim).
 
   # Output shape
-    nD tensor with shape: `(nb_samples, ..., output_dim)`.
+    nD tensor with shape: (nb_samples, ..., output_dim).
     For instance, for a 2D input with shape `(nb_samples, input_dim)`,
     the output would have shape `(nb_samples, output_dim)`.
   """
 
   def __init__(self, output_dim, init='glorot_uniform',
-               activation=None, weights=None,
+               activation=None,
                W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                W_constraint=None, b_constraint=None,
                bias=True, input_dim=None, **kwargs):
@@ -993,7 +944,6 @@ class Dense(Layer):
     self.b_constraint = constraints.get(b_constraint)
 
     self.bias = bias
-    self.initial_weights = weights
     self.input_spec = [InputSpec(ndim='2+')]
 
     if self.input_dim:
@@ -1021,9 +971,6 @@ class Dense(Layer):
     else:
       self.b = None
 
-    if self.initial_weights is not None:
-      self.set_weights(self.initial_weights)
-      del self.initial_weights
     self.built = True
 
   def call(self, x):
@@ -1089,42 +1036,37 @@ class BatchNormalization(Layer):
   i.e. applies a transformation that maintains the mean activation
   close to 0 and the activation standard deviation close to 1.
 
-  # Arguments
-    epsilon: small float > 0. Fuzz parameter.
-    mode: integer, 0, 1 or 2.
-      - 0: feature-wise normalization.
-          Each feature map in the input will
-          be normalized separately. The axis on which
-          to normalize is specified by the `axis` argument.
-          During training we use per-batch statistics to normalize
-          the data, and during testing we use running averages
-          computed during the training phase.
-      - 1: sample-wise normalization. This mode assumes a 2D input.
-      - 2: feature-wise normalization, like mode 0, but
-          using per-batch statistics to normalize the data during both
-          testing and training.
-    axis: integer, axis along which to normalize in mode 0. For instance,
-      if your input tensor has shape (samples, channels, rows, cols),
-      set axis to 1 to normalize per feature map (channels axis).
-    momentum: momentum in the computation of the
-      exponential average of the mean and standard deviation
-      of the data, for feature-wise normalization.
-    weights: Initialization weights.
-      List of 2 Numpy arrays, with shapes:
-      `[(input_shape,), (input_shape,)]`
-      Note that the order of this list is [gamma, beta, mean, std]
-    beta_init: name of initialization function for shift parameter
-      (see [initializations](../initializations.md)), or alternatively,
-      TensorFlow function to use for weights initialization.
-      This parameter is only relevant if you don't pass a `weights` argument.
-    gamma_init: name of initialization function for scale parameter (see
-      [initializations](../initializations.md)), or alternatively,
-      TensorFlow function to use for weights initialization.
-      This parameter is only relevant if you don't pass a `weights` argument.
-    gamma_regularizer: instance of [WeightRegularizer](../regularizers.md)
-      (eg. L1 or L2 regularization), applied to the gamma vector.
-    beta_regularizer: instance of [WeightRegularizer](../regularizers.md),
-      applied to the beta vector.
+  Parameters
+  ----------
+  epsilon: small float > 0. Fuzz parameter.
+  mode: integer, 0, 1 or 2.
+    - 0: feature-wise normalization.
+        Each feature map in the input will
+        be normalized separately. The axis on which
+        to normalize is specified by the `axis` argument.
+        During training we use per-batch statistics to normalize
+        the data, and during testing we use running averages
+        computed during the training phase.
+    - 1: sample-wise normalization. This mode assumes a 2D input.
+    - 2: feature-wise normalization, like mode 0, but
+        using per-batch statistics to normalize the data during both
+        testing and training.
+  axis: integer, axis along which to normalize in mode 0. For instance,
+    if your input tensor has shape (samples, channels, rows, cols),
+    set axis to 1 to normalize per feature map (channels axis).
+  momentum: momentum in the computation of the
+    exponential average of the mean and standard deviation
+    of the data, for feature-wise normalization.
+  beta_init: name of initialization function for shift parameter
+    (see [initializations](../initializations.md)), or alternatively,
+    TensorFlow function to use for weights initialization.
+  gamma_init: name of initialization function for scale parameter (see
+    [initializations](../initializations.md)), or alternatively,
+    TensorFlow function to use for weights initialization.
+  gamma_regularizer: instance of [WeightRegularizer](../regularizers.md)
+    (eg. L1 or L2 regularization), applied to the gamma vector.
+  beta_regularizer: instance of [WeightRegularizer](../regularizers.md),
+    applied to the beta vector.
 
   # Input shape
     Arbitrary. Use the keyword argument `input_shape`
@@ -1139,7 +1081,7 @@ class BatchNormalization(Layer):
   """
 
   def __init__(self, epsilon=1e-3, mode=0, axis=-1, momentum=0.99,
-               weights=None, beta_init='zero', gamma_init='one',
+               beta_init='zero', gamma_init='one',
                gamma_regularizer=None, beta_regularizer=None, **kwargs):
     self.beta_init = initializations.get(beta_init)
     self.gamma_init = initializations.get(gamma_init)
@@ -1149,7 +1091,6 @@ class BatchNormalization(Layer):
     self.momentum = momentum
     self.gamma_regularizer = regularizers.get(gamma_regularizer)
     self.beta_regularizer = regularizers.get(beta_regularizer)
-    self.initial_weights = weights
     if self.mode == 0:
       self.uses_learning_phase = True
     super(BatchNormalization, self).__init__(**kwargs)
@@ -1173,9 +1114,6 @@ class BatchNormalization(Layer):
                                        name='{}_running_std'.format(self.name),
                                        trainable=False)
 
-    if self.initial_weights is not None:
-      self.set_weights(self.initial_weights)
-      del self.initial_weights
     self.built = True
 
   def call(self, x):

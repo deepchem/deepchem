@@ -19,7 +19,6 @@ py_all = all
 # This is the default internal TF session used by Keras.
 # It can be set manually via `set_session(sess)`.
 _SESSION = None
-_EPSILON = 10e-8
 # This boolean flag can be set to True to leave variable initialization
 # up to the user.
 # Change its value via `manual_variable_initialization(value)`.
@@ -204,32 +203,6 @@ def cast_to_floatx(x):
   """
   return np.asarray(x, dtype=tf.float32)
 
-def to_dense(tensor):
-  """Converts a sparse tensor into a dense tensor
-  and returns it.
-
-  # Arguments
-      tensor: A tensor instance (potentially sparse).
-
-  # Returns
-      A dense tensor.
-
-  # Examples
-  ```python
-      >>> from keras import backend as K
-      >>> b = K.placeholder((2, 2), sparse=True)
-      >>> print(K.is_sparse(b))
-      True
-      >>> c = K.to_dense(b)
-      >>> print(K.is_sparse(c))
-      False
-  ```
-  """
-  if is_sparse(tensor):
-    return tf.sparse_tensor_to_dense(tensor)
-  else:
-    return tensor
-
 def moving_average_update(variable, value, momentum):
   try:
     return moving_averages.assign_moving_average(
@@ -238,49 +211,17 @@ def moving_average_update(variable, value, momentum):
     return moving_averages.assign_moving_average(
         variable, value, momentum)
 
-def is_sparse(tensor):
-  """Returns whether a tensor is a sparse tensor.
-
-  # Arguments
-      tensor: A tensor instance.
-
-  # Returns
-      A boolean.
-
-  # Example
-  ```python
-      >>> from keras import backend as K
-      >>> a = K.placeholder((2, 2), sparse=False)
-      >>> print(K.is_sparse(a))
-      False
-      >>> b = K.placeholder((2, 2), sparse=True)
-      >>> print(K.is_sparse(b))
-      True
-  ```
-  """
-  return isinstance(tensor, tf.SparseTensor)
-
 def int_shape(x):
   """Returns the shape of a Keras tensor or a Keras variable as a tuple of
   integers or None entries.
 
-  # Arguments
-    x: Tensor or variable.
+  Arguments
+  ---------
+  x: Tensor or variable.
 
-  # Returns
-    A tuple of integers (or None entries).
-
-  # Examples
-  ```python
-      >>> from keras import backend as K
-      >>> input = K.placeholder(shape=(2, 4, 5))
-      >>> K.int_shape(input)
-      (2, 4, 5)
-      >>> val = np.array([[1, 2], [3, 4]])
-      >>> kvar = K.variable(value=val)
-      >>> K.int_shape(kvar)
-      (2, 2)
-  ```
+  Returns
+  -------
+  A tuple of integers (or None entries).
   """
   shape = x.get_shape()
   return tuple([i.__int__() for i in shape])
@@ -288,75 +229,29 @@ def int_shape(x):
 def get_value(x):
   """Returns the value of a variable.
 
-  # Arguments
-      x: input variable.
+  Parameters
+  ----------
+  x: input variable.
 
-  # Returns
-      A Numpy array.
+  Returns
+  -------
+  A Numpy array.
   """
   return x.eval(session=get_session())
 
 def get_uid(prefix=''):
   """Provides a unique UID given a string prefix.
 
-  # Arguments
-      prefix: string.
+  Parameters
+  ----------
+  prefix: string.
 
-  # Returns
-      An integer.
-
-  # Example
-  ```
-      >>> keras.backend.get_uid('dense')
-      >>> 1
-      >>> keras.backend.get_uid('dense')
-      >>> 2
-  ```
-
+  Returns
+  -------
+  An integer.
   """
   _UID_PREFIXES[prefix] += 1
   return _UID_PREFIXES[prefix]
-
-def batch_get_value(xs):
-  """Returns the value of more than one tensor variable.
-
-  # Arguments
-      x: list of variables.
-
-  # Returns
-      A list of Numpy arrays.
-  """
-  if xs:
-    return get_session().run(xs)
-  else:
-    return []
-
-def batch_set_value(tuples):
-  """Sets the values of many tensor variables at once.
-  It returns `None`.
-
-  # Arguments
-      tuples: a list of tuples `(tensor, value)`.
-          `value` should be a Numpy array.
-  """
-  if tuples:
-    assign_ops = []
-    feed_dict = {}
-    for x, value in tuples:
-      value = np.asarray(value)
-      tf_dtype = _convert_string_dtype(x.dtype.name.split('_')[0])
-      if hasattr(x, '_assign_placeholder'):
-        assign_placeholder = x._assign_placeholder
-        assign_op = x._assign_op
-      else:
-        assign_placeholder = tf.placeholder(tf_dtype,
-                                            shape=value.shape)
-        assign_op = x.assign(assign_placeholder)
-        x._assign_placeholder = assign_placeholder
-        x._assign_op = assign_op
-      assign_ops.append(assign_op)
-      feed_dict[assign_placeholder] = value
-    get_session().run(assign_ops, feed_dict=feed_dict)
 
 def _initialize_variables():
   if hasattr(tf, 'global_variables'):
@@ -390,8 +285,9 @@ def get_session():
   Note that you can manually set the global session
   via `K.set_session(sess)`.
 
-  # Returns
-      A TensorFlow session.
+  Returns
+  -------
+  A TensorFlow session.
   """
   global _SESSION
   if tf.get_default_session() is not None:
@@ -413,8 +309,9 @@ def get_session():
 def concatenate(tensors, axis=-1):
   """Concatenates a list of tensors alongside the specified axis.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   if axis < 0:
     dims = get_ndim(tensors[0])
@@ -423,13 +320,10 @@ def concatenate(tensors, axis=-1):
     else:
       axis = 0
 
-  if py_all([is_sparse(x) for x in tensors]):
-    return tf.sparse_concat(axis, tensors)
-  else:
-    try:
-      return tf.concat_v2([to_dense(x) for x in tensors], axis)
-    except AttributeError:
-      return tf.concat(axis, [to_dense(x) for x in tensors])
+  try:
+    return tf.concat_v2([to_dense(x) for x in tensors], axis)
+  except AttributeError:
+    return tf.concat(axis, [to_dense(x) for x in tensors])
 
 def _normalize_axis(axis, ndim):
   if isinstance(axis, tuple):
@@ -446,16 +340,18 @@ def _normalize_axis(axis, ndim):
 def mean(x, axis=None, keepdims=False):
   """Mean of a tensor, alongside the specified axis.
 
-  # Arguments
-      x: A tensor or variable.
-      axis: A list of integer. Axes to compute the mean.
-      keepdims: A boolean, whether to keep the dimensions or not.
-          If `keepdims` is `False`, the rank of the tensor is reduced
-          by 1 for each entry in `axis`. If `keep_dims` is `True`,
-          the reduced dimensions are retained with length 1.
+  Parameters
+  ----------
+  x: A tensor or variable.
+  axis: A list of integer. Axes to compute the mean.
+  keepdims: A boolean, whether to keep the dimensions or not.
+    If keepdims is False, the rank of the tensor is reduced
+    by 1 for each entry in axis. If keep_dims is True,
+    the reduced dimensions are retained with length 1.
 
-  # Returns
-      A tensor with the mean of elements of `x`.
+  Returns
+  -------
+  A tensor with the mean of elements of x.
   """
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
@@ -469,12 +365,14 @@ def dot(x, y):
   with a ND tensor, it reproduces the Theano behavior.
   (e.g. (2, 3).(4, 3, 5) = (2, 4, 5))
 
-  # Arguments
-      x: Tensor or variable.
-      y: Tensor or variable.
+  Parameters
+  ----------
+  x: Tensor or variable.
+  y: Tensor or variable.
 
-  # Returns
-      A tensor, dot product of `x` and `y`.
+  Returns
+  -------
+  A tensor, dot product of x and y.
   """
   if get_ndim(x) is not None and (get_ndim(x) > 2 or get_ndim(y) > 2):
     x_shape = []
@@ -497,10 +395,7 @@ def dot(x, y):
     yt = tf.reshape(tf.transpose(y, perm=y_permute_dim), [y_shape[-2], -1])
     return tf.reshape(tf.matmul(xt, yt),
                       x_shape[:-1] + y_shape[:-2] + y_shape[-1:])
-  if is_sparse(x):
-    out = tf.sparse_tensor_dense_matmul(x, y)
-  else:
-    out = tf.matmul(x, y)
+  out = tf.matmul(x, y)
   return out
 
 def get_ndim(x):
@@ -531,8 +426,9 @@ def get_dtype(x):
 def clip(x, min_value, max_value):
   """Element-wise value clipping.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   if max_value is not None and max_value < min_value:
     max_value = min_value
@@ -547,7 +443,7 @@ def epsilon():
   # Returns
       A float.
   """
-  return _EPSILON
+  return 1e-7 
 
 def variable(value, dtype=tf.float32, name=None):
   """Instantiates a variable and returns it.
@@ -791,7 +687,7 @@ def var(x, axis=None, keepdims=False):
   # Returns
       A tensor with the variance of elements of `x`.
   """
-  axis = _normalize_axis(axis, ndim(x))
+  axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
   m = tf.reduce_mean(x, reduction_indices=axis, keep_dims=True)

@@ -702,6 +702,9 @@ def cos(x, y):
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
 
+  TODO(rbharath): forget_bias_init uses get_value(), which evaluates provided
+  tensors in session. Seems quite unnecessary...
+
   This layer exists because the Keras LSTM layer is intrinsically linked to an
   RNN with sequence inputs, and here, we will not be using sequence inputs, but
   rather we generate a sequence of inputs using the intermediate outputs of the
