@@ -20,8 +20,8 @@ K.set_session(sess)
 
 with g.as_default():
   tf.set_random_seed(123)
-  chembl_tasks, datasets, transformers = load_chembl(
-      featurizer='GraphConv', split='index')
+  chembl_tasks, datasets, transformers = load_chembl(shard_size=2000,
+    featurizer="ECFP", set="5thresh", split="random")
   train_dataset, valid_dataset, test_dataset = datasets
 
   # Fit models
@@ -52,7 +52,7 @@ with g.as_default():
       optimizer_type="adam", beta1=.9, beta2=.999)
 
     # Fit trained model
-    model.fit(train_dataset, nb_epoch=25)
+    model.fit(train_dataset, nb_epoch=20)
 
     print("Evaluating model")
     train_scores = model.evaluate(train_dataset, [metric], transformers)

@@ -19,12 +19,12 @@ np.random.seed(123)
 ###Load data###
 shard_size = 2000
 print("About to load ChEMBL data.")
-chembl_tasks, datasets, transformers = load_chembl(
-    shard_size=shard_size)
+chembl_tasks, datasets, transformers = load_chembl(shard_size=shard_size,
+                                                   featurizer="ECFP", set="5thresh", split="random")
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("ChEMBL_tasks")
-print(chembl_tasks)
+print(len(chembl_tasks))
 print("Number of compounds in train set")
 print(len(train_dataset))
 print("Number of compounds in validation set")
