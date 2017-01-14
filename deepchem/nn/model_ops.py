@@ -23,7 +23,7 @@ _SESSION = None
 # This boolean flag can be set to True to leave variable initialization
 # up to the user.
 # Change its value via `manual_variable_initialization(value)`.
-_MANUAL_VAR_INIT = False
+_MANUAL_VAR_INIT = True
 _UID_PREFIXES = defaultdict(int)
 # This dictionary holds a mapping {graph: learning_phase}.
 # A learning phase is a bool tensor used to run Keras models in

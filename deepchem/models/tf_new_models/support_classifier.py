@@ -57,7 +57,7 @@ class SupportGraphClassifier(Model):
     self.train_op = self.get_training_op(self.loss_op)
 
     # Initialize
-    self.init_fn = tf.initialize_all_variables()
+    self.init_fn = tf.global_variables_initializer()
     sess.run(self.init_fn)  
 
   def get_training_op(self, loss):
