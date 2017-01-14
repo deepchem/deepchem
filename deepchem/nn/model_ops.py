@@ -162,7 +162,7 @@ def eval(x):
   -------
   A Numpy array.
   """
-  return to_dense(x).eval(session=get_session())
+  return x.eval(session=get_session())
 
 def ones(shape, dtype=None, name=None):
   """Instantiates an all-ones tensor variable and returns it.
@@ -321,9 +321,9 @@ def concatenate(tensors, axis=-1):
       axis = 0
 
   try:
-    return tf.concat_v2([to_dense(x) for x in tensors], axis)
+    return tf.concat_v2([x for x in tensors], axis)
   except AttributeError:
-    return tf.concat(axis, [to_dense(x) for x in tensors])
+    return tf.concat(axis, [x for x in tensors])
 
 def _normalize_axis(axis, ndim):
   if isinstance(axis, tuple):
@@ -549,30 +549,22 @@ def sum(x, axis=None, keepdims=False):
 # TODO(rbharath): Need to rename this. This makes a variable, not just creates
 # a tensor. Confusing with tf.zeros...
 def zeros(shape, dtype=tf.float32, name=None):
-    """Instantiates an all-zeros variable and returns it.
+  """Instantiates an all-zeros variable and returns it.
 
-    # Arguments
-        shape: Tuple of integers, shape of returned Keras variable
-        dtype: String, data type of returned Keras variable
-        name: String, name of returned Keras variable
+  Parameters
+  ----------
+  shape: Tuple of integers, shape of returned Keras variable
+  dtype: String, data type of returned Keras variable
+  name: String, name of returned Keras variable
 
-    # Returns
-        A variable (including Keras metadata), filled with `0.0`.
-
-    # Example
-    ```python
-        >>> from keras import backend as K
-        >>> kvar = K.zeros((3,4))
-        >>> K.eval(kvar)
-        array([[ 0.,  0.,  0.,  0.],
-               [ 0.,  0.,  0.,  0.],
-               [ 0.,  0.,  0.,  0.]], dtype=float32)
-    ```
-    """
-    shape = tuple(map(int, shape))
-    tf_dtype = _convert_string_dtype(dtype)
-    return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
-                    dtype, name)
+  Returns
+  -------
+  A variable (including Keras metadata), filled with `0.0`.
+  """
+  shape = tuple(map(int, shape))
+  tf_dtype = _convert_string_dtype(dtype)
+  return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
+                  dtype, name)
 
 def cosine_distances(test, support):
   """Computes pairwise cosine distances between provided tensors
