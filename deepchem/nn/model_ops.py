@@ -1,4 +1,7 @@
-"""Ops for graph construction."""
+"""Ops for graph construction.
+
+Large amounts of code borrowed from Keras.
+"""
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -13,6 +16,7 @@ from collections import defaultdict
 # This is the default internal TF session used by Keras.
 # It can be set manually via `set_session(sess)`.
 _SESSION = None
+_FLOATX = 'float32'
 _EPSILON = 10e-8
 # This boolean flag can be set to True to leave variable initialization
 # up to the user.
@@ -107,6 +111,107 @@ def normalize_batch_in_training(x, gamma, beta,
                                        epsilon)
   return normed, mean, var
 
+def eval(x):
+  """Evaluates the value of a variable.
+  Returns a Numpy array.
+
+  # Arguments
+      x: A variable.
+
+  # Returns
+      A Numpy array.
+
+  # Examples
+  ```python
+      >>> from keras import backend as K
+      >>> kvar = K.variable(np.array([[1, 2], [3, 4]]), dtype='float32')
+      >>> K.eval(kvar)
+      array([[ 1.,  2.],
+             [ 3.,  4.]], dtype=float32)
+  ```
+  """
+  return to_dense(x).eval(session=get_session())
+
+def ones(shape, dtype=None, name=None):
+  """Instantiates an all-ones tensor variable and returns it.
+
+  # Arguments
+      shape: Tuple of integers, shape of returned Keras variable.
+      dtype: String, data type of returned Keras variable.
+      name: String, name of returned Keras variable.
+
+  # Returns
+      A Keras variable, filled with `1.0`.
+
+  # Example
+  ```python
+      >>> from keras import backend as K
+      >>> kvar = K.ones((3,4))
+      >>> K.eval(kvar)
+      array([[ 1.,  1.,  1.,  1.],
+             [ 1.,  1.,  1.,  1.],
+             [ 1.,  1.,  1.,  1.]], dtype=float32)
+  ```
+  """
+  if dtype is None:
+    dtype = tf.float32 
+  shape = tuple(map(int, shape))
+  tf_dtype = _convert_string_dtype(dtype)
+  return variable(tf.constant_initializer(1., dtype=tf_dtype)(shape),
+                  dtype, name)
+
+def cast_to_floatx(x):
+  """Cast a Numpy array to the default Keras float type.
+
+  # Arguments
+      x: Numpy array.
+
+  # Returns
+      The same Numpy array, cast to its new type.
+
+  # Example
+  ```python
+      >>> from keras import backend as K
+      >>> K.floatx()
+      'float32'
+      >>> arr = numpy.array([1.0, 2.0], dtype='float64')
+      >>> arr.dtype
+      dtype('float64')
+      >>> new_arr = K.cast_to_floatx(arr)
+      >>> new_arr
+      array([ 1.,  2.], dtype=float32)
+      >>> new_arr.dtype
+      dtype('float32')
+  ```
+  """
+  return np.asarray(x, dtype=_FLOATX)
+
+def to_dense(tensor):
+  """Converts a sparse tensor into a dense tensor
+  and returns it.
+
+  # Arguments
+      tensor: A tensor instance (potentially sparse).
+
+  # Returns
+      A dense tensor.
+
+  # Examples
+  ```python
+      >>> from keras import backend as K
+      >>> b = K.placeholder((2, 2), sparse=True)
+      >>> print(K.is_sparse(b))
+      True
+      >>> c = K.to_dense(b)
+      >>> print(K.is_sparse(c))
+      False
+  ```
+  """
+  if is_sparse(tensor):
+    return tf.sparse_tensor_to_dense(tensor)
+  else:
+    return tensor
+
 def moving_average_update(variable, value, momentum):
   try:
     return moving_averages.assign_moving_average(
@@ -114,6 +219,28 @@ def moving_average_update(variable, value, momentum):
   except TypeError:
     return moving_averages.assign_moving_average(
         variable, value, momentum)
+
+def is_sparse(tensor):
+  """Returns whether a tensor is a sparse tensor.
+
+  # Arguments
+      tensor: A tensor instance.
+
+  # Returns
+      A boolean.
+
+  # Example
+  ```python
+      >>> from keras import backend as K
+      >>> a = K.placeholder((2, 2), sparse=False)
+      >>> print(K.is_sparse(a))
+      False
+      >>> b = K.placeholder((2, 2), sparse=True)
+      >>> print(K.is_sparse(b))
+      True
+  ```
+  """
+  return isinstance(tensor, tf.SparseTensor)
 
 def int_shape(x):
   """Returns the shape of a Keras tensor or a Keras variable as a tuple of
