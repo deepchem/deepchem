@@ -7,6 +7,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import six
 import tensorflow as tf
 from deepchem.nn import model_ops
 from deepchem.nn.model_ops import get_ndim
@@ -37,11 +38,7 @@ def get_from_module(identifier, module_params, module_name,
   ------
   ValueError: if the identifier cannot be found.
  """
-  try:
-    basestring
-  except NameError:
-    basestring = str
-  if isinstance(identifier, basestring):
+  if isinstance(identifier, six.string_types):
     res = module_params.get(identifier)
     if not res:
         raise ValueError('Invalid ' + str(module_name) + ': ' +

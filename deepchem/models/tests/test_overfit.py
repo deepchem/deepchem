@@ -691,7 +691,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
                                 exclude_support=False)
 
       # Measure performance on 0-th task.
-      assert scores[0] > .9
+      assert scores[0] > .85
 
   def test_residual_lstm_singletask_classification_overfit(self):
     """Test resi-lstm multitask overfits tiny data."""
