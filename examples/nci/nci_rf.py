@@ -17,33 +17,22 @@ from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
-from deepchem.splits import RandomSplitter
 
 np.random.seed(123)
 
 # Set some global variables up top
-
-reload = True
 verbosity = "high"
-force_transform = False 
 
 base_dir = "/tmp/nci_rf"
-train_dir = os.path.join(base_dir, "train_dataset")
-valid_dir = os.path.join(base_dir, "valid_dataset")
-test_dir = os.path.join(base_dir, "test_dataset")
 model_dir = os.path.join(base_dir, "model")
 if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 os.makedirs(base_dir)
 
 nci_tasks, nci_dataset, transformers = load_nci(
-    base_dir, reload=reload, force_transform=force_transform)
+    base_dir)
 
-print("About to perform train/valid/test split.")
-splitter = RandomSplitter(verbosity=verbosity)
-print("Performing new split.")
-train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
-    nci_dataset, train_dir, valid_dir, test_dir)
+(train_dataset, valid_dataset, test_dataset) = nci_dataset
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
