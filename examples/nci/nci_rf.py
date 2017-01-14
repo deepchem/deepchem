@@ -32,6 +32,8 @@ os.makedirs(base_dir)
 nci_tasks, nci_dataset, transformers = load_nci(
     base_dir)
 
+(train_dataset, valid_dataset, test_dataset) = nci_dataset
+
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
                                verbosity=verbosity,
                                mode="classification")
