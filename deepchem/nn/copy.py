@@ -146,6 +146,7 @@ class Node(object):
         tensor_indices = [0 for _ in range(len(inbound_layers))]
 
     input_tensors = []
+    input_shapes = []
 
     for inbound_layer, node_index, tensor_index in zip(
         inbound_layers, node_indices, tensor_indices):
@@ -157,7 +158,7 @@ class Node(object):
 
     if len(input_tensors) == 1:
       output_tensors = to_list(outbound_layer.call(
-          input_tensors[0])
+          input_tensors[0]))
       # TODO: try to auto-infer shape
       # if exception is raised by get_output_shape_for.
       output_shapes = to_list(outbound_layer.get_output_shape_for(input_shapes[0]))
@@ -1045,15 +1046,16 @@ class Dropout(Layer):
   a fraction `p` of input units to 0 at each update during training time,
   which helps prevent overfitting.
 
-  # Arguments
-      p: float between 0 and 1. Fraction of the input units to drop.
-      noise_shape: 1D integer tensor representing the shape of the
-          binary dropout mask that will be multiplied with the input.
-          For instance, if your inputs have shape
-          `(batch_size, timesteps, features)` and
-          you want the dropout mask to be the same for all timesteps,
-          you can use `noise_shape=(batch_size, 1, features)`.
-      seed: A Python integer to use as random seed.
+  Parameters
+  ----------
+  p: float between 0 and 1. Fraction of the input units to drop.
+  noise_shape: 1D integer tensor representing the shape of the
+      binary dropout mask that will be multiplied with the input.
+      For instance, if your inputs have shape
+      (batch_size, timesteps, features) and
+      you want the dropout mask to be the same for all timesteps,
+      you can use noise_shape=(batch_size, 1, features).
+  seed: A Python integer to use as random seed.
 
   # References
       - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf)

@@ -12,6 +12,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import moving_averages
 from collections import defaultdict
+# TODO(rbharath): What does this line do?
+py_all = all
 
 # TODO(rbharath): REMOVE GLOBAL VARS! BREAKS DEEPCHEM STYLE! 
 # This is the default internal TF session used by Keras.
@@ -85,29 +87,21 @@ def in_train_phase(x, alt):
   x._uses_learning_phase = True
   return x
 
-def _cond(condition, then_lambda, else_lambda):
-  """Backwards compatible interface to tf.cond prior to public introduction.
-  """
-  try:
-      cond_fn = tf.cond
-  except AttributeError:
-      from tensorflow.python.ops import control_flow_ops
-      cond_fn = control_flow_ops.cond
-  return cond_fn(condition, then_lambda, else_lambda)
-
 def switch(condition, then_expression, else_expression):
   """Switches between two operations
   depending on a scalar value (`int` or `bool`).
   Note that both `then_expression` and `else_expression`
   should be symbolic tensors of the *same shape*.
 
-  # Arguments
-      condition: scalar tensor.
-      then_expression: either a tensor, or a callable that returns a tensor.
-      else_expression: either a tensor, or a callable that returns a tensor.
+  Parameters
+  ----------
+  condition: scalar tensor.
+  then_expression: either a tensor, or a callable that returns a tensor.
+  else_expression: either a tensor, or a callable that returns a tensor.
 
-  # Returns
-      The selected tensor.
+  Returns
+  -------
+  The selected tensor.
   """
   if condition.dtype != tf.bool:
     condition = tf.cast(condition, 'bool')
@@ -121,17 +115,16 @@ def switch(condition, then_expression, else_expression):
         return else_expression
   else:
     else_expression_fn = else_expression
-  x = _cond(condition,
-            then_expression_fn,
-            else_expression_fn)
+  x = tf.cond(condition, then_expression_fn, else_expression_fn)
   return x
 
 def normalize_batch_in_training(x, gamma, beta,
                                 reduction_axes, epsilon=1e-3):
   """Computes mean and std for batch then apply batch_normalization on batch.
 
-  # Returns
-      A tuple length of 3, `(normalized_tensor, mean, variance)`.
+  Returns
+  -------
+  A tuple length of 3, (normalized_tensor, mean, variance).
   """
   mean, var = tf.nn.moments(x, reduction_axes,
                             shift=None, name=None, keep_dims=False)
@@ -142,11 +135,11 @@ def normalize_batch_in_training(x, gamma, beta,
   else:
     # need broadcasting
     target_shape = []
-    for axis in range(ndim(x)):
-        if axis in reduction_axes:
-            target_shape.append(1)
-        else:
-            target_shape.append(tf.shape(x)[axis])
+    for axis in range(get_ndim(x)):
+      if axis in reduction_axes:
+        target_shape.append(1)
+      else:
+        target_shape.append(tf.shape(x)[axis])
     target_shape = stack(target_shape)
 
     broadcast_mean = tf.reshape(mean, target_shape)
@@ -162,20 +155,13 @@ def eval(x):
   """Evaluates the value of a variable.
   Returns a Numpy array.
 
-  # Arguments
-      x: A variable.
+  Parameters
+  ----------
+  x: A variable.
 
-  # Returns
-      A Numpy array.
-
-  # Examples
-  ```python
-      >>> from keras import backend as K
-      >>> kvar = K.variable(np.array([[1, 2], [3, 4]]), dtype='float32')
-      >>> K.eval(kvar)
-      array([[ 1.,  2.],
-             [ 3.,  4.]], dtype=float32)
-  ```
+  Returns
+  -------
+  A Numpy array.
   """
   return to_dense(x).eval(session=get_session())
 
@@ -371,6 +357,24 @@ def batch_set_value(tuples):
       assign_ops.append(assign_op)
       feed_dict[assign_placeholder] = value
     get_session().run(assign_ops, feed_dict=feed_dict)
+
+def _initialize_variables():
+  if hasattr(tf, 'global_variables'):
+    variables = tf.global_variables()
+  else:
+    variables = tf.all_variables()
+
+  uninitialized_variables = []
+  for v in variables:
+    if not hasattr(v, '_keras_initialized') or not v._keras_initialized:
+      uninitialized_variables.append(v)
+      v._keras_initialized = True
+  if uninitialized_variables:
+    sess = get_session()
+    if hasattr(tf, 'variables_initializer'):
+      sess.run(tf.variables_initializer(uninitialized_variables))
+    else:
+      sess.run(tf.initialize_variables(uninitialized_variables))
 
 # TODO(rbharath): DANGEROUS! THIS IS LEAKY AND BREAKS DEEPCHEM STYLE!
 def get_session():

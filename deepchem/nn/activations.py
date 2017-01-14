@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import six
+import tensorflow as tf
 from deepchem.nn import model_ops
 from deepchem.nn.model_ops import get_ndim
 
