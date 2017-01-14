@@ -13,8 +13,7 @@ from deepchem.nn import initializations
 from deepchem.nn import regularizers
 from deepchem.nn import activations
 from deepchem.nn import constraints
-from deepchem.nn.model_ops import get_ndim
-from deepchem.nn.model_ops import get_dtype
+from deepchem.nn import model_ops
 
 def to_list(x):
   """This normalizes a list/tensor into a list.
@@ -948,7 +947,7 @@ class InputLayer(Layer):
         if input_tensor is None:
           input_dtype = tf.float32
         else:
-          input_dtype = get_dtype(input_tensor)
+          input_dtype = model_ops.get_dtype(input_tensor)
 
       self.batch_input_shape = batch_input_shape
       self.input_dtype = input_dtype
@@ -1315,7 +1314,7 @@ class BatchNormalization(Layer):
                          model_ops.moving_average_update(
             self.running_std, std, self.momentum)], x)
 
-        if sorted(reduction_axes) == range(get_ndim(x))[:-1]:
+        if sorted(reduction_axes) == range(model_ops.get_ndim(x))[:-1]:
           x_normed_running = tf.nn.batch_normalization(
               x, self.running_mean, self.running_std,
               self.beta, self.gamma,
