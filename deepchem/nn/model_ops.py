@@ -49,6 +49,12 @@ def _convert_string_dtype(dtype):
   else:
     raise ValueError('Unsupported dtype:', dtype)
 
+def _to_tensor(x, dtype):
+  x = tf.convert_to_tensor(x)
+  if x.dtype != dtype:
+    x = tf.cast(x, dtype)
+  return x
+
 def learning_phase():
   """Returns the learning phase flag.
 
@@ -447,7 +453,7 @@ def mean(x, axis=None, keepdims=False):
   # Returns
       A tensor with the mean of elements of `x`.
   """
-  axis = _normalize_axis(axis, ndim(x))
+  axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
   return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
