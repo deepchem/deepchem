@@ -15,7 +15,7 @@ from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
 from deepchem.models.tf_new_models.graph_topology import merge_dicts
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn import model_ops
 from deepchem.data import SupportGenerator
 from deepchem.data import EpisodeGenerator
 from deepchem.data import get_task_dataset

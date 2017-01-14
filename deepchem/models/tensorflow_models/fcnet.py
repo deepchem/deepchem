@@ -8,11 +8,11 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from deepchem.nn import model_ops
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
-from deepchem.models.tensorflow_models import model_ops
 from deepchem.metrics import to_one_hot
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):

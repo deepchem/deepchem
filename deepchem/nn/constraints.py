@@ -1,6 +1,12 @@
+"""Place constraints on models."""
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
+
 from __future__ import absolute_import
-from keras import backend as K
-from .activations import get_from_module
+from deepchem.nn import model_ops
+from deepchem.nn.activations import get_from_module
 
 class Constraint(object):
 
@@ -36,9 +42,10 @@ class MaxNorm(Constraint):
     self.axis = axis
 
   def __call__(self, p):
-    norms = K.sqrt(K.sum(K.square(p), axis=self.axis, keepdims=True))
-    desired = K.clip(norms, 0, self.m)
-    p *= (desired / (K.epsilon() + norms))
+    norms = model_ops.sqrt(model_ops.sum(
+        tf.square(p), axis=self.axis, keepdims=True))
+    desired = model_ops.clip(norms, 0, self.m)
+    p *= (desired / (model_ops.epsilon() + norms))
     return p
 
 
@@ -72,9 +79,9 @@ class UnitNorm(Constraint):
     self.axis = axis
 
   def __call__(self, p):
-    return p / (1e-7 + K.sqrt(K.sum(K.square(p),
-                                    axis=self.axis,
-                                    keepdims=True)))
+    return p / (1e-7 + model_ops.sqrt(model_ops.sum(tf.square(p),
+                                      axis=self.axis,
+                                      keepdims=True)))
 
 # Aliases.
 

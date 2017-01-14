@@ -11,7 +11,6 @@ __license__ = "GPL"
 
 import numpy as np
 import tensorflow as tf
-from keras import backend as K
 from . import activations
 from . import initializations
 from deepchem.nn.copy import Layer
@@ -251,7 +250,7 @@ class GraphConv(Layer):
     n_features = atom_features_shape[1]
     self.W_list = [self.init([n_features, self.nb_filter]) 
                    for k in range(self.nb_affine)]
-    self.b_list = [K.zeros(shape=[self.nb_filter,])
+    self.b_list = [model_ops.zeros(shape=[self.nb_filter,])
                    for k in range(self.nb_affine)]
 
     self.trainable_weights = self.W_list + self.b_list
@@ -495,8 +494,8 @@ class AttnLSTMEmbedding(Layer):
     n_feat = xp_input_shape[1]
 
     self.lstm = LSTMStep(n_feat)
-    self.q_init = K.zeros([self.n_test, n_feat])
-    self.r_init = K.zeros([self.n_test, n_feat])
+    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.r_init = model_ops.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
     
     self.trainable_weights = [self.q_init, self.r_init]
@@ -547,11 +546,11 @@ class AttnLSTMEmbedding(Layer):
       # Process using attention
       # Eqn (4), appendix A.1 of Matching Networks paper
       e = cos(x+q, xp)
-      a = K.softmax(e)
-      r = K.dot(a, xp)
+      a = tf.nn.softmax(e)
+      r = model_ops.dot(a, xp)
 
       # Generate new aattention states
-      y = K.concatenate([q, r], axis=1)
+      y = model_ops.concatenate([q, r], axis=1)
       q, states = self.lstm([y] + states) #+ self.lstm.get_constants(x)
                 
     return [x+q, xp]
@@ -604,13 +603,13 @@ class ResiLSTMEmbedding(Layer):
 
     # Support set lstm
     self.support_lstm = LSTMStep(n_feat)
-    self.q_init = K.zeros([self.n_support, n_feat])
+    self.q_init = model_ops.zeros([self.n_support, n_feat])
     self.support_states_init = self.support_lstm.get_initial_states(
         [self.n_support, n_feat])
 
     # Test lstm
     self.test_lstm = LSTMStep(n_feat)
-    self.p_init = K.zeros([self.n_test, n_feat])
+    self.p_init = model_ops.zeros([self.n_test, n_feat])
     self.test_states_init = self.test_lstm.get_initial_states(
         [self.n_test, n_feat])
     
@@ -661,9 +660,9 @@ class ResiLSTMEmbedding(Layer):
     for d in range(self.max_depth):
       # Process support xp using attention
       e = cos(z+q, xp)
-      a = K.softmax(e)
+      a = tf.nn.softmax(e)
       # Get linear combination of support set
-      r = K.dot(a, xp)  
+      r = model_ops.dot(a, xp)  
 
       # Not sure if it helps to place the update here or later yet.  Will
       # decide
@@ -671,15 +670,15 @@ class ResiLSTMEmbedding(Layer):
 
       # Process test x using attention
       x_e = cos(x+p, z)
-      x_a = K.softmax(x_e)
-      s = K.dot(x_a, z)
+      x_a = tf.nn.softmax(x_e)
+      s = model_ops.dot(x_a, z)
 
       # Generate new support attention states
-      qr = K.concatenate([q, r], axis=1)
+      qr = model_ops.concatenate([q, r], axis=1)
       q, states = self.support_lstm([qr] + states)
 
       # Generate new test attention states
-      ps = K.concatenate([p, s], axis=1)
+      ps = model_ops.concatenate([p, s], axis=1)
       p, x_states = self.test_lstm([ps] + x_states)
 
       # Redefine  
@@ -694,8 +693,10 @@ class ResiLSTMEmbedding(Layer):
     return [None, None]
 
 def cos(x, y):
-  denom =  K.sqrt(K.sum(K.square(x)) * K.sum(K.square(y))) + K.epsilon()
-  return K.dot(x, K.transpose(y)) / denom
+  denom =  (model_ops.sqrt(
+      model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
+      + model_ops.epsilon())
+  return model_ops.dot(x, tf.transpose(y)) / denom
 
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
@@ -721,7 +722,7 @@ class LSTMStep(Layer):
     self.inner_activation = activations.get(inner_activation)
 
   def get_initial_states(self, input_shape):
-    return [K.zeros(input_shape), K.zeros(input_shape)]
+    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
 
   def build(self, input_shape):
     x, h_tm1, c_tm1 = input_shape # Unpack
@@ -730,10 +731,11 @@ class LSTMStep(Layer):
     self.W = self.init((self.input_dim, 4 * self.output_dim))
     self.U = self.inner_init((self.output_dim, 4 * self.output_dim))
 
-    self.b = K.variable(np.hstack((np.zeros(self.output_dim),
-                                   K.get_value(self.forget_bias_init((self.output_dim,))),
-                                   np.zeros(self.output_dim),
-                                   np.zeros(self.output_dim))))
+    self.b = model_ops.variable(np.hstack(
+        (np.zeros(self.output_dim),
+         model_ops.get_value(self.forget_bias_init((self.output_dim,))),
+         np.zeros(self.output_dim),
+         np.zeros(self.output_dim))))
     self.trainable_weights = [self.W, self.U, self.b]
 
   def get_output_shape_for(self, input_shape):
@@ -744,7 +746,7 @@ class LSTMStep(Layer):
     x, h_tm1, c_tm1 = x_states # Unpack
 
     # Taken from Keras code [citation needed]
-    z = K.dot(x, self.W) + K.dot(h_tm1, self.U) + self.b
+    z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]
     z1 = z[:, self.output_dim: 2 * self.output_dim]

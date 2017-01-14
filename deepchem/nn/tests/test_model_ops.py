@@ -7,10 +7,9 @@ import os
 import numpy as np
 import tensorflow as tf
 
+import deepchem as dc
 from tensorflow.python.framework import test_util
 from tensorflow.python.platform import flags
-import deepchem as dc
-#from deepchem.models.tensorflow_models import model_ops
 
 FLAGS = flags.FLAGS
 FLAGS.test_random_seed = 20151102

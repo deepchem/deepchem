@@ -1,118 +1,105 @@
-#from __future__ import absolute_import
+"""
+Activations for models.
+
+Copied over from Keras.
+"""
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
 import six
-from keras import backend as K
+from deepchem.nn import model_ops
+from deepchem.nn.model_ops import get_ndim
 
 def get_from_module(identifier, module_params, module_name,
                     instantiate=False, kwargs=None):
-    """Retrieves a class of function member of a module.
+  """Retrieves a class of function member of a module.
 
-    # Arguments
-        identifier: the object to retrieve. It could be specified
-            by name (as a string), or by dict. In any other case,
-            `identifier` itself will be returned without any changes.
-        module_params: the members of a module
-            (e.g. the output of `globals()`).
-        module_name: string; the name of the target module. Only used
-            to format error messages.
-        instantiate: whether to instantiate the returned object
-            (if it's a class).
-        kwargs: a dictionary of keyword arguments to pass to the
-            class constructor if `instantiate` is `True`.
+  # Arguments
+      identifier: the object to retrieve. It could be specified
+          by name (as a string), or by dict. In any other case,
+          `identifier` itself will be returned without any changes.
+      module_params: the members of a module
+          (e.g. the output of `globals()`).
+      module_name: string; the name of the target module. Only used
+          to format error messages.
+      instantiate: whether to instantiate the returned object
+          (if it's a class).
+      kwargs: a dictionary of keyword arguments to pass to the
+          class constructor if `instantiate` is `True`.
 
-    # Returns
-        The target object.
+  # Returns
+      The target object.
 
-    # Raises
-        ValueError: if the identifier cannot be found.
-    """
-    if isinstance(identifier, six.string_types):
-      res = module_params.get(identifier)
-      if not res:
-          raise ValueError('Invalid ' + str(module_name) + ': ' +
-                           str(identifier))
-      if instantiate and not kwargs:
-          return res()
-      elif instantiate and kwargs:
-          return res(**kwargs)
-      else:
-          return res
-    elif isinstance(identifier, dict):
-        name = identifier.pop('name')
-        res = module_params.get(name)
-        if res:
-            return res(**identifier)
-        else:
-            raise ValueError('Invalid ' + str(module_name) + ': ' +
-                             str(identifier))
-    return identifier
-
-def _convert_string_dtype(dtype):
-  if dtype == 'float16':
-    return tf.float16
-  if dtype == 'float32':
-    return tf.float32
-  elif dtype == 'float64':
-    return tf.float64
-  elif dtype == 'int16':
-    return tf.int16
-  elif dtype == 'int32':
-    return tf.int32
-  elif dtype == 'int64':
-    return tf.int64
-  elif dtype == 'uint8':
-    return tf.int8
-  elif dtype == 'uint16':
-    return tf.uint16
-  else:
-    raise ValueError('Unsupported dtype:', dtype)
+  # Raises
+      ValueError: if the identifier cannot be found.
+  """
+  if isinstance(identifier, six.string_types):
+    res = module_params.get(identifier)
+    if not res:
+        raise ValueError('Invalid ' + str(module_name) + ': ' +
+                         str(identifier))
+    if instantiate and not kwargs:
+      return res()
+    elif instantiate and kwargs:
+      return res(**kwargs)
+    else:
+      return res
+  elif isinstance(identifier, dict):
+    name = identifier.pop('name')
+    res = module_params.get(name)
+    if res:
+      return res(**identifier)
+    else:
+      raise ValueError('Invalid ' + str(module_name) + ': ' +
+                       str(identifier))
+  return identifier
 
 def softmax(x):
-    ndim = K.ndim(x)
-    if ndim == 2:
-        return K.softmax(x)
-    elif ndim == 3:
-        e = K.exp(x - K.max(x, axis=-1, keepdims=True))
-        s = K.sum(e, axis=-1, keepdims=True)
-        return e / s
-    else:
-        raise ValueError('Cannot apply softmax to a tensor '
-                         'that is not 2D or 3D. '
-                         'Here, ndim=' + str(ndim))
-
+  ndim = get_ndim(x)
+  if ndim == 2:
+    return tf.nn.softmax(x)
+  elif ndim == 3:
+    e = tf.exp(x - model_ops.max(x, axis=-1, keepdims=True))
+    s = model_ops.sum(e, axis=-1, keepdims=True)
+    return e / s
+  else:
+    raise ValueError('Cannot apply softmax to a tensor '
+                     'that is not 2D or 3D. '
+                     'Here, ndim=' + str(ndim))
 
 def elu(x, alpha=1.0):
-    return K.elu(x, alpha)
-
+  return model_ops.elu(x, alpha)
 
 def softplus(x):
-    return K.softplus(x)
+  return tf.nn.softplus(x)
 
 
 def softsign(x):
-    return K.softsign(x)
+  return tf.nn.softsign(x)
 
 
 def relu(x, alpha=0., max_value=None):
-    return K.relu(x, alpha=alpha, max_value=max_value)
+  return model_ops.relu(x, alpha=alpha, max_value=max_value)
 
 
 def tanh(x):
-    return K.tanh(x)
+  return tf.nn.tanh(x)
 
 
 def sigmoid(x):
-    return K.sigmoid(x)
+  return tf.nn.sigmoid(x)
 
 
 def hard_sigmoid(x):
-    return K.hard_sigmoid(x)
+  return model_ops.hard_sigmoid(x)
 
 
 def linear(x):
-    return x
+  return x
 
 
 def get(identifier):
-    if identifier is None:
-        return linear
-    return get_from_module(identifier, globals(), 'activation function')
+  if identifier is None:
+    return linear
+  return get_from_module(identifier, globals(), 'activation function')

@@ -9,7 +9,7 @@ from deepchem.models import Model
 from deepchem.nn.copy import Input
 from deepchem.nn.copy import Dense
 from deepchem.data import pad_features
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
 from deepchem.models.tf_new_models.graph_topology import merge_dicts
 from deepchem.models.tf_new_models.multitask_classifier import get_loss_fn

@@ -20,7 +20,7 @@ from deepchem.utils.save import log
 from deepchem.models import Model 
 from deepchem.nn.copy import Input
 from deepchem.nn.copy import Dense
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
 from deepchem.models.tf_new_models.graph_topology import merge_dicts
 

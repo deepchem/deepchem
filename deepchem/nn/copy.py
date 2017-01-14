@@ -13,32 +13,8 @@ from . import regularizers
 from . import activations
 from . import constraints
 import tensorflow as tf
-from keras import backend as K
-
-def get_ndim(x):
-  """Returns the number of axes in a tensor, as an integer.
-
-  # Arguments
-      x: Tensor or variable.
-
-  # Returns
-      Integer (scalar), number of axes.
-  """
-  dims = x.get_shape()._dims
-  if dims is not None:
-    return len(dims)
-  return None
-
-def dtype(x):
-  """Returns the dtype of a Keras tensor or variable, as a string.
-
-  # Arguments
-      x: Tensor or variable.
-
-  # Returns
-      String, dtype of `x`.
-  """
-  return x.dtype.name
+from deepchem.nn.model_ops import get_ndim
+from deepchem.nn.model_ops import get_dtype
 
 def to_list(x):
   """This normalizes a list/tensor into a list.
@@ -246,8 +222,8 @@ class Layer(object):
     trainable: Boolean, whether the layer weights
         will be updated during training.
     uses_learning_phase: Whether any operation
-        of the layer uses `K.in_training_phase()`
-        or `K.in_test_phase()`.
+        of the layer uses `model_ops.in_training_phase()`
+        or `model_ops.in_test_phase()`.
     input_shape: Shape tuple. Provided for convenience,
         but note that there may be cases in which this
         attribute is ill-defined (e.g. a shared layer
@@ -339,7 +315,7 @@ class Layer(object):
     name = kwargs.get('name')
     if not name:
       prefix = self.__class__.__name__.lower()
-      name = prefix + '_' + str(K.get_uid(prefix))
+      name = prefix + '_' + str(model_ops.get_uid(prefix))
     self.name = name
 
     self.trainable = kwargs.get('trainable', True)
@@ -382,7 +358,7 @@ class Layer(object):
                          input_dtype=None, name=None):
     if not name:
       prefix = self.__class__.__name__.lower() + '_input_'
-      name = prefix + str(K.get_uid(prefix))
+      name = prefix + str(model_ops.get_uid(prefix))
     if not input_dtype:
       input_dtype = tf.float32
 
@@ -460,15 +436,8 @@ class Layer(object):
       for x_elem in to_list(x):
         if hasattr(x_elem, '_keras_shape'):
           input_shapes.append(x_elem._keras_shape)
-        elif hasattr(K, 'int_shape'):
-          input_shapes.append(K.int_shape(x_elem))
         else:
-          raise ValueError('You tried to call layer "' + self.name +
-                           '". This layer has no information'
-                           ' about its expected input shape, '
-                           'and thus cannot be built. '
-                           'You can build it manually via: '
-                           '`layer.build(batch_input_shape)`')
+          input_shapes.append(model_ops.int_shape(x_elem))
       if len(input_shapes) == 1:
         self.build(input_shapes[0])
       else:
@@ -899,7 +868,7 @@ class Layer(object):
     if not params:
         return
     weight_value_tuples = []
-    param_values = K.batch_get_value(params)
+    param_values = model_ops.batch_get_value(params)
     for pv, p, w in zip(param_values, params, weights):
       if pv.shape != w.shape:
         raise ValueError('Layer weight shape ' +
@@ -907,14 +876,14 @@ class Layer(object):
                          ' not compatible with '
                          'provided weight shape ' + str(w.shape))
       weight_value_tuples.append((p, w))
-    K.batch_set_value(weight_value_tuples)
+    model_ops.batch_set_value(weight_value_tuples)
 
   def get_weights(self):
     """Returns the current weights of the layer,
     as a list of numpy arrays.
     """
     params = self.weights
-    return K.batch_get_value(params)
+    return model_ops.batch_get_value(params)
 
 class InputLayer(Layer):
     """Layer to be used as an entry point into a graph.
@@ -947,7 +916,7 @@ class InputLayer(Layer):
         prefix = 'input'
         # TODO(rbharath): Keras uses a global var here to maintain
         # unique counts. This seems dangerous. How does tensorflow handle?
-        name = prefix + '_' + str(K.get_uid(prefix))
+        name = prefix + '_' + str(model_ops.get_uid(prefix))
       self.name = name
 
       if input_shape and batch_input_shape:
@@ -957,7 +926,7 @@ class InputLayer(Layer):
       if input_tensor is not None:
         # Attempt automatic input shape inference.
         try:
-          batch_input_shape = K.int_shape(input_tensor)
+          batch_input_shape = model_ops.int_shape(input_tensor)
         except:
           if not input_shape and not batch_input_shape:
             raise ValueError('InputLayer was provided '
@@ -979,7 +948,7 @@ class InputLayer(Layer):
         if input_tensor is None:
           input_dtype = tf.float32
         else:
-          input_dtype = dtype(input_tensor)
+          input_dtype = get_dtype(input_tensor)
 
       self.batch_input_shape = batch_input_shape
       self.input_dtype = input_dtype
@@ -1174,7 +1143,7 @@ class Dense(Layer):
     self.built = True
 
   def call(self, x, mask=None):
-    output = K.dot(x, self.W)
+    output = model_ops.dot(x, self.W)
     if self.bias:
       output += self.b
     return self.activation(output)
@@ -1226,7 +1195,7 @@ class Dropout(Layer):
       def dropped_inputs():
         retain_prob = 1 - self.p
         return tf.nn.dropout(x * 1., retain_prob, noise_shape, seed=self.seed)
-      x = K.in_train_phase(dropped_inputs, lambda: x)
+      x = model_ops.in_train_phase(dropped_inputs, lambda: x)
     return x
 
 class BatchNormalization(Layer):
@@ -1329,44 +1298,46 @@ class BatchNormalization(Layer):
   def call(self, x, mask=None):
     if self.mode == 0 or self.mode == 2:
       assert self.built, 'Layer must be built before being called'
-      input_shape = K.int_shape(x)
+      input_shape = model_ops.int_shape(x)
 
       reduction_axes = list(range(len(input_shape)))
       del reduction_axes[self.axis]
       broadcast_shape = [1] * len(input_shape)
       broadcast_shape[self.axis] = input_shape[self.axis]
 
-      x_normed, mean, std = K.normalize_batch_in_training(
+      x_normed, mean, std = model_ops.normalize_batch_in_training(
           x, self.gamma, self.beta, reduction_axes,
           epsilon=self.epsilon)
 
       if self.mode == 0:
-        self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
-                         K.moving_average_update(self.running_std, std, self.momentum)], x)
+        self.add_update([model_ops.moving_average_update(
+            self.running_mean, mean, self.momentum),
+                         model_ops.moving_average_update(
+            self.running_std, std, self.momentum)], x)
 
         if sorted(reduction_axes) == range(get_ndim(x))[:-1]:
-          x_normed_running = K.batch_normalization(
+          x_normed_running = tf.nn.batch_normalization(
               x, self.running_mean, self.running_std,
               self.beta, self.gamma,
               epsilon=self.epsilon)
         else:
           # need broadcasting
-          broadcast_running_mean = K.reshape(self.running_mean, broadcast_shape)
-          broadcast_running_std = K.reshape(self.running_std, broadcast_shape)
-          broadcast_beta = K.reshape(self.beta, broadcast_shape)
-          broadcast_gamma = K.reshape(self.gamma, broadcast_shape)
-          x_normed_running = K.batch_normalization(
+          broadcast_running_mean = tf.reshape(self.running_mean, broadcast_shape)
+          broadcast_running_std = tf.reshape(self.running_std, broadcast_shape)
+          broadcast_beta = tf.reshape(self.beta, broadcast_shape)
+          broadcast_gamma = tf.reshape(self.gamma, broadcast_shape)
+          x_normed_running = tf.batch_normalization(
               x, broadcast_running_mean, broadcast_running_std,
               broadcast_beta, broadcast_gamma,
               epsilon=self.epsilon)
 
         # pick the normalized form of x corresponding to the training phase
-        x_normed = K.in_train_phase(x_normed, x_normed_running)
+        x_normed = model_ops.in_train_phase(x_normed, x_normed_running)
 
     elif self.mode == 1:
       # sample-wise normalization
-      m = K.mean(x, axis=-1, keepdims=True)
-      std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
+      m = model_ops.mean(x, axis=-1, keepdims=True)
+      std = model_ops.sqrt(model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
       x_normed = (x - m) / (std + self.epsilon)
       x_normed = self.gamma * x_normed + self.beta
     return x_normed
