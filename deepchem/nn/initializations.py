@@ -9,7 +9,7 @@ from deepchem.nn.model_ops import variable
 from deepchem.nn.model_ops import random_uniform_variable
 from deepchem.nn.model_ops import random_normal_variable
 from deepchem.nn.activations import get_from_module
-from deepchem.nn.activations import _convert_string_dtype
+from deepchem.nn.model_ops import _convert_string_dtype
 
 def get_fans(shape, dim_ordering='th'):
   if len(shape) == 2:
