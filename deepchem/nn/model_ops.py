@@ -17,7 +17,6 @@ from collections import defaultdict
 # This is the default internal TF session used by Keras.
 # It can be set manually via `set_session(sess)`.
 _SESSION = None
-_FLOATX = 'float32'
 _EPSILON = 10e-8
 # This boolean flag can be set to True to leave variable initialization
 # up to the user.
@@ -78,6 +77,47 @@ def in_train_phase(x, alt):
   # else: assume learning phase is a placeholder tensor.
   x = switch(learning_phase(), x, alt)
   x._uses_learning_phase = True
+  return x
+
+def _cond(condition, then_lambda, else_lambda):
+  """Backwards compatible interface to tf.cond prior to public introduction.
+  """
+  try:
+      cond_fn = tf.cond
+  except AttributeError:
+      from tensorflow.python.ops import control_flow_ops
+      cond_fn = control_flow_ops.cond
+  return cond_fn(condition, then_lambda, else_lambda)
+
+def switch(condition, then_expression, else_expression):
+  """Switches between two operations
+  depending on a scalar value (`int` or `bool`).
+  Note that both `then_expression` and `else_expression`
+  should be symbolic tensors of the *same shape*.
+
+  # Arguments
+      condition: scalar tensor.
+      then_expression: either a tensor, or a callable that returns a tensor.
+      else_expression: either a tensor, or a callable that returns a tensor.
+
+  # Returns
+      The selected tensor.
+  """
+  if condition.dtype != tf.bool:
+    condition = tf.cast(condition, 'bool')
+  if not callable(then_expression):
+    def then_expression_fn():
+        return then_expression
+  else:
+    then_expression_fn = then_expression
+  if not callable(else_expression):
+    def else_expression_fn():
+        return else_expression
+  else:
+    else_expression_fn = else_expression
+  x = _cond(condition,
+            then_expression_fn,
+            else_expression_fn)
   return x
 
 def normalize_batch_in_training(x, gamma, beta,
@@ -169,23 +209,8 @@ def cast_to_floatx(x):
 
   # Returns
       The same Numpy array, cast to its new type.
-
-  # Example
-  ```python
-      >>> from keras import backend as K
-      >>> K.floatx()
-      'float32'
-      >>> arr = numpy.array([1.0, 2.0], dtype='float64')
-      >>> arr.dtype
-      dtype('float64')
-      >>> new_arr = K.cast_to_floatx(arr)
-      >>> new_arr
-      array([ 1.,  2.], dtype=float32)
-      >>> new_arr.dtype
-      dtype('float32')
-  ```
   """
-  return np.asarray(x, dtype=_FLOATX)
+  return np.asarray(x, dtype=tf.float32)
 
 def to_dense(tensor):
   """Converts a sparse tensor into a dense tensor
@@ -412,7 +437,7 @@ def mean(x, axis=None, keepdims=False):
   """
   axis = _normalize_axis(axis, ndim(x))
   if x.dtype.base_dtype == tf.bool:
-    x = tf.cast(x, floatx())
+    x = tf.cast(x, tf.float32)
   return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
 
 
@@ -605,7 +630,7 @@ def sum(x, axis=None, keepdims=False):
 
 # TODO(rbharath): Need to rename this. This makes a variable, not just creates
 # a tensor. Confusing with tf.zeros...
-def zeros(shape, dtype=None, name=None):
+def zeros(shape, dtype=tf.float32, name=None):
     """Instantiates an all-zeros variable and returns it.
 
     # Arguments
@@ -626,8 +651,6 @@ def zeros(shape, dtype=None, name=None):
                [ 0.,  0.,  0.,  0.]], dtype=float32)
     ```
     """
-    if dtype is None:
-        dtype = floatx()
     shape = tuple(map(int, shape))
     tf_dtype = _convert_string_dtype(dtype)
     return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
@@ -748,7 +771,7 @@ def var(x, axis=None, keepdims=False):
   """
   axis = _normalize_axis(axis, ndim(x))
   if x.dtype.base_dtype == tf.bool:
-    x = tf.cast(x, floatx())
+    x = tf.cast(x, tf.float32)
   m = tf.reduce_mean(x, reduction_indices=axis, keep_dims=True)
   devs_squared = tf.square(x - m)
   return tf.reduce_mean(devs_squared,
