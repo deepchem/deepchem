@@ -27,13 +27,12 @@ n_eval_trials = 20
 learning_rate = 1e-4
 log_every_n_samples = 50
 # Number of features on conv-mols
-n_feat = 71
+n_feat = 75
 
 sider_tasks, dataset, transformers = load_sider_convmol()
 
 # Define metric
-metric = dc.metrics.Metric(
-    dc.metrics.roc_auc_score, verbosity="high", mode="classification")
+metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
@@ -64,8 +63,7 @@ support_model.join(dc.nn.AttnLSTMEmbedding(
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=learning_rate,
-    verbosity="high")
+    support_batch_size=support_batch_size, learning_rate=learning_rate)
 
   ############################################################ DEBUG
   print("FIT")

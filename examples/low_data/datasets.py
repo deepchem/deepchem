@@ -175,7 +175,7 @@ def load_sider_convmol():
 
   loader = dc.data.CSVLoader(
       tasks=SIDER_tasks, smiles_field="smiles", featurizer=featurizer)
-  dataset = loader.featurize(dataset_file, debug=True)
+  dataset = loader.featurize(dataset_file)
   print("%d datapoints in SIDER dataset" % len(dataset))
 
   # Initialize transformers
