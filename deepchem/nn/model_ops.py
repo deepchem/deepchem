@@ -1,6 +1,7 @@
 """Ops for graph construction.
 
-Large amounts of code borrowed from Keras.
+Large amounts of code borrowed from Keras. Will try to incorporate into
+DeepChem properly.
 """
 from __future__ import print_function
 from __future__ import division
@@ -23,27 +24,6 @@ _UID_PREFIXES = defaultdict(int)
 # either train mode (learning_phase == 1) or test mode (learning_phase == 0).
 _GRAPH_LEARNING_PHASES = {}
 
-# TODO(rbharath): Can this be improved.
-def _convert_string_dtype(dtype):
-  if dtype == 'float16':
-    return tf.float16
-  if dtype == 'float32':
-    return tf.float32
-  elif dtype == 'float64':
-    return tf.float64
-  elif dtype == 'int16':
-    return tf.int16
-  elif dtype == 'int32':
-    return tf.int32
-  elif dtype == 'int64':
-    return tf.int64
-  elif dtype == 'uint8':
-    return tf.int8
-  elif dtype == 'uint16':
-    return tf.uint16
-  else:
-    raise ValueError('Unsupported dtype:', dtype)
-
 def _to_tensor(x, dtype):
   x = tf.convert_to_tensor(x)
   if x.dtype != dtype:
@@ -59,8 +39,7 @@ def learning_phase():
   """
   graph = tf.get_default_graph()
   if graph not in _GRAPH_LEARNING_PHASES:
-    phase = tf.placeholder(dtype='bool',
-                           name='keras_learning_phase')
+    phase = tf.placeholder(dtype='bool', name='keras_learning_phase')
     _GRAPH_LEARNING_PHASES[graph] = phase
   return _GRAPH_LEARNING_PHASES[graph]
 
@@ -68,8 +47,9 @@ def in_train_phase(x, alt):
   """Selects `x` in train phase, and `alt` otherwise.
   Note that `alt` should have the *same shape* as `x`.
 
-  # Returns
-      Either `x` or `alt` based on `K.learning_phase`.
+  Returns
+  -------
+  Either `x` or `alt` based on `K.learning_phase`.
   """
   if learning_phase() is 1:
     return x
@@ -150,7 +130,7 @@ def ones(shape, dtype=None, name=None):
   Parameters
   ----------
   shape: Tuple of integers, shape of returned Keras variable.
-  dtype: String, data type of returned Keras variable.
+  dtype: Tensorflow dtype 
   name: String, name of returned Keras variable.
 
   Returns
@@ -160,8 +140,7 @@ def ones(shape, dtype=None, name=None):
   if dtype is None:
     dtype = tf.float32 
   shape = tuple(map(int, shape))
-  tf_dtype = _convert_string_dtype(dtype)
-  return variable(tf.constant_initializer(1., dtype=tf_dtype)(shape),
+  return variable(tf.constant_initializer(1., dtype=dtype)(shape),
                   dtype, name)
 
 def cast_to_floatx(x):
@@ -309,11 +288,13 @@ def dot(x, y):
 def get_ndim(x):
   """Returns the number of axes in a tensor, as an integer.
 
-  # Arguments
-      x: Tensor or variable.
+  Parameters
+  ----------
+  x: Tensor or variable.
 
-  # Returns
-      Integer (scalar), number of axes.
+  Returns
+  -------
+  Integer (scalar), number of axes.
   """
   dims = x.get_shape()._dims
   if dims is not None:
@@ -323,11 +304,13 @@ def get_ndim(x):
 def get_dtype(x):
   """Returns the dtype of a Keras tensor or variable, as a string.
 
-  # Arguments
-      x: Tensor or variable.
+  Parameters
+  ----------
+  x: Tensor or variable.
 
-  # Returns
-      String, dtype of `x`.
+  Returns
+  -------
+  String, dtype of `x`.
   """
   return x.dtype.name
 
@@ -348,23 +331,26 @@ def epsilon():
   """Returns the value of the fuzz
   factor used in numeric expressions.
 
-  # Returns
-      A float.
+  Returns
+  -------
+  A float.
   """
   return 1e-7 
 
 def variable(value, dtype=tf.float32, name=None):
   """Instantiates a variable and returns it.
 
-  # Arguments
-      value: Numpy array, initial value of the tensor.
-      dtype: Tensor type.
-      name: Optional name string for the tensor.
+  Parameters
+  ----------
+  value: Numpy array, initial value of the tensor.
+  dtype: Tensor type.
+  name: Optional name string for the tensor.
 
-  # Returns
-      A variable instance (with Keras metadata included).
+  Returns
+  -------
+  A variable instance (with Keras metadata included).
   """
-  v = tf.Variable(value, dtype=_convert_string_dtype(dtype), name=name)
+  v = tf.Variable(value, dtype=dtype, name=name)
   if hasattr(value, 'get_shape'):
     v._keras_shape = tuple(map(int, value.get_shape()))
   v._uses_learning_phase = False
@@ -375,24 +361,25 @@ def random_uniform_variable(shape, low, high, dtype=tf.float32,
   """Instantiates an Keras variable filled with
   samples drawn from a uniform distribution and returns it.
 
-  # Arguments
-    shape: Tuple of integers, shape of returned Keras variable.
-    low: Float, lower boundary of the output inteval.
-    high: Float, upper boundary of the output interval.
-    dtype: String, dtype of returned Keras variable.
-    name: String, name of returned Keras variable.
-    seed: Integer, random seed.
+  Parameters
+  ----------
+  shape: Tuple of integers, shape of returned Keras variable.
+  low: Float, lower boundary of the output inteval.
+  high: Float, upper boundary of the output interval.
+  dtype: Tensorflow dtype
+  name: String, name of returned Keras variable.
+  seed: Integer, random seed.
 
-  # Returns
-      A Keras variable, filled with drawn samples.
+  Returns
+  -------
+  A tf.Variable, filled with drawn samples.
   """
   shape = tuple(map(int, shape))
-  tf_dtype = _convert_string_dtype(dtype)
   if seed is None:
       # ensure that randomness is conditioned by the Numpy RNG
       seed = np.random.randint(10e8)
   value = tf.random_uniform_initializer(
-      low, high, dtype=tf_dtype, seed=seed)(shape)
+      low, high, dtype=dtype, seed=seed)(shape)
   return variable(value, dtype=dtype, name=name)
 
 def random_normal_variable(shape, mean, scale, dtype=tf.float32,
@@ -400,39 +387,42 @@ def random_normal_variable(shape, mean, scale, dtype=tf.float32,
   """Instantiates an Keras variable filled with
   samples drawn from a normal distribution and returns it.
 
-  # Arguments
-      shape: Tuple of integers, shape of returned Keras variable.
-      mean: Float, mean of the normal distribution.
-      scale: Float, standard deviation of the normal distribution.
-      dtype: String, dtype of returned Keras variable.
-      name: String, name of returned Keras variable.
-      seed: Integer, random seed.
+  Parameters
+  ----------
+  shape: Tuple of integers, shape of returned Keras variable.
+  mean: Float, mean of the normal distribution.
+  scale: Float, standard deviation of the normal distribution.
+  dtype: Tensorflow dtype
+  name: String, name of returned Keras variable.
+  seed: Integer, random seed.
 
-  # Returns
-      A Keras variable, filled with drawn samples.
+  Returns
+  -------
+  A tf.Variable, filled with drawn samples.
   """
   shape = tuple(map(int, shape))
-  tf_dtype = _convert_string_dtype(dtype)
   if seed is None:
     # ensure that randomness is conditioned by the Numpy RNG
     seed = np.random.randint(10e8)
   value = tf.random_normal_initializer(
-      mean, scale, dtype=tf_dtype, seed=seed)(shape)
+      mean, scale, dtype=dtype, seed=seed)(shape)
   return variable(value, dtype=dtype, name=name)
 
 def max(x, axis=None, keepdims=False):
   """Maximum value in a tensor.
 
-  # Arguments
-    x: A tensor or variable.
-    axis: An integer, the axis to find maximum values.
-    keepdims: A boolean, whether to keep the dimensions or not.
-        If `keepdims` is `False`, the rank of the tensor is reduced
-        by 1. If `keepdims` is `True`,
-        the reduced dimension is retained with length 1.
+  Parameters
+  ----------
+  x: A tensor or variable.
+  axis: An integer, the axis to find maximum values.
+  keepdims: A boolean, whether to keep the dimensions or not.
+      If `keepdims` is `False`, the rank of the tensor is reduced
+      by 1. If `keepdims` is `True`,
+      the reduced dimension is retained with length 1.
 
-  # Returns
-    A tensor with maximum values of `x`.
+  Returns
+  -------
+  A tensor with maximum values of `x`.
   """
   axis = _normalize_axis(axis, get_ndim(x))
   return tf.reduce_max(x, reduction_indices=axis, keep_dims=keepdims)
@@ -440,16 +430,18 @@ def max(x, axis=None, keepdims=False):
 def sum(x, axis=None, keepdims=False):
   """Sum of the values in a tensor, alongside the specified axis.
 
-  # Arguments
-    x: A tensor or variable.
-    axis: An integer, the axis to sum over.
-    keepdims: A boolean, whether to keep the dimensions or not.
-      If `keepdims` is `False`, the rank of the tensor is reduced
-      by 1. If `keepdims` is `True`,
-      the reduced dimension is retained with length 1.
+  Parameters
+  ----------
+  x: A tensor or variable.
+  axis: An integer, the axis to sum over.
+  keepdims: A boolean, whether to keep the dimensions or not.
+    If keepdims is False, the rank of the tensor is reduced
+    by 1. If keepdims is True,
+    the reduced dimension is retained with length 1.
 
-  # Returns
-    A tensor with sum of `x`.
+  Returns
+  -------
+  A tensor with sum of x.
   """
   axis = _normalize_axis(axis, get_ndim(x))
   return tf.reduce_sum(x, reduction_indices=axis, keep_dims=keepdims)
@@ -462,7 +454,7 @@ def zeros(shape, dtype=tf.float32, name=None):
   Parameters
   ----------
   shape: Tuple of integers, shape of returned Keras variable
-  dtype: String, data type of returned Keras variable
+  dtype: Tensorflow dtype 
   name: String, name of returned Keras variable
 
   Returns
@@ -470,8 +462,7 @@ def zeros(shape, dtype=tf.float32, name=None):
   A variable (including Keras metadata), filled with `0.0`.
   """
   shape = tuple(map(int, shape))
-  tf_dtype = _convert_string_dtype(dtype)
-  return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
+  return variable(tf.constant_initializer(0., dtype=dtype)(shape),
                   dtype, name)
 
 def cosine_distances(test, support):
@@ -504,12 +495,14 @@ def cosine_distances(test, support):
 def elu(x, alpha=1.):
   """Exponential linear unit.
 
-  # Arguments
-      x: A tenor or variable to compute the activation function for.
-      alpha: A scalar, slope of positive section.
+  Parameters
+  ----------
+  x: A tensor or variable to compute the activation function for.
+  alpha: A scalar, slope of positive section.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   res = tf.nn.elu(x)
   if alpha == 1:
@@ -521,13 +514,15 @@ def relu(x, alpha=0., max_value=None):
   """Rectified linear unit.
   With default values, it returns element-wise `max(x, 0)`.
 
-  # Arguments
-      x: A tensor or variable.
-      alpha: A scalar, slope of negative section (default=`0.`).
-      max_value: Saturation threshold.
+  Parameters
+  ----------
+  x: A tensor or variable.
+  alpha: A scalar, slope of negative section (default=`0.`).
+  max_value: Saturation threshold.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   if alpha != 0.:
     negative_part = tf.nn.relu(-x)
@@ -544,14 +539,16 @@ def relu(x, alpha=0., max_value=None):
 def hard_sigmoid(x):
   """Segment-wise linear approximation of sigmoid.
   Faster than sigmoid.
-  Returns `0.` if `x < -2.5`, `1.` if `x > 2.5`.
-  In `-2.5 <= x <= 2.5`, returns `0.2 * x + 0.5`.
+  Returns 0. if x < -2.5, 1. if x > 2.5.
+  In -2.5 <= x <= 2.5, returns 0.2 * x + 0.5.
 
-  # Arguments
-      x: A tensor or variable.
+  Parameters
+  ----------
+  x: A tensor or variable.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   x = (0.2 * x) + 0.5
   zero = _to_tensor(0., x.dtype.base_dtype)
@@ -562,11 +559,13 @@ def hard_sigmoid(x):
 def sqrt(x):
   """Element-wise square root.
 
-  # Arguments
-      x: input tensor.
+  Parameters
+  ----------
+  x: input tensor.
 
-  # Returns
-      A tensor.
+  Returns
+  -------
+  A tensor.
   """
   zero = _to_tensor(0., x.dtype.base_dtype)
   inf = _to_tensor(np.inf, x.dtype.base_dtype)
@@ -576,16 +575,18 @@ def sqrt(x):
 def var(x, axis=None, keepdims=False):
   """Variance of a tensor, alongside the specified axis.
 
-  # Arguments
-      x: A tensor or variable.
-      axis: An integer, the axis to compute the variance.
-      keepdims: A boolean, whether to keep the dimensions or not.
-          If `keepdims` is `False`, the rank of the tensor is reduced
-          by 1. If `keepdims` is `True`,
-          the reduced dimension is retained with length 1.
+  Parameters
+  ----------
+  x: A tensor or variable.
+  axis: An integer, the axis to compute the variance.
+  keepdims: A boolean, whether to keep the dimensions or not.
+      If keepdims is False, the rank of the tensor is reduced
+      by 1. If keepdims is True,
+      the reduced dimension is retained with length 1.
 
-  # Returns
-      A tensor with the variance of elements of `x`.
+  Returns
+  -------
+  A tensor with the variance of elements of `x`.
   """
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
