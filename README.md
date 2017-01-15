@@ -30,7 +30,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [joblib](https://pypi.python.org/pypi/joblib)
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
-* [keras](http://keras.io)
+* [six](https://pypi.python.org/pypi/six)
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
@@ -57,12 +57,11 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install joblib 
    ```
 
-5. `keras`
+5. `six`
    ```bash
-   pip install keras
+   pip install six
    ```
-   `deepchem` only supports the `tensorflow` (default) backend for keras.
-   
+      
 6. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
@@ -73,7 +72,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    conda install -c https://conda.anaconda.org/jjhelmus tensorflow
+    pip install tensorflow-gpu
     ```
 
 8. `deepchem`: Clone the `deepchem` github repo:
