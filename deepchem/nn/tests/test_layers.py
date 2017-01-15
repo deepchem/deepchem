@@ -1,5 +1,5 @@
 """
-Test that Keras Layers work as advertised.
+Test that Layers work as advertised.
 """
 from __future__ import print_function
 from __future__ import division
@@ -14,16 +14,34 @@ import unittest
 import deepchem as dc
 from tensorflow.python.framework import test_util
 
-class TestKerasLayers(test_util.TensorFlowTestCase):
+class TestLayers(test_util.TensorFlowTestCase):
   """
-  Test Keras Layers.
+  Test Layers.
 
   The tests in this class only do basic sanity checks to make sure that
   produced tensors have the right shape.
   """
   def setUp(self):
-    super(TestKerasLayers, self).setUp()
+    super(TestLayers, self).setUp()
     self.root = '/tmp'
+
+  def test_dense(self):
+    """Tests dense layer class can be initialized."""
+    with self.test_session() as sess:
+      dense = dc.nn.Dense(32, input_dim=16)
+
+  def test_dropout(self):
+    """Tests that dropout can be initialized."""
+    with self.test_session() as sess:
+      dropout = dc.nn.Dropout(.5)
+
+  def test_input(self):
+    """Tests that inputs can be created."""
+    with self.test_session() as sess:
+      input_layer = dc.nn.Input(shape=(32,))
+
+  #def test_batch_normalization(self):
+  #  """Tests that batch normalization layers can be created."""
 
   def test_graph_convolution(self):
     """Tests that Graph Convolution transforms shapes correctly."""

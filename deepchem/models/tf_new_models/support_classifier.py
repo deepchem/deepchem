@@ -9,20 +9,19 @@ import numpy as np
 import tensorflow as tf
 import sys 
 import time
-from keras.layers import Input
-from keras import backend as K
 from deepchem.models import Model
 from deepchem.data import pad_batch
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot
 from deepchem.metrics import from_one_hot
-from deepchem.models.tf_keras_models.graph_topology import merge_dicts
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.models.tf_new_models.graph_topology import merge_dicts
+from deepchem.nn import model_ops
 from deepchem.data import SupportGenerator
 from deepchem.data import EpisodeGenerator
 from deepchem.data import get_task_dataset
 from deepchem.data import get_single_task_test
 from deepchem.data import get_task_dataset_minus_support
+from deepchem.nn.copy import Input
 
 class SupportGraphClassifier(Model):
   def __init__(self, sess, model,
@@ -50,7 +49,7 @@ class SupportGraphClassifier(Model):
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    self.epsilon = K.epsilon()
+    self.epsilon = 1e-7 
 
     self.add_placeholders()
     self.pred_op, self.scores_op, self.loss_op = self.add_training_loss()
@@ -58,7 +57,7 @@ class SupportGraphClassifier(Model):
     self.train_op = self.get_training_op(self.loss_op)
 
     # Initialize
-    self.init_fn = tf.initialize_all_variables()
+    self.init_fn = tf.global_variables_initializer()
     sess.run(self.init_fn)  
 
   def get_training_op(self, loss):
@@ -69,17 +68,19 @@ class SupportGraphClassifier(Model):
   def add_placeholders(self):
     """Adds placeholders to graph."""
     self.test_label_placeholder = Input(
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=(self.test_batch_size),
         name="label_placeholder"))
     self.test_weight_placeholder = Input(
-        tensor=K.placeholder(shape=(self.test_batch_size), dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=(self.test_batch_size),
         name="weight_placeholder"))
 
     # TODO(rbharath): Should weights for the support be used?
     # Support labels
     self.support_label_placeholder = Input(
-        tensor=K.placeholder(shape=[self.support_batch_size], dtype='float32',
+        tensor=tf.placeholder(dtype='float32', shape=[self.support_batch_size],
         name="support_label_placeholder"))
+    self.phase = tf.placeholder(dtype='bool',
+                                name='keras_learning_phase')
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
@@ -95,76 +96,75 @@ class SupportGraphClassifier(Model):
     feed_dict[self.test_label_placeholder] = np.squeeze(test.y)
     feed_dict[self.test_weight_placeholder] = np.squeeze(test.w)
 
-    # Get information for keras 
     if add_phase:
-      feed_dict[K.learning_phase()] = training
+      feed_dict[self.phase] = training
     return feed_dict
 
-  def old_fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
-          n_neg=9, log_every_n_samples=10, replace=True, **kwargs):
-    """Fits model on dataset.
+  #def old_fit(self, dataset, n_trials=1000, n_steps_per_trial=1, n_pos=1,
+  #        n_neg=9, log_every_n_samples=10, replace=True, **kwargs):
+  #  """Fits model on dataset.
 
-    Note that fitting for support models is quite different from fitting for
-    other deep models. Fitting is a two-level process.  We perform n_trials,
-    where for each trial, we randomply sample a support set for each given
-    task, and independently a test set from that same task. The
-    SupportGenerator class iterates over the tasks in random order.
+  #  Note that fitting for support models is quite different from fitting for
+  #  other deep models. Fitting is a two-level process.  We perform n_trials,
+  #  where for each trial, we randomply sample a support set for each given
+  #  task, and independently a test set from that same task. The
+  #  SupportGenerator class iterates over the tasks in random order.
 
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to fit model on.
-    n_trials: int, optional
-      Number of (support, test) pairs to sample and train on.
-    n_steps_per_trial: int, optional
-      Number of gradient descent steps to take per support.
-    n_pos: int, optional
-      Number of positive examples per support.
-    n_neg: int, optional
-      Number of negative examples per support.
-    log_every_n_samples: int, optional
-      Displays info every this number of samples
-    replace: bool, optional
-      Whether or not to use replacement when sampling supports/tests.
-    """
-    time_start = time.time()
-    # Perform the optimization
-    n_tasks = len(dataset.get_task_names())
+  #  Parameters
+  #  ----------
+  #  dataset: dc.data.Dataset
+  #    Dataset to fit model on.
+  #  n_trials: int, optional
+  #    Number of (support, test) pairs to sample and train on.
+  #  n_steps_per_trial: int, optional
+  #    Number of gradient descent steps to take per support.
+  #  n_pos: int, optional
+  #    Number of positive examples per support.
+  #  n_neg: int, optional
+  #    Number of negative examples per support.
+  #  log_every_n_samples: int, optional
+  #    Displays info every this number of samples
+  #  replace: bool, optional
+  #    Whether or not to use replacement when sampling supports/tests.
+  #  """
+  #  time_start = time.time()
+  #  # Perform the optimization
+  #  n_tasks = len(dataset.get_task_names())
 
-    feed_total, run_total, test_total = 0, 0, 0
-    # Create different support sets
-    support_generator = SupportGenerator(dataset, range(n_tasks),
-        n_pos, n_neg, n_trials)
-    recent_losses = []
-    for ind, (task, support) in enumerate(support_generator):
-      if ind % log_every_n_samples == 0:
-        print("Sample %d from task %s" % (ind, str(task)))
-      # Get batch to try it out on
-      test_start = time.time()
-      test = get_single_task_test(dataset, self.test_batch_size, task, replace)
-      test_end = time.time()
-      test_total += (test_end - test_start)
-      feed_start = time.time()
-      feed_dict = self.construct_feed_dict(test, support)
-      feed_end = time.time()
-      feed_total += (feed_end - feed_start)
-      for step in range(n_steps_per_trial):
-        # Train on support set, batch pair
-        run_start = time.time()
-        _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
-        run_end = time.time()
-        run_total += (run_end - run_start)
-        if ind % log_every_n_samples == 0:
-          mean_loss = np.mean(np.array(recent_losses))
-          print("\tmean loss is %s" % str(mean_loss))
-          recent_losses = []
-        else:
-          recent_losses.append(loss)
-    time_end = time.time()
-    print("old_fit took %s seconds" % str(time_end-time_start))
-    print("test_total: %s" % str(test_total))
-    print("feed_total: %s" % str(feed_total))
-    print("run_total: %s" % str(run_total))
+  #  feed_total, run_total, test_total = 0, 0, 0
+  #  # Create different support sets
+  #  support_generator = SupportGenerator(dataset, range(n_tasks),
+  #      n_pos, n_neg, n_trials)
+  #  recent_losses = []
+  #  for ind, (task, support) in enumerate(support_generator):
+  #    if ind % log_every_n_samples == 0:
+  #      print("Sample %d from task %s" % (ind, str(task)))
+  #    # Get batch to try it out on
+  #    test_start = time.time()
+  #    test = get_single_task_test(dataset, self.test_batch_size, task, replace)
+  #    test_end = time.time()
+  #    test_total += (test_end - test_start)
+  #    feed_start = time.time()
+  #    feed_dict = self.construct_feed_dict(test, support)
+  #    feed_end = time.time()
+  #    feed_total += (feed_end - feed_start)
+  #    for step in range(n_steps_per_trial):
+  #      # Train on support set, batch pair
+  #      run_start = time.time()
+  #      _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
+  #      run_end = time.time()
+  #      run_total += (run_end - run_start)
+  #      if ind % log_every_n_samples == 0:
+  #        mean_loss = np.mean(np.array(recent_losses))
+  #        print("\tmean loss is %s" % str(mean_loss))
+  #        recent_losses = []
+  #      else:
+  #        recent_losses.append(loss)
+  #  time_end = time.time()
+  #  print("old_fit took %s seconds" % str(time_end-time_start))
+  #  print("test_total: %s" % str(test_total))
+  #  print("feed_total: %s" % str(feed_total))
+  #  print("run_total: %s" % str(run_total))
 
   def fit(self, dataset, n_episodes_per_epoch=1000, nb_epochs=1, n_pos=1, n_neg=9,
           log_every_n_samples=10, **kwargs):
@@ -282,7 +282,7 @@ class SupportGraphClassifier(Model):
 
     # Clip softmax probabilities to range [epsilon, 1-epsilon]
     # Shape (n_test,)
-    pred = tf.clip_by_value(pred, K.epsilon(), 1.-K.epsilon())
+    pred = tf.clip_by_value(pred, 1e-7, 1.-1e-7)
 
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)

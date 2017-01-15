@@ -5,10 +5,10 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 
+from deepchem.nn import model_ops
 from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
-from deepchem.models.tensorflow_models import model_ops
 
 class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
   """Implements a neural network for robust multitasking.

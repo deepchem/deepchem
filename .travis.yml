@@ -20,7 +20,8 @@ install:
 - conda install -c omnia openbabel
 - conda install joblib
 - conda install h5py
-- pip install keras
+- pip install six
+#- pip install keras
 - export KERAS_BACKEND=tensorflow
 - conda install -c omnia mdtraj
 - pip install tensorflow

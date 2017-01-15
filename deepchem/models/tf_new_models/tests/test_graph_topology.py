@@ -11,7 +11,7 @@ __license__ = "GPL"
 
 import unittest
 import tensorflow as tf
-from deepchem.models.tf_keras_models.graph_topology import GraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology
 
 class TestGraphTopology(unittest.TestCase):
   """

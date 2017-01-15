@@ -17,7 +17,6 @@ import sklearn
 import shutil
 import tensorflow as tf
 import deepchem as dc
-from keras import backend as K
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -468,26 +467,26 @@ class TestOverfit(test_util.TensorFlowTestCase):
     tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
+    n_tasks = 1
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(
+        dc.metrics.accuracy_score)
+
+    n_feat = 75
+    batch_size = 10
+
     with g.as_default():
-      n_tasks = 1
-      n_samples = 10
-      n_features = 3
-      n_classes = 2
-      
-      # Load mini log-solubility dataset.
-      featurizer = dc.feat.ConvMolFeaturizer()
-      tasks = ["outcome"]
-      input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.CSVLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(input_file)
-
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score)
-
-      n_feat = 75
-      batch_size = 10
       graph_model = dc.nn.SequentialGraph(n_feat)
       graph_model.add(dc.nn.GraphConv(64, activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
@@ -518,27 +517,27 @@ class TestOverfit(test_util.TensorFlowTestCase):
     tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
+    n_tasks = 1
+    n_samples = 10
+    n_features = 3
+    n_classes = 2
+    
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(
+        dc.metrics.mean_squared_error,
+        task_averager=np.mean)
+
+    n_feat = 75
+    batch_size = 10
+
     with g.as_default():
-      n_tasks = 1
-      n_samples = 10
-      n_features = 3
-      n_classes = 2
-      
-      # Load mini log-solubility dataset.
-      featurizer = dc.feat.ConvMolFeaturizer()
-      tasks = ["outcome"]
-      input_file = os.path.join(self.current_dir, "example_regression.csv")
-      loader = dc.data.CSVLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(input_file)
-
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.mean_squared_error,
-          task_averager=np.mean)
-
-      n_feat = 75
-      batch_size = 10
       graph_model = dc.nn.SequentialGraph(n_feat)
       graph_model.add(dc.nn.GraphConv(64, activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
@@ -569,27 +568,26 @@ class TestOverfit(test_util.TensorFlowTestCase):
     tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
+    n_tasks = 1
+    n_feat = 75
+    max_depth = 4
+    n_pos = 6
+    n_neg = 4
+    test_batch_size = 10
+    n_train_trials = 80
+    support_batch_size = n_pos + n_neg
+    
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
     with g.as_default():
-      n_tasks = 1
-      n_feat = 75
-      max_depth = 4
-      n_pos = 6
-      n_neg = 4
-      test_batch_size = 10
-      n_train_trials = 80
-      support_batch_size = n_pos + n_neg
-      
-      # Load mini log-solubility dataset.
-      featurizer = dc.feat.ConvMolFeaturizer()
-      tasks = ["outcome"]
-      input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.CSVLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(input_file)
-
-      classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
       # Add layers
@@ -634,27 +632,25 @@ class TestOverfit(test_util.TensorFlowTestCase):
     tf.set_random_seed(123)
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
+    n_tasks = 1
+    n_feat = 75
+    max_depth = 4
+    n_pos = 6
+    n_neg = 4
+    test_batch_size = 10
+    support_batch_size = n_pos + n_neg
+    n_train_trials = 80
+    
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
     with g.as_default():
-      n_tasks = 1
-      n_feat = 75
-      max_depth = 4
-      n_pos = 6
-      n_neg = 4
-      test_batch_size = 10
-      support_batch_size = n_pos + n_neg
-      n_train_trials = 80
-      
-      # Load mini log-solubility dataset.
-      featurizer = dc.feat.ConvMolFeaturizer()
-      tasks = ["outcome"]
-      input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.CSVLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(input_file)
-
-      classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
       # Add layers
@@ -695,34 +691,33 @@ class TestOverfit(test_util.TensorFlowTestCase):
                                 exclude_support=False)
 
       # Measure performance on 0-th task.
-      assert scores[0] > .9
+      assert scores[0] > .85
 
   def test_residual_lstm_singletask_classification_overfit(self):
     """Test resi-lstm multitask overfits tiny data."""
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
+    n_tasks = 1
+    n_feat = 75
+    max_depth = 4
+    n_pos = 6
+    n_neg = 4
+    test_batch_size = 10
+    support_batch_size = n_pos + n_neg
+    n_train_trials = 80
+    
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(
+        dc.metrics.accuracy_score)
+
     with g.as_default():
-      n_tasks = 1
-      n_feat = 75
-      max_depth = 4
-      n_pos = 6
-      n_neg = 4
-      test_batch_size = 10
-      support_batch_size = n_pos + n_neg
-      n_train_trials = 80
-      
-      # Load mini log-solubility dataset.
-      featurizer = dc.feat.ConvMolFeaturizer()
-      tasks = ["outcome"]
-      input_file = os.path.join(self.current_dir, "example_classification.csv")
-      loader = dc.data.CSVLoader(
-          tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-      dataset = loader.featurize(input_file)
-
-      classification_metric = dc.metrics.Metric(
-          dc.metrics.accuracy_score)
-
       support_model = dc.nn.SequentialSupportGraph(n_feat)
       
       # Add layers

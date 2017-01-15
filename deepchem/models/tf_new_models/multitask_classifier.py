@@ -1,19 +1,28 @@
+"""
+Implements a multitask classifier.
+"""
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
+__author__ = "Han Altae-Tran and Bharath Ramsundar"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "GPL"
+
 import os
 import sys
 import numpy as np
 import tensorflow as tf
 import sklearn.metrics
 import tempfile
-from keras.engine import Layer
-from keras.layers import Input, Dense
-from keras import initializations, activations
-from keras import backend as K
 from deepchem.data import pad_features
 from deepchem.utils.save import log
 from deepchem.models import Model 
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn.copy import Input
+from deepchem.nn.copy import Dense
+from deepchem.nn import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
-from deepchem.models.tf_keras_models.graph_topology import merge_dicts
+from deepchem.models.tf_new_models.graph_topology import merge_dicts
 
 def get_loss_fn(final_loss):
   # Obtain appropriate loss function
@@ -87,7 +96,7 @@ class MultitaskGraphClassifier(Model):
     self.optimizer_beta2 = beta2 
     
     # Set epsilon
-    self.epsilon = K.epsilon()
+    self.epsilon = 1e-7 
     self.add_optimizer()
 
     # Initialize
@@ -100,12 +109,11 @@ class MultitaskGraphClassifier(Model):
 
   def build(self):
     # Create target inputs
-    self.label_placeholder = Input(tensor=K.placeholder(
-      shape=(None,self.n_tasks), name="label_placeholder", dtype='bool'))
-    self.weight_placeholder = Input(tensor=K.placeholder(
-          shape=(None,self.n_tasks), name="weight_placholder", dtype='float32'))
+    self.label_placeholder = Input(tensor=tf.placeholder(
+        dtype='bool', shape=(None,self.n_tasks), name="label_placeholder"))
+    self.weight_placeholder = Input(tensor=tf.placeholder(
+        dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
 
-    # Create final dense layer from keras 
     feat = self.model.return_outputs()
     output = model_ops.multitask_logits(
         feat, self.n_tasks)
@@ -143,10 +151,7 @@ class MultitaskGraphClassifier(Model):
 
     # Get other optimizer information
     # TODO(rbharath): Figure out how to handle phase appropriately
-    #keras_dict = {K.learning_phase() : training}
-    keras_dict = {}
-    feed_dict = merge_dicts([targets_dict, atoms_dict,
-                             keras_dict])
+    feed_dict = merge_dicts([targets_dict, atoms_dict ])
     return feed_dict
 
   def add_training_loss(self, final_loss, logits):
