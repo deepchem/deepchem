@@ -702,9 +702,6 @@ def cos(x, y):
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
 
-  TODO(rbharath): forget_bias_init uses get_value(), which evaluates provided
-  tensors in session. Seems quite unnecessary...
-
   This layer exists because the Keras LSTM layer is intrinsically linked to an
   RNN with sequence inputs, and here, we will not be using sequence inputs, but
   rather we generate a sequence of inputs using the intermediate outputs of the
@@ -721,6 +718,8 @@ class LSTMStep(Layer):
 
     self.init = initializations.get(init)
     self.inner_init = initializations.get(inner_init)
+    # No other forget biases supported right now.
+    assert forget_bias_init == "one"
     self.forget_bias_init = initializations.get(forget_bias_init)
     self.activation = activations.get(activation)
     self.inner_activation = activations.get(inner_activation)
@@ -737,7 +736,7 @@ class LSTMStep(Layer):
 
     self.b = model_ops.variable(np.hstack(
         (np.zeros(self.output_dim),
-         model_ops.get_value(self.forget_bias_init((self.output_dim,))),
+         np.ones(self.output_dim),
          np.zeros(self.output_dim),
          np.zeros(self.output_dim))))
     self.trainable_weights = [self.W, self.U, self.b]

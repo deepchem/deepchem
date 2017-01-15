@@ -17,41 +17,6 @@ class Regularizer(object):
   def __call__(self, x):
     return 0
 
-class EigenvalueRegularizer(Regularizer):
-  """Regularizer based on the eignvalues of a weight matrix.
-
-  Only available for tensors of rank 2.
-
-  # Arguments
-      k: Float; modulates the amount of regularization to apply.
-  """
-
-  def __init__(self, k):
-    self.k = k
-
-  def __call__(self, x):
-    if model_ops.get_ndim(x) != 2:
-      raise ValueError('EigenvalueRegularizer '
-                       'is only available for tensors of rank 2.')
-    covariance = model_ops.dot(tf.transpose(x), x)
-    dim1, dim2 = model_ops.eval(tf.shape(covariance))
-
-    # Power method for approximating the dominant eigenvector:
-    power = 9  # Number of iterations of the power method.
-    o = model_ops.ones([dim1, 1])  # Initial values for the dominant eigenvector.
-    main_eigenvect = model_ops.dot(covariance, o)
-    for n in range(power - 1):
-      main_eigenvect = model_ops.dot(covariance, main_eigenvect)
-    covariance_d = model_ops.dot(covariance, main_eigenvect)
-
-    # The corresponding dominant eigenvalue:
-    main_eigenval = (model_ops.dot(tf.transpose(covariance_d), main_eigenvect) /
-                     model_ops.dot(tf.transpose(main_eigenvect), main_eigenvect))
-    # Multiply by the given regularization gain.
-    regularization = (main_eigenval ** 0.5) * self.k
-    return model_ops.sum(regularization)
-
-
 class L1L2Regularizer(Regularizer):
   """Regularizer for L1 and L2 regularization.
 

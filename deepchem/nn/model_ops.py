@@ -17,13 +17,6 @@ from collections import defaultdict
 py_all = all
 
 # TODO(rbharath): REMOVE GLOBAL VARS! BREAKS DEEPCHEM STYLE! 
-# This is the default internal TF session used by Keras.
-# It can be set manually via `set_session(sess)`.
-_SESSION = None
-# This boolean flag can be set to True to leave variable initialization
-# up to the user.
-# Change its value via `manual_variable_initialization(value)`.
-_MANUAL_VAR_INIT = True
 _UID_PREFIXES = defaultdict(int)
 # This dictionary holds a mapping {graph: learning_phase}.
 # A learning phase is a bool tensor used to run Keras models in
@@ -151,40 +144,18 @@ def normalize_batch_in_training(x, gamma, beta,
                                        epsilon)
   return normed, mean, var
 
-def eval(x):
-  """Evaluates the value of a variable.
-  Returns a Numpy array.
-
-  Parameters
-  ----------
-  x: A variable.
-
-  Returns
-  -------
-  A Numpy array.
-  """
-  return x.eval(session=get_session())
-
 def ones(shape, dtype=None, name=None):
   """Instantiates an all-ones tensor variable and returns it.
 
-  # Arguments
-      shape: Tuple of integers, shape of returned Keras variable.
-      dtype: String, data type of returned Keras variable.
-      name: String, name of returned Keras variable.
+  Parameters
+  ----------
+  shape: Tuple of integers, shape of returned Keras variable.
+  dtype: String, data type of returned Keras variable.
+  name: String, name of returned Keras variable.
 
-  # Returns
-      A Keras variable, filled with `1.0`.
-
-  # Example
-  ```python
-      >>> from keras import backend as K
-      >>> kvar = K.ones((3,4))
-      >>> K.eval(kvar)
-      array([[ 1.,  1.,  1.,  1.],
-             [ 1.,  1.,  1.,  1.],
-             [ 1.,  1.,  1.,  1.]], dtype=float32)
-  ```
+  Returns
+  -------
+  A Keras variable, filled with `1.0`.
   """
   if dtype is None:
     dtype = tf.float32 
@@ -196,11 +167,13 @@ def ones(shape, dtype=None, name=None):
 def cast_to_floatx(x):
   """Cast a Numpy array to the default Keras float type.
 
-  # Arguments
-      x: Numpy array.
+  Parameters
+  ----------
+  x: Numpy array.
 
-  # Returns
-      The same Numpy array, cast to its new type.
+  Returns
+  -------
+  The same Numpy array, cast to its new type.
   """
   return np.asarray(x, dtype=tf.float32)
 
@@ -227,19 +200,6 @@ def int_shape(x):
   shape = x.get_shape()
   return tuple([i.__int__() for i in shape])
 
-def get_value(x):
-  """Returns the value of a variable.
-
-  Parameters
-  ----------
-  x: input variable.
-
-  Returns
-  -------
-  A Numpy array.
-  """
-  return x.eval(session=get_session())
-
 def get_uid(prefix=''):
   """Provides a unique UID given a string prefix.
 
@@ -253,59 +213,6 @@ def get_uid(prefix=''):
   """
   _UID_PREFIXES[prefix] += 1
   return _UID_PREFIXES[prefix]
-
-def _initialize_variables():
-  if hasattr(tf, 'global_variables'):
-    variables = tf.global_variables()
-  else:
-    variables = tf.all_variables()
-
-  uninitialized_variables = []
-  for v in variables:
-    if not hasattr(v, '_keras_initialized') or not v._keras_initialized:
-      uninitialized_variables.append(v)
-      v._keras_initialized = True
-  if uninitialized_variables:
-    sess = get_session()
-    if hasattr(tf, 'variables_initializer'):
-      sess.run(tf.variables_initializer(uninitialized_variables))
-    else:
-      sess.run(tf.initialize_variables(uninitialized_variables))
-
-# TODO(rbharath): DANGEROUS! THIS IS LEAKY AND BREAKS DEEPCHEM STYLE!
-def get_session():
-  """Returns the TF session to be used by the backend.
-
-  If a default TensorFlow session is available, we will return it.
-
-  Else, we will return the global Keras session.
-
-  If no global Keras session exists at this point:
-  we will create a new global session.
-
-  Note that you can manually set the global session
-  via `K.set_session(sess)`.
-
-  Returns
-  -------
-  A TensorFlow session.
-  """
-  global _SESSION
-  if tf.get_default_session() is not None:
-    session = tf.get_default_session()
-  else:
-    if _SESSION is None:
-      if not os.environ.get('OMP_NUM_THREADS'):
-        config = tf.ConfigProto(allow_soft_placement=True)
-      else:
-        nb_thread = int(os.environ.get('OMP_NUM_THREADS'))
-        config = tf.ConfigProto(intra_op_parallelism_threads=nb_thread,
-                                allow_soft_placement=True)
-      _SESSION = tf.Session(config=config)
-    session = _SESSION
-  if not _MANUAL_VAR_INIT:
-    _initialize_variables()
-  return session
 
 def concatenate(tensors, axis=-1):
   """Concatenates a list of tensors alongside the specified axis.
