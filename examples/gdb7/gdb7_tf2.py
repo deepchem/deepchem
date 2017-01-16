@@ -18,14 +18,14 @@ train_dataset, valid_dataset, test_dataset = datasets
 regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, 
                                       mode="regression")
 model = dc.models.TensorflowMultiTaskRegressor(
-    n_tasks=len(gdb7_tasks), n_features=23,
-    learning_rate=.001, momentum=.8, batch_size=512,
+    n_tasks=len(gdb7_tasks), n_features=276,
+    learning_rate=.0001, momentum=.8, batch_size=512,
     weight_init_stddevs=[1/np.sqrt(2000),1/np.sqrt(800),1/np.sqrt(800),1/np.sqrt(1000)],
     bias_init_consts=[0.,0.,0.,0.], layer_sizes=[2000,800,800,1000], 
     dropouts=[0.1,0.1,0.1,0.1], seed=123)
 
 # Fit trained model
-model.fit(train_dataset)
+model.fit(train_dataset, nb_epoch=50)
 model.save()
 
 train_scores = model.evaluate(train_dataset, [regression_metric], transformers)

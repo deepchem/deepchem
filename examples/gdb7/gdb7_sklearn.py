@@ -50,7 +50,7 @@ def model_builder(model_dir):
 model = dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
 
 # Fit trained model
-model.fit(train_dataset)
+model.fit(train_dataset, nb_epoch=30)
 model.save()
 
 train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset, transformers)

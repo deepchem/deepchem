@@ -19,7 +19,7 @@ def load_gdb7(featurizer=None, split='random'):
       current_dir, "./gdb7.sdf")
   gdb7_tasks = ["u0_atom"]
   if featurizer is None:
-    featurizer = dc.feat.CoulombMatrixEig(23)
+    featurizer = dc.feat.CoulombMatrix(23)
   else:
     raise ValueError('Only support Coulomb Matrix featurizer')
   loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_field="smiles", 
