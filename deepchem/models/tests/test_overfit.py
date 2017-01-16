@@ -619,9 +619,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, classification_metric, n_trials=5,
-                                n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False)
+        scores, _ = model.evaluate(dataset, classification_metric, n_trials=5,
+                                   n_pos=n_pos, n_neg=n_neg,
+                                   exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9
@@ -686,9 +686,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, classification_metric, n_trials=5,
-                                n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False)
+        scores, _ = model.evaluate(dataset, classification_metric, n_trials=5,
+                                   n_pos=n_pos, n_neg=n_neg,
+                                   exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .85
@@ -754,9 +754,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
         # can measure model has memorized support).  Replacement is turned off to
         # ensure that support contains full training set. This checks that the
         # model has mastered memorization of provided support.
-        scores = model.evaluate(dataset, classification_metric, n_trials=5,
-                                n_pos=n_pos, n_neg=n_neg,
-                                exclude_support=False)
+        scores, _ = model.evaluate(dataset, classification_metric, n_trials=5,
+                                   n_pos=n_pos, n_neg=n_neg,
+                                   exclude_support=False)
 
       # Measure performance on 0-th task.
       assert scores[0] > .9

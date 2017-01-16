@@ -413,6 +413,8 @@ class SupportGraphClassifier(Model):
 
     # Join information for all tasks.
     mean_task_scores = {}
+    std_task_scores = {}
     for task in test_tasks:
       mean_task_scores[task] = np.mean(np.array(task_scores[task]))
-    return mean_task_scores
+      std_task_scores[task] = np.std(np.array(task_scores[task]))
+    return mean_task_scores, std_task_scores

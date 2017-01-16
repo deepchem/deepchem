@@ -100,7 +100,7 @@ class MultitaskGraphClassifier(Model):
     self.add_optimizer()
 
     # Initialize
-    self.init_fn = tf.initialize_all_variables()
+    self.init_fn = tf.global_variables_initializer()
     sess.run(self.init_fn)  
 
     # Path to save checkpoint files, which matches the
