@@ -1,5 +1,5 @@
 """
-Train low-data Tox21 models with graph-convolution. Test last fold only.
+Train low-data Sider models with graph-convolution. Test last fold only.
 """
 from __future__ import print_function
 from __future__ import division
@@ -9,7 +9,7 @@ import tempfile
 import numpy as np
 import tensorflow as tf
 import deepchem as dc
-from datasets import load_tox21_convmol
+from datasets import load_sider_convmol
 
 # 4-fold splits
 K = 4
@@ -19,7 +19,7 @@ n_neg = 10
 # 10 trials on test-set
 n_trials = 20
 
-tox21_tasks, dataset, transformers = load_tox21_convmol()
+sider_tasks, dataset, transformers = load_sider_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")

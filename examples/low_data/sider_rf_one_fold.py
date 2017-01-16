@@ -14,9 +14,8 @@ from sklearn.ensemble import RandomForestClassifier
 # 4-fold splits
 K = 4
 # num positive/negative ligands
-n_pos = 1
-n_neg = 1
-# 10 trials on test-set
+n_pos = 10
+n_neg = 10
 n_trials = 20
 
 sider_tasks, dataset, transformers = load_sider_ecfp()
@@ -55,6 +54,14 @@ for (task, support) in support_generator:
 
 # Join information for all tasks.
 mean_task_scores = {}
+std_task_scores = {}
 for task in range(len(test_dataset.get_task_names())):
   mean_task_scores[task] = np.mean(np.array(task_scores[task]))
+  std_task_scores[task] = np.std(np.array(task_scores[task]))
+
+print("Mean scores")
 print(mean_task_scores)
+print("Standard Deviations")
+print(std_task_scores)
+print("Median of Mean Scores")
+print(np.median(np.array(mean_task_scores.values())))

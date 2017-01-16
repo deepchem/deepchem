@@ -29,7 +29,7 @@ n_eval_trials = 20
 learning_rate = 1e-4
 log_every_n_samples = 50
 # Number of features on conv-mols
-n_feat = 71
+n_feat = 75
 
 sider_tasks, sider_dataset, _ = load_sider_convmol()
 sider_dataset = to_numpy_dataset(sider_dataset)
@@ -37,8 +37,7 @@ tox21_tasks, tox21_dataset, _ = load_tox21_convmol()
 tox21_dataset = to_numpy_dataset(tox21_dataset)
 
 # Define metric
-metric = dc.metrics.Metric(
-    dc.metrics.roc_auc_score, verbosity="high", mode="classification")
+metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 
 # Train support model on train
 support_model = dc.nn.SequentialSupportGraph(n_feat)
@@ -62,19 +61,17 @@ support_model.join(dc.nn.AttnLSTMEmbedding(
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=learning_rate,
-    verbosity="high")
+    support_batch_size=support_batch_size, learning_rate=learning_rate)
 
-  ############################################################ DEBUG
-  print("FIT")
-  ############################################################ DEBUG
   model.fit(tox21_dataset, nb_epochs=nb_epochs, 
             n_episodes_per_epoch=n_train_trials,
             n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
-  ############################################################ DEBUG
-  print("EVAL")
-  ############################################################ DEBUG
-  scores = model.evaluate(
+  mean_scores, std_scores = model.evaluate(
       sider_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
-  print("Scores on evaluation dataset")
-  print(scores)
+
+print("Mean Scores on evaluation dataset")
+print(mean_scores)
+print("Standard Deviations on evaluation dataset")
+print(std_scores)
+print("Median of Mean Scores")
+print(np.median(np.array(mean_scores.values())))
