@@ -17,10 +17,11 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [Contributing to DeepChem](#contributing-to-deepchem)
     * [Code Style Guidelines](#code-style-guidelines)
     * [Documentation Style Guidelines](#documentation-style-guidelines)
+    * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
 * [Examples](/examples)
 * [About Us](#about-us)
-
+    
 ## Requirements
 * [openbabel](http://openbabel.org/wiki/Main_Page)
 * [pandas](http://pandas.pydata.org/)
@@ -29,7 +30,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [joblib](https://pypi.python.org/pypi/joblib)
 * [sklearn](https://github.com/scikit-learn/scikit-learn.git)
 * [numpy](https://store.continuum.io/cshop/anaconda/)
-* [keras](http://keras.io)
+* [six](https://pypi.python.org/pypi/six)
 * [mdtraj](http://mdtraj.org/)
 * [tensorflow](https://www.tensorflow.org/)
 
@@ -56,12 +57,11 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install joblib 
    ```
 
-5. `keras`
+5. `six`
    ```bash
-   pip install keras
+   pip install six
    ```
-   `deepchem` only supports the `tensorflow` (default) backend for keras.
-   
+      
 6. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
@@ -72,7 +72,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    conda install -c https://conda.anaconda.org/jjhelmus tensorflow
+    pip install tensorflow-gpu
     ```
 
 8. `deepchem`: Clone the `deepchem` github repo:
@@ -330,7 +330,10 @@ pylint --disable=invalid-name --indent-string "  " --extension-pkg-whitelist=num
 Aim for a score of at least 8/10 on contributed files.
 
 ### Documentation Style Guidelines
-DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io). 
+DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io).
+
+### Gitter
+Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepchem/Lobby). Probably the easiest place to ask simple questions or float requests for new features.
 
 ## DeepChem Publications
 1. [Computational Modeling of β-secretase 1 (BACE-1) Inhibitors using
