@@ -105,7 +105,7 @@ def load_from_disk(filename):
   elif os.path.splitext(name)[1] == ".joblib":
     try:
       return joblib.load(filename)
-    except KeyError:
+    except KeyError, ValueError:
       # Try older joblib version for legacy files.
       return old_joblib.load(filename)
   elif os.path.splitext(name)[1] == ".csv":
