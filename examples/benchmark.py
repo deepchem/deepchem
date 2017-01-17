@@ -50,6 +50,7 @@ from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
 from nci.nci_datasets import load_nci
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
+from chembl.chembl_datasets import load_chembl
 
 def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
@@ -75,7 +76,7 @@ def benchmark_loading_datasets(hyper_parameters,
   
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney', 'nci','pdbbind']:
+  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
@@ -113,7 +114,8 @@ def benchmark_loading_datasets(hyper_parameters,
                        'pcba': load_pcba, 'nci': load_nci,
                        'sider': load_sider, 'toxcast': load_toxcast,
                        'kaggle': load_kaggle, 'delaney': load_delaney,
-                       'pdbbind': load_pdbbind_grid}
+                       'pdbbind': load_pdbbind_grid,
+                       'chembl': load_chembl}
   
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
@@ -525,7 +527,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'delaney', 'nci', 'kaggle', 'pdbbind']
+                'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
