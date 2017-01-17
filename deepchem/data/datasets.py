@@ -162,8 +162,10 @@ class Dataset(object):
     """Get an object that iterates over the samples in the dataset.
 
     Example:
+
     >>> for x, y, w, id in dataset.itersamples():
     >>>   print(x, y, w, id)
+
     """
     raise NotImplementedError()
 
@@ -317,8 +319,10 @@ class NumpyDataset(Dataset):
     """Get an object that iterates over the samples in the dataset.
 
     Example:
+
     >>> for x, y, w, id in dataset.itersamples():
     >>>   print(x, y, w, id)
+
     """
     n_samples = self._X.shape[0]
     return ((self._X[i], self._y[i], self._w[i], self._ids[i])
@@ -580,6 +584,7 @@ class DiskDataset(Dataset):
     """Get an object that iterates over the samples in the dataset.
 
     Example:
+
     >>> for x, y, w, id in dataset.itersamples():
     >>>   print(x, y, w, id)
     """

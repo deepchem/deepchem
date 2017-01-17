@@ -15,7 +15,7 @@ import tensorflow as tf
 import tempfile
 from deepchem.models import Model
 from deepchem.metrics import from_one_hot
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
 from deepchem.utils.save import log
 from deepchem.data import pad_features

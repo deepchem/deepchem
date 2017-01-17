@@ -16,8 +16,8 @@ K = 4
 # Depth of attention module
 max_depth = 3
 # number positive/negative ligands
-n_pos = 1
-n_neg = 1
+n_pos = 10
+n_neg = 10
 # Set batch sizes for network
 test_batch_size = 128
 support_batch_size = n_pos + n_neg
@@ -27,13 +27,13 @@ n_eval_trials = 20
 learning_rate = 1e-4
 log_every_n_samples = 50
 # Number of features on conv-mols
-n_feat = 71
+n_feat = 75
 
 tox21_tasks, dataset, transformers = load_tox21_convmol()
 
 # Define metric
 metric = dc.metrics.Metric(
-    dc.metrics.roc_auc_score, verbosity="high", mode="classification")
+    dc.metrics.roc_auc_score, mode="classification")
 
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
@@ -64,19 +64,17 @@ support_model.join(dc.nn.AttnLSTMEmbedding(
 with tf.Session() as sess:
   model = dc.models.SupportGraphClassifier(
     sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=learning_rate,
-    verbosity="high")
+    support_batch_size=support_batch_size, learning_rate=learning_rate)
 
-  ############################################################ DEBUG
-  print("FIT")
-  ############################################################ DEBUG
   model.fit(train_dataset, nb_epochs=nb_epochs, 
             n_episodes_per_epoch=n_train_trials,
             n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
-  ############################################################ DEBUG
-  print("EVAL")
-  ############################################################ DEBUG
-  scores = model.evaluate(
+  mean_scores, std_scores = model.evaluate(
       test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
-  print("Scores on evaluation dataset")
-  print(scores)
+
+print("Mean Scores on evaluation dataset")
+print(mean_scores)
+print("Standard Deviations on evaluation dataset")
+print(std_scores)
+print("Median of Mean Scores")
+print(np.median(np.array(mean_scores.values())))

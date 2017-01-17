@@ -12,7 +12,7 @@ import time
 from deepchem.metrics import from_one_hot
 from deepchem.models.tensorflow_models import TensorflowGraph
 from deepchem.models.tensorflow_models import TensorflowGraphModel
-from deepchem.models.tensorflow_models import model_ops
+from deepchem.nn import model_ops
 from deepchem.utils.save import log
 from deepchem.data import pad_features
 from deepchem.metrics import to_one_hot
