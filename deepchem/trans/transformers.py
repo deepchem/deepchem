@@ -397,6 +397,50 @@ class BalancingTransformer(Transformer):
       w_balanced[one_indices, ind] = self.weights[ind][1]
     return (X, y, w_balanced)
 
+class CoulombRandomizationFitTransformer():
+
+  def __init__(self, seed=None):
+    """Iniitialize coulomb matrix randomization transformation. """
+    self.seed=seed
+
+  def unpad_randomize_and_flatten(self, cm):
+    """
+    1. Remove zero padding on Coulomb Matrix
+    2. Randomly permute the rows and columns for n_samples
+    3. Flatten each sample to upper triangular portion
+    Returns list of feature vectors
+    """
+    max_atom_number = len(cm) 
+    atom_number = 0
+    for i in cm[0]:
+        if atom_number == max_atom_number: break
+        elif i != 0.: atom_number += 1
+        else: break
+
+    upcm = cm[0:atom_number,0:atom_number]
+
+    row_norms = np.asarray(
+        [np.linalg.norm(row) for row in upcm], dtype=float)
+    rng = np.random.RandomState(self.seed)
+    e = rng.normal(size=row_norms.size)
+    p = np.argsort(row_norms+e)
+    rcm = upcm[p][:,p]
+    rcm = pad_array(rcm, len(cm))
+    rcm = rcm[np.triu_indices_from(rcm)]
+
+    return rcm
+
+  def X_transform(self, X):
+    return unpad_randomize_and_flatten(X)
+
+  def transform(self, dataset):
+    raise NotImplementedError(
+      "Cannot transform datasets with FitTransformer")
+
+  def untransform(self, z):
+    raise NotImplementedError(
+      "Cannot untransform datasets with FitTransformer.")
+
 class CoulombRandomizationTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False,
