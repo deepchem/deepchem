@@ -329,7 +329,7 @@ class IndexSplitter(Splitter):
 
 class IndiceSplitter(Splitter):
   """
-  Class for simple order based splits. 
+  Class for splits based on input order. 
   """
   def __init__(self, verbose=False, valid_indices=None, test_indices=None):
     """
@@ -348,7 +348,6 @@ class IndiceSplitter(Splitter):
             frac_test=.1, log_every_n=None):
     """
     Splits internal compounds into train/validation/test in designated order.
-        
     """
     num_datapoints = len(dataset)
     indices = np.arange(num_datapoints).tolist()
