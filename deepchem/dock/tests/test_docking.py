@@ -68,6 +68,27 @@ class TestDocking(unittest.TestCase):
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
 
+  def test_vina_grid_rf_docker_specified_pocket(self):
+    """Test that VinaGridRFDocker can dock into spec. pocket."""
+    if sys.version_info >= (3,0):
+      return
+    
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(current_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
+
+    docker = dc.dock.VinaGridRFDocker(
+        exhaustiveness=1, detect_pockets=False)
+    (score, (protein_docked, ligand_docked)) = docker.dock(
+        protein_file, ligand_file, centroid=(10, 10, 10),
+        box_dims=(1,1,1))
+  
+
+    # Check returned files exist
+    assert score.shape == (1,)
+    assert os.path.exists(protein_docked)
+    assert os.path.exists(ligand_docked)
+
   def test_pocket_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
     if sys.version_info >= (3,0):
