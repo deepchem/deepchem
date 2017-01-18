@@ -11,7 +11,7 @@ import shutil
 import deepchem as dc
 import csv
 
-def load_gdb7(featurizer=None, split='indice'):
+def load_gdb7(featurizer=None, split='random'):
   """Load gdb7 datasets."""
   # Featurize gdb7 dataset
   print("About to featurize gdb7 dataset.")
@@ -51,6 +51,4 @@ def load_gdb7(featurizer=None, split='indice'):
                'indice': dc.splits.IndiceSplitter(valid_indices=split_indices[1])}
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
-  print(valid.X.shape)
-  print(train.X.shape)
   return gdb7_tasks, (train, valid, test), transformers
