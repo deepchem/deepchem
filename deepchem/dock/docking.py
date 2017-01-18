@@ -24,7 +24,8 @@ from subprocess import call
 class Docker(object):
   """Abstract Class specifying API for Docking."""
 
-  def dock(self, protein_file, ligand_file):
+  def dock(self, protein_file, ligand_file, centroid=None, box_dims=None,
+           dry_run=False):
     raise NotImplementedError
 
 class VinaGridRFDocker(Docker):
@@ -47,11 +48,15 @@ class VinaGridRFDocker(Docker):
     self.pose_generator = VinaPoseGenerator(
         exhaustiveness=exhaustiveness, detect_pockets=detect_pockets) 
 
-  def dock(self, protein_file, ligand_file):
+  def dock(self, protein_file, ligand_file, centroid=None, box_dims=None,
+           dry_run=False):
     """Docks using Vina and RF."""
     protein_docked, ligand_docked = self.pose_generator.generate_poses(
-        protein_file, ligand_file)
-    score = self.pose_scorer.score(protein_docked, ligand_docked)
+        protein_file, ligand_file, centroid, box_dims, dry_run)
+    if not dry_run:
+      score = self.pose_scorer.score(protein_docked, ligand_docked)
+    else:
+      score = np.zeros((1,))
     return (score, (protein_docked, ligand_docked))
 
 class VinaGridDNNDocker(object):
@@ -78,9 +83,13 @@ class VinaGridDNNDocker(object):
     self.pose_generator = VinaPoseGenerator(
         exhaustiveness=exhaustiveness, detect_pockets=detect_pockets) 
 
-  def dock(self, protein_file, ligand_file):
+  def dock(self, protein_file, ligand_file, centroid=None, box_dims=None,
+           dry_run=False):
     """Docks using Vina and DNNs."""
     protein_docked, ligand_docked = self.pose_generator.generate_poses(
-        protein_file, ligand_file)
-    score = self.pose_scorer.score(protein_docked, ligand_docked)
+        protein_file, ligand_file, centroid, box_dims, dry_run)
+    if not dry_run:
+      score = self.pose_scorer.score(protein_docked, ligand_docked)
+    else:
+      score = np.zeros((1,))
     return (score, (protein_docked, ligand_docked))

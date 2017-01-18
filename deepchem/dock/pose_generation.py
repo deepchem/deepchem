@@ -85,7 +85,9 @@ class VinaPoseGenerator(PoseGenerator):
     self.vina_cmd = os.path.join(self.vina_dir, "bin/vina")
       
 
-  def generate_poses(self, protein_file, ligand_file, out_dir=None):
+  def generate_poses(self, protein_file, ligand_file,
+                     centroid=None, box_dims=None,
+                     dry_run=False, out_dir=None):
     """Generates the docked complex and outputs files for docked complex."""
     if out_dir is None:
       out_dir = tempfile.mkdtemp()
@@ -102,24 +104,27 @@ class VinaPoseGenerator(PoseGenerator):
     receptor_pybel = next(pybel.readfile(str("pdb"), str(protein_hyd)))
     # TODO(rbharath): Need to add some way to identify binding pocket, or this is
     # going to be extremely slow!
-    if not self.detect_pockets:
-      protein_centroid, protein_range = get_molecule_data(receptor_pybel)
-      box_dims = protein_range + 5.0
+    if centroid is not None and box_dims is not None:
+      protein_centroid = centroid
     else:
-      print("About to find putative binding pockets")
-      pockets, pocket_atoms_maps, pocket_coords = self.pocket_finder.find_pockets(
-          protein_file, ligand_file)
-      # TODO(rbharath): Handle multiple pockets instead of arbitrarily selecting
-      # first pocket. 
-      print("Computing centroid and size of proposed pocket.")
-      pocket_coord = pocket_coords[0]
-      protein_centroid = np.mean(pocket_coord, axis=1)
-      pocket = pockets[0]
-      (x_min, x_max), (y_min, y_max), (z_min, z_max) = pocket
-      x_box = (x_max - x_min)/2.
-      y_box = (y_max - y_min)/2.
-      z_box = (z_max - z_min)/2.
-      box_dims = (x_box, y_box, z_box)
+      if not self.detect_pockets:
+        protein_centroid, protein_range = get_molecule_data(receptor_pybel)
+        box_dims = protein_range + 5.0
+      else:
+        print("About to find putative binding pockets")
+        pockets, pocket_atoms_maps, pocket_coords = self.pocket_finder.find_pockets(
+            protein_file, ligand_file)
+        # TODO(rbharath): Handle multiple pockets instead of arbitrarily selecting
+        # first pocket. 
+        print("Computing centroid and size of proposed pocket.")
+        pocket_coord = pocket_coords[0]
+        protein_centroid = np.mean(pocket_coord, axis=1)
+        pocket = pockets[0]
+        (x_min, x_max), (y_min, y_max), (z_min, z_max) = pocket
+        x_box = (x_max - x_min)/2.
+        y_box = (y_max - y_min)/2.
+        z_box = (z_max - z_min)/2.
+        box_dims = (x_box, y_box, z_box)
 
 
     # Prepare receptor
@@ -142,9 +147,10 @@ class VinaPoseGenerator(PoseGenerator):
     log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
     out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
     # TODO(rbharath): Let user specify the number of poses required.
-    print("About to call Vina")
-    call("%s --config %s --log %s --out %s"
-         % (self.vina_cmd, conf_file, log_file, out_pdbqt), shell=True)
+    if not dry_run:
+      print("About to call Vina")
+      call("%s --config %s --log %s --out %s"
+           % (self.vina_cmd, conf_file, log_file, out_pdbqt), shell=True)
     # TODO(rbharath): Convert the output pdbqt to a pdb file.
 
     # Return docked files 
