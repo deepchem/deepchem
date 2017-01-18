@@ -637,7 +637,6 @@ class CoulombRandomizationFitTransformer():
     3. Flatten each sample to upper triangular portion
     Returns list of feature vectors
     """
-    print(cm.shape)
     max_atom_number = len(cm) 
     atom_number = 0
     for i in cm[0]:
@@ -658,7 +657,12 @@ class CoulombRandomizationFitTransformer():
     return rcm
 
   def X_transform(self, X):
-    return self.unpad_and_randomize(X)
+    batch_size = X.shape[0]
+    X_t = []
+    for i in range(batch_size):
+      X_t.append(self.unpad_and_randomize(X[i]))
+    X_t = np.array(X_t)
+    return X_t
 
   def transform(self, dataset):
     raise NotImplementedError(
@@ -672,13 +676,17 @@ class NormalizationFitTransformer():
 
   def normalize(self, X):
     """Normalize features. """
-    print(X.shape)
-    X_means = X.mean(axis=1)
+    X_means = X.mean(axis=0)
     X_stds = (X-X_means).std()
     return (X-X_means)/X_stds   
 
   def X_transform(self, X):
-    return self.normalize(X)
+    batch_size = X.shape[0]
+    X_t = []
+    for i in range(batch_size):
+      X_t.append(self.normalize(X[i]))
+    X_t = np.array(X_t)
+    return X_t
 
   def transform(self, dataset):
     raise NotImplementedError(

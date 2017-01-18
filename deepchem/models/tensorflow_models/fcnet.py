@@ -198,17 +198,27 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
                momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
                fit_transformers=[], verbose=True, seed=None, **kwargs):
 
+    self.pad_batches = False
     self.fit_transformers = fit_transformers
+    # Run fit transformers on dummy dataset to determine n_features after transformation
+    # JSG This could be generalized by passing in init_data_shape rather than n_features
+    # JSG for now this only works with full CoulombMatrix featurizer
+    X_b = np.random.rand(batch_size, n_features, n_features)
+    for transformer in self.fit_transformers:
+      X_b = transformer.X_transform(X_b)
+    print(X_b.shape) 
+    n_features = X_b.shape[1]
+    print("n_features after fit_transform: %d" % int(n_features))
+
     TensorflowGraphModel.__init__(self, n_tasks, n_features, logdir=logdir, 
 	       layer_sizes=layer_sizes, weight_init_stddevs=weight_init_stddevs, 
 	       bias_init_consts=bias_init_consts, penalty=penalty, 
 	       penalty_type=penalty_type, dropouts=dropouts, 
 	       learning_rate=learning_rate, momentum=momentum, optimizer=optimizer, 
-	       batch_size=batch_size, n_classes=n_classes, verbose=verbose, seed=seed, 
+	       batch_size=batch_size, n_classes=n_classes, pad_batches=False, verbose=verbose, seed=seed, 
 	       **kwargs)
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
-          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
+  def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
     Parameters
@@ -217,8 +227,6 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       Dataset object holding training data 
     nb_epoch: 10
       Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
     max_checkpoints_to_keep: int
       Maximum number of checkpoints to keep; older checkpoints will be deleted.
     log_every_N_batches: int
@@ -248,7 +256,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
               # Turns out there are valid cases where we don't want pad-batches
               # on by default.
               #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+              dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
 	    for transformer in self.fit_transformers:
@@ -298,7 +306,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
     for transformer in self.fit_transformers:
       X = transformer.X_transform(X)
     len_unpadded = len(X)
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     if not self._restored_model:
       self.restore()
