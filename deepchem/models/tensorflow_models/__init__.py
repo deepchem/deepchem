@@ -270,7 +270,7 @@ class TensorflowGraphModel(Model):
 
       return loss 
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
+  def fit(self, dataset, nb_epoch=10, pad_batch=False, 
           max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
     """Fit the model.
 
@@ -311,7 +311,7 @@ class TensorflowGraphModel(Model):
               # Turns out there are valid cases where we don't want pad-batches
               # on by default.
               #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+              dataset.iterbatches(self.batch_size, pad_batch=pad_batch)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
             # Run training op.
@@ -452,6 +452,85 @@ class TensorflowGraphModel(Model):
       saver.restore(self._get_shared_session(train=False),
                     last_checkpoint)
       self._restored_model = True
+
+  def predict(self, dataset, transformers=[], pad_batch=False):
+    """
+    Uses self to make predictions on provided Dataset object.
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples,)
+    """
+    y_preds = []
+    n_tasks = self.get_num_tasks()
+    ind = 0
+
+    for (X_batch, _, _, ids_batch) in dataset.iterbatches(
+        self.batch_size, deterministic=True):
+      n_samples = len(X_batch)
+      y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batch)
+      # Discard any padded predictions
+      y_pred_batch = y_pred_batch[:n_samples]
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+    y_pred = np.vstack(y_preds)
+  
+    # The iterbatches does padding with zero-weight examples on the last batch.
+    # Remove padded examples.
+    n_samples = len(dataset)
+    y_pred = np.reshape(y_pred, (n_samples, n_tasks))
+    # Special case to handle singletasks.
+    if n_tasks == 1:
+      y_pred = np.reshape(y_pred, (n_samples,)) 
+    return y_pred
+
+  def predict_proba(self, dataset, transformers=[], n_classes=2, pad_batch=False):
+    """
+    TODO: Do transformers even make sense here?
+
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
+    """
+    y_preds = []
+    n_tasks = self.get_num_tasks()
+
+    for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
+        self.batch_size, deterministic=True):
+      n_samples = len(X_batch)
+      y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batch)
+      y_pred_batch = y_pred_batch[:n_samples]
+      y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
+      y_pred_batch = undo_transforms(y_pred_batch, transformers)
+      y_preds.append(y_pred_batch)
+    y_pred = np.vstack(y_preds)
+    # The iterbatches does padding with zero-weight examples on the last batch.
+    # Remove padded examples.
+    n_samples = len(dataset)
+    y_pred = y_pred[:n_samples]
+    y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
+    return y_pred
+
+  def evaluate(self, dataset, metrics, transformers=[], pad_batch=False):
+    """
+    Evaluates the performance of this model on specified dataset.
+  
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset object.
+    metric: deepchem.metrics.Metric
+      Evaluation metric
+    transformers: list
+      List of deepchem.transformers.Transformer
+
+    Returns
+    -------
+    dict
+      Maps tasks to scores under metric.
+    """
+    evaluator = Evaluator(self, dataset, transformers)
+    scores = evaluator.compute_model_performance(metrics, pad_batch=pad_batch)
+    return scores
 
   def _find_last_checkpoint(self):
     """Finds last saved checkpoint."""

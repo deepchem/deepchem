@@ -79,11 +79,13 @@ class Evaluator(object):
     else:
       mode = metrics[0].mode
     if mode == "classification":
-      y_pred = self.model.predict_proba(self.dataset, self.output_transformers, pad_batch=pad_batch)
+      y_pred = self.model.predict_proba(self.dataset, self.output_transformers, 
+				  	pad_batch=pad_batch)
       y_pred_print = self.model.predict(
           self.dataset, self.output_transformers).astype(int)
     else:
-      y_pred = self.model.predict(self.dataset, self.output_transformers, pad_batch=pad_batch)
+      y_pred = self.model.predict(self.dataset, self.output_transformers, 
+				  pad_batch=pad_batch)
       y_pred_print = y_pred
     multitask_scores = {}
 
