@@ -39,11 +39,12 @@ class CoulombMatrix(Featurizer):
   conformers = True
   name = 'coulomb_matrix'
 
-  def __init__(self, max_atoms, remove_hydrogens=True, randomize=True,
-               n_samples=1, seed=None):
+  def __init__(self, max_atoms, remove_hydrogens=False, randomize=False,
+               upper_tri=False, n_samples=1, seed=None):
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
+    self.upper_tri = upper_tri
     self.n_samples = n_samples
     if seed is not None:
       seed = int(seed)
@@ -64,7 +65,8 @@ class CoulombMatrix(Featurizer):
         Molecule.
     """
     features = self.coulomb_matrix(mol)
-    features = [f[np.triu_indices_from(f)] for f in features]
+    if self.upper_tri:
+      features = [f[np.triu_indices_from(f)] for f in features]
     features = np.asarray(features)
     return features
 
