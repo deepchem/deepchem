@@ -523,7 +523,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       return self.eval_graph.session
 
 
-  def fit_task(self, sess, dataset, task, task_train_op, nb_epoch=10, pad_batches=False,
+  def fit_task(self, sess, dataset, task, task_train_op, nb_epoch=10,
                log_every_N_batches=50):
     """Fit the model.
 
@@ -540,8 +540,6 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       The index of the task to train on.
     nb_epoch: 10
       Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
     max_checkpoints_to_keep: int
       Maximum number of checkpoints to keep; older checkpoints will be deleted.
     log_every_N_batches: int
@@ -564,7 +562,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
           # Turns out there are valid cases where we don't want pad-batches
           # on by default.
           #dataset.iterbatches(batch_size, pad_batches=True)):
-          dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+          dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
         if ind % log_every_N_batches == 0:
           log("On batch %d" % ind, self.verbose)
         feed_dict = self.construct_task_feed_dict(task, X_b, y_b, w_b, ids_b)

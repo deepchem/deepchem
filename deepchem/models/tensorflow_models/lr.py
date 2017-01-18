@@ -157,8 +157,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
             (self.batch_size,)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
   
-  def predict_proba_on_batch(self, X, pad_batch=False):
-    if pad_batch:
+  def predict_proba_on_batch(self, X):
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     if not self._restored_model:
       self.restore()
@@ -190,9 +190,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
 
     return np.copy(outputs)
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     
     if not self._restored_model:
