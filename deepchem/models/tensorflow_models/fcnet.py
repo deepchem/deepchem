@@ -10,7 +10,9 @@ import tensorflow as tf
 
 from deepchem.nn import model_ops
 from deepchem.metrics import from_one_hot
+from deepchem.utils.save import log
 from deepchem.models.tensorflow_models import TensorflowGraph
+from deepchem.models.tensorflow_models import TensorflowGraphModel
 from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
@@ -187,7 +189,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
             (self.batch_size,)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
 
-class TensorflowMultiTaskFitTransformRegressor(TensorflowRegressor):
+class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
   """Implements a TensorflowMultiTaskRegressor that performs on-the-fly transformation during fit/predict"""
 
   def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
@@ -249,6 +251,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowRegressor):
               dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
+	    for transformer in self.fit_transformers:
+	      X_b = transformer.X_transform(X_b)	
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
@@ -291,10 +295,11 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowRegressor):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
+    for transformer in self.fit_transformers:
+      X = transformer.X_transform(X)
     len_unpadded = len(X)
     if pad_batch:
       X = pad_features(self.batch_size, X)
-    
     if not self._restored_model:
       self.restore()
     with self.eval_graph.graph.as_default():

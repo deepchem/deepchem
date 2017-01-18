@@ -33,7 +33,8 @@ featurizer = dc.data.SDFLoader(tasks, smiles_field=smiles_field, mol_field=mol_f
 dataset = featurizer.featurize(input_file, data_dir)
 random_splitter = dc.splits.RandomSplitter()
 train_dataset, test_dataset = random_splitter.train_test_split(dataset, train_dir, test_dir)
-transformers = [dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset), dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+transformers = [dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
+fit_transformers = []
 
 for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)
@@ -41,14 +42,14 @@ for transformer in transformers:
     test_dataset = transformer.transform(test_dataset)
 
 regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
-model = dc.models.TensorflowMultiTaskRegressor(n_tasks=len(tasks), n_features=23, logdir=model_dir,
+model = dc.models.tensorflow_models.fcnet.TensorflowMultiTaskFitTransformRegressor(n_tasks=len(tasks), n_features=23, logdir=model_dir,
                                     learning_rate=.001, momentum=.8, batch_size=512,
                                     weight_init_stddevs=[1/np.sqrt(2000),1/np.sqrt(800),1/np.sqrt(800),1/np.sqrt(1000)],
                                     bias_init_consts=[0.,0.,0.,0.], layer_sizes=[2000,800,800,1000], 
-                                    dropouts=[0.1,0.1,0.1,0.1])
+                                    dropouts=[0.1,0.1,0.1,0.1], fit_transformers=fit_transformers)
 
 # Fit trained model
-model.fit(train_dataset)
+model.fit(train_dataset, nb_epoch=10)
 model.save()
 
 train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset, transformers)
