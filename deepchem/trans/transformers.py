@@ -654,7 +654,7 @@ class CoulombRandomizationFitTransformer():
     p = np.argsort(row_norms+e)
     rcm = upcm[p][:,p]
     rcm = pad_array(rcm, len(cm))
-
+    rcm = rcm[np.triu_indices_from(rcm)]
     return rcm
 
   def X_transform(self, X):
