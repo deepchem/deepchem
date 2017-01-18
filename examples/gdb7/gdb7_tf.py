@@ -23,7 +23,7 @@ if os.path.exists(base_dir):
 os.makedirs(base_dir)
 
 max_num_atoms = 23
-featurizers = dc.feat.CoulombMatrixEig(max_num_atoms)
+featurizers = dc.feat.CoulombMatrix(max_num_atoms)
 input_file = "gdb7.sdf"
 tasks = ["u0_atom"]
 smiles_field = "smiles"
