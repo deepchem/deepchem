@@ -104,6 +104,7 @@ class NormalizationTransformer(Transformer):
       y_means, y_stds = dataset.get_statistics(X_stats=False, y_stats=True)
       self.y_means = y_means 
       # Control for pathological case with no variance.
+      y_stds = np.array(y_stds)
       y_stds[y_stds == 0] = 1.
       self.y_stds = y_stds
     self.transform_gradients = transform_gradients
