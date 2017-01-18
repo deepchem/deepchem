@@ -260,13 +260,23 @@ Scaffold splitting
 |pdbbind(core)   |MT-NN regression    |Random      |0.973         |0.494         |
 |pdbbind(refined)|MT-NN regression    |Random      |0.987         |0.503         |
 |pdbbind(full)   |MT-NN regression    |Random      |0.983         |0.528         |
+|chembl          |MT-NN regression    |Index       |0.443         |0.427         |
+|                |MT-NN regression    |Random      |0.464         |0.434         |
+|                |MT-NN regression    |Scaffold    |0.484         |0.361         |
+|gdb7            |MT-NN regression    |Index       |0.961         |0.011         |
+|                |MT-NN regression    |Random      |0.742         |0.732         |
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
+
+|Dataset         |Model               |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
+|----------------|--------------------|------------|-------------------------|-------------------------|
+|gdb7            |MT-NN regression    |Index       |44.5                     |185.6                    |
+|                |MT-NN regression    |Random      |86.1                     |92.2                     |
 
 * General features
 
 Number of tasks and examples in the datasets
 
-|Dataset         |N(tasks)	|N(samples) |
+|Dataset         |N(tasks)   |N(samples) |
 |----------------|-----------|-----------| 
 |tox21           |12         |8014       |
 |muv             |17         |93127      |
@@ -279,6 +289,8 @@ Number of tasks and examples in the datasets
 |pdbbind(core)   |1          |195        |
 |pdbbind(refined)|1          |3706       |
 |pdbbind(full)   |1          |11908      |
+|chembl(5thresh) |691        |23871      |
+|gdb7            |1          |7165       |
 
 
 
@@ -313,6 +325,8 @@ Time needed for benchmark test(~20h in total)
 |pdbbind(core)   |MT-NN regression    |0(featurized)   |30             |
 |pdbbind(refined)|MT-NN regression    |0(featurized)   |40             |
 |pdbbind(full)   |MT-NN regression    |0(featurized)   |60             |
+|chembl          |MT-NN regression    |200             |9000           |
+|gdb7            |MT-NN regression    |10              |110            |
 |kaggle          |MT-NN regression    |2200            |3200           |
 
 
