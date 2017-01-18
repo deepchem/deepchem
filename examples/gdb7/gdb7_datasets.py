@@ -9,8 +9,9 @@ import os
 import numpy as np
 import shutil
 import deepchem as dc
+import csv
 
-def load_gdb7(featurizer=None, split='random'):
+def load_gdb7(featurizer=None, split='indice'):
   """Load gdb7 datasets."""
   # Featurize gdb7 dataset
   print("About to featurize gdb7 dataset.")
@@ -19,7 +20,7 @@ def load_gdb7(featurizer=None, split='random'):
       current_dir, "./gdb7.sdf")
   gdb7_tasks = ["u0_atom"]
   if featurizer is None:
-    featurizer = dc.feat.CoulombMatrix(23)
+    featurizer = dc.feat.CoulombMatrixEig(23)
   else:
     raise ValueError('Only support Coulomb Matrix featurizer')
   loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_field="smiles", 
@@ -28,16 +29,28 @@ def load_gdb7(featurizer=None, split='random'):
  
   # Initialize transformers 
   transformers = [
-      dc.trans.NormalizationTransformer(transform_X=True, dataset=dataset),
       dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)]
 
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
   
+  split_file = os.path.join(
+      current_dir, "./gdb7_splits.csv")
+
+  split_indices = []
+  with open(split_file, 'r') as f:
+    reader = csv.reader(f)
+    for row in reader:
+      row_int = (np.asarray(list(map(int, row)))-1).tolist()
+      split_indices.append(row_int)
+  
+  
   splitters = {'index': dc.splits.IndexSplitter(),
-               'random': dc.splits.RandomSplitter()}
+               'random': dc.splits.RandomSplitter(),
+               'indice': dc.splits.IndiceSplitter(valid_indices=split_indices[1])}
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
- 
+  print(valid.X.shape)
+  print(train.X.shape)
   return gdb7_tasks, (train, valid, test), transformers
