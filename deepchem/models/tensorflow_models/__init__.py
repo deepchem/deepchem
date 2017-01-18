@@ -17,7 +17,9 @@ from deepchem.models import Model
 from deepchem.metrics import from_one_hot
 from deepchem.nn import model_ops
 from deepchem.models.tensorflow_models import utils as tf_utils
+from deepchem.trans import undo_transforms
 from deepchem.utils.save import log
+from deepchem.utils.evaluate import Evaluator
 from deepchem.data import pad_features
 from tensorflow.contrib.layers.python.layers import batch_norm
 
@@ -109,7 +111,7 @@ class TensorflowGraphModel(Model):
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
                momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
-               verbose=True, seed=None, **kwargs):
+               pad_batches=False, verbose=True, seed=None, **kwargs):
     """Constructs the computational graph.
 
     This function constructs the computational graph for the model. It relies
@@ -166,6 +168,7 @@ class TensorflowGraphModel(Model):
     self.optimizer = optimizer
     self.batch_size = batch_size
     self.n_classes = n_classes
+    self.pad_batches = pad_batches
     self.verbose= verbose
     self.seed = seed
     
@@ -270,8 +273,8 @@ class TensorflowGraphModel(Model):
 
       return loss 
 
-  def fit(self, dataset, nb_epoch=10, pad_batch=False, 
-          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
+  def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, 
+	  log_every_N_batches=50, **kwargs):
     """Fit the model.
 
     Parameters
@@ -280,8 +283,6 @@ class TensorflowGraphModel(Model):
       Dataset object holding training data 
     nb_epoch: 10
       Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
     max_checkpoints_to_keep: int
       Maximum number of checkpoints to keep; older checkpoints will be deleted.
     log_every_N_batches: int
@@ -311,7 +312,7 @@ class TensorflowGraphModel(Model):
               # Turns out there are valid cases where we don't want pad-batches
               # on by default.
               #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batch=pad_batch)):
+              dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
             # Run training op.
@@ -453,7 +454,7 @@ class TensorflowGraphModel(Model):
                     last_checkpoint)
       self._restored_model = True
 
-  def predict(self, dataset, transformers=[], pad_batch=False):
+  def predict(self, dataset, transformers=[]):
     """
     Uses self to make predictions on provided Dataset object.
 
@@ -467,7 +468,7 @@ class TensorflowGraphModel(Model):
     for (X_batch, _, _, ids_batch) in dataset.iterbatches(
         self.batch_size, deterministic=True):
       n_samples = len(X_batch)
-      y_pred_batch = self.predict_on_batch(X_batch, pad_batch=pad_batch)
+      y_pred_batch = self.predict_on_batch(X_batch)
       # Discard any padded predictions
       y_pred_batch = y_pred_batch[:n_samples]
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks))
@@ -484,7 +485,7 @@ class TensorflowGraphModel(Model):
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
-  def predict_proba(self, dataset, transformers=[], n_classes=2, pad_batch=False):
+  def predict_proba(self, dataset, transformers=[], n_classes=2):
     """
     TODO: Do transformers even make sense here?
 
@@ -497,7 +498,7 @@ class TensorflowGraphModel(Model):
     for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
         self.batch_size, deterministic=True):
       n_samples = len(X_batch)
-      y_pred_batch = self.predict_proba_on_batch(X_batch, pad_batch=pad_batch)
+      y_pred_batch = self.predict_proba_on_batch(X_batch)
       y_pred_batch = y_pred_batch[:n_samples]
       y_pred_batch = np.reshape(y_pred_batch, (n_samples, n_tasks, n_classes))
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
@@ -510,7 +511,7 @@ class TensorflowGraphModel(Model):
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[], pad_batch=False):
+  def evaluate(self, dataset, metrics, transformers=[]):
     """
     Evaluates the performance of this model on specified dataset.
   
@@ -529,7 +530,7 @@ class TensorflowGraphModel(Model):
       Maps tasks to scores under metric.
     """
     evaluator = Evaluator(self, dataset, transformers)
-    scores = evaluator.compute_model_performance(metrics, pad_batch=pad_batch)
+    scores = evaluator.compute_model_performance(metrics)
     return scores
 
   def _find_last_checkpoint(self):
@@ -595,7 +596,7 @@ class TensorflowClassifier(TensorflowGraphModel):
                              name='labels_%d' % task)))
       return labels
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -616,7 +617,7 @@ class TensorflowClassifier(TensorflowGraphModel):
       ValueError: If output and labels are not both 3D or both 2D.
     """
     len_unpadded = len(X)
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     
     if not self._restored_model:
@@ -651,7 +652,7 @@ class TensorflowClassifier(TensorflowGraphModel):
     outputs = outputs[:len_unpadded]
     return outputs
 
-  def predict_proba_on_batch(self, X, pad_batch=False):
+  def predict_proba_on_batch(self, X):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -669,7 +670,7 @@ class TensorflowClassifier(TensorflowGraphModel):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     if not self._restored_model:
       self.restore()
@@ -744,7 +745,7 @@ class TensorflowRegressor(TensorflowGraphModel):
                              name='labels_%d' % task)))
     return labels
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -765,7 +766,7 @@ class TensorflowRegressor(TensorflowGraphModel):
       ValueError: If output and labels are not both 3D or both 2D.
     """
     len_unpadded = len(X)
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     
     if not self._restored_model:

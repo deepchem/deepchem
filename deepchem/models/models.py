@@ -19,7 +19,6 @@ import sklearn
 
 from deepchem.data import Dataset, pad_features
 from deepchem.trans import undo_transforms
-from deepchem.trans import undo_grad_transforms
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import log
@@ -58,7 +57,7 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X, pad_batches=False):
+  def predict_on_batch(self, X):
     """
     Makes predictions on given batch of new data.
 
@@ -66,14 +65,11 @@ class Model(object):
     ----------
     X: np.ndarray
       Features
-    pad_batch: bool, optional
-      Ignored for Sklearn Model. Only used for Tensorflow models
-      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
 
-  def predict_proba_on_batch(self, X, pad_batches=False):
+  def predict_proba_on_batch(self, X):
     """
     Makes predictions of class probabilities on given batch of new data.
 
@@ -81,9 +77,6 @@ class Model(object):
     ----------
     X: np.ndarray
       Features
-    pad_batch: bool, optional
-      Ignored for Sklearn Model. Only used for Tensorflow models
-      with rigid batch-size requirements.
     """
     raise NotImplementedError(
         "Each model is responsible for its own predict_on_batch method.")
@@ -126,7 +119,7 @@ class Model(object):
       log("Starting epoch %s" % str(epoch+1), self.verbose)
       losses = []
       for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-          batch_size, pad_batches=pad_batches):
+          batch_size):
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
       log("Avg loss for epoch %d: %f"
           % (epoch+1,np.array(losses).mean()),self.verbose)

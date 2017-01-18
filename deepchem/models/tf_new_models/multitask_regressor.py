@@ -19,7 +19,7 @@ class MultitaskGraphRegressor(Model):
   def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
                final_loss='weighted_L2', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
-               beta1=.9, beta2=.999, verbose=True):
+               beta1=.9, beta2=.999, pad_batches=True, verbose=True):
 
     self.verbose = verbose
     self.sess = sess
@@ -35,6 +35,7 @@ class MultitaskGraphRegressor(Model):
            
     # Extract model info 
     self.batch_size = batch_size 
+    self.pad_batches = pad_batches
     # Get graph topology for x
     self.graph_topology = self.model.get_graph_topology()
     self.feat_dim = self.model.get_num_output_features()
@@ -148,7 +149,7 @@ class MultitaskGraphRegressor(Model):
     for epoch in range(nb_epoch):
       log("Starting epoch %d" % epoch, self.verbose)
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          self.batch_size, pad_batches=True)):
+          self.batch_size, pad_batches=self.pad_batches)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbose)
         self.sess.run(
@@ -164,12 +165,12 @@ class MultitaskGraphRegressor(Model):
   def predict(self, dataset, transformers=[], **kwargs):
     """Wraps predict to set batch_size/padding."""
     return super(MultitaskGraphRegressor, self).predict(
-        dataset, transformers, batch_size=self.batch_size, pad_batches=True)
+        dataset, transformers, batch_size=self.batch_size)
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
     """
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     # run eval data through the model
     n_tasks = self.n_tasks
