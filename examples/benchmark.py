@@ -148,7 +148,7 @@ def benchmark_loading_datasets(hyper_parameters,
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
   # time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle','pdbbind', 'gdb7']:
+  if dataset in ['kaggle', 'pdbbind', 'gdb7']:
     n_features = train_dataset.get_data_shape()[0]
     # dataset has customized features
     
