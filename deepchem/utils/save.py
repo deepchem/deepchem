@@ -105,8 +105,10 @@ def load_from_disk(filename):
   elif os.path.splitext(name)[1] == ".joblib":
     try:
       return joblib.load(filename)
-    except KeyError, ValueError:
+    except KeyError:
       # Try older joblib version for legacy files.
+      return old_joblib.load(filename)
+    except ValueError:
       return old_joblib.load(filename)
   elif os.path.splitext(name)[1] == ".csv":
     # First line of user-specified CSV *must* be header.
