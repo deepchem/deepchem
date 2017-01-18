@@ -86,7 +86,8 @@ class VinaPoseGenerator(PoseGenerator):
       
 
   def generate_poses(self, protein_file, ligand_file,
-                     centroid=None, box_dims=None, out_dir=None):
+                     centroid=None, box_dims=None,
+                     dry_run=False, out_dir=None):
     """Generates the docked complex and outputs files for docked complex."""
     if out_dir is None:
       out_dir = tempfile.mkdtemp()
@@ -146,9 +147,10 @@ class VinaPoseGenerator(PoseGenerator):
     log_file = os.path.join(out_dir, "%s_log.txt" % ligand_name)
     out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
     # TODO(rbharath): Let user specify the number of poses required.
-    print("About to call Vina")
-    call("%s --config %s --log %s --out %s"
-         % (self.vina_cmd, conf_file, log_file, out_pdbqt), shell=True)
+    if not dry_run:
+      print("About to call Vina")
+      call("%s --config %s --log %s --out %s"
+           % (self.vina_cmd, conf_file, log_file, out_pdbqt), shell=True)
     # TODO(rbharath): Convert the output pdbqt to a pdb file.
 
     # Return docked files 

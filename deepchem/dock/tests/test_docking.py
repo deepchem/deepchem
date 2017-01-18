@@ -62,8 +62,6 @@ class TestDocking(unittest.TestCase):
         protein_file, ligand_file)
 
     # Check returned files exist
-    print("(score, (protein_docked, ligand_docked))")
-    print((score, (protein_docked, ligand_docked)))
     assert score.shape == (1,)
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
@@ -81,13 +79,10 @@ class TestDocking(unittest.TestCase):
         exhaustiveness=1, detect_pockets=False)
     (score, (protein_docked, ligand_docked)) = docker.dock(
         protein_file, ligand_file, centroid=(10, 10, 10),
-        box_dims=(1,1,1))
+        box_dims=(1,1,1), dry_run=True)
   
-
     # Check returned files exist
     assert score.shape == (1,)
-    assert os.path.exists(protein_docked)
-    assert os.path.exists(ligand_docked)
 
   def test_pocket_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
@@ -101,15 +96,13 @@ class TestDocking(unittest.TestCase):
     docker = dc.dock.VinaGridRFDocker(
         exhaustiveness=1, detect_pockets=True)
     (score, (protein_docked, ligand_docked)) = docker.dock(
-        protein_file, ligand_file)
+        protein_file, ligand_file, dry_run=True)
 
     # Check returned files exist
     if sys.version_info >= (3,0):
       return
     
     assert score.shape == (1,)
-    assert os.path.exists(protein_docked)
-    assert os.path.exists(ligand_docked)
 
   def test_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
@@ -123,8 +116,6 @@ class TestDocking(unittest.TestCase):
         protein_file, ligand_file)
 
     # Check returned files exist
-    print("(score, (protein_docked, ligand_docked))")
-    print((score, (protein_docked, ligand_docked)))
     assert score.shape == (1,)
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
@@ -141,11 +132,7 @@ class TestDocking(unittest.TestCase):
     docker = dc.dock.VinaGridDNNDocker(
         exhaustiveness=1, detect_pockets=True)
     (score, (protein_docked, ligand_docked)) = docker.dock(
-        protein_file, ligand_file)
+        protein_file, ligand_file, dry_run=True)
 
     # Check returned files exist
-    print("(score, (protein_docked, ligand_docked))")
-    print((score, (protein_docked, ligand_docked)))
     assert score.shape == (1,)
-    assert os.path.exists(protein_docked)
-    assert os.path.exists(ligand_docked)
