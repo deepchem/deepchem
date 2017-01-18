@@ -17,7 +17,7 @@ on datasets: muv, pcba, tox21, sider, toxcast
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney, nci, kaggle, pdbbind
+on datasets: delaney, nci, kaggle, pdbbind, gdb7, chembl
 
 time estimation listed in README file
 
@@ -50,6 +50,8 @@ from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
 from nci.nci_datasets import load_nci
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
+from chembl.chembl_datasets import load_chembl
+from gdb7.gdb7_datasets import load_gdb7
 
 def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
@@ -75,12 +77,12 @@ def benchmark_loading_datasets(hyper_parameters,
   
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney', 'nci','pdbbind']:
+  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'gdb7']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
   
-  #assigning featurizer
+  # Assigning featurizer
   if model in ['graphconv', 'graphconvreg']:
     featurizer = 'GraphConv'
     n_features = 75
@@ -90,36 +92,51 @@ def benchmark_loading_datasets(hyper_parameters,
   else:
     raise ValueError('Model not supported')
   
+  # Some exceptions in datasets
   if dataset in ['kaggle']:
-    featurizer = None #kaggle dataset use its own features
+    featurizer = None # kaggle dataset use its own features
     if split in ['random', 'scaffold']:
       return
     else:
-      split = None #kaggle dataset is already splitted
+      split = None # kaggle dataset is already splitted
     if not model in ['tf_regression']:
       return
 
   if dataset in ['pdbbind']:
-    featurizer = 'grid' #pdbbind use grid featurizer
+    featurizer = 'grid' # pdbbind use grid featurizer
     if split in ['scaffold', 'index']:
-      return #skip the scaffold and index splitting of pdbbind
+      return # skip the scaffold and index splitting of pdbbind
     if not model in ['tf_regression']:
       return
-  
-  if not split in [None, 'index','random','scaffold']:
+
+  if dataset in ['gdb7']:
+    featurizer = None
+    if split in ['scaffold']: # gdb7 supports index, random and indice splitting
+      return
+    if not model in ['tf_regression']:
+      return
+
+  if split in ['year']:
+    if not dataset in ['chembl']:
+      return
+  elif split in ['indice']:
+    if not dataset in ['gdb7']:
+      return
+  elif not split in [None, 'index','random','scaffold']:
     raise ValueError('Splitter function not supported')
   
   loading_functions = {'tox21': load_tox21, 'muv': load_muv,
                        'pcba': load_pcba, 'nci': load_nci,
                        'sider': load_sider, 'toxcast': load_toxcast,
                        'kaggle': load_kaggle, 'delaney': load_delaney,
-                       'pdbbind': load_pdbbind_grid}
+                       'pdbbind': load_pdbbind_grid,
+                       'chembl': load_chembl, 'gdb7': load_gdb7}
   
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
   print('-------------------------------------')
   time_start = time.time()
-  #loading datasets
+  # loading datasets
   if split is not None:
     print('Splitting function: %s' % split)  
     tasks, all_dataset, transformers = loading_functions[dataset](
@@ -130,23 +147,27 @@ def benchmark_loading_datasets(hyper_parameters,
   
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
-  #time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle','pdbbind']:
+  # time_finish_loading-time_start is the time(s) used for dataset loading
+  if dataset in ['kaggle', 'pdbbind', 'gdb7']:
     n_features = train_dataset.get_data_shape()[0]
-    #kaggle dataset has customized features
+    # dataset has customized features
     
-  #running model
+  # running model
   for count, hp in enumerate(hyper_parameters[model]):
     time_start_fitting = time.time()
     if mode == 'classification':
+      metric = 'auc'
       train_score, valid_score = benchmark_classification(
           train_dataset, valid_dataset, tasks, 
-          transformers, hp, n_features,
+          transformers, hp, n_features, metric=metric,
           model=model)      
     elif mode == 'regression':
+      metric = 'r2'
+      if dataset in ['gdb7']:
+        metric = 'mae'
       train_score, valid_score = benchmark_regression(
           train_dataset, valid_dataset, tasks, 
-          transformers, hp, n_features,
+          transformers, hp, n_features, metric=metric,
           model=model)  
     time_finish_fitting = time.time()
     
@@ -163,16 +184,24 @@ def benchmark_loading_datasets(hyper_parameters,
           writer.writerow(output_line)
       else:
         for i in train_score:
-          output_line = [count, dataset, str(split), mode, 'train', i, 
-                         train_score[i]['mean-pearson_r2_score'], 'valid', i, 
-                         valid_score[i]['mean-pearson_r2_score'], 
-                         'time_for_running',
-                         time_finish_fitting-time_start_fitting]
+          if metric == 'r2':
+            output_line = [count, dataset, str(split), mode, 'train', i, 
+                           train_score[i]['mean-pearson_r2_score'], 'valid', i, 
+                           valid_score[i]['mean-pearson_r2_score'], 
+                           'time_for_running',
+                           time_finish_fitting-time_start_fitting]
+          elif metric == 'mae':
+            output_line = [count, dataset, str(split), mode, 'train', i, 
+                           train_score[i]['mean-mean_absolute_error'], 'valid', i, 
+                           valid_score[i]['mean-mean_absolute_error'], 
+                           'time_for_running',
+                           time_finish_fitting-time_start_fitting]
+ 
           writer.writerow(output_line)
 
 def benchmark_classification(train_dataset, valid_dataset, tasks,
                              transformers, hyper_parameters, 
-                             n_features, model='tf', seed=123):
+                             n_features, metric='auc', model='tf', seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -207,7 +236,8 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
   valid_scores = {}
   
   # Initialize metrics
-  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
+  if metric == 'auc':
+    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
   
   assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'graphconv']
 
@@ -382,8 +412,8 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
 
   
 def benchmark_regression(train_dataset, valid_dataset, tasks,
-                         transformers, hyper_parameters, 
-                         n_features, model='tf_regression', seed=123):
+                         transformers, hyper_parameters, n_features, 
+                         metric='r2', model='tf_regression', seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -416,8 +446,11 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
   valid_scores = {}
   
   # Initialize metrics
-  regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
-  
+  if metric == 'r2':
+    regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+  elif metric == 'mae':
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean)
+
   assert model in ['tf_regression', 'graphconvreg']
 
   if model == 'tf_regression':
@@ -511,7 +544,7 @@ if __name__ == '__main__':
            'tf_regression, graphconvreg')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' + 
-           'kaggle, delaney, nci, pdbbind')
+           'kaggle, delaney, nci, pdbbindi, chembl, gdb7')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
@@ -525,7 +558,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 
-                'delaney', 'nci', 'kaggle', 'pdbbind']
+                'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'gdb7']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,

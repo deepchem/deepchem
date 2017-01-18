@@ -327,6 +327,45 @@ class IndexSplitter(Splitter):
     return (indices[:train_cutoff], indices[train_cutoff:valid_cutoff],
             indices[valid_cutoff:])
 
+class IndiceSplitter(Splitter):
+  """
+  Class for splits based on input order. 
+  """
+  def __init__(self, verbose=False, valid_indices=None, test_indices=None):
+    """
+    Parameters
+    -----------
+    valid_indices: list of int
+        indices of samples in the valid set
+    test_indices: list of int
+        indices of samples in the test set
+    """
+    self.verbose = verbose
+    self.valid_indices = valid_indices
+    self.test_indices = test_indices
+    
+  def split(self, dataset, seed=None, frac_train=.8, frac_valid=.1,
+            frac_test=.1, log_every_n=None):
+    """
+    Splits internal compounds into train/validation/test in designated order.
+    """
+    num_datapoints = len(dataset)
+    indices = np.arange(num_datapoints).tolist()
+    if self.valid_indices is None:
+      self.valid_indices = []
+    else:
+      for indice in indices:
+        if indice in self.valid_indices:
+          indices.remove(indice)
+    if self.test_indices is None:
+      self.test_indices = []
+    else:
+      for indice in indices:
+        if indice in self.valid_indices:
+          indices.remove(indice)
+
+    return (indices, self.valid_indices, self.test_indices)
+
 
 class ScaffoldSplitter(Splitter):
   """
