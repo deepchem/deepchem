@@ -34,7 +34,7 @@ dataset = featurizer.featurize(input_file, data_dir)
 random_splitter = dc.splits.RandomSplitter()
 train_dataset, test_dataset = random_splitter.train_test_split(dataset, train_dir, test_dir)
 transformers = [dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-fit_transformers = []
+fit_transformers = [dc.trans.CoulombRandomizationFitTransformer(), dc.trans.NormalizationFitTransformer()]
 
 for transformer in transformers:
     train_dataset = transformer.transform(train_dataset)
