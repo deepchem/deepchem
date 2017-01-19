@@ -258,8 +258,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
               dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
-	    for transformer in self.fit_transformers:
-	      X_b = transformer.X_transform(X_b)	
+            for transformer in self.fit_transformers:
+              X_b = transformer.X_transform(X_b)	
             # Run training op.
             feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
