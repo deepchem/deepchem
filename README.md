@@ -265,12 +265,14 @@ Scaffold splitting
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
 |gdb7            |MT-NN regression    |Index       |0.994         |0.010         |
 |                |MT-NN regression    |Random      |0.860         |0.773         |
+|                |MT-NN regression    |User-defined|0.996         |0.996         | 
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model               |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
 |----------------|--------------------|------------|-------------------------|-------------------------|
 |gdb7            |MT-NN regression    |Index       |18.3                     |172.0                    |
 |                |MT-NN regression    |Random      |44.3                     |59.1                     |
+|                |MT-NN regression    |User-defined|9.0                      |9.5                      |
 
 * General features
 
