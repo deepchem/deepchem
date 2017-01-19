@@ -196,7 +196,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=.001,
                momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
-               fit_transformers=[], n_random_samples=10, verbose=True, seed=None, **kwargs):
+               fit_transformers=[], n_random_samples=1, verbose=True, seed=None, **kwargs):
 
     self.fit_transformers = fit_transformers
     self.n_random_samples = n_random_samples
@@ -302,11 +302,16 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    for transformer in self.fit_transformers:
-      X = transformer.X_transform(X)
-    len_unpadded = len(X)
+    X_random_samples = []
+    for i in range(self.n_random_samples):
+      X_t = X
+      for transformer in self.fit_transformers:
+        X_t = transformer.X_transform(X_t)
+      X_random_samples.append(X_t)
+    len_unpadded = len(X_t)
     if self.pad_batches:
-      X = pad_features(self.batch_size, X)
+      for i in range(self.n_random_samples):
+        X_random_samples[i] = pad_features(self.batch_size, X_random_samples[i])
     if not self._restored_model:
       self.restore()
     with self.eval_graph.graph.as_default():
@@ -315,30 +320,35 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       n_tasks = self.n_tasks
       outputs = []
       with self._get_shared_session(train=False).as_default():
-        n_samples = len(X)
-        feed_dict = self.construct_feed_dict(X)
-        data = self._get_shared_session(train=False).run(
-            self.eval_graph.output, feed_dict=feed_dict)
-        batch_outputs = np.asarray(data[:n_tasks], dtype=float)
-        # reshape to batch_size x n_tasks x ...
-        if batch_outputs.ndim == 3:
-          batch_outputs = batch_outputs.transpose((1, 0, 2))
-        elif batch_outputs.ndim == 2:
-          batch_outputs = batch_outputs.transpose((1, 0))
-        # Handle edge case when batch-size is 1.
-        elif batch_outputs.ndim == 1:
-          n_samples = len(X)
-          batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
-        else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s' %
-              (batch_outputs.shape))
-        # Prune away any padding that was added
-        batch_outputs = batch_outputs[:n_samples]
-        outputs.append(batch_outputs)
 
-        outputs = np.squeeze(np.concatenate(outputs)) 
+        n_samples = len(X_random_samples[0])
+	for i in range(self.n_random_samples):
 
+	  output = []
+          feed_dict = self.construct_feed_dict(X_random_samples[i])
+          data = self._get_shared_session(train=False).run(
+              self.eval_graph.output, feed_dict=feed_dict)
+          batch_outputs = np.asarray(data[:n_tasks], dtype=float)
+          # reshape to batch_size x n_tasks x ...
+          if batch_outputs.ndim == 3:
+            batch_outputs = batch_outputs.transpose((1, 0, 2))
+          elif batch_outputs.ndim == 2:
+            batch_outputs = batch_outputs.transpose((1, 0))
+          # Handle edge case when batch-size is 1.
+          elif batch_outputs.ndim == 1:
+            n_samples = len(X)
+            batch_outputs = batch_outputs.reshape((n_samples, n_tasks))
+          else:
+            raise ValueError(
+                'Unrecognized rank combination for output: %s' %
+                (batch_outputs.shape))
+          # Prune away any padding that was added
+          batch_outputs = batch_outputs[:n_samples]
+          output.append(batch_outputs)
+
+          outputs.append(np.squeeze(np.concatenate(output)))
+	  
+    outputs = np.mean(np.array(outputs), axis=0)
     outputs = np.copy(outputs)
 
     # Handle case of 0-dimensional scalar output

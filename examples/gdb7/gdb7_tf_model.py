@@ -23,10 +23,10 @@ model = dc.models.TensorflowMultiTaskFitTransformRegressor(
     learning_rate=.0002, momentum=.8, batch_size=512,
     weight_init_stddevs=[1/np.sqrt(2000),1/np.sqrt(800),1/np.sqrt(800),1/np.sqrt(1000)],
     bias_init_consts=[0.,0.,0.,0.], layer_sizes=[2000,800,800,1000], 
-    dropouts=[0.1,0.1,0.1,0.1], fit_transformers=fit_transformers, seed=123)
+    dropouts=[0.1,0.1,0.1,0.1], fit_transformers=fit_transformers, n_random_samples=10, seed=123)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=2)
 model.save()
 
 train_scores = model.evaluate(train_dataset, [regression_metric], transformers)
