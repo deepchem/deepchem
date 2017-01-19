@@ -322,9 +322,9 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       with self._get_shared_session(train=False).as_default():
 
         n_samples = len(X_random_samples[0])
-	for i in range(self.n_random_samples):
+        for i in range(self.n_random_samples):
 
-	  output = []
+          output = []
           feed_dict = self.construct_feed_dict(X_random_samples[i])
           data = self._get_shared_session(train=False).run(
               self.eval_graph.output, feed_dict=feed_dict)
