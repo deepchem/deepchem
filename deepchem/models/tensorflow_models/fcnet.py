@@ -194,12 +194,13 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
 
   def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
-               penalty_type="l2", dropouts=[0.5], learning_rate=.001,
-               momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
-               fit_transformers=[], n_random_samples=1, verbose=True, seed=None, **kwargs):
+               penalty_type="l2", dropouts=[0.5], learning_rate=0.002,
+               momentum=.8, optimizer="adam", batch_size=50, n_classes=2,
+               fit_transformers=[], n_evals=1, verbose=True, seed=None, **kwargs):
 
     self.fit_transformers = fit_transformers
-    self.n_random_samples = n_random_samples
+    self.n_evals = n_evals
+
     # Run fit transformers on dummy dataset to determine n_features after transformation
     # JSG This could be generalized by passing in init_data_shape rather than n_features
     # JSG for now this only works with full CoulombMatrix featurizer
@@ -213,7 +214,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
 	       layer_sizes=layer_sizes, weight_init_stddevs=weight_init_stddevs, 
 	       bias_init_consts=bias_init_consts, penalty=penalty, 
 	       penalty_type=penalty_type, dropouts=dropouts, 
-	       learning_rate=learning_rate, momentum=momentum, optimizer=optimizer, 
+	       learning_rate=self.learning_rate, momentum=momentum, optimizer=optimizer, 
 	       batch_size=batch_size, n_classes=n_classes, pad_batches=False, verbose=verbose, seed=seed, 
 	       **kwargs)
 
@@ -252,9 +253,6 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              # Turns out there are valid cases where we don't want pad-batches
-              # on by default.
-              #dataset.iterbatches(batch_size, pad_batches=True)):
               dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
@@ -302,16 +300,16 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       AssertionError: If model is not in evaluation mode.
       ValueError: If output and labels are not both 3D or both 2D.
     """
-    X_random_samples = []
-    for i in range(self.n_random_samples):
+    X_evals = []
+    for i in range(self.n_evals):
       X_t = X
       for transformer in self.fit_transformers:
         X_t = transformer.X_transform(X_t)
-      X_random_samples.append(X_t)
+      X_evals.append(X_t)
     len_unpadded = len(X_t)
     if self.pad_batches:
-      for i in range(self.n_random_samples):
-        X_random_samples[i] = pad_features(self.batch_size, X_random_samples[i])
+      for i in range(self.n_evals):
+        X_evals[i] = pad_features(self.batch_size, X_evals[i])
     if not self._restored_model:
       self.restore()
     with self.eval_graph.graph.as_default():
@@ -321,11 +319,11 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       outputs = []
       with self._get_shared_session(train=False).as_default():
 
-        n_samples = len(X_random_samples[0])
-        for i in range(self.n_random_samples):
+        n_samples = len(X_evals[0])
+        for i in range(self.n_evals):
 
           output = []
-          feed_dict = self.construct_feed_dict(X_random_samples[i])
+          feed_dict = self.construct_feed_dict(X_evals[i])
           data = self._get_shared_session(train=False).run(
               self.eval_graph.output, feed_dict=feed_dict)
           batch_outputs = np.asarray(data[:n_tasks], dtype=float)
@@ -357,3 +355,156 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
     else:
       outputs = np.reshape(outputs, (1,))
       return outputs
+
+class TensorflowCoulombMatrixRegressor(TensorflowMultiTaskFitTransformRegressor):
+  """Implements a TensorflowMultiTaskRegressor that performs on-the-fly transformation during fit/predict"""
+
+  def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
+               weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
+               penalty_type="l2", dropouts=[0.5], learning_rate={0: 0.001},
+               momentum=.9, optimizer="adam", batch_size=50, n_classes=2,
+               fit_transformers=[], n_evals=1, verbose=True, seed=None, **kwargs):
+
+    # Learning rate is set by a dictionary in this class (experimental feature)
+    # Initialize the learning rate to the first value in the dictionary
+    if isinstance(learning_rate, dict):
+      self.learning_rate_schedule = True
+      self.lr = learning_rate
+      self.learning_rate = self.lr[self.lr.keys()[0]]
+    else:
+      self.learning_rate_schedule = False
+      self.learning_rate = learning_rate
+
+    TensorflowMultiTaskFitTransformRegressor.__init__(self, n_tasks, n_features, logdir=logdir,
+               layer_sizes=layer_sizes, weight_init_stddevs=weight_init_stddevs,
+               bias_init_consts=bias_init_consts, penalty=penalty,
+               penalty_type=penalty_type, dropouts=dropouts,
+               learning_rate=self.learning_rate, momentum=momentum, optimizer=optimizer,
+               batch_size=batch_size, n_classes=n_classes, fit_transformers=fit_transformers, n_evals=n_evals, 
+               verbose=verbose, seed=seed, **kwargs)
+
+  def build(self, graph, name_scopes, training):
+    """Constructs the graph architecture as specified in its config.
+
+    This method creates the following Placeholders:
+      mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
+        batch_size x n_features.
+    """
+    n_features = self.n_features
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
+    with graph.as_default():
+      with placeholder_scope:
+        self.mol_features = tf.placeholder(
+            tf.float32,
+            shape=[None, n_features],
+            name='mol_features')
+
+      layer_sizes = self.layer_sizes
+      weight_init_stddevs = self.weight_init_stddevs
+      bias_init_consts = self.bias_init_consts
+      dropouts = self.dropouts
+      lengths_set = {
+          len(layer_sizes),
+          len(weight_init_stddevs),
+          len(bias_init_consts),
+          len(dropouts),
+          }
+      assert len(lengths_set) == 1, 'All layer params must have same length.'
+      n_layers = lengths_set.pop()
+      assert n_layers > 0, 'Must have some layers defined.'
+
+      prev_layer = self.mol_features
+      prev_layer_size = n_features 
+      for i in range(n_layers):
+        layer = tf.sigmoid(model_ops.fully_connected_layer(
+            tensor=prev_layer,
+            size=layer_sizes[i],
+            weight_init=tf.truncated_normal(
+                shape=[prev_layer_size, layer_sizes[i]],
+                stddev=weight_init_stddevs[i]),
+            bias_init=tf.constant(value=bias_init_consts[i],
+                                  shape=[layer_sizes[i]])))
+        layer = model_ops.dropout(layer, dropouts[i], training)
+        prev_layer = layer
+        prev_layer_size = layer_sizes[i]
+
+      output = []
+      for task in range(self.n_tasks):
+        output.append(tf.squeeze(
+            model_ops.fully_connected_layer(
+                tensor=prev_layer,
+                size=layer_sizes[i],
+                weight_init=tf.truncated_normal(
+                    shape=[prev_layer_size, 1],
+                    stddev=weight_init_stddevs[i]),
+                bias_init=tf.constant(value=bias_init_consts[i],
+                                      shape=[1]))))
+      return output
+
+  def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
+    """Fit the model.
+
+    Parameters
+    ---------- 
+    dataset: dc.data.Dataset
+      Dataset object holding training data 
+    nb_epoch: 10
+      Number of training epochs.
+    max_checkpoints_to_keep: int
+      Maximum number of checkpoints to keep; older checkpoints will be deleted.
+    log_every_N_batches: int
+      Report every N batches. Useful for training on very large datasets,
+      where epochs can take long time to finish.
+
+    Raises
+    ------
+    AssertionError
+      If model is not in training mode.
+    """
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
+    log("Training for %d epochs" % nb_epoch, self.verbose)
+    with self.train_graph.graph.as_default():
+      train_op = self.get_training_op(
+          self.train_graph.graph, self.train_graph.loss)
+      with self._get_shared_session(train=True) as sess:
+        sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        # Save an initial checkpoint.
+        saver.save(sess, self._save_path, global_step=0)
+        for epoch in range(nb_epoch):
+          avg_loss, n_batches = 0., 0
+
+          if self.learning_rate_schedule:
+            for lr_epoch, lr_value in self.lr.items():
+               if epoch > lr_epoch: self.learning_rate = lr_value
+
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+              dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
+            if ind % log_every_N_batches == 0:
+              log("On batch %d" % ind, self.verbose)
+            for transformer in self.fit_transformers:
+              X_b = transformer.X_transform(X_b)	
+            # Run training op.
+            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+            fetches = self.train_graph.output + [
+                train_op, self.train_graph.loss]
+            fetched_values = sess.run(fetches, feed_dict=feed_dict)
+            output = fetched_values[:len(self.train_graph.output)]
+            loss = fetched_values[-1]
+            avg_loss += loss
+            y_pred = np.squeeze(np.array(output))
+            y_b = y_b.flatten()
+            n_batches += 1
+          saver.save(sess, self._save_path, global_step=epoch)
+          avg_loss = float(avg_loss)/n_batches
+          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbose)
+        # Always save a final checkpoint when complete.
+        saver.save(sess, self._save_path, global_step=epoch+1)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1),
+          self.verbose)
+    ############################################################## TIMING
