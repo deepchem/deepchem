@@ -14,6 +14,9 @@ np.random.seed(123)
 split = 0
 num_atoms = 23
 
+base_dir = os.getcwd()
+model_dir = os.path.join(base_dir, "model")
+
 gdb7_tasks, datasets, transformers = load_gdb7_from_mat(split)
 train_dataset, test_dataset = datasets
 
@@ -21,12 +24,12 @@ fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset.X, num_atoms)]
 regression_metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, 
                                       mode="regression"), dc.metrics.Metric(dc.metrics.pearson_r2_score,
 				      mode="regression")]
-model = dc.models.TensorflowCoulombMatrixRegressor(
-    n_tasks=1, n_features=23,
-    learning_rate={0: 0.001, 500: 0.0025, 2500: 0.005, 12500: 0.01} , momentum=.8, batch_size=25,
+model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+    n_tasks=1, n_features=23, logdir=model_dir,
+    learning_rate=0.002 , momentum=.8, batch_size=25,
     weight_init_stddevs=[1/np.sqrt(400),1/np.sqrt(100),1/np.sqrt(100)],
     bias_init_consts=[0.,0.,0.], layer_sizes=[400,100,100], 
-    dropouts=[0.01,0.01,0.01], fit_transformers=fit_transformers, n_evals=10, seed=123)
+    dropouts=[0.1,0.1,0.1], fit_transformers=fit_transformers, n_evals=10, seed=123)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=50)
