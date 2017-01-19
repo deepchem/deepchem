@@ -28,7 +28,7 @@ class TestCoulombMatrix(unittest.TestCase):
         """
         Test CoulombMatrix.
         """
-        f = cm.CoulombMatrix(self.mol.GetNumAtoms())
+        f = cm.CoulombMatrix(self.mol.GetNumAtoms(), upper_tri=True)
         rval = f([self.mol])
         size = np.triu_indices(self.mol.GetNumAtoms())[0].size
         assert rval.shape == (1, self.mol.GetNumConformers(), size)
@@ -37,7 +37,7 @@ class TestCoulombMatrix(unittest.TestCase):
         """
         Test CoulombMatrix with padding.
         """
-        f = cm.CoulombMatrix(max_atoms=self.mol.GetNumAtoms() * 2)
+        f = cm.CoulombMatrix(max_atoms=self.mol.GetNumAtoms() * 2, upper_tri=True)
         rval = f([self.mol])
         size = np.triu_indices(self.mol.GetNumAtoms() * 2)[0].size
         assert rval.shape == (1, self.mol.GetNumConformers(), size)
@@ -49,7 +49,7 @@ class TestCoulombMatrix(unittest.TestCase):
         mol = Chem.RemoveHs(self.mol)
         assert mol.GetNumAtoms() < self.mol.GetNumAtoms()
         f = cm.CoulombMatrix(max_atoms=mol.GetNumAtoms(),
-                             remove_hydrogens=True)
+                             remove_hydrogens=True, upper_tri=True)
         rval = f([self.mol])  # use the version with hydrogens
         size = np.triu_indices(mol.GetNumAtoms())[0].size
         assert rval.shape == (1, mol.GetNumConformers(), size)
@@ -59,7 +59,7 @@ class TestCoulombMatrix(unittest.TestCase):
         Test no hydrogen removal.
         """
         f = cm.CoulombMatrix(max_atoms=self.mol.GetNumAtoms(),
-                             remove_hydrogens=False)
+                             remove_hydrogens=False, upper_tri=True)
         rval = f([self.mol])
         size = np.triu_indices(self.mol.GetNumAtoms())[0].size
         assert rval.shape == (1, self.mol.GetNumConformers(), size)
