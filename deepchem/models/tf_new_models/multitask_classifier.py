@@ -63,7 +63,7 @@ class MultitaskGraphClassifier(Model):
   def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
-               beta1=.9, beta2=.999, verbose=True):
+               beta1=.9, beta2=.999, pad_batches=True, verbose=True):
 
     self.verbose = verbose
     self.sess = sess
@@ -79,6 +79,7 @@ class MultitaskGraphClassifier(Model):
            
     # Extract model info 
     self.batch_size = batch_size 
+    self.pad_batches = pad_batches
     # Get graph topology for x
     self.graph_topology = self.model.get_graph_topology()
     self.feat_dim = self.model.get_num_output_features()
@@ -94,7 +95,7 @@ class MultitaskGraphClassifier(Model):
 
     self.optimizer_beta1 = beta1 
     self.optimizer_beta2 = beta2 
-    
+ 
     # Set epsilon
     self.epsilon = 1e-7 
     self.add_optimizer()
@@ -196,7 +197,7 @@ class MultitaskGraphClassifier(Model):
     for epoch in range(nb_epoch):
       log("Starting epoch %d" % epoch, self.verbose)
       for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          self.batch_size, pad_batches=True)):
+          self.batch_size, pad_batches=self.pad_batches)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbose)
         self.sess.run(
@@ -212,18 +213,18 @@ class MultitaskGraphClassifier(Model):
   def predict(self, dataset, transformers=[], **kwargs):
     """Wraps predict to set batch_size/padding."""
     return super(MultitaskGraphClassifier, self).predict(
-        dataset, transformers, batch_size=self.batch_size, pad_batches=True)
+        dataset, transformers, batch_size=self.batch_size)
 
   def predict_proba(self, dataset, transformers=[], n_classes=2, **kwargs):
     """Wraps predict_proba to set batch_size/padding."""
     return super(MultitaskGraphClassifier, self).predict_proba(
         dataset, transformers, n_classes=n_classes,
-        batch_size=self.batch_size, pad_batches=True)
+        batch_size=self.batch_size)
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
     """
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     # run eval data through the model
     n_tasks = self.n_tasks
@@ -239,10 +240,10 @@ class MultitaskGraphClassifier(Model):
       outputs[:, task] = np.argmax(output, axis=1)
     return outputs 
 
-  def predict_proba_on_batch(self, X, pad_batch=False, n_classes=2):
+  def predict_proba_on_batch(self, X, n_classes=2):
     """Returns class probabilities on batch"""
     # run eval data through the model
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     n_tasks = self.n_tasks
     with self.sess.as_default():

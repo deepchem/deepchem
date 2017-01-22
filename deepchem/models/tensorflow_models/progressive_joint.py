@@ -199,8 +199,8 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
         name="U_layer_%d_task%d" % (i, task), dtype=tf.float32)
     return tf.matmul(prev_layer, U)
 
-  def fit(self, dataset, nb_epoch=10, pad_batches=False, 
-          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
+  def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, 
+	  log_every_N_batches=50, **kwargs):
     """Fit the model.
 
     Parameters
@@ -209,8 +209,6 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
       Dataset object holding training data 
     nb_epoch: 10
       Number of training epochs.
-    pad_batches: bool
-      Whether or not to pad each batch to exactly be of size batch_size.
     max_checkpoints_to_keep: int
       Maximum number of checkpoints to keep; older checkpoints will be deleted.
     log_every_N_batches: int
@@ -240,7 +238,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
               # Turns out there are valid cases where we don't want pad-batches
               # on by default.
               #dataset.iterbatches(batch_size, pad_batches=True)):
-              dataset.iterbatches(self.batch_size, pad_batches=pad_batches)):
+              dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
             if ind % log_every_N_batches == 0:
               log("On batch %d" % ind, self.verbose)
             # Run training op.
@@ -344,7 +342,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
             (self.batch_size,)) 
     return TensorflowGraph.get_feed_dict(orig_dict)
 
-  def predict_on_batch(self, X, pad_batch=False):
+  def predict_on_batch(self, X):
     """Return model output for the provided input.
 
     Restore(checkpoint) must have previously been called on this object.
@@ -365,7 +363,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
       ValueError: If output and labels are not both 3D or both 2D.
     """
     len_unpadded = len(X)
-    if pad_batch:
+    if self.pad_batches:
       X = pad_features(self.batch_size, X)
     
     if not self._restored_model:
