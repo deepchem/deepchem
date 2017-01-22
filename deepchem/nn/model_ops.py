@@ -427,6 +427,101 @@ def max(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   return tf.reduce_max(x, reduction_indices=axis, keep_dims=keepdims)
 
+def l2_normalize(x, axis):
+  """Normalizes a tensor wrt the L2 norm alongside the specified axis.
+
+  Parameters
+  ----------
+  x: input tensor.
+  axis: axis along which to perform normalization.
+
+  Returns
+  -------
+  A tensor.
+  """
+  if axis < 0:
+      axis = axis % len(x.get_shape())
+  return tf.nn.l2_normalize(x, dim=axis)
+
+def categorical_crossentropy(output, target, from_logits=False):
+  """Categorical crossentropy between an output tensor
+  and a target tensor, where the target is a tensor of the same
+  shape as the output.
+
+  # TODO(rbharath): Should probably swap this over to tf mode.
+  """
+  # Note: tf.nn.softmax_cross_entropy_with_logits
+  # expects logits, Keras expects probabilities.
+  if not from_logits:
+    # scale preds so that the class probas of each sample sum to 1
+    output /= tf.reduce_sum(output,
+                            reduction_indices=len(output.get_shape()) - 1,
+                            keep_dims=True)
+    # manual computation of crossentropy
+    epsilon = _to_tensor(_EPSILON, output.dtype.base_dtype)
+    output = tf.clip_by_value(output, epsilon, 1. - epsilon)
+    return - tf.reduce_sum(target * tf.log(output),
+                             reduction_indices=len(output.get_shape()) - 1)
+  else:
+    try:
+        return tf.nn.softmax_cross_entropy_with_logits(labels=target,
+                                                       logits=output)
+    except TypeError:
+        return tf.nn.softmax_cross_entropy_with_logits(output, target)
+
+def sparse_categorical_crossentropy(output, target, from_logits=False):
+  """Categorical crossentropy between an output tensor
+  and a target tensor, where the target is an integer tensor.
+  """
+  # Note: tf.nn.softmax_cross_entropy_with_logits
+  # expects logits, Keras expects probabilities.
+  if not from_logits:
+    epsilon = _to_tensor(_EPSILON, output.dtype.base_dtype)
+    output = tf.clip_by_value(output, epsilon, 1 - epsilon)
+    output = tf.log(output)
+
+  output_shape = output.get_shape()
+  targets = cast(flatten(target), 'int64')
+  logits = tf.reshape(output, [-1, int(output_shape[-1])])
+  try:
+    res = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        labels=targets,
+        logits=logits)
+  except TypeError:
+    res = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits, targets)
+  if len(output_shape) == 3:
+    # if our output includes timesteps we need to reshape
+    return tf.reshape(res, tf.shape(output)[:-1])
+  else:
+    return res
+
+def binary_crossentropy(output, target, from_logits=False):
+  """Binary crossentropy between an output tensor and a target tensor.
+
+  # Arguments
+      output: A tensor.
+      target: A tensor with the same shape as `output`.
+      from_logits: Whether `output` is expected to be a logits tensor.
+          By default, we consider that `output`
+          encodes a probability distribution.
+
+  # Returns
+      A tensor.
+  """
+  # Note: tf.nn.softmax_cross_entropy_with_logits
+  # expects logits, Keras expects probabilities.
+  if not from_logits:
+    # transform back to logits
+    epsilon = _to_tensor(_EPSILON, output.dtype.base_dtype)
+    output = tf.clip_by_value(output, epsilon, 1 - epsilon)
+    output = tf.log(output / (1 - output))
+  try:
+    return tf.nn.sigmoid_cross_entropy_with_logits(labels=target,
+                                                     logits=output)
+  except TypeError:
+    return tf.nn.sigmoid_cross_entropy_with_logits(output, target)
+
 def sum(x, axis=None, keepdims=False):
   """Sum of the values in a tensor, alongside the specified axis.
 

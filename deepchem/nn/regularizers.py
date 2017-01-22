@@ -9,8 +9,6 @@ from __future__ import absolute_import
 
 import warnings
 from deepchem.nn import model_ops
-from deepchem.nn.activations import get_from_module
-
 
 class Regularizer(object):
 
@@ -32,9 +30,9 @@ class L1L2Regularizer(Regularizer):
   def __call__(self, x):
     regularization = 0
     if self.l1:
-        regularization += model_ops.sum(self.l1 * tf.abs(x))
+      regularization += model_ops.sum(self.l1 * tf.abs(x))
     if self.l2:
-        regularization += model_ops.sum(self.l2 * tf.square(x))
+      regularization += model_ops.sum(self.l2 * tf.square(x))
     return regularization
 
 
@@ -59,7 +57,3 @@ def activity_l2(l=0.01):
 
 def activity_l1l2(l1=0.01, l2=0.01):
   return L1L2Regularizer(l1=l1, l2=l2)
-
-def get(identifier, kwargs=None):
-  return get_from_module(identifier, globals(), 'regularizer',
-                         instantiate=True, kwargs=kwargs)
