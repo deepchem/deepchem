@@ -140,8 +140,8 @@ def ones(shape, dtype=None, name=None):
   if dtype is None:
     dtype = tf.float32 
   shape = tuple(map(int, shape))
-  return variable(tf.constant_initializer(1., dtype=dtype)(shape),
-                  dtype, name)
+  return tf.Variable(tf.constant_initializer(1., dtype=dtype)(shape),
+                     dtype, name)
 
 def cast_to_floatx(x):
   """Cast a Numpy array to the default Keras float type.
@@ -337,37 +337,35 @@ def epsilon():
   """
   return 1e-7 
 
-def variable(value, dtype=tf.float32, name=None):
-  """Instantiates a variable and returns it.
-
-  Parameters
-  ----------
-  value: Numpy array, initial value of the tensor.
-  dtype: Tensor type.
-  name: Optional name string for the tensor.
-
-  Returns
-  -------
-  A variable instance (with Keras metadata included).
-  """
-  v = tf.Variable(value, dtype=dtype, name=name)
-  if hasattr(value, 'get_shape'):
-    v._keras_shape = tuple(map(int, value.get_shape()))
-  v._uses_learning_phase = False
-  return v
+#def variable(value, dtype=tf.float32, name=None):
+#  """Instantiates a variable and returns it.
+#
+#  Parameters
+#  ----------
+#  value: Numpy array, initial value of the tensor.
+#  dtype: Tensor type.
+#  name: Optional name string for the tensor.
+#
+#  Returns
+#  -------
+#  A variable instance (with Keras metadata included).
+#  """
+#  v = tf.Variable(value, dtype=dtype, name=name)
+#  v._uses_learning_phase = False
+#  return v
 
 def random_uniform_variable(shape, low, high, dtype=tf.float32,
                             name=None, seed=None):
-  """Instantiates an Keras variable filled with
+  """Instantiates an variable filled with
   samples drawn from a uniform distribution and returns it.
 
   Parameters
   ----------
-  shape: Tuple of integers, shape of returned Keras variable.
+  shape: Tuple of integers, shape of returned variable.
   low: Float, lower boundary of the output inteval.
   high: Float, upper boundary of the output interval.
   dtype: Tensorflow dtype
-  name: String, name of returned Keras variable.
+  name: String, name of returned variable.
   seed: Integer, random seed.
 
   Returns
@@ -380,7 +378,7 @@ def random_uniform_variable(shape, low, high, dtype=tf.float32,
       seed = np.random.randint(10e8)
   value = tf.random_uniform_initializer(
       low, high, dtype=dtype, seed=seed)(shape)
-  return variable(value, dtype=dtype, name=name)
+  return tf.Variable(value, dtype=dtype, name=name)
 
 def random_normal_variable(shape, mean, scale, dtype=tf.float32,
                            name=None, seed=None):
@@ -406,7 +404,7 @@ def random_normal_variable(shape, mean, scale, dtype=tf.float32,
     seed = np.random.randint(10e8)
   value = tf.random_normal_initializer(
       mean, scale, dtype=dtype, seed=seed)(shape)
-  return variable(value, dtype=dtype, name=name)
+  return tf.Variable(value, dtype=dtype, name=name)
 
 def max(x, axis=None, keepdims=False):
   """Maximum value in a tensor.
@@ -557,8 +555,8 @@ def zeros(shape, dtype=tf.float32, name=None):
   A variable (including Keras metadata), filled with `0.0`.
   """
   shape = tuple(map(int, shape))
-  return variable(tf.constant_initializer(0., dtype=dtype)(shape),
-                  dtype, name)
+  return tf.Variable(tf.constant_initializer(0., dtype=dtype)(shape),
+                     dtype, name)
 
 def cosine_distances(test, support):
   """Computes pairwise cosine distances between provided tensors

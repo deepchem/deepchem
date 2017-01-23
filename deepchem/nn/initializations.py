@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-from deepchem.nn.model_ops import variable
+#from deepchem.nn.model_ops import variable
 from deepchem.nn.model_ops import random_uniform_variable
 from deepchem.nn.model_ops import random_normal_variable
 from deepchem.nn.activations import get_from_module
@@ -95,7 +95,8 @@ def orthogonal(shape, scale=1.1, name=None):
   # Pick the one with the correct shape.
   q = u if u.shape == flat_shape else v
   q = q.reshape(shape)
-  return variable(scale * q[:shape[0], :shape[1]], name=name)
+  return tf.Variable(scale * q[:shape[0], :shape[1]], dtype=tf.float32,
+                     name=name)
 
 
 def identity(shape, scale=1, name=None):
@@ -103,16 +104,15 @@ def identity(shape, scale=1, name=None):
     raise ValueError('Identity matrix initialization can only be used '
                      'for 2D square matrices.')
   else:
-    return variable(scale * np.identity(shape[0]), name=name)
+    return tf.Variable(scale * np.identity(shape[0]), dtype=tf.float32,
+                       name=name)
 
 
 def zero(shape, name=None):
-  return tf.zeros(shape, name=name)
-
+  return tf.Variable(tf.zeros(shape), dtype=tf.float32, name=name)
 
 def one(shape, name=None):
-  return tf.ones(shape, name=name)
-
+  return tf.Variable(tf.ones(shape), dtype=tf.float32, name=name)
 
 def get(identifier, **kwargs):
   return get_from_module(identifier, globals(),

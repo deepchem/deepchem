@@ -17,7 +17,7 @@ import tensorflow as tf
 import numpy as np
 import deepchem as dc
 
-class TestAPI(unittest.TestCase):
+class TestSequential(unittest.TestCase):
   """
   Test API for sequential models 
   """
@@ -25,17 +25,20 @@ class TestAPI(unittest.TestCase):
   def test_model_construct(self):
     """Test that models can be constructed with Sequential."""
     model = dc.models.Sequential()
-    model.add(dc.nn.Input(shape=(32,)))
+    model.add_features(dc.nn.Input(shape=(32,)))
+    model.add_labels(dc.nn.Input(shape=(1,)))
     model.add(dc.nn.Dense(32, 32))
     model.add(dc.nn.Dense(32, 32))
 
   def test_model_fit(self):
     """Test that models can be fit"""
     model = dc.models.Sequential()
-    model.add(dc.nn.Input(shape=(32,)))
+    model.add_features(dc.nn.Input(shape=(32,)))
+    model.add_labels(dc.nn.Input(shape=(1,)))
     model.add(dc.nn.Dense(32, 32))
     model.add(dc.nn.Dense(1, 32))
     model.add_loss(dc.nn.mean_squared_error)
+
     X = np.zeros((10, 32))
     y = np.zeros((10,))
     dataset = dc.data.NumpyDataset(X, y)

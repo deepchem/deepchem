@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import warnings
+import tensorflow as tf
 from deepchem.nn import model_ops
 
 def mean_squared_error(y_true, y_pred):
@@ -52,20 +53,20 @@ def binary_crossentropy(y_true, y_pred):
 
 
 def kullback_leibler_divergence(y_true, y_pred):
-    y_true = model_ops.clip(y_true, model_ops.epsilon(), 1)
-    y_pred = model_ops.clip(y_pred, model_ops.epsilon(), 1)
-    return model_ops.sum(y_true * tf.log(y_true / y_pred), axis=-1)
+  y_true = model_ops.clip(y_true, model_ops.epsilon(), 1)
+  y_pred = model_ops.clip(y_pred, model_ops.epsilon(), 1)
+  return model_ops.sum(y_true * tf.log(y_true / y_pred), axis=-1)
 
 
 def poisson(y_true, y_pred):
-    return model_ops.mean(
-        y_pred - y_true * tf.log(y_pred + model_ops.epsilon()), axis=-1)
+  return model_ops.mean(
+      y_pred - y_true * tf.log(y_pred + model_ops.epsilon()), axis=-1)
 
 
 def cosine_proximity(y_true, y_pred):
-    y_true = model_ops.l2_normalize(y_true, axis=-1)
-    y_pred = model_ops.l2_normalize(y_pred, axis=-1)
-    return -model_ops.mean(y_true * y_pred, axis=-1)
+  y_true = model_ops.l2_normalize(y_true, axis=-1)
+  y_pred = model_ops.l2_normalize(y_pred, axis=-1)
+  return -model_ops.mean(y_true * y_pred, axis=-1)
 
 
 # Aliases.

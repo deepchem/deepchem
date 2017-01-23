@@ -12,6 +12,10 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "GPL"
 
+import time
+import os
+import tempfile
+import numpy as np
 import tensorflow as tf
 from deepchem.models.models import Model
 from deepchem.nn import model_ops
@@ -37,25 +41,15 @@ class Sequential(Model):
   Example
   -------
   >>> model = dc.models.Sequential()
-  >>> # first layer must have a defined input shape
-  >>> model.add(dc.nn.Dense(32, input_dim=500))
-  >>> # afterwards, Keras does automatic shape inference
-  >>> model.add(dc.nn.Dense(32))
-
-  >>> # also possible (equivalent to the above):
-  >>> model = dc.models.Sequential()
-  >>> model.add(dc.nn.Dense(32, input_shape=(500,)))
-  >>> model.add(dc.nn.Dense(32))
-
-  >>> # also possible (equivalent to the above):
-  >>> model = dc.models.Sequential()
-  >>> # here the batch dimension is None,
-  >>> # which means any batch size will be accepted by the model.
-  >>> model.add(dc.nn.Dense(32, batch_input_shape=(None, 500)))
-  >>> model.add(dc.nn.Dense(32))
+  >>> # Add features
+  >>> model.add_features(dc.nn.Input(shape=(50,)))
+  >>> # Add labels
+  >>> model.add_features(dc.nn.Input(shape=(1,)))
+  >>> model.add(dc.nn.Dense(32, 50))
+  >>> model.add(dc.nn.Dense(64, 32))
   """
 
-  def __init__(self, name=None):
+  def __init__(self, name=None, logdir=None):
     self.layers = []  # stack of layers
     self.outputs = []  # tensors (length 1)
 
@@ -64,6 +58,17 @@ class Sequential(Model):
       name = prefix + str(model_ops.get_uid(prefix))
     self.name = name
     self.graph = tf.Graph()
+
+    config = tf.ConfigProto(allow_soft_placement=True)
+    self.session = tf.Session(graph=self.graph, config=config)
+    # Path to save checkpoint files
+    if logdir is not None:
+      if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    else:
+      logdir = tempfile.mkdtemp()
+    self.logdir = logdir
+    self._save_path = os.path.join(self.logdir, 'model.ckpt')
 
   def add(self, layer):
     """Adds a layer instance on top of the layer stack.
@@ -77,15 +82,30 @@ class Sequential(Model):
                       "Found: " + str(layer))
     with self.graph.as_default():
       if not self.layers:
+        raise ValueError("Call add_features() before calling add()")
         # first layer in model: check that it is an input layer
-        if not isinstance(layer, InputLayer):
-          raise ValueError("First layer in sequential model must be InputLayer")
-        self.outputs = layer()
 
       else:
         self.outputs = layer(self.outputs[0])
 
       self.layers.append(layer)
+
+  def add_features(self, layer):
+    """Adds an input layer."""
+    if self.layers:
+      raise ValueError("add_features() has to be called before layers are added.")
+    if not isinstance(layer, InputLayer):
+      raise ValueError("First layer in sequential model must be InputLayer")
+    with self.graph.as_default():
+      self.features = layer()[0]
+      self.outputs = [self.features]
+      self.layers = [layer]
+
+
+  def add_labels(self, layer):
+    """Adds a layer for labels"""
+    with self.graph.as_default():
+      self.labels = layer()[0]
 
   def add_loss(self, loss, inputs=None):
     """Adds a loss to model.
@@ -96,20 +116,28 @@ class Sequential(Model):
     """
     # Add losses to graph
     with self.graph.as_default():
-      self.loss = loss()
+      # Loss for each batch element
+      batch_loss = loss(self.outputs[0], self.labels)
+      # Loss should be a float
+      self.loss = tf.reduce_sum(batch_loss)
 
   @property
   def uses_learning_phase(self):
     return self.uses_learning_phase
 
-  def fit(self, dataset, batch_size=32, nb_epoch=10, verbose=1,
-          initial_epoch=0, **kwargs):
+  def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5,
+          log_every_N_batches=50, learning_rate=.001, batch_size=50):
     """Trains the model for a fixed number of epochs.
 
-    # Arguments
-        x: input data, as a Numpy array or list of Numpy arrays
-            (if the model has multiple inputs).
-        y: labels, as a Numpy array.
+    TODO(rbharath0: This is mostly copied from TensorflowGraphModel. Should
+    eventually refactor both together.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+    nb_epoch: 10
+      Number of training epochs.
+      Dataset object holding training data
         batch_size: integer. Number of samples per gradient update.
         nb_epoch: integer, the number of epochs to train the model.
         verbose: 0 for no logging to stdout,
@@ -117,12 +145,57 @@ class Sequential(Model):
         initial_epoch: epoch at which to start training
             (useful for resuming a previous training run)
     """
-    pass
-    #return self.model.fit(x, y,
-    #                      batch_size=batch_size,
-    #                      nb_epoch=nb_epoch,
-    #                      verbose=verbose,
-    #                      initial_epoch=initial_epoch)
+    ############################################################## TIMING
+    time1 = time.time()
+    ############################################################## TIMING
+    print("Training for %d epochs" % nb_epoch)
+    with self.graph.as_default():
+      opt = model_ops.optimizer("adam", learning_rate)
+      train_op = opt.minimize(self.loss, name='train')
+      with self.session as sess:
+        sess.run(tf.global_variables_initializer())
+        ############################################################ DEBUG
+        #print("after global variable initialization")
+        #print("[var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]")
+        #print([var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)])
+        ############################################################ DEBUG
+        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        # Save an initial checkpoint.
+        saver.save(sess, self._save_path, global_step=0)
+        for epoch in range(nb_epoch):
+          avg_loss, n_batches = 0., 0
+          # TODO(rbharath): Don't support example weighting yet.
+          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+              dataset.iterbatches(batch_size)):
+            if ind % log_every_N_batches == 0:
+              print("On batch %d" % ind)
+            feed_dict = {self.features: X_b,
+                         self.labels: y_b}
+            fetches = self.outputs + [train_op, self.loss]
+            fetched_values = sess.run(fetches, feed_dict=feed_dict)
+            output = fetched_values[:len(self.outputs)]
+            ######################################### DEBUG
+            print("fetched_values")
+            print(fetched_values)
+            ######################################### DEBUG
+            loss = fetched_values[-1]
+            avg_loss += loss
+            y_pred = np.squeeze(np.array(output))
+            y_b = y_b.flatten()
+            n_batches += 1
+          saver.save(sess, self._save_path, global_step=epoch)
+          ######################################### DEBUG
+          print("avg_loss")
+          print(avg_loss)
+          ######################################### DEBUG
+          avg_loss = float(avg_loss)/n_batches
+          print('Ending epoch %d: Average loss %g' % (epoch, avg_loss))
+        # Always save a final checkpoint when complete.
+        saver.save(sess, self._save_path, global_step=epoch+1)
+    ############################################################## TIMING
+    time2 = time.time()
+    print("TIMING: model fitting took %0.3f s" % (time2-time1))
+    ############################################################## TIMING
 
   def evaluate(self, x, y, batch_size=32, verbose=1,
                sample_weight=None, **kwargs):
@@ -270,22 +343,3 @@ class Sequential(Model):
                         'into probabilities '
                         '(like softmax or sigmoid would).')
       return preds
-
-  def predict_classes(self, x, batch_size=32, verbose=1):
-      """Generate class predictions for the input samples
-      batch by batch.
-
-      # Arguments
-          x: input data, as a Numpy array or list of Numpy arrays
-              (if the model has multiple inputs).
-          batch_size: integer.
-          verbose: verbosity mode, 0 or 1.
-
-      # Returns
-          A numpy array of class predictions.
-      """
-      proba = self.predict(x, batch_size=batch_size, verbose=verbose)
-      if proba.shape[-1] > 1:
-          return proba.argmax(axis=-1)
-      else:
-          return (proba > 0.5).astype('int32')

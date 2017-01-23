@@ -12,7 +12,6 @@ import tensorflow as tf
 from deepchem.nn import initializations
 from deepchem.nn import regularizers
 from deepchem.nn import activations
-from deepchem.nn import constraints
 from deepchem.nn import model_ops
 
 def to_list(x):
@@ -29,43 +28,12 @@ def object_list_uid(object_list):
   object_list = to_list(object_list)
   return ', '.join([str(abs(id(x))) for x in object_list])
 
-class InputSpec(object):
-  """This specifies the ndim, dtype and shape of every input to a layer.
-  Every layer should expose (if appropriate) an `input_spec` attribute:
-  a list of instances of InputSpec (one per input tensor).
-
-  A None entry in a shape is compatible with any dimension,
-  a None shape is compatible with any shape.
-  """
-
-  def __init__(self, dtype=None, shape=None, ndim=None):
-    if isinstance(ndim, str):
-      if '+' not in ndim:
-          raise ValueError('When passing a str "ndim", '
-                           'it should have the form "2+", "3+", etc.')
-      int_ndim = ndim[:ndim.find('+')]
-      if not int_ndim.isdigit():
-          raise ValueError('When passing a str "ndim", '
-                           'it should have the form "2+", "3+", etc.')
-    if shape is not None:
-      self.ndim = len(shape)
-    else:
-      self.ndim = ndim
-    self.dtype = dtype
-    self.shape = shape
-
 class Layer(object):
   """Abstract base layer class.
 
   Attributes
   ----------
   name: String, must be unique within a model.
-  input_spec: List of InputSpec class instances
-    each entry describes one required input:
-        - ndim
-        - dtype
-    A layer with n input tensors must have
-    an input_spec of length n.
   trainable: Boolean, whether the layer weights
       will be updated during training.
   uses_learning_phase: Whether any operation
@@ -81,11 +49,6 @@ class Layer(object):
   input, output: Input/output tensor(s). Note that if the layer is used
     more than once (shared layer), this is ill-defined
     and will raise an exception. In such cases, use
-  trainable_weights: List of variables.
-  non_trainable_weights: List of variables.
-  weights: The concatenation of the lists trainable_weights and
-      non_trainable_weights (in this order).
-  constraints: Dict mapping weights to constraints.
 
   Methods
   -------
@@ -95,31 +58,18 @@ class Layer(object):
           - Connect current layer with last layer from tensor:
           - Add layer to tensor history
       If layer is not built:
-  count_params()
-  get_output_shape_for(input_shape)
-
-  # Internal methods:
-  build(input_shape)
   """
 
   def __init__(self, **kwargs):
     # These properties should have been set
     # by the child class, as appropriate.
-    if not hasattr(self, 'input_spec'):
-      self.input_spec = None
     if not hasattr(self, 'uses_learning_phase'):
       self.uses_learning_phase = False
 
-    # These properties will be set upon call of self.build(),
-    if not hasattr(self, '_trainable_weights'):
-      self._trainable_weights = []
     if not hasattr(self, '_non_trainable_weights'):
       self._non_trainable_weights = []
     if not hasattr(self, 'losses'):
       self.losses = []
-    if not hasattr(self, 'constraints'):
-      self.constraints = {}  # dict {tensor: constraint instance}
-    self.built = False
 
     # These properties should be set by the user via keyword arguments.
     # note that 'input_dtype', 'input_shape' and 'batch_input_shape'
@@ -151,49 +101,17 @@ class Layer(object):
       input_dtype = kwargs.get('input_dtype', tf.float32)
       self.input_dtype = input_dtype
 
-  @property
-  def trainable_weights(self):
-    trainable = getattr(self, 'trainable', True)
-    if trainable:
-      return self._trainable_weights
-    else:
-      return []
-
-  @trainable_weights.setter
-  def trainable_weights(self, weights):
-    self._trainable_weights = weights
-
-  @property
-  def non_trainable_weights(self):
-    trainable = getattr(self, 'trainable', True)
-    if not trainable:
-      return self._trainable_weights + self._non_trainable_weights
-    else:
-      return self._non_trainable_weights
-
-  @non_trainable_weights.setter
-  def non_trainable_weights(self, weights):
-    self._non_trainable_weights = weights
-
-  def add_weight(self, shape, initializer, name=None,
-                 trainable=True)
+  def add_weight(self, shape, initializer, name=None):
     """Adds a weight variable to the layer.
 
     Parameters
     ----------
     shape: The shape tuple of the weight.
     initializer: An Initializer instance (callable).
-    trainable: A boolean, whether the weight should
-      be trained via backprop or not (assuming
-      that the layer itself is also trainable).
     regularizer: An optional Regularizer instance.
     """
     initializer = initializations.get(initializer)
     weight = initializer(shape, name=name)
-    if trainable:
-      self._trainable_weights.append(weight)
-    else:
-      self._non_trainable_weights.append(weight)
     return weight
 
   def call(self, x):
@@ -211,36 +129,12 @@ class Layer(object):
 
   def __call__(self, x):
     """Wrapper around self.call(), for handling
-    internal Keras references.
-
-    If a tensor is passed:
-      - If necessary, we `build` the layer to match
-
     Parameters
     ----------
     x: Can be a tensor or list/tuple of tensors.
     """
-    input_tensors = to_list(x)
     outputs = to_list(self.call(x))
     return outputs
-
-  def get_output_shape_for(self, input_shape):
-    """Computes the output shape of the layer given
-    an input shape (assumes that the layer will be built
-    to match that input shape).
-
-    Parameters
-    ----------
-    input_shape: Shape tuple (tuple of integers)
-      or list of shape tuples (one per output tensor of the layer).
-      Shape tuples can include None for free dimensions,
-      instead of an integer.
-    """
-    return input_shape
-
-  @property
-  def weights(self):
-    return self.trainable_weights + self.non_trainable_weights
 
 class InputLayer(Layer):
   """Layer to be used as an entry point into a graph.
@@ -258,12 +152,9 @@ class InputLayer(Layer):
 
   def __init__(self, input_shape=None, batch_input_shape=None,
                input_dtype=None, name=None):
-    self.input_spec = None
     self.uses_learning_phase = False
     self.trainable = False
-    self._trainable_weights = []
     self._non_trainable_weights = []
-    self.constraints = {}
 
     if not name:
       prefix = 'input'
@@ -358,10 +249,6 @@ class Dense(Layer):
   b_regularizer: instance of regularize applied to the bias.
   activity_regularizer: instance of [ActivityRegularizer](../regularizers.md),
     applied to the network output.
-  W_constraint: instance of the [constraints](../constraints.md) module
-    (eg. maxnorm, nonneg), applied to the main weights matrix.
-  b_constraint: instance of the [constraints](../constraints.md) module,
-    applied to the bias.
   bias: whether to include a bias
     (i.e. make the layer affine rather than linear).
   input_dim: dimensionality of the input (integer). This argument
@@ -380,47 +267,37 @@ class Dense(Layer):
   """
 
   def __init__(self, output_dim, input_dim, init='glorot_uniform',
-               activation=None, bias=True, **kwargs):
+               activation="relu", bias=True, **kwargs):
     self.init = initializations.get(init)
     self.activation = activations.get(activation)
     self.output_dim = output_dim
     self.input_dim = input_dim
 
     self.bias = bias
-    self.input_spec = [InputSpec(ndim='2+')]
-
 
     input_shape = (self.input_dim,)
     if self.input_dim:
       kwargs['input_shape'] = (self.input_dim,)
     super(Dense, self).__init__(**kwargs)
     self.input_dim = input_dim
-    self.input_spec = [InputSpec(dtype=tf.float32,
-                                 ndim='2+')]
 
-
-  def call(self, x):
+  def __call__(self, x):
     self.W = self.add_weight((self.input_dim, self.output_dim),
                              initializer=self.init,
                              name='{}_W'.format(self.name))
-    if self.bias:
-      self.b = self.add_weight((self.output_dim,),
-                               initializer='zero',
-                               name='{}_b'.format(self.name))
-    else:
-      self.b = None
+    self.b = self.add_weight((self.output_dim,), initializer='zero',
+                                name='{}_b'.format(self.name))
+    ######################################################## DEBUG
+    print("Created variables!")
+    print("[var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]")
+    print([var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)])
+    ######################################################## DEBUG
 
     output = model_ops.dot(x, self.W)
     if self.bias:
       output += self.b
-    return self.activation(output)
-
-  def get_output_shape_for(self, input_shape):
-    assert input_shape and len(input_shape) >= 2
-    assert input_shape[-1] and input_shape[-1] == self.input_dim
-    output_shape = list(input_shape)
-    output_shape[-1] = self.output_dim
-    return tuple(output_shape)
+    outputs = to_list(self.activation(output))
+    return outputs
 
 class Dropout(Layer):
   """Applies Dropout to the input.
@@ -520,7 +397,6 @@ class BatchNormalization(Layer):
     super(BatchNormalization, self).__init__(**kwargs)
 
   def build(self, input_shape):
-    self.input_spec = [InputSpec(shape=input_shape)]
     shape = (input_shape[self.axis],)
 
     self.gamma = self.add_weight(shape,
@@ -538,11 +414,9 @@ class BatchNormalization(Layer):
                                        name='{}_running_std'.format(self.name),
                                        trainable=False)
 
-    self.built = True
 
   def call(self, x):
     if self.mode == 0 or self.mode == 2:
-      assert self.built, 'Layer must be built before being called'
       input_shape = model_ops.int_shape(x)
 
       reduction_axes = list(range(len(input_shape)))
