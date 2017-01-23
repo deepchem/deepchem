@@ -66,8 +66,6 @@ class Layer(object):
     if not hasattr(self, 'uses_learning_phase'):
       self.uses_learning_phase = False
 
-    if not hasattr(self, '_non_trainable_weights'):
-      self._non_trainable_weights = []
     if not hasattr(self, 'losses'):
       self.losses = []
 
@@ -133,8 +131,9 @@ class Layer(object):
     ----------
     x: Can be a tensor or list/tuple of tensors.
     """
-    outputs = to_list(self.call(x))
-    return outputs
+    return self.call(x)
+    #outputs = to_list(self.call(x))
+    #return outputs
 
 class InputLayer(Layer):
   """Layer to be used as an entry point into a graph.
@@ -154,7 +153,6 @@ class InputLayer(Layer):
                input_dtype=None, name=None):
     self.uses_learning_phase = False
     self.trainable = False
-    self._non_trainable_weights = []
 
     if not name:
       prefix = 'input'

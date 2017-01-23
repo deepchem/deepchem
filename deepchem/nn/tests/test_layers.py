@@ -69,6 +69,10 @@ class TestLayers(test_util.TensorFlowTestCase):
 
       X = graph_topology.get_input_placeholders()
       out = graph_gather_layer(X)
+      ##################################################### DEBUG
+      print("out")
+      print(out)
+      ##################################################### DEBUG
       # Output should be of shape (batch_size, n_feat)
       assert out.get_shape() == (batch_size, n_feat) 
 

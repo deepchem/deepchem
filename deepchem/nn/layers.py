@@ -488,19 +488,6 @@ class AttnLSTMEmbedding(Layer):
     self.n_test = n_test
     self.n_support = n_support
 
-  def build(self, input_shape):
-    """Initializes trainable weights."""
-    x_input_shape, xp_input_shape = input_shape  #Unpack
-
-    n_feat = xp_input_shape[1]
-
-    self.lstm = LSTMStep(n_feat)
-    self.q_init = model_ops.zeros([self.n_test, n_feat])
-    self.r_init = model_ops.zeros([self.n_test, n_feat])
-    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
-    
-    self.trainable_weights = [self.q_init, self.r_init]
-      
   def get_output_shape_for(self, input_shape):
     """Returns the output shape. Same as input_shape.
 
@@ -537,6 +524,20 @@ class AttnLSTMEmbedding(Layer):
     """
     # x is test set, xp is support set.
     x, xp = x_xp
+
+    ## Initializes trainable weights.
+    #n_feat = xp_input_shape[1]
+    n_feat = xp.get_shape()[1]
+
+    self.lstm = LSTMStep(n_feat)
+    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.r_init = model_ops.zeros([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+    
+    self.trainable_weights = [self.q_init, self.r_init]
+
+
+    ### Performs computations
 
     # Get initializations
     q = self.q_init
