@@ -78,13 +78,12 @@ def load_kaggle(shard_size=2000, featurizer=None):
       dc.trans.NormalizationTransformer(transform_y=True,
                                         dataset=train_dataset)]
 
-  # TODO(rbharath): Is this a bug in the Kaggle data transformation?
   for transformer in transformers:
     print("Performing transformations with %s"
           % transformer.__class__.__name__)
-    for dataset in [train_dataset, valid_dataset, test_dataset]:
-      print("Transforming dataset")
-      transformer.transform(dataset)
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset = transformer.transform(valid_dataset)
+    test_dataset = transformer.transform(test_dataset)
 
   print("Shuffling order of train dataset.")
   train_dataset.sparse_shuffle()
