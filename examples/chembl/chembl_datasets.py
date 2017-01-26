@@ -67,8 +67,9 @@ def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random
         transformers = [
             dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
         for transformer in transformers:
-            for dataset in [train_dataset, valid_dataset, test_dataset]:
-                transformer.transform(dataset)
+            train = transformer.transform(train_dataset)
+            valid = transformer.transform(valid_dataset)
+            test = transformer.transform(test_dataset)
     else:
         transformers = [
             dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)]
@@ -82,17 +83,6 @@ def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random
         splitter = splitters[split]
         print("Performing new split.")
         train, valid, test = splitter.train_valid_test_split(dataset)
-    elif split == "year":
-        print("Featurizing train datasets")
-        train = loader.featurize(
-            train_files, shard_size=shard_size)
 
-        print("Featurizing valid datasets")
-        valid = loader.featurize(
-            valid_files, shard_size=shard_size)
-
-        print("Featurizing test datasets")
-        test = loader.featurize(
-            test_files, shard_size=shard_size)
 
     return chembl_tasks, (train, valid, test), transformers
