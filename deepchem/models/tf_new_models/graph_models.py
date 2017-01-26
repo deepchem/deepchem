@@ -26,27 +26,30 @@ class SequentialGraph(object):
     n_feat: int
       Number of features per atom.
     """
-    #self.graph_topology = GraphTopology(n_atoms, n_feat)
-    self.graph_topology = GraphTopology(n_feat)
-    self.output = self.graph_topology.get_atom_features_placeholder()
+    self.graph = tf.Graph()
+    self.session = tf.Session(graph=self.graph, config=config)
+    with self.graph.as_default():
+      self.graph_topology = GraphTopology(n_feat)
+      self.output = self.graph_topology.get_atom_features_placeholder()
     # Keep track of the layers
     self.layers = []  
 
   def add(self, layer):
     """Adds a new layer to model."""
-    # For graphical layers, add connectivity placeholders 
-    if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
-      if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
-        assert self.layers[-1].__name__ != "GraphGather", \
-                'Cannot use GraphConv or GraphGather layers after a GraphGather'
-          
-      self.output = layer(
-          [self.output] + self.graph_topology.get_topology_placeholders())
-    else:
-      self.output = layer(self.output)
+    with self.graph.as_default():
+      # For graphical layers, add connectivity placeholders 
+      if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
+        if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
+          assert self.layers[-1].__name__ != "GraphGather", \
+                  'Cannot use GraphConv or GraphGather layers after a GraphGather'
+            
+        self.output = layer(
+            [self.output] + self.graph_topology.get_topology_placeholders())
+      else:
+        self.output = layer(self.output)
 
-    # Add layer to the layer list
-    self.layers.append(layer)
+      # Add layer to the layer list
+      self.layers.append(layer)
 
   def get_graph_topology(self):
     return self.graph_topology

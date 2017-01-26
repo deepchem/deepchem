@@ -52,22 +52,18 @@ class GraphTopology(object):
     self.max_deg = max_deg
     self.min_deg = min_deg
 
-    self.atom_features_placeholder = Input(
-        tensor=tf.placeholder(
+    self.atom_features_placeholder = tensor=tf.placeholder(
             dtype='float32', shape=(None, self.n_feat),
-            name=self.name+'_atom_features'))
+            name=self.name+'_atom_features')
     self.deg_adj_lists_placeholders = [
-        Input(tensor=tf.placeholder(
-          dtype='int32', shape=(None, deg), name=self.name+'_deg_adj'+str(deg)))
+        tf.placeholder(
+          dtype='int32', shape=(None, deg), name=self.name+'_deg_adj'+str(deg))
         for deg in range(1, self.max_deg+1)]
-    self.deg_slice_placeholder = Input(
-        tensor=tf.placeholder(
+    self.deg_slice_placeholder = tf.placeholder(
             dtype='int32', shape=(self.max_deg-self.min_deg+1,2),
-            name="deg_slice",),
-        name=self.name+'_deg_slice')
-    self.membership_placeholder = Input(
-          tensor=tf.placeholder(dtype='int32', shape=(None,), name="membership"),
-          name=self.name+'_membership')
+            name=self.name+'_deg_slice')
+    self.membership_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name+'_membership')
 
     # Define the list of tensors to be used as topology
     self.topology = [self.deg_slice_placeholder, self.membership_placeholder]
