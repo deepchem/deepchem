@@ -438,6 +438,11 @@ class DiskDataset(Dataset):
     save_to_disk(
         (self.tasks, self.metadata_df), self._get_metadata_filename())
 
+  def move(self, new_data_dir):
+    """Moves dataset to new directory."""
+    shutil.move(self.data_dir, new_data_dir)
+    self.data_dir = new_data_dir
+
   def get_task_names(self):
     """
     Gets learning tasks associated with this dataset.
@@ -619,9 +624,9 @@ class DiskDataset(Dataset):
     a newly constructed Dataset object
     """
     if 'out_dir' in args:
-        out_dir = args['out_dir']
+      out_dir = args['out_dir']
     else:
-        out_dir = tempfile.mkdtemp()
+      out_dir = tempfile.mkdtemp()
     tasks = self.get_task_names()
     def generator():
       for shard_num, row in self.metadata_df.iterrows():

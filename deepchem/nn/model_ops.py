@@ -749,7 +749,7 @@ def weight_decay(penalty_type, penalty):
     else:
       raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
     cost *= penalty
-    tf.scalar_summary('Weight Decay Cost', cost)
+    #tf.scalar_summary('Weight Decay Cost', cost)
   return cost
 
 

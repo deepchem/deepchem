@@ -155,7 +155,8 @@ class Model(object):
       y_pred = np.reshape(y_pred, (n_samples,)) 
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[]):
+  def evaluate(self, dataset, metrics, transformers=[],
+               per_task_metrics=False):
     """
     Evaluates the performance of this model on specified dataset.
   
@@ -167,6 +168,8 @@ class Model(object):
       Evaluation metric
     transformers: list
       List of deepchem.transformers.Transformer
+    per_task_metrics: bool
+      If True, return per-task scores.
 
     Returns
     -------
@@ -174,8 +177,13 @@ class Model(object):
       Maps tasks to scores under metric.
     """
     evaluator = Evaluator(self, dataset, transformers)
-    scores = evaluator.compute_model_performance(metrics)
-    return scores
+    if not per_task_metrics:
+      scores = evaluator.compute_model_performance(metrics)
+      return scores
+    else:
+      scores, per_task_scores = evaluator.compute_model_performance(
+          metrics, per_task_metrics=per_task_metrics)
+      return scores, per_task_scores
 
   def predict_proba(self, dataset, transformers=[], batch_size=None,
                     n_classes=2):
