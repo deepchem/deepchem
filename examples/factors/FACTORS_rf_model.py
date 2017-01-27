@@ -75,6 +75,8 @@ for trial in range(num_trials):
   print("Mean Test score")
   print(test_score)
 
+print("####################################################################")
+
 for trial in range(num_trials):
   (train_score, train_task_scores, valid_score, valid_task_scores,
    test_score, test_task_scores) = all_results[trial]

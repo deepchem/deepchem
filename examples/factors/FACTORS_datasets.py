@@ -30,10 +30,6 @@ def remove_missing_entries(dataset):
 
 def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
-  #transformers = [
-  #    dc.trans.LogTransformer(transform_X=True),
-  #    dc.trans.NormalizationTransformer(transform_y=True,
-  #                                      dataset=train_dataset)]
   transformers = []
   return transformers
 
@@ -56,13 +52,10 @@ def gen_factors(FACTORS_tasks, raw_train_dir, train_dir, valid_dir, test_dir,
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
 
   print("Featurizing valid datasets")
-  valid_dataset = loader.featurize(
-      valid_files, shard_size=shard_size)
+  valid_dataset = loader.featurize(valid_files, shard_size=shard_size)
 
   print("Featurizing test datasets")
-  print("Creating test dataset")
-  test_dataset = loader.featurize(
-      test_files, shard_size=shard_size)
+  test_dataset = loader.featurize(test_files, shard_size=shard_size)
 
   print("Remove missing entries from datasets.")
   remove_missing_entries(train_dataset)

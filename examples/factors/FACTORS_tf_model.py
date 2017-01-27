@@ -18,7 +18,7 @@ np.random.seed(123)
 
 ###Load data###
 shard_size = 2000
-num_trials = 1
+num_trials = 5
 print("About to load FACTORS data.")
 FACTORS_tasks, datasets, transformers = load_factors(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
@@ -75,6 +75,8 @@ for trial in range(num_trials):
   print(test_task_scores)
   print("Mean Test score")
   print(test_score)
+
+print("####################################################################")
 
 for trial in range(num_trials):
   (train_score, train_task_scores, valid_score, valid_task_scores,
