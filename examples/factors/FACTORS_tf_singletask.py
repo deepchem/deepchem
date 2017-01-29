@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow Multitask models on FACTORS dataset.
+Script that trains Tensorflow Singletask models on FACTORS dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -34,7 +34,6 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
 ###Create model###
 n_layers = 3
-#nb_epoch = 1
 nb_epoch = 125
 n_features = train_dataset.get_data_shape()[0]
 def task_model_builder(m_dir):
@@ -52,7 +51,6 @@ for trial in range(num_trials):
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)
-
 
   print("Evaluating models")
   train_score, train_task_scores = model.evaluate(
