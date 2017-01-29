@@ -30,11 +30,7 @@ def remove_missing_entries(dataset):
 
 def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
-  #transformers = []
-  transformers = [
-      dc.trans.LogTransformer(transform_X=True),
-      dc.trans.NormalizationTransformer(transform_y=True,
-                                        dataset=train_dataset)]
+  transformers = []
   return transformers
 
 def gen_kinase(KINASE_tasks, raw_train_dir, train_dir, valid_dir, test_dir,

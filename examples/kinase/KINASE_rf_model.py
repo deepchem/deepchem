@@ -16,7 +16,8 @@ from KINASE_datasets import load_kinase
 ###Load data###
 np.random.seed(123)
 shard_size = 2000
-num_trials = 5
+#num_trials = 5
+num_trials = 1
 print("About to load KINASE data.")
 KINASE_tasks, datasets, transformers = load_kinase(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
@@ -35,8 +36,7 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
 def task_model_builder(model_dir):
   sklearn_model = RandomForestRegressor(
-      #n_estimators=100, max_features=int(num_features/3),
-      n_estimators=1, max_features=int(num_features/3),
+      n_estimators=100, max_features=int(num_features/3),
       min_samples_split=5, n_jobs=-1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
 
