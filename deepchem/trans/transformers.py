@@ -156,115 +156,6 @@ class NormalizationTransformer(Transformer):
       transformed_grad = np.asarray(transformed_grad)
       return transformed_grad
 
-class AtomicNormalizationTransformer(Transformer):
-  """
-  TODO(rbharath): Needs more discussion of what a gradient is semantically.
-  It's evident that not every Dataset has meaningful gradient information, so
-  this transformer can't be applied to all data. Should there be a subclass of
-  Dataset named GradientDataset perhaps?
-  """
-
-  def __init__(self, transform_X=False, transform_y=False, transform_w=False,
-               dataset=None):
-    """Initialize normalization transformation."""
-    super(AtomicNormalizationTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y,
-        transform_w=transform_w, dataset=dataset)
-    X_means, X_stds, y_means, y_stds = dataset.get_statistics()
-    self.X_means = X_means 
-    self.X_stds = X_stds
-    self.y_means = y_means 
-    # Control for pathological case with no variance.
-    y_stds[y_stds == 0] = 1.
-    self.y_stds = y_stds
-    true_grad, ydely_means = get_grad_statistics(dataset)
-    self.grad = np.reshape(true_grad, (true_grad.shape[0],-1,3))
-    self.ydely_means = ydely_means
-
-  def transform(self, dataset, parallel=False):
-    return super(AtomicNormalizationTransformer, self).transform(
-        dataset, parallel=parallel)
-    
-
-  def transform_row(self, i, df, data_dir):
-    """
-    Normalizes the data (X, y, w, ...) in a single row).
-    """
-    row = df.iloc[i]
-
-    if self.transform_X:
-      X = load_from_disk(
-          os.path.join(data_dir, row['X-transformed']))
-      X = np.nan_to_num((X - self.X_means) / self.X_stds)
-      save_to_disk(X, os.path.join(data_dir, row['X-transformed']))
-
-    if self.transform_y:
-
-      y = load_from_disk(os.path.join(data_dir, row['y-transformed']))
-
-      # transform tasks as normal
-      y = np.nan_to_num((y - self.y_means) / self.y_stds)
-
-      # add 2nd order correction term to gradients
-      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
-      for i in range(y.shape[0]):
-        y[i,1:] = y[i,1:] - grad_var*y[i,0]/self.y_stds[0]
-
-      save_to_disk(y, os.path.join(data_dir, row['y-transformed']))
-
-  def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
-    if self.transform_X:
-      X = np.nan_to_num((X - self.X_means) / self.X_stds)
-    if self.transform_y:
-      # transform tasks as normal
-      y = np.nan_to_num((y - self.y_means) / self.y_stds)
-      # add 2nd order correction term to gradients
-      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
-      for i in range(y.shape[0]):
-        y[i,1:] = y[i,1:] - grad_var*y[i,0]/self.y_stds[0]
-    return (X, y, w)
-
-  def untransform(self, z):
-    """
-    Undo transformation on provided data.
-    """
-    if self.transform_X:
-      return z * self.X_stds + self.X_means
-    elif self.transform_y:
-
-      # untransform grad
-      grad_var = 1/self.y_stds[0]*(self.ydely_means-self.y_means[0]*self.y_means[1:])
-      for i in range(z.shape[0]):
-        z[i,1:] = z[i,0]*grad_var + self.y_stds[0]*z[i,1:] + self.y_means[1:] 
-      # untransform energy
-      z[:,0] = z[:,0] * self.y_stds[0] + self.y_means[0]
-
-      return z
-
-  def untransform_grad(self, grad, tasks):
-    """
-    Undo transformation on gradient.
-    """
-    if self.transform_y:
-
-      grad_means = self.y_means[1:]
-      energy_var = self.y_stds[0]        
-      grad_var = 1/energy_var*(self.ydely_means-self.y_means[0]*self.y_means[1:])
-      energy = tasks[:,0]
-      transformed_grad = []
-
-      for i in range(energy.size):
-        Etf = energy[i]
-        grad_Etf = grad[i].flatten()
-        grad_E = Etf*grad_var+energy_var*grad_Etf+grad_means
-        grad_E = np.reshape(grad_E, (-1,3))
-        transformed_grad.append(grad_E)   
-
-      transformed_grad = np.asarray(transformed_grad)
-      return transformed_grad
-
-
 class ClippingTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False,
@@ -398,138 +289,6 @@ class BalancingTransformer(Transformer):
       w_balanced[one_indices, ind] = self.weights[ind][1]
     return (X, y, w_balanced)
 
-class CoulombRandomizationTransformer(Transformer):
-
-  def __init__(self, transform_X=False, transform_y=False,
-               transform_w=False, dataset=None, seed=None):
-    """Iniitialize coulomb matrix randomization transformation. """
-    super(CoulombRandomizationTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y,
-        transform_w=transform_w, dataset=dataset)
-    self.seed = seed
-
-  def construct_cm_from_triu(self, x):
-    """
-    Constructs unpadded coulomb matrix from upper triangular portion.
-    """
-    d = int((np.sqrt(8*len(x)+1)-1)/2)
-    cm = np.zeros([d,d])
-    cm[np.triu_indices_from(cm)] = x
-    for i in range(len(cm)):
-      for j in range(i+1,len(cm)):
-        cm[j,i] = cm[i,j]
-    return cm
-
-  def unpad_randomize_and_flatten(self, cm):
-    """
-    1. Remove zero padding on Coulomb Matrix
-    2. Randomly permute the rows and columns for n_samples
-    3. Flatten each sample to upper triangular portion
-    Returns list of feature vectors
-    """
-    max_atom_number = len(cm) 
-    atom_number = 0
-    for i in cm[0]:
-        if atom_number == max_atom_number: break
-        elif i != 0.: atom_number += 1
-        else: break
-
-    upcm = cm[0:atom_number,0:atom_number]
-
-    row_norms = np.asarray(
-        [np.linalg.norm(row) for row in upcm], dtype=float)
-    rng = np.random.RandomState(self.seed)
-    e = rng.normal(size=row_norms.size)
-    p = np.argsort(row_norms+e)
-    rcm = upcm[p][:,p]
-    rcm = pad_array(rcm, len(cm))
-    rcm = rcm[np.triu_indices_from(rcm)]
-
-    return rcm
-
-  def transform_array(self, X, y, w):
-    """
-    Randomly permute a Coulomb Matrix passed as an array
-    """
-    if self.transform_X:
-      for j in range(len(X)):
-        cm = self.construct_cm_from_triu(X[j])
-        X[j] = self.unpad_randomize_and_flatten(cm)
-
-    if self.transform_y:
-      print("y will not be transformed by CoulombRandomizationTransformer.")
-
-    return X, y, w
-
-  def untransform(self, z):
-    print("Cannot undo CoulombRandomizationTransformer.")
-
-class CoulombBinarizationTransformer(Transformer):
-
-  def __init__(self, transform_X=False, transform_y=False,
-               transform_w=False, dataset=None,
-               theta=1, update_state=True):
-    """Initialize binarization transformation."""
-    super(CoulombBinarizationTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
-    self.theta = theta
-    self.feature_max = np.zeros(dataset.get_data_shape())
-    self.update_state = update_state
-
-  def set_max(self, df, data_dir):
-    
-    for _, row in df.iterrows(): 
-      X = load_from_disk(os.path.join(data_dir, row['X-transformed']))
-      self.feature_max = np.maximum(self.feature_max,X.max(axis=0))
-
-  def transform(self, dataset, parallel=False):
-
-    dataset = super(CoulombBinarizationTransformer, self).transform(dataset,
-          parallel=parallel)
-
-    df = dataset.metadata_df
-    Xt = []
-
-    for _, row in df.iterrows():
-      X_t = load_from_disk(os.path.join(dataset.data_dir, row['X-transformed']))
-      Xt.append(np.array(X_t))
-
-    X = np.vstack(Xt)
-    X_means = X.mean(axis=0)
-    X_stds = (X-X_means).std()
-
-    for i, row in df.iterrows():
-      X_t = (Xt[i]-X_means)/X_stds
-      save_to_disk(X_t, os.path.join(dataset.data_dir, row['X-transformed']))
-    return dataset
-
-  def transform_array(self, X, y, w):
-    """
-    Binarizes data passed as arrays with sigmoid function
-    """
-
-    X_bin = []
-    if self.update_state: 
-      self.set_max(df, data_dir)
-      self.update_state = False
-    if self.transform_X:
-      for i in range(X.shape[1]):
-        for k in np.arange(0,self.feature_max[i]+self.theta,self.theta):
-          X_bin += [np.tanh((X[:,i]-k)/self.theta)]
-
-      X = np.array(X_bin).T
-      X_means = X.mean(axis=0)
-      X_stds = (X-X_means).std()
-      X = (X-X_means)/X_stds
-
-    if self.transform_y:
-      print("y will not be transformed by CoulombBinarizationTransformer.")
-
-    return X, y, w
-
-  def untranform(self, z):
-    print("Cannot undo CoulombBinarizationTransformer.")
-
 class CDFTransformer(Transformer):
   """Histograms the data and assigns values based on sorted list."""
   """Acts like a Cumulative Distribution Function (CDF)."""
@@ -625,81 +384,33 @@ class PowerTransformer(Transformer):
     z = np.power(z, 1/self.powers[0])
     return z
 
-class CoulombRandomizationFitTransformer():
-
-  def __init__(self, seed=None):
-    """Iniitialize coulomb matrix randomization transformation. """
-    self.seed=seed
-
-  def unpad_and_randomize(self, cm):
-    """
-    1. Remove zero padding on Coulomb Matrix
-    2. Randomly permute the rows and columns for n_samples
-    3. Flatten each sample to upper triangular portion
-    Returns list of feature vectors
-    """
-    max_atom_number = len(cm) 
-    atom_number = 0
-    for i in cm[0]:
-        if atom_number == max_atom_number: break
-        elif i != 0.: atom_number += 1
-        else: break
-
-    upcm = cm[0:atom_number,0:atom_number]
-
-    row_norms = np.asarray(
-        [np.linalg.norm(row) for row in upcm], dtype=float)
-    rng = np.random.RandomState(self.seed)
-    e = rng.normal(size=row_norms.size)
-    p = np.argsort(row_norms+e)
-    rcm = upcm[p][:,p]
-    rcm = pad_array(rcm, len(cm))
-    rcm = rcm[np.triu_indices_from(rcm)]
-    return rcm
-
-  def X_transform(self, X):
-    batch_size = X.shape[0]
-    X_t = []
-    for i in range(batch_size):
-      X_t.append(self.unpad_and_randomize(X[i]))
-    X_t = np.array(X_t)
-    return X_t
-
-  def transform(self, dataset):
-    raise NotImplementedError(
-      "Cannot transform datasets with FitTransformer")
-
-  def untransform(self, z):
-    raise NotImplementedError(
-      "Cannot untransform datasets with FitTransformer.")
-
-class NormalizationFitTransformer():
-
-  def normalize(self, X):
-    """Normalize features. """
-    X_means = X.mean(axis=0)
-    X_stds = (X-X_means).std()
-    return (X-X_means)/X_stds   
-
-  def X_transform(self, X):
-    batch_size = X.shape[0]
-    X_t = []
-    for i in range(batch_size):
-      X_t.append(self.normalize(X[i]))
-    X_t = np.array(X_t)
-    return X_t
-
-  def transform(self, dataset):
-    raise NotImplementedError(
-      "Cannot transform datasets with FitTransformer")
-
-  def untransform(self, z):
-    raise NotImplementedError(
-      "Cannot untransform datasets with FitTransformer.")
-
 class CoulombFitTransformer():
+  """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
+  def __init__(self, dataset):
 
-  def __init__(self, X, num_atoms=23):
+    """Initializes CoulombFitTransformer.
+    Parameters:
+    ----------
+    dataset: dc.data.Dataset object
+
+    Example:
+
+    >>> n_samples = 10
+    >>> n_features = 3
+    >>> n_tasks = 1
+    >>> ids = np.arange(n_samples)
+    >>> X = np.random.rand((n_samples, n_features, n_features))
+    >>> y = np.zeros((n_samples, n_tasks))
+    >>> w = np.ones((n_samples, n_tasks))
+    >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+    >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
+    >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+           n_tasks, [n_features, n_features], batch_size=n_samples,
+           fit_transformers=fit_transformers, n_evals=1)
+
+    """
+    X = dataset.X
+    num_atoms = X.shape[1]
     self.step = 1.0
     self.noise = 1.0
     self.triuind = (np.arange(num_atoms)[:,np.newaxis] <= np.arange(num_atoms)[np.newaxis,:]).flatten()

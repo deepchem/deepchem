@@ -13,6 +13,4 @@ from deepchem.trans.transformers import NormalizationTransformer
 from deepchem.trans.transformers import BalancingTransformer
 from deepchem.trans.transformers import CDFTransformer
 from deepchem.trans.transformers import PowerTransformer
-from deepchem.trans.transformers import CoulombRandomizationFitTransformer
-from deepchem.trans.transformers import NormalizationFitTransformer
 from deepchem.trans.transformers import CoulombFitTransformer
