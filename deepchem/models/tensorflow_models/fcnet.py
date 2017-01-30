@@ -214,7 +214,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
 	       layer_sizes=layer_sizes, weight_init_stddevs=weight_init_stddevs, 
 	       bias_init_consts=bias_init_consts, penalty=penalty, 
 	       penalty_type=penalty_type, dropouts=dropouts, 
-	       learning_rate=self.learning_rate, momentum=momentum, optimizer=optimizer, 
+	       learning_rate=learning_rate, momentum=momentum, optimizer=optimizer, 
 	       batch_size=batch_size, n_classes=n_classes, pad_batches=False, verbose=verbose, seed=seed, 
 	       **kwargs)
 

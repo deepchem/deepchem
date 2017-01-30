@@ -21,15 +21,15 @@ fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset.X, num_atoms)]
 regression_metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, 
                                       mode="regression"), dc.metrics.Metric(dc.metrics.pearson_r2_score,
 				      mode="regression")]
-model = dc.models.TensorflowCoulombMatrixRegressor(
+model = dc.models.TensorflowMultiTaskFitTransformRegressor(
     n_tasks=1, n_features=23,
-    learning_rate={0: 0.001, 500: 0.0025, 2500: 0.005, 12500: 0.01} , momentum=.8, batch_size=25,
+    learning_rate=0.001 , momentum=.8, batch_size=25,
     weight_init_stddevs=[1/np.sqrt(400),1/np.sqrt(100),1/np.sqrt(100)],
     bias_init_consts=[0.,0.,0.], layer_sizes=[400,100,100], 
     dropouts=[0.01,0.01,0.01], fit_transformers=fit_transformers, n_evals=10, seed=123)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=5)
 model.save()
 
 train_scores = model.evaluate(train_dataset, regression_metric, transformers)
