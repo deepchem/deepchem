@@ -26,15 +26,27 @@ class CoulombMatrix(Featurizer):
   max_atoms : int
       Maximum number of atoms for any molecule in the dataset. Used to
       pad the Coulomb matrix.
-  remove_hydrogens : bool, optional (default True)
+  remove_hydrogens : bool, optional (default False)
       Whether to remove hydrogens before constructing Coulomb matrix.
-  randomize : bool, optional (default True)
+  randomize : bool, optional (default False)
       Whether to randomize Coulomb matrices to remove dependence on atom
       index order.
+  upper_tri : bool, optional (default False)
+      Whether to return the upper triangular portion of the Coulomb matrix.
   n_samples : int, optional (default 1)
       Number of random Coulomb matrices to generate if randomize is True.
   seed : int, optional
       Random seed.
+
+  Example:
+
+  >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
+  >>> input_file = "input.sdf"
+  >>> tasks = ["task0"]
+  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol", 
+                                      featurizer=featurizers)
+  >>> dataset = featurizer.featurize(input_file)
+
   """
   conformers = True
   name = 'coulomb_matrix'
@@ -176,6 +188,16 @@ class CoulombMatrixEig(CoulombMatrix):
       Number of random Coulomb matrices to generate if randomize is True.
   seed : int, optional
       Random seed.
+
+  Example:
+
+  >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
+  >>> input_file = "input.sdf"
+  >>> tasks = ["task0"]
+  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol", 
+                                      featurizer=featurizers)
+  >>> dataset = featurizer.featurize(input_file)
+
   """
 
   conformers = True

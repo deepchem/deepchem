@@ -28,14 +28,31 @@ class TestCoulombMatrix(unittest.TestCase):
         """
         Test CoulombMatrix.
         """
+        f = cm.CoulombMatrix(self.mol.GetNumAtoms())
+        rval = f([self.mol])
+        assert rval.shape == (1, self.mol.GetNumConformers(), self.mol.GetNumAtoms(), self.mol.GetNumAtoms())
+
+    def test_coulomb_matrix_padding(self):
+        """
+        Test CoulombMatrix with padding.
+        """
+        max_atoms = self.mol.GetNumAtoms() * 2
+        f = cm.CoulombMatrix(max_atoms=max_atoms)
+        rval = f([self.mol])
+        assert rval.shape == (1, self.mol.GetNumConformers(), max_atoms, max_atoms)
+
+    def test_upper_tri_coulomb_matrix(self):
+        """
+        Test upper triangular CoulombMatrix.
+        """
         f = cm.CoulombMatrix(self.mol.GetNumAtoms(), upper_tri=True)
         rval = f([self.mol])
         size = np.triu_indices(self.mol.GetNumAtoms())[0].size
         assert rval.shape == (1, self.mol.GetNumConformers(), size)
 
-    def test_coulomb_matrix_padding(self):
+    def test_upper_tri_coulomb_matrix_padding(self):
         """
-        Test CoulombMatrix with padding.
+        Test upper triangular CoulombMatrix with padding.
         """
         f = cm.CoulombMatrix(max_atoms=self.mol.GetNumAtoms() * 2, upper_tri=True)
         rval = f([self.mol])
