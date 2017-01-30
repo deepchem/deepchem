@@ -190,13 +190,74 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
     return TensorflowGraph.get_feed_dict(orig_dict)
 
 class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
-  """Implements a TensorflowMultiTaskRegressor that performs on-the-fly transformation during fit/predict"""
+  """Implements a TensorflowMultiTaskRegressor that performs on-the-fly transformation during fit/predict
+
+  Example:
+
+  >>> n_samples = 10
+  >>> n_features = 3
+  >>> n_tasks = 1
+  >>> ids = np.arange(n_samples)
+  >>> X = np.random.rand(n_samples, n_features, n_features)
+  >>> y = np.zeros((n_samples, n_tasks))
+  >>> w = np.ones((n_samples, n_tasks))
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+  >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset.X, n_features)]
+  >>> regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+  >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+  >>>     n_tasks, [n_features, n_features], dropouts=[0.],
+  >>>     learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+  >>>     batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
+
+  """
 
   def __init__(self, n_tasks, n_features, logdir=None, layer_sizes=[1000],
                weight_init_stddevs=[.02], bias_init_consts=[1.], penalty=0.0,
                penalty_type="l2", dropouts=[0.5], learning_rate=0.002,
-               momentum=.8, optimizer="adam", batch_size=50, n_classes=2,
+               momentum=.8, optimizer="adam", batch_size=50,
                fit_transformers=[], n_evals=1, verbose=True, seed=None, **kwargs):
+
+    """Initialize TensorflowMultiTaskFitTransformRegressor
+       
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_features: int
+      Number of features.
+    logdir: str
+      Location to save data
+    layer_sizes: list
+      List of layer sizes.
+    weight_init_stddevs: list
+      List of standard deviations for weights (sampled from zero-mean
+      gaussians). One for each layer.
+    bias_init_consts: list
+      List of bias initializations. One for each layer.
+    penalty: float
+      Amount of penalty (l2 or l1 applied)
+    penalty_type: str
+      Either "l2" or "l1"
+    dropouts: list
+      List of dropout amounts. One for each layer.
+    learning_rate: float
+      Learning rate for model.
+    momentum: float
+      Momentum. Only applied if optimizer=="momentum"
+    optimizer: str
+      Type of optimizer applied.
+    batch_size: int
+      Size of minibatches for training.
+    fit_transformers: list
+      List of dc.trans.FitTransformer objects
+    n_evals: int
+      Number of evalations per example at predict time
+    verbose: True 
+      Perform logging.
+    seed: int
+      If not none, is used as random seed for tensorflow.        
+
+    """
 
     self.fit_transformers = fit_transformers
     self.n_evals = n_evals
@@ -219,12 +280,12 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
 	       layer_sizes=layer_sizes, weight_init_stddevs=weight_init_stddevs, 
 	       bias_init_consts=bias_init_consts, penalty=penalty, 
 	       penalty_type=penalty_type, dropouts=dropouts, 
-	       learning_rate=self.learning_rate, momentum=momentum, optimizer=optimizer, 
-	       batch_size=batch_size, n_classes=n_classes, pad_batches=False, verbose=verbose, seed=seed, 
+	       learning_rate=learning_rate, momentum=momentum, optimizer=optimizer, 
+	       batch_size=batch_size, pad_batches=False, verbose=verbose, seed=seed, 
 	       **kwargs)
 
   def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
-    """Fit the model.
+    """Perform fit transformations on each minibatch. Fit the model.
 
     Parameters
     ---------- 
@@ -238,10 +299,6 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       Report every N batches. Useful for training on very large datasets,
       where epochs can take long time to finish.
 
-    Raises
-    ------
-    AssertionError
-      If model is not in training mode.
     """
     ############################################################## TIMING
     time1 = time.time()
@@ -286,7 +343,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
     ############################################################## TIMING
 
   def predict_on_batch(self, X):
-    """Return model output for the provided input.
+    """Return model output for the provided input. Each example is evaluated
+        self.n_evals times.
 
     Restore(checkpoint) must have previously been called on this object.
 
