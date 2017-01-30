@@ -494,8 +494,34 @@ class PowerTransformer(Transformer):
     return z
 
 class CoulombFitTransformer():
+  """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
+  def __init__(self, dataset):
 
-  def __init__(self, X, num_atoms=23):
+    """Initializes CoulombFitTransformer.
+
+    Parameters:
+    ----------
+    dataset: dc.data.Dataset object
+
+    Example:
+
+    >>> n_samples = 10
+    >>> n_features = 3
+    >>> n_tasks = 1
+    >>> ids = np.arange(n_samples)
+    >>> X = np.random.rand((n_samples, n_features, n_features))
+    >>> y = np.zeros((n_samples, n_tasks))
+    >>> w = np.ones((n_samples, n_tasks))
+    >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+    >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
+    >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+           n_tasks, [n_features, n_features], batch_size=n_samples,
+           fit_transformers=fit_transformers, n_evals=1)
+
+    """
+
+    X = dataset.X
+    num_atoms = X.shape[1]
     self.step = 1.0
     self.noise = 1.0
     self.triuind = (np.arange(num_atoms)[:,np.newaxis] <= np.arange(num_atoms)[np.newaxis,:]).flatten()

@@ -181,9 +181,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    fit_transformers = [dc.trans.CoulombFitTransformer(dataset.X, n_features)]
+    fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    # TODO(rbharath): This breaks with optimizer="momentum". Why?
     model = dc.models.TensorflowMultiTaskFitTransformRegressor(
         n_tasks, [n_features, n_features], dropouts=[0.],
         learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
