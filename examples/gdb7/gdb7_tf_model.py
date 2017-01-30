@@ -8,30 +8,36 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 import numpy as np
-from gdb7_datasets import load_gdb7
+from gdb7_datasets import load_gdb7_from_mat
 
 np.random.seed(123)
+split = 0
+num_atoms = 23
 
-gdb7_tasks, datasets, transformers = load_gdb7()
-train_dataset, valid_dataset, test_dataset = datasets
+base_dir = os.getcwd()
+model_dir = os.path.join(base_dir, "model")
 
-regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, 
-                                      mode="regression")
-model = dc.models.TensorflowMultiTaskRegressor(
-    n_tasks=len(gdb7_tasks), n_features=23,
-    learning_rate=.0002, momentum=.8, batch_size=512,
-    weight_init_stddevs=[1/np.sqrt(2000),1/np.sqrt(800),1/np.sqrt(800),1/np.sqrt(1000)],
-    bias_init_consts=[0.,0.,0.,0.], layer_sizes=[2000,800,800,1000], 
-    dropouts=[0.1,0.1,0.1,0.1], seed=123)
+gdb7_tasks, datasets, transformers = load_gdb7_from_mat(split)
+train_dataset, test_dataset = datasets
+
+fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset)]
+regression_metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"), 
+                     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
+model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+    n_tasks=1, n_features=[num_atoms, num_atoms], logdir=model_dir,
+    learning_rate=0.002 , momentum=.8, batch_size=25,
+    weight_init_stddevs=[1/np.sqrt(400),1/np.sqrt(100),1/np.sqrt(100)],
+    bias_init_consts=[0.,0.,0.], layer_sizes=[400,100,100], 
+    dropouts=[0.1,0.1,0.1], fit_transformers=fit_transformers, n_evals=10, seed=123)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=5)
 model.save()
 
-train_scores = model.evaluate(train_dataset, [regression_metric], transformers)
+train_scores = model.evaluate(train_dataset, regression_metric, transformers)
 print("Train scores [kcal/mol]")
 print(train_scores)
 
-valid_scores = model.evaluate(valid_dataset, [regression_metric], transformers)
-print("Validation scores [kcal/mol]")
-print(valid_scores)
+test_scores = model.evaluate(test_dataset, regression_metric, transformers)
+print("Test scores [kcal/mol]")
+print(test_scores)

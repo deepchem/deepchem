@@ -167,6 +167,36 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  def test_tf_fittransform_regression_overfit(self):
+    """Test that TensorFlow FitTransform models can overfit simple regression datasets."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+    
+    # Generate dummy dataset
+    np.random.seed(123)
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+
+    fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+    model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+        n_tasks, [n_features, n_features], dropouts=[0.],
+        learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+        batch_size=n_samples, fit_transformers=fit_transformers, n_evals=1)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=100)
+    model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] < .1
+
+
   def test_tf_skewed_classification_overfit(self):
     """Test tensorflow models can overfit 0/1 datasets with few actives."""
     #n_samples = 100
