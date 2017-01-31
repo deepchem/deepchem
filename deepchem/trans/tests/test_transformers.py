@@ -344,3 +344,17 @@ class TestTransformers(unittest.TestCase):
       # Check that sum of 0s equals sum of 1s in transformed for each task
       assert np.isclose(np.sum(w_task[y_task == 0]),
                         np.sum(w_task[y_task == 1]))
+
+  def test_coulomb_fit_transformer(self):
+    """Test coulomb fit transformer on singletask dataset."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+    fit_transformer = dc.trans.CoulombFitTransformer(dataset)
+    X_t = fit_transformer.X_transform(dataset.X)
+    assert len(X_t.shape) == 2
