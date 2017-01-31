@@ -17,7 +17,7 @@ def load_gdb7_from_mat(split=0):
   if not os.path.exists('qm7.mat'): os.system('wget http://www.quantum-machine.org/data/qm7.mat')
   dataset = scipy.io.loadmat('qm7.mat')
   
-  P = dataset['P'][range(0,split)+range(split+1,5)].flatten()
+  P = dataset['P'][list(range(0,split))+list(range(split+1,5))].flatten()
   X = dataset['X'][P]
   y = dataset['T'][0,P]
   w = np.ones_like(y)
@@ -43,13 +43,25 @@ def load_gdb7(featurizer=None, split='random'):
   # Featurize gdb7 dataset
   print("About to featurize gdb7 dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  dataset_file = os.path.join(
-      current_dir, "./gdb7.sdf")
   gdb7_tasks = ["u0_atom"]
-  if featurizer is None:
-    featurizer = dc.feat.CoulombMatrixEig(23)
-  loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_field="smiles", 
-                             mol_field="mol", featurizer=featurizer)
+  if featurizer == None:
+    dataset_file = os.path.join(
+        current_dir, "./gdb7.sdf")
+    featurizer = dc.feat.CoulombMatrix(23)
+    loader = dc.data.SDFLoader(tasks=gdb7_tasks, 
+        mol_field="mol", smiles_field="smiles", featurizer=featurizer)
+  elif featurizer == 'ECFP':
+    dataset_file = os.path.join(
+      current_dir, "./gdb7_smiles_withoutH.csv")
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+    loader = dc.data.CSVLoader(
+        tasks=gdb7_tasks, smiles_field="smiles", featurizer=featurizer)
+  elif featurizer == 'GraphConv':
+    dataset_file = os.path.join(
+      current_dir, "./gdb7_smiles_withoutH.csv")
+    featurizer = dc.feat.ConvMolFeaturizer()
+    loader = dc.data.CSVLoader(tasks=gdb7_tasks, smiles_field="smiles", 
+                             featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
  
   # Initialize transformers 
@@ -67,7 +79,7 @@ def load_gdb7(featurizer=None, split='random'):
   with open(split_file, 'r') as f:
     reader = csv.reader(f)
     for row in reader:
-      row_int = (np.asarray(list(map(int, row)))-1).tolist()
+      row_int = (np.asarray(list(map(int, row)))).tolist()
       split_indices.append(row_int)
   
   
