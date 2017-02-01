@@ -46,9 +46,9 @@ def load_gdb7(featurizer=None, split='random'):
   dataset_file = os.path.join(
       current_dir, "./gdb7.sdf")
   gdb7_tasks = ["u0_atom"]
-  if featurizer == None:
-    featurizer = dc.feat.CoulombMatrix(23)
-  loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_filed="smiles",
+  if featurizer is None:
+    featurizer = dc.feat.CoulombMatrixEig(23)
+  loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_filed="smiles", 
                              mol_field="mol", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
  
