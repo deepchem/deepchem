@@ -9,14 +9,14 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
-from SAMPL_datasets import load_SAMPL
+from sampl_datasets import load_sampl
 
 # Only for debug!
 np.random.seed(123)
 
 # Load SAMPL dataset
 n_features = 1024
-SAMPL_tasks, SAMPL_datasets, transformers = load_SAMPL()
+SAMPL_tasks, SAMPL_datasets, transformers = load_sampl()
 train_dataset, valid_dataset, test_dataset = SAMPL_datasets
 
 # Fit models

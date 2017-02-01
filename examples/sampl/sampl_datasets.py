@@ -10,14 +10,14 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_SAMPL(featurizer='ECFP', split='index'):
+def load_sampl(featurizer='ECFP', split='index'):
   """Load SAMPL datasets."""
   # Featurize SAMPL dataset
   print("About to featurize SAMPL dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
       current_dir, "./SAMPL.csv")
-  SAMPL_tasks = ['expt', 'calc']
+  SAMPL_tasks = ['expt']
   if featurizer == 'ECFP':
     featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':

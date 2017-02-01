@@ -245,12 +245,18 @@ Scaffold splitting
 
 |Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
 |----------------|--------------------|------------|--------------|--------------|
-|delaney         |MT-NN regression    |Index       |0.773         |0.574         |
-|                |graphconv regression|Index       |0.991         |0.825         |
-|                |MT-NN regression    |Random      |0.769         |0.591         |
-|                |graphconv regression|Random      |0.996         |0.873         |
-|                |MT-NN regression    |Scaffold    |0.782         |0.426         |
-|                |graphconv regression|Scaffold    |0.994         |0.606         |
+|delaney         |MT-NN regression    |Index       |0.868         |0.578         |
+|                |graphconv regression|Index       |0.967         |0.790         |
+|                |MT-NN regression    |Random      |0.865         |0.574         |
+|                |graphconv regression|Random      |0.964         |0.782         |
+|                |MT-NN regression    |Scaffold    |0.866         |0.342         |
+|                |graphconv regression|Scaffold    |0.967         |0.606         |
+|sampl           |MT-NN regression    |Index       |0.917         |0.764         |
+|                |graphconv regression|Index       |0.982         |0.864         |
+|                |MT-NN regression    |Random      |0.908         |0.830         |
+|                |graphconv regression|Random      |0.987         |0.868         |
+|                |MT-NN regression    |Scaffold    |0.891         |0.217         |
+|                |graphconv regression|Scaffold    |0.985         |0.666         |
 |nci             |MT-NN regression    |Index       |0.171         |0.062         |
 |                |graphconv regression|Index       |0.123         |0.048         |
 |                |MT-NN regression    |Random      |0.168         |0.085         |
@@ -286,6 +292,7 @@ Number of tasks and examples in the datasets
 |sider           |27         |1427       |
 |toxcast         |617        |8615       |
 |delaney         |1          |1128       |
+|sampl           |1          |643        |
 |kaggle          |15         |173065     |
 |nci             |60         |19127      |
 |pdbbind(core)   |1          |195        |
@@ -321,6 +328,8 @@ Time needed for benchmark test(~20h in total)
 |                |robust MT-NN        |80              |4000           |
 |                |graph convolution   |80              |900            |
 |delaney         |MT-NN regression    |10              |40             |
+|                |graphconv regression|10              |40             |
+|sampl           |MT-NN regression    |10              |30             |
 |                |graphconv regression|10              |40             |
 |nci             |MT-NN regression    |400             |1200           |
 |                |graphconv regression|400             |2500           |

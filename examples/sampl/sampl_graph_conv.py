@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 import deepchem as dc
 from keras import backend as K
-from SAMPL_datasets import load_SAMPL
+from sampl_datasets import load_sampl
 
 # Only for debug!
 np.random.seed(123)
@@ -21,7 +21,7 @@ K.set_session(sess)
 with g.as_default():
   # Load Tox21 dataset
   tf.set_random_seed(123)
-  SAMPL_tasks, SAMPL_datasets, transformers = load_SAMPL(featurizer='GraphConv')
+  SAMPL_tasks, SAMPL_datasets, transformers = load_sampl(featurizer='GraphConv')
   train_dataset, valid_dataset, test_dataset = SAMPL_datasets
 
   # Fit models
