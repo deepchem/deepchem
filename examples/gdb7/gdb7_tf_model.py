@@ -9,17 +9,13 @@ import os
 import deepchem as dc
 import numpy as np
 from gdb7_datasets import load_gdb7_from_mat
-from gdb7_datasets import load_gdb7
 
 np.random.seed(123)
 split = 0
 num_atoms = 23
 
-#gdb7_tasks, datasets, transformers = load_gdb7_from_mat(split)
-#train_dataset, test_dataset = datasets
-
-gdb7_tasks, datasets, transformers = load_gdb7(split='indice')
-train_dataset, test_dataset, _ = datasets
+gdb7_tasks, datasets, transformers = load_gdb7_from_mat(split)
+train_dataset, test_dataset = datasets
 
 fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset)]
 regression_metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"), 

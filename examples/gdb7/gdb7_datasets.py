@@ -43,25 +43,13 @@ def load_gdb7(featurizer=None, split='random'):
   # Featurize gdb7 dataset
   print("About to featurize gdb7 dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "./gdb7.sdf")
   gdb7_tasks = ["u0_atom"]
   if featurizer == None:
-    dataset_file = os.path.join(
-        current_dir, "./gdb7.sdf")
     featurizer = dc.feat.CoulombMatrix(23)
-    loader = dc.data.SDFLoader(tasks=gdb7_tasks, 
-        mol_field="mol", smiles_field="smiles", featurizer=featurizer)
-  elif featurizer == 'ECFP':
-    dataset_file = os.path.join(
-      current_dir, "./gdb7_smiles_withoutH.csv")
-    featurizer = dc.feat.CircularFingerprint(size=1024)
-    loader = dc.data.CSVLoader(
-        tasks=gdb7_tasks, smiles_field="smiles", featurizer=featurizer)
-  elif featurizer == 'GraphConv':
-    dataset_file = os.path.join(
-      current_dir, "./gdb7_smiles_withoutH.csv")
-    featurizer = dc.feat.ConvMolFeaturizer()
-    loader = dc.data.CSVLoader(tasks=gdb7_tasks, smiles_field="smiles", 
-                             featurizer=featurizer)
+  loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_filed="smiles",
+                             mol_field="mol", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
  
   # Initialize transformers 
