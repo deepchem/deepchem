@@ -157,19 +157,73 @@ class NormalizationTransformer(Transformer):
       return transformed_grad
 
 class ClippingTransformer(Transformer):
+  """Clip large values in datasets.     
+
+     Example:
+
+     >>> n_samples = 10
+     >>> n_features = 3
+     >>> n_tasks = 1
+     >>> ids = np.arange(n_samples)
+     >>> X = np.random.rand((n_samples, n_features))
+     >>> y = np.zeros((n_samples, n_tasks))
+     >>> w = np.ones((n_samples, n_tasks))
+     >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+     >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
+     >>> dataset = transformer.transform(dataset)
+  
+  """
 
   def __init__(self, transform_X=False, transform_y=False,
                transform_w=False, dataset=None, x_max=5., y_max=500.):
-    """Initialize clipping transformation."""
+    """Initialize clipping transformation.
+
+    Parameters:
+    ----------
+    transform_X: bool, optional (default False)
+      Whether to transform X
+    transform_y: bool, optional (default False)
+      Whether to transform y
+    transform_w: bool, optional (default False)
+      Whether to transform w
+    dataset: dc.data.Dataset object, optional
+      Dataset to be transformed
+    x_max: float, optional
+      Maximum absolute value for X
+    y_max: float, optional
+      Maximum absolute value for y
+
+    """
     super(ClippingTransformer, self).__init__(transform_X=transform_X,
                                               transform_y=transform_y,
                                               transform_w=transform_w,
                                               dataset=dataset)
+    assert not transform_w
     self.x_max = x_max
     self.y_max = y_max
 
   def transform_array(self, X, y, w):
-    """Transform the data in a set of (X, y, w) arrays."""
+    """Transform the data in a set of (X, y, w) arrays.
+
+    Parameters:
+    ----------
+    X: np.ndarray
+      Features
+    y: np.ndarray
+      Tasks
+    w: np.ndarray
+      Weights
+
+    Returns:
+    -------
+    X: np.ndarray
+      Transformed features
+    y: np.ndarray
+      Transformed tasks
+    w: np.ndarray
+      Transformed weights
+
+    """
     if self.transform_X:
       X[X > self.x_max] = self.x_max
       X[X < (-1.0*self.x_max)] = -1.0 * self.x_max
@@ -386,28 +440,31 @@ class PowerTransformer(Transformer):
     return z
 
 class CoulombFitTransformer():
-  """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
+  """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit.
+
+     Example:
+
+     >>> n_samples = 10
+     >>> n_features = 3
+     >>> n_tasks = 1
+     >>> ids = np.arange(n_samples)
+     >>> X = np.random.rand((n_samples, n_features, n_features))
+     >>> y = np.zeros((n_samples, n_tasks))
+     >>> w = np.ones((n_samples, n_tasks))
+     >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+     >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
+     >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+            n_tasks, [n_features, n_features], batch_size=n_samples,
+            fit_transformers=fit_transformers, n_evals=1)
+  """
+
   def __init__(self, dataset):
 
     """Initializes CoulombFitTransformer.
+
     Parameters:
     ----------
     dataset: dc.data.Dataset object
-
-    Example:
-
-    >>> n_samples = 10
-    >>> n_features = 3
-    >>> n_tasks = 1
-    >>> ids = np.arange(n_samples)
-    >>> X = np.random.rand((n_samples, n_features, n_features))
-    >>> y = np.zeros((n_samples, n_tasks))
-    >>> w = np.ones((n_samples, n_tasks))
-    >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-    >>> fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
-    >>> model = dc.models.TensorflowMultiTaskFitTransformRegressor(
-           n_tasks, [n_features, n_features], batch_size=n_samples,
-           fit_transformers=fit_transformers, n_evals=1)
 
     """
     X = dataset.X
@@ -423,7 +480,20 @@ class CoulombFitTransformer():
     self.std = (X - self.mean).std()
 
   def realize(self, X):
-    """Randomize features. """
+    """Randomize features.
+
+    Parameters:
+    ----------
+    X: np.ndarray
+      Features
+
+    Returns:
+    -------
+    X: np.ndarray
+      Randomized features
+
+
+    """
     def _realize_(x):
       inds = np.argsort(-(x**2).sum(axis=0)**.5+np.random.normal(0,self.noise,x[0].shape))
       x = x[inds,:][:,inds]*1
@@ -432,11 +502,35 @@ class CoulombFitTransformer():
     return np.array([_realize_(z) for z in X])
 
   def normalize(self, X):
-    """Normalize features. """
+    """Normalize features. 
+
+    Parameters:
+    ----------
+    X: np.ndarray
+      Features
+
+    Returns:
+    -------
+    X: np.ndarray
+      Normalized features
+
+    """
     return (X-self.mean)/self.std
 
   def expand(self, X):
-    """Binarize features. """
+    """Binarize features. 
+
+    Parameters:
+    ----------
+    X: np.ndarray
+      Features
+
+    Returns:
+    -------
+    X: np.ndarray
+      Binarized features
+
+    """
     Xexp = []
     for i in range(X.shape[1]):
       for k in np.arange(0,self.max[i]+self.step,self.step):
@@ -444,6 +538,20 @@ class CoulombFitTransformer():
     return np.array(Xexp).T
       
   def X_transform(self, X):
+    """Perform Coulomb Fit transform on features.
+
+    Parameters:
+    ----------
+    X: np.ndarray
+      Features
+
+    Returns:
+    -------
+    X: np.ndarray
+      Transformed features
+
+    """
+
     X = self.normalize(self.expand(self.realize(X)))
     return X
 
