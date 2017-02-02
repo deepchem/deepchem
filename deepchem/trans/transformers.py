@@ -159,27 +159,28 @@ class NormalizationTransformer(Transformer):
 class ClippingTransformer(Transformer):
 
   def __init__(self, transform_X=False, transform_y=False,
-               transform_w=False, dataset=None, max_val=5.):
+               transform_w=False, dataset=None, x_max=5., y_max=500.):
     """Initialize clipping transformation."""
     super(ClippingTransformer, self).__init__(transform_X=transform_X,
                                               transform_y=transform_y,
                                               transform_w=transform_w,
                                               dataset=dataset)
-    self.max_val = max_val
+    self.x_max = x_max
+    self.y_max = y_max
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     if self.transform_X:
-      X[X > self.max_val] = self.max_val
-      X[X < (-1.0*self.max_val)] = -1.0 * self.max_val
+      X[X > self.x_max] = self.x_max
+      X[X < (-1.0*self.x_max)] = -1.0 * self.x_max
     if self.transform_y:
-      y[y > trunc] = trunc
-      y[y < (-1.0*trunc)] = -1.0 * trunc
+      y[y > self.y_max] = self.y_max
+      y[y < (-1.0*self.y_max)] = -1.0 * self.y_max
     return (X, y, w)
 
   def untransform(self, z):
-    warnings.warn("Clipping cannot be undone.")
-    return z
+    raise NotImplementedError(
+      "Cannot untransform datasets with ClippingTransformer.")
 
 class LogTransformer(Transformer):
 
