@@ -351,20 +351,18 @@ class IndiceSplitter(Splitter):
     """
     num_datapoints = len(dataset)
     indices = np.arange(num_datapoints).tolist()
+    train_indices = []
     if self.valid_indices is None:
       self.valid_indices = []
-    else:
-      for indice in indices:
-        if indice in self.valid_indices:
-          indices.remove(indice)
     if self.test_indices is None:
       self.test_indices = []
-    else:
-      for indice in indices:
-        if indice in self.valid_indices:
-          indices.remove(indice)
-
-    return (indices, self.valid_indices, self.test_indices)
+    valid_test = self.valid_indices
+    valid_test.extend(self.test_indices)
+    for indice in indices:
+      if not indice in valid_test:
+        train_indices.append(indice)
+    
+    return (train_indices, self.valid_indices, self.test_indices)
 
 
 class ScaffoldSplitter(Splitter):

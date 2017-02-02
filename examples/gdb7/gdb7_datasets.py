@@ -17,7 +17,7 @@ def load_gdb7_from_mat(split=0):
   if not os.path.exists('qm7.mat'): os.system('wget http://www.quantum-machine.org/data/qm7.mat')
   dataset = scipy.io.loadmat('qm7.mat')
   
-  P = dataset['P'][range(0,split)+range(split+1,5)].flatten()
+  P = dataset['P'][list(range(0,split))+list(range(split+1,5))].flatten()
   X = dataset['X'][P]
   y = dataset['T'][0,P]
   w = np.ones_like(y)
@@ -67,7 +67,7 @@ def load_gdb7(featurizer=None, split='random'):
   with open(split_file, 'r') as f:
     reader = csv.reader(f)
     for row in reader:
-      row_int = (np.asarray(list(map(int, row)))-1).tolist()
+      row_int = (np.asarray(list(map(int, row)))).tolist()
       split_indices.append(row_int)
   
   

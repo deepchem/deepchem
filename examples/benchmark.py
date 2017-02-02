@@ -52,6 +52,7 @@ from nci.nci_datasets import load_nci
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
 from chembl.chembl_datasets import load_chembl
 from gdb7.gdb7_datasets import load_gdb7
+from sampl.sampl_datasets import load_sampl
 
 def benchmark_loading_datasets(hyper_parameters, 
                                dataset='tox21', model='tf', split=None,
@@ -77,7 +78,8 @@ def benchmark_loading_datasets(hyper_parameters,
   
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'gdb7']:
+  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 
+                   'gdb7', 'sampl']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
@@ -130,7 +132,8 @@ def benchmark_loading_datasets(hyper_parameters,
                        'sider': load_sider, 'toxcast': load_toxcast,
                        'kaggle': load_kaggle, 'delaney': load_delaney,
                        'pdbbind': load_pdbbind_grid,
-                       'chembl': load_chembl, 'gdb7': load_gdb7}
+                       'chembl': load_chembl, 'gdb7': load_gdb7,
+                       'sampl': load_sampl}
   
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
@@ -163,8 +166,6 @@ def benchmark_loading_datasets(hyper_parameters,
           model=model)      
     elif mode == 'regression':
       metric = 'r2'
-      if dataset in ['gdb7']:
-        metric = 'mae'
       train_score, valid_score = benchmark_regression(
           train_dataset, valid_dataset, tasks, 
           transformers, hp, n_features, metric=metric,
@@ -594,7 +595,7 @@ if __name__ == '__main__':
                            'dropouts': [0.25, 0.25], 
                            'penalty': 0.0005, 'penalty_type': 'l2', 
                            'batch_size': 128, 'nb_epoch': 50, 
-                           'learning_rate': 0.00008}]
+                           'learning_rate': 0.0008}]
   
   hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 20, 
                           'learning_rate': 0.0005, 'n_filters': 128, 
