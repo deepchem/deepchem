@@ -623,7 +623,12 @@ class DiskDataset(Dataset):
         for (X_shard, y_shard, w_shard, ids_shard) in dataset.itershards():
             n_samples = X_shard.shape[0]
             for i in range(n_samples):
-                yield (X_shard[i], y_shard[i], w_shard[i], ids_shard[i])
+                def sanitize(elem):
+                  if elem is None:
+                    return None
+                  else:
+                    return elem[i]
+                yield map(sanitize, [X_shard, y_shard, w_shard, ids_shard])
     return iterate(self)
 
   def transform(self, fn, **args):

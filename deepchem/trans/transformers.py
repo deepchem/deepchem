@@ -79,6 +79,11 @@ class Transformer(object):
     Transforms all internally stored data.
     Adds X-transform, y-transform columns to metadata.
     """
+    _, y_shape, w_shape, _ = dataset.get_shape()
+    if y_shape == tuple() and self.transform_y:
+      raise ValueError("Cannot transform y when y_values are not present")
+    if w_shape == tuple() and self.transform_w:
+      raise ValueError("Cannot transform w when w_values are not present")
     return dataset.transform(lambda X, y, w: self.transform_array(X, y, w))
 
   def transform_on_array(self, X, y, w):

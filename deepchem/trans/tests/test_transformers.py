@@ -49,6 +49,20 @@ class TestTransformers(unittest.TestCase):
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
 
+  def test_transform_unlabelled(self):
+    ul_dataset = dc.data.tests.load_unlabelled_data()
+    # transforming y should raise an exception
+    with self.assertRaises(ValueError) as context:
+        dc.trans.transformers.Transformer(transform_y=True).transform(ul_dataset)
+
+
+    # transforming w should raise an exception
+    with self.assertRaises(ValueError) as context:
+        dc.trans.transformers.Transformer(transform_w=True).transform(ul_dataset)
+
+    # transforming X should be okay
+    dc.trans.NormalizationTransformer(transform_X=True, dataset=ul_dataset).transform(ul_dataset)
+
   def test_X_log_transformer(self):
     """Tests logarithmic data transformer."""
     solubility_dataset = dc.data.tests.load_solubility_data()
