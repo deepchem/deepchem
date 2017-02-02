@@ -410,8 +410,6 @@ class DiskDataset(Dataset):
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
-    if len(metadata_entries) == 0:
-      raise Exception("No metadata entries.")
     columns=('basename','task_names', 'ids', 'X', 'y', 'w')
     metadata_df = pd.DataFrame(
         metadata_entries,
