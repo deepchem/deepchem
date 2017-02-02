@@ -38,6 +38,8 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 
 Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
+### Full Anaconda distribution
+
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
    
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
@@ -101,6 +103,26 @@ Installation from source is the only currently supported format. ```deepchem``` 
     ```
     Note that the full test-suite uses up a fair amount of memory. 
     Try running tests for one submodule at a time if memory proves an issue.
+
+### Using a conda environment
+Alternatively, you can install deepchem in a new conda environment using the following bash commands:
+
+```bash
+conda create -n deepchem python=3.5 -y                  # Create new env
+source activate deepchem                                # Activate it
+conda install -c omnia openbabel=2.4.0 rdkit mdtraj -y  # Installs from omnia channel
+conda install joblib scikit-learn -y                    # Installs from default channel
+pip install six tensorflow-gpu nose                     # Pip installs
+git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
+cd deepchem
+python setup.py install                                 # Manual install
+nosetests -v deepchem --nologcapture                    # Run tests
+```
+This creates a new conda environment `deepchem` and installs in it the dependencies that
+are needed. To access it, use the `source activate deepchem` command.
+Check [this link](https://conda.io/docs/using/envs.html) for more information about
+the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
+via this installation procedure.
 
 ## FAQ
 1. Question: I'm seeing some failures in my test suite having to do with MKL
