@@ -112,7 +112,7 @@ conda create -n deepchem python=3.5 -y                  # Create new env
 source activate deepchem                                # Activate it
 conda install -c omnia openbabel=2.4.0 rdkit mdtraj -y  # Installs from omnia channel
 conda install joblib scikit-learn -y                    # Installs from default channel
-pip install six tensorflow nose                         # Pip installs
+pip install six tensorflow-gpu nose                     # Pip installs
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
 python setup.py install                                 # Manual install
