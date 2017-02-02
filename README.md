@@ -121,7 +121,8 @@ nosetests -v deepchem --nologcapture                    # Run tests
 This creates a new conda environment `deepchem` and installs in it the dependencies that
 are needed. To access it, use the `source activate deepchem` command.
 Check [this link](https://conda.io/docs/using/envs.html) for more information about
-the benefits and usage of conda environments.
+the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
+via this installation procedure.
 
 ## FAQ
 1. Question: I'm seeing some failures in my test suite having to do with MKL
