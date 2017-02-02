@@ -190,6 +190,10 @@ Index splitting
 |           |Multitask network   |0.830              |0.678              |
 |           |robust MT-NN        |0.825              |0.680              |
 |           |graph convolution   |0.821              |0.720              |
+|clintox    |logistic regression |0.967              |0.676              |
+|           |Multitask network   |0.934              |0.830              |
+|           |robust MT-NN        |0.949              |0.827              |
+|           |graph convolution   |0.946              |0.860              |
 
 Random splitting
 
@@ -215,6 +219,10 @@ Random splitting
 |           |Multitask network   |0.836        	     |0.684              |
 |           |robust MT-NN        |0.822              |0.681              |
 |           |graph convolution   |0.820        	     |0.717              |
+|clintox    |logistic regression |0.972              |0.725              |
+|           |Multitask network   |0.951              |0.834              |
+|           |robust MT-NN        |0.959              |0.830              |
+|           |graph convolution   |0.975              |0.876              |
 
 Scaffold splitting
 
@@ -240,6 +248,10 @@ Scaffold splitting
 |           |Multitask network   |0.828              |0.617              |
 |           |robust MT-NN        |0.830              |0.614              |
 |           |graph convolution   |0.832              |0.638              |
+|clintox    |logistic regression |0.960              |0.803              |
+|           |Multitask network   |0.947              |0.862              |
+|           |robust MT-NN        |0.953              |0.890              |
+|           |graph convolution   |0.957              |0.823              |
 
 * Regression
 
@@ -291,6 +303,7 @@ Number of tasks and examples in the datasets
 |pcba            |128        |439863     |
 |sider           |27         |1427       |
 |toxcast         |617        |8615       |
+|clintox         |2          |1491       |
 |delaney         |1          |1128       |
 |sampl           |1          |643        |
 |kaggle          |15         |173065     |
