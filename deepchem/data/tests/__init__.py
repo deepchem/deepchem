@@ -91,3 +91,12 @@ def load_gaussian_cdf_data():
   loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.featurize(input_file)
+
+def load_unlabelled_data():
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = []
+  input_file = os.path.join(current_dir, "../../data/tests/no_labels.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  return loader.featurize(input_file)
