@@ -14,7 +14,6 @@ from sklearn.ensemble import RandomForestRegressor
 from FACTORS_datasets import load_factors
 
 ###Load data###
-np.random.seed(123)
 shard_size = 2000
 num_trials = 5
 print("About to load FACTORS data.")

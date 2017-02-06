@@ -13,12 +13,9 @@ import shutil
 import deepchem as dc
 from FACTORS_datasets import load_factors
 
-# Set numpy seed
-np.random.seed(123)
-
 ###Load data###
 shard_size = 2000
-num_trials = 5
+num_trials = 2
 print("About to load FACTORS data.")
 FACTORS_tasks, datasets, transformers = load_factors(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
@@ -47,7 +44,7 @@ for trial in range(num_trials):
       bypass_weight_init_stddevs=[.02]*n_bypass_layers,
       bypass_bias_init_consts=[1.]*n_bypass_layers,
       learning_rate=.0003, penalty=.0001, penalty_type="l2",
-      optimizer="adam", batch_size=100, seed=123)
+      optimizer="adam", batch_size=100, logdir="FACTORS_tf_bypass")
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)

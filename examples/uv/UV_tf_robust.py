@@ -13,13 +13,9 @@ import shutil
 import deepchem as dc
 from UV_datasets import load_uv
 
-# Set numpy seed
-np.random.seed(123)
-
 ###Load data###
 shard_size = 2000
-#num_trials = 5
-num_trials = 1
+num_trials = 2
 print("About to load data.")
 UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets

@@ -12,12 +12,9 @@ import shutil
 import deepchem as dc
 from KINASE_datasets import load_kinase
 
-# Set numpy seed
-np.random.seed(123)
-
 ###Load data###
 shard_size = 2000
-num_trials = 1
+num_trials = 2
 
 print("About to load KINASE data.")
 KINASE_tasks, datasets, transformers = load_kinase(shard_size=shard_size)
@@ -42,12 +39,13 @@ def task_model_builder(m_dir):
       layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
       weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
       learning_rate=.0003, penalty=.0001, penalty_type="l2", optimizer="adam",
-      batch_size=100, seed=123)
+      batch_size=100)
 
 all_results = []
 for trial in range(num_trials):
   print("Starting trial %d" % trial)
-  model = dc.models.SingletaskToMultitask(KINASE_tasks, task_model_builder)
+  model = dc.models.SingletaskToMultitask(KINASE_tasks, task_model_builder,
+                                          model_dir="KINASE_tf_singletask")
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch, max_checkpoints_to_keep=1)

@@ -13,22 +13,12 @@ import numpy as np
 import deepchem as dc
 from UV_datasets import load_uv
 
-# Set numpy seed
-np.random.seed(123)
-
 ###Load data###
 shard_size = 2000
-num_trials = 1
+num_trials = 2
 print("About to load UV data.")
 UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
-
-#############################################################  DEBUG
-print("np.amin(train_dataset.y)")
-print(np.amin(train_dataset.y))
-print("np.amax(train_dataset.y)")
-print(np.amax(train_dataset.y))
-#############################################################  DEBUG
 
 print("Number of compounds in train set")
 print(len(train_dataset))
@@ -48,7 +38,7 @@ for trial in range(num_trials):
       weight_init_stddevs=[.02]*n_layers,
       bias_init_consts=[1.]*n_layers, learning_rate=.0003,
       penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
-      seed=123, logdir="UV_tf_model")
+      logdir="UV_tf_model")
 
   #Use R2 classification metric
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)

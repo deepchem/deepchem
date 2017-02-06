@@ -13,12 +13,10 @@ import numpy as np
 import deepchem as dc
 from KINASE_datasets import load_kinase
 
-# Set numpy seed
-np.random.seed(123)
-
 ###Load data###
 shard_size = 2000
-num_trials = 5
+#num_trials = 5
+num_trials = 1
 print("About to load KINASE data.")
 KINASE_tasks, datasets, transformers = load_kinase(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
@@ -41,7 +39,7 @@ for trial in range(num_trials):
       alpha_init_stddevs=[.02]*n_layers, weight_init_stddevs=[.02]*n_layers,
       bias_init_consts=[1.]*n_layers, learning_rate=.0003,
       penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
-      seed=123)
+      logdir="KINASE_tf_progressive")
 
   #Use R2 classification metric
   metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)

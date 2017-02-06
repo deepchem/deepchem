@@ -11,21 +11,15 @@ import numpy as np
 import tempfile
 import shutil
 import deepchem as dc
-from MERCK_datasets import load_kaggle
-
-# Set numpy seed
-np.random.seed(123)
+from kaggle_datasets import load_kaggle
 
 ###Load data###
 shard_size = 2000
-num_shards_per_batch = 4
-print("About to load MERCK data.")
-KAGGLE_tasks, datasets, transformers = load_kaggle(
-    shard_size=shard_size, num_shards_per_batch=num_shards_per_batch)
+num_trials = 2
+print("About to load KAGGLE data.")
+KAGGLE_tasks, datasets, transformers = load_kaggle(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
-print("KAGGLE_tasks")
-print(KAGGLE_tasks)
 print("Number of compounds in train set")
 print(len(train_dataset))
 print("Number of compounds in validation set")
@@ -36,32 +30,69 @@ print(len(test_dataset))
 n_layers = 3
 n_bypass_layers = 3
 nb_epoch = 100
-model = dc.models.RobustMultitaskRegressor(
-    len(KAGGLE_tasks), train_dataset.get_data_shape()[0],
-    layer_sizes=[2000, 1000, 1000], bypass_layer_sizes=[200]*n_bypass_layers,
-    dropouts=[.25]*n_layers, bypass_dropouts=[.25]*n_bypass_layers, 
-    weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-    bypass_weight_init_stddevs=[.02]*n_bypass_layers,
-    bypass_bias_init_consts=[1.]*n_bypass_layers,
-    learning_rate=.00003, penalty=.0004, penalty_type="l2",
-    optimizer="adam", batch_size=100, seed=123, verbosity="high")
 
 #Use R2 classification metric
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-print("Fitting Model")
-model.fit(train_dataset, nb_epoch=nb_epoch)
+all_results = []
+for trial in range(num_trials):
+  model = dc.models.RobustMultitaskRegressor(
+      len(KAGGLE_tasks), train_dataset.get_data_shape()[0],
+      layer_sizes=[2000, 1000, 1000], bypass_layer_sizes=[200]*n_bypass_layers,
+      dropouts=[.25]*n_layers, bypass_dropouts=[.25]*n_bypass_layers, 
+      weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
+      bypass_weight_init_stddevs=[.02]*n_bypass_layers,
+      bypass_bias_init_consts=[1.]*n_bypass_layers,
+      learning_rate=.00003, penalty=.0004, penalty_type="l2",
+      optimizer="adam", batch_size=100, logdir="KAGGLE_tf_bypass")
 
-train_scores = model.evaluate(train_dataset, [metric], transformers)
-valid_scores = model.evaluate(valid_dataset, [metric], transformers)
-#Only use for final evaluation
-test_scores = model.evaluate(test_dataset, [metric], transformers)
+  print("Fitting Model")
+  model.fit(train_dataset, nb_epoch=nb_epoch)
 
-print("Train scores")
-print(train_scores)
+  print("Evaluating models")
+  train_score, train_task_scores = model.evaluate(
+      train_dataset, [metric], transformers, per_task_metrics=True)
+  valid_score, valid_task_scores = model.evaluate(
+      valid_dataset, [metric], transformers, per_task_metrics=True)
+  test_score, test_task_scores = model.evaluate(
+      test_dataset, [metric], transformers, per_task_metrics=True)
 
-print("Validation scores")
-print(valid_scores)
+  all_results.append((train_score, train_task_scores,
+                      valid_score, valid_task_scores,
+                      test_score, test_task_scores))
 
-print("Test scores")
-print(test_scores)
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)
+
+print("####################################################################")
+
+for trial in range(num_trials):
+  (train_score, train_task_scores, valid_score, valid_task_scores,
+   test_score, test_task_scores) = all_results[trial]
+
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)
