@@ -1,18 +1,16 @@
 """
 ChEMBL dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
 import time
-import numpy as np
-import deepchem as dc
-import sys
 
-sys.path.append(".")
-from chembl_tasks import chembl_tasks
+import deepchem as dc
+from chembl.chembl_tasks import chembl_tasks
+
 
 # Set shard size low to avoid memory problems.
 def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random"):
