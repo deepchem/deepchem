@@ -307,6 +307,7 @@ class TestSupports(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Set last n_samples/2 weights to 0
+    print("Foobarbash")
     w[n_samples/2:] = 0
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
