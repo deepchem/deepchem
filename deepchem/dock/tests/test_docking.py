@@ -10,6 +10,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
 import unittest
+import pickle
 import tempfile
 import os
 import shutil

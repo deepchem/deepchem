@@ -19,6 +19,7 @@ from deepchem.models import TensorflowMultiTaskRegressor
 from deepchem.dock.pose_scoring import GridPoseScorer
 from deepchem.dock.pose_generation import VinaPoseGenerator
 from sklearn.ensemble import RandomForestRegressor
+import pickle
 from subprocess import call
 
 class Docker(object):
@@ -88,6 +89,11 @@ class VinaGridDNNDocker(object):
     """Docks using Vina and DNNs."""
     protein_docked, ligand_docked = self.pose_generator.generate_poses(
         protein_file, ligand_file, centroid, box_dims, dry_run)
+    print(protein_docked, ligand_docked)
+    print("Docking filenames")
+    return self.dock_helper(protein_docked, ligand_docked, dry_run)
+
+  def dock_helper(self, protein_docked, ligand_docked, dry_run):
     if not dry_run:
       score = self.pose_scorer.score(protein_docked, ligand_docked)
     else:

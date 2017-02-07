@@ -1495,8 +1495,6 @@ def AdjustAromaticNs(m, nitrogenPattern='[n&D2&H0;r5,r6]'):
 
 
 def sanitize_mol(m):
-  if True:
-    return m
   try:
     m.UpdatePropertyCache(False)
     cp = Chem.Mol(m.ToBinary())
