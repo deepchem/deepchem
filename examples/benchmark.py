@@ -125,7 +125,7 @@ def benchmark_loading_datasets(hyper_parameters,
   elif split in ['indice']:
     if not dataset in ['gdb7']:
       return
-  elif not split in [None, 'index','random','scaffold']:
+  elif not split in [None, 'index','random','scaffold', 'butina']:
     raise ValueError('Splitter function not supported')
   
   loading_functions = {'tox21': load_tox21, 'muv': load_muv,
