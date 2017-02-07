@@ -11,6 +11,7 @@ import shutil
 import time
 import tempfile
 import hashlib
+import logging
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -54,7 +55,7 @@ def get_ligand_filetype(ligand_filename):
   else:
     raise ValueError("Unrecognized_filename")
 
-
+# TODO(LESWING) move to util
 def load_molecule(molecule_file, add_hydrogens=True,
                   calc_charges=False):
   """Converts molecule file to (xyz-coords, obmol object)
@@ -86,6 +87,18 @@ def load_molecule(molecule_file, add_hydrogens=True,
   xyz = get_xyz_from_ob(my_mol)
 
   return xyz, my_mol
+
+# TODO(LESWING) move to util
+def write_molecule(mol, outfile):
+  if ".pdbqt" in outfile:
+    # TODO (LESWING) create writer for pdbqt which includes charges
+    pass
+  elif ".pdb" in outfile:
+    writer = Chem.PDBWriter(outfile)
+    writer.write(mol)
+    writer.close(0)
+  else:
+    raise ValueError("Unsupported Format")
 
 
 def merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
@@ -1384,7 +1397,7 @@ class GridFeaturizer(ComplexFeaturizer):
 
 def pdbqt_to_pdb(filename):
   base_filename = os.path.splitext(filename)[0]
-  pdb_filename = "/tmp/" + base_filename + ".pdb"
+  pdb_filename = base_filename + ".pdb"
   pdbqt_data = open(filename).readlines()
   with open(pdb_filename, 'w') as fout:
     for line in pdbqt_data:
@@ -1501,9 +1514,15 @@ def sanitize_mol(m):
     Chem.SanitizeMol(cp)
     return m
   except ValueError:
+    pass
+  try:
     nm = AdjustAromaticNs(m)
     if nm is not None:
       Chem.SanitizeMol(nm)
       return nm
     else:
-      raise ValueError("Unable to sanitize Mol")
+      logging.warn("Unable To Sanitize Molecule")
+      return m
+  except ValueError:
+    logging.warn("Unable To Sanitize Molecule")
+    return m
