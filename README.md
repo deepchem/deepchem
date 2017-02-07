@@ -38,6 +38,8 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 
 Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
+### Full Anaconda distribution
+
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
    
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
@@ -101,6 +103,26 @@ Installation from source is the only currently supported format. ```deepchem``` 
     ```
     Note that the full test-suite uses up a fair amount of memory. 
     Try running tests for one submodule at a time if memory proves an issue.
+
+### Using a conda environment
+Alternatively, you can install deepchem in a new conda environment using the following bash commands:
+
+```bash
+conda create -n deepchem python=3.5 -y                  # Create new env
+source activate deepchem                                # Activate it
+conda install -c omnia openbabel=2.4.0 rdkit mdtraj -y  # Installs from omnia channel
+conda install joblib scikit-learn -y                    # Installs from default channel
+pip install six tensorflow-gpu nose                     # Pip installs
+git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
+cd deepchem
+python setup.py install                                 # Manual install
+nosetests -v deepchem --nologcapture                    # Run tests
+```
+This creates a new conda environment `deepchem` and installs in it the dependencies that
+are needed. To access it, use the `source activate deepchem` command.
+Check [this link](https://conda.io/docs/using/envs.html) for more information about
+the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
+via this installation procedure.
 
 ## FAQ
 1. Question: I'm seeing some failures in my test suite having to do with MKL
@@ -190,6 +212,10 @@ Index splitting
 |           |Multitask network   |0.830              |0.678              |
 |           |robust MT-NN        |0.825              |0.680              |
 |           |graph convolution   |0.821              |0.720              |
+|clintox    |logistic regression |0.967              |0.676              |
+|           |Multitask network   |0.934              |0.830              |
+|           |robust MT-NN        |0.949              |0.827              |
+|           |graph convolution   |0.946              |0.860              |
 
 Random splitting
 
@@ -215,6 +241,10 @@ Random splitting
 |           |Multitask network   |0.836        	     |0.684              |
 |           |robust MT-NN        |0.822              |0.681              |
 |           |graph convolution   |0.820        	     |0.717              |
+|clintox    |logistic regression |0.972              |0.725              |
+|           |Multitask network   |0.951              |0.834              |
+|           |robust MT-NN        |0.959              |0.830              |
+|           |graph convolution   |0.975              |0.876              |
 
 Scaffold splitting
 
@@ -240,17 +270,27 @@ Scaffold splitting
 |           |Multitask network   |0.828              |0.617              |
 |           |robust MT-NN        |0.830              |0.614              |
 |           |graph convolution   |0.832              |0.638              |
+|clintox    |logistic regression |0.960              |0.803              |
+|           |Multitask network   |0.947              |0.862              |
+|           |robust MT-NN        |0.953              |0.890              |
+|           |graph convolution   |0.957              |0.823              |
 
 * Regression
 
 |Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
 |----------------|--------------------|------------|--------------|--------------|
-|delaney         |MT-NN regression    |Index       |0.773         |0.574         |
-|                |graphconv regression|Index       |0.991         |0.825         |
-|                |MT-NN regression    |Random      |0.769         |0.591         |
-|                |graphconv regression|Random      |0.996         |0.873         |
-|                |MT-NN regression    |Scaffold    |0.782         |0.426         |
-|                |graphconv regression|Scaffold    |0.994         |0.606         |
+|delaney         |MT-NN regression    |Index       |0.868         |0.578         |
+|                |graphconv regression|Index       |0.967         |0.790         |
+|                |MT-NN regression    |Random      |0.865         |0.574         |
+|                |graphconv regression|Random      |0.964         |0.782         |
+|                |MT-NN regression    |Scaffold    |0.866         |0.342         |
+|                |graphconv regression|Scaffold    |0.967         |0.606         |
+|sampl           |MT-NN regression    |Index       |0.917         |0.764         |
+|                |graphconv regression|Index       |0.982         |0.864         |
+|                |MT-NN regression    |Random      |0.908         |0.830         |
+|                |graphconv regression|Random      |0.987         |0.868         |
+|                |MT-NN regression    |Scaffold    |0.891         |0.217         |
+|                |graphconv regression|Scaffold    |0.985         |0.666         |
 |nci             |MT-NN regression    |Index       |0.171         |0.062         |
 |                |graphconv regression|Index       |0.123         |0.048         |
 |                |MT-NN regression    |Random      |0.168         |0.085         |
@@ -263,14 +303,16 @@ Scaffold splitting
 |chembl          |MT-NN regression    |Index       |0.443         |0.427         |
 |                |MT-NN regression    |Random      |0.464         |0.434         |
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
-|gdb7            |MT-NN regression    |Index       |0.961         |0.011         |
-|                |MT-NN regression    |Random      |0.742         |0.732         |
+|gdb7            |MT-NN regression    |Index       |0.994         |0.010         |
+|                |MT-NN regression    |Random      |0.860         |0.773         |
+|                |MT-NN regression    |User-defined|0.996         |0.996         | 
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model               |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
 |----------------|--------------------|------------|-------------------------|-------------------------|
-|gdb7            |MT-NN regression    |Index       |44.5                     |185.6                    |
-|                |MT-NN regression    |Random      |86.1                     |92.2                     |
+|gdb7            |MT-NN regression    |Index       |18.3                     |172.0                    |
+|                |MT-NN regression    |Random      |44.3                     |59.1                     |
+|                |MT-NN regression    |User-defined|9.0                      |9.5                      |
 
 * General features
 
@@ -283,7 +325,9 @@ Number of tasks and examples in the datasets
 |pcba            |128        |439863     |
 |sider           |27         |1427       |
 |toxcast         |617        |8615       |
+|clintox         |2          |1491       |
 |delaney         |1          |1128       |
+|sampl           |1          |643        |
 |kaggle          |15         |173065     |
 |nci             |60         |19127      |
 |pdbbind(core)   |1          |195        |
@@ -319,6 +363,8 @@ Time needed for benchmark test(~20h in total)
 |                |robust MT-NN        |80              |4000           |
 |                |graph convolution   |80              |900            |
 |delaney         |MT-NN regression    |10              |40             |
+|                |graphconv regression|10              |40             |
+|sampl           |MT-NN regression    |10              |30             |
 |                |graphconv regression|10              |40             |
 |nci             |MT-NN regression    |400             |1200           |
 |                |graphconv regression|400             |2500           |

@@ -105,9 +105,13 @@ class Evaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
-      multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=True)
-      all_task_scores[metric.name] = computed_metrics
+      if per_task_metrics:
+        multitask_scores[metric.name], computed_metrics = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=True)
+        all_task_scores[metric.name] = computed_metrics
+      else:
+        multitask_scores[metric.name] = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=True)
     
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbose)

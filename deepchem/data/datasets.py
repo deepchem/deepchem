@@ -410,27 +410,40 @@ class DiskDataset(Dataset):
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
+    columns=('basename','task_names', 'ids', 'X', 'y', 'w')
     metadata_df = pd.DataFrame(
         metadata_entries,
-        columns=('basename','task_names', 'ids', 'X', 'y', 'w'))
+        columns=columns)
     return metadata_df
 
   @staticmethod
   def write_data_to_disk(data_dir, basename, tasks, X=None, y=None, w=None,
                          ids=None):
-    out_X = "%s-X.joblib" % basename
-    out_y = "%s-y.joblib" % basename
-    out_w = "%s-w.joblib" % basename
-    out_ids = "%s-ids.joblib" % basename
-
     if X is not None:
+      out_X = "%s-X.joblib" % basename
       save_to_disk(X, os.path.join(data_dir, out_X))
+    else:
+      out_X = None
+
     if y is not None:
+      out_y = "%s-y.joblib" % basename
       save_to_disk(y, os.path.join(data_dir, out_y))
+    else:
+      out_y = None
+
     if w is not None:
+      out_w = "%s-w.joblib" % basename
       save_to_disk(w, os.path.join(data_dir, out_w))
+    else:
+      out_w = None
+
     if ids is not None:
+      out_ids = "%s-ids.joblib" % basename
       save_to_disk(ids, os.path.join(data_dir, out_ids))
+    else:
+      out_ids = None
+
+    # note that this corresponds to the _construct_metadata column order
     return [basename, tasks, out_ids, out_X, out_y, out_w]
 
   def save_to_disk(self):
@@ -531,15 +544,22 @@ class DiskDataset(Dataset):
       for _, row in dataset.metadata_df.iterrows():
         X = np.array(load_from_disk(
             os.path.join(dataset.data_dir, row['X'])))
-        y = np.array(load_from_disk(
-            os.path.join(dataset.data_dir, row['y'])))
-        w_filename = os.path.join(dataset.data_dir, row['w'])
-        if os.path.exists(w_filename):
-            w = np.array(load_from_disk(w_filename))
-        else:
-            w = np.ones(y.shape)
         ids = np.array(load_from_disk(
             os.path.join(dataset.data_dir, row['ids'])), dtype=object)
+        # These columns may be missing is the dataset is unlabelled.
+        if row['y'] is not None:
+          y = np.array(load_from_disk(
+            os.path.join(dataset.data_dir, row['y'])))
+        else:
+          y = None
+        if row['w'] is not None:
+          w_filename = os.path.join(dataset.data_dir, row['w'])
+          if os.path.exists(w_filename):
+              w = np.array(load_from_disk(w_filename))
+          else:
+              w = np.ones(y.shape)
+        else:
+          w = None
         yield (X, y, w, ids)
     return iterate(self)
 
@@ -576,8 +596,17 @@ class DiskDataset(Dataset):
           indices = range(interval_points[j], interval_points[j+1])
           perm_indices = sample_perm[indices]
           X_batch = X[perm_indices]
-          y_batch = y[perm_indices]
-          w_batch = w[perm_indices]
+
+          if y is not None:
+            y_batch = y[perm_indices]
+          else:
+            y_batch = None
+
+          if w is not None:
+            w_batch = w[perm_indices]
+          else:
+            w_batch = None
+
           ids_batch = ids[perm_indices]
           if pad_batches:
             (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
@@ -597,7 +626,12 @@ class DiskDataset(Dataset):
         for (X_shard, y_shard, w_shard, ids_shard) in dataset.itershards():
             n_samples = X_shard.shape[0]
             for i in range(n_samples):
-                yield (X_shard[i], y_shard[i], w_shard[i], ids_shard[i])
+                def sanitize(elem):
+                  if elem is None:
+                    return None
+                  else:
+                    return elem[i]
+                yield map(sanitize, [X_shard, y_shard, w_shard, ids_shard])
     return iterate(self)
 
   def transform(self, fn, **args):
@@ -755,13 +789,23 @@ class DiskDataset(Dataset):
     row = self.metadata_df.iloc[i]
     X = np.array(load_from_disk(
         os.path.join(self.data_dir, row['X'])))
-    y = np.array(load_from_disk(
+
+    if row['y'] is not None:
+      y = np.array(load_from_disk(
         os.path.join(self.data_dir, row['y'])))
-    w_filename = os.path.join(self.data_dir, row['w'])
-    if os.path.exists(w_filename):
-        w = np.array(load_from_disk(w_filename))
     else:
-        w = np.ones(y.shape)
+      y = None
+
+    if row['w'] is not None:
+      # TODO (ytz): Under what condition does this exist but the file itself doesn't?
+      w_filename = os.path.join(self.data_dir, row['w'])
+      if os.path.exists(w_filename):
+          w = np.array(load_from_disk(w_filename))
+      else:
+          w = np.ones(y.shape)
+    else:
+      w = None
+
     ids = np.array(load_from_disk(
         os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
@@ -876,7 +920,7 @@ class DiskDataset(Dataset):
     """
     total = 0
     for _, row in self.metadata_df.iterrows():
-      y = load_from_disk(os.path.join(self.data_dir, row['y']))
+      y = load_from_disk(os.path.join(self.data_dir, row['ids']))
       total += len(y)
     return total
 
@@ -884,19 +928,26 @@ class DiskDataset(Dataset):
     """Finds shape of dataset."""
     n_tasks = len(self.get_task_names())
     X_shape = np.array((0,) + (0,) * len(self.get_data_shape())) 
-    y_shape = np.array((0,) + (0,))
-    w_shape = np.array((0,) + (0,))
     ids_shape = np.array((0,))
+    if n_tasks > 0:
+      y_shape = np.array((0,) + (0,))
+      w_shape = np.array((0,) + (0,))
+    else:
+      y_shape = tuple()
+      w_shape = tuple()
+
     for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
       if shard_num == 0:
         X_shape += np.array(X.shape)
-        y_shape += np.array(y.shape)
-        w_shape += np.array(w.shape)
+        if n_tasks > 0:
+          y_shape += np.array(y.shape)
+          w_shape += np.array(w.shape)
         ids_shape += np.array(ids.shape)
       else:
         X_shape[0] += np.array(X.shape)[0]
-        y_shape[0] += np.array(y.shape)[0]
-        w_shape[0] += np.array(w.shape)[0]
+        if n_tasks > 0:
+          y_shape[0] += np.array(y.shape)[0]
+          w_shape[0] += np.array(w.shape)[0]
         ids_shape[0] += np.array(ids.shape)[0]
     return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(ids_shape)
 

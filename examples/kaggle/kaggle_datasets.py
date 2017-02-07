@@ -1,16 +1,18 @@
 """
 KAGGLE dataset loader.
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import shutil
+import sys
 import time
+
 import numpy as np
 import deepchem as dc
-from kaggle_features import merck_descriptors 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from kaggle_features import merck_descriptors
 
 def remove_missing_entries(dataset):
   """Remove missing entries.

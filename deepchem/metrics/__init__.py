@@ -201,7 +201,12 @@ class Metric(object):
       if filter_nans:
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
-      if not per_task_metrics:
+      if self.compute_energy_metric:
+        # TODO(rbharath, joegomes): What is this magic number?    
+        force_error = self.task_averager(computed_metrics[1:])*4961.47596096    
+        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))    
+        return computed_metrics[0]
+      elif not per_task_metrics:
         return self.task_averager(computed_metrics)
       else:
         return self.task_averager(computed_metrics), computed_metrics

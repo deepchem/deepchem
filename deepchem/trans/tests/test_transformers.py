@@ -49,6 +49,20 @@ class TestTransformers(unittest.TestCase):
     # Check that untransform does the right thing.
     np.testing.assert_allclose(log_transformer.untransform(y_t), y)
 
+  def test_transform_unlabelled(self):
+    ul_dataset = dc.data.tests.load_unlabelled_data()
+    # transforming y should raise an exception
+    with self.assertRaises(ValueError) as context:
+        dc.trans.transformers.Transformer(transform_y=True).transform(ul_dataset)
+
+
+    # transforming w should raise an exception
+    with self.assertRaises(ValueError) as context:
+        dc.trans.transformers.Transformer(transform_w=True).transform(ul_dataset)
+
+    # transforming X should be okay
+    dc.trans.NormalizationTransformer(transform_X=True, dataset=ul_dataset).transform(ul_dataset)
+
   def test_X_log_transformer(self):
     """Tests logarithmic data transformer."""
     solubility_dataset = dc.data.tests.load_solubility_data()
@@ -242,6 +256,56 @@ class TestTransformers(unittest.TestCase):
 
     # Check that untransform does the right thing.
     np.testing.assert_allclose(cdf_transformer.untransform(y_t), y)
+
+  def test_clipping_X_transformer(self):
+    """Test clipping transformer on X of singletask dataset."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+    ids = np.arange(n_samples)
+    X = np.ones((n_samples, n_features))
+    target = 5.*X
+    X *= 6.
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+    transformer = dc.trans.ClippingTransformer(transform_X=True, x_max=5.)
+    clipped_dataset = transformer.transform(dataset)
+    X_t, y_t, w_t, ids_t = (clipped_dataset.X, clipped_dataset.y, clipped_dataset.w, clipped_dataset.ids)
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check y is unchanged since this is an X transformer
+    np.testing.assert_allclose(y, y_t)
+    # Check w is unchanged since this is an X transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check X is now holding the proper values when sorted.
+    np.testing.assert_allclose(X_t, target)
+ 
+  def test_clipping_y_transformer(self):
+    """Test clipping transformer on y of singletask dataset."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+    ids = np.arange(n_samples)
+    X = np.zeros((n_samples, n_features))
+    y = np.ones((n_samples, n_tasks))
+    target = 5.*y
+    y *= 6.
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+    transformer = dc.trans.ClippingTransformer(transform_y=True, y_max=5.)
+    clipped_dataset = transformer.transform(dataset)
+    X_t, y_t, w_t, ids_t = (clipped_dataset.X, clipped_dataset.y, clipped_dataset.w, clipped_dataset.ids)
+    # Check ids are unchanged.
+    for id_elt, id_t_elt in zip(ids, ids_t):
+      assert id_elt == id_t_elt
+    # Check X is unchanged since this is a y transformer
+    np.testing.assert_allclose(X, X_t)
+    # Check w is unchanged since this is a y transformer
+    np.testing.assert_allclose(w, w_t)
+    # Check y is now holding the proper values when sorted.
+    np.testing.assert_allclose(y_t, target)
   
   def test_power_X_transformer(self):
     """Test Power transformer on Gaussian normal dataset."""
@@ -344,3 +408,17 @@ class TestTransformers(unittest.TestCase):
       # Check that sum of 0s equals sum of 1s in transformed for each task
       assert np.isclose(np.sum(w_task[y_task == 0]),
                         np.sum(w_task[y_task == 1]))
+
+  def test_coulomb_fit_transformer(self):
+    """Test coulomb fit transformer on singletask dataset."""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+    ids = np.arange(n_samples)
+    X = np.random.rand(n_samples, n_features, n_features)
+    y = np.zeros((n_samples, n_tasks))
+    w = np.ones((n_samples, n_tasks))
+    dataset = dc.data.NumpyDataset(X, y, w, ids)
+    fit_transformer = dc.trans.CoulombFitTransformer(dataset)
+    X_t = fit_transformer.X_transform(dataset.X)
+    assert len(X_t.shape) == 2
