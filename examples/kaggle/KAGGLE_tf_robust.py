@@ -1,6 +1,7 @@
 """
-Script that trains Tensorflow Singletask models on FACTORS dataset.
+Script that trains Tensorflow Robust Multitask models on KAGGLE datasets.
 """
+
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -10,14 +11,13 @@ import numpy as np
 import tempfile
 import shutil
 import deepchem as dc
-from FACTORS_datasets import load_factors
+from kaggle_datasets import load_kaggle
 
 ###Load data###
 shard_size = 2000
 num_trials = 2
-
-print("About to load FACTORS data.")
-FACTORS_tasks, datasets, transformers = load_factors(shard_size=shard_size)
+print("About to load KAGGLE data.")
+KAGGLE_tasks, datasets, transformers = load_kaggle(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")
@@ -27,24 +27,24 @@ print(len(valid_dataset))
 print("Number of compounds in test set")
 print(len(test_dataset))
 
-metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
-
-###Create model###
 n_layers = 3
-nb_epoch = 125
-n_features = train_dataset.get_data_shape()[0]
-def task_model_builder(m_dir):
-  return dc.models.TensorflowMultiTaskRegressor(
-      n_tasks=1, n_features=n_features, logdir=m_dir,
-      layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
-      weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-      learning_rate=.0003, penalty=.0001, penalty_type="l2", optimizer="adam",
-      batch_size=100)
+n_bypass_layers = 3
+nb_epoch = 100
+
+#Use R2 classification metric
+metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
 all_results = []
 for trial in range(num_trials):
-  print("Starting trial %d" % trial)
-  model = dc.models.SingletaskToMultitask(FACTORS_tasks, task_model_builder)
+  model = dc.models.RobustMultitaskRegressor(
+      len(KAGGLE_tasks), train_dataset.get_data_shape()[0],
+      layer_sizes=[2000, 1000, 1000], bypass_layer_sizes=[200]*n_bypass_layers,
+      dropouts=[.25]*n_layers, bypass_dropouts=[.25]*n_bypass_layers, 
+      weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
+      bypass_weight_init_stddevs=[.02]*n_bypass_layers,
+      bypass_bias_init_consts=[1.]*n_bypass_layers,
+      learning_rate=.00003, penalty=.0004, penalty_type="l2",
+      optimizer="adam", batch_size=100, logdir="KAGGLE_tf_bypass")
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)
@@ -61,7 +61,6 @@ for trial in range(num_trials):
                       valid_score, valid_task_scores,
                       test_score, test_task_scores))
 
-  print("----------------------------------------------------------------")
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
   print("train_task_scores")
@@ -82,7 +81,7 @@ print("####################################################################")
 for trial in range(num_trials):
   (train_score, train_task_scores, valid_score, valid_task_scores,
    test_score, test_task_scores) = all_results[trial]
-  print("----------------------------------------------------------------")
+
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
   print("train_task_scores")

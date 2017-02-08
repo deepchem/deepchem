@@ -9,6 +9,7 @@ import os
 import sklearn
 import tempfile
 import numpy as np
+import shutil
 from deepchem.utils.save import log
 from deepchem.models import Model
 from deepchem.data import DiskDataset

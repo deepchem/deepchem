@@ -11,16 +11,21 @@ import tempfile
 import shutil
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
-from MERCK_datasets import load_uv
+from UV_datasets import load_uv
 
 ###Load data###
+np.random.seed(123)
 shard_size = 2000
-num_cores = 1
-num_shards_per_batch = 4
+num_trials = 5
 print("About to load UV data.")
-UV_tasks, datasets, transformers = load_uv(
-    shard_size=shard_size, num_shards_per_batch=num_shards_per_batch)
+UV_tasks, datasets, transformers = load_uv(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
+####################################################### DEBUG
+print("np.amin(train_dataset.y)")
+print(np.amin(train_dataset.y))
+print("np.amax(train_dataset.y)")
+print(np.amax(train_dataset.y))
+####################################################### DEBUG
 
 print("Number of compounds in train set")
 print(len(train_dataset))
@@ -32,30 +37,67 @@ print(len(test_dataset))
 num_features = train_dataset.get_data_shape()[0]
 print("Num features: %d" % num_features)
 
+metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
+
 def task_model_builder(model_dir):
   sklearn_model = RandomForestRegressor(
       n_estimators=100, max_features=int(num_features/3),
       min_samples_split=5, n_jobs=-1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
-model = dc.models.SingletaskToMultitask(UV_tasks, task_model_builder)
 
-###Evaluate models###
-metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean,
-                           mode="regression")
+all_results = []
+for trial in range(num_trials):
+  print("Starting trial %d" % trial)
+  model = dc.models.SingletaskToMultitask(UV_tasks, task_model_builder)
 
-print("Training model")
-model.fit(train_dataset)
+  print("Training model")
+  model.fit(train_dataset)
 
-train_scores = model.evaluate(train_dataset, [metric], transformers)
-valid_scores = model.evaluate(valid_dataset, [metric], transformers)
-#Only use for final evaluation
-test_scores = model.evaluate(test_dataset, [metric], transformers)
+  print("Evaluating models")
+  train_score, train_task_scores = model.evaluate(
+      train_dataset, [metric], transformers, per_task_metrics=True)
+  valid_score, valid_task_scores = model.evaluate(
+      valid_dataset, [metric], transformers, per_task_metrics=True)
+  test_score, test_task_scores = model.evaluate(
+      test_dataset, [metric], transformers, per_task_metrics=True)
 
-print("Train scores")
-print(train_scores)
+  all_results.append((train_score, train_task_scores,
+                      valid_score, valid_task_scores,
+                      test_score, test_task_scores))
 
-print("Validation scores")
-print(valid_scores)
+  print("----------------------------------------------------------------")
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)
 
-print("Test scores")
-print(test_scores)
+print("####################################################################")
+
+for trial in range(num_trials):
+  (train_score, train_task_scores, valid_score, valid_task_scores,
+   test_score, test_task_scores) = all_results[trial]
+  print("----------------------------------------------------------------")
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)

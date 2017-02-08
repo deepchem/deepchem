@@ -145,16 +145,28 @@ class Metric(object):
     # user-space as a custom task_averager function.
     self.compute_energy_metric = compute_energy_metric
 
-  def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True):
+  def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True,
+                     per_task_metrics=False):
     """Compute a performance metric for each task.
 
-    Args:
-      y_true: A list of arrays containing true values for each task.
-      y_pred: A list of arrays containing predicted values for each task.
-      metric: Must be a class that inherits from Metric 
+    Parameters
+    ----------
+    y_true: np.ndarray
+      An np.ndarray containing true values for each task.
+    y_pred: np.ndarray
+      An np.ndarray containing predicted values for each task.
+    w: np.ndarray, optional
+      An np.ndarray containing weights for each datapoint.
+    n_classes: int, optional
+      Number of classes in data for classification tasks.
+    filter_nans: bool, optional
+      Remove NaN values in computed metrics
+    per_task_metrics: bool, optional
+      If true, return computed metric for each task on multitask dataset.
 
-    Returns:
-      A numpy array containing metric values for each task.
+    Returns
+    -------
+    A numpy nd.array containing metric values for each task.
     """
     if len(y_true.shape) > 1:
       n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
@@ -190,12 +202,15 @@ class Metric(object):
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
       if self.compute_energy_metric:
-        # TODO(rbharath, joegomes): What is this magic number?
-        force_error = self.task_averager(computed_metrics[1:])*4961.47596096
-        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))
+        # TODO(rbharath, joegomes): What is this magic number?    
+        force_error = self.task_averager(computed_metrics[1:])*4961.47596096    
+        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))    
         return computed_metrics[0]
-      else:
+      elif not per_task_metrics:
         return self.task_averager(computed_metrics)
+      else:
+        return self.task_averager(computed_metrics), computed_metrics
+
 
   def compute_singletask_metric(self, y_true, y_pred, w):
     """Compute a metric value.
