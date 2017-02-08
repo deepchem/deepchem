@@ -111,7 +111,7 @@ class Evaluator(object):
         all_task_scores[metric.name] = computed_metrics
       else:
         multitask_scores[metric.name] = metric.compute_metric(
-            y, y_pred, w, per_task_metrics=True)
+            y, y_pred, w, per_task_metrics=False)
     
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbose)
