@@ -15,6 +15,7 @@ from deepchem.models.sequential import Sequential
 
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskFitTransformRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression

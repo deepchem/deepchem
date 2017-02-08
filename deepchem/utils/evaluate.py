@@ -66,9 +66,20 @@ class Evaluator(object):
         csvwriter.writerow([mol_id] + list(y_pred))
 
   def compute_model_performance(self, metrics, csv_out=None, stats_out=None,
-                                threshold=None):
+                                per_task_metrics=False):
     """
     Computes statistics of model on test data and saves results to csv.
+
+    Parameters
+    ----------
+    metrics: list
+      List of dc.metrics.Metric objects
+    csv_out: str, optional
+      Filename to write CSV of model predictions.
+    stats_out: str, optional
+      Filename to write computed statistics.
+    per_task_metrics: bool, optional
+      If true, return computed metric for each task on multitask dataset.
     """
     y = self.dataset.y
     y = undo_transforms(y, self.output_transformers)
@@ -86,6 +97,7 @@ class Evaluator(object):
       y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
     multitask_scores = {}
+    all_task_scores = {}
 
     if csv_out is not None:
       log("Saving predictions to %s" % csv_out, self.verbose)
@@ -93,10 +105,19 @@ class Evaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
-      multitask_scores[metric.name] = metric.compute_metric(y, y_pred, w)
+      if per_task_metrics:
+        multitask_scores[metric.name], computed_metrics = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=True)
+        all_task_scores[metric.name] = computed_metrics
+      else:
+        multitask_scores[metric.name] = metric.compute_metric(
+            y, y_pred, w, per_task_metrics=False)
     
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbose)
       self.output_statistics(multitask_scores, stats_out)
   
-    return multitask_scores
+    if not per_task_metrics:
+      return multitask_scores
+    else:
+      return multitask_scores, all_task_scores

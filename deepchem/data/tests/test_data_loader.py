@@ -23,6 +23,15 @@ class TestDataLoader(unittest.TestCase):
     super(TestDataLoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
+  def unlabelled_test(self):
+    input_file = os.path.join(
+        self.current_dir, "../../data/tests/no_labels.csv")
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+    loader = dc.data.CSVLoader(
+        tasks=[], smiles_field="smiles",
+        featurizer=featurizer)
+    loader.featurize(input_file)
+
   def scaffold_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"

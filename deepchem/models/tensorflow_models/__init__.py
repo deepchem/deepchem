@@ -511,27 +511,28 @@ class TensorflowGraphModel(Model):
     y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[]):
-    """
-    Evaluates the performance of this model on specified dataset.
-  
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset object.
-    metric: deepchem.metrics.Metric
-      Evaluation metric
-    transformers: list
-      List of deepchem.transformers.Transformer
+  # TODO(rbharath): Verify this can be safely removed.
+  #def evaluate(self, dataset, metrics, transformers=[]):
+  #  """
+  #  Evaluates the performance of this model on specified dataset.
+  #
+  #  Parameters
+  #  ----------
+  #  dataset: dc.data.Dataset
+  #    Dataset object.
+  #  metric: deepchem.metrics.Metric
+  #    Evaluation metric
+  #  transformers: list
+  #    List of deepchem.transformers.Transformer
 
-    Returns
-    -------
-    dict
-      Maps tasks to scores under metric.
-    """
-    evaluator = Evaluator(self, dataset, transformers)
-    scores = evaluator.compute_model_performance(metrics)
-    return scores
+  #  Returns
+  #  -------
+  #  dict
+  #    Maps tasks to scores under metric.
+  #  """
+  #  evaluator = Evaluator(self, dataset, transformers)
+  #  scores = evaluator.compute_model_performance(metrics)
+  #  return scores
 
   def _find_last_checkpoint(self):
     """Finds last saved checkpoint."""

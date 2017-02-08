@@ -16,9 +16,9 @@ from kaggle_datasets import load_kaggle
 ###Load data###
 np.random.seed(123)
 shard_size = 2000
+num_trials = 5
 print("About to load KAGGLE data.")
-KAGGLE_tasks, datasets, transformers = load_kaggle(
-    shard_size=shard_size)
+KAGGLE_tasks, datasets, transformers = load_kaggle(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")
@@ -31,29 +31,68 @@ print(len(test_dataset))
 num_features = train_dataset.get_data_shape()[0]
 print("Num features: %d" % num_features)
 
-def task_model_builder(model_dir):
-  sklearn_model = RandomForestRegressor(
-      n_estimators=100, max_features=int(num_features/3),
-      min_samples_split=5, n_jobs=-1)
-  return dc.models.SklearnModel(sklearn_model, model_dir)
-model = dc.models.SingletaskToMultitask(KAGGLE_tasks, task_model_builder)
-
-###Evaluate models###
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
-print("Training model")
-model.fit(train_dataset)
+def task_model_builder(model_dir):
+  sklearn_model = RandomForestRegressor(
+      #n_estimators=100, max_features=int(num_features/3),
+      n_estimators=1, max_features=int(num_features/3),
+      min_samples_split=5, n_jobs=-1)
+  return dc.models.SklearnModel(sklearn_model, model_dir)
 
-train_scores = model.evaluate(train_dataset, [metric], transformers)
-valid_scores = model.evaluate(valid_dataset, [metric], transformers)
-#Only use for final evaluation
-test_scores = model.evaluate(test_dataset, [metric], transformers)
+all_results = []
+for trial in range(num_trials):
+  print("Starting trial %d" % trial)
+  model = dc.models.SingletaskToMultitask(KAGGLE_tasks, task_model_builder)
 
-print("Train scores")
-print(train_scores)
+  print("Training model")
+  model.fit(train_dataset)
 
-print("Validation scores")
-print(valid_scores)
+  print("Evaluating models")
+  train_score, train_task_scores = model.evaluate(
+      train_dataset, [metric], transformers, per_task_metrics=True)
+  valid_score, valid_task_scores = model.evaluate(
+      valid_dataset, [metric], transformers, per_task_metrics=True)
+  test_score, test_task_scores = model.evaluate(
+      test_dataset, [metric], transformers, per_task_metrics=True)
 
-print("Test scores")
-print(test_scores)
+  all_results.append((train_score, train_task_scores,
+                      valid_score, valid_task_scores,
+                      test_score, test_task_scores))
+
+  print("----------------------------------------------------------------")
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)
+
+print("####################################################################")
+
+for trial in range(num_trials):
+  (train_score, train_task_scores, valid_score, valid_task_scores,
+   test_score, test_task_scores) = all_results[trial]
+  print("----------------------------------------------------------------")
+  print("Scores for trial %d" % trial)
+  print("----------------------------------------------------------------")
+  print("train_task_scores")
+  print(train_task_scores)
+  print("Mean Train score")
+  print(train_score)
+  print("valid_task_scores")
+  print(valid_task_scores)
+  print("Mean Validation score")
+  print(valid_score)
+  print("test_task_scores")
+  print(test_task_scores)
+  print("Mean Test score")
+  print(test_score)

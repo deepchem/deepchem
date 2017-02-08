@@ -20,7 +20,7 @@ from deepchem.utils.save import load_sdf_files
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
 
-def convert_df_to_numpy(df, tasks, id_field, verbose=False):
+def convert_df_to_numpy(df, tasks, verbose=False):
   """Transforms a dataframe containing deepchem input into numpy arrays"""
   n_samples = df.shape[0]
   n_tasks = len(tasks)
@@ -39,7 +39,7 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
       if y[ind, task] == "":
         missing[ind, task] = 1
 
-  ids = df[id_field].values
+  # ids = df[id_field].values
   # Set missing data to have weight zero
   for ind in range(n_samples):
     for task in range(n_tasks):
@@ -47,7 +47,7 @@ def convert_df_to_numpy(df, tasks, id_field, verbose=False):
         y[ind, task] = 0.
         w[ind, task] = 0.
 
-  return ids, y.astype(float), w.astype(float)
+  return y.astype(float), w.astype(float)
 
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
@@ -152,10 +152,20 @@ class DataLoader(object):
       for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
         time1 = time.time()
         X, valid_inds = self.featurize_shard(shard)
-        ids, y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
-        # Filter out examples where featurization failed.
-        ids, y, w = (ids[valid_inds], y[valid_inds], w[valid_inds])
-        assert len(X) == len(ids) == len(y) == len(w)
+        ids = shard[self.id_field].values
+        ids = ids[valid_inds]
+        if len(self.tasks) > 0:
+          # Featurize task results iff they exist.
+          y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
+          # Filter out examples where featurization failed.
+          y, w = (y[valid_inds], w[valid_inds])
+          assert len(X) == len(ids) == len(y) == len(w)
+        else:
+          # For prospective data where results are unknown, it makes
+          # no sense to have y values or weights.
+          y, w = (None, None)
+          assert len(X) == len(ids)
+
         time2 = time.time()
         log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
             self.verbose)
