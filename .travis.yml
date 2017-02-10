@@ -25,6 +25,7 @@ install:
 - export KERAS_BACKEND=tensorflow
 - conda install -c omnia mdtraj
 - pip install tensorflow
+- conda install -c conda-forge protobuf=3.1.0
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
