@@ -80,7 +80,7 @@ class TestSupports(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Set last n_samples/2 weights to 0
-    w[n_samples/2:] = 0
+    w[n_samples//2:] = 0
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     n_episodes = 20
@@ -295,7 +295,7 @@ class TestSupports(unittest.TestCase):
 
   def test_get_task_minus_support_missing(self):
     """Test that support can be removed from dataset with missing data"""
-    n_samples = 20
+    n_samples = int(20)
     n_support = 4 
     n_features = 3
     n_tasks = 1
@@ -307,13 +307,12 @@ class TestSupports(unittest.TestCase):
     y = np.random.randint(2, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Set last n_samples/2 weights to 0
-    print("Foobarbash")
-    w[n_samples/2:] = 0
+    w[n_samples//2:] = 0
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     # Sample from first n_samples/2 elements for support
     support_inds = sorted(np.random.choice(
-        np.arange(n_samples/2), (n_support,), replace=False))
+        np.arange(n_samples//2), (n_support,), replace=False))
     support_dataset = dc.data.NumpyDataset(X[support_inds], y[support_inds],
                                            w[support_inds], ids[support_inds])
 
