@@ -56,6 +56,18 @@ def get_molecule_data(pybel_molecule):
   protein_range = protein_max - protein_min
   return protein_centroid, protein_range
 
+def rdkit_get_molecule_data(protein_mol):
+  """Uses pybel to compute centroid and range of molecule (Angstroms)."""
+  atom_positions = []
+  for atom in protein_mol[0]:
+    atom_positions.append(tuple(atom))
+  protein_xyz = np.asarray(atom_positions)
+  protein_centroid = np.mean(protein_xyz, axis=0)
+  protein_max = np.max(protein_xyz, axis=0)
+  protein_min = np.min(protein_xyz, axis=0)
+  protein_range = protein_max - protein_min
+  return protein_centroid, protein_range
+
 
 class VinaPoseGenerator(PoseGenerator):
   """Uses Autodock Vina to generate binding poses."""
@@ -177,7 +189,7 @@ class VinaPoseGenerator(PoseGenerator):
       protein_centroid = centroid
     else:
       if not self.detect_pockets:
-        protein_centroid, protein_range = get_molecule_data(receptor_pybel)
+        protein_centroid, protein_range = rdkit_get_molecule_data(receptor_mol)
         box_dims = protein_range + 5.0
       else:
         print("About to find putative binding pockets")
@@ -202,10 +214,10 @@ class VinaPoseGenerator(PoseGenerator):
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
     # TODO(rbharath): Generalize this so can support mol2 files as well.
-    hydrogenate_and_compute_partial_charges(ligand_file, "sdf",
-                                            hyd_output=ligand_hyd,
-                                            pdbqt_output=ligand_pdbqt,
-                                            protein=False)
+    rdkit_hydrogenate_and_compute_partial_charges(ligand_file, "sdf",
+                                                  hyd_output=ligand_hyd,
+                                                  pdbqt_output=ligand_pdbqt,
+                                                  protein=False)
 
     # Write Vina conf file
     conf_file = os.path.join(out_dir, "conf.txt")
@@ -226,4 +238,5 @@ class VinaPoseGenerator(PoseGenerator):
     print("About to call Vina")
     command = "%s --config %s --log %s --out %s" % \
               (self.vina_cmd, conf_file, log_file, out_pdbqt)
+    print(command)
     call(command, shell=True)

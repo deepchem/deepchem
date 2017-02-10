@@ -8,4 +8,4 @@ class TestVinaPoseGenerator(unittest.TestCase):
     pose_generator = VinaPoseGenerator(exhaustiveness=1, detect_pockets=False)
     ligand_file = 'deepchem/dock/tests/1jld_ligand.sdf'
     protein_file = 'deepchem/dock/tests/1jld_protein.pdb'
-    pose_generator.generate_poses(protein_file, ligand_file)
+    pose_generator.rdkit_generate_poses(protein_file, ligand_file)

@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+from utils import rdkit_util
+
 __author__ = "Bharath Ramsundar and Jacob Durrant"
 __license__ = "GNU General Public License"
 
@@ -143,16 +145,15 @@ def rdkit_hydrogenate_and_compute_partial_charges(input_file, input_format,
   """
   if verbose:
     print("Create pdb with hydrogens added")
-  # TODO(LESWING) move load_molecule to util
 
-  mol = rdkit_grid_featurizer.load_molecule(input_file, add_hydrogens=True)[1]
+  mol = rdkit_util.load_molecule(input_file, add_hydrogens=True)[1]
   if verbose:
     print("Create pdb with hydrogens added")
-  rdkit_grid_featurizer.write_molecule(mol, hyd_output)
+  rdkit_util.write_molecule(mol, hyd_output)
   rdPartialCharges.ComputeGasteigerCharges(mol)
   if verbose:
     print("Create a pdbqt file from the hydrogenated pdb above.")
-  rdkit_grid_featurizer.write_molecule(mol, pdbqt_output)
+  rdkit_util.write_molecule(mol, pdbqt_output)
 
 
 class AromaticRing(object):
