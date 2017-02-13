@@ -11,7 +11,7 @@ BENCHMARK_TO_DESIRED_KEY_MAP = {
   "graphconv": "graph convolution",
 }
 DESIRED_RESULTS_CSV = "devtools/jenkins/desired_results.csv"
-TEST_RESULTS_CSV = "results.csv"
+TEST_RESULTS_CSV = "examples/results.csv"
 
 
 def parse_desired_results(desired_results):
