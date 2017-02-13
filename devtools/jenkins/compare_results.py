@@ -1,7 +1,7 @@
-from nose.tools import assert_true
+from nose.tools import assert_true, nottest
 
 CUSHION_PERCENT = 0.01
-DESIRED_TO_SAMPLE_MAP = {
+BENCHMARK_TO_DESIRED_KEY_MAP = {
   "index": "Index splitting",
   "random": "Random splitting",
   "scaffold": "Scaffold splitting",
@@ -12,13 +12,41 @@ DESIRED_TO_SAMPLE_MAP = {
 }
 
 
-def find_desired_result(result, desired_results):
-  vars = result.split(',')
-  data_set, split, model = vars[1], DESIRED_TO_SAMPLE_MAP[vars[2]], DESIRED_TO_SAMPLE_MAP[vars[5]]
+def parse_desired_results(desired_results):
+  retval = []
   for line in desired_results:
-    desired_vars = line.split(',')
-    if data_set == desired_vars[1] and split == desired_vars[0] and model == desired_vars[2]:
-      return float(desired_vars[-2]), float(desired_vars[-1])
+    vars = line.split(',')
+    retval.append({
+      "split": vars[0],
+      "data_set": vars[1],
+      "model": vars[2],
+      "train_score": float(vars[3]),
+      "test_score": float(vars[4])
+    })
+  return retval
+
+
+@nottest
+def parse_test_results(test_results):
+  retval = []
+  for line in test_results:
+    vars = line.split(',')
+    retval.append({
+      "split": BENCHMARK_TO_DESIRED_KEY_MAP[vars[2]],
+      "data_set": vars[1],
+      "model": BENCHMARK_TO_DESIRED_KEY_MAP[vars[5]],
+      "train_score": float(vars[6]),
+      "test_score": float(vars[9])
+    })
+  return retval
+
+
+def find_desired_result(result, desired_results):
+  for desired_result in desired_results:
+    if result['data_set'] == desired_result['data_set'] and \
+        result['split'] == desired_result['split'] and \
+        result['model'] == desired_result['model']:
+      return desired_result
   raise Exception("Unable to find desired result \n%s" % result)
 
 
@@ -28,26 +56,27 @@ def get_my_results(result):
 
 
 def is_good_result(my_result, desired_result):
-  for i in range(2):
-    my_value = my_result[i]
-    desired_value = desired_result[i]
-    if my_value > desired_value * (1.0 + CUSHION_PERCENT):
+  for key in ['train_score', 'test_score']:
+    # Higher is Better
+    desired_value = desired_result[key] * (1.0 - CUSHION_PERCENT)
+    if my_result[key] < desired_value:
       return False
   return True
 
 
 def test_compare_results():
-  desired_results = open("devtools/jenkins/desired_results.csv").readlines()
-  given_results = open("results.csv").readlines()
+  desired_results = open("devtools/jenkins/desired_results.csv").readlines()[1:]
+  desired_results = parse_desired_results(desired_results)
+  test_results = open("results.csv").readlines()
+  test_results = parse_test_results(test_results)
   exceptions = []
-  for result in given_results:
-    desired_result = find_desired_result(result, desired_results)
-    my_result = get_my_results(result)
-    if not is_good_result(my_result, desired_result):
-      exceptions.append((result, my_result, desired_result))
-    if len(exceptions) > 0:
-      for exception in exceptions:
-        print(exception)
+  for test_result in test_results:
+    desired_result = find_desired_result(test_result, desired_results)
+    if not is_good_result(test_result, desired_result):
+      exceptions.append((test_result, desired_result))
+  if len(exceptions) > 0:
+    for exception in exceptions:
+      print(exception)
     assert_true(len(exceptions) == 0, "Some performance benchmarks not passed")
 
   if __name__ == "__main__":
