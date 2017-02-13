@@ -16,7 +16,7 @@ pip install nose
 python setup.py install
 
 cd examples
-python benchmark.py tox21
+python benchmark.py -d tox21
 
 source deactivate
 conda remove --name $envname --all
