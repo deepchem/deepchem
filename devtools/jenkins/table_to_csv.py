@@ -1,3 +1,6 @@
+"""
+Utility script to convert the benchmark markdown table into a CSV
+"""
 import sys
 
 
