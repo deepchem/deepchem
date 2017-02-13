@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 envname=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
-conda create --name $envname
+conda create --name $envname python=3.5
 source activate $envname
 conda install -c omnia openbabel=2.4.0
 conda install -c rdkit rdkit
