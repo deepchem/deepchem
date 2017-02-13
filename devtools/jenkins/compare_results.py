@@ -10,6 +10,8 @@ BENCHMARK_TO_DESIRED_KEY_MAP = {
   "tf_robust": "robust MT-NN",
   "graphconv": "graph convolution",
 }
+DESIRED_RESULTS_CSV = "devtools/jenkins/desired_results.csv"
+TEST_RESULTS_CSV = "results.csv"
 
 
 def parse_desired_results(desired_results):
@@ -50,11 +52,6 @@ def find_desired_result(result, desired_results):
   raise Exception("Unable to find desired result \n%s" % result)
 
 
-def get_my_results(result):
-  vars = result.split(',')
-  return float(vars[6]), float(vars[9])
-
-
 def is_good_result(my_result, desired_result):
   for key in ['train_score', 'test_score']:
     # Higher is Better
@@ -65,9 +62,9 @@ def is_good_result(my_result, desired_result):
 
 
 def test_compare_results():
-  desired_results = open("devtools/jenkins/desired_results.csv").readlines()[1:]
+  desired_results = open(DESIRED_RESULTS_CSV).readlines()[1:]
   desired_results = parse_desired_results(desired_results)
-  test_results = open("results.csv").readlines()
+  test_results = open(TEST_RESULTS_CSV).readlines()
   test_results = parse_test_results(test_results)
   exceptions = []
   for test_result in test_results:
