@@ -12,13 +12,14 @@ import pandas as pd
 import shutil
 import time
 import re
+import json
 from rdkit import Chem
 import deepchem as dc
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
   # Some complexes have labels but no PDB files. Filter these manually
-  missing_pdbs = ["1d2v", "1jou", "1s8j", "1cam", "4mlt", "4o7d"]
+  missing_pdbs = ["1d2v", "1jou", "1s8j", "3f39", "3i3d", "3i3b", "3dyo", "3t0d", "1cam", "3vdb", "3f37", "3f38", "4mlt", "3f36", "4o7d", "3t08", "3f34", "3f35", "2wik", "4mlx", "2wij", "1px4", "4wkt", "3f33", "2wig", "3muz", "3t2p", "3t2q", "4pji", "2adj", "3t09", "3mv0", "1pts", "3vd9", "3axk", "4q1s", "3t0b", "4b82", "3vd7", "3hg1", "3vd4", "3vdc", "3b5y", "4oi6", "3axm", "4mdm", "2mlm", "3eql", "4ob0", "3wi6", "4fgt", "4pnc", "4mvn", "4lv3", "4lz9", "1pyg", "3h1k", "7gpb", "1e8h", "4wku", "2f2h", "1zyr", "1z9j", "3b5d", "3b62", "4q3q", "4mdl", "4no6", "4mdg", "3dxj", "4u0x", "4l6q", "4q3r", "1h9s", "4ob1", "4ob2", "4qq5", "4nk3", "3k1j", "4m8t", "4mzo", "4nnn", "4q3s", "4nnw", "3cf1", "4u5t", "4wkv", "4ool", "3a2c", "4wm9", "4pkb", "4qkx", "4no8", "1ztz", "1nu1", "4kn4", "4mao", "4qqc", "4len", "4lv1", "4r02", "4r6v", "4fil", "4q2k", "1hpb", "4oon", "4qbb", "4ruu", "4no1", "3w8o", "4kn7", "4r17", "4r18", "5hvp", "1e59", "1sqq", "3n75", "4kmu", "4mzs", "1sqb", "1lr8", "4lv2", "4wmc", "1sqp", "3whw", "4cpa", "3i8w", "4hrd", "4hrc", "1ntk", "1rbo"]
   contents = []
   with open(labels_file) as f:
     for line in f:
@@ -54,6 +55,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   tasks = ["-logKd/Ki"]
   current_dir = os.path.dirname(os.path.realpath(__file__))
   data_dir = os.path.join(current_dir, "%s_%s" % (subset, feat))
+  print(data_dir)
   if os.path.exists(data_dir):
     return dc.data.DiskDataset(data_dir), tasks
   pdbbind_dir = os.path.join(current_dir, "v2015")
@@ -122,7 +124,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)
-   
+
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
   return dataset, tasks
 
@@ -142,5 +144,5 @@ def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
     valid = transformer.transform(valid)
   for transformer in transformers:
     test = transformer.transform(test)
-  
+
   return tasks, (train, valid, test), transformers
