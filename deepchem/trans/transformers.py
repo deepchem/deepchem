@@ -568,20 +568,21 @@ class CoulombFitTransformer():
     raise NotImplementedError(
       "Cannot untransform datasets with FitTransformer.")
 
- class IRVTransformer():
+class IRVTransformer():
   """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
-  def __init__(self, K, dataset):
+  def __init__(self, K, n_tasks, dataset, transform_X=False, transform_y=False,
+               features=None):
 
     """Initializes CoulombFitTransformer.
     Parameters:
     ----------
-    dataset: dc.data.Dataset object
+    dataset: dc.data.Dataset object, y and w should be for one task
 
-    K: number of nearest neighbours that count
+    K: number of nearest neighbours that count[
     
     """
     self.X = dataset.X
-    self.n_samples = X.shape[0]
+    self.n_tasks = n_tasks
     self.K = K
     self.y = dataset.y
     self.w = dataset.w
@@ -593,41 +594,45 @@ class CoulombFitTransformer():
       "Similarity measurement requires same size")
     return np.sum(np.min([x,y], axis=0))/np.sum(np.max([x,y], axis=0))
 
-  def realize(self, X_target):
-    """Randomize features. """
-    def _realize_(x_target):
+  def realize(self, X_target, y, w):
+    features = []
+    for x_target in X_target:
       similar_xs = []
-      similar_inds = []
+      similar_ys = []
       threshold = 0
       for count, x in enumerate(self.X):
+        if w[count] == 0:
+          continue
         similar = IRVTransformer.similarity(x, x_target)
         if similar >= 1:
           continue
         if len(similar_xs) < self.K-1:
           similar_xs.append(similar)
-          similar_inds.append(count)
-        if len(similar_xs) == self.K-1:
-          if self.w[count]
+          similar_ys.append(y[count])
+        elif len(similar_xs) == self.K-1:
           similar_xs.append(similar)
-          similar_inds.append(count)
+          similar_ys.append(y[count])
           threshold = min(similar_xs)
         elif similar > threshold:
           ind = similar_xs.index(threshold)
           similar_xs.pop(ind)
-          similar_inds.pop(ind)
+          similar_ys.pop(ind)
           similar_xs.append(similar)
-          similar_inds.append(count)
+          similar_ys.append(y[count])
           threshold = min(similar_xs)
-      return similar_xs.extend(similar_inds)
-    return np.array([_realize_(z) for z in X_target])
+      similar_xs.extend(similar_ys)
+      features.append(similar_xs)
+    return features
       
   def X_transform(self, X_target):
-    X_target = self.realize(X_target)
-    return X_target
+    X_target2 = []
+    for i in range(self.n_tasks):
+      X_target2.append(self.realize(X_target, self.y[:,i], self.w[:,i]))
+    return np.concatenate([z for z in np.array(X_target2)], axis=1)
 
   def transform(self, dataset):
-    raise NotImplementedError(
-      "Cannot transform datasets with FitTransformer")
+    X_trans = self.X_transform(dataset.X)
+    return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
 
   def untransform(self, z):
     raise NotImplementedError(

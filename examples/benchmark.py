@@ -607,7 +607,7 @@ if __name__ == '__main__':
     for dataset in datasets:
       if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox']:
         for model in models:
-          if model in ['tf', 'tf_robust', 'logreg', 'graphconv']:
+          if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf']:
             benchmark_loading_datasets(
                 hps, dataset=dataset, model=model, split=split, out_path='.')
       else:
