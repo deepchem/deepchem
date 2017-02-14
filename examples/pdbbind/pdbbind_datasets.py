@@ -12,7 +12,6 @@ import pandas as pd
 import shutil
 import time
 import re
-import json
 from rdkit import Chem
 import deepchem as dc
 
@@ -55,7 +54,6 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   tasks = ["-logKd/Ki"]
   current_dir = os.path.dirname(os.path.realpath(__file__))
   data_dir = os.path.join(current_dir, "%s_%s" % (subset, feat))
-  print(data_dir)
   if os.path.exists(data_dir):
     return dc.data.DiskDataset(data_dir), tasks
   pdbbind_dir = os.path.join(current_dir, "v2015")
