@@ -25,7 +25,8 @@ install:
 - conda install -c conda-forge protobuf=3.1.0
 - export KERAS_BACKEND=tensorflow
 - conda install -c omnia mdtraj
-- pip install tensorflow
+- export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp35-cp35m-linux_x86_64.whl
+- pip install --upgrade $TF_BINARY_URL
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
