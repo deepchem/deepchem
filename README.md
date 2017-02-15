@@ -74,7 +74,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    pip install tensorflow-gpu
+    pip install tensorflow-gpu==0.12.1
     ```
 
 8. `deepchem`: Clone the `deepchem` github repo:
