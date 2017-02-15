@@ -568,10 +568,9 @@ class CoulombFitTransformer():
     raise NotImplementedError(
       "Cannot untransform datasets with FitTransformer.")
 
-class IRVTransformer():
+class IRVFitTransformer():
   """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
-  def __init__(self, K, n_tasks, dataset, transform_X=False, transform_y=False,
-               features=None):
+  def __init__(self, K, n_tasks, dataset):
 
     """Initializes CoulombFitTransformer.
     Parameters:
@@ -598,30 +597,25 @@ class IRVTransformer():
     features = []
     for x_target in X_target:
       similar_xs = []
-      similar_ys = []
       threshold = 0
       for count, x in enumerate(self.X):
         if w[count] == 0:
           continue
-        similar = IRVTransformer.similarity(x, x_target)
+        similar = IRVFitTransformer.similarity(x, x_target)
         if similar >= 1:
           continue
         if len(similar_xs) < self.K-1:
-          similar_xs.append(similar)
-          similar_ys.append(y[count])
+          similar_xs.append((similar, y[count]))
         elif len(similar_xs) == self.K-1:
-          similar_xs.append(similar)
-          similar_ys.append(y[count])
-          threshold = min(similar_xs)
+          similar_xs.append((similar, y[count]))
+          threshold = min([z[0] for z in similar_xs])
         elif similar > threshold:
-          ind = similar_xs.index(threshold)
+          ind = [z[0] for z in similar_xs].index(threshold)
           similar_xs.pop(ind)
-          similar_ys.pop(ind)
-          similar_xs.append(similar)
-          similar_ys.append(y[count])
-          threshold = min(similar_xs)
-      similar_xs.extend(similar_ys)
-      features.append(similar_xs)
+          similar_xs.append((similar, y[count]))
+          threshold = min([z[0] for z in similar_xs])
+      similar_xs.sort(key=lambda x : x[0]) 
+      features.append([z[0] for z in similar_xs]+[z[1] for z in similar_xs])
     return features
       
   def X_transform(self, X_target):
