@@ -23,4 +23,4 @@ nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
 
 source deactivate
 conda remove --name $envname --all
-rm results.csv
+rm examples/results.csv
