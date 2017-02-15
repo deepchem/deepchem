@@ -21,11 +21,9 @@ install:
 - conda install joblib
 - conda install h5py
 - pip install six
-#- pip install keras
 - conda install -c conda-forge protobuf=3.1.0
-- export KERAS_BACKEND=tensorflow
 - conda install -c omnia mdtraj
-- pip install tensorflow
+- pip install tensorflow==0.12.1
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
