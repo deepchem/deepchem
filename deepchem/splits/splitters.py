@@ -277,7 +277,8 @@ class SingletaskStratifiedSplitter(Splitter):
     """
     Creates splitter object.
 
-    Parameters:
+    Parameters
+    ----------
     task_number: int (Optional, Default 0)
       Task number for stratification.
     verbose: bool (Optional, Default False)
@@ -300,7 +301,7 @@ class SingletaskStratifiedSplitter(Splitter):
     seed: int (Optional, Default None)
       Random seed.
     log_every_n: int (Optional, Default None)
-      Log every n examples (not currently used)
+      Log every n examples (not currently used).
 
     Returns
     -------
@@ -329,6 +330,26 @@ class SingletaskStratifiedSplitter(Splitter):
             frac_test=.1, log_every_n=None):
     """
     Splits compounds into train/validation/test using stratified sampling.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset object
+      Dataset.
+    seed: int (Optional, Default None)
+      Random seed.
+    frac_train: float (Optional, Default .8)
+      Fraction of dataset put into training data.
+    frac_valid: float (Optional, Default .1)
+      Fraction of dataset put into validation data.
+    frac_test: float (Optional, Default .1)
+      Fraction of dataset put into test data.
+    log_every_n: int (Optional, Default None)
+      Log every n examples (not currently used).
+
+    Returns
+    -------
+    retval: Tuple
+      Tuple containing train indices, valid indices, and test indices    
     """
     # JSG Assert that split fractions can be written as proper fractions over 10.
     # This can be generalized in the future with some common demoninator determination.
@@ -339,13 +360,13 @@ class SingletaskStratifiedSplitter(Splitter):
     if not seed is None:
       np.random.seed(seed)
 
-    y_s = dataset.y[self.task_number]
+    y_s = dataset.y[:,self.task_number]
     sortidx = np.argsort(y_s)
 
     split_cd = 10
     train_cutoff = int(frac_train * split_cd)
-    valid_cutoff = int(frac_valid * split_cd)
-    test_cutoff = int(frac_test * split_cd)
+    valid_cutoff = int(frac_valid * split_cd) + train_cutoff
+    test_cutoff = int(frac_test * split_cd) + valid_cutoff
 
     train_idx = np.array([])
     valid_idx = np.array([])
