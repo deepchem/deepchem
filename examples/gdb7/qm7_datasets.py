@@ -1,5 +1,5 @@
 """
-gdb7 dataset loader.
+qm7 dataset loader.
 """
 from __future__ import print_function
 from __future__ import division
@@ -12,7 +12,7 @@ import deepchem as dc
 import scipy.io
 import csv
 
-def load_gdb7_from_mat(split=0):
+def load_qm7_from_mat(featurizer=None, split=0):
 
   if not os.path.exists('qm7.mat'): os.system('wget http://www.quantum-machine.org/data/qm7.mat')
   dataset = scipy.io.loadmat('qm7.mat')
@@ -35,20 +35,45 @@ def load_gdb7_from_mat(split=0):
     train_dataset = transformer.transform(train_dataset)
     test_dataset = transformer.transform(test_dataset)
 
-  gdb7_tasks = ["atomization_energy"]
-  return gdb7_tasks, (train_dataset, test_dataset), transformers
+  qm7_tasks = ["atomization_energy"]
+  return qm7_tasks, (train_dataset, test_dataset), transformers
 
-def load_gdb7(featurizer=None, split='random'):
-  """Load gdb7 datasets."""
-  # Featurize gdb7 dataset
-  print("About to featurize gdb7 dataset.")
+def load_qm7b_from_mat(featurizer=None, split='stratified'):
+
+  if not os.path.exists('qm7b.mat'): os.system('wget http://www.quantum-machine.org/data/qm7b.mat')
+  dataset_b = scipy.io.loadmat('qm7b.mat')
+  
+  X = dataset_b['X']
+  y = dataset_b['T']
+  w = np.ones_like(y)
+  dataset = dc.data.NumpyDataset(X, y, w, ids=None)
+
+  transformers = [dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)]
+
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
+
+  splitters = {'index': dc.splits.IndexSplitter(),
+               'random': dc.splits.RandomSplitter(),
+               'stratified': dc.splits.SingletaskStratifiedSplitter()}
+  splitter = splitters[split]
+  train_dataset, test_dataset = splitter.train_test_split(dataset)
+
+  qm7_tasks = np.arange(y.shape[1])
+  return qm7_tasks, (train_dataset, test_dataset), transformers
+
+def load_qm7(featurizer=None, split='random'):
+
+  """Load qm7 datasets."""
+  # Featurize qm7 dataset
+  print("About to featurize qm7 dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
       current_dir, "./gdb7.sdf")
-  gdb7_tasks = ["u0_atom"]
+  qm7_tasks = ["u0_atom"]
   if featurizer is None:
     featurizer = dc.feat.CoulombMatrixEig(23)
-  loader = dc.data.SDFLoader(tasks=gdb7_tasks, smiles_field="smiles", 
+  loader = dc.data.SDFLoader(tasks=qm7_tasks, smiles_field="smiles", 
                              mol_field="mol", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
  
@@ -61,7 +86,7 @@ def load_gdb7(featurizer=None, split='random'):
     dataset = transformer.transform(dataset)
   
   split_file = os.path.join(
-      current_dir, "./gdb7_splits.csv")
+      current_dir, "./qm7_splits.csv")
 
   split_indices = []
   with open(split_file, 'r') as f:
@@ -76,4 +101,4 @@ def load_gdb7(featurizer=None, split='random'):
                'indice': dc.splits.IndiceSplitter(valid_indices=split_indices[1])}
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
-  return gdb7_tasks, (train, valid, test), transformers
+  return qm7_tasks, (train, valid, test), transformers
