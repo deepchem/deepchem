@@ -51,7 +51,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
 
 3. `rdkit`
    ```bash
-   conda install -c omnia rdkit
+   conda install -c rdkit rdkit
    ```
 
 4. `joblib`
