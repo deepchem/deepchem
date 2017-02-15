@@ -354,9 +354,9 @@ class SingletaskStratifiedSplitter(Splitter):
     while sortidx.shape[0] >= split_cd:
       sortidx_split, sortidx = np.split(sortidx, [split_cd])
       shuffled = np.random.permutation(range(split_cd))
-      train_idx = np.hstack([train_idx, sortidx_split[shuffled(:train_cutoff)]])
-      valid_idx = np.hstack([valid_idx, sortidx_split[shuffled(train_cutoff:valid_cutoff)]])
-      test_idx = np.hstack([test_idx, sortidx_split[shuffled(valid_cutoff:)]])
+      train_idx = np.hstack([train_idx, sortidx_split[shuffled[:train_cutoff]]])
+      valid_idx = np.hstack([valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
+      test_idx = np.hstack([test_idx, sortidx_split[shuffled[valid_cutoff:]]])
 
     # Append remaining examples to train
     if sortidx.shape[0] > 0: np.hstack([train_idx, sortidx]) 
