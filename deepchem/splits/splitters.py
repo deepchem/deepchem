@@ -388,8 +388,9 @@ class ScaffoldSplitter(Splitter):
       else:
         scaffolds[scaffold].append(ind)
     # Sort from largest to smallest scaffold sets
+    scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
-                     sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
+                     sorted(scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)]
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
     train_inds, valid_inds, test_inds = [], [], []
