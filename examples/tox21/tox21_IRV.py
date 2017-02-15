@@ -24,7 +24,7 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 fit_transformers = [dc.trans.IRVFitTransformer(K, len(tox21_tasks), train_dataset)]
 
 model = dc.models.TensorflowMultiTaskIRVClassifier(
-    len(tox21_tasks), K=K, n_features, learning_rate=0.001, penalty = 0.05, 
+    len(tox21_tasks), K=K, learning_rate=0.001, penalty = 0.05, 
     batch_size=32, fit_transformers=fit_transformers)
 
 # Fit trained model

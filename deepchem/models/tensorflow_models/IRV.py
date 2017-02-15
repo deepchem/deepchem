@@ -78,19 +78,19 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
       output = []
       with placeholder_scope:
         self.features = tf.placeholder(
-            tf.float32, shape=[None, self.n_features], name='features')
+            tf.float32, shape=[None, self.n_features], name='mol_features')
       with tf.name_scope('variable'):
         V = tf.Variable(tf.constant([0.01,1.]), name="vote", dtype=tf.float32)
         W = tf.Variable(tf.constant([1., 1.]), name="w", dtype=tf.float32)
         b = tf.Variable(tf.constant([0.01]), name="b", dtype=tf.float32)
         b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
-      for count in self.n_tasks:
+      for count in range(self.n_tasks):
         similarity = self.features[:, 2*K*count:(2*K*count+K)]
         ys = tf.to_int32(self.features[:, (2*K*count+K):2*K*(count+1)])
         R = b+W[0]*similarity+W[1]*tf.constant(np.arange(K)+1, dtype=tf.float32)
         R = tf.sigmoid(R)
         z = tf.reduce_sum(R * tf.gather(V,ys), axis=1) + b2
-        output.append(z)
+        output.append(tf.reshape(z, shape=[-1,1]))
     return output
   
   def fit(self, dataset, nb_epoch=10, max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
