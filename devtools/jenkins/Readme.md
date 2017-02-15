@@ -33,10 +33,12 @@ sudo dpkg -i libcudnn5-dev_5.1.5-1+cuda8.0_amd64.deb
 ```
 
 #### Install Jenkins
+``` bash
 wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -
 sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
 sudo apt-get update
 sudo apt-get install jenkins
+``` bash
 
 #### Install Conda For the Jenkins User
 ``` bash
