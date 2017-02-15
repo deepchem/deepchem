@@ -16,6 +16,7 @@ pip install $TF_BINARY_URL
 pip install nose
 python setup.py install
 
+rm examples/results.csv || true
 cd examples
 python benchmark.py -d tox21
 cd ..
@@ -23,4 +24,3 @@ nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
 
 source deactivate
 conda remove --name $envname --all
-rm examples/results.csv
