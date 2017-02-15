@@ -23,8 +23,8 @@ Index splitting,clintox,logistic regression,0.967,0.676
 Index splitting,clintox,Multitask network,0.934,0.830
 Index splitting,clintox,robust MT-NN,0.949,0.827
 Index splitting,clintox,graph convolution,0.946,0.860
-Random splitting,tox21,logistic regression,0.903,0.735
-Random splitting,tox21,Multitask network,0.856,0.783
+Random splitting,tox21,logistic regression,0.902,0.715
+Random splitting,tox21,Multitask network,0.844,0.795
 Random splitting,tox21,robust MT-NN,0.855,0.773
 Random splitting,tox21,graph convolution,0.865,0.827
 Random splitting,muv,logistic regression,0.957,0.719
