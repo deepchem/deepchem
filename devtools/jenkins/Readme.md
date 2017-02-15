@@ -1,10 +1,13 @@
 # Usage Instructions
 On Stanford Internal Network http://171.65.103.54:8080/
+
 username: deepAdmin
+
 password: check sticky-note on tensorbro 
 
 # Moving Instructions
 All the configuration nesseccary to run jenkins is in /var/jenkins
+
 Simply rsync /var/jenkins to the new server.
 
 # Install Instructions
