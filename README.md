@@ -218,8 +218,8 @@ Random splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.903              |0.735              |
-|           |Multitask network   |0.856              |0.783              |
+|tox21      |logistic regression |0.902              |0.715              |
+|           |Multitask network   |0.844              |0.795              |
 |           |robust MT-NN        |0.855              |0.773              |
 |           |graph convolution   |0.865              |0.827              |
 |muv        |logistic regression |0.957              |0.719              |
