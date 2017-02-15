@@ -72,6 +72,24 @@ class TestSplitters(unittest.TestCase):
     assert len(valid_data) == 1
     assert len(test_data) == 1
 
+  def test_singletask_stratified_split(self):
+    """
+    Test singletask SingletaskStratifiedSplitter class.
+    """
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    stratified_splitter = dc.splits.ScaffoldSplitter()
+    train_data, valid_data, test_data = \
+        stratified_splitter.train_valid_test_split(
+            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1  
+
+    merged_dataset = dc.data.DiskDataset.merge(
+        [train_data, valid_data, test_data])
+    assert sorted(merged_dataset.ids) == (
+           sorted(solubility_dataset.ids))
+
   def test_singletask_random_k_fold_split(self):
     """
     Test singletask RandomSplitter class.
