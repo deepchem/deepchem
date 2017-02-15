@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow singletask models on GDB7 dataset.
+Script that trains Tensorflow singletask models on QM7 dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -8,13 +8,13 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 import numpy as np
-from gdb7_datasets import load_gdb7_from_mat
+from qm7_datasets import load_qm7_from_mat
 
 np.random.seed(123)
 split = 0
 num_atoms = 23
 
-gdb7_tasks, datasets, transformers = load_gdb7_from_mat(split)
+qm7_tasks, datasets, transformers = load_qm7_from_mat(split)
 train_dataset, test_dataset = datasets
 
 fit_transformers = [dc.trans.CoulombFitTransformer(train_dataset)]
