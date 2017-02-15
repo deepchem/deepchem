@@ -78,12 +78,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   if feat == "grid":
     featurizer = dc.feat.GridFeaturizer(
         voxel_width=16.0, feature_types="voxel_combined",
-        # TODO(rbharath, enf): Figure out why pi_stack is slow and cation_pi
-        # causes segfaults.
-        #voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
-        #"salt_bridge"], ecfp_power=9, splif_power=9,
-        voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
-        ecfp_power=9, splif_power=9,
+        voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+        "salt_bridge"], ecfp_power=9, splif_power=9,
         parallel=True, flatten=True)
   elif feat == "coord":
     neighbor_cutoff = 4
