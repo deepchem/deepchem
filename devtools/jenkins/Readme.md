@@ -38,15 +38,17 @@ wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add
 sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
 sudo apt-get update
 sudo apt-get install jenkins
-``` bash
+``` 
 
 #### Install Conda For the Jenkins User
 ``` bash
 sudo su - jenkins
 bash Anaconda3-4.3.0-Linux-x86_64.sh
-# 
+```
 
 #### Configure Through Web-UI
+``` bash
 GOTO http://server:8080
 Install Suggested Plugins Through Web-UI
 Create First Admin User
+```
