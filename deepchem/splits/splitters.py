@@ -11,7 +11,11 @@ __license__ = "GPL"
 
 import tempfile
 import numpy as np
+import itertools
 from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import AllChem
+from rdkit.ML.Cluster import Butina
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
@@ -255,6 +259,134 @@ class RandomStratifiedSplitter(Splitter):
       fold_datasets.append(fold_dataset)
     return fold_datasets
 
+class SingletaskStratifiedSplitter(Splitter):
+  """ 
+  Class for doing data splits by stratification on a single task.
+
+  Example:
+
+  >>> n_samples = 100
+  >>> n_features = 10
+  >>> n_tasks = 10
+  >>> X = np.random.rand(n_samples, n_features)
+  >>> y = np.random.rang(n_samples, n_tasks)
+  >>> w = np.ones_like(y)
+  >>> dataset = dc.data.NumpyDataset(X, y, w, ids=None)
+  >>> splitter = SingletaskStratifiedSplitter(task_number=5)
+  >>> train_dataset, test_dataset = splitter.train_valid_split()
+
+  """
+
+  def __init__(self, task_number=0, verbose=False):
+    """
+    Creates splitter object.
+
+    Parameters
+    ----------
+    task_number: int (Optional, Default 0)
+      Task number for stratification.
+    verbose: bool (Optional, Default False)
+      Controls logging frequency.
+    """
+    self.task_number = task_number
+    self.verbose = verbose
+
+  def k_fold_split(self, dataset, k, seed=None, log_every_n=None):
+    """
+    Splits compounds into k-folds using stratified sampling.
+    Overriding base class k_fold_split.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset object
+      Dataset.
+    k: int
+      Number of folds.
+    seed: int (Optional, Default None)
+      Random seed.
+    log_every_n: int (Optional, Default None)
+      Log every n examples (not currently used).
+
+    Returns
+    -------
+    fold_datasets: List
+      List containing dc.data.Dataset objects
+    """
+    log("Computing K-fold split", self.verbose)
+    if directories is None:
+      directories = [tempfile.mkdtemp() for _ in range(k)]
+    else:
+      assert len(directories) == k
+
+    y_s = dataset.y[:, self.task_number]
+    sortidx = np.argsort(y_s)
+    sortidx_list = np.array_split(sortidx, k)
+
+    fold_datasets = []
+    for fold in range(k):
+      fold_dir = directories[fold]
+      fold_ind = sortidx_list[fold]
+      fold_dataset = dataset.select(fold_ind, fold_dir)
+      fold_datasets.append(fold_dataset)
+    return fold_datasets
+
+  def split(self, dataset, seed=None, frac_train=.8, frac_valid=.1,
+            frac_test=.1, log_every_n=None):
+    """
+    Splits compounds into train/validation/test using stratified sampling.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset object
+      Dataset.
+    seed: int (Optional, Default None)
+      Random seed.
+    frac_train: float (Optional, Default .8)
+      Fraction of dataset put into training data.
+    frac_valid: float (Optional, Default .1)
+      Fraction of dataset put into validation data.
+    frac_test: float (Optional, Default .1)
+      Fraction of dataset put into test data.
+    log_every_n: int (Optional, Default None)
+      Log every n examples (not currently used).
+
+    Returns
+    -------
+    retval: Tuple
+      Tuple containing train indices, valid indices, and test indices    
+    """
+    # JSG Assert that split fractions can be written as proper fractions over 10.
+    # This can be generalized in the future with some common demoninator determination.
+    # This will work for 80/20 train/test or 80/10/10 train/valid/test (most use cases).
+    np.testing.assert_equal(frac_train + frac_valid + frac_test, 1.)
+    np.testing.assert_equal(10*frac_train + 10*frac_valid + 10*frac_test, 10.)
+    
+    if not seed is None:
+      np.random.seed(seed)
+
+    y_s = dataset.y[:,self.task_number]
+    sortidx = np.argsort(y_s)
+
+    split_cd = 10
+    train_cutoff = int(frac_train * split_cd)
+    valid_cutoff = int(frac_valid * split_cd) + train_cutoff
+    test_cutoff = int(frac_test * split_cd) + valid_cutoff
+
+    train_idx = np.array([])
+    valid_idx = np.array([])
+    test_idx = np.array([])
+
+    while sortidx.shape[0] >= split_cd:
+      sortidx_split, sortidx = np.split(sortidx, [split_cd])
+      shuffled = np.random.permutation(range(split_cd))
+      train_idx = np.hstack([train_idx, sortidx_split[shuffled[:train_cutoff]]])
+      valid_idx = np.hstack([valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
+      test_idx = np.hstack([test_idx, sortidx_split[shuffled[valid_cutoff:]]])
+
+    # Append remaining examples to train
+    if sortidx.shape[0] > 0: np.hstack([train_idx, sortidx]) 
+
+    return (train_idx, valid_idx, test_idx)     
 
 class MolecularWeightSplitter(Splitter):
   """
@@ -364,6 +496,68 @@ class IndiceSplitter(Splitter):
     
     return (train_indices, self.valid_indices, self.test_indices)
 
+def ClusterFps(fps,cutoff=0.2):
+    # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
+    dists = []
+    nfps = len(fps)
+    for i in range(1,nfps):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i],fps[:i])
+        dists.extend([1-x for x in sims])
+    cs = Butina.ClusterData(dists,nfps,cutoff,isDistData=True)
+    return cs
+
+class ButinaSplitter(Splitter):
+  """
+  Class for doing data splits based on the butina clustering of a bulk tanimoto
+  fingerprint matrix.
+  """
+
+  def split(self, dataset, frac_train=None, frac_valid=None, frac_test=None,
+            log_every_n=1000, cutoff=0.18):
+    """
+    Splits internal compounds into train and validation based on the butina
+    clustering algorithm. This splitting algorithm has an O(N^2) run time, where N
+    is the number of elements in the dataset. The dataset is expected to be a classification
+    dataset.
+
+    This algorithm is designed to generate validation data that are novel chemotypes.
+    
+    Note that this function entirely disregards the ratios for frac_train, frac_valid,
+    and frac_test. Furthermore, it does not generate a test set, only a train and valid set.
+  
+    Setting a small cutoff value will generate smaller, finer clusters of high similarity,
+    whereas setting a large cutoff value will generate larger, coarser clusters of low similarity.
+    """
+    print("Performing butina clustering with cutoff of", cutoff)
+    mols = []
+    for ind, smiles in enumerate(dataset.ids):
+      mols.append(Chem.MolFromSmiles(smiles))
+    n_mols = len(mols)
+    fps = [AllChem.GetMorganFingerprintAsBitVect(x,2,1024) for x in mols]
+
+    scaffold_sets = ClusterFps(fps, cutoff=cutoff)
+    scaffold_sets = sorted(scaffold_sets, key=lambda x: -len(x))
+
+    ys = dataset.y
+    valid_inds = []
+    for c_idx, cluster in enumerate(scaffold_sets):
+      # for m_idx in cluster:
+      valid_inds.extend(cluster)
+      # continue until we find an active in all the tasks, otherwise we can't
+      # compute a meaningful AUC
+      # TODO (ytz): really, we want at least one active and inactive in both scenarios.
+      # TODO (Ytz): for regression tasks we'd stop after only one cluster.
+      active_populations = np.sum(ys[valid_inds], axis=0)
+      if np.all(active_populations):
+        print("# of actives per task in valid:", active_populations)
+        print("Total # of validation points:", len(valid_inds))
+        break
+
+    train_inds = list(itertools.chain.from_iterable(scaffold_sets[c_idx+1:]))
+    test_inds = []
+
+    return train_inds, valid_inds, []
+
 
 class ScaffoldSplitter(Splitter):
   """
@@ -388,8 +582,9 @@ class ScaffoldSplitter(Splitter):
       else:
         scaffolds[scaffold].append(ind)
     # Sort from largest to smallest scaffold sets
+    scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [scaffold_set for (scaffold, scaffold_set) in
-                     sorted(scaffolds.items(), key=lambda x: -len(x[1]))]
+                     sorted(scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)]
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
     train_inds, valid_inds, test_inds = [], [], []
