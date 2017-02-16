@@ -11,7 +11,11 @@ __license__ = "GPL"
 
 import tempfile
 import numpy as np
+import itertools
 from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import AllChem
+from rdkit.ML.Cluster import Butina
 from deepchem.utils import ScaffoldGenerator
 from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
@@ -491,6 +495,68 @@ class IndiceSplitter(Splitter):
         train_indices.append(indice)
     
     return (train_indices, self.valid_indices, self.test_indices)
+
+def ClusterFps(fps,cutoff=0.2):
+    # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
+    dists = []
+    nfps = len(fps)
+    for i in range(1,nfps):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i],fps[:i])
+        dists.extend([1-x for x in sims])
+    cs = Butina.ClusterData(dists,nfps,cutoff,isDistData=True)
+    return cs
+
+class ButinaSplitter(Splitter):
+  """
+  Class for doing data splits based on the butina clustering of a bulk tanimoto
+  fingerprint matrix.
+  """
+
+  def split(self, dataset, frac_train=None, frac_valid=None, frac_test=None,
+            log_every_n=1000, cutoff=0.18):
+    """
+    Splits internal compounds into train and validation based on the butina
+    clustering algorithm. This splitting algorithm has an O(N^2) run time, where N
+    is the number of elements in the dataset. The dataset is expected to be a classification
+    dataset.
+
+    This algorithm is designed to generate validation data that are novel chemotypes.
+    
+    Note that this function entirely disregards the ratios for frac_train, frac_valid,
+    and frac_test. Furthermore, it does not generate a test set, only a train and valid set.
+  
+    Setting a small cutoff value will generate smaller, finer clusters of high similarity,
+    whereas setting a large cutoff value will generate larger, coarser clusters of low similarity.
+    """
+    print("Performing butina clustering with cutoff of", cutoff)
+    mols = []
+    for ind, smiles in enumerate(dataset.ids):
+      mols.append(Chem.MolFromSmiles(smiles))
+    n_mols = len(mols)
+    fps = [AllChem.GetMorganFingerprintAsBitVect(x,2,1024) for x in mols]
+
+    scaffold_sets = ClusterFps(fps, cutoff=cutoff)
+    scaffold_sets = sorted(scaffold_sets, key=lambda x: -len(x))
+
+    ys = dataset.y
+    valid_inds = []
+    for c_idx, cluster in enumerate(scaffold_sets):
+      # for m_idx in cluster:
+      valid_inds.extend(cluster)
+      # continue until we find an active in all the tasks, otherwise we can't
+      # compute a meaningful AUC
+      # TODO (ytz): really, we want at least one active and inactive in both scenarios.
+      # TODO (Ytz): for regression tasks we'd stop after only one cluster.
+      active_populations = np.sum(ys[valid_inds], axis=0)
+      if np.all(active_populations):
+        print("# of actives per task in valid:", active_populations)
+        print("Total # of validation points:", len(valid_inds))
+        break
+
+    train_inds = list(itertools.chain.from_iterable(scaffold_sets[c_idx+1:]))
+    test_inds = []
+
+    return train_inds, valid_inds, []
 
 
 class ScaffoldSplitter(Splitter):
