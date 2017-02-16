@@ -383,11 +383,12 @@ We actively encourage community contributions to DeepChem. The first place to st
 Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
 
 ### Code Style Guidelines
-DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/) with the following command
+DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.  We created a git pre-commit hook to make this process easier.
+
+``` bash
+cp devtools/travis-ci/pre-commit .git/hooks
+pip install yapf==0.16.0
 ```
-pylint --disable=invalid-name --indent-string "  " --extension-pkg-whitelist=numpy [file.py]
-```
-Aim for a score of at least 8/10 on contributed files.
 
 ### Documentation Style Guidelines
 DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io).
