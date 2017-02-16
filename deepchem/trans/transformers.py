@@ -586,42 +586,21 @@ class IRVFitTransformer():
     self.y = dataset.y
     self.w = dataset.w
 
-  @staticmethod
-  def similarity(x, y):
-    if x.shape != y.shape:
-      raise ValueError(
-      "Similarity measurement requires same size")
-    return np.sum(np.min([x,y], axis=0))/np.sum(np.max([x,y], axis=0))
-
-  def realize(self, X_target, y, w):
+  def realize(self, similarity, y, w):
     features = []
-    for x_target in X_target:
-      similar_xs = []
-      threshold = 0
-      for count, x in enumerate(self.X):
-        if w[count] == 0:
-          continue
-        similar = IRVFitTransformer.similarity(x, x_target)
-        if similar >= 1:
-          continue
-        if len(similar_xs) < self.K-1:
-          similar_xs.append((similar, y[count]))
-        elif len(similar_xs) == self.K-1:
-          similar_xs.append((similar, y[count]))
-          threshold = min([z[0] for z in similar_xs])
-        elif similar > threshold:
-          ind = [z[0] for z in similar_xs].index(threshold)
-          similar_xs.pop(ind)
-          similar_xs.append((similar, y[count]))
-          threshold = min([z[0] for z in similar_xs])
-      similar_xs.sort(key=lambda x : x[0]) 
-      features.append([z[0] for z in similar_xs]+[z[1] for z in similar_xs])
+    similarity_xs = similarity * np.sign(w)
+    for similarity_x in similarity_xs:
+      pair = zip(similarity_x, range(len(similarity_x)))
+      pair.sort(key=lambda x : x[0], reverse=True)
+      pair = pair[:self.K]
+      features.append([z[0] for z in pair]+[y[int(z[1])] for z in pair])
     return features
       
   def X_transform(self, X_target):
     X_target2 = []
+    similarity = np.matmul(X_target, np.transpose(self.X))/(1024-np.matmul(1-X_target, np.transpose(1-self.X)))
     for i in range(self.n_tasks):
-      X_target2.append(self.realize(X_target, self.y[:,i], self.w[:,i]))
+      X_target2.append(self.realize(similarity, self.y[:,i], self.w[:,i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
 
   def transform(self, dataset):
