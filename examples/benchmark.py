@@ -17,7 +17,7 @@ on datasets: muv, pcba, tox21, sider, toxcast
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney, nci, kaggle, pdbbind, gdb7, chembl
+on datasets: delaney, nci, kaggle, pdbbind, chembl
 
 time estimation listed in README file
 
@@ -51,13 +51,17 @@ from delaney.delaney_datasets import load_delaney
 from nci.nci_datasets import load_nci
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
 from chembl.chembl_datasets import load_chembl
-from gdb7.gdb7_datasets import load_gdb7
+from qm7.qm7_datasets import load_qm7
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 
-def benchmark_loading_datasets(hyper_parameters, 
-                               dataset='tox21', model='tf', split=None,
-                               reload=True, out_path='.'):
+
+def benchmark_loading_datasets(hyper_parameters,
+                               dataset='tox21',
+                               model='tf',
+                               split=None,
+                               reload=True,
+                               out_path='.'):
   """
   Loading dataset for benchmark test
   
@@ -76,15 +80,14 @@ def benchmark_loading_datasets(hyper_parameters,
   out_path: string, optional(default='.')
       path of result file
   """
-  
+
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox']:
     mode = 'classification'
-  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 
-                   'gdb7', 'sampl']:
+  elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'sampl']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
-  
+
   # Assigning featurizer
   if model in ['graphconv', 'graphconvreg']:
     featurizer = 'GraphConv'
@@ -94,28 +97,21 @@ def benchmark_loading_datasets(hyper_parameters,
     n_features = 1024
   else:
     raise ValueError('Model not supported')
-  
+
   # Some exceptions in datasets
   if dataset in ['kaggle']:
-    featurizer = None # kaggle dataset use its own features
+    featurizer = None  # kaggle dataset use its own features
     if split in ['random', 'scaffold']:
       return
     else:
-      split = None # kaggle dataset is already splitted
+      split = None  # kaggle dataset is already splitted
     if not model in ['tf_regression']:
       return
 
   if dataset in ['pdbbind']:
-    featurizer = 'grid' # pdbbind use grid featurizer
+    featurizer = 'grid'  # pdbbind use grid featurizer
     if split in ['scaffold', 'index']:
-      return # skip the scaffold and index splitting of pdbbind
-    if not model in ['tf_regression']:
-      return
-
-  if dataset in ['gdb7']:
-    featurizer = None
-    if split in ['scaffold']: # gdb7 supports index, random and indice splitting
-      return
+      return  # skip the scaffold and index splitting of pdbbind
     if not model in ['tf_regression']:
       return
 
@@ -123,87 +119,112 @@ def benchmark_loading_datasets(hyper_parameters,
     if not dataset in ['chembl']:
       return
   elif split in ['indice']:
-    if not dataset in ['gdb7']:
-      return
-  elif not split in [None, 'index','random','scaffold', 'butina']:
+    return
+  elif not split in [None, 'index', 'random', 'scaffold', 'butina']:
     raise ValueError('Splitter function not supported')
-  
-  loading_functions = {'tox21': load_tox21, 'muv': load_muv,
-                       'pcba': load_pcba, 'nci': load_nci,
-                       'sider': load_sider, 'toxcast': load_toxcast,
-                       'kaggle': load_kaggle, 'delaney': load_delaney,
-                       'pdbbind': load_pdbbind_grid,
-                       'chembl': load_chembl, 'gdb7': load_gdb7,
-                       'sampl': load_sampl, 'clintox': load_clintox}
-  
+
+  loading_functions = {
+      'tox21': load_tox21,
+      'muv': load_muv,
+      'pcba': load_pcba,
+      'nci': load_nci,
+      'sider': load_sider,
+      'toxcast': load_toxcast,
+      'kaggle': load_kaggle,
+      'delaney': load_delaney,
+      'pdbbind': load_pdbbind_grid,
+      'chembl': load_chembl,
+      'sampl': load_sampl,
+      'clintox': load_clintox
+  }
+
   print('-------------------------------------')
   print('Benchmark %s on dataset: %s' % (model, dataset))
   print('-------------------------------------')
   time_start = time.time()
   # loading datasets
   if split is not None:
-    print('Splitting function: %s' % split)  
+    print('Splitting function: %s' % split)
     tasks, all_dataset, transformers = loading_functions[dataset](
         featurizer=featurizer, split=split)
   else:
     tasks, all_dataset, transformers = loading_functions[dataset](
         featurizer=featurizer)
-  
+
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
   # time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle', 'pdbbind', 'gdb7']:
+  if dataset in ['kaggle', 'pdbbind']:
     n_features = train_dataset.get_data_shape()[0]
     # dataset has customized features
-    
+
   # running model
   for count, hp in enumerate(hyper_parameters[model]):
     time_start_fitting = time.time()
     if mode == 'classification':
       metric = 'auc'
       train_score, valid_score = benchmark_classification(
-          train_dataset, valid_dataset, tasks, 
-          transformers, hp, n_features, metric=metric,
-          model=model)      
+          train_dataset,
+          valid_dataset,
+          tasks,
+          transformers,
+          hp,
+          n_features,
+          metric=metric,
+          model=model)
     elif mode == 'regression':
       metric = 'r2'
       train_score, valid_score = benchmark_regression(
-          train_dataset, valid_dataset, tasks, 
-          transformers, hp, n_features, metric=metric,
-          model=model)  
+          train_dataset,
+          valid_dataset,
+          tasks,
+          transformers,
+          hp,
+          n_features,
+          metric=metric,
+          model=model)
     time_finish_fitting = time.time()
-    
-    
-    with open(os.path.join(out_path, 'results.csv'),'a') as f:
+
+    with open(os.path.join(out_path, 'results.csv'), 'a') as f:
       writer = csv.writer(f)
       if mode == 'classification':
         for i in train_score:
-          output_line = [count, dataset, str(split), mode, 'train', i, 
-                         train_score[i]['mean-roc_auc_score'], 'valid', i, 
-                         valid_score[i]['mean-roc_auc_score'],
-                         'time_for_running',
-                         time_finish_fitting-time_start_fitting]
+          output_line = [
+              count, dataset, str(split), mode, 'train', i,
+              train_score[i]['mean-roc_auc_score'], 'valid', i,
+              valid_score[i]['mean-roc_auc_score'], 'time_for_running',
+              time_finish_fitting - time_start_fitting
+          ]
           writer.writerow(output_line)
       else:
         for i in train_score:
           if metric == 'r2':
-            output_line = [count, dataset, str(split), mode, 'train', i, 
-                           train_score[i]['mean-pearson_r2_score'], 'valid', i, 
-                           valid_score[i]['mean-pearson_r2_score'], 
-                           'time_for_running',
-                           time_finish_fitting-time_start_fitting]
+            output_line = [
+                count, dataset, str(split), mode, 'train', i,
+                train_score[i]['mean-pearson_r2_score'], 'valid', i,
+                valid_score[i]['mean-pearson_r2_score'], 'time_for_running',
+                time_finish_fitting - time_start_fitting
+            ]
           elif metric == 'mae':
-            output_line = [count, dataset, str(split), mode, 'train', i, 
-                           train_score[i]['mean-mean_absolute_error'], 'valid', i, 
-                           valid_score[i]['mean-mean_absolute_error'], 
-                           'time_for_running',
-                           time_finish_fitting-time_start_fitting]
- 
+            output_line = [
+                count, dataset, str(split), mode, 'train', i,
+                train_score[i]['mean-mean_absolute_error'], 'valid', i,
+                valid_score[i]['mean-mean_absolute_error'], 'time_for_running',
+                time_finish_fitting - time_start_fitting
+            ]
+
           writer.writerow(output_line)
 
-def benchmark_classification(train_dataset, valid_dataset, tasks,
-                             transformers, hyper_parameters, 
-                             n_features, metric='auc', model='tf', seed=123):
+
+def benchmark_classification(train_dataset,
+                             valid_dataset,
+                             tasks,
+                             transformers,
+                             hyper_parameters,
+                             n_features,
+                             metric='auc',
+                             model='tf',
+                             seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -236,11 +257,11 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
   """
   train_scores = {}
   valid_scores = {}
-  
+
   # Initialize metrics
   if metric == 'auc':
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
-  
+
   assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'graphconv']
 
   if model == 'tf':
@@ -256,17 +277,23 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow MultiTaskDNN model
-    model_tf = dc.models.TensorflowMultiTaskClassifier(len(tasks),
-        n_features, layer_sizes=layer_sizes, 
+    model_tf = dc.models.TensorflowMultiTaskClassifier(
+        len(tasks),
+        n_features,
+        layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
-        penalty_type=penalty_type, batch_size=batch_size, 
-        learning_rate=learning_rate, seed=seed)
- 
+        bias_init_consts=bias_init_consts,
+        dropouts=dropouts,
+        penalty=penalty,
+        penalty_type=penalty_type,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        seed=seed)
+
     print('-------------------------------------')
     print('Start fitting by multitask DNN')
     model_tf.fit(train_dataset, nb_epoch=nb_epoch)
-    
+
     # Evaluating tensorflow MultiTaskDNN model
     train_scores['tf'] = model_tf.evaluate(
         train_dataset, [classification_metric], transformers)
@@ -285,7 +312,7 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
     bypass_weight_init_stddevs = hyper_parameters['bypass_weight_init_stddevs']
     bypass_bias_init_consts = hyper_parameters['bypass_bias_init_consts']
     bypass_dropouts = hyper_parameters['bypass_dropouts']
-  
+
     penalty = hyper_parameters['penalty']
     penalty_type = hyper_parameters['penalty_type']
     batch_size = hyper_parameters['batch_size']
@@ -293,17 +320,23 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow robust MultiTaskDNN model
-    model_tf_robust = dc.models.RobustMultitaskClassifier(len(tasks),
-        n_features, layer_sizes=layer_sizes, 
+    model_tf_robust = dc.models.RobustMultitaskClassifier(
+        len(tasks),
+        n_features,
+        layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts, dropouts=dropouts,
+        bias_init_consts=bias_init_consts,
+        dropouts=dropouts,
         bypass_layer_sizes=bypass_layer_sizes,
         bypass_weight_init_stddevs=bypass_weight_init_stddevs,
         bypass_bias_init_consts=bypass_bias_init_consts,
-        bypass_dropouts=bypass_dropouts, penalty=penalty, 
-        penalty_type=penalty_type, batch_size=batch_size,
-        learning_rate=learning_rate, seed=seed)
- 
+        bypass_dropouts=bypass_dropouts,
+        penalty=penalty,
+        penalty_type=penalty_type,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        seed=seed)
+
     print('--------------------------------------------')
     print('Start fitting by robust multitask DNN')
     model_tf_robust.fit(train_dataset, nb_epoch=nb_epoch)
@@ -324,28 +357,32 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow logistic regression model
-    model_logreg = dc.models.TensorflowLogisticRegression(len(tasks),
-        n_features, penalty=penalty, penalty_type=penalty_type, 
-        batch_size=batch_size, learning_rate=learning_rate, 
+    model_logreg = dc.models.TensorflowLogisticRegression(
+        len(tasks),
+        n_features,
+        penalty=penalty,
+        penalty_type=penalty_type,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
         seed=seed)
-    
+
     print('-------------------------------------')
     print('Start fitting by logistic regression')
     model_logreg.fit(train_dataset, nb_epoch=nb_epoch)
-    
+
     # Evaluating tensorflow logistic regression model
     train_scores['logreg'] = model_logreg.evaluate(
         train_dataset, [classification_metric], transformers)
 
     valid_scores['logreg'] = model_logreg.evaluate(
         valid_dataset, [classification_metric], transformers)
-    
+
   if model == 'graphconv':
     # Initialize model folder
 
     # Loading hyper parameters
     batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']    
+    nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
@@ -364,16 +401,21 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphPool())
       # Gather Projection
-      graph_model.add(dc.nn.Dense(int(n_fully_connected_nodes),
-                                  activation='relu'))
+      graph_model.add(
+          dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
       with tf.Session() as sess:
         model_graphconv = dc.models.MultitaskGraphClassifier(
-          sess, graph_model, len(tasks), 
-          batch_size=batch_size, learning_rate=learning_rate,
-          optimizer_type="adam", beta1=.9, beta2=.999)
-        
+            sess,
+            graph_model,
+            len(tasks),
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            optimizer_type="adam",
+            beta1=.9,
+            beta2=.999)
+
         print('-------------------------------------')
         print('Start fitting by graph convolution')
         # Fit trained model
@@ -384,7 +426,7 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
 
         valid_scores['graphconv'] = model_graphconv.evaluate(
             valid_dataset, [classification_metric], transformers)
-    
+
   if model == 'rf':
     # Initialize model folder
 
@@ -394,15 +436,15 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
     # Building scikit random forest model
     def model_builder(model_dir_rf):
       sklearn_model = RandomForestClassifier(
-        class_weight="balanced", n_estimators=n_estimators,n_jobs=-1)
+          class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
       return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_rf)
-    model_rf = dc.models.multitask.SingletaskToMultitask(
-        tasks, model_builder)
-    
+
+    model_rf = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
+
     print('-------------------------------------')
     print('Start fitting by random forest')
     model_rf.fit(train_dataset)
-    
+
     # Evaluating scikit random forest model
     train_scores['rf'] = model_rf.evaluate(
         train_dataset, [classification_metric], transformers)
@@ -412,10 +454,16 @@ def benchmark_classification(train_dataset, valid_dataset, tasks,
 
   return train_scores, valid_scores
 
-  
-def benchmark_regression(train_dataset, valid_dataset, tasks,
-                         transformers, hyper_parameters, n_features, 
-                         metric='r2', model='tf_regression', seed=123):
+
+def benchmark_regression(train_dataset,
+                         valid_dataset,
+                         tasks,
+                         transformers,
+                         hyper_parameters,
+                         n_features,
+                         metric='r2',
+                         model='tf_regression',
+                         seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -446,12 +494,13 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
   """
   train_scores = {}
   valid_scores = {}
-  
+
   # Initialize metrics
   if metric == 'r2':
     regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
   elif metric == 'mae':
-    regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean)
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                                          np.mean)
 
   assert model in ['tf_regression', 'graphconvreg']
 
@@ -468,17 +517,23 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow MultiTaskDNN model
-    model_tf_regression = dc.models.TensorflowMultiTaskRegressor(len(tasks),
-        n_features, layer_sizes=layer_sizes, 
+    model_tf_regression = dc.models.TensorflowMultiTaskRegressor(
+        len(tasks),
+        n_features,
+        layer_sizes=layer_sizes,
         weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts, dropouts=dropouts, penalty=penalty, 
-        penalty_type=penalty_type, batch_size=batch_size, 
-        learning_rate=learning_rate, seed=seed)
- 
+        bias_init_consts=bias_init_consts,
+        dropouts=dropouts,
+        penalty=penalty,
+        penalty_type=penalty_type,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        seed=seed)
+
     print('-----------------------------------------')
     print('Start fitting by multitask DNN regression')
     model_tf_regression.fit(train_dataset, nb_epoch=nb_epoch)
-    
+
     # Evaluating tensorflow MultiTaskDNN model
     train_scores['tf_regression'] = model_tf_regression.evaluate(
         train_dataset, [regression_metric], transformers)
@@ -490,7 +545,7 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
 
     # Loading hyper parameters
     batch_size = hyper_parameters['batch_size']
-    nb_epoch = hyper_parameters['nb_epoch']    
+    nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
     n_filters = hyper_parameters['n_filters']
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
@@ -509,16 +564,21 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphPool())
       # Gather Projection
-      graph_model.add(dc.nn.Dense(int(n_fully_connected_nodes),
-                                  activation='relu'))
+      graph_model.add(
+          dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
       with tf.Session() as sess:
         model_graphconvreg = dc.models.MultitaskGraphRegressor(
-          sess, graph_model, len(tasks), 
-          batch_size=batch_size, learning_rate=learning_rate,
-          optimizer_type="adam", beta1=.9, beta2=.999)
-        
+            sess,
+            graph_model,
+            len(tasks),
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            optimizer_type="adam",
+            beta1=.9,
+            beta2=.999)
+
         print('-------------------------------------')
         print('Start fitting by graph convolution')
         # Fit trained model
@@ -532,21 +592,34 @@ def benchmark_regression(train_dataset, valid_dataset, tasks,
 
   return train_scores, valid_scores
 
-    
+
 if __name__ == '__main__':
   # Global variables
   np.random.seed(123)
-  
-  parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
+
+  parser = argparse.ArgumentParser(
+      description='Deepchem benchmark: ' +
       'giving performances of different learning models on datasets')
-  parser.add_argument('-s', action='append', dest='splitter_args', default=[],
+  parser.add_argument(
+      '-s',
+      action='append',
+      dest='splitter_args',
+      default=[],
       help='Choice of splitting function: index, random, scaffold')
-  parser.add_argument('-m', action='append', dest='model_args', default=[], 
-      help='Choice of model: tf, tf_robust, logreg, graphconv, ' + 
-           'tf_regression, graphconvreg')
-  parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
-      help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' + 
-           'kaggle, delaney, nci, pdbbindi, chembl, gdb7, clintox')
+  parser.add_argument(
+      '-m',
+      action='append',
+      dest='model_args',
+      default=[],
+      help='Choice of model: tf, tf_robust, logreg, graphconv, ' +
+      'tf_regression, graphconvreg')
+  parser.add_argument(
+      '-d',
+      action='append',
+      dest='dataset_args',
+      default=[],
+      help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
+      'kaggle, delaney, nci, pdbbindi, chembl, clintox')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
@@ -556,52 +629,88 @@ if __name__ == '__main__':
   if len(splitters) == 0:
     splitters = ['index', 'random', 'scaffold']
   if len(models) == 0:
-    models = ['tf', 'tf_robust', 'logreg', 'graphconv', 
-              'tf_regression', 'graphconvreg']
+    models = [
+        'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
+        'graphconvreg'
+    ]
   if len(datasets) == 0:
-    datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox',
-                'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'gdb7']
+    datasets = [
+        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'delaney', 'nci',
+        'kaggle', 'pdbbind', 'chembl'
+    ]
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
   #    batch_size
   hps = {}
   hps = {}
-  hps['tf'] = [{'layer_sizes': [1500], 'weight_init_stddevs': [0.02], 
-                'bias_init_consts': [1.], 'dropouts': [0.5], 'penalty': 0.1, 
-                'penalty_type': 'l2', 'batch_size': 50, 'nb_epoch': 10, 
-                'learning_rate': 0.001}]
+  hps['tf'] = [{
+      'layer_sizes': [1500],
+      'weight_init_stddevs': [0.02],
+      'bias_init_consts': [1.],
+      'dropouts': [0.5],
+      'penalty': 0.1,
+      'penalty_type': 'l2',
+      'batch_size': 50,
+      'nb_epoch': 10,
+      'learning_rate': 0.001
+  }]
 
-  hps['tf_robust'] = [{'layer_sizes': [1500], 'weight_init_stddevs': [0.02], 
-                       'bias_init_consts': [1.], 'dropouts': [0.5], 
-                       'bypass_layer_sizes': [200], 
-                       'bypass_weight_init_stddevs': [0.02],
-                       'bypass_bias_init_consts': [1.], 
-                       'bypass_dropouts': [0.5], 'penalty': 0.1,
-                       'penalty_type': 'l2', 'batch_size': 50, 
-                       'nb_epoch': 10, 'learning_rate': 0.0005}]
-             
-  hps['logreg'] = [{'penalty': 0.1, 'penalty_type': 'l2', 'batch_size': 50, 
-                    'nb_epoch': 10, 'learning_rate': 0.005}]
-                
-  hps['graphconv'] = [{'batch_size': 50, 'nb_epoch': 15, 
-                       'learning_rate': 0.0005, 'n_filters': 64, 
-                       'n_fully_connected_nodes': 128, 'seed': 123}]
+  hps['tf_robust'] = [{
+      'layer_sizes': [1500],
+      'weight_init_stddevs': [0.02],
+      'bias_init_consts': [1.],
+      'dropouts': [0.5],
+      'bypass_layer_sizes': [200],
+      'bypass_weight_init_stddevs': [0.02],
+      'bypass_bias_init_consts': [1.],
+      'bypass_dropouts': [0.5],
+      'penalty': 0.1,
+      'penalty_type': 'l2',
+      'batch_size': 50,
+      'nb_epoch': 10,
+      'learning_rate': 0.0005
+  }]
+
+  hps['logreg'] = [{
+      'penalty': 0.1,
+      'penalty_type': 'l2',
+      'batch_size': 50,
+      'nb_epoch': 10,
+      'learning_rate': 0.005
+  }]
+
+  hps['graphconv'] = [{
+      'batch_size': 50,
+      'nb_epoch': 15,
+      'learning_rate': 0.0005,
+      'n_filters': 64,
+      'n_fully_connected_nodes': 128,
+      'seed': 123
+  }]
 
   hps['rf'] = [{'n_estimators': 500}]
 
-  hps['tf_regression'] = [{'layer_sizes': [1000, 1000], 
-                           'weight_init_stddevs': [0.02, 0.02], 
-                           'bias_init_consts': [1., 1.], 
-                           'dropouts': [0.25, 0.25], 
-                           'penalty': 0.0005, 'penalty_type': 'l2', 
-                           'batch_size': 128, 'nb_epoch': 50, 
-                           'learning_rate': 0.0008}]
-  
-  hps['graphconvreg'] = [{'batch_size': 128, 'nb_epoch': 20, 
-                          'learning_rate': 0.0005, 'n_filters': 128, 
-                          'n_fully_connected_nodes': 256, 'seed': 123}]
+  hps['tf_regression'] = [{
+      'layer_sizes': [1000, 1000],
+      'weight_init_stddevs': [0.02, 0.02],
+      'bias_init_consts': [1., 1.],
+      'dropouts': [0.25, 0.25],
+      'penalty': 0.0005,
+      'penalty_type': 'l2',
+      'batch_size': 128,
+      'nb_epoch': 50,
+      'learning_rate': 0.0008
+  }]
 
+  hps['graphconvreg'] = [{
+      'batch_size': 128,
+      'nb_epoch': 20,
+      'learning_rate': 0.0005,
+      'n_filters': 128,
+      'n_fully_connected_nodes': 256,
+      'seed': 123
+  }]
 
   for split in splitters:
     for dataset in datasets:
