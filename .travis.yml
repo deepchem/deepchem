@@ -24,9 +24,11 @@ install:
 - conda install -c conda-forge protobuf=3.1.0
 - conda install -c omnia mdtraj
 - pip install tensorflow==0.12.1
+- pip install yapf
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
+- bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
 - source devtools/travis-ci/after_sucess.sh
