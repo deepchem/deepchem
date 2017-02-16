@@ -387,7 +387,7 @@ DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.  We cre
 
 ``` bash
 cp devtools/travis-ci/pre-commit .git/hooks
-pip install yapf
+pip install yapf==0.16.0
 ```
 
 ### Documentation Style Guidelines
