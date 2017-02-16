@@ -17,7 +17,7 @@ on datasets: muv, pcba, tox21, sider, toxcast
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney, nci, kaggle, pdbbind, gdb7, chembl
+on datasets: delaney, nci, kaggle, pdbbind, chembl
 
 time estimation listed in README file
 
@@ -51,7 +51,7 @@ from delaney.delaney_datasets import load_delaney
 from nci.nci_datasets import load_nci
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
 from chembl.chembl_datasets import load_chembl
-from gdb7.gdb7_datasets import load_gdb7
+from qm7.qm7_datasets import load_qm7
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 
@@ -80,7 +80,7 @@ def benchmark_loading_datasets(hyper_parameters,
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox']:
     mode = 'classification'
   elif dataset in ['kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 
-                   'gdb7', 'sampl']:
+                   'sampl']:
     mode = 'regression'
   else:
     raise ValueError('Dataset not supported')
@@ -112,19 +112,11 @@ def benchmark_loading_datasets(hyper_parameters,
     if not model in ['tf_regression']:
       return
 
-  if dataset in ['gdb7']:
-    featurizer = None
-    if split in ['scaffold']: # gdb7 supports index, random and indice splitting
-      return
-    if not model in ['tf_regression']:
-      return
-
   if split in ['year']:
     if not dataset in ['chembl']:
       return
   elif split in ['indice']:
-    if not dataset in ['gdb7']:
-      return
+    return
   elif not split in [None, 'index','random','scaffold']:
     raise ValueError('Splitter function not supported')
   
@@ -133,7 +125,7 @@ def benchmark_loading_datasets(hyper_parameters,
                        'sider': load_sider, 'toxcast': load_toxcast,
                        'kaggle': load_kaggle, 'delaney': load_delaney,
                        'pdbbind': load_pdbbind_grid,
-                       'chembl': load_chembl, 'gdb7': load_gdb7,
+                       'chembl': load_chembl,
                        'sampl': load_sampl, 'clintox': load_clintox}
   
   print('-------------------------------------')
@@ -152,7 +144,7 @@ def benchmark_loading_datasets(hyper_parameters,
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
   # time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle', 'pdbbind', 'gdb7']:
+  if dataset in ['kaggle', 'pdbbind']:
     n_features = train_dataset.get_data_shape()[0]
     # dataset has customized features
     
@@ -546,7 +538,7 @@ if __name__ == '__main__':
            'tf_regression, graphconvreg')
   parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' + 
-           'kaggle, delaney, nci, pdbbindi, chembl, gdb7, clintox')
+           'kaggle, delaney, nci, pdbbindi, chembl, clintox')
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
   splitters = args.splitter_args
@@ -560,7 +552,7 @@ if __name__ == '__main__':
               'tf_regression', 'graphconvreg']
   if len(datasets) == 0:
     datasets = ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox',
-                'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'gdb7']
+                'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl']
 
   #input hyperparameters
   #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
