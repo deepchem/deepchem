@@ -9,8 +9,8 @@ if [ -z "$1" ]
 then
     echo "Must Specify Conda Environment Name"
 fi
-
 export envname=$1
+
 conda create -y --name $envname python=3.5
 source activate $envname
 conda install -y -c omnia openbabel=2.4.0
