@@ -1,4 +1,4 @@
-﻿# DeepChem
+# DeepChem
 
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
@@ -105,14 +105,11 @@ Installation from source is the only currently supported format. ```deepchem``` 
     Try running tests for one submodule at a time if memory proves an issue.
 
 ### Using a conda environment
-Alternatively, you can install deepchem in a new conda environment using the following bash commands:
+Alternatively, you can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
 
 ```bash
-conda create -n deepchem python=3.5 -y                  # Create new env
-source activate deepchem                                # Activate it
-conda install -c omnia openbabel=2.4.0 rdkit mdtraj -y  # Installs from omnia channel
-conda install joblib scikit-learn -y                    # Installs from default channel
-pip install six tensorflow-gpu nose                     # Pip installs
+bash scripts/install_deepchem_conda.sh deepchem
+pip install tensorflow-gpu==0.12.1                      # If you want GPU support
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
 python setup.py install                                 # Manual install
