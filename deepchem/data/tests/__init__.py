@@ -28,6 +28,18 @@ def load_solubility_data():
   
   return loader.featurize(input_file)
 
+def load_butina_data():
+  """Loads solubility dataset"""
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  featurizer = dc.feat.CircularFingerprint(size=1024)
+  tasks = ["task"]
+  # task_type = "regression"
+  input_file = os.path.join(current_dir, "../../models/tests/butina_example.csv")
+  loader = dc.data.CSVLoader(
+      tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+  
+  return loader.featurize(input_file)
+
 def load_multitask_data():
   """Load example multitask data."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
