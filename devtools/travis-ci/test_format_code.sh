@@ -14,7 +14,6 @@ then
 fi
 
 yapf -d $CHANGED_FILES > diff.txt
-cat diff.txt
 
 if [ -s diff.txt ]
 then
