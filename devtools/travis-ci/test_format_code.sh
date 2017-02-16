@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-CHANGED_FILES=($(git diff --name-only $TRAVIS_COMMIT_RANGE))
+CHANGED_FILES=`git diff --name-only $TRAVIS_COMMIT_RANGE | grep .py$`
 
 exit_success () {
     echo "Passed Formatting Test"
