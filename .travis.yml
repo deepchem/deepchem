@@ -14,21 +14,14 @@ install:
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
 - conda config --add channels http://conda.binstar.org/omnia
-- conda install pandas
-- conda install -c omnia rdkit
-- conda install -c omnia boost=1.59.0
-- conda install -c omnia openbabel
-- conda install joblib
-- conda install h5py
-- pip install six
-#- pip install keras
-- conda install -c conda-forge protobuf=3.1.0
-- export KERAS_BACKEND=tensorflow
-- conda install -c omnia mdtraj
-- pip install tensorflow
+- bash scripts/install_deepchem_conda.sh deepchem
+- source activate deepchem
+- pip install yapf==0.16.0
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
+- find ./deepchem | grep .py$ |xargs python -m doctest -v
+- bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
 - source devtools/travis-ci/after_sucess.sh
