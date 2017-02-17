@@ -592,7 +592,10 @@ class IRVFitTransformer():
     for similarity_x in similarity_xs:
       pair = zip(similarity_x, range(len(similarity_x)))
       pair.sort(key=lambda x : x[0], reverse=True)
-      pair = pair[:self.K]
+      if pair[0][0] >= 1:
+        pair = pair[1:self.K+1]
+      else:
+        pair = pair[:self.K]
       features.append([z[0] for z in pair]+[y[int(z[1])] for z in pair])
     return features
       

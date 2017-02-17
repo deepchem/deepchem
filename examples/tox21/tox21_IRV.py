@@ -9,6 +9,7 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
+import time
 from tox21_datasets import load_tox21
 
 # Only for debug!
@@ -23,12 +24,27 @@ K = 10
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 fit_transformers = [dc.trans.IRVFitTransformer(K, len(tox21_tasks), train_dataset)]
 
+for transformer in fit_transformers:
+  print("start")
+  time1 = time.time()
+  train_dataset = transformer.transform(train_dataset)
+  time2 = time.time()
+  print("time")
+  print(time2-time1)
+  valid_dataset = transformer.transform(valid_dataset)
+  time3 = time.time()
+  print("start")
+  print(time3-time2)
+  test_dataset = transformer.transform(test_dataset)
+  print("end")
+
+
 model = dc.models.TensorflowMultiTaskIRVClassifier(
     len(tox21_tasks), K=K, learning_rate=0.001, penalty = 0.05, 
-    batch_size=32, fit_transformers=fit_transformers)
+    batch_size=32, fit_transformers=[])
 
 # Fit trained model
-model.fit(train_dataset,nb_epoch = 50)
+model.fit(train_dataset,nb_epoch = 10)
 model.save()
 
 print("Evaluating model")
