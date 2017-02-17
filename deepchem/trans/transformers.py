@@ -606,13 +606,13 @@ class CoulombFitTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-<<<<<<< HEAD
-      "Cannot untransform datasets with FitTransformer.")
+        "Cannot untransform datasets with FitTransformer.")
+
 
 class IRVTransformer():
   """Performs transform from ECFP to IRV features(K nearest neibours)."""
-  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
 
+  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
     """Initializes IRVTransformer.
     Parameters:
     ----------
@@ -637,19 +637,20 @@ class IRVTransformer():
     similarity_xs = similarity * np.sign(w)
     for similarity_x in similarity_xs:
       pair = zip(similarity_x, range(len(similarity_x)))
-      pair.sort(key=lambda x : x[0], reverse=True)
+      pair.sort(key=lambda x: x[0], reverse=True)
       if pair[0][0] >= 1:
-        pair = pair[1:self.K+1]
+        pair = pair[1:self.K + 1]
       else:
         pair = pair[:self.K]
-      features.append([z[0] for z in pair]+[y[int(z[1])] for z in pair])
+      features.append([z[0] for z in pair] + [y[int(z[1])] for z in pair])
     return features
-      
+
   def X_transform(self, X_target):
     X_target2 = []
-    similarity = np.matmul(X_target, np.transpose(self.X))/(1024-np.matmul(1-X_target, np.transpose(1-self.X)))
+    similarity = np.matmul(X_target, np.transpose(self.X)) / (
+        1024 - np.matmul(1 - X_target, np.transpose(1 - self.X)))
     for i in range(self.n_tasks):
-      X_target2.append(self.realize(similarity, self.y[:,i], self.w[:,i]))
+      X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
 
   def transform(self, dataset):
@@ -658,7 +659,4 @@ class IRVTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-      "Cannot untransform datasets with IRVTransformer.")
-=======
-        "Cannot untransform datasets with FitTransformer.")
->>>>>>> remotes/origin/master
+        "Cannot untransform datasets with IRVTransformer.")
