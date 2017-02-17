@@ -121,7 +121,7 @@ def benchmark_loading_datasets(hyper_parameters,
   if split in ['year']:
     if not dataset in ['chembl']:
       return
-  elif not split in [None, 'index', 'random', 'scaffold']:
+  elif not split in [None, 'index', 'random', 'scaffold', 'butina']:
     raise ValueError('Splitter function not supported')
 
   loading_functions = {

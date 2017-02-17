@@ -25,18 +25,9 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 transformers = [dc.trans.IRVTransformer(K, len(tox21_tasks), train_dataset)]
 
 for transformer in transformers:
-  print("start")
-  time1 = time.time()
   train_dataset = transformer.transform(train_dataset)
-  time2 = time.time()
-  print("time")
-  print(time2 - time1)
   valid_dataset = transformer.transform(valid_dataset)
-  time3 = time.time()
-  print("start")
-  print(time3 - time2)
   test_dataset = transformer.transform(test_dataset)
-  print("end")
 
 model = dc.models.TensorflowMultiTaskIRVClassifier(
     len(tox21_tasks),
