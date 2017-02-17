@@ -17,7 +17,7 @@ on datasets: muv, pcba, tox21, sider, toxcast, clintox
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney(ESOL), nci, kaggle, pdbbind, gdb7, 
+on datasets: delaney(ESOL), nci, kaggle, pdbbind, qm7, 
              chembl, sampl(FreeSolv)
 
 time estimation listed in README file
@@ -50,7 +50,7 @@ from kaggle.kaggle_datasets import load_kaggle
 from delaney.delaney_datasets import load_delaney
 from pdbbind.pdbbind_datasets import load_pdbbind_grid
 from chembl.chembl_datasets import load_chembl
-from gdb7.gdb7_datasets import load_gdb7
+from qm7.qm7_datasets import load_qm7
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 
@@ -67,12 +67,12 @@ def benchmark_loading_datasets(hyper_parameters,
   
   Parameters
   ----------
-  hyper_parameters: dict of list
+  hyper_parameters: dict
       hyper parameters including layer size, dropout, learning rate, etc.
   dataset: string, optional (default='tox21')
       choice of which dataset to use, should be: tox21, muv, sider, 
       toxcast, pcba, delaney, kaggle, nci, clintox, pdbbind, chembl,
-      gdb7, sampl
+      qm7, sampl
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
       irv, graphconv, tf_regression, graphconvreg
@@ -85,7 +85,7 @@ def benchmark_loading_datasets(hyper_parameters,
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox']:
     mode = 'classification'
   elif dataset in [
-      'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'gdb7', 'sampl'
+      'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'sampl'
   ]:
     mode = 'regression'
   else:
@@ -118,19 +118,8 @@ def benchmark_loading_datasets(hyper_parameters,
     if not model in ['tf_regression']:
       return
 
-  if dataset in ['gdb7']:
-    featurizer = None
-    if split in ['scaffold'
-                ]:  # gdb7 supports index, random and indice splitting
-      return
-    if not model in ['tf_regression']:
-      return
-
   if split in ['year']:
     if not dataset in ['chembl']:
-      return
-  elif split in ['indice']:
-    if not dataset in ['gdb7']:
       return
   elif not split in [None, 'index', 'random', 'scaffold']:
     raise ValueError('Splitter function not supported')
@@ -146,7 +135,7 @@ def benchmark_loading_datasets(hyper_parameters,
       'delaney': load_delaney,
       'pdbbind': load_pdbbind_grid,
       'chembl': load_chembl,
-      'gdb7': load_gdb7,
+      'qm7': load_qm7,
       'sampl': load_sampl,
       'clintox': load_clintox
   }
@@ -167,7 +156,7 @@ def benchmark_loading_datasets(hyper_parameters,
   train_dataset, valid_dataset, test_dataset = all_dataset
   time_finish_loading = time.time()
   # time_finish_loading-time_start is the time(s) used for dataset loading
-  if dataset in ['kaggle', 'pdbbind', 'gdb7']:
+  if dataset in ['kaggle', 'pdbbind', 'qm7']:
     n_features = train_dataset.get_data_shape()[0]
     # dataset has customized features
 
@@ -268,7 +257,7 @@ def benchmark_classification(train_dataset,
       list of targets(tasks, datasets)
   transformers: BalancingTransformer struct
       loaded properties of dataset from load_* function
-  hyper_parameters: dict of list
+  hyper_parameters: dict
       hyper parameters including layer size, dropout, learning rate, etc.
   n_features: integer
       number of features, or length of binary fingerprints
@@ -576,7 +565,7 @@ def benchmark_regression(train_dataset,
       list of targets(tasks, datasets)
   transformers: BalancingTransformer struct
       loaded properties of dataset from load_* function
-  hyper_parameters: dict of list
+  hyper_parameters: dict
       hyper parameters including layer size, dropout, learning rate, etc.
   n_features: integer
       number of features, or length of binary fingerprints
@@ -732,7 +721,7 @@ if __name__ == '__main__':
       dest='dataset_args',
       default=[],
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-      'kaggle, delaney, nci, pdbbind, chembl, sampl, gdb7, clintox')
+      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, clintox')
   parser.add_argument(
       '-t',
       action='store_true',
@@ -758,7 +747,7 @@ if __name__ == '__main__':
   if len(datasets) == 0:
     datasets = [
         'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'sampl',
-        'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'gdb7'
+        'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7'
     ]
 
   #input hyperparameters
