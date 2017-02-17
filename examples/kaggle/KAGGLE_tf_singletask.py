@@ -1,5 +1,5 @@
 """
-Script that trains Tensorflow Singletask models on FACTORS dataset.
+Script that trains Tensorflow Singletask models on KAGGLE dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -10,14 +10,14 @@ import numpy as np
 import tempfile
 import shutil
 import deepchem as dc
-from FACTORS_datasets import load_factors
+from kaggle_datasets import load_kaggle
 
 ###Load data###
 shard_size = 2000
 num_trials = 2
 
-print("About to load FACTORS data.")
-FACTORS_tasks, datasets, transformers = load_factors(shard_size=shard_size)
+print("About to load KAGGLE data.")
+KAGGLE_tasks, datasets, transformers = load_kaggle(shard_size=shard_size)
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("Number of compounds in train set")
@@ -31,20 +31,21 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)
 
 ###Create model###
 n_layers = 3
-nb_epoch = 125
+nb_epoch = 100
 n_features = train_dataset.get_data_shape()[0]
 def task_model_builder(m_dir):
   return dc.models.TensorflowMultiTaskRegressor(
       n_tasks=1, n_features=n_features, logdir=m_dir,
-      layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
+      layer_sizes=[2000, 1000, 1000], dropouts=[.25]*n_layers,
       weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-      learning_rate=.0003, penalty=.0001, penalty_type="l2", optimizer="adam",
+      learning_rate=.00003, penalty=.0004, penalty_type="l2", optimizer="adam",
       batch_size=100)
 
 all_results = []
 for trial in range(num_trials):
   print("Starting trial %d" % trial)
-  model = dc.models.SingletaskToMultitask(FACTORS_tasks, task_model_builder)
+  model = dc.models.SingletaskToMultitask(KAGGLE_tasks, task_model_builder,
+                                          model_dir="KAGGLE_tf_singletask")
 
   print("Fitting Model")
   model.fit(train_dataset, nb_epoch=nb_epoch)

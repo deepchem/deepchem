@@ -19,7 +19,7 @@ import deepchem as dc
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 
-class TestHyperparamOptAPI(unittest.TestCase):
+class TestHyperparamOpt(unittest.TestCase):
   """
   Test hyperparameter optimization API.
   """
