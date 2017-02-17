@@ -22,9 +22,9 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 K = 10
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
-fit_transformers = [dc.trans.IRVFitTransformer(K, len(tox21_tasks), train_dataset)]
+transformers = [dc.trans.IRVTransformer(K, len(tox21_tasks), train_dataset)]
 
-for transformer in fit_transformers:
+for transformer in transformers:
   print("start")
   time1 = time.time()
   train_dataset = transformer.transform(train_dataset)

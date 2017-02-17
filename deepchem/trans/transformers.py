@@ -568,17 +568,20 @@ class CoulombFitTransformer():
     raise NotImplementedError(
       "Cannot untransform datasets with FitTransformer.")
 
-class IRVFitTransformer():
-  """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit."""
+class IRVTransformer():
+  """Performs transform from ECFP to IRV features(K nearest neibours)."""
   def __init__(self, K, n_tasks, dataset):
 
-    """Initializes CoulombFitTransformer.
+    """Initializes IRVTransformer.
     Parameters:
     ----------
-    dataset: dc.data.Dataset object, y and w should be for one task
+    dataset: dc.data.Dataset object
+      train_dataset
+    K: int
+      number of nearest neighbours being count
+    n_tasks: int
+      number of tasks
 
-    K: number of nearest neighbours that count[
-    
     """
     self.X = dataset.X
     self.n_tasks = n_tasks
@@ -612,4 +615,4 @@ class IRVFitTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-      "Cannot untransform datasets with FitTransformer.")
+      "Cannot untransform datasets with IRVTransformer.")

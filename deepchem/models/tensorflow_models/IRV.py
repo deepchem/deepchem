@@ -1,5 +1,3 @@
-"""TensorFlow implementation of fully connected networks. 
-"""
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -15,13 +13,13 @@ from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
 
 class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
 
-  def __init__(self, n_tasks, K=10, logdir=None, penalty=0.0, n_classes=2,
+  def __init__(self, n_tasks, K=10, logdir=None, n_classes=2, penalty=0.0, 
                penalty_type="l2", learning_rate=0.001, momentum=.8, 
                optimizer="adam", batch_size=50, verbose=True, seed=None,
                **kwargs):
 
-    """Initialize TensorflowMultiTaskFitTransformRegressor
-       
+    """Initialize TensorflowMultiTaskIRVClassifier
+    
     Parameters
     ----------
     n_tasks: int
@@ -30,6 +28,8 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
       Number of nearest neighbours used in classification
     logdir: str
       Location to save data
+    n_classes: int
+      number of different labels
     penalty: float
       Amount of penalty (l2 or l1 applied)
     penalty_type: str
@@ -46,8 +46,6 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
       Perform logging.
     seed: int
       If not none, is used as random seed for tensorflow.        
-    fit_transformers: list
-      List of dc.trans.FitTransformer objects
 
     """
 
@@ -64,11 +62,9 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
 	       **kwargs)
 
   def build(self, graph, name_scopes, training):
-    """Constructs the graph architecture as specified in its config.
-
-    This method creates the following Placeholders:
-      mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
-        batch_size x n_features.
+    """Constructs the graph architecture of IRV as described in:
+       
+       https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
