@@ -1,4 +1,4 @@
-﻿# DeepChem
+# DeepChem
 
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
@@ -51,7 +51,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
 
 3. `rdkit`
    ```bash
-   conda install -c omnia rdkit
+   conda install -c rdkit rdkit
    ```
 
 4. `joblib`
@@ -105,14 +105,11 @@ Installation from source is the only currently supported format. ```deepchem``` 
     Try running tests for one submodule at a time if memory proves an issue.
 
 ### Using a conda environment
-Alternatively, you can install deepchem in a new conda environment using the following bash commands:
+Alternatively, you can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
 
 ```bash
-conda create -n deepchem python=3.5 -y                  # Create new env
-source activate deepchem                                # Activate it
-conda install -c omnia openbabel=2.4.0 rdkit mdtraj -y  # Installs from omnia channel
-conda install joblib scikit-learn -y                    # Installs from default channel
-pip install six tensorflow-gpu nose                     # Pip installs
+bash scripts/install_deepchem_conda.sh deepchem
+pip install tensorflow-gpu==0.12.1                      # If you want GPU support
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
 python setup.py install                                 # Manual install
@@ -221,8 +218,8 @@ Random splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.903              |0.735              |
-|           |Multitask network   |0.856              |0.783              |
+|tox21      |logistic regression |0.902              |0.715              |
+|           |Multitask network   |0.844              |0.795              |
 |           |robust MT-NN        |0.855              |0.773              |
 |           |graph convolution   |0.865              |0.827              |
 |muv        |logistic regression |0.957              |0.719              |
@@ -383,11 +380,12 @@ We actively encourage community contributions to DeepChem. The first place to st
 Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
 
 ### Code Style Guidelines
-DeepChem broadly follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). In terms of practical changes, the biggest effect is that all code uses 2-space indents instead of 4-space indents. We encourage new contributors to make use of [pylint](https://www.pylint.org/) with the following command
+DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.  We created a git pre-commit hook to make this process easier.
+
+``` bash
+cp devtools/travis-ci/pre-commit .git/hooks
+pip install yapf==0.16.0
 ```
-pylint --disable=invalid-name --indent-string "  " --extension-pkg-whitelist=numpy [file.py]
-```
-Aim for a score of at least 8/10 on contributed files.
 
 ### Documentation Style Guidelines
 DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io).

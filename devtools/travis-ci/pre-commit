@@ -1,0 +1,10 @@
+#!/bin/sh
+CHANGED_FILES=`git diff --cached --name-only | grep .py`
+if [ -z $CHANGED_FILES ]
+then
+    echo "No Python Files Changed"
+else
+    echo $CHANGED_FILES
+    yapf -i $CHANGED_FILES
+    git diff --name-only --cached | xargs -l git add
+fi
