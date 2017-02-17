@@ -20,6 +20,7 @@ install:
 - python setup.py install
 script:
 - nosetests -v deepchem --nologcapture
+- find ./deepchem | grep .py$ |xargs python -m doctest -v
 - bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS

@@ -20,14 +20,15 @@ from deepchem.utils.save import load_sdf_files
 from deepchem.feat import UserDefinedFeaturizer
 from deepchem.data import DiskDataset
 
+
 def convert_df_to_numpy(df, tasks, verbose=False):
   """Transforms a dataframe containing deepchem input into numpy arrays"""
   n_samples = df.shape[0]
   n_tasks = len(tasks)
 
   time1 = time.time()
-  y = np.hstack([
-      np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+  y = np.hstack(
+      [np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
   time2 = time.time()
 
   w = np.ones((n_samples, n_tasks))
@@ -49,6 +50,7 @@ def convert_df_to_numpy(df, tasks, verbose=False):
 
   return y.astype(float), w.astype(float)
 
+
 def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   """Featurize individual compounds in dataframe.
 
@@ -64,10 +66,11 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
-                        dtype=bool)
+  valid_inds = np.array(
+      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
+
 
 def get_user_specified_features(df, featurizer, verbose=True):
   """Extract and merge user specified features. 
@@ -86,11 +89,14 @@ def get_user_specified_features(df, featurizer, verbose=True):
 
   """
   time1 = time.time()
-  df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(pd.to_numeric)
+  df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
+      pd.to_numeric)
   X_shard = df.as_matrix(columns=featurizer.feature_fields)
   time2 = time.time()
-  log("TIMING: user specified processing took %0.3f s" % (time2-time1), verbose)
+  log("TIMING: user specified processing took %0.3f s" % (time2 - time1),
+      verbose)
   return X_shard
+
 
 def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
   """Featurize individual compounds in dataframe.
@@ -108,10 +114,11 @@ def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
-  valid_inds = np.array([1 if elt.size > 0 else 0 for elt in features],
-                        dtype=bool)
+  valid_inds = np.array(
+      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
+
 
 class DataLoader(object):
   """
@@ -121,13 +128,18 @@ class DataLoader(object):
   dataframe object to disk as output.
   """
 
-  def __init__(self, tasks, smiles_field=None,
-               id_field=None, mol_field=None, featurizer=None,
-               verbose=True, log_every_n=1000):
+  def __init__(self,
+               tasks,
+               smiles_field=None,
+               id_field=None,
+               mol_field=None,
+               featurizer=None,
+               verbose=True,
+               log_every_n=1000):
     """Extracts data from input as Pandas data frame"""
     if not isinstance(tasks, list):
       raise ValueError("tasks must be a list.")
-    self.verbose = verbose 
+    self.verbose = verbose
     self.tasks = tasks
     self.smiles_field = smiles_field
     if id_field is None:
@@ -137,7 +149,7 @@ class DataLoader(object):
     self.mol_field = mol_field
     self.user_specified_features = None
     if isinstance(featurizer, UserDefinedFeaturizer):
-      self.user_specified_features = featurizer.feature_fields 
+      self.user_specified_features = featurizer.feature_fields
     self.featurizer = featurizer
     self.log_every_n = log_every_n
 
@@ -148,15 +160,17 @@ class DataLoader(object):
 
     if not isinstance(input_files, list):
       input_files = [input_files]
+
     def shard_generator():
-      for shard_num, shard in enumerate(self.get_shards(input_files, shard_size)):
+      for shard_num, shard in enumerate(
+          self.get_shards(input_files, shard_size)):
         time1 = time.time()
         X, valid_inds = self.featurize_shard(shard)
         ids = shard[self.id_field].values
         ids = ids[valid_inds]
         if len(self.tasks) > 0:
           # Featurize task results iff they exist.
-          y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)  
+          y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)
           # Filter out examples where featurization failed.
           y, w = (y[valid_inds], w[valid_inds])
           assert len(X) == len(ids) == len(y) == len(w)
@@ -167,10 +181,12 @@ class DataLoader(object):
           assert len(X) == len(ids)
 
         time2 = time.time()
-        log("TIMING: featurizing shard %d took %0.3f s" % (shard_num, time2-time1),
-            self.verbose)
+        log("TIMING: featurizing shard %d took %0.3f s" %
+            (shard_num, time2 - time1), self.verbose)
         yield X, y, w, ids
-    return DiskDataset.create_dataset(shard_generator(), data_dir, self.tasks)
+
+    return DiskDataset.create_dataset(
+        shard_generator(), data_dir, self.tasks, verbose=self.verbose)
 
   def get_shards(self, input_files, shard_size):
     """Stub for children classes."""
@@ -180,23 +196,26 @@ class DataLoader(object):
     """Featurizes a shard of an input dataframe."""
     raise NotImplementedError
 
+
 class CSVLoader(DataLoader):
   """
   Handles loading of CSV files.
   """
+
   def get_shards(self, input_files, shard_size, verbose=True):
     """Defines a generator which returns data for each shard"""
     return load_csv_files(input_files, shard_size, verbose=verbose)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    return featurize_smiles_df(shard, self.featurizer,
-                               field=self.smiles_field)
+    return featurize_smiles_df(shard, self.featurizer, field=self.smiles_field)
+
 
 class UserCSVLoader(DataLoader):
   """
   Handles loading of CSV files with user-defined featurizers.
   """
+
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
     return load_csv_files(input_files, shard_size)
@@ -207,16 +226,18 @@ class UserCSVLoader(DataLoader):
     X = get_user_specified_features(shard, self.featurizer)
     return (X, np.ones(len(X), dtype=bool))
 
+
 class SDFLoader(DataLoader):
   """
   Handles loading of SDF files.
   """
+
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
     return load_sdf_files(input_files)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
-    log("Currently featurizing feature_type: %s"
-        % self.featurizer.__class__.__name__, self.verbose)
+    log("Currently featurizing feature_type: %s" %
+        self.featurizer.__class__.__name__, self.verbose)
     return featurize_mol_df(shard, self.featurizer, field=self.mol_field)
