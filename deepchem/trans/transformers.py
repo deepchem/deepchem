@@ -570,7 +570,7 @@ class CoulombFitTransformer():
 
 class IRVTransformer():
   """Performs transform from ECFP to IRV features(K nearest neibours)."""
-  def __init__(self, K, n_tasks, dataset):
+  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
 
     """Initializes IRVTransformer.
     Parameters:
@@ -588,6 +588,8 @@ class IRVTransformer():
     self.K = K
     self.y = dataset.y
     self.w = dataset.w
+    self.transform_x = transform_x
+    self.transform_y = transform_y
 
   def realize(self, similarity, y, w):
     features = []
