@@ -647,8 +647,9 @@ class IRVTransformer():
 
   def X_transform(self, X_target):
     X_target2 = []
+    n_features = X_target.shape[1]
     similarity = np.matmul(X_target, np.transpose(self.X)) / (
-        1024 - np.matmul(1 - X_target, np.transpose(1 - self.X)))
+        n_features - np.matmul(1 - X_target, np.transpose(1 - self.X)))
     for i in range(self.n_tasks):
       X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)

@@ -16,6 +16,7 @@ on datasets: muv, pcba, tox21, sider, toxcast, clintox
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
+    Random forest(rf_regression),
     Graph convolution regression(graphconvreg)
 on datasets: delaney(ESOL), nci, kaggle, pdbbind, qm7, 
              chembl, sampl(FreeSolv)
@@ -39,7 +40,7 @@ import argparse
 from keras import backend as K
 import csv
 from sklearn.ensemble import RandomForestClassifier
-
+from sklearn.ensemble import RandomForestRegressor
 from muv.muv_datasets import load_muv
 from nci.nci_datasets import load_nci
 from pcba.pcba_datasets import load_pcba
@@ -75,7 +76,7 @@ def benchmark_loading_datasets(hyper_parameters,
       qm7, sampl
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      irv, graphconv, tf_regression, graphconvreg
+      irv, graphconv, tf_regression, rf_regression, graphconvreg
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
   out_path: string, optional(default='.')
@@ -95,7 +96,9 @@ def benchmark_loading_datasets(hyper_parameters,
   if model in ['graphconv', 'graphconvreg']:
     featurizer = 'GraphConv'
     n_features = 75
-  elif model in ['tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression']:
+  elif model in [
+      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 'rf_regression'
+  ]:
     featurizer = 'ECFP'
     n_features = 1024
   else:
@@ -108,14 +111,14 @@ def benchmark_loading_datasets(hyper_parameters,
       return
     else:
       split = None  # kaggle dataset is already splitted
-    if not model in ['tf_regression']:
+    if not model in ['tf_regression', 'rf_regression']:
       return
 
   if dataset in ['pdbbind']:
     featurizer = 'grid'  # pdbbind use grid featurizer
     if split in ['scaffold', 'index']:
       return  # skip the scaffold and index splitting of pdbbind
-    if not model in ['tf_regression']:
+    if not model in ['tf_regression', 'rf_regression']:
       return
 
   if split in ['year']:
@@ -510,8 +513,6 @@ def benchmark_classification(train_dataset,
               test_dataset, [classification_metric], transformers)
 
   if model == 'rf':
-    # Initialize model folder
-
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
 
@@ -570,7 +571,8 @@ def benchmark_regression(train_dataset,
   n_features: integer
       number of features, or length of binary fingerprints
   model: string,  optional (default='tf_regression')
-      choice of which model to use, should be: tf_regression, graphconvreg
+      choice of which model to use, should be: tf_regression, graphconvreg,
+      rf_regression
   test: boolean
       whether to calculate test_set performance  
 
@@ -595,7 +597,7 @@ def benchmark_regression(train_dataset,
     regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
                                           np.mean)
 
-  assert model in ['tf_regression', 'graphconvreg']
+  assert model in ['tf_regression', 'rf_regression', 'graphconvreg']
 
   if model == 'tf_regression':
     # Loading hyper parameters
@@ -692,6 +694,35 @@ def benchmark_regression(train_dataset,
           test_scores['graphconvreg'] = model_graphconvreg.evaluate(
               test_dataset, [regression_metric], transformers)
 
+  if model == 'rf_regression':
+    # Loading hyper parameters
+    n_estimators = hyper_parameters['n_estimators']
+
+    # Building scikit random forest model
+    def model_builder(model_dir_rf_regression):
+      sklearn_model = RandomForestRegressor(
+          n_estimators=n_estimators, n_jobs=-1)
+      return dc.models.sklearn_models.SklearnModel(sklearn_model,
+                                                   model_dir_rf_regression)
+
+    model_rf_regression = dc.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
+
+    print('-------------------------------------')
+    print('Start fitting by random forest')
+    model_rf_regression.fit(train_dataset)
+
+    # Evaluating scikit random forest model
+    train_scores['rf_regression'] = model_rf_regression.evaluate(
+        train_dataset, [regression_metric], transformers)
+
+    valid_scores['rf_regression'] = model_rf_regression.evaluate(
+        valid_dataset, [regression_metric], transformers)
+
+    if test:
+      test_scores['rf_regression'] = model_rf_regression.evaluate(
+          test_dataset, [regression_metric], transformers)
+
   return train_scores, valid_scores, test_scores
 
 
@@ -714,7 +745,7 @@ if __name__ == '__main__':
       dest='model_args',
       default=[],
       help='Choice of model: tf, tf_robust, logreg, rf, irv, graphconv, ' +
-      'tf_regression, graphconvreg')
+      'tf_regression, rf_regression, graphconvreg')
   parser.add_argument(
       '-d',
       action='append',
@@ -743,7 +774,7 @@ if __name__ == '__main__':
         'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
         'graphconvreg'
     ]
-    #irv and rf should be assigned manually
+    #irv, rf, rf_regression should be assigned manually
   if len(datasets) == 0:
     datasets = [
         'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'sampl',
@@ -751,9 +782,6 @@ if __name__ == '__main__':
     ]
 
   #input hyperparameters
-  #tf: dropouts, learning rate, layer_sizes, weight initial stddev,penalty,
-  #    batch_size
-  hps = {}
   hps = {}
   hps['tf'] = [{
       'layer_sizes': [1500],
@@ -823,6 +851,8 @@ if __name__ == '__main__':
       'learning_rate': 0.0008
   }]
 
+  hps['rf_regression'] = [{'n_estimators': 500}]
+
   hps['graphconvreg'] = [{
       'batch_size': 128,
       'nb_epoch': 20,
@@ -846,7 +876,7 @@ if __name__ == '__main__':
                 test=test)
       else:
         for model in models:
-          if model in ['tf_regression', 'graphconvreg']:
+          if model in ['tf_regression', 'rf_regression', 'graphconvreg']:
             benchmark_loading_datasets(
                 hps,
                 dataset=dataset,
