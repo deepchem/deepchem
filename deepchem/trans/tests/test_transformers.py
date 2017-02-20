@@ -440,7 +440,8 @@ class TestTransformers(unittest.TestCase):
     sims = sorted(sims, reverse=True)
     IRV_transformer = dc.trans.IRVTransformer(10, n_tasks, dataset)
     test_dataset_trans = IRV_transformer.transform(test_dataset)
+    dataset_trans = IRV_transformer.transform(dataset)
     assert test_dataset_trans.X.shape == (test_samples, 20*n_tasks)
     assert np.allclose(test_dataset_trans.X[0,:10], sims[:10])
     assert np.allclose(test_dataset_trans.X[0,10:20], [0]*10)
-
+    assert not np.isclose(dataset_trans.X[0,0], 1.)
