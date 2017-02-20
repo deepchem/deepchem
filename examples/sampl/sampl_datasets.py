@@ -10,7 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
-def load_sampl(featurizer='ECFP', split='index'):
+def load_sampl(featurizer='ECFP', split='random', frac_train=0.8):
   """Load SAMPL datasets."""
   # Featurize SAMPL dataset
   print("About to featurize SAMPL dataset.")
@@ -39,5 +39,6 @@ def load_sampl(featurizer='ECFP', split='index'):
                'random': dc.splits.RandomSplitter(),
                'scaffold': dc.splits.ScaffoldSplitter()}
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
+  train, valid, test = splitter.train_valid_test_split(dataset, frac_train=frac_train,
+                             frac_valid=1-frac_train, frac_test=0.)
   return SAMPL_tasks, (train, valid, test), transformers

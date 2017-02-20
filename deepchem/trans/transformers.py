@@ -682,11 +682,34 @@ class IRVTransformer():
     """
     X_target2 = []
     n_features = X_target.shape[1]
-    similarity = np.matmul(X_target, np.transpose(self.X)) / (
-        n_features - np.matmul(1 - X_target, np.transpose(1 - self.X)))
+    similarity = matrix_mul(X_target, np.transpose(self.X)) / (
+        n_features - matrix_mul(1 - X_target, np.transpose(1 - self.X)))
     for i in range(self.n_tasks):
       X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
+
+  @staticmethod
+  def matrix_mul(X1, X2, shard_size=1000):
+    X1_shape = X1.shape
+    X2_shape = X2.shape
+    assert X1_shape[1] == X2_shape[0]
+    X1_iter = X1_shape[0]//shard_size + 1
+    X2_iter = X2_shape[1]//shard_size + 1
+    all_result = np.zeros((1,))
+    for X1_id in range(X1_iter):
+      result = np.zeros((1,))
+      for X2_id in range(X2_iter):
+        partial_result = np.matmul(X1[X1_id*shard_size:min((X1_id+1)*shard_size, X1_shape[0]),:],
+                                   X2[:, X2_id*shard_size:min((X2_id+1)*shard_size, X2_shape[1])])
+        if result.size == 1:
+          result = partial_result
+        else:
+          result = np.concatenate((result, partial_result), axis=1)
+      if all_result.size == 1:
+        all_result = result
+      else:
+        all_result = np.concatenate((all_result, result), axis=0)
+    return all_result    
 
   def transform(self, dataset):
     X_trans = self.X_transform(dataset.X)
