@@ -13,9 +13,12 @@ import scipy.io
 import csv
 
 def load_qm7_from_mat(featurizer=None, split='stratified'):
-
-  if not os.path.exists('qm7.mat'): os.system('wget http://www.quantum-machine.org/data/qm7.mat')
-  dataset = scipy.io.loadmat('qm7.mat')
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "./qm7.mat")
+  
+  if not os.path.exists(dataset_file): os.system('wget -P '+current_dir+' http://www.quantum-machine.org/data/qm7.mat')
+  dataset = scipy.io.loadmat(dataset_file)
   
   X = dataset['X']
   y = dataset['T']
@@ -51,14 +54,17 @@ def load_qm7_from_mat(featurizer=None, split='stratified'):
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
 
-  qm7_tasks = np.arange(y.shape[1])
+  qm7_tasks = np.arange(y.shape[0])
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 def load_qm7b_from_mat(featurizer=None, split='stratified'):
-
-  if not os.path.exists('qm7b.mat'): os.system('wget http://www.quantum-machine.org/data/qm7b.mat')
-  dataset = scipy.io.loadmat('qm7b.mat')
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  dataset_file = os.path.join(
+      current_dir, "./qm7b.mat")
   
+  if not os.path.exists(dataset_file): os.system('wget -P '+current_dir+' http://www.quantum-machine.org/data/qm7b.mat')
+  dataset = scipy.io.loadmat(dataset_file)
+ 
   X = dataset['X']
   y = dataset['T']
   w = np.ones_like(y)
