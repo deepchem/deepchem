@@ -327,20 +327,20 @@ Scaffold splitting
 |chembl          |MT-NN regression    |Index       |0.443         |0.427         |
 |                |MT-NN regression    |Random      |0.464         |0.434         |
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
-|qm7             |MT-NN regression    |Index       |0.994         |0.969         |
-|                |MT-NN regression    |Random      |0.995         |0.992         |
-|                |MT-NN regression    |Stratified  |0.992         |0.992         | 
+|qm7             |NN regression       |Index       |0.994         |0.969         |
+|                |NN regression       |Random      |0.995         |0.992         |
+|                |NN regression       |Stratified  |0.992         |0.992         | 
 |qm7b            |MT-NN regression    |Index       |0.883         |0.785         |
 |                |MT-NN regression    |Random      |0.864         |0.838         |
 |                |MT-NN regression    |Stratified  |0.871         |0.847         | 
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
-|Dataset         |Model               |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
-|----------------|--------------------|------------|-------------------------|-------------------------|
-|qm7             |MT-NN regression    |Index       |22.1                     |23.2                     |
-|                |MT-NN regression    |Random      |16.2                     |17.7                     |
-|                |MT-NN regression    |Stratified  |20.5                     |20.8                     |
-|                |MT-NN regression    |User-defined|9.0                      |9.5                      |
+|Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
+|----------------|-----------------|------------|-------------------------|-------------------------|
+|qm7             |NN regression    |Index       |22.1                     |23.2                     |
+|                |NN regression    |Random      |16.2                     |17.7                     |
+|                |NN regression    |Stratified  |20.5                     |20.8                     |
+|                |NN regression    |User-defined|9.0                      |9.5                      |
 
 
 * General features
