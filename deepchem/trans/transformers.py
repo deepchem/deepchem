@@ -633,6 +633,25 @@ class IRVTransformer():
     self.transform_y = transform_y
 
   def realize(self, similarity, y, w):
+    """find samples with top ten similarity values in the reference dataset
+    
+    Parameters:
+    -----------
+    similarity: np.ndarray
+      similarity value between target dataset and reference dataset
+      should have size of (n_samples_in_target, n_samples_in_reference)
+    y: np.array
+      labels for a single task
+    w: np.array
+      weights for a single task
+   
+    Return:
+    ----------
+    features: list
+      n_samples * np.array of size (2*K,)
+      each array includes K similarity values and corresponding labels
+
+    """
     features = []
     similarity_xs = similarity * np.sign(w)
     for similarity_x in similarity_xs:
@@ -646,6 +665,21 @@ class IRVTransformer():
     return features
 
   def X_transform(self, X_target):
+    """ Calculate similarity between target dataset(X_target) and 
+    reference dataset(X): #(1 in intersection)/#(1 in union)
+         similarity = (X_target ∩ X)/(X_target U X)
+    Parameters:
+    -----------
+    X_target: np.ndarray
+      fingerprints of target dataset
+      should have same length with X in the second axis
+    
+    Returns:
+    ----------
+    X_target: np.ndarray
+      features of size(batch_size, 2*K*n_tasks)
+    
+    """
     X_target2 = []
     n_features = X_target.shape[1]
     similarity = np.matmul(X_target, np.transpose(self.X)) / (
