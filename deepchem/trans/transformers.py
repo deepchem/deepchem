@@ -607,3 +607,91 @@ class CoulombFitTransformer():
   def untransform(self, z):
     raise NotImplementedError(
         "Cannot untransform datasets with FitTransformer.")
+
+
+class IRVTransformer():
+  """Performs transform from ECFP to IRV features(K nearest neibours)."""
+
+  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
+    """Initializes IRVTransformer.
+    Parameters:
+    ----------
+    dataset: dc.data.Dataset object
+      train_dataset
+    K: int
+      number of nearest neighbours being count
+    n_tasks: int
+      number of tasks
+
+    """
+    self.X = dataset.X
+    self.n_tasks = n_tasks
+    self.K = K
+    self.y = dataset.y
+    self.w = dataset.w
+    self.transform_x = transform_x
+    self.transform_y = transform_y
+
+  def realize(self, similarity, y, w):
+    """find samples with top ten similarity values in the reference dataset
+    
+    Parameters:
+    -----------
+    similarity: np.ndarray
+      similarity value between target dataset and reference dataset
+      should have size of (n_samples_in_target, n_samples_in_reference)
+    y: np.array
+      labels for a single task
+    w: np.array
+      weights for a single task
+   
+    Return:
+    ----------
+    features: list
+      n_samples * np.array of size (2*K,)
+      each array includes K similarity values and corresponding labels
+
+    """
+    features = []
+    similarity_xs = similarity * np.sign(w)
+    for similarity_x in similarity_xs:
+      pair = list(zip(similarity_x, range(len(similarity_x))))
+      pair.sort(key=lambda x: x[0], reverse=True)
+      if pair[0][0] >= 1:
+        pair = pair[1:self.K + 1]
+      else:
+        pair = pair[:self.K]
+      features.append([z[0] for z in pair] + [y[int(z[1])] for z in pair])
+    return features
+
+  def X_transform(self, X_target):
+    """ Calculate similarity between target dataset(X_target) and 
+    reference dataset(X): #(1 in intersection)/#(1 in union)
+         similarity = (X_target ∩ X)/(X_target U X)
+    Parameters:
+    -----------
+    X_target: np.ndarray
+      fingerprints of target dataset
+      should have same length with X in the second axis
+    
+    Returns:
+    ----------
+    X_target: np.ndarray
+      features of size(batch_size, 2*K*n_tasks)
+    
+    """
+    X_target2 = []
+    n_features = X_target.shape[1]
+    similarity = np.matmul(X_target, np.transpose(self.X)) / (
+        n_features - np.matmul(1 - X_target, np.transpose(1 - self.X)))
+    for i in range(self.n_tasks):
+      X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
+    return np.concatenate([z for z in np.array(X_target2)], axis=1)
+
+  def transform(self, dataset):
+    X_trans = self.X_transform(dataset.X)
+    return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
+
+  def untransform(self, z):
+    raise NotImplementedError(
+        "Cannot untransform datasets with IRVTransformer.")
