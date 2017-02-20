@@ -9,6 +9,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import tensorflow as tf
 from deepchem.nn.layers import GraphGather
 from deepchem.models.tf_new_models.graph_topology import GraphTopology
 
@@ -27,6 +28,7 @@ class SequentialGraph(object):
       Number of features per atom.
     """
     self.graph = tf.Graph()
+    config = tf.ConfigProto(allow_soft_placement=True)
     self.session = tf.Session(graph=self.graph, config=config)
     with self.graph.as_default():
       self.graph_topology = GraphTopology(n_feat)

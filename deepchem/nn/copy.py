@@ -99,7 +99,7 @@ class Layer(object):
       input_dtype = kwargs.get('input_dtype', tf.float32)
       self.input_dtype = input_dtype
 
-  def add_weight(self, shape, initializer, name=None):
+  def add_weight(self, shape, initializer, regularizer=None, name=None):
     """Adds a weight variable to the layer.
 
     Parameters
@@ -110,7 +110,39 @@ class Layer(object):
     """
     initializer = initializations.get(initializer)
     weight = initializer(shape, name=name)
+    if regularizer is not None:
+      self.add_loss(regularizer(weight))
+
     return weight
+
+  def add_loss(self, losses, inputs=None):
+    """Adds losses to model."""
+    if losses is None:
+      return
+    # Update self.losses
+    losses = to_list(losses)
+    if not hasattr(self, 'losses'):
+      self.losses = []
+    try:
+      self.losses += losses
+    except AttributeError:
+      # In case self.losses isn't settable
+      # (i.e. it's a getter method).
+      # In that case the `losses` property is
+      # auto-computed and shouldn't be set.
+      pass
+    # Update self._per_input_updates
+    if not hasattr(self, '_per_input_losses'):
+      self._per_input_losses = {}
+    if inputs is not None:
+      inputs_hash = object_list_uid(inputs)
+    else:
+      # Updates indexed by None are unconditional
+      # rather than input-dependent
+      inputs_hash = None
+    if inputs_hash not in self._per_input_losses:
+      self._per_input_losses[inputs_hash] = []
+    self._per_input_losses[inputs_hash] += losses
 
   def call(self, x):
     """This is where the layer's logic lives.
@@ -356,19 +388,17 @@ class BatchNormalization(Layer):
   momentum: momentum in the computation of the
     exponential average of the mean and standard deviation
     of the data, for feature-wise normalization.
-  beta_init: name of initialization function for shift parameter
-    (see [initializations](../initializations.md)), or alternatively,
-    TensorFlow function to use for weights initialization.
-  gamma_init: name of initialization function for scale parameter (see
-    [initializations](../initializations.md)), or alternatively,
-    TensorFlow function to use for weights initialization.
-  gamma_regularizer: instance of [WeightRegularizer](../regularizers.md)
+  beta_init: name of initialization function for shift parameter, or
+    alternatively, TensorFlow function to use for weights initialization.
+  gamma_init: name of initialization function for scale parameter, or
+    alternatively, TensorFlow function to use for weights initialization.
+  gamma_regularizer: instance of WeightRegularizer
     (eg. L1 or L2 regularization), applied to the gamma vector.
-  beta_regularizer: instance of [WeightRegularizer](../regularizers.md),
+  beta_regularizer: instance of WeightRegularizer,
     applied to the beta vector.
 
   Input shape:
-  Arbitrary. Use the keyword argument `input_shape`
+  Arbitrary. Use the keyword argument input_shape
   (tuple of integers, does not include the samples axis)
   when using this layer as the first layer in a model.
 
@@ -405,17 +435,18 @@ class BatchNormalization(Layer):
                                 initializer=self.beta_init,
                                 regularizer=self.beta_regularizer,
                                 name='{}_beta'.format(self.name))
+    # Not Trainable
     self.running_mean = self.add_weight(shape, initializer='zero',
-                                        name='{}_running_mean'.format(self.name),
-                                        trainable=False)
+                                        name='{}_running_mean'.format(self.name))
+    # Not Trainable
     self.running_std = self.add_weight(shape, initializer='one',
-                                       name='{}_running_std'.format(self.name),
-                                       trainable=False)
+                                       name='{}_running_std'.format(self.name))
 
 
   def call(self, x):
+    input_shape = model_ops.int_shape(x)
+    self.build(input_shape)
     if self.mode == 0 or self.mode == 2:
-      input_shape = model_ops.int_shape(x)
 
       reduction_axes = list(range(len(input_shape)))
       del reduction_axes[self.axis]

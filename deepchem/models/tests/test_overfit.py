@@ -517,7 +517,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     with g.as_default():
       graph_model = dc.nn.SequentialGraph(n_feat)
-      graph_model.add(dc.nn.GraphConv(64, activation='relu'))
+      graph_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
       graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
       graph_model.add(dc.nn.GraphPool())
       # Gather Projection

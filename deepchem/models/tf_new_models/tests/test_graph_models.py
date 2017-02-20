@@ -39,7 +39,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
     batch_size = 3
     graph_model = SequentialGraph(n_feat)
 
-    graph_model.add(dc.nn.GraphConv(64, activation='relu'))
+    graph_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
 
@@ -65,7 +65,7 @@ class TestGraphModels(test_util.TensorFlowTestCase):
       support_model = SequentialSupportGraph(n_feat)
       
       # Add layers
-      support_model.add(dc.nn.GraphConv(64, activation='relu'))
+      support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
       # Need to add batch-norm separately to test/support due to differing
       # shapes.
       support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
@@ -73,7 +73,8 @@ class TestGraphModels(test_util.TensorFlowTestCase):
       support_model.add(dc.nn.GraphPool())
 
       # Apply an attention lstm layer
-      support_model.join(dc.nn.AttnLSTMEmbedding(n_test, n_support, max_depth))
+      support_model.join(dc.nn.AttnLSTMEmbedding(n_test, n_support, 64,
+                                                 max_depth))
 
       # Gather Projection
       support_model.add(dc.nn.Dense(128, activation='relu'))

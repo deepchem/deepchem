@@ -201,13 +201,15 @@ class GraphConv(Layer):
   and expects that they follow the ordering provided by
   GraphTopology.get_input_placeholders().
   """
-  def __init__(self, nb_filter, init='glorot_uniform', activation='linear',
-               dropout=None, max_deg=10, min_deg=0, **kwargs):
+  def __init__(self, nb_filter, n_atom_features, init='glorot_uniform',
+               activation='linear', dropout=None, max_deg=10, min_deg=0, **kwargs):
     """
     Parameters
     ----------
     nb_filter: int
       Number of convolutional filters.
+    n_atom_features: int
+      Number of features listed per atom.
     init: str, optional
       Weight initialization for filters.
     activation: str, optional
@@ -230,26 +232,22 @@ class GraphConv(Layer):
     # TODO(rbharath): It's not clear where nb_affine comes from.
     # Is there a solid explanation here?
     self.nb_affine = 2*max_deg + (1-min_deg)        
+    self.n_atom_features = n_atom_features
 
-  def build(self, input_shape):
+  def build(self):
     """"Construct internal trainable weights.
 
-    This layer expects arguments of form
-
-    [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-
-    input_shape should provide the shapes of each of these tensors.
+    n_atom_features should provide the number of features per atom. 
 
     Parameters
     ----------
-    input_shape: list
-      Shapes of incoming tensors
+    n_atom_features: int 
+      Number of features provied per atom. 
     """
+    n_atom_features = self.n_atom_features
       
     # Generate the nb_affine weights and biases
-    atom_features_shape = input_shape[0]
-    n_features = atom_features_shape[1]
-    self.W_list = [self.init([n_features, self.nb_filter]) 
+    self.W_list = [self.init([n_atom_features, self.nb_filter]) 
                    for k in range(self.nb_affine)]
     self.b_list = [model_ops.zeros(shape=[self.nb_filter,])
                    for k in range(self.nb_affine)]
@@ -288,6 +286,9 @@ class GraphConv(Layer):
     atom_features: tf.Tensor
       Of shape (n_atoms, nb_filter)
     """
+    # Add trainable weights
+    self.build()
+
     # Extract atom_features
     atom_features = x[0] 
 
@@ -462,7 +463,7 @@ class AttnLSTMEmbedding(Layer):
   Order Matters: Sequence to sequence for sets
   https://arxiv.org/abs/1511.06391
   """
-  def __init__(self, n_test, n_support, max_depth, init='glorot_uniform',
+  def __init__(self, n_test, n_support, n_feat, max_depth, init='glorot_uniform',
                activation='linear', dropout=None, **kwargs):
     """
     Parameters
@@ -471,6 +472,8 @@ class AttnLSTMEmbedding(Layer):
       Size of support set.
     n_test: int
       Size of test set.
+    n_feat: int
+      Number of features per atom
     max_depth: int
       Number of "processing steps" used by sequence-to-sequence for sets model.
     init: str, optional
@@ -487,6 +490,7 @@ class AttnLSTMEmbedding(Layer):
     self.max_depth = max_depth
     self.n_test = n_test
     self.n_support = n_support
+    self.n_feat = n_feat
 
   def get_output_shape_for(self, input_shape):
     """Returns the output shape. Same as input_shape.
@@ -526,10 +530,13 @@ class AttnLSTMEmbedding(Layer):
     x, xp = x_xp
 
     ## Initializes trainable weights.
+    ######################################################### DEBUG
     #n_feat = xp_input_shape[1]
-    n_feat = xp.get_shape()[1]
+    #n_feat = xp.get_shape()[1]
+    n_feat = self.n_feat
+    ######################################################### DEBUG
 
-    self.lstm = LSTMStep(n_feat)
+    self.lstm = LSTMStep(n_feat, self.n_test)
     self.q_init = model_ops.zeros([self.n_test, n_feat])
     self.r_init = model_ops.zeros([self.n_test, n_feat])
     self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
@@ -708,7 +715,7 @@ class LSTMStep(Layer):
   rather we generate a sequence of inputs using the intermediate outputs of the
   LSTM, and so will require step by step operation of the lstm
   """
-  def __init__(self, output_dim,
+  def __init__(self, output_dim, input_dim,
                init='glorot_uniform', inner_init='orthogonal',
                forget_bias_init='one', activation='tanh', 
                inner_activation='hard_sigmoid', **kwargs):
@@ -724,18 +731,22 @@ class LSTMStep(Layer):
     self.forget_bias_init = initializations.get(forget_bias_init)
     self.activation = activations.get(activation)
     self.inner_activation = activations.get(inner_activation)
+    self.input_dim = input_dim
 
   def get_initial_states(self, input_shape):
     return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
 
-  def build(self, input_shape):
-    x, h_tm1, c_tm1 = input_shape # Unpack
-    self.input_dim = x[1]
+  #def build(self, input_shape):
+  def build(self):
+    #################################### DEBUG
+    #x, _, _ = input_shape # Unpack
+    #self.input_dim = x[1]
+    #################################### DEBUG
 
     self.W = self.init((self.input_dim, 4 * self.output_dim))
     self.U = self.inner_init((self.output_dim, 4 * self.output_dim))
 
-    self.b = model_ops.variable(np.hstack(
+    self.b = tf.Variable(np.hstack(
         (np.zeros(self.output_dim),
          np.ones(self.output_dim),
          np.zeros(self.output_dim),
@@ -747,6 +758,9 @@ class LSTMStep(Layer):
     return [(x[0], self.output_dim), h_tm1, c_tm1]
 
   def call(self, x_states, mask=None):
+    ############################################### DEBUG
+    self.build()
+    ############################################### DEBUG
     x, h_tm1, c_tm1 = x_states # Unpack
 
     # Taken from Keras code [citation needed]
@@ -765,4 +779,3 @@ class LSTMStep(Layer):
     h = o * self.activation(c)
     
     return o, [h, c]
-
