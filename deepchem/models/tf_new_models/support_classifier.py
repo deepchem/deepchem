@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-import sys 
+import sys
 import time
 from deepchem.models import Model
 from deepchem.data import pad_batch
@@ -23,9 +23,16 @@ from deepchem.data import get_single_task_test
 from deepchem.data import get_task_dataset_minus_support
 from deepchem.nn.copy import Input
 
+
 class SupportGraphClassifier(Model):
-  def __init__(self, model, test_batch_size=10, support_batch_size=10,
-               learning_rate=.001, similarity="cosine", **kwargs):
+
+  def __init__(self,
+               model,
+               test_batch_size=10,
+               support_batch_size=10,
+               learning_rate=.001,
+               similarity="cosine",
+               **kwargs):
     """Builds a support-based classifier.
 
     See https://arxiv.org/pdf/1606.04080v1.pdf for definition of support.
@@ -42,13 +49,13 @@ class SupportGraphClassifier(Model):
       Number of negative examples in support.
     """
     self.similarity = similarity
-    self.model = model  
+    self.model = model
     self.sess = tf.Session(graph=self.model.graph)
     self.test_batch_size = test_batch_size
     self.support_batch_size = support_batch_size
 
     self.learning_rate = learning_rate
-    self.epsilon = 1e-7 
+    self.epsilon = 1e-7
 
     with self.model.graph.as_default():
       self.add_placeholders()
@@ -58,7 +65,7 @@ class SupportGraphClassifier(Model):
 
       # Initialize
       self.init_fn = tf.global_variables_initializer()
-      self.sess.run(self.init_fn)  
+      self.sess.run(self.init_fn)
 
   def get_training_op(self, loss):
     """Attaches an optimizer to the graph."""
@@ -77,7 +84,9 @@ class SupportGraphClassifier(Model):
     self.test_label_placeholder = tf.placeholder(
         dtype='float32', shape=(self.test_batch_size), name="label_placeholder")
     self.test_weight_placeholder = tf.placeholder(
-        dtype='float32', shape=(self.test_batch_size), name="weight_placeholder")
+        dtype='float32',
+        shape=(self.test_batch_size),
+        name="weight_placeholder")
 
     # TODO(rbharath): Should weights for the support be used?
     # Support labels
@@ -85,10 +94,10 @@ class SupportGraphClassifier(Model):
     #    tensor=tf.placeholder(dtype='float32', shape=[self.support_batch_size],
     #    name="support_label_placeholder"))
     self.support_label_placeholder = tf.placeholder(
-        dtype='float32', shape=[self.support_batch_size],
+        dtype='float32',
+        shape=[self.support_batch_size],
         name="support_label_placeholder")
-    self.phase = tf.placeholder(dtype='bool',
-                                name='keras_learning_phase')
+    self.phase = tf.placeholder(dtype='bool', name='keras_learning_phase')
     #################################################################### DEBUG
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
@@ -109,8 +118,14 @@ class SupportGraphClassifier(Model):
       feed_dict[self.phase] = training
     return feed_dict
 
-  def fit(self, dataset, n_episodes_per_epoch=1000, nb_epochs=1, n_pos=1, n_neg=9,
-          log_every_n_samples=10, **kwargs):
+  def fit(self,
+          dataset,
+          n_episodes_per_epoch=1000,
+          nb_epochs=1,
+          n_pos=1,
+          n_neg=9,
+          log_every_n_samples=10,
+          **kwargs):
     """Fits model on dataset using cached supports.
 
     For each epcoh, sample n_episodes_per_epoch (support, test) pairs and does
@@ -139,8 +154,8 @@ class SupportGraphClassifier(Model):
     feed_total, run_total = 0, 0
     for epoch in range(nb_epochs):
       # Create different support sets
-      episode_generator = EpisodeGenerator(dataset,
-          n_pos, n_neg, n_test, n_episodes_per_epoch)
+      episode_generator = EpisodeGenerator(dataset, n_pos, n_neg, n_test,
+                                           n_episodes_per_epoch)
       recent_losses = []
       for ind, (task, support, test) in enumerate(episode_generator):
         if ind % log_every_n_samples == 0:
@@ -152,7 +167,8 @@ class SupportGraphClassifier(Model):
         feed_total += (feed_end - feed_start)
         # Train on support set, batch pair
         run_start = time.time()
-        _, loss = self.sess.run([self.train_op, self.loss_op], feed_dict=feed_dict)
+        _, loss = self.sess.run(
+            [self.train_op, self.loss_op], feed_dict=feed_dict)
         run_end = time.time()
         run_total += (run_end - run_start)
         if ind % log_every_n_samples == 0:
@@ -162,10 +178,9 @@ class SupportGraphClassifier(Model):
         else:
           recent_losses.append(loss)
     time_end = time.time()
-    print("fit took %s seconds" % str(time_end-time_start))
+    print("fit took %s seconds" % str(time_end - time_start))
     print("feed_total: %s" % str(feed_total))
     print("run_total: %s" % str(run_total))
-
 
   def save(self):
     """Save all models
@@ -192,10 +207,10 @@ class SupportGraphClassifier(Model):
     """
     # Get featurization for test 
     # Shape (n_test, n_feat)
-    test_feat = self.model.get_test_output()  
+    test_feat = self.model.get_test_output()
     # Get featurization for support
     # Shape (n_support, n_feat)
-    support_feat = self.model.get_support_output()  
+    support_feat = self.model.get_support_output()
 
     # Computes the inner part c() of the kernel
     # (the inset equation in section 2.1.1 of Matching networks paper). 
@@ -225,14 +240,14 @@ class SupportGraphClassifier(Model):
 
     # Clip softmax probabilities to range [epsilon, 1-epsilon]
     # Shape (n_test,)
-    pred = tf.clip_by_value(pred, 1e-7, 1.-1e-7)
+    pred = tf.clip_by_value(pred, 1e-7, 1. - 1e-7)
 
     # Convert to logit space using inverse sigmoid (logit) function
     # logit function: log(pred) - log(1-pred)
     # Used to invoke tf.nn.sigmoid_cross_entropy_with_logits
     # in Cross Entropy calculation.
     # Shape (n_test,)
-    scores = tf.log(pred) - tf.log(tf.constant(1., dtype=tf.float32)-pred)
+    scores = tf.log(pred) - tf.log(tf.constant(1., dtype=tf.float32) - pred)
 
     return pred, scores
 
@@ -275,12 +290,13 @@ class SupportGraphClassifier(Model):
   def predict_on_batch(self, support, test_batch):
     """Make predictions on batch of data."""
     n_samples = len(test_batch)
-    padded_test_batch = NumpyDataset(*pad_batch(
-        self.test_batch_size, test_batch.X, test_batch.y, test_batch.w,
-        test_batch.ids))
+    padded_test_batch = NumpyDataset(*pad_batch(self.test_batch_size,
+                                                test_batch.X, test_batch.y,
+                                                test_batch.w, test_batch.ids))
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
-    pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
+    pred, scores = self.sess.run(
+        [self.pred_op, self.scores_op], feed_dict=feed_dict)
     y_pred_batch = np.round(pred)
     # Remove padded elements
     y_pred_batch = y_pred_batch[:n_samples]
@@ -289,22 +305,28 @@ class SupportGraphClassifier(Model):
   def predict_proba_on_batch(self, support, test_batch):
     """Make predictions on batch of data."""
     n_samples = len(test_batch)
-    padded_test_batch = NumpyDataset(*pad_batch(
-        self.test_batch_size, test_batch.X, test_batch.y, test_batch.w,
-        test_batch.ids))
+    padded_test_batch = NumpyDataset(*pad_batch(self.test_batch_size,
+                                                test_batch.X, test_batch.y,
+                                                test_batch.w, test_batch.ids))
     feed_dict = self.construct_feed_dict(padded_test_batch, support)
     # Get scores
-    pred, scores = self.sess.run([self.pred_op, self.scores_op], feed_dict=feed_dict)
+    pred, scores = self.sess.run(
+        [self.pred_op, self.scores_op], feed_dict=feed_dict)
     # pred corresponds to prob(example == 1) 
     y_pred_batch = np.zeros((n_samples, 2))
     # Remove padded elements
     pred = pred[:n_samples]
     y_pred_batch[:, 1] = pred
-    y_pred_batch[:, 0] = 1-pred
+    y_pred_batch[:, 0] = 1 - pred
     return y_pred_batch
-    
-  def evaluate(self, dataset, metric, n_pos,
-               n_neg, n_trials=1000, exclude_support=True):
+
+  def evaluate(self,
+               dataset,
+               metric,
+               n_pos,
+               n_neg,
+               n_trials=1000,
+               exclude_support=True):
     """Evaluate performance on dataset according to metrics
 
 
@@ -351,8 +373,8 @@ class SupportGraphClassifier(Model):
         print("Keeping support datapoints for eval.")
         task_dataset = get_task_dataset(dataset, task)
       y_pred = self.predict_proba(support, task_dataset)
-      task_scores[task].append(metric.compute_metric(
-          task_dataset.y, y_pred, task_dataset.w))
+      task_scores[task].append(
+          metric.compute_metric(task_dataset.y, y_pred, task_dataset.w))
 
     # Join information for all tasks.
     mean_task_scores = {}
