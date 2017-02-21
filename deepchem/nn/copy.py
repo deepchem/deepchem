@@ -330,13 +330,6 @@ class Dense(Layer):
         name='{}_W'.format(self.name))
     self.b = self.add_weight(
         (self.output_dim,), initializer='zero', name='{}_b'.format(self.name))
-    ######################################################## DEBUG
-    print("Created variables!")
-    print(
-        "[var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]")
-    print(
-        [var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)])
-    ######################################################## DEBUG
 
     output = model_ops.dot(x, self.W)
     if self.bias:

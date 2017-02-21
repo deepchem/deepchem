@@ -46,7 +46,7 @@ class Sequential(Model):
   >>> # Add features
   >>> model.add_features(dc.nn.Input(shape=(50,)))
   >>> # Add labels
-  >>> model.add_features(dc.nn.Input(shape=(1,)))
+  >>> model.add_labels(dc.nn.Input(shape=(1,)))
   >>> model.add(dc.nn.Dense(32, 50))
   >>> model.add(dc.nn.Dense(64, 32))
   """
