@@ -12,6 +12,7 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "LGPL v2.1+"
 
 import numpy as np
+import deepchem as dc
 from rdkit import Chem
 from deepchem.feat import Featurizer
 from deepchem.utils import pad_array
@@ -41,18 +42,24 @@ class CoulombMatrix(Featurizer):
   Example:
 
   >>> featurizers = dc.feat.CoulombMatrix(max_atoms=23)
-  >>> input_file = "input.sdf"
-  >>> tasks = ["task0"]
-  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol", 
-                                      featurizer=featurizers)
+  >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
+  >>> tasks = ["atomization_energy"]
+  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol",
+  ...                                    featurizer=featurizers, verbose=False)
   >>> dataset = featurizer.featurize(input_file)
-
+  Reading structures from deepchem/feat/tests/data/water.sdf.
+  Featurizing sample 0
   """
   conformers = True
   name = 'coulomb_matrix'
 
-  def __init__(self, max_atoms, remove_hydrogens=False, randomize=False,
-               upper_tri=False, n_samples=1, seed=None):
+  def __init__(self,
+               max_atoms,
+               remove_hydrogens=False,
+               randomize=False,
+               upper_tri=False,
+               n_samples=1,
+               seed=None):
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
@@ -102,7 +109,7 @@ class CoulombMatrix(Featurizer):
       for i in range(mol.GetNumAtoms()):
         for j in range(mol.GetNumAtoms()):
           if i == j:
-            m[i, j] = 0.5 * z[i] ** 2.4
+            m[i, j] = 0.5 * z[i]**2.4
           elif i < j:
             m[i, j] = (z[i] * z[j]) / d[i, j]
             m[j, i] = m[i, j]
@@ -159,7 +166,9 @@ class CoulombMatrix(Featurizer):
         Molecule conformer.
     """
     n_atoms = conf.GetNumAtoms()
-    coords = [conf.GetAtomPosition(i).__idiv__(0.52917721092) for i in range(n_atoms)]  # Convert AtomPositions from Angstrom to bohr (atomic units)
+    coords = [
+        conf.GetAtomPosition(i).__idiv__(0.52917721092) for i in range(n_atoms)
+    ]  # Convert AtomPositions from Angstrom to bohr (atomic units)
     d = np.zeros((n_atoms, n_atoms), dtype=float)
     for i in range(n_atoms):
       for j in range(n_atoms):
@@ -169,6 +178,7 @@ class CoulombMatrix(Featurizer):
         else:
           continue
     return d
+
 
 class CoulombMatrixEig(CoulombMatrix):
   """
@@ -192,19 +202,25 @@ class CoulombMatrixEig(CoulombMatrix):
   Example:
 
   >>> featurizers = dc.feat.CoulombMatrixEig(max_atoms=23)
-  >>> input_file = "input.sdf"
-  >>> tasks = ["task0"]
-  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol", 
-                                      featurizer=featurizers)
+  >>> input_file = 'deepchem/feat/tests/data/water.sdf' # really backed by water.sdf.csv
+  >>> tasks = ["atomization_energy"]
+  >>> featurizer = dc.data.SDFLoader(tasks, smiles_field="smiles", mol_field="mol",
+  ...                                    featurizer=featurizers, verbose=False)
   >>> dataset = featurizer.featurize(input_file)
+  Reading structures from deepchem/feat/tests/data/water.sdf.
+  Featurizing sample 0
 
   """
 
   conformers = True
   name = 'coulomb_matrix'
 
-  def __init__(self, max_atoms, remove_hydrogens=False, randomize=False,
-               n_samples=1, seed=None):
+  def __init__(self,
+               max_atoms,
+               remove_hydrogens=False,
+               randomize=False,
+               n_samples=1,
+               seed=None):
     self.max_atoms = int(max_atoms)
     self.remove_hydrogens = remove_hydrogens
     self.randomize = randomize
