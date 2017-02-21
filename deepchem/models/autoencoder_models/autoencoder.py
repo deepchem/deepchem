@@ -29,8 +29,8 @@ class TensorflowMoleculeEncoder(Model):
     weights_file = os.path.join(model_dir, "model.h5")
     if os.path.isfile(weights_file):
       m = MoleculeVAE()
-      self.model = m.load(charset, weights_file,
-                          latent_rep_size=latent_rep_size)
+      self.model = m.load(
+          charset, weights_file, latent_rep_size=latent_rep_size)
     else:
       # TODO (LESWING) Lazy Load
       raise ValueError("Model file %s doesn't exist" % weights_file)
