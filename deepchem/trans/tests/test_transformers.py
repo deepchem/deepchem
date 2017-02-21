@@ -470,15 +470,3 @@ class TestTransformers(unittest.TestCase):
     assert np.allclose(test_dataset_trans.X[0, :10], sims[:10])
     assert np.allclose(test_dataset_trans.X[0, 10:20], [0] * 10)
     assert not np.isclose(dataset_trans.X[0, 0], 1.)
-
-  def test_OneHot_transformer(self):
-    smiles = ["Cn1cnc2c1c(=O)n(C)c(=O)n2C", "CC(=O)N1CN(C(C)=O)[C@@H](O)[C@@H]1O"]
-    smiles = [[x] for x in smiles]
-    smiles = np.array(smiles)
-    orig_dataset = dc.data.NumpyDataset(smiles, smiles)
-    transformer = dc.trans.OneHotTransformer(transform_X=True, transform_y=False, dataset=orig_dataset)
-    trans_dataset = transformer.transform(orig_dataset)
-    untransformed = transformer.untransform(trans_dataset.X)
-    assert_equals(len(smiles), len(untransformed))
-    for i in range(len(smiles)):
-      assert_equals(smiles[i], untransformed[i])
