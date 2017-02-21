@@ -14,6 +14,7 @@ from deepchem.nn import regularizers
 from deepchem.nn import activations
 from deepchem.nn import model_ops
 
+
 def to_list(x):
   """This normalizes a list/tensor into a list.
 
@@ -24,9 +25,11 @@ def to_list(x):
     return x
   return [x]
 
+
 def object_list_uid(object_list):
   object_list = to_list(object_list)
   return ', '.join([str(abs(id(x))) for x in object_list])
+
 
 class Layer(object):
   """Abstract base layer class.
@@ -73,11 +76,9 @@ class Layer(object):
     # note that 'input_dtype', 'input_shape' and 'batch_input_shape'
     # are only applicable to input layers: do not pass these keywords
     # to non-input layers.
-    allowed_kwargs = {'input_shape',
-                      'batch_input_shape',
-                      'input_dtype',
-                      'name',
-                      'trainable'}
+    allowed_kwargs = {
+        'input_shape', 'batch_input_shape', 'input_dtype', 'name', 'trainable'
+    }
     for kwarg in kwargs.keys():
       if kwarg not in allowed_kwargs:
         raise TypeError('Keyword argument not understood:', kwarg)
@@ -167,6 +168,7 @@ class Layer(object):
     #outputs = to_list(self.call(x))
     #return outputs
 
+
 class InputLayer(Layer):
   """Layer to be used as an entry point into a graph.
 
@@ -181,8 +183,11 @@ class InputLayer(Layer):
   name: Name of the layer (string).
   """
 
-  def __init__(self, input_shape=None, batch_input_shape=None,
-               input_dtype=None, name=None):
+  def __init__(self,
+               input_shape=None,
+               batch_input_shape=None,
+               input_dtype=None,
+               name=None):
     self.uses_learning_phase = False
     self.trainable = False
 
@@ -218,8 +223,8 @@ class InputLayer(Layer):
     self.placeholder._uses_learning_phase = False
     return [self.placeholder]
 
-def Input(shape=None, batch_shape=None,
-          name=None, dtype=tf.float32):
+
+def Input(shape=None, batch_shape=None, name=None, dtype=tf.float32):
   """Input() is used to create a placeholder input
 
   Parameters
@@ -244,9 +249,10 @@ def Input(shape=None, batch_shape=None,
   # If batch size not specified
   if len(shape) == 1:
     batch_shape = (None,) + tuple(shape)
-  input_layer = InputLayer(batch_input_shape=batch_shape,
-                           name=name, input_dtype=dtype)
+  input_layer = InputLayer(
+      batch_input_shape=batch_shape, name=name, input_dtype=dtype)
   return input_layer
+
 
 class Dense(Layer):
   """Just your regular densely-connected NN layer.
@@ -255,8 +261,9 @@ class Dense(Layer):
 
   Example:
 
+  >>> import deepchem as dc
   >>> # as first layer in a sequential model:
-  >>> model = dc.modelsSequential()
+  >>> model = dc.models.Sequential()
   >>> model.add(dc.nn.Input(shape=16))
   >>> model.add(dc.nn.Dense(32))
   >>> # now the model will take as input arrays of shape (*, 16)
@@ -296,8 +303,13 @@ class Dense(Layer):
     the output would have shape `(nb_samples, output_dim)`.
   """
 
-  def __init__(self, output_dim, input_dim, init='glorot_uniform',
-               activation="relu", bias=True, **kwargs):
+  def __init__(self,
+               output_dim,
+               input_dim,
+               init='glorot_uniform',
+               activation="relu",
+               bias=True,
+               **kwargs):
     self.init = initializations.get(init)
     self.activation = activations.get(activation)
     self.output_dim = output_dim
@@ -312,15 +324,18 @@ class Dense(Layer):
     self.input_dim = input_dim
 
   def __call__(self, x):
-    self.W = self.add_weight((self.input_dim, self.output_dim),
-                             initializer=self.init,
-                             name='{}_W'.format(self.name))
-    self.b = self.add_weight((self.output_dim,), initializer='zero',
-                                name='{}_b'.format(self.name))
+    self.W = self.add_weight(
+        (self.input_dim, self.output_dim),
+        initializer=self.init,
+        name='{}_W'.format(self.name))
+    self.b = self.add_weight(
+        (self.output_dim,), initializer='zero', name='{}_b'.format(self.name))
     ######################################################## DEBUG
     print("Created variables!")
-    print("[var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]")
-    print([var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)])
+    print(
+        "[var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)]")
+    print(
+        [var.name for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)])
     ######################################################## DEBUG
 
     output = model_ops.dot(x, self.W)
@@ -328,6 +343,7 @@ class Dense(Layer):
       output += self.b
     outputs = to_list(self.activation(output))
     return outputs
+
 
 class Dropout(Layer):
   """Applies Dropout to the input.
@@ -349,16 +365,19 @@ class Dropout(Layer):
     self.p = p
     self.seed = seed
     if 0. < self.p < 1.:
-        self.uses_learning_phase = True
+      self.uses_learning_phase = True
     super(Dropout, self).__init__(**kwargs)
 
   def call(self, x):
     if 0. < self.p < 1.:
+
       def dropped_inputs():
         retain_prob = 1 - self.p
         return tf.nn.dropout(x * 1., retain_prob, seed=self.seed)
+
       x = model_ops.in_train_phase(dropped_inputs, lambda: x)
     return x
+
 
 class BatchNormalization(Layer):
   """Batch normalization layer (Ioffe and Szegedy, 2014).
@@ -409,9 +428,16 @@ class BatchNormalization(Layer):
     - [Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift](https://arxiv.org/abs/1502.03167)
   """
 
-  def __init__(self, epsilon=1e-3, mode=0, axis=-1, momentum=0.99,
-               beta_init='zero', gamma_init='one',
-               gamma_regularizer=None, beta_regularizer=None, **kwargs):
+  def __init__(self,
+               epsilon=1e-3,
+               mode=0,
+               axis=-1,
+               momentum=0.99,
+               beta_init='zero',
+               gamma_init='one',
+               gamma_regularizer=None,
+               beta_regularizer=None,
+               **kwargs):
     self.beta_init = initializations.get(beta_init)
     self.gamma_init = initializations.get(gamma_init)
     self.epsilon = epsilon
@@ -427,24 +453,31 @@ class BatchNormalization(Layer):
   def build(self, input_shape):
     shape = (input_shape[self.axis],)
 
-    self.gamma = self.add_weight(shape,
-                                 initializer=self.gamma_init,
-                                 regularizer=self.gamma_regularizer,
-                                 name='{}_gamma'.format(self.name))
-    self.beta = self.add_weight(shape,
-                                initializer=self.beta_init,
-                                regularizer=self.beta_regularizer,
-                                name='{}_beta'.format(self.name))
+    self.gamma = self.add_weight(
+        shape,
+        initializer=self.gamma_init,
+        regularizer=self.gamma_regularizer,
+        name='{}_gamma'.format(self.name))
+    self.beta = self.add_weight(
+        shape,
+        initializer=self.beta_init,
+        regularizer=self.beta_regularizer,
+        name='{}_beta'.format(self.name))
     # Not Trainable
-    self.running_mean = self.add_weight(shape, initializer='zero',
-                                        name='{}_running_mean'.format(self.name))
+    self.running_mean = self.add_weight(
+        shape, initializer='zero', name='{}_running_mean'.format(self.name))
     # Not Trainable
-    self.running_std = self.add_weight(shape, initializer='one',
-                                       name='{}_running_std'.format(self.name))
-
+    self.running_std = self.add_weight(
+        shape, initializer='one', name='{}_running_std'.format(self.name))
 
   def call(self, x):
-    input_shape = model_ops.int_shape(x)
+    ###################################################### DEBUG
+    if not isinstance(x, list):
+      input_shape = model_ops.int_shape(x)
+    else:
+      x = x[0]
+      input_shape = model_ops.int_shape(x)
+    ###################################################### DEBUG
     self.build(input_shape)
     if self.mode == 0 or self.mode == 2:
 
@@ -454,29 +487,37 @@ class BatchNormalization(Layer):
       broadcast_shape[self.axis] = input_shape[self.axis]
 
       x_normed, mean, std = model_ops.normalize_batch_in_training(
-          x, self.gamma, self.beta, reduction_axes,
-          epsilon=self.epsilon)
+          x, self.gamma, self.beta, reduction_axes, epsilon=self.epsilon)
 
       if self.mode == 0:
-        self.add_update([model_ops.moving_average_update(
-            self.running_mean, mean, self.momentum),
-                         model_ops.moving_average_update(
-            self.running_std, std, self.momentum)], x)
+        self.add_update([
+            model_ops.moving_average_update(self.running_mean, mean,
+                                            self.momentum),
+            model_ops.moving_average_update(self.running_std, std,
+                                            self.momentum)
+        ], x)
 
         if sorted(reduction_axes) == range(model_ops.get_ndim(x))[:-1]:
           x_normed_running = tf.nn.batch_normalization(
-              x, self.running_mean, self.running_std,
-              self.beta, self.gamma,
+              x,
+              self.running_mean,
+              self.running_std,
+              self.beta,
+              self.gamma,
               epsilon=self.epsilon)
         else:
           # need broadcasting
-          broadcast_running_mean = tf.reshape(self.running_mean, broadcast_shape)
+          broadcast_running_mean = tf.reshape(self.running_mean,
+                                              broadcast_shape)
           broadcast_running_std = tf.reshape(self.running_std, broadcast_shape)
           broadcast_beta = tf.reshape(self.beta, broadcast_shape)
           broadcast_gamma = tf.reshape(self.gamma, broadcast_shape)
           x_normed_running = tf.batch_normalization(
-              x, broadcast_running_mean, broadcast_running_std,
-              broadcast_beta, broadcast_gamma,
+              x,
+              broadcast_running_mean,
+              broadcast_running_std,
+              broadcast_beta,
+              broadcast_gamma,
               epsilon=self.epsilon)
 
         # pick the normalized form of x corresponding to the training phase
@@ -485,7 +526,8 @@ class BatchNormalization(Layer):
     elif self.mode == 1:
       # sample-wise normalization
       m = model_ops.mean(x, axis=-1, keepdims=True)
-      std = model_ops.sqrt(model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
+      std = model_ops.sqrt(
+          model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
       x_normed = (x - m) / (std + self.epsilon)
       x_normed = self.gamma * x_normed + self.beta
     return x_normed

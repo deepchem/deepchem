@@ -17,6 +17,7 @@ import tensorflow as tf
 import numpy as np
 import deepchem as dc
 
+
 class TestSequential(unittest.TestCase):
   """
   Test API for sequential models 

@@ -11,6 +11,7 @@ import warnings
 import tensorflow as tf
 from deepchem.nn import model_ops
 
+
 def mean_squared_error(y_true, y_pred):
   return model_ops.mean(tf.square(y_pred - y_true), axis=-1)
 
@@ -20,9 +21,8 @@ def mean_absolute_error(y_true, y_pred):
 
 
 def mean_absolute_percentage_error(y_true, y_pred):
-  diff = tf.abs((y_true - y_pred) / model_ops.clip(tf.abs(y_true),
-                                          model_ops.epsilon(),
-                                          None))
+  diff = tf.abs((y_true - y_pred) / model_ops.clip(
+      tf.abs(y_true), model_ops.epsilon(), None))
   return 100. * model_ops.mean(diff, axis=-1)
 
 
@@ -33,7 +33,8 @@ def mean_squared_logarithmic_error(y_true, y_pred):
 
 
 def squared_hinge(y_true, y_pred):
-  return model_ops.mean(tf.square(tf.maximum(1. - y_true * y_pred, 0.)), axis=-1)
+  return model_ops.mean(
+      tf.square(tf.maximum(1. - y_true * y_pred, 0.)), axis=-1)
 
 
 def hinge(y_true, y_pred):

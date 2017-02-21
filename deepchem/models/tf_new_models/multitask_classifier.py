@@ -60,16 +60,16 @@ def get_loss_fn(final_loss):
 
 class MultitaskGraphClassifier(Model):
 
-  def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
+  def __init__(self, model, n_tasks, n_feat, logdir=None, batch_size=50,
                final_loss='cross_entropy', learning_rate=.001,
                optimizer_type="adam", learning_rate_decay_time=1000,
                beta1=.9, beta2=.999, pad_batches=True, verbose=True):
 
     self.verbose = verbose
-    self.sess = sess
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model 
+    self.sess = tf.Session(graph=self.model.graph)
     if logdir is not None:
       if not os.path.exists(logdir):
         os.makedirs(logdir)
@@ -77,43 +77,53 @@ class MultitaskGraphClassifier(Model):
       logdir = tempfile.mkdtemp()
     self.logdir = logdir
            
-    # Extract model info 
-    self.batch_size = batch_size 
-    self.pad_batches = pad_batches
-    # Get graph topology for x
-    self.graph_topology = self.model.get_graph_topology()
-    self.feat_dim = self.model.get_num_output_features()
+    with self.model.graph.as_default():
+      # Extract model info 
+      self.batch_size = batch_size 
+      self.pad_batches = pad_batches
+      # Get graph topology for x
+      self.graph_topology = self.model.get_graph_topology()
+      ############################################################# DEBUG
+      #self.feat_dim = self.model.get_num_output_features()
+      self.feat_dim = n_feat 
+      ############################################################# DEBUG
 
-    # Raw logit outputs
-    self.logits = self.build()
-    self.loss_op = self.add_training_loss(self.final_loss, self.logits)
-    self.outputs = self.add_softmax(self.logits)
+      # Raw logit outputs
+      self.logits = self.build()
+      self.loss_op = self.add_training_loss(self.final_loss, self.logits)
+      self.outputs = self.add_softmax(self.logits)
 
-    self.learning_rate = learning_rate 
-    self.T = learning_rate_decay_time 
-    self.optimizer_type = optimizer_type 
+      self.learning_rate = learning_rate 
+      self.T = learning_rate_decay_time 
+      self.optimizer_type = optimizer_type 
 
-    self.optimizer_beta1 = beta1 
-    self.optimizer_beta2 = beta2 
- 
-    # Set epsilon
-    self.epsilon = 1e-7 
-    self.add_optimizer()
+      self.optimizer_beta1 = beta1 
+      self.optimizer_beta2 = beta2 
+   
+      # Set epsilon
+      self.epsilon = 1e-7 
+      self.add_optimizer()
 
-    # Initialize
-    self.init_fn = tf.global_variables_initializer()
-    sess.run(self.init_fn)  
+      # Initialize
+      self.init_fn = tf.global_variables_initializer()
+      self.sess.run(self.init_fn)  
 
-    # Path to save checkpoint files, which matches the
-    # replicated supervisor's default path.
-    self._save_path = os.path.join(logdir, 'model.ckpt')
+      # Path to save checkpoint files, which matches the
+      # replicated supervisor's default path.
+      self._save_path = os.path.join(logdir, 'model.ckpt')
 
   def build(self):
     # Create target inputs
-    self.label_placeholder = Input(tensor=tf.placeholder(
-        dtype='bool', shape=(None,self.n_tasks), name="label_placeholder"))
-    self.weight_placeholder = Input(tensor=tf.placeholder(
-        dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
+    ################################################################# DEBUG
+    #self.label_placeholder = Input(tensor=tf.placeholder(
+    #    dtype='bool', shape=(None,self.n_tasks), name="label_placeholder"))
+    #self.weight_placeholder = Input(tensor=tf.placeholder(
+    #    dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
+    self.label_placeholder = tf.placeholder(
+        dtype='bool', shape=(None,self.n_tasks), name="label_placeholder")
+    self.weight_placeholder = tf.placeholder(
+        dtype='float32', shape=(None,self.n_tasks), name="weight_placholder")
+    ################################################################# DEBUG
 
     feat = self.model.return_outputs()
     output = model_ops.multitask_logits(
