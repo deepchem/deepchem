@@ -71,7 +71,6 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
             bias_init=tf.constant(value=bias_init_consts[0],
                                   shape=[1]))
         lg_list.append(lg)
-
     return lg_list
     
   def add_label_placeholders(self, graph, name_scopes):
@@ -173,9 +172,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
-        batch_outputs = np.squeeze(np.stack(arrays = [complimentary,
-						      batch_outputs],
-                                            axis = 2))
+        batch_outputs = np.concatenate([complimentary, batch_outputs],
+                                            axis = batch_outputs.ndim-1)
         # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
