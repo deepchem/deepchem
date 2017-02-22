@@ -5,8 +5,8 @@ python:
 sudo: required
 dist: trusty
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh
-  -O anaconda.sh; else wget https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-x86_64.sh
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/archive/Anaconda2-4.3.0-Linux-x86_64.sh
+  -O anaconda.sh; else wget https://repo.continuum.io/archive/Anaconda3-4.3.0-Linux-x86_64.sh
   -O anaconda.sh; fi
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
@@ -18,7 +18,6 @@ install:
 - source activate deepchem
 - pip install yapf==0.16.0
 - python setup.py install
-- KERAS_BACKEND=tensorflow
 script:
 - nosetests -v deepchem --nologcapture
 - find ./deepchem | grep .py$ |xargs python -m doctest -v

@@ -11,7 +11,11 @@ from subprocess import call
 
 
 class TensorflowMoleculeEncoder(Model):
-
+  """
+  Transform molecules from one hot encoding into a latent vector
+  representation.
+  https://arxiv.org/abs/1610.02415
+  """
   def __init__(self,
                model_dir=None,
                weights_file="model.h5",
@@ -73,7 +77,11 @@ class TensorflowMoleculeEncoder(Model):
 
 
 class TensorflowMoleculeDecoder(Model):
-
+  """
+  Transform molecules from a latent space feature vector into
+  a one hot encoding.
+  https://arxiv.org/abs/1610.02415
+  """
   def __init__(self,
                model_dir=None,
                weights_file="model.h5",
