@@ -1,6 +1,6 @@
 """
 TODO(LESWING) Remove h5py dependency
-TODO(LESWING) Remove keras dependency
+TODO(LESWING) Remove keras dependency and replace with functional keras API
 """
 
 from deepchem.models import Model
@@ -13,12 +13,12 @@ from subprocess import call
 class TensorflowMoleculeEncoder(Model):
   def __init__(self,
                model_dir=None,
+               weights_file="model.h5",
                verbose=True,
                charset=zinc_charset,
                latent_rep_size=292):
     """
-        TODO(LESWING) Convert Dataset.[X,y,w] from the h5.py format.
-        TODO(LESWING) default to a charset constructed via Zinc -- it should be a superset
+        TODO(LESWING) replace charset with num_atom_types
         of other charsets
         :param model_dir:
         :param verbose:
@@ -27,7 +27,7 @@ class TensorflowMoleculeEncoder(Model):
         """
     super(TensorflowMoleculeEncoder, self).__init__(
       model_dir=model_dir, verbose=verbose)
-    weights_file = os.path.join(model_dir, "model.h5")
+    weights_file = os.path.join(model_dir, weights_file)
     if os.path.isfile(weights_file):
       m = MoleculeVAE()
       m.load(charset, weights_file, latent_rep_size=latent_rep_size)
@@ -69,16 +69,12 @@ class TensorflowMoleculeEncoder(Model):
     x_latent = self.model.encoder.predict(X)
     return x_latent
 
-  def get_num_tasks(self):
-    """
-    Get number of tasks.
-    """
-    return 1
 
 
 class TensorflowMoleculeDecoder(Model):
   def __init__(self,
                model_dir=None,
+               weights_file="model.h5",
                verbose=True,
                charset=zinc_charset,
                latent_rep_size=292):
@@ -93,7 +89,7 @@ class TensorflowMoleculeDecoder(Model):
         """
     super(TensorflowMoleculeDecoder, self).__init__(
       model_dir=model_dir, verbose=verbose)
-    weights_file = os.path.join(model_dir, "model.h5")
+    weights_file = os.path.join(model_dir, weights_file)
     if os.path.isfile(weights_file):
       m = MoleculeVAE()
       m.load(charset, weights_file, latent_rep_size=latent_rep_size)
