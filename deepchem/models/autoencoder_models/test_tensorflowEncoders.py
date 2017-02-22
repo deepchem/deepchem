@@ -12,9 +12,7 @@ from models.autoencoder_models.autoencoder import TensorflowMoleculeEncoder, Ten
 class TestTensorflowEncoders(TestCase):
 
   def test_fit(self):
-    data_dir = "/home/leswing/Documents/data_sets/keras-molecule"
-
-    tf_enc = TensorflowMoleculeEncoder(model_dir=data_dir)
+    tf_enc = TensorflowMoleculeEncoder.zinc_encoder()
 
     smiles = [
         "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "O=C(O)[C@@H]1/C(=C/CO)O[C@@H]2CC(=O)N21",
@@ -33,7 +31,7 @@ class TestTensorflowEncoders(TestCase):
 
     dataset = DiskDataset.from_numpy(features, features)
     prediction = tf_enc.predict_on_batch(dataset.X)
-    tf_de = TensorflowMoleculeDecoder(model_dir=data_dir)
+    tf_de = TensorflowMoleculeDecoder.zinc_decoder()
     one_hot_decoded = tf_de.predict_on_batch(prediction)
     decoded_smiles = featurizer.untransform(one_hot_decoded)
     assert_equals(len(decoded_smiles), len(smiles))

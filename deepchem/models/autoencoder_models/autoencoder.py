@@ -19,11 +19,19 @@ class TensorflowMoleculeEncoder(Model):
                charset_length=len(zinc_charset),
                latent_rep_size=292):
     """
-    :param model_dir: Folder to store cached weights
-    :weights_file: File to store cached weights in model_dir
-    :param verbose: True for more logging
-    :param charset_length: Length of one_hot_encoded vectors
-    :param latent_rep_size: How large a 1D Vector for latent representation
+
+    Parameters
+    ----------
+    model_dir: str
+      Folder to store cached weights
+    weights_file: str
+      File to store cached weights in model_dir
+    verbose: bool
+      True for more logging
+    charset_length: int
+      Length of one_hot_encoded vectors
+    latent_rep_size: int
+      How large a 1D Vector for latent representation
     """
     super(TensorflowMoleculeEncoder, self).__init__(
         model_dir=model_dir, verbose=verbose)
@@ -38,6 +46,12 @@ class TensorflowMoleculeEncoder(Model):
 
   @staticmethod
   def zinc_encoder():
+    """
+    Returns
+    -------
+    obj
+      An Encoder with weights that were trained on the zinc dataset
+    """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     weights_filename = "zinc_model.h5"
     weights_file = os.path.join(current_dir, weights_filename)
@@ -67,11 +81,19 @@ class TensorflowMoleculeDecoder(Model):
                charset_length=len(zinc_charset),
                latent_rep_size=292):
     """
-    :param model_dir: Folder To Store Cached Weights
-    :weights_file: File to store cached weights in model_dir
-    :param verbose: True for more logging
-    :param charset_length: Length of one_hot_encoded vectors
-    :param latent_rep_size: How large a 1D Vector for latent representation
+
+    Parameters
+    ----------
+    model_dir: str
+      Folder to store cached weights
+    weights_file: str
+      File to store cached weights in model_dir
+    verbose: bool
+      True for more logging
+    charset_length: int
+      Length of one_hot_encoded vectors
+    latent_rep_size: int
+      How large a 1D Vector for latent representation
     """
     super(TensorflowMoleculeDecoder, self).__init__(
         model_dir=model_dir, verbose=verbose)
@@ -89,6 +111,12 @@ class TensorflowMoleculeDecoder(Model):
 
   @staticmethod
   def zinc_decoder():
+    """
+    Returns
+    -------
+    obj
+      A Decoder with weights that were trained on the zinc dataset
+    """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     weights_filename = "zinc_model.h5"
     weights_file = os.path.join(current_dir, weights_filename)

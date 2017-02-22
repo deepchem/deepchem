@@ -18,7 +18,7 @@ install:
 - source activate deepchem
 - pip install yapf==0.16.0
 - python setup.py install
-- cp .keras.json ~/
+- KERAS_BACKEND=tensorflow
 script:
 - nosetests -v deepchem --nologcapture
 - find ./deepchem | grep .py$ |xargs python -m doctest -v
