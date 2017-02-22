@@ -56,6 +56,7 @@ from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 from hiv.hiv_datasets import load_hiv
 
+
 def benchmark_loading_datasets(hyper_parameters,
                                dataset='tox21',
                                model='tf',
@@ -812,8 +813,8 @@ if __name__ == '__main__':
     #irv, rf, rf_regression should be assigned manually
   if len(datasets) == 0:
     datasets = [
-        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 
-        'sampl', 'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b'
+        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 'sampl',
+        'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b'
     ]
 
   #input hyperparameters
@@ -899,7 +900,9 @@ if __name__ == '__main__':
 
   for split in splitters:
     for dataset in datasets:
-      if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv']:
+      if dataset in [
+          'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv'
+      ]:
         for model in models:
           if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv']:
             benchmark_loading_datasets(

@@ -661,12 +661,15 @@ class IRVTransformer():
     top_labels = []
     with g_temp.as_default():
       labels_tf = tf.constant(y)
-      similarity_placeholder = tf.placeholder(dtype=tf.float64, shape=(None,reference_len))
-      value, indice = tf.nn.top_k(similarity_placeholder, k=self.K+1, sorted=True)
+      similarity_placeholder = tf.placeholder(
+          dtype=tf.float64, shape=(None, reference_len))
+      value, indice = tf.nn.top_k(
+          similarity_placeholder, k=self.K + 1, sorted=True)
       top_label = tf.gather(labels_tf, indice)
       feed_dict = {}
-      for count in range(target_len//100+1):
-        feed_dict[similarity_placeholder] = similarity_xs[count*100:min((count+1)*100, target_len),:]
+      for count in range(target_len // 100 + 1):
+        feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
+            count + 1) * 100, target_len), :]
         with tf.Session() as sess:
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
           values.append(fetched_values[0])
@@ -674,10 +677,15 @@ class IRVTransformer():
     values = np.concatenate(values, axis=0)
     top_labels = np.concatenate(top_labels, axis=0)
     for count in range(values.shape[0]):
-      if values[count,0] == 1:
-        features.append(np.concatenate([values[count, 1:(self.K+1)], top_labels[count, 1:(self.K+1)]]))
+      if values[count, 0] == 1:
+        features.append(
+            np.concatenate([
+                values[count, 1:(self.K + 1)], top_labels[count, 1:(self.K + 1)]
+            ]))
       else:
-        features.append(np.concatenate([values[count, 0:self.K], top_labels[count, 0:self.K]]))
+        features.append(
+            np.concatenate(
+                [values[count, 0:self.K], top_labels[count, 0:self.K]]))
     return features
 
   def X_transform(self, X_target):
@@ -701,9 +709,10 @@ class IRVTransformer():
     print('start similarity calculation')
     time1 = time.time()
     similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
-        n_features - IRVTransformer.matrix_mul(1 - X_target, np.transpose(1 - self.X)))
+        n_features - IRVTransformer.matrix_mul(1 - X_target,
+                                               np.transpose(1 - self.X)))
     time2 = time.time()
-    print('similarity calculation takes %i s' % (time2-time1))
+    print('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
       X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
@@ -715,14 +724,16 @@ class IRVTransformer():
     X1_shape = X1.shape
     X2_shape = X2.shape
     assert X1_shape[1] == X2_shape[0]
-    X1_iter = X1_shape[0]//shard_size + 1
-    X2_iter = X2_shape[1]//shard_size + 1
+    X1_iter = X1_shape[0] // shard_size + 1
+    X2_iter = X2_shape[1] // shard_size + 1
     all_result = np.zeros((1,))
     for X1_id in range(X1_iter):
       result = np.zeros((1,))
       for X2_id in range(X2_iter):
-        partial_result = np.matmul(X1[X1_id*shard_size:min((X1_id+1)*shard_size, X1_shape[0]),:],
-                                   X2[:, X2_id*shard_size:min((X2_id+1)*shard_size, X2_shape[1])])
+        partial_result = np.matmul(X1[X1_id * shard_size:min((
+            X1_id + 1) * shard_size, X1_shape[0]), :],
+                                   X2[:, X2_id * shard_size:min((
+                                       X2_id + 1) * shard_size, X2_shape[1])])
         if result.size == 1:
           result = partial_result
         else:
@@ -733,13 +744,15 @@ class IRVTransformer():
       else:
         all_result = np.concatenate((all_result, result), axis=0)
       del result
-    return all_result    
+    return all_result
 
   def transform(self, dataset):
     X_length = dataset.X.shape[0]
     X_trans = []
-    for count in range(X_length//5000+1):
-      X_trans.append(self.X_transform(dataset.X[count*5000:min((count+1)*5000,X_length), :]))
+    for count in range(X_length // 5000 + 1):
+      X_trans.append(
+          self.X_transform(dataset.X[count * 5000:min((count + 1) * 5000,
+                                                      X_length), :]))
     X_trans = np.concatenate(X_trans, axis=0)
     return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
 
