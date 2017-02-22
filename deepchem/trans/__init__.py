@@ -15,3 +15,4 @@ from deepchem.trans.transformers import CDFTransformer
 from deepchem.trans.transformers import PowerTransformer
 from deepchem.trans.transformers import CoulombFitTransformer
 from deepchem.trans.transformers import IRVTransformer
+from deepchem.trans.transformers import OneHotTransformer
