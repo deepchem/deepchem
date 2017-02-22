@@ -10,6 +10,7 @@ import os
 import numpy as np
 
 import deepchem as dc
+from deepchem.data import DiskDataset
 from deepchem.data import NumpyDataset
 
 
@@ -73,12 +74,12 @@ class Transformer(object):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     raise NotImplementedError(
-        "Each Transformer is responsible for its own transform_array method.")
+      "Each Transformer is responsible for its own transform_array method.")
 
   def untransform(self, z):
     """Reverses stored transformation on provided data."""
     raise NotImplementedError(
-        "Each Transformer is responsible for its own untransfomr method.")
+      "Each Transformer is responsible for its own untransfomr method.")
 
   def transform(self, dataset, parallel=False):
     """
@@ -101,7 +102,6 @@ class Transformer(object):
 
 
 class NormalizationTransformer(Transformer):
-
   def __init__(self,
                transform_X=False,
                transform_y=False,
@@ -110,10 +110,10 @@ class NormalizationTransformer(Transformer):
                transform_gradients=False):
     """Initialize normalization transformation."""
     super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means
@@ -133,7 +133,7 @@ class NormalizationTransformer(Transformer):
 
   def transform(self, dataset, parallel=False):
     return super(NormalizationTransformer, self).transform(
-        dataset, parallel=parallel)
+      dataset, parallel=parallel)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -161,7 +161,7 @@ class NormalizationTransformer(Transformer):
       grad_means = self.y_means[1:]
       energy_var = self.y_stds[0]
       grad_var = 1 / energy_var * (
-          self.ydely_means - self.y_means[0] * self.y_means[1:])
+        self.ydely_means - self.y_means[0] * self.y_means[1:])
       energy = tasks[:, 0]
       transformed_grad = []
 
@@ -220,10 +220,10 @@ class ClippingTransformer(Transformer):
 
     """
     super(ClippingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     assert not transform_w
     self.x_max = x_max
     self.y_max = y_max
@@ -260,11 +260,10 @@ class ClippingTransformer(Transformer):
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with ClippingTransformer.")
+      "Cannot untransform datasets with ClippingTransformer.")
 
 
 class LogTransformer(Transformer):
-
   def __init__(self,
                transform_X=False,
                transform_y=False,
@@ -275,7 +274,7 @@ class LogTransformer(Transformer):
     self.tasks = tasks
     """Initialize log  transformation."""
     super(LogTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+      transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -339,10 +338,10 @@ class BalancingTransformer(Transformer):
                dataset=None,
                seed=None):
     super(BalancingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     # BalancingTransformer can only transform weights.
     assert not transform_X
     assert not transform_y
@@ -539,8 +538,8 @@ class CoulombFitTransformer():
 
     def _realize_(x):
       assert (len(x.shape) == 2)
-      inds = np.argsort(-(x**2).sum(axis=0)**.5 + np.random.normal(
-          0, self.noise, x[0].shape))
+      inds = np.argsort(-(x ** 2).sum(axis=0) ** .5 + np.random.normal(
+        0, self.noise, x[0].shape))
       x = x[inds, :][:, inds] * 1
       x = x.flatten()[self.triuind]
       return x
@@ -606,7 +605,7 @@ class CoulombFitTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with FitTransformer.")
+      "Cannot untransform datasets with FitTransformer.")
 
 
 class IRVTransformer():
@@ -683,7 +682,7 @@ class IRVTransformer():
     X_target2 = []
     n_features = X_target.shape[1]
     similarity = np.matmul(X_target, np.transpose(self.X)) / (
-        n_features - np.matmul(1 - X_target, np.transpose(1 - self.X)))
+      n_features - np.matmul(1 - X_target, np.transpose(1 - self.X)))
     for i in range(self.n_tasks):
       X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
     return np.concatenate([z for z in np.array(X_target2)], axis=1)
@@ -694,4 +693,69 @@ class IRVTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with IRVTransformer.")
+      "Cannot untransform datasets with IRVTransformer.")
+
+
+zinc_charset = [' ', '#', ')', '(', '+', '-', '/', '1', '3', '2', '5', '4', '7', '6', '8', '=', '@', 'C', 'B', 'F', 'I',
+                'H', 'O', 'N', 'S', '[', ']', '\\', 'c', 'l', 'o', 'n', 'p', 's', 'r']
+
+
+class OneHotTransformer(Transformer):
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
+               transform_gradients=False,
+               charset=list(zinc_charset),
+               padlength=120):
+    super(OneHotTransformer, self).__init__(
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
+    self.charset = charset
+    self.padlength = padlength
+
+  def one_hot_array(self, i):
+    return [int(x) for x in [ix == i for ix in range(len(self.charset))]]
+
+  def one_hot_index(self, c):
+    """
+    TODO(LESWING) replace with map lookup vs linear scan
+    :param charset:
+    :return:
+    """
+    return self.charset.index(c)
+
+  def pad_smile(self, smile):
+    return smile.ljust(self.padlength)
+
+  def one_hot_encoded(self, smile):
+    return np.array([self.one_hot_array(self.one_hot_index(x)) for x in self.pad_smile(smile)])
+
+  def transform(self, dataset, parallel=False):
+    if self.transform_X:
+      assert dataset.X.shape[1] == 1
+      x_trans = self._transform_dim(dataset.X)
+      y_trans = dataset.y
+    elif self.transform_y:
+      assert dataset.y.shape[1] == 1
+      x_trans = dataset.X
+      y_trans = self._transform_dim(dataset.y)
+    else:
+      raise ValueError("Only can transform X Or Y Dimension")
+    return DiskDataset.from_numpy(x_trans, y_trans)
+
+  def untransform(self, z):
+    z1 = []
+    for i in range(len(z)):
+      s = ""
+      for j in range(len(z[i])):
+        oh = np.argmax(z[i][j])
+        s += self.charset[oh]
+      z1.append([s.strip()])
+    return z1
+
+  def _transform_dim(self, z):
+    return np.array([self.one_hot_encoded(x[0]) for x in z])
