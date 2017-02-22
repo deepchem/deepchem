@@ -7,6 +7,7 @@ from deepchem.models import Model
 from deepchem.models.autoencoder_models.model import MoleculeVAE
 from deepchem.trans.transformers import zinc_charset
 import os
+from subprocess import call
 
 
 class TensorflowMoleculeEncoder(Model):
@@ -34,6 +35,19 @@ class TensorflowMoleculeEncoder(Model):
     else:
       # TODO (LESWING) Lazy Load
       raise ValueError("Model file %s doesn't exist" % weights_file)
+
+
+  @staticmethod
+  def zinc_encoder():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    weights_file = os.path.join(current_dir, "model.h5")
+
+    if not os.path.exists(weights_file):
+      wget_command = "wget -c http://karlleswing.com/misc/keras-molecule/model.h5"
+      call(wget_command.split())
+      mv_cmd = "mv model.h5 %s" % current_dir
+      call(mv_cmd.split())
+    return TensorflowMoleculeEncoder(model_dir=current_dir)
 
   def fit(self, dataset, nb_epoch=10, batch_size=50, **kwargs):
     """
@@ -93,6 +107,18 @@ class TensorflowMoleculeDecoder(Model):
     TODO(LESWING) Test
     """
     raise ValueError("Only can read in Cached Models")
+
+  @staticmethod
+  def zinc_decoder():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    weights_file = os.path.join(current_dir, "model.h5")
+
+    if not os.path.exists(weights_file):
+      wget_command = "wget http://karlleswing.com/misc/keras-molecule/model.h5"
+      call(wget_command.split())
+      mv_cmd = "mv model.h5 %s" % current_dir
+      call(mv_cmd.split())
+    return TensorflowMoleculeDecoder(model_dir=current_dir)
 
   def predict_on_batch(self, X):
     """
