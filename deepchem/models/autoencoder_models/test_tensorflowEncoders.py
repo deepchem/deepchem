@@ -4,9 +4,9 @@ from nose.tools import assert_equals
 from rdkit import Chem
 
 import deepchem as dc
-from data import DiskDataset
+from deepchem.data import DiskDataset
 from deepchem.feat.one_hot import zinc_charset
-from models.autoencoder_models.autoencoder import TensorflowMoleculeEncoder, TensorflowMoleculeDecoder
+from deepchem.models.autoencoder_models.autoencoder import TensorflowMoleculeEncoder, TensorflowMoleculeDecoder
 
 
 class TestTensorflowEncoders(TestCase):
