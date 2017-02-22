@@ -16,6 +16,7 @@ class TensorflowMoleculeEncoder(Model):
   representation.
   https://arxiv.org/abs/1610.02415
   """
+
   def __init__(self,
                model_dir=None,
                weights_file="model.h5",
@@ -82,6 +83,7 @@ class TensorflowMoleculeDecoder(Model):
   a one hot encoding.
   https://arxiv.org/abs/1610.02415
   """
+
   def __init__(self,
                model_dir=None,
                weights_file="model.h5",
