@@ -665,27 +665,36 @@ class IRVTransformer():
           dtype=tf.float64, shape=(None, reference_len))
       value, indice = tf.nn.top_k(
           similarity_placeholder, k=self.K + 1, sorted=True)
+      # the tf graph here pick up the (K+1) highest similarity values 
+      # and their indices
       top_label = tf.gather(labels_tf, indice)
+      # map the indices to labels
       feed_dict = {}
       for count in range(target_len // 100 + 1):
         feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
             count + 1) * 100, target_len), :]
+        # generating batch of data by slicing similarity matrix 
+        # into 100*reference_dataset_length
         with tf.Session() as sess:
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
           values.append(fetched_values[0])
           top_labels.append(fetched_values[1])
     values = np.concatenate(values, axis=0)
     top_labels = np.concatenate(top_labels, axis=0)
+    # concatenate batches of data together
     for count in range(values.shape[0]):
       if values[count, 0] == 1:
         features.append(
             np.concatenate([
                 values[count, 1:(self.K + 1)], top_labels[count, 1:(self.K + 1)]
             ]))
+        # highest similarity is 1: target is in the reference
+        # use the following K points
       else:
         features.append(
             np.concatenate(
                 [values[count, 0:self.K], top_labels[count, 0:self.K]]))
+        # highest less than 1: target not in the reference, use top K points
     return features
 
   def X_transform(self, X_target):
@@ -719,6 +728,10 @@ class IRVTransformer():
 
   @staticmethod
   def matrix_mul(X1, X2, shard_size=5000):
+    """ Calculate matrix multiplication for big matrix,
+    X1 and X2 are sliced into pieces with shard_size rows(columns)
+    then multiplied together and concatenated to the proper size
+    """
     X1 = np.float_(X1)
     X2 = np.float_(X2)
     X1_shape = X1.shape
@@ -734,10 +747,12 @@ class IRVTransformer():
             X1_id + 1) * shard_size, X1_shape[0]), :],
                                    X2[:, X2_id * shard_size:min((
                                        X2_id + 1) * shard_size, X2_shape[1])])
+        # calculate matrix multiplicatin on slices
         if result.size == 1:
           result = partial_result
         else:
           result = np.concatenate((result, partial_result), axis=1)
+        # concatenate the slices together
         del partial_result
       if all_result.size == 1:
         all_result = result
