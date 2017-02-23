@@ -1,4 +1,6 @@
 ﻿# DeepChem
+[![Build Status](https://travis-ci.org/deepchem/deepchem.svg?branch=master)](https://travis-ci.org/deepchem/deepchem)
+[![Coverage Status](https://coveralls.io/repos/deepchem/deepchem/badge.svg?branch=master%2Fcoveralls)](https://coveralls.io/r/deepchem/deepchem?branch=master%2Fcoveralls)
 
 DeepChem aims to provide a high quality open-source toolchain that
 democratizes the use of deep-learning in drug discovery, materials science, and quantum
