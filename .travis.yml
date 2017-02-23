@@ -19,9 +19,10 @@ install:
 - pip install yapf==0.16.0
 - python setup.py install
 script:
-- nosetests -v deepchem --nologcapture
+- nosetests --with-coverage --cover-package=deepchem -v deepchem --nologcapture
 - find ./deepchem | grep .py$ |xargs python -m doctest -v
 - bash devtools/travis-ci/test_format_code.sh
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
+- coveralls
 - source devtools/travis-ci/after_sucess.sh
