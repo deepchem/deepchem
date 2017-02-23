@@ -219,6 +219,12 @@ Index splitting
 |           |Multitask network   |0.934              |0.830              |
 |           |robust MT-NN        |0.949              |0.827              |
 |           |graph convolution   |0.946              |0.860              |
+|hiv        |logistic regression |0.864              |0.739              |
+|           |Random Forest       |0.999              |0.720              |
+|           |IRV                 |0.841              |0.724              |
+|           |Multitask network   |0.761              |0.652              |
+|           |robust MT-NN        |0.780              |0.708              |
+|           |graph convolution   |0.876              |0.779              |
 
 Random splitting
 
@@ -254,6 +260,12 @@ Random splitting
 |           |Multitask network   |0.951              |0.834              |
 |           |robust MT-NN        |0.959              |0.830              |
 |           |graph convolution   |0.975              |0.876              |
+|hiv        |logistic regression |0.860              |0.806              |
+|           |Random Forest       |0.999              |0.850              |
+|           |IRV                 |0.839              |0.809              |
+|           |Multitask network   |0.742              |0.715              |
+|           |robust MT-NN        |0.753              |0.727              |
+|           |graph convolution   |0.847              |0.803              |
 
 Scaffold splitting
 
@@ -289,6 +301,12 @@ Scaffold splitting
 |           |Multitask network   |0.947              |0.862              |
 |           |robust MT-NN        |0.953              |0.890              |
 |           |graph convolution   |0.957              |0.823              |
+|hiv        |logistic regression |0.858              |0.798              |
+|           |Random Forest       |0.946              |0.562              |
+|           |IRV                 |0.847              |0.811              |
+|           |Multitask network   |0.775              |0.765              |
+|           |robust MT-NN        |0.785              |0.748              |
+|           |graph convolution   |0.867              |0.769              |
 
 * Regression
 
@@ -327,20 +345,19 @@ Scaffold splitting
 |chembl          |MT-NN regression    |Index       |0.443         |0.427         |
 |                |MT-NN regression    |Random      |0.464         |0.434         |
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
-|qm7             |NN regression       |Index       |0.994         |0.969         |
-|                |NN regression       |Random      |0.995         |0.992         |
-|                |NN regression       |Stratified  |0.992         |0.992         | 
-|qm7b            |MT-NN regression    |Index       |0.883         |0.785         |
-|                |MT-NN regression    |Random      |0.864         |0.838         |
-|                |MT-NN regression    |Stratified  |0.871         |0.847         | 
+|qm7             |NN regression       |Index       |0.997         |0.986         |
+|                |NN regression       |Random      |0.999         |0.999         |
+|                |NN regression       |Stratified  |0.999         |0.999         | 
+|qm7b            |MT-NN regression    |Index       |0.931         |0.803         |
+|                |MT-NN regression    |Random      |0.923         |0.884         |
+|                |MT-NN regression    |Stratified  |0.934         |0.884         | 
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
 |----------------|-----------------|------------|-------------------------|-------------------------|
-|qm7             |NN regression    |Index       |22.1                     |23.2                     |
-|                |NN regression    |Random      |16.2                     |17.7                     |
-|                |NN regression    |Stratified  |20.5                     |20.8                     |
-|                |NN regression    |User-defined|9.0                      |9.5                      |
+|qm7             |NN regression    |Index       |11.0                     |12.0                     |
+|                |NN regression    |Random      |7.12                     |7.53                     |
+|                |NN regression    |Stratified  |6.61                     |7.34                     |
 
 
 * General features
@@ -355,6 +372,7 @@ Number of tasks and examples in the datasets
 |sider           |27         |1427       |
 |toxcast         |617        |8615       |
 |clintox         |2          |1491       |
+|hiv             |1          |41913      |
 |delaney         |1          |1128       |
 |sampl           |1          |643        |
 |kaggle          |15         |173065     |
@@ -402,6 +420,12 @@ Time needed for benchmark test(~20h in total)
 |                |random forest       |15              |200            |
 |                |IRV                 |15              |10             |
 |                |graph convolution   |20              |130            |
+|hiv             |logistic regression |180             |40             |
+|                |Multitask network   |180             |350            |
+|                |robust MT-NN        |180             |450            |
+|                |random forest       |180             |2800           |
+|                |IRV                 |180             |200            |
+|                |graph convolution   |180             |1300           |
 |delaney         |MT-NN regression    |10              |40             |
 |                |graphconv regression|10              |40             |
 |                |random forest       |10              |30             |
