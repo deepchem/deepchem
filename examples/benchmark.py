@@ -12,7 +12,7 @@ Giving classification performances of:
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
     Graph convolution(graphconv)                 
-on datasets: muv, pcba, tox21, sider, toxcast, clintox
+on datasets: muv, pcba, tox21, sider, toxcast, clintox, hiv
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
@@ -54,6 +54,7 @@ from chembl.chembl_datasets import load_chembl
 from qm7.qm7_datasets import load_qm7_from_mat, load_qm7b_from_mat
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
+from hiv.hiv_datasets import load_hiv
 
 
 def benchmark_loading_datasets(hyper_parameters,
@@ -72,7 +73,7 @@ def benchmark_loading_datasets(hyper_parameters,
       hyper parameters including layer size, dropout, learning rate, etc.
   dataset: string, optional (default='tox21')
       choice of which dataset to use, should be: tox21, muv, sider, 
-      toxcast, pcba, delaney, kaggle, nci, clintox, pdbbind, chembl,
+      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
       qm7, qm7b, sampl
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
@@ -83,7 +84,7 @@ def benchmark_loading_datasets(hyper_parameters,
       path of result file
   """
 
-  if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox']:
+  if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox', 'hiv']:
     mode = 'classification'
   elif dataset in [
       'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'sampl'
@@ -151,7 +152,8 @@ def benchmark_loading_datasets(hyper_parameters,
       'qm7': load_qm7_from_mat,
       'qm7b': load_qm7b_from_mat,
       'sampl': load_sampl,
-      'clintox': load_clintox
+      'clintox': load_clintox,
+      'hiv': load_hiv
   }
 
   print('-------------------------------------')
@@ -786,7 +788,7 @@ if __name__ == '__main__':
       dest='dataset_args',
       default=[],
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, clintox')
+      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, clintox, hiv')
   parser.add_argument(
       '-t',
       action='store_true',
@@ -811,7 +813,7 @@ if __name__ == '__main__':
     #irv, rf, rf_regression should be assigned manually
   if len(datasets) == 0:
     datasets = [
-        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'sampl',
+        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 'sampl',
         'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b'
     ]
 
@@ -898,7 +900,9 @@ if __name__ == '__main__':
 
   for split in splitters:
     for dataset in datasets:
-      if dataset in ['tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox']:
+      if dataset in [
+          'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv'
+      ]:
         for model in models:
           if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv']:
             benchmark_loading_datasets(

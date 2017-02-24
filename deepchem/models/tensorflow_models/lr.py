@@ -69,7 +69,6 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
                 shape=[self.n_features, 1], stddev=weight_init_stddevs[0]),
             bias_init=tf.constant(value=bias_init_consts[0], shape=[1]))
         lg_list.append(lg)
-
     return lg_list
 
   def add_label_placeholders(self, graph, name_scopes):
@@ -175,7 +174,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
         batch_outputs = np.squeeze(
-            np.stack(arrays=[complimentary, batch_outputs], axis=2))
+            np.stack(arrays=[complimentary, batch_outputs], 
+                     axis=batch_outputs.ndim - 1))
+
         # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
@@ -211,7 +212,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         complimentary = np.ones(np.shape(batch_output))
         complimentary = complimentary - batch_output
         batch_output = np.squeeze(
-            np.stack(arrays=[complimentary, batch_output], axis=2))
+            np.stack(arrays=[complimentary, batch_output],
+                     axis=batch_output.ndim - 1))
+
         # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
