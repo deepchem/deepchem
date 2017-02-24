@@ -19,8 +19,8 @@ clintox_tasks, clintox_datasets, transformers = load_clintox(
 train_dataset, valid_dataset, test_dataset = clintox_datasets
 
 # Fit models
-metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                           mode="classification")
+metric = dc.metrics.Metric(
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
 
 # Do setup required for tf/keras models
 # Number of features on conv-mols

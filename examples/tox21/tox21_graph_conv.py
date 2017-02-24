@@ -12,7 +12,6 @@ tf.set_random_seed(123)
 import deepchem as dc
 from tox21_datasets import load_tox21
 
-
 # Load Tox21 dataset
 tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='GraphConv')
 train_dataset, valid_dataset, test_dataset = tox21_datasets
@@ -39,15 +38,15 @@ graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 
 model = dc.models.MultitaskGraphClassifier(
-  graph_model,
-  len(tox21_tasks),
-  n_feat,
-  batch_size=batch_size,
-  learning_rate=1e-3,
-  learning_rate_decay_time=1000,
-  optimizer_type="adam",
-  beta1=.9,
-  beta2=.999)
+    graph_model,
+    len(tox21_tasks),
+    n_feat,
+    batch_size=batch_size,
+    learning_rate=1e-3,
+    learning_rate_decay_time=1000,
+    optimizer_type="adam",
+    beta1=.9,
+    beta2=.999)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=10)

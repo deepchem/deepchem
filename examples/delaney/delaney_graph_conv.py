@@ -13,7 +13,8 @@ import deepchem as dc
 from delaney_datasets import load_delaney
 
 # Load Delaney dataset
-delaney_tasks, delaney_datasets, transformers = load_delaney(featurizer='GraphConv',split='index')
+delaney_tasks, delaney_datasets, transformers = load_delaney(
+    featurizer='GraphConv', split='index')
 train_dataset, valid_dataset, test_dataset = delaney_datasets
 
 # Fit models
@@ -38,15 +39,15 @@ graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 # Dense post-processing layer
 
 model = dc.models.MultitaskGraphRegressor(
-  graph_model,
-  len(delaney_tasks),
-  n_feat,
-  batch_size=batch_size,
-  learning_rate=1e-3,
-  learning_rate_decay_time=1000,
-  optimizer_type="adam",
-  beta1=.9,
-  beta2=.999)
+    graph_model,
+    len(delaney_tasks),
+    n_feat,
+    batch_size=batch_size,
+    learning_rate=1e-3,
+    learning_rate_decay_time=1000,
+    optimizer_type="adam",
+    beta1=.9,
+    beta2=.999)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)

@@ -38,15 +38,15 @@ graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 # Dense post-processing layer
 
 model = dc.models.MultitaskGraphRegressor(
-  graph_model,
-  len(SAMPL_tasks),
-  n_feat,
-  batch_size=batch_size,
-  learning_rate=1e-3,
-  learning_rate_decay_time=1000,
-  optimizer_type="adam",
-  beta1=.9,
-  beta2=.999)
+    graph_model,
+    len(SAMPL_tasks),
+    n_feat,
+    batch_size=batch_size,
+    learning_rate=1e-3,
+    learning_rate_decay_time=1000,
+    optimizer_type="adam",
+    beta1=.9,
+    beta2=.999)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)
