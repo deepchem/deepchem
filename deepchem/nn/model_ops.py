@@ -24,11 +24,13 @@ _UID_PREFIXES = defaultdict(int)
 # either train mode (learning_phase == 1) or test mode (learning_phase == 0).
 _GRAPH_LEARNING_PHASES = {}
 
+
 def _to_tensor(x, dtype):
   x = tf.convert_to_tensor(x)
   if x.dtype != dtype:
     x = tf.cast(x, dtype)
   return x
+
 
 def learning_phase():
   """Returns the learning phase flag.
@@ -42,6 +44,7 @@ def learning_phase():
     phase = tf.placeholder(dtype='bool', name='keras_learning_phase')
     _GRAPH_LEARNING_PHASES[graph] = phase
   return _GRAPH_LEARNING_PHASES[graph]
+
 
 def in_train_phase(x, alt):
   """Selects `x` in train phase, and `alt` otherwise.
@@ -59,6 +62,7 @@ def in_train_phase(x, alt):
   x = switch(learning_phase(), x, alt)
   x._uses_learning_phase = True
   return x
+
 
 def switch(condition, then_expression, else_expression):
   """Switches between two operations
@@ -79,32 +83,32 @@ def switch(condition, then_expression, else_expression):
   if condition.dtype != tf.bool:
     condition = tf.cast(condition, 'bool')
   if not callable(then_expression):
+
     def then_expression_fn():
-        return then_expression
+      return then_expression
   else:
     then_expression_fn = then_expression
   if not callable(else_expression):
+
     def else_expression_fn():
-        return else_expression
+      return else_expression
   else:
     else_expression_fn = else_expression
   x = tf.cond(condition, then_expression_fn, else_expression_fn)
   return x
 
-def normalize_batch_in_training(x, gamma, beta,
-                                reduction_axes, epsilon=1e-3):
+
+def normalize_batch_in_training(x, gamma, beta, reduction_axes, epsilon=1e-3):
   """Computes mean and std for batch then apply batch_normalization on batch.
 
   Returns
   -------
   A tuple length of 3, (normalized_tensor, mean, variance).
   """
-  mean, var = tf.nn.moments(x, reduction_axes,
-                            shift=None, name=None, keep_dims=False)
+  mean, var = tf.nn.moments(
+      x, reduction_axes, shift=None, name=None, keep_dims=False)
   if sorted(reduction_axes) == range(ndim(x))[:-1]:
-    normed = tf.nn.batch_normalization(x, mean, var,
-                                       beta, gamma,
-                                       epsilon)
+    normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, epsilon)
   else:
     # need broadcasting
     target_shape = []
@@ -120,9 +124,9 @@ def normalize_batch_in_training(x, gamma, beta,
     broadcast_gamma = tf.reshape(gamma, target_shape)
     broadcast_beta = tf.reshape(beta, target_shape)
     normed = tf.nn.batch_normalization(x, broadcast_mean, broadcast_var,
-                                       broadcast_beta, broadcast_gamma,
-                                       epsilon)
+                                       broadcast_beta, broadcast_gamma, epsilon)
   return normed, mean, var
+
 
 def ones(shape, dtype=None, name=None):
   """Instantiates an all-ones tensor variable and returns it.
@@ -138,10 +142,10 @@ def ones(shape, dtype=None, name=None):
   A Keras variable, filled with `1.0`.
   """
   if dtype is None:
-    dtype = tf.float32 
+    dtype = tf.float32
   shape = tuple(map(int, shape))
-  return variable(tf.constant_initializer(1., dtype=dtype)(shape),
-                  dtype, name)
+  return variable(tf.constant_initializer(1., dtype=dtype)(shape), dtype, name)
+
 
 def cast_to_floatx(x):
   """Cast a Numpy array to the default Keras float type.
@@ -156,13 +160,14 @@ def cast_to_floatx(x):
   """
   return np.asarray(x, dtype=tf.float32)
 
+
 def moving_average_update(variable, value, momentum):
   try:
     return moving_averages.assign_moving_average(
         variable, value, momentum, zero_debias=False)
   except TypeError:
-    return moving_averages.assign_moving_average(
-        variable, value, momentum)
+    return moving_averages.assign_moving_average(variable, value, momentum)
+
 
 def int_shape(x):
   """Returns the shape of a Keras tensor or a Keras variable as a tuple of
@@ -179,6 +184,7 @@ def int_shape(x):
   shape = x.get_shape()
   return tuple([i.__int__() for i in shape])
 
+
 def get_uid(prefix=''):
   """Provides a unique UID given a string prefix.
 
@@ -192,6 +198,7 @@ def get_uid(prefix=''):
   """
   _UID_PREFIXES[prefix] += 1
   return _UID_PREFIXES[prefix]
+
 
 def concatenate(tensors, axis=-1):
   """Concatenates a list of tensors alongside the specified axis.
@@ -210,7 +217,8 @@ def concatenate(tensors, axis=-1):
   try:
     return tf.concat_v2([x for x in tensors], axis)
   except AttributeError:
-    return tf.concat(axis, [x for x in tensors])
+    return tf.concat(axis=axis, values=[x for x in tensors])
+
 
 def _normalize_axis(axis, ndim):
   if isinstance(axis, tuple):
@@ -223,6 +231,7 @@ def _normalize_axis(axis, ndim):
     if axis is not None and axis < 0:
       axis = axis % ndim
   return axis
+
 
 def mean(x, axis=None, keepdims=False):
   """Mean of a tensor, alongside the specified axis.
@@ -243,7 +252,7 @@ def mean(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
+  return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
 
 
 def dot(x, y):
@@ -263,14 +272,14 @@ def dot(x, y):
   """
   if get_ndim(x) is not None and (get_ndim(x) > 2 or get_ndim(y) > 2):
     x_shape = []
-    for i, s in zip(int_shape(x), tf.unpack(tf.shape(x))):
+    for i, s in zip(int_shape(x), tf.unstack(tf.shape(x))):
       if i is not None:
         x_shape.append(i)
       else:
         x_shape.append(s)
     x_shape = tuple(x_shape)
     y_shape = []
-    for i, s in zip(int_shape(y), tf.unpack(tf.shape(y))):
+    for i, s in zip(int_shape(y), tf.unstack(tf.shape(y))):
       if i is not None:
         y_shape.append(i)
       else:
@@ -280,10 +289,11 @@ def dot(x, y):
     y_permute_dim = [y_permute_dim.pop(-2)] + y_permute_dim
     xt = tf.reshape(x, [-1, x_shape[-1]])
     yt = tf.reshape(tf.transpose(y, perm=y_permute_dim), [y_shape[-2], -1])
-    return tf.reshape(tf.matmul(xt, yt),
-                      x_shape[:-1] + y_shape[:-2] + y_shape[-1:])
+    return tf.reshape(
+        tf.matmul(xt, yt), x_shape[:-1] + y_shape[:-2] + y_shape[-1:])
   out = tf.matmul(x, y)
   return out
+
 
 def get_ndim(x):
   """Returns the number of axes in a tensor, as an integer.
@@ -301,6 +311,7 @@ def get_ndim(x):
     return len(dims)
   return None
 
+
 def get_dtype(x):
   """Returns the dtype of a Keras tensor or variable, as a string.
 
@@ -313,6 +324,7 @@ def get_dtype(x):
   String, dtype of `x`.
   """
   return x.dtype.name
+
 
 def clip(x, min_value, max_value):
   """Element-wise value clipping.
@@ -327,6 +339,7 @@ def clip(x, min_value, max_value):
   max_value = _to_tensor(max_value, x.dtype.base_dtype)
   return tf.clip_by_value(x, min_value, max_value)
 
+
 def epsilon():
   """Returns the value of the fuzz
   factor used in numeric expressions.
@@ -335,7 +348,8 @@ def epsilon():
   -------
   A float.
   """
-  return 1e-7 
+  return 1e-7
+
 
 def variable(value, dtype=tf.float32, name=None):
   """Instantiates a variable and returns it.
@@ -356,8 +370,13 @@ def variable(value, dtype=tf.float32, name=None):
   v._uses_learning_phase = False
   return v
 
-def random_uniform_variable(shape, low, high, dtype=tf.float32,
-                            name=None, seed=None):
+
+def random_uniform_variable(shape,
+                            low,
+                            high,
+                            dtype=tf.float32,
+                            name=None,
+                            seed=None):
   """Instantiates an Keras variable filled with
   samples drawn from a uniform distribution and returns it.
 
@@ -376,14 +395,19 @@ def random_uniform_variable(shape, low, high, dtype=tf.float32,
   """
   shape = tuple(map(int, shape))
   if seed is None:
-      # ensure that randomness is conditioned by the Numpy RNG
-      seed = np.random.randint(10e8)
+    # ensure that randomness is conditioned by the Numpy RNG
+    seed = np.random.randint(10e8)
   value = tf.random_uniform_initializer(
       low, high, dtype=dtype, seed=seed)(shape)
   return variable(value, dtype=dtype, name=name)
 
-def random_normal_variable(shape, mean, scale, dtype=tf.float32,
-                           name=None, seed=None):
+
+def random_normal_variable(shape,
+                           mean,
+                           scale,
+                           dtype=tf.float32,
+                           name=None,
+                           seed=None):
   """Instantiates an Keras variable filled with
   samples drawn from a normal distribution and returns it.
 
@@ -408,6 +432,7 @@ def random_normal_variable(shape, mean, scale, dtype=tf.float32,
       mean, scale, dtype=dtype, seed=seed)(shape)
   return variable(value, dtype=dtype, name=name)
 
+
 def max(x, axis=None, keepdims=False):
   """Maximum value in a tensor.
 
@@ -425,7 +450,8 @@ def max(x, axis=None, keepdims=False):
   A tensor with maximum values of `x`.
   """
   axis = _normalize_axis(axis, get_ndim(x))
-  return tf.reduce_max(x, reduction_indices=axis, keep_dims=keepdims)
+  return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
+
 
 def sum(x, axis=None, keepdims=False):
   """Sum of the values in a tensor, alongside the specified axis.
@@ -444,7 +470,8 @@ def sum(x, axis=None, keepdims=False):
   A tensor with sum of x.
   """
   axis = _normalize_axis(axis, get_ndim(x))
-  return tf.reduce_sum(x, reduction_indices=axis, keep_dims=keepdims)
+  return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
+
 
 # TODO(rbharath): Need to rename this. This makes a variable, not just creates
 # a tensor. Confusing with tf.zeros...
@@ -462,8 +489,8 @@ def zeros(shape, dtype=tf.float32, name=None):
   A variable (including Keras metadata), filled with `0.0`.
   """
   shape = tuple(map(int, shape))
-  return variable(tf.constant_initializer(0., dtype=dtype)(shape),
-                  dtype, name)
+  return variable(tf.constant_initializer(0., dtype=dtype)(shape), dtype, name)
+
 
 def cosine_distances(test, support):
   """Computes pairwise cosine distances between provided tensors
@@ -480,17 +507,18 @@ def cosine_distances(test, support):
   tf.Tensor:
     Of shape (n_test, n_support)
   """
-  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
-                     keep_dims=True)) + 1e-7 
-  rnorm_support = tf.rsqrt(tf.reduce_sum(tf.square(support), 1,
-                           keep_dims=True)) + 1e-7 
+  rnorm_test = tf.rsqrt(
+      tf.reduce_sum(tf.square(test), 1, keep_dims=True)) + 1e-7
+  rnorm_support = tf.rsqrt(
+      tf.reduce_sum(tf.square(support), 1, keep_dims=True)) + 1e-7
   test_normalized = test * rnorm_test
   support_normalized = support * rnorm_support
 
   # Transpose for mul
-  support_normalized_t = tf.transpose(support_normalized, perm=[1,0])  
+  support_normalized_t = tf.transpose(support_normalized, perm=[1, 0])
   g = tf.matmul(test_normalized, support_normalized_t)  # Gram matrix
   return g
+
 
 def elu(x, alpha=1.):
   """Exponential linear unit.
@@ -509,6 +537,7 @@ def elu(x, alpha=1.):
     return res
   else:
     return tf.where(x > 0, res, alpha * res)
+
 
 def relu(x, alpha=0., max_value=None):
   """Rectified linear unit.
@@ -536,6 +565,7 @@ def relu(x, alpha=0., max_value=None):
     x -= alpha * negative_part
   return x
 
+
 def hard_sigmoid(x):
   """Segment-wise linear approximation of sigmoid.
   Faster than sigmoid.
@@ -556,6 +586,7 @@ def hard_sigmoid(x):
   x = tf.clip_by_value(x, zero, one)
   return x
 
+
 def sqrt(x):
   """Element-wise square root.
 
@@ -571,6 +602,7 @@ def sqrt(x):
   inf = _to_tensor(np.inf, x.dtype.base_dtype)
   x = tf.clip_by_value(x, zero, inf)
   return tf.sqrt(x)
+
 
 def var(x, axis=None, keepdims=False):
   """Variance of a tensor, alongside the specified axis.
@@ -591,11 +623,10 @@ def var(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  m = tf.reduce_mean(x, reduction_indices=axis, keep_dims=True)
+  m = tf.reduce_mean(x, axis=axis, keep_dims=True)
   devs_squared = tf.square(x - m)
-  return tf.reduce_mean(devs_squared,
-                        reduction_indices=axis,
-                        keep_dims=keepdims)
+  return tf.reduce_mean(devs_squared, axis=axis, keep_dims=keepdims)
+
 
 def euclidean_distance(test, support, max_dist_sq=20):
   """Computes pairwise euclidean distances between provided tensors
@@ -620,6 +651,7 @@ def euclidean_distance(test, support, max_dist_sq=20):
   support = tf.expand_dims(support, 0)
   g = -tf.maximum(tf.reduce_sum(tf.square(test - support), 2), max_dist_sq)
   return g
+
 
 def add_bias(tensor, init=None, name=None):
   """Add a bias term to a tensor.
@@ -682,7 +714,10 @@ def dropout(tensor, dropout_prob, training=True, training_only=True):
   return tensor
 
 
-def fully_connected_layer(tensor, size=None, weight_init=None, bias_init=None,
+def fully_connected_layer(tensor,
+                          size=None,
+                          weight_init=None,
+                          bias_init=None,
                           name=None):
   """Fully connected layer.
 
@@ -710,8 +745,8 @@ def fully_connected_layer(tensor, size=None, weight_init=None, bias_init=None,
     If input tensor is not 2D.
   """
   if len(tensor.get_shape()) != 2:
-    raise ValueError('Dense layer input must be 2D, not %dD'
-                     % len(tensor.get_shape()))
+    raise ValueError('Dense layer input must be 2D, not %dD' %
+                     len(tensor.get_shape()))
   if weight_init is None:
     num_features = tensor.get_shape()[-1].value
     weight_init = tf.truncated_normal([num_features, size], stddev=0.01)
@@ -722,6 +757,7 @@ def fully_connected_layer(tensor, size=None, weight_init=None, bias_init=None,
     w = tf.Variable(weight_init, name='w', dtype=tf.float32)
     b = tf.Variable(bias_init, name='b', dtype=tf.float32)
     return tf.nn.xw_plus_b(tensor, w, b)
+
 
 def weight_decay(penalty_type, penalty):
   """Add weight decay.
@@ -753,8 +789,13 @@ def weight_decay(penalty_type, penalty):
   return cost
 
 
-def multitask_logits(features, num_tasks, num_classes=2, weight_init=None,
-                     bias_init=None, dropout_prob=None, name=None):
+def multitask_logits(features,
+                     num_tasks,
+                     num_classes=2,
+                     weight_init=None,
+                     bias_init=None,
+                     dropout_prob=None,
+                     name=None):
   """Create a logit tensor for each classification task.
 
   Args:
@@ -773,16 +814,25 @@ def multitask_logits(features, num_tasks, num_classes=2, weight_init=None,
   logits_list = []
   with tf.name_scope('multitask_logits'):
     for task_idx in range(num_tasks):
-      with tf.name_scope(name, ('task' + str(task_idx).zfill(len(str(num_tasks)))),
-                       [features]):
+      with tf.name_scope(name,
+                         ('task' + str(task_idx).zfill(len(str(num_tasks)))),
+                         [features]):
         logits_list.append(
-            logits(features, num_classes, weight_init=weight_init,
-                   bias_init=bias_init, dropout_prob=dropout_prob))
+            logits(
+                features,
+                num_classes,
+                weight_init=weight_init,
+                bias_init=bias_init,
+                dropout_prob=dropout_prob))
   return logits_list
 
 
-def logits(features, num_classes=2, weight_init=None, bias_init=None,
-           dropout_prob=None, name=None):
+def logits(features,
+           num_classes=2,
+           weight_init=None,
+           bias_init=None,
+           dropout_prob=None,
+           name=None):
   """Create a logits tensor for a single classification task.
 
   You almost certainly don't want dropout on there -- it's like randomly setting
@@ -802,9 +852,12 @@ def logits(features, num_classes=2, weight_init=None, bias_init=None,
   """
   with tf.name_scope(name, 'logits', [features]) as name:
     return dropout(
-        fully_connected_layer(features, num_classes, weight_init=weight_init,
-                              bias_init=bias_init, name=name),
-        dropout_prob)
+        fully_connected_layer(
+            features,
+            num_classes,
+            weight_init=weight_init,
+            bias_init=bias_init,
+            name=name), dropout_prob)
 
 
 def softmax_N(tensor, name=None):
@@ -821,9 +874,9 @@ def softmax_N(tensor, name=None):
     exp_tensor = tf.exp(tensor)
     reduction_indices = [tensor.get_shape().ndims - 1]
     return tf.div(exp_tensor,
-                  tf.reduce_sum(exp_tensor,
-                                reduction_indices=reduction_indices,
-                                keep_dims=True))
+                  tf.reduce_sum(
+                      exp_tensor, axis=reduction_indices, keep_dims=True))
+
 
 def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):
   """Create model optimizer.
@@ -850,11 +903,9 @@ def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):
   elif optimizer == 'adam':
     train_op = tf.train.AdamOptimizer(learning_rate)
   elif optimizer == 'momentum':
-    train_op = tf.train.MomentumOptimizer(learning_rate,
-                                          momentum)
+    train_op = tf.train.MomentumOptimizer(learning_rate, momentum)
   elif optimizer == 'rmsprop':
-    train_op = tf.train.RMSPropOptimizer(learning_rate,
-                                         momentum)
+    train_op = tf.train.RMSPropOptimizer(learning_rate, momentum)
   elif optimizer == 'sgd':
     train_op = tf.train.GradientDescentOptimizer(learning_rate)
   else:

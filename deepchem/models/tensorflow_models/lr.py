@@ -17,6 +17,7 @@ from deepchem.utils.save import log
 from deepchem.data import pad_features
 from deepchem.metrics import to_one_hot
 
+
 def weight_decay(penalty_type, penalty):
   # due to the different shape of weight(ndims=2) and bias(ndims=1),
   # will using this version for logreg
@@ -34,12 +35,13 @@ def weight_decay(penalty_type, penalty):
     else:
       raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
     cost *= penalty
-    tf.scalar_summary('Weight Decay Cost', cost)
-  return cost    
-    
-    
+    tf.summary.scalar('Weight Decay Cost', cost)
+  return cost
+
+
 class TensorflowLogisticRegression(TensorflowGraphModel):
   """ A simple tensorflow based logistic regression model. """
+
   def build(self, graph, name_scopes, training):
     """Constructs the graph architecture of model: n_tasks * sigmoid nodes.
 
@@ -47,15 +49,13 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     n_features = self.n_features
     with graph.as_default():
       with placeholder_scope:
         self.mol_features = tf.placeholder(
-            tf.float32,
-            shape=[None, n_features],
-            name='mol_features')
+            tf.float32, shape=[None, n_features], name='mol_features')
 
       weight_init_stddevs = self.weight_init_stddevs
       bias_init_consts = self.bias_init_consts
@@ -64,27 +64,27 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         #setting up n_tasks nodes(output nodes)
         lg = model_ops.fully_connected_layer(
             tensor=self.mol_features,
-            size = 1,
+            size=1,
             weight_init=tf.truncated_normal(
-                shape=[self.n_features, 1],
-                stddev=weight_init_stddevs[0]),
-            bias_init=tf.constant(value=bias_init_consts[0],
-                                  shape=[1]))
+                shape=[self.n_features, 1], stddev=weight_init_stddevs[0]),
+            bias_init=tf.constant(value=bias_init_consts[0], shape=[1]))
         lg_list.append(lg)
 
     return lg_list
-    
+
   def add_label_placeholders(self, graph, name_scopes):
     #label placeholders with size batch_size * 1
     labels = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
-        labels.append(tf.identity(
-            tf.placeholder(tf.float32, shape=[None,1],
-                           name='labels_%d' % task)))
+        labels.append(
+            tf.identity(
+                tf.placeholder(
+                    tf.float32, shape=[None, 1], name='labels_%d' % task)))
     return labels
-      
+
   def add_training_cost(self, graph, name_scopes, output, labels, weights):
     with graph.as_default():
       epsilon = 1e-3  # small float to avoid dividing by zero
@@ -94,8 +94,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       with TensorflowGraph.shared_name_scope('costs', graph, name_scopes):
         for task in range(self.n_tasks):
           task_str = str(task).zfill(len(str(self.n_tasks)))
-          with TensorflowGraph.shared_name_scope(
-              'cost_{}'.format(task_str), graph, name_scopes):
+          with TensorflowGraph.shared_name_scope('cost_{}'.format(task_str),
+                                                 graph, name_scopes):
             with tf.name_scope('weighted'):
               weighted_cost = self.cost(output[task], labels[task],
                                         weights[task])
@@ -106,12 +106,13 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
               # non-zero weight examples in the batch.  Also, instead of using
               # tf.reduce_mean (which can put ops on the CPU) we explicitly
               # calculate with div/sum so it stays on the GPU.
-              gradient_cost = tf.div(tf.reduce_sum(weighted_cost),
-                                     self.batch_size)
+              gradient_cost = tf.div(
+                  tf.reduce_sum(weighted_cost), self.batch_size)
               gradient_costs.append(gradient_cost)
 
         # aggregated costs
-        with TensorflowGraph.shared_name_scope('aggregated', graph, name_scopes):
+        with TensorflowGraph.shared_name_scope('aggregated', graph,
+                                               name_scopes):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
 
@@ -121,12 +122,13 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
             penalty = weight_decay(self.penalty_type, self.penalty)
             loss += penalty
 
-      return loss 
-  
+      return loss
+
   def cost(self, logits, labels, weights):
-    return tf.mul(tf.nn.sigmoid_cross_entropy_with_logits(logits, labels),
-                  weights)
-      
+    return tf.multiply(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
+
   def add_output_ops(self, graph, output):
     # adding output nodes of sigmoid function
     with graph.as_default():
@@ -135,8 +137,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         for i, logits in enumerate(output):
           sigmoid.append(tf.nn.sigmoid(logits, name='sigmoid_%d' % i))
       output = sigmoid
-    return output 
-    
+    return output
+
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
 
     orig_dict = {}
@@ -145,18 +147,17 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       if y_b is not None:
         y_2column = to_one_hot(y_b[:, task])
         # fix the size to be [?,1]
-        orig_dict["labels_%d" % task] = y_2column[:,1:2]
+        orig_dict["labels_%d" % task] = y_2column[:, 1:2]
       else:
         # Dummy placeholders
-        orig_dict["labels_%d" % task] = np.zeros((self.batch_size,1))
+        orig_dict["labels_%d" % task] = np.zeros((self.batch_size, 1))
       if w_b is not None:
         orig_dict["weights_%d" % task] = w_b[:, task]
       else:
         # Dummy placeholders
-        orig_dict["weights_%d" % task] = np.ones(
-            (self.batch_size,)) 
+        orig_dict["weights_%d" % task] = np.ones((self.batch_size,))
     return TensorflowGraph.get_feed_dict(orig_dict)
-  
+
   def predict_proba_on_batch(self, X):
     if self.pad_batches:
       X = pad_features(self.batch_size, X)
@@ -173,28 +174,26 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
-        batch_outputs = np.squeeze(np.stack(arrays = [complimentary,
-						      batch_outputs],
-                                            axis = 2))
+        batch_outputs = np.squeeze(
+            np.stack(arrays=[complimentary, batch_outputs], axis=2))
         # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
         elif batch_outputs.ndim == 2:
           batch_outputs = batch_outputs.transpose((1, 0))
         else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s ' %
-              (batch_outputs.shape,))
+          raise ValueError('Unrecognized rank combination for output: %s ' %
+                           (batch_outputs.shape,))
 
       outputs = batch_outputs
 
     return np.copy(outputs)
 
   def predict_on_batch(self, X):
-    
+
     if self.pad_batches:
       X = pad_features(self.batch_size, X)
-    
+
     if not self._restored_model:
       self.restore()
     with self.eval_graph.graph.as_default():
@@ -211,21 +210,19 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_output))
         complimentary = complimentary - batch_output
-        batch_output = np.squeeze(np.stack(arrays = [complimentary,
-                                                     batch_output],
-                                            axis = 2))
+        batch_output = np.squeeze(
+            np.stack(arrays=[complimentary, batch_output], axis=2))
         # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
         elif batch_output.ndim == 2:
           batch_output = batch_output.transpose((1, 0))
         else:
-          raise ValueError(
-              'Unrecognized rank combination for output: %s' %
-              (batch_output.shape,))
+          raise ValueError('Unrecognized rank combination for output: %s' %
+                           (batch_output.shape,))
         output.append(batch_output)
 
-        outputs = np.array(from_one_hot(
-            np.squeeze(np.concatenate(output)), axis=-1))
+        outputs = np.array(
+            from_one_hot(np.squeeze(np.concatenate(output)), axis=-1))
 
     return np.copy(outputs)

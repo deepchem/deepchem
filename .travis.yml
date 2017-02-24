@@ -19,6 +19,7 @@ install:
 - pip install yapf==0.16.0
 - pip install coveralls
 - python setup.py install
+- cp .keras.json ~/
 script:
 - nosetests --with-coverage --cover-package=deepchem -v deepchem --nologcapture
 - find ./deepchem | grep .py$ |xargs python -m doctest -v

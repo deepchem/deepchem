@@ -17,68 +17,87 @@ import sklearn.metrics
 import tempfile
 from deepchem.data import pad_features
 from deepchem.utils.save import log
-from deepchem.models import Model 
+from deepchem.models import Model
 from deepchem.nn.copy import Input
 from deepchem.nn.copy import Dense
 from deepchem.nn import model_ops
 # TODO(rbharath): Find a way to get rid of this import?
 from deepchem.models.tf_new_models.graph_topology import merge_dicts
 
+
 def get_loss_fn(final_loss):
   # Obtain appropriate loss function
-  if final_loss=='L2':
+  if final_loss == 'L2':
+
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.square(diff), 0)
-  elif final_loss=='weighted_L2':
+  elif final_loss == 'weighted_L2':
+
     def loss_fn(x, t, w):
-      diff = tf.sub(x, t)
-      weighted_diff = tf.mul(diff,w)
+      diff = tf.subtract(x, t)
+      weighted_diff = tf.multiply(diff, w)
       return tf.reduce_sum(tf.square(weighted_diff), 0)
-  elif final_loss=='L1':
+  elif final_loss == 'L1':
+
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.abs(diff), 0)
-  elif final_loss=='huber':
+  elif final_loss == 'huber':
+
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(
-          tf.minimum(0.5*tf.square(diff),
-                     huber_d*(tf.abs(diff)-0.5*huber_d)), 0)
-  elif final_loss=='cross_entropy':
+          tf.minimum(0.5 * tf.square(diff),
+                     huber_d * (tf.abs(diff) - 0.5 * huber_d)), 0)
+  elif final_loss == 'cross_entropy':
+
     def loss_fn(x, t, w):
-      costs = tf.nn.sigmoid_cross_entropy_with_logits(x, t)
-      weighted_costs = tf.mul(costs, w)
+      costs = tf.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=t)
+      weighted_costs = tf.multiply(costs, w)
       return tf.reduce_sum(weighted_costs)
-  elif final_loss=='hinge':
+  elif final_loss == 'hinge':
+
     def loss_fn(x, t, w):
-      t = tf.mul(2.0, t) - 1
-      costs = tf.maximum(0.0, 1.0 - tf.mul(t, x))
-      weighted_costs = tf.mul(costs, w)
+      t = tf.multiply(2.0, t) - 1
+      costs = tf.maximum(0.0, 1.0 - tf.multiply(t, x))
+      weighted_costs = tf.multiply(costs, w)
       return tf.reduce_sum(weighted_costs)
+
   return loss_fn
+
 
 class MultitaskGraphClassifier(Model):
 
-  def __init__(self, sess, model, n_tasks, logdir=None, batch_size=50,
-               final_loss='cross_entropy', learning_rate=.001,
-               optimizer_type="adam", learning_rate_decay_time=1000,
-               beta1=.9, beta2=.999, pad_batches=True, verbose=True):
+  def __init__(self,
+               sess,
+               model,
+               n_tasks,
+               logdir=None,
+               batch_size=50,
+               final_loss='cross_entropy',
+               learning_rate=.001,
+               optimizer_type="adam",
+               learning_rate_decay_time=1000,
+               beta1=.9,
+               beta2=.999,
+               pad_batches=True,
+               verbose=True):
 
     self.verbose = verbose
     self.sess = sess
     self.n_tasks = n_tasks
     self.final_loss = final_loss
-    self.model = model 
+    self.model = model
     if logdir is not None:
       if not os.path.exists(logdir):
         os.makedirs(logdir)
     else:
       logdir = tempfile.mkdtemp()
     self.logdir = logdir
-           
+
     # Extract model info 
-    self.batch_size = batch_size 
+    self.batch_size = batch_size
     self.pad_batches = pad_batches
     # Get graph topology for x
     self.graph_topology = self.model.get_graph_topology()
@@ -89,20 +108,20 @@ class MultitaskGraphClassifier(Model):
     self.loss_op = self.add_training_loss(self.final_loss, self.logits)
     self.outputs = self.add_softmax(self.logits)
 
-    self.learning_rate = learning_rate 
-    self.T = learning_rate_decay_time 
-    self.optimizer_type = optimizer_type 
+    self.learning_rate = learning_rate
+    self.T = learning_rate_decay_time
+    self.optimizer_type = optimizer_type
 
-    self.optimizer_beta1 = beta1 
-    self.optimizer_beta2 = beta2 
- 
+    self.optimizer_beta1 = beta1
+    self.optimizer_beta2 = beta2
+
     # Set epsilon
-    self.epsilon = 1e-7 
+    self.epsilon = 1e-7
     self.add_optimizer()
 
     # Initialize
     self.init_fn = tf.global_variables_initializer()
-    sess.run(self.init_fn)  
+    sess.run(self.init_fn)
 
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
@@ -111,21 +130,21 @@ class MultitaskGraphClassifier(Model):
   def build(self):
     # Create target inputs
     self.label_placeholder = Input(tensor=tf.placeholder(
-        dtype='bool', shape=(None,self.n_tasks), name="label_placeholder"))
+        dtype='bool', shape=(None, self.n_tasks), name="label_placeholder"))
     self.weight_placeholder = Input(tensor=tf.placeholder(
-        dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
+        dtype='float32', shape=(None, self.n_tasks), name="weight_placholder"))
 
     feat = self.model.return_outputs()
-    output = model_ops.multitask_logits(
-        feat, self.n_tasks)
+    output = model_ops.multitask_logits(feat, self.n_tasks)
     return output
 
   def add_optimizer(self):
     if self.optimizer_type == "adam":
-      self.optimizer = tf.train.AdamOptimizer(self.learning_rate, 
-                                              beta1=self.optimizer_beta1, 
-                                              beta2=self.optimizer_beta2, 
-                                              epsilon=self.epsilon)
+      self.optimizer = tf.train.AdamOptimizer(
+          self.learning_rate,
+          beta1=self.optimizer_beta1,
+          beta2=self.optimizer_beta2,
+          epsilon=self.epsilon)
     else:
       raise ValueError("Optimizer type not recognized.")
 
@@ -140,9 +159,8 @@ class MultitaskGraphClassifier(Model):
       y_b = np.zeros((n_samples, self.n_tasks))
     if w_b is None:
       w_b = np.zeros((n_samples, self.n_tasks))
-    targets_dict = {self.label_placeholder : y_b,
-                    self.weight_placeholder : w_b}
-    
+    targets_dict = {self.label_placeholder: y_b, self.weight_placeholder: w_b}
+
     # Get graph information
     atoms_dict = self.graph_topology.batch_to_feed_dict(X_b)
 
@@ -152,7 +170,7 @@ class MultitaskGraphClassifier(Model):
 
     # Get other optimizer information
     # TODO(rbharath): Figure out how to handle phase appropriately
-    feed_dict = merge_dicts([targets_dict, atoms_dict ])
+    feed_dict = merge_dicts([targets_dict, atoms_dict])
     return feed_dict
 
   def add_training_loss(self, final_loss, logits):
@@ -161,8 +179,10 @@ class MultitaskGraphClassifier(Model):
     task_losses = []
     # label_placeholder of shape (batch_size, n_tasks). Split into n_tasks
     # tensors of shape (batch_size,)
-    task_labels = tf.split(1, self.n_tasks, self.label_placeholder)
-    task_weights = tf.split(1, self.n_tasks, self.weight_placeholder)
+    task_labels = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.label_placeholder)
+    task_weights = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.weight_placeholder)
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
@@ -171,8 +191,7 @@ class MultitaskGraphClassifier(Model):
           tf.one_hot(tf.to_int32(tf.squeeze(task_label_vector)), 2))
       # Since we use tf.nn.softmax_cross_entropy_with_logits note that we pass in
       # un-softmaxed logits rather than softmax outputs.
-      task_loss = loss_fn(logits[task], one_hot_labels,
-                          task_weight_vector) 
+      task_loss = loss_fn(logits[task], one_hot_labels, task_weight_vector)
       task_losses.append(task_loss)
     # It's ok to divide by just the batch_size rather than the number of nonzero
     # examples (effect averages out)
@@ -188,21 +207,24 @@ class MultitaskGraphClassifier(Model):
         softmax.append(tf.nn.softmax(logits, name='softmax_%d' % i))
     return softmax
 
-  def fit(self, dataset, nb_epoch=10, 
-          max_checkpoints_to_keep=5, log_every_N_batches=50, **kwargs):
+  def fit(self,
+          dataset,
+          nb_epoch=10,
+          max_checkpoints_to_keep=5,
+          log_every_N_batches=50,
+          **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbose)
-  
+
     # TODO(rbharath): Disabling saving for now to try to debug.
     for epoch in range(nb_epoch):
       log("Starting epoch %d" % epoch, self.verbose)
-      for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-          self.batch_size, pad_batches=self.pad_batches)):
+      for batch_num, (X_b, y_b, w_b, ids_b) in enumerate(
+          dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
         if batch_num % log_every_N_batches == 0:
           log("On batch %d" % batch_num, self.verbose)
         self.sess.run(
-            self.train_op,
-            feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
+            self.train_op, feed_dict=self.construct_feed_dict(X_b, y_b, w_b))
 
   def save(self):
     """
@@ -218,8 +240,7 @@ class MultitaskGraphClassifier(Model):
   def predict_proba(self, dataset, transformers=[], n_classes=2, **kwargs):
     """Wraps predict_proba to set batch_size/padding."""
     return super(MultitaskGraphClassifier, self).predict_proba(
-        dataset, transformers, n_classes=n_classes,
-        batch_size=self.batch_size)
+        dataset, transformers, n_classes=n_classes, batch_size=self.batch_size)
 
   def predict_on_batch(self, X):
     """Return model output for the provided input.
@@ -231,14 +252,13 @@ class MultitaskGraphClassifier(Model):
     with self.sess.as_default():
       feed_dict = self.construct_feed_dict(X)
       # Shape (n_samples, n_tasks)
-      batch_outputs = self.sess.run(
-          self.outputs, feed_dict=feed_dict)
+      batch_outputs = self.sess.run(self.outputs, feed_dict=feed_dict)
 
     n_samples = len(X)
     outputs = np.zeros((n_samples, self.n_tasks))
     for task, output in enumerate(batch_outputs):
       outputs[:, task] = np.argmax(output, axis=1)
-    return outputs 
+    return outputs
 
   def predict_proba_on_batch(self, X, n_classes=2):
     """Returns class probabilities on batch"""
@@ -248,8 +268,7 @@ class MultitaskGraphClassifier(Model):
     n_tasks = self.n_tasks
     with self.sess.as_default():
       feed_dict = self.construct_feed_dict(X)
-      batch_outputs = self.sess.run(
-          self.outputs, feed_dict=feed_dict)
+      batch_outputs = self.sess.run(self.outputs, feed_dict=feed_dict)
 
     n_samples = len(X)
     outputs = np.zeros((n_samples, self.n_tasks, n_classes))
