@@ -670,12 +670,12 @@ class IRVTransformer():
       top_label = tf.gather(labels_tf, indice)
       # map the indices to labels
       feed_dict = {}
-      for count in range(target_len // 100 + 1):
-        feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
-            count + 1) * 100, target_len), :]
-        # generating batch of data by slicing similarity matrix 
-        # into 100*reference_dataset_length
-        with tf.Session() as sess:
+      with tf.Session() as sess:
+        for count in range(target_len // 100 + 1):
+          feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
+              count + 1) * 100, target_len), :]
+          # generating batch of data by slicing similarity matrix 
+          # into 100*reference_dataset_length
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
           values.append(fetched_values[0])
           top_labels.append(fetched_values[1])
