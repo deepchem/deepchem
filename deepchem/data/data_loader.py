@@ -11,6 +11,8 @@ import numpy as np
 import csv
 import numbers
 import tempfile
+from rdkit.Chem import rdmolfiles
+from rdkit.Chem import rdmolops
 from rdkit import Chem
 import time
 import sys
@@ -63,6 +65,12 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
   features = []
   for ind, elem in enumerate(sample_elems):
     mol = Chem.MolFromSmiles(elem)
+    # TODO (ytz) this is a bandage solution to reorder the atoms so
+    # that they're always in the same canonical order. Presumably this
+    # should be correctly implemented in the future for graph mols.
+    if mol:
+      new_order = rdmolfiles.CanonicalRankAtoms(mol)
+      mol = rdmolops.RenumberAtoms(mol, new_order)
     if ind % log_every_N == 0:
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
