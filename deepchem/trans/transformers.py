@@ -8,8 +8,9 @@ from __future__ import unicode_literals
 import os
 
 import numpy as np
-
+import time
 import deepchem as dc
+import tensorflow as tf
 from deepchem.data import NumpyDataset
 
 
@@ -607,3 +608,169 @@ class CoulombFitTransformer():
   def untransform(self, z):
     raise NotImplementedError(
         "Cannot untransform datasets with FitTransformer.")
+
+
+class IRVTransformer():
+  """Performs transform from ECFP to IRV features(K nearest neibours)."""
+
+  def __init__(self, K, n_tasks, dataset, transform_y=False, transform_x=False):
+    """Initializes IRVTransformer.
+    Parameters:
+    ----------
+    dataset: dc.data.Dataset object
+      train_dataset
+    K: int
+      number of nearest neighbours being count
+    n_tasks: int
+      number of tasks
+
+    """
+    self.X = dataset.X
+    self.n_tasks = n_tasks
+    self.K = K
+    self.y = dataset.y
+    self.w = dataset.w
+    self.transform_x = transform_x
+    self.transform_y = transform_y
+
+  def realize(self, similarity, y, w):
+    """find samples with top ten similarity values in the reference dataset
+    
+    Parameters:
+    -----------
+    similarity: np.ndarray
+      similarity value between target dataset and reference dataset
+      should have size of (n_samples_in_target, n_samples_in_reference)
+    y: np.array
+      labels for a single task
+    w: np.array
+      weights for a single task
+   
+    Return:
+    ----------
+    features: list
+      n_samples * np.array of size (2*K,)
+      each array includes K similarity values and corresponding labels
+
+    """
+    features = []
+    similarity_xs = similarity * np.sign(w)
+    [target_len, reference_len] = similarity_xs.shape
+    g_temp = tf.Graph()
+    values = []
+    top_labels = []
+    with g_temp.as_default():
+      labels_tf = tf.constant(y)
+      similarity_placeholder = tf.placeholder(
+          dtype=tf.float64, shape=(None, reference_len))
+      value, indice = tf.nn.top_k(
+          similarity_placeholder, k=self.K + 1, sorted=True)
+      # the tf graph here pick up the (K+1) highest similarity values 
+      # and their indices
+      top_label = tf.gather(labels_tf, indice)
+      # map the indices to labels
+      feed_dict = {}
+      with tf.Session() as sess:
+        for count in range(target_len // 100 + 1):
+          feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
+              count + 1) * 100, target_len), :]
+          # generating batch of data by slicing similarity matrix 
+          # into 100*reference_dataset_length
+          fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
+          values.append(fetched_values[0])
+          top_labels.append(fetched_values[1])
+    values = np.concatenate(values, axis=0)
+    top_labels = np.concatenate(top_labels, axis=0)
+    # concatenate batches of data together
+    for count in range(values.shape[0]):
+      if values[count, 0] == 1:
+        features.append(
+            np.concatenate([
+                values[count, 1:(self.K + 1)], top_labels[count, 1:(self.K + 1)]
+            ]))
+        # highest similarity is 1: target is in the reference
+        # use the following K points
+      else:
+        features.append(
+            np.concatenate(
+                [values[count, 0:self.K], top_labels[count, 0:self.K]]))
+        # highest less than 1: target not in the reference, use top K points
+    return features
+
+  def X_transform(self, X_target):
+    """ Calculate similarity between target dataset(X_target) and 
+    reference dataset(X): #(1 in intersection)/#(1 in union)
+         similarity = (X_target ∩ X)/(X_target U X)
+    Parameters:
+    -----------
+    X_target: np.ndarray
+      fingerprints of target dataset
+      should have same length with X in the second axis
+    
+    Returns:
+    ----------
+    X_target: np.ndarray
+      features of size(batch_size, 2*K*n_tasks)
+    
+    """
+    X_target2 = []
+    n_features = X_target.shape[1]
+    print('start similarity calculation')
+    time1 = time.time()
+    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
+        n_features - IRVTransformer.matrix_mul(1 - X_target,
+                                               np.transpose(1 - self.X)))
+    time2 = time.time()
+    print('similarity calculation takes %i s' % (time2 - time1))
+    for i in range(self.n_tasks):
+      X_target2.append(self.realize(similarity, self.y[:, i], self.w[:, i]))
+    return np.concatenate([z for z in np.array(X_target2)], axis=1)
+
+  @staticmethod
+  def matrix_mul(X1, X2, shard_size=5000):
+    """ Calculate matrix multiplication for big matrix,
+    X1 and X2 are sliced into pieces with shard_size rows(columns)
+    then multiplied together and concatenated to the proper size
+    """
+    X1 = np.float_(X1)
+    X2 = np.float_(X2)
+    X1_shape = X1.shape
+    X2_shape = X2.shape
+    assert X1_shape[1] == X2_shape[0]
+    X1_iter = X1_shape[0] // shard_size + 1
+    X2_iter = X2_shape[1] // shard_size + 1
+    all_result = np.zeros((1,))
+    for X1_id in range(X1_iter):
+      result = np.zeros((1,))
+      for X2_id in range(X2_iter):
+        partial_result = np.matmul(X1[X1_id * shard_size:min((
+            X1_id + 1) * shard_size, X1_shape[0]), :],
+                                   X2[:, X2_id * shard_size:min((
+                                       X2_id + 1) * shard_size, X2_shape[1])])
+        # calculate matrix multiplicatin on slices
+        if result.size == 1:
+          result = partial_result
+        else:
+          result = np.concatenate((result, partial_result), axis=1)
+        # concatenate the slices together
+        del partial_result
+      if all_result.size == 1:
+        all_result = result
+      else:
+        all_result = np.concatenate((all_result, result), axis=0)
+      del result
+    return all_result
+
+  def transform(self, dataset):
+    X_length = dataset.X.shape[0]
+    X_trans = []
+    for count in range(X_length // 5000 + 1):
+      X_trans.append(
+          self.X_transform(dataset.X[count * 5000:min((count + 1) * 5000,
+                                                      X_length), :]))
+    X_trans = np.concatenate(X_trans, axis=0)
+    return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
+
+  def untransform(self, z):
+    raise NotImplementedError(
+        "Cannot untransform datasets with IRVTransformer.")

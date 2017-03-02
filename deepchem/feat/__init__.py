@@ -20,4 +20,4 @@ from deepchem.feat.coulomb_matrices import CoulombMatrixEig
 from deepchem.feat.rdkit_grid_featurizer import GridFeaturizer
 from deepchem.feat.nnscore_utils import hydrogenate_and_compute_partial_charges
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
-
+from deepchem.feat.one_hot import OneHotFeaturizer
