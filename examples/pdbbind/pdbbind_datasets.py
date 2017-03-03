@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import multiprocessing
 from multiprocessing.pool import Pool
 
 import numpy as np
@@ -123,7 +124,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   y_inds = []
   missing_pdbs = []
   time1 = time.time()
-  p = Pool(4)
+  p = Pool(multiprocessing.cpu_count())
   args = []
   for ind, pdb_code in enumerate(ids):
     args.append((ind, pdb_code, pdbbind_dir, featurizer))

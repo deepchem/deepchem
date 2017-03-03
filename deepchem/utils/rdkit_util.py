@@ -55,6 +55,7 @@ def compute_charges(mol):
   try:
     AllChem.ComputeGasteigerCharges(mol)
   except RuntimeError as e:
+    print("Unable to calculate charges")
     raise MoleculeLoadException(e)
   return mol
 
