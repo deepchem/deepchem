@@ -8,6 +8,7 @@ from simtk.openmm.app import PDBFile
 
 
 class MoleculeLoadException(Exception):
+
   def __init__(self, *args, **kwargs):
     Exception.__init__(*args, **kwargs)
 
@@ -33,7 +34,8 @@ def load_pdb(molecule_file, add_hydrogens, calc_charges):
     try:
       fixer = PDBFixer(filename=molecule_file)
       fixer.addMissingHydrogens(7.4)
-      PDBFile.writeFile(fixer.topology, fixer.positions, open(molecule_file, 'w'))
+      PDBFile.writeFile(fixer.topology, fixer.positions,
+                        open(molecule_file, 'w'))
     except ValueError as e:
       print(e)
       raise MoleculeLoadException(e)
@@ -45,8 +47,7 @@ def load_pdb(molecule_file, add_hydrogens, calc_charges):
   return mol
 
 
-def load_molecule(molecule_file, add_hydrogens=True,
-                  calc_charges=True):
+def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
   """Converts molecule file to (xyz-coords, obmol object)
 
   Given molecule_file, returns a tuple of xyz coords of molecule
@@ -198,7 +199,11 @@ def AdjustAromaticNs(m, nitrogenPattern='[n&D2&H0;r5,r6]'):
     try:
       Chem.SanitizeMol(cp)
     except ValueError:
-      matches = [x[0] for x in frag.GetSubstructMatches(Chem.MolFromSmarts(nitrogenPattern))]
+      matches = [
+          x[0]
+          for x in frag.GetSubstructMatches(
+              Chem.MolFromSmarts(nitrogenPattern))
+      ]
       lres, indices = _recursivelyModifyNs(frag, matches)
       if not lres:
         # print 'frag %d failed (%s)'%(i,str(fragLists[i]))
