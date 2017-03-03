@@ -64,11 +64,15 @@ def load_pdbbind_labels(labels_file):
 
 def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   """Compute features for a given complex"""
-  protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
-  ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  features = grid_featurizer.featurize_complexes([ligand_file], [protein_file])
-  features = np.squeeze(features)
-  return features
+  try:
+    protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
+    ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
+    features = grid_featurizer.featurize_complexes([ligand_file], [protein_file])
+    features = np.squeeze(features)
+    return features
+  except Exception as e:
+    print(e)
+    return None
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
