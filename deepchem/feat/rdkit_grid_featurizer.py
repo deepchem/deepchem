@@ -28,7 +28,6 @@ http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries
 """
 
 
-
 def get_ligand_filetype(ligand_filename):
   """Returns the filetype of ligand."""
   if ".mol2" in ligand_filename:
@@ -42,11 +41,10 @@ def get_ligand_filetype(ligand_filename):
   else:
     raise ValueError("Unrecognized_filename")
 
+
 def load_molecule(molecule_file, add_hydrogens=True,
                   calc_charges=False):
   return rdkit_util.load_molecule(molecule_file, add_hydrogens, calc_charges)
-
-
 
 
 def merge_molecules(protein_xyz, protein, ligand_xyz, ligand):
@@ -289,23 +287,6 @@ def _construct_fragment_from_bonds(bonds):
   return (fragment)
 
 
-def _compute_ecfp(system_ob, start_atom, max_degree=2):
-  """
-  Given an openbabel molecule and a starting atom (OBAtom object),
-  compute the ECFP[max_degree]-like representation for that atom.
-  Returns (for now) a SMILES string representing the resulting fragment.
-
-  TODO(enf): Optimize this! Try InChi key and other approaches
-  to improving this representation.
-  """
-
-  bonds_to_add = _bfs(system_ob, start_atom, max_degree)
-  fragment = _construct_fragment_from_bonds(bonds_to_add)
-  obConversion = ob.OBConversion()
-  obConversion.SetOutFormat(str("can"))
-  smiles = obConversion.WriteString(fragment).split("\t")[0]
-  return (smiles)
-
 
 def _hash_sybyl(sybyl, sybyl_types):
   return (sybyl_types.index(sybyl))
@@ -337,7 +318,7 @@ def _hash_ecfp_pair(ecfp_pair, power):
   return (ecfp_hash)
 
 
-def _compute_all_ecfp(system_ob, indices=None, degree=2):
+def _compute_all_ecfp(mol, indices=None, degree=2):
   """
   For each atom:
     Obtain molecular fragment for all atoms emanating outward to given degree.
@@ -346,14 +327,15 @@ def _compute_all_ecfp(system_ob, indices=None, degree=2):
   """
 
   ecfp_dict = {}
-
-  for atom in ob.OBMolAtomIter(system_ob):
-    if indices is not None and atom.GetIndex() not in indices:
+  for i in range(mol.GetNumAtoms()):
+    if indices is not None and i not in indices:
       continue
-    ecfp_dict[atom.GetIndex()] = "%s,%s" % (
-      atom.GetType(), _compute_ecfp(system_ob, atom, degree))
+    env = Chem.FindAtomEnvironmentOfRadiusN(mol, degree, i, useHs=True)
+    submol = Chem.PathToSubmol(mol, env)
+    smile = Chem.MolToSmiles(submol)
+    ecfp_dict[i] = "%s,%s" % (mol.GetAtoms()[i].GetAtomicNum(), smile)
 
-  return (ecfp_dict)
+  return ecfp_dict
 
 
 def _compute_ecfp_features(system_ob, ecfp_degree, ecfp_power):
@@ -375,13 +357,8 @@ def _compute_ecfp_features(system_ob, ecfp_degree, ecfp_power):
       that ECFP fragment is found in the molecule and array at index j has a 0
       if ECFP fragment not in molecule.
   """
-
-  ecfp_dict = _compute_all_ecfp(system_ob, degree=ecfp_degree)
-  ecfp_vec = [_hash_ecfp(ecfp, ecfp_power)
-              for index, ecfp in ecfp_dict.items()]
-  ecfp_array = np.zeros(2 ** ecfp_power)
-  ecfp_array[sorted(ecfp_vec)] = 1.0
-  return (ecfp_array)
+  bv = AllChem.GetMorganFingerprint(system_ob, 2)
+  return [int(bv.GetBit(x)) for x in range(bv.GetNumBits())]
 
 
 def _featurize_binding_pocket_ecfp(protein_xyz, protein, ligand_xyz, ligand,
@@ -678,12 +655,13 @@ def _compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
 
 
 def _get_formal_charge(atom):
-  if "+" in atom.GetType() or np.abs(1.0 - atom.GetFormalCharge()) < 0.01:
-    return 1
-  elif "-" in atom.GetType() or np.abs(-1.0 - atom.GetFormalCharge()) < 0.01:
-    return -1
-  else:
-    return atom.GetFormalCharge()
+  try:
+    value = atom.GetProp(str("_GasteigerCharge"))
+    if value == '-nan':
+      return 0
+    return float(value)
+  except KeyError:
+    return 0
 
 
 def _is_salt_bridge(atom_i, atom_j):
@@ -699,8 +677,8 @@ def _compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand, pairwise_dis
   contacts = np.nonzero(pairwise_distances < 5.0)
   contacts = zip(contacts[0], contacts[1])
   for contact in contacts:
-    protein_atom = protein.GetAtom(int(contact[0] + 1))
-    ligand_atom = ligand.GetAtom(int(contact[1] + 1))
+    protein_atom = protein.GetAtoms()[int(contact[0])]
+    ligand_atom = ligand.GetAtoms()[int(contact[1])]
     if _is_salt_bridge(protein_atom, ligand_atom):
       salt_bridge_contacts.append(contact)
   return salt_bridge_contacts
@@ -718,27 +696,28 @@ def _is_hydrogen_bond(protein_xyz, protein, ligand_xyz,
   between protein and ligand represents a hydrogen bond. Returns a boolean result.
   """
 
-  protein_atom_index = contact[0]
-  ligand_atom_index = contact[1]
-  protein_atom = protein.GetAtom(int(protein_atom_index + 1))
-  ligand_atom = ligand.GetAtom(int(ligand_atom_index + 1))
-  if protein_atom.IsHbondAcceptor() and ligand_atom.IsHbondDonor():
-    for atom in ob.OBAtomAtomIter(ligand_atom):
-      if atom.GetAtomicNum() == 1:
-        hydrogen_xyz = ligand_xyz[atom.GetIndex(), :]
-        vector_i = protein_xyz[protein_atom_index, :] - hydrogen_xyz
-        vector_j = ligand_xyz[ligand_atom_index, :] - hydrogen_xyz
-        return _is_angle_within_cutoff(
-          vector_i, vector_j, hbond_angle_cutoff)
-
-  elif ligand_atom.IsHbondAcceptor() and protein_atom.IsHbondDonor():
-    for atom in ob.OBAtomAtomIter(protein_atom):
-      if atom.GetAtomicNum() == 1:
-        hydrogen_xyz = protein_xyz[atom.GetIndex(), :]
-        vector_i = protein_xyz[protein_atom_index, :] - hydrogen_xyz
-        vector_j = ligand_xyz[ligand_atom_index, :] - hydrogen_xyz
-        return _is_angle_within_cutoff(
-          vector_i, vector_j, hbond_angle_cutoff)
+  # TODO(LESWING)
+  # protein_atom_index = contact[0]
+  # ligand_atom_index = contact[1]
+  # protein_atom = protein.GetAtom(int(protein_atom_index + 1))
+  # ligand_atom = ligand.GetAtom(int(ligand_atom_index + 1))
+  # if protein_atom.IsHbondAcceptor() and ligand_atom.IsHbondDonor():
+  #   for atom in ob.OBAtomAtomIter(ligand_atom):
+  #     if atom.GetAtomicNum() == 1:
+  #       hydrogen_xyz = ligand_xyz[atom.GetIndex(), :]
+  #       vector_i = protein_xyz[protein_atom_index, :] - hydrogen_xyz
+  #       vector_j = ligand_xyz[ligand_atom_index, :] - hydrogen_xyz
+  #       return _is_angle_within_cutoff(
+  #         vector_i, vector_j, hbond_angle_cutoff)
+  #
+  # elif ligand_atom.IsHbondAcceptor() and protein_atom.IsHbondDonor():
+  #   for atom in ob.OBAtomAtomIter(protein_atom):
+  #     if atom.GetAtomicNum() == 1:
+  #       hydrogen_xyz = protein_xyz[atom.GetIndex(), :]
+  #       vector_i = protein_xyz[protein_atom_index, :] - hydrogen_xyz
+  #       vector_j = ligand_xyz[ligand_atom_index, :] - hydrogen_xyz
+  #       return _is_angle_within_cutoff(
+  #         vector_i, vector_j, hbond_angle_cutoff)
 
   return False
 
@@ -1339,4 +1318,3 @@ class GridFeaturizer(ComplexFeaturizer):
     feature_vector = np.concatenate(feature_vectors, axis=0)
 
     return ({(0, 0): feature_vector})
-

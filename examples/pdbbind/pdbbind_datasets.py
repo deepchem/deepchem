@@ -7,6 +7,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+from multiprocessing.pool import Pool
+
 import numpy as np
 import pandas as pd
 import shutil
@@ -14,27 +16,28 @@ import time
 import re
 from rdkit import Chem
 import deepchem as dc
+from deepchem.utils.rdkit_util import MoleculeLoadException
 
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
   # Some complexes have labels but no PDB files. Filter these manually
   missing_pdbs = [
-      "1d2v", "1jou", "1s8j", "3f39", "3i3d", "3i3b", "3dyo", "3t0d", "1cam",
-      "3vdb", "3f37", "3f38", "4mlt", "3f36", "4o7d", "3t08", "3f34", "3f35",
-      "2wik", "4mlx", "2wij", "1px4", "4wkt", "3f33", "2wig", "3muz", "3t2p",
-      "3t2q", "4pji", "2adj", "3t09", "3mv0", "1pts", "3vd9", "3axk", "4q1s",
-      "3t0b", "4b82", "3vd7", "3hg1", "3vd4", "3vdc", "3b5y", "4oi6", "3axm",
-      "4mdm", "2mlm", "3eql", "4ob0", "3wi6", "4fgt", "4pnc", "4mvn", "4lv3",
-      "4lz9", "1pyg", "3h1k", "7gpb", "1e8h", "4wku", "2f2h", "1zyr", "1z9j",
-      "3b5d", "3b62", "4q3q", "4mdl", "4no6", "4mdg", "3dxj", "4u0x", "4l6q",
-      "4q3r", "1h9s", "4ob1", "4ob2", "4qq5", "4nk3", "3k1j", "4m8t", "4mzo",
-      "4nnn", "4q3s", "4nnw", "3cf1", "4u5t", "4wkv", "4ool", "3a2c", "4wm9",
-      "4pkb", "4qkx", "4no8", "1ztz", "1nu1", "4kn4", "4mao", "4qqc", "4len",
-      "4lv1", "4r02", "4r6v", "4fil", "4q2k", "1hpb", "4oon", "4qbb", "4ruu",
-      "4no1", "3w8o", "4kn7", "4r17", "4r18", "5hvp", "1e59", "1sqq", "3n75",
-      "4kmu", "4mzs", "1sqb", "1lr8", "4lv2", "4wmc", "1sqp", "3whw", "4cpa",
-      "3i8w", "4hrd", "4hrc", "1ntk", "1rbo"
+    "1d2v", "1jou", "1s8j", "3f39", "3i3d", "3i3b", "3dyo", "3t0d", "1cam",
+    "3vdb", "3f37", "3f38", "4mlt", "3f36", "4o7d", "3t08", "3f34", "3f35",
+    "2wik", "4mlx", "2wij", "1px4", "4wkt", "3f33", "2wig", "3muz", "3t2p",
+    "3t2q", "4pji", "2adj", "3t09", "3mv0", "1pts", "3vd9", "3axk", "4q1s",
+    "3t0b", "4b82", "3vd7", "3hg1", "3vd4", "3vdc", "3b5y", "4oi6", "3axm",
+    "4mdm", "2mlm", "3eql", "4ob0", "3wi6", "4fgt", "4pnc", "4mvn", "4lv3",
+    "4lz9", "1pyg", "3h1k", "7gpb", "1e8h", "4wku", "2f2h", "1zyr", "1z9j",
+    "3b5d", "3b62", "4q3q", "4mdl", "4no6", "4mdg", "3dxj", "4u0x", "4l6q",
+    "4q3r", "1h9s", "4ob1", "4ob2", "4qq5", "4nk3", "3k1j", "4m8t", "4mzo",
+    "4nnn", "4q3s", "4nnw", "3cf1", "4u5t", "4wkv", "4ool", "3a2c", "4wm9",
+    "4pkb", "4qkx", "4no8", "1ztz", "1nu1", "4kn4", "4mao", "4qqc", "4len",
+    "4lv1", "4r02", "4r6v", "4fil", "4q2k", "1hpb", "4oon", "4qbb", "4ruu",
+    "4no1", "3w8o", "4kn7", "4r17", "4r18", "5hvp", "1e59", "1sqq", "3n75",
+    "4kmu", "4mzs", "1sqb", "1lr8", "4lv2", "4wmc", "1sqp", "3whw", "4cpa",
+    "3i8w", "4hrd", "4hrc", "1ntk", "1rbo"
   ]
   contents = []
   with open(labels_file) as f:
@@ -52,9 +55,9 @@ def load_pdbbind_labels(labels_file):
           continue
         contents.append(elts)
   contents_df = pd.DataFrame(
-      contents,
-      columns=("PDB code", "resolution", "release year", "-logKd/Ki", "Kd/Ki",
-               "ignore-this-field", "reference", "ligand name"))
+    contents,
+    columns=("PDB code", "resolution", "release year", "-logKd/Ki", "Kd/Ki",
+             "ignore-this-field", "reference", "ligand name"))
   return contents_df
 
 
@@ -95,17 +98,17 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   # Define featurizers
   if feat == "grid":
     featurizer = dc.feat.GridFeaturizer(
-        voxel_width=16.0,
-        feature_types="voxel_combined",
-        # TODO(rbharath, enf, leswing): Figure out why pi_stack and cation_pi
-        # reduce validation performance
-        # voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
-        # "salt_bridge"], ecfp_power=9, splif_power=9,
-        voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
-        ecfp_power=9,
-        splif_power=9,
-        parallel=True,
-        flatten=True)
+      voxel_width=16.0,
+      feature_types="voxel_combined",
+      # TODO(rbharath, enf, leswing): Figure out why pi_stack and cation_pi
+      # reduce validation performance
+      # voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+      # "salt_bridge"], ecfp_power=9, splif_power=9,
+      voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
+      ecfp_power=9,
+      splif_power=9,
+      parallel=True,
+      flatten=True)
   elif feat == "coord":
     neighbor_cutoff = 4
     max_num_neighbors = 10
@@ -120,28 +123,21 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   y_inds = []
   missing_pdbs = []
   time1 = time.time()
+  p = Pool(4)
+  args = []
   for ind, pdb_code in enumerate(ids):
-    if ind >= 5:
+    args.append((ind, pdb_code, pdbbind_dir, featurizer))
+  results = p.map(call_fast, args)
+  for result in results:
+    if result is None:
       continue
-    print("Processing complex %d, %s" % (ind, str(pdb_code)))
-    pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
-    if not os.path.exists(pdb_subdir):
-      print("%s is missing!" % pdb_subdir)
-      missing_pdbs.append(pdb_subdir)
-      continue
-    computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
-                                                pdb_code)
-    if feature_len is None:
-      feature_len = len(computed_feature)
-    if len(computed_feature) != feature_len:
-      print("Featurization failed for %s!" % pdb_code)
-      continue
-    y_inds.append(ind)
-    features.append(computed_feature)
+    y_inds.append(result[0])
+    features.append(result[1])
   time2 = time.time()
   print("TIMING: PDBBind Featurization took %0.3f s" % (time2 - time1))
   print("missing_pdbs")
   print(missing_pdbs)
+  print(features)
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)
@@ -150,13 +146,26 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   return dataset, tasks
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
+def call_fast(x):
+  ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
+  print("Processing complex %d, %s" % (ind, str(pdb_code)))
+  pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
+  try:
+    computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
+                                              pdb_code)
+  except MoleculeLoadException as e:
+    return None
+  return ind, computed_feature
+
+
+def load_pdbbind_grid(split="index", featurizer="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
+  print(len(dataset.X))
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter()
+    'index': dc.splits.IndexSplitter(),
+    'random': dc.splits.RandomSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)

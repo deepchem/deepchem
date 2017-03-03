@@ -27,7 +27,8 @@ def get_xyz_from_mol(mol):
   return (xyz)
 
 
-def load_pdb(molecule_file, add_hydrogens):
+def load_pdb(molecule_file, add_hydrogens, calc_charges):
+  # TODO(LESWING) flip this
   if add_hydrogens:
     try:
       fixer = PDBFixer(filename=molecule_file)
@@ -36,12 +37,13 @@ def load_pdb(molecule_file, add_hydrogens):
     except ValueError as e:
       print(e)
       raise MoleculeLoadException(e)
-  return Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+  mol = Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+  AllChem.ComputeGasteigerCharges(mol)
+  return mol
 
 
-# TODO(LESWING) move to util
 def load_molecule(molecule_file, add_hydrogens=True,
-                  calc_charges=False):
+                  calc_charges=True):
   """Converts molecule file to (xyz-coords, obmol object)
 
   Given molecule_file, returns a tuple of xyz coords of molecule
@@ -55,10 +57,9 @@ def load_molecule(molecule_file, add_hydrogens=True,
     #molecule_file = pdbqt_to_pdb(molecule_file)
     #my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
   elif ".pdb" in molecule_file:
-    my_mol = load_pdb(molecule_file, add_hydrogens)
+    my_mol = load_pdb(molecule_file, add_hydrogens, calc_charges)
     xyz = get_xyz_from_mol(my_mol)
     np.save(open("/tmp/rdkit_coords", 'w'), xyz)
-    sys.exit()
     return xyz, my_mol
   else:
     raise ValueError("Unrecognized file type")
@@ -68,14 +69,19 @@ def load_molecule(molecule_file, add_hydrogens=True,
 
   if calc_charges:
     my_mol = sanitize_mol(my_mol)
-    AllChem.ComputeGasteigerChargers(my_mol)
+    try:
+      my_mol = Chem.AddHs(my_mol)
+      AllChem.ComputeGasteigerCharges(my_mol)
+    except ValueError as e:
+      print("%s failed to load %s" % (molecule_file, e))
+      raise MoleculeLoadException()
   elif add_hydrogens:
     my_mol = sanitize_mol(my_mol)
     try:
       my_mol = Chem.AddHs(my_mol)
     except ValueError as e:
       print("%s failed to load %s" % (molecule_file, e))
-      pass
+      raise MoleculeLoadException()
 
   xyz = get_xyz_from_mol(my_mol)
 
