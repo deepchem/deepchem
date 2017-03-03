@@ -71,16 +71,16 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
     raise ValueError("Unable to read non None Molecule Object")
 
   if calc_charges:
-    my_mol = sanitize_mol(my_mol)
     try:
+      my_mol = sanitize_mol(my_mol)
       my_mol = Chem.AddHs(my_mol)
       AllChem.ComputeGasteigerCharges(my_mol)
     except ValueError as e:
       print("%s failed to load %s" % (molecule_file, e))
       raise MoleculeLoadException(e)
   elif add_hydrogens:
-    my_mol = sanitize_mol(my_mol)
     try:
+      my_mol = sanitize_mol(my_mol)
       my_mol = Chem.AddHs(my_mol)
     except ValueError as e:
       print("%s failed to load %s" % (molecule_file, e))
