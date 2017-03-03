@@ -7,9 +7,9 @@ python setup.py install
 
 rm examples/results.csv || true
 
-cd examples/pdbbind
-bash get_pdbbind.sh
-cd ..
+#cd examples/pdbbind
+#bash get_pdbbind.sh
+#cd ..
 
 cd examples
 python benchmark.py -d pdbbind

@@ -59,7 +59,6 @@ def load_molecule(molecule_file, add_hydrogens=True,
   elif ".pdb" in molecule_file:
     my_mol = load_pdb(molecule_file, add_hydrogens, calc_charges)
     xyz = get_xyz_from_mol(my_mol)
-    np.save(open("/tmp/rdkit_coords", 'w'), xyz)
     return xyz, my_mol
   else:
     raise ValueError("Unrecognized file type")
