@@ -158,7 +158,7 @@ def call_fast(x):
   return ind, computed_feature
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="refined"):
+def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
   print(len(dataset.X))
