@@ -3,6 +3,13 @@ import logging
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from pdbfixer import PDBFixer
+from simtk.openmm.app import PDBFile
+
+
+class MoleculeLoadException(Exception):
+  def __init__(self, *args, **kwargs):
+    Exception.__init__(*args, **kwargs)
 
 
 def get_xyz_from_mol(mol):
@@ -20,6 +27,18 @@ def get_xyz_from_mol(mol):
   return (xyz)
 
 
+def load_pdb(molecule_file, add_hydrogens):
+  if add_hydrogens:
+    try:
+      fixer = PDBFixer(filename=molecule_file)
+      fixer.addMissingHydrogens(7.4)
+      PDBFile.writeFile(fixer.topology, fixer.positions, open(molecule_file, 'w'))
+    except ValueError as e:
+      print(e)
+      raise MoleculeLoadException(e)
+  return Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+
+
 # TODO(LESWING) move to util
 def load_molecule(molecule_file, add_hydrogens=True,
                   calc_charges=False):
@@ -29,13 +48,18 @@ def load_molecule(molecule_file, add_hydrogens=True,
   and an rdkit object representing that molecule
   """
   if ".mol2" in molecule_file or ".sdf" in molecule_file:
-    suppl = Chem.SDMolSupplier(molecule_file, sanitize=False)
+    suppl = Chem.SDMolSupplier(str(molecule_file), sanitize=False)
     my_mol = suppl[0]
   elif ".pdbqt" in molecule_file:
-    molecule_file = pdbqt_to_pdb(molecule_file)
-    my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
+    raise MoleculeLoadException("Don't support pdbqt files")
+    #molecule_file = pdbqt_to_pdb(molecule_file)
+    #my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
   elif ".pdb" in molecule_file:
-    my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
+    my_mol = load_pdb(molecule_file, add_hydrogens)
+    xyz = get_xyz_from_mol(my_mol)
+    np.save(open("/tmp/rdkit_coords", 'w'), xyz)
+    sys.exit()
+    return xyz, my_mol
   else:
     raise ValueError("Unrecognized file type")
 
@@ -47,7 +71,11 @@ def load_molecule(molecule_file, add_hydrogens=True,
     AllChem.ComputeGasteigerChargers(my_mol)
   elif add_hydrogens:
     my_mol = sanitize_mol(my_mol)
-    my_mol = Chem.AddHs(my_mol)
+    try:
+      my_mol = Chem.AddHs(my_mol)
+    except ValueError as e:
+      print("%s failed to load %s" % (molecule_file, e))
+      pass
 
   xyz = get_xyz_from_mol(my_mol)
 

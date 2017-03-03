@@ -299,8 +299,6 @@ def _compute_ecfp(system_ob, start_atom, max_degree=2):
   to improving this representation.
   """
 
-  fragment = ob.OBMol()
-
   bonds_to_add = _bfs(system_ob, start_atom, max_degree)
   fragment = _construct_fragment_from_bonds(bonds_to_add)
   obConversion = ob.OBConversion()

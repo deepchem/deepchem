@@ -121,6 +121,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   missing_pdbs = []
   time1 = time.time()
   for ind, pdb_code in enumerate(ids):
+    if ind >= 5:
+      continue
     print("Processing complex %d, %s" % (ind, str(pdb_code)))
     pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
     if not os.path.exists(pdb_subdir):

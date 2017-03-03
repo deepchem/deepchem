@@ -700,7 +700,7 @@ class IRVTransformer():
   def X_transform(self, X_target):
     """ Calculate similarity between target dataset(X_target) and 
     reference dataset(X): #(1 in intersection)/#(1 in union)
-         similarity = (X_target ∩ X)/(X_target U X)
+         similarity = (X_target X)/(X_target U X)
     Parameters:
     -----------
     X_target: np.ndarray
