@@ -173,10 +173,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
-        batch_outputs = np.squeeze(
-            np.stack(arrays=[complimentary, batch_outputs], 
-                     axis=batch_outputs.ndim - 1))
-
+        batch_outputs = np.concatenate(
+            [complimentary, batch_outputs], axis=batch_outputs.ndim - 1)
         # reshape to batch_size x n_tasks x ...
         if batch_outputs.ndim == 3:
           batch_outputs = batch_outputs.transpose((1, 0, 2))
@@ -211,10 +209,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         # transfer 2D prediction tensor to 2D x n_classes(=2) 
         complimentary = np.ones(np.shape(batch_output))
         complimentary = complimentary - batch_output
-        batch_output = np.squeeze(
-            np.stack(arrays=[complimentary, batch_output],
-                     axis=batch_output.ndim - 1))
-
+        batch_output = np.concatenate(
+            [complimentary, batch_output], axis=batch_output.ndim - 1)
         # reshape to batch_size x n_tasks x ...
         if batch_output.ndim == 3:
           batch_output = batch_output.transpose((1, 0, 2))
