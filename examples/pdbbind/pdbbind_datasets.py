@@ -133,8 +133,13 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   for ind, pdb_code in enumerate(ids):
     args.append((ind, pdb_code, pdbbind_dir, featurizer))
   results = p.map(call_fast, args)
+  feature_len = None
   for result in results:
     if result is None:
+      continue
+    if feature_len is None:
+      feature_len = len(result[1])
+    if len(result[1]) != feature_len:
       continue
     y_inds.append(result[0])
     features.append(result[1])
