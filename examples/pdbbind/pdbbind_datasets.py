@@ -158,25 +158,24 @@ def call_fast(x):
   return ind, computed_feature
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
+def load_pdbbind_grid(split="index", featurizer="grid", subset="refined"):
   """Load PDBBind datasets. Does not do train/test split"""
-  for subset in ["refined", "full", "refined"]:
-    dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
-    print(len(dataset.X))
+  dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
+  print(len(dataset.X))
 
-    splitters = {
-        'index': dc.splits.IndexSplitter(),
-        'random': dc.splits.RandomSplitter()
-    }
-    splitter = splitters[split]
-    train, valid, test = splitter.train_valid_test_split(dataset)
+  splitters = {
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter()
+  }
+  splitter = splitters[split]
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
-    transformers = []
-    for transformer in transformers:
-      train = transformer.transform(train)
-    for transformer in transformers:
-      valid = transformer.transform(valid)
-    for transformer in transformers:
-      test = transformer.transform(test)
+  transformers = []
+  for transformer in transformers:
+    train = transformer.transform(train)
+  for transformer in transformers:
+    valid = transformer.transform(valid)
+  for transformer in transformers:
+    test = transformer.transform(test)
 
-    return tasks, (train, valid, test), transformers
+  return tasks, (train, valid, test), transformers

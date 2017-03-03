@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+import tempfile
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from pdbfixer import PDBFixer
@@ -29,17 +30,28 @@ def get_xyz_from_mol(mol):
 
 
 def load_pdb(molecule_file, add_hydrogens, calc_charges):
-  # TODO(LESWING) flip this
-  if add_hydrogens:
-    try:
-      fixer = PDBFixer(filename=molecule_file)
-      fixer.addMissingHydrogens(7.4)
-      PDBFile.writeFile(fixer.topology, fixer.positions,
-                        open(molecule_file, 'w'))
-    except ValueError as e:
-      print(e)
-      raise MoleculeLoadException(e)
   mol = Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+  if add_hydrogens:
+    mol = add_hydrogens_f(mol)
+  if calc_charges:
+    compute_charges(mol)
+  return mol
+
+
+def add_hydrogens_f(mol):
+  molecule_file = str(tempfile.NamedTemporaryFile().name)
+  Chem.MolToPDBFile(mol, molecule_file)
+  try:
+    fixer = PDBFixer(filename=molecule_file)
+    fixer.addMissingHydrogens(7.4)
+    PDBFile.writeFile(fixer.topology, fixer.positions, open(molecule_file, 'w'))
+  except ValueError as e:
+    print(e)
+    raise MoleculeLoadException(e)
+  return Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+
+
+def compute_charges(mol):
   try:
     AllChem.ComputeGasteigerCharges(mol)
   except RuntimeError as e:
@@ -58,8 +70,8 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
     my_mol = suppl[0]
   elif ".pdbqt" in molecule_file:
     raise MoleculeLoadException("Don't support pdbqt files")
-    #molecule_file = pdbqt_to_pdb(molecule_file)
-    #my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
+    # molecule_file = pdbqt_to_pdb(molecule_file)
+    # my_mol = Chem.MolFromPDBFile(molecule_file, sanitize=False)
   elif ".pdb" in molecule_file:
     my_mol = load_pdb(molecule_file, add_hydrogens, calc_charges)
     xyz = get_xyz_from_mol(my_mol)
@@ -71,20 +83,11 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
     raise ValueError("Unable to read non None Molecule Object")
 
   if calc_charges:
-    try:
-      my_mol = sanitize_mol(my_mol)
-      my_mol = Chem.AddHs(my_mol)
-      AllChem.ComputeGasteigerCharges(my_mol)
-    except Exception as e:
-      print("%s failed to load %s" % (molecule_file, e))
-      raise MoleculeLoadException(e)
+    my_mol = add_hydrogens_f(my_mol)
+    compute_charges(my_mol)
   elif add_hydrogens:
-    try:
-      my_mol = sanitize_mol(my_mol)
-      my_mol = Chem.AddHs(my_mol)
-    except Exception as e:
-      print("%s failed to load %s" % (molecule_file, e))
-      raise MoleculeLoadException(e)
+    my_mol = add_hydrogens_f(my_mol)
+    compute_charges(my_mol)
 
   xyz = get_xyz_from_mol(my_mol)
 
