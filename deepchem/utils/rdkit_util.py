@@ -38,7 +38,10 @@ def load_pdb(molecule_file, add_hydrogens, calc_charges):
       print(e)
       raise MoleculeLoadException(e)
   mol = Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
-  AllChem.ComputeGasteigerCharges(mol)
+  try:
+    AllChem.ComputeGasteigerCharges(mol)
+  except RuntimeError as e:
+    raise MoleculeLoadException(e)
   return mol
 
 
