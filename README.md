@@ -469,7 +469,8 @@ Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepch
 1. [Computational Modeling of β-secretase 1 (BACE-1) Inhibitors using
 Ligand Based
 Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
-1. [Low Data Drug Discovery with One-shot Learning](https://arxiv.org/abs/1611.03199)
+2. [Low Data Drug Discovery with One-shot Learning](https://arxiv.org/abs/1611.03199)
+3. [MoleculeNet: A Benchmark for Molecular Machine Learning](https://arxiv.org/abs/1703.00564)
 
 ## About Us
 DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
