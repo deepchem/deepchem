@@ -354,8 +354,8 @@ class BalancingTransformer(Transformer):
     w = self.dataset.w
     # Ensure dataset is binary
     np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
-    self.balance_w = self.compute_balance_weights(y, w)   
-  
+    self.balance_w = self.compute_balance_weights(y, w)
+
   @staticmethod
   def compute_balance_weights(y, w):
     """compute the balance weights"""
@@ -365,17 +365,18 @@ class BalancingTransformer(Transformer):
       task_w = w[:, ind]
       task_y = y[:, ind]
       # Remove labels with zero weights
-      task_y_act_inact = task_y[task_w != 0] # active and inactive labels
+      task_y_act_inact = task_y[task_w != 0]  # active and inactive labels
       num_positives = np.count_nonzero(task_y_act_inact)
       num_negatives = len(task_y_act_inact) - num_positives
-      pos_weight = float(num_negatives) / num_positives if num_positives > 0 else 1
+      pos_weight = float(
+          num_negatives) / num_positives if num_positives > 0 else 1
       neg_weight = 1
       # Find indices of inactive and active sample for each task
       zero_indices = np.logical_and(task_y == 0, task_w != 0)
       one_indices = np.logical_and(task_y == 1, task_w != 0)
       balance_w[zero_indices, ind] = neg_weight
       balance_w[one_indices, ind] = pos_weight
-    return balance_w 
+    return balance_w
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
