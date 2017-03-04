@@ -175,7 +175,7 @@ class DataLoader(object):
         time1 = time.time()
         X, valid_inds = self.featurize_shard(shard)
         ids = shard[self.id_field].values
-        ids = ids[valid_inds]
+        ids = ids[valid_inds]	
         if len(self.tasks) > 0:
           # Featurize task results iff they exist.
           y, w = convert_df_to_numpy(shard, self.tasks, self.id_field)
