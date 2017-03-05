@@ -39,6 +39,11 @@ class SequentialGraph(object):
   def add(self, layer):
     """Adds a new layer to model."""
     with self.graph.as_default():
+      ############################################# DEBUG
+      #print("start - add()")
+      #print("self.output")
+      #print(self.output)
+      ############################################# DEBUG
       # For graphical layers, add connectivity placeholders 
       if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
         if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
@@ -49,6 +54,11 @@ class SequentialGraph(object):
                             self.graph_topology.get_topology_placeholders())
       else:
         self.output = layer(self.output)
+      ############################################# DEBUG
+      #print("end- add()")
+      #print("self.output")
+      #print(self.output)
+      ############################################# DEBUG
 
       # Add layer to the layer list
       self.layers.append(layer)

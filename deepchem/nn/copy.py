@@ -334,8 +334,11 @@ class Dense(Layer):
     output = model_ops.dot(x, self.W)
     if self.bias:
       output += self.b
-    outputs = to_list(self.activation(output))
-    return outputs
+    ################################################# DEBUG
+    #outputs = to_list(self.activation(output))
+    #return outputs
+    return output
+    ################################################# DEBUG
 
 
 class Dropout(Layer):

@@ -352,24 +352,6 @@ def epsilon():
   return 1e-7
 
 
-#def variable(value, dtype=tf.float32, name=None):
-#  """Instantiates a variable and returns it.
-#
-#  Parameters
-#  ----------
-#  value: Numpy array, initial value of the tensor.
-#  dtype: Tensor type.
-#  name: Optional name string for the tensor.
-#
-#  Returns
-#  -------
-#  A variable instance (with Keras metadata included).
-#  """
-#  v = tf.Variable(value, dtype=dtype, name=name)
-#  v._uses_learning_phase = False
-#  return v
-
-
 def random_uniform_variable(shape,
                             low,
                             high,
@@ -840,6 +822,11 @@ def fully_connected_layer(tensor,
   ValueError
     If input tensor is not 2D.
   """
+  ###################################################### DEBUG
+  #print("fully_connected_layer")
+  #print("tensor")
+  #print(tensor)
+  ###################################################### DEBUG
   if len(tensor.get_shape()) != 2:
     raise ValueError('Dense layer input must be 2D, not %dD' %
                      len(tensor.get_shape()))

@@ -821,16 +821,16 @@ class LSTMStep(Layer):
 
     # Taken from Keras code [citation needed]
     ####################################################### DEBUG
-    print("x")
-    print(x)
-    print("self.W")
-    print(self.W)
-    print("h_tm1")
-    print(h_tm1)
-    print("self.U")
-    print(self.U)
-    print("self.b")
-    print(self.b)
+    #print("x")
+    #print(x)
+    #print("self.W")
+    #print(self.W)
+    #print("h_tm1")
+    #print(h_tm1)
+    #print("self.U")
+    #print(self.U)
+    #print("self.b")
+    #print(self.b)
     ####################################################### DEBUG
     z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
 
@@ -846,4 +846,7 @@ class LSTMStep(Layer):
 
     h = o * self.activation(c)
 
-    return o, [h, c]
+    ####################################################### DEBUG
+    #return o, [h, c]
+    return h, [h, c]
+    ####################################################### DEBUG

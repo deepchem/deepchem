@@ -133,18 +133,17 @@ class MultitaskGraphClassifier(Model):
 
   def build(self):
     # Create target inputs
-    ################################################################# DEBUG
-    #self.label_placeholder = Input(tensor=tf.placeholder(
-    #    dtype='bool', shape=(None,self.n_tasks), name="label_placeholder"))
-    #self.weight_placeholder = Input(tensor=tf.placeholder(
-    #    dtype='float32', shape=(None,self.n_tasks), name="weight_placholder"))
     self.label_placeholder = tf.placeholder(
         dtype='bool', shape=(None, self.n_tasks), name="label_placeholder")
     self.weight_placeholder = tf.placeholder(
         dtype='float32', shape=(None, self.n_tasks), name="weight_placholder")
-    ################################################################# DEBUG
 
     feat = self.model.return_outputs()
+    ################################################################ DEBUG
+    #print("multitask classifier")
+    #print("feat")
+    #print(feat)
+    ################################################################ DEBUG
     output = model_ops.multitask_logits(feat, self.n_tasks)
     return output
 
