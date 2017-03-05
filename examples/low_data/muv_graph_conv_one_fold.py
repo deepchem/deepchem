@@ -40,44 +40,43 @@ task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
 
 for trial_num, (task, support) in enumerate(support_generator):
   print("Starting trial %d" % trial_num)
-  # Train model on support
-  g = tf.Graph()
-  sess = tf.Session(graph=g)
 
-  # Do setup required for tf/keras models
   # Number of features on conv-mols
   n_feat = 75
   # Batch size of models
   batch_size = 50
+  graph_model = dc.nn.SequentialGraph(n_feat)
+  graph_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
+  graph_model.add(dc.nn.GraphPool())
+  graph_model.add(dc.nn.GraphConv(128, 64, activation='relu'))
+  graph_model.add(dc.nn.GraphPool())
+  graph_model.add(dc.nn.GraphConv(64, 128, activation='relu'))
+  graph_model.add(dc.nn.GraphPool())
+  graph_model.add(dc.nn.Dense(128, 64, activation='tanh'))
+  graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 
-  with g.as_default():
-    graph_model = dc.nn.SequentialGraph(n_feat)
-    graph_model.add(dc.nn.GraphConv(64, activation='relu'))
-    graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(128, activation='relu'))
-    graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(64, activation='relu'))
-    graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.Dense(128, activation='tanh'))
-    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+  model = dc.models.MultitaskGraphClassifier(
+    graph_model,
+    1,
+    n_feat,
+    batch_size=batch_size,
+    learning_rate=1e-3,
+    learning_rate_decay_time=1000,
+    optimizer_type="adam",
+    beta1=.9,
+    beta2=.999)
 
-    with tf.Session() as sess:
-      model = dc.models.MultitaskGraphClassifier(
-        sess, graph_model, 1, batch_size=batch_size,
-        learning_rate=1e-3, learning_rate_decay_time=1000,
-        optimizer_type="adam", beta1=.9, beta2=.999)
+  # Fit trained model
+  model.fit(support, nb_epoch=10)
 
-      # Fit trained model
-      model.fit(support, nb_epoch=10)
-
-      # Test model
-      task_dataset = dc.data.get_task_dataset_minus_support(
-          test_dataset, support, task)
-      y_pred = model.predict_proba(task_dataset)
-      score = metric.compute_metric(
-          task_dataset.y, y_pred, task_dataset.w)
-      print("Score on task %s is %s" % (str(task), str(score)))
-      task_scores[task].append(score)
+  # Test model
+  task_dataset = dc.data.get_task_dataset_minus_support(
+      test_dataset, support, task)
+  y_pred = model.predict_proba(task_dataset)
+  score = metric.compute_metric(
+      task_dataset.y, y_pred, task_dataset.w)
+  print("Score on task %s is %s" % (str(task), str(score)))
+  task_scores[task].append(score)
 
 # Join information for all tasks.
 mean_task_scores = {}
