@@ -61,8 +61,9 @@ def is_good_result(my_result, desired_result):
     # Higher is Better
     desired_value = desired_result[key] * (1.0 - CUSHION_PERCENT)
     if my_result[key] < desired_value:
-      message_part = "%s,%s,%s,%s,%s,%s" % (my_result['data_set'], my_result['model'], my_result['split'],
-                                            key, my_result[key], desired_result[key])
+      message_part = "%s,%s,%s,%s,%s,%s" % (
+          my_result['data_set'], my_result['model'], my_result['split'], key,
+          my_result[key], desired_result[key])
       message.append(message_part)
       retval = False
   return retval, message

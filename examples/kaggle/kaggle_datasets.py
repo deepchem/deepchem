@@ -55,9 +55,12 @@ def gen_kaggle(KAGGLE_tasks,
   ############################################################## TIMING
   # Set some global variables up top
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  train_files = os.path.join(current_dir, "KAGGLE_training_disguised_combined_full.csv.gz")
-  valid_files = os.path.join(current_dir, "KAGGLE_test1_disguised_combined_full.csv.gz")
-  test_files = os.path.join(current_dir, "KAGGLE_test2_disguised_combined_full.csv.gz")
+  train_files = os.path.join(current_dir,
+                             "KAGGLE_training_disguised_combined_full.csv.gz")
+  valid_files = os.path.join(current_dir,
+                             "KAGGLE_test1_disguised_combined_full.csv.gz")
+  test_files = os.path.join(current_dir,
+                            "KAGGLE_test2_disguised_combined_full.csv.gz")
 
   # Featurize KAGGLE dataset
   print("About to featurize KAGGLE dataset.")

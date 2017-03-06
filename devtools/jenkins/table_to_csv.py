@@ -6,7 +6,9 @@ import sys
 
 def classification_table_to_csv(lines):
   output = []
-  headers = ["split", "dataset", "model", "Train score/ROC-AUC", "Valid score/ROC-AUC"]
+  headers = [
+      "split", "dataset", "model", "Train score/ROC-AUC", "Valid score/ROC-AUC"
+  ]
   output.append(",".join(headers))
   for line in lines:
     vars = [x.strip() for x in line.split('|')]
@@ -27,6 +29,7 @@ def classification_table_to_csv(lines):
     output.append(",".join([split, dataset, model, train, test]))
   for l in output:
     print(l)
+
 
 def regression_table_to_csv(lines):
   output = []
