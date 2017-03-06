@@ -88,7 +88,8 @@ def benchmark_loading_datasets(hyper_parameters,
   if dataset in ['muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox', 'hiv']:
     mode = 'classification'
   elif dataset in [
-      'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9', 'sampl'
+      'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
+      'sampl'
   ]:
     mode = 'regression'
   else:
@@ -790,7 +791,8 @@ if __name__ == '__main__':
       dest='dataset_args',
       default=[],
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv')
+      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv'
+  )
   parser.add_argument(
       '-t',
       action='store_true',
