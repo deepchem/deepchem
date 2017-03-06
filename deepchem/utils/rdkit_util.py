@@ -90,11 +90,9 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
   if my_mol is None:
     raise ValueError("Unable to read non None Molecule Object")
 
+  if add_hydrogens:
+    my_mol = add_hydrogens_to_mol(my_mol)
   if calc_charges:
-    my_mol = add_hydrogens_to_mol(my_mol)
-    compute_charges(my_mol)
-  elif add_hydrogens:
-    my_mol = add_hydrogens_to_mol(my_mol)
     compute_charges(my_mol)
 
   xyz = get_xyz_from_mol(my_mol)
