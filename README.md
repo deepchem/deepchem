@@ -356,7 +356,6 @@ Scaffold splitting
 |qm9             |MT-NN regression    |Index       |0.733         |0.791         |
 |                |MT-NN regression    |Random      |0.811         |0.823         |
 |                |MT-NN regression    |Stratified  |0.843         |0.818         | 
-
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
