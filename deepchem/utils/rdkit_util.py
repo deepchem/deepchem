@@ -9,6 +9,11 @@ from rdkit.Chem import AllChem
 from pdbfixer import PDBFixer
 from simtk.openmm.app import PDBFile
 
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
+
 
 class MoleculeLoadException(Exception):
 
@@ -34,13 +39,18 @@ def get_xyz_from_mol(mol):
 def add_hydrogens_to_mol(mol):
   molecule_file = None
   try:
-    molecule_file = str(tempfile.NamedTemporaryFile().name)
-    Chem.MolToPDBFile(mol, molecule_file)
-    fixer = PDBFixer(filename=molecule_file)
+    pdbblock = Chem.MolToPDBBlock(mol)
+    pdb_stringio = StringIO()
+    pdb_stringio.write(pdbblock)
+    pdb_stringio.seek(0)
+    fixer = PDBFixer(pdbfile=pdb_stringio)
     fixer.addMissingHydrogens(7.4)
-    PDBFile.writeFile(fixer.topology, fixer.positions, open(molecule_file, 'w'))
-    return Chem.MolFromPDBFile(
-        str(molecule_file), sanitize=False, removeHs=False)
+
+    hydrogenated_io = StringIO()
+    PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
+    hydrogenated_io.seek(0)
+    return Chem.MolFromPDBBlock(
+        hydrogenated_io.read(), sanitize=False, removeHs=False)
   except ValueError as e:
     logging.warning("Unable to add hydrogens", e)
     raise MoleculeLoadException(e)
