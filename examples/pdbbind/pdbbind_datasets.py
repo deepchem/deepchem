@@ -132,12 +132,12 @@ def compute_single_pdbbind_feature(x):
     return None
   return ind, computed_feature
 
+
 def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  features = grid_featurizer.featurize_complexes([ligand_file],
-                                                 [protein_file])
+  features = grid_featurizer.featurize_complexes([ligand_file], [protein_file])
   features = np.squeeze(features)
   return features
 
@@ -162,6 +162,7 @@ def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
     test = transformer.transform(test)
 
   return tasks, (train, valid, test), transformers
+
 
 if __name__ == "__main__":
   load_pdbbind_grid()

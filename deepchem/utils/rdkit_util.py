@@ -64,7 +64,8 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
   elif ".pdbqt" in molecule_file:
     raise MoleculeLoadException("Don't support pdbqt files yet")
   elif ".pdb" in molecule_file:
-    my_mol = Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+    my_mol = Chem.MolFromPDBFile(
+        str(molecule_file), sanitize=False, removeHs=False)
   else:
     raise ValueError("Unrecognized file type")
 
