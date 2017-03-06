@@ -3,6 +3,7 @@ import logging
 import os
 import numpy as np
 import tempfile
+import shutil
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from pdbfixer import PDBFixer
@@ -30,17 +31,24 @@ def get_xyz_from_mol(mol):
   return (xyz)
 
 
-def add_hydrogens_f(mol):
-  molecule_file = str(tempfile.NamedTemporaryFile().name)
-  Chem.MolToPDBFile(mol, molecule_file)
+def add_hydrogens_to_mol(mol):
+  molecule_file = None
   try:
+    molecule_file = str(tempfile.NamedTemporaryFile().name)
+    Chem.MolToPDBFile(mol, molecule_file)
     fixer = PDBFixer(filename=molecule_file)
     fixer.addMissingHydrogens(7.4)
     PDBFile.writeFile(fixer.topology, fixer.positions, open(molecule_file, 'w'))
+    return Chem.MolFromPDBFile(
+        str(molecule_file), sanitize=False, removeHs=False)
   except ValueError as e:
-    print(e)
+    logging.warning("Unable to add hydrogens", e)
     raise MoleculeLoadException(e)
-  return Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+  finally:
+    try:
+      os.remove(molecule_file)
+    except (OSError, TypeError):
+      pass
 
 
 def compute_charges(mol):
@@ -73,10 +81,10 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
     raise ValueError("Unable to read non None Molecule Object")
 
   if calc_charges:
-    my_mol = add_hydrogens_f(my_mol)
+    my_mol = add_hydrogens_to_mol(my_mol)
     compute_charges(my_mol)
   elif add_hydrogens:
-    my_mol = add_hydrogens_f(my_mol)
+    my_mol = add_hydrogens_to_mol(my_mol)
     compute_charges(my_mol)
 
   xyz = get_xyz_from_mol(my_mol)
