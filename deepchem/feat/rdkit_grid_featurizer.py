@@ -405,8 +405,8 @@ def compute_ring_normal(mol, ring):
   return normal
 
 
-def is_pi_parallel(protein_ring_center, protein_ring_normal,
-                   ligand_ring_center, ligand_ring_normal):
+def is_pi_parallel(protein_ring_center, protein_ring_normal, ligand_ring_center,
+                   ligand_ring_normal):
   dist = np.linalg.norm(protein_ring_center - ligand_ring_center)
   angle = angle_between(protein_ring_normal, ligand_ring_normal) * 180 / np.pi
   if ((np.abs(angle) < 30.0) or
@@ -471,7 +471,6 @@ def compute_pi_stack(protein_xyz,
   raise ValueError("Not Yet Implemented")
 
 
-
 def is_cation_pi(cation_position, ring_center, ring_normal):
   cation_to_ring_vec = cation_position - ring_center
   dist = np.linalg.norm(cation_to_ring_vec)
@@ -511,8 +510,8 @@ def get_formal_charge(atom):
 
 
 def is_salt_bridge(atom_i, atom_j):
-  if np.abs(2.0 - np.abs(
-      get_formal_charge(atom_i) - get_formal_charge(atom_j))) < 0.01:
+  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(
+      atom_j))) < 0.01:
     return True
   else:
     return False
