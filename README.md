@@ -353,6 +353,10 @@ Scaffold splitting
 |qm7b            |MT-NN regression    |Index       |0.931         |0.803         |
 |                |MT-NN regression    |Random      |0.923         |0.884         |
 |                |MT-NN regression    |Stratified  |0.934         |0.884         | 
+|qm9             |MT-NN regression    |Index       |0.733         |0.791         |
+|                |MT-NN regression    |Random      |0.811         |0.823         |
+|                |MT-NN regression    |Stratified  |0.843         |0.818         | 
+
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
@@ -385,7 +389,7 @@ Number of tasks and examples in the datasets
 |chembl(5thresh) |691        |23871      |
 |qm7             |1          |7165       |
 |qm7b            |14         |7211       |
-
+|qm9             |15         |133885     |
 
 
 Time needed for benchmark test(~20h in total)
@@ -442,6 +446,7 @@ Time needed for benchmark test(~20h in total)
 |chembl          |MT-NN regression    |200             |9000           |
 |qm7             |MT-NN regression    |10              |400            |
 |qm7b            |MT-NN regression    |10              |600            |
+|qm9             |MT-NN regression    |220             |10000          |
 |kaggle          |MT-NN regression    |2200            |3200           |
 
 
