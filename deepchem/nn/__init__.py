@@ -19,9 +19,9 @@ from deepchem.nn.model_ops import optimizer
 from deepchem.nn.model_ops import add_bias
 from deepchem.nn.model_ops import fully_connected_layer
 from deepchem.nn.model_ops import multitask_logits
-from deepchem.nn.model_ops import softmax_N 
+from deepchem.nn.model_ops import softmax_N
+from deepchem.nn.objectives import mean_squared_error
 
 from deepchem.models.tf_new_models.graph_topology import GraphTopology
 from deepchem.models.tf_new_models.graph_models import SequentialGraph
 from deepchem.models.tf_new_models.graph_models import SequentialSupportGraph
-
