@@ -11,7 +11,7 @@ then
 fi
 
 export envname=$1
-conda create -y --name $envname python=3.5
+conda create -y --name $envname python=2.7
 source activate $envname
 conda install -y -c omnia openbabel=2.4.0
 conda install -y -c omnia pdbfixer=1.4

@@ -18,7 +18,7 @@ from subprocess import call
 from scipy.spatial import ConvexHull
 from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
-from deepchem.feat.grid_featurizer import load_molecule
+from deepchem.feat.rdkit_grid_featurizer import load_molecule
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer 
 from deepchem.feat.fingerprints import CircularFingerprint 
 from deepchem.models.sklearn_models import SklearnModel

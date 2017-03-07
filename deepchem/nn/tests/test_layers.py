@@ -14,6 +14,7 @@ import unittest
 import deepchem as dc
 from tensorflow.python.framework import test_util
 
+
 class TestLayers(test_util.TensorFlowTestCase):
   """
   Test Layers.
@@ -21,6 +22,7 @@ class TestLayers(test_util.TensorFlowTestCase):
   The tests in this class only do basic sanity checks to make sure that
   produced tensors have the right shape.
   """
+
   def setUp(self):
     super(TestLayers, self).setUp()
     self.root = '/tmp'
@@ -50,7 +52,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     nb_filter = 7
     with self.test_session() as sess:
       graph_topology = dc.nn.GraphTopology(n_feat)
-      graph_conv_layer = dc.nn.GraphConv(nb_filter)
+      graph_conv_layer = dc.nn.GraphConv(nb_filter, n_feat)
 
       X = graph_topology.get_input_placeholders()
       out = graph_conv_layer(X)
@@ -70,7 +72,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       X = graph_topology.get_input_placeholders()
       out = graph_gather_layer(X)
       # Output should be of shape (batch_size, n_feat)
-      assert out.get_shape() == (batch_size, n_feat) 
+      assert out.get_shape() == (batch_size, n_feat)
 
   def test_graph_pool(self):
     """Tests that GraphPool transforms shapes correctly."""
@@ -89,7 +91,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that attention LSTM computation works properly."""
     max_depth = 5
     n_test = 5
-    n_support = 11 
+    n_support = 11
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
@@ -99,11 +101,13 @@ class TestLayers(test_util.TensorFlowTestCase):
       test = graph_topology_test.get_input_placeholders()[0]
       support = graph_topology_support.get_input_placeholders()[0]
 
-      attn_embedding_layer = dc.nn.AttnLSTMEmbedding(
-          n_test, n_support, max_depth)
+      attn_embedding_layer = dc.nn.AttnLSTMEmbedding(n_test, n_support, n_feat,
+                                                     max_depth)
       # Try concatenating the two lists of placeholders
-      feed_dict = {test: np.zeros((n_test, n_feat)),
-                   support: np.zeros((n_support, n_feat))}
+      feed_dict = {
+          test: np.zeros((n_test, n_feat)),
+          support: np.zeros((n_support, n_feat))
+      }
       test_out, support_out = attn_embedding_layer([test, support])
       assert test_out.get_shape() == (n_test, n_feat)
       assert support_out.get_shape()[1] == (n_feat)
@@ -112,7 +116,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that attention LSTM computation works properly."""
     max_depth = 5
     n_test = 5
-    n_support = 11 
+    n_support = 11
     n_feat = 10
     nb_filter = 7
     with self.test_session() as sess:
@@ -122,11 +126,13 @@ class TestLayers(test_util.TensorFlowTestCase):
       test = graph_topology_test.get_input_placeholders()[0]
       support = graph_topology_support.get_input_placeholders()[0]
 
-      resi_embedding_layer = dc.nn.ResiLSTMEmbedding(
-          n_test, n_support, max_depth)
+      resi_embedding_layer = dc.nn.ResiLSTMEmbedding(n_test, n_support, n_feat,
+                                                     max_depth)
       # Try concatenating the two lists of placeholders
-      feed_dict = {test: np.zeros((n_test, n_feat)),
-                   support: np.zeros((n_support, n_feat))}
+      feed_dict = {
+          test: np.zeros((n_test, n_feat)),
+          support: np.zeros((n_support, n_feat))
+      }
       test_out, support_out = resi_embedding_layer([test, support])
       assert test_out.get_shape() == (n_test, n_feat)
       assert support_out.get_shape()[1] == (n_feat)

@@ -13,8 +13,8 @@ import numpy as np
 import mdtraj
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
-from deepchem.feat.grid_featurizer import load_molecule 
-from deepchem.feat.grid_featurizer import merge_molecules
+from deepchem.feat.rdkit_grid_featurizer import load_molecule
+from deepchem.feat.rdkit_grid_featurizer import merge_molecules
 
 class AtomicCoordinates(Featurizer):
   """
