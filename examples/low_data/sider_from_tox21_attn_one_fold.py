@@ -5,7 +5,6 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import tempfile
 import numpy as np
 import deepchem as dc
 import tensorflow as tf
@@ -14,7 +13,7 @@ from datasets import load_tox21_convmol
 from datasets import to_numpy_dataset
 
 # Number of folds for split 
-K = 4 
+K = 4
 # Depth of attention module
 max_depth = 3
 # number positive/negative ligands
@@ -43,31 +42,38 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 support_model = dc.nn.SequentialSupportGraph(n_feat)
 
 # Add layers
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
 support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.GraphConv(128, activation='relu'))
+support_model.add(dc.nn.GraphConv(128, 64, activation='relu'))
 support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.GraphConv(64, activation='relu'))
+support_model.add(dc.nn.GraphConv(64, 128, activation='relu'))
 support_model.add(dc.nn.GraphPool())
-support_model.add(dc.nn.Dense(128, activation='tanh'))
+support_model.add(dc.nn.Dense(128, 64, activation='tanh'))
 
 support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
-support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
+support_model.add_support(
+    dc.nn.GraphGather(support_batch_size, activation='tanh'))
 
 # Apply an attention lstm layer
-support_model.join(dc.nn.AttnLSTMEmbedding(
-    test_batch_size, support_batch_size, max_depth))
+support_model.join(
+    dc.nn.AttnLSTMEmbedding(test_batch_size, support_batch_size, 128,
+                            max_depth))
 
-with tf.Session() as sess:
-  model = dc.models.SupportGraphClassifier(
-    sess, support_model, test_batch_size=test_batch_size,
-    support_batch_size=support_batch_size, learning_rate=learning_rate)
+model = dc.models.SupportGraphClassifier(
+    support_model,
+    test_batch_size=test_batch_size,
+    support_batch_size=support_batch_size,
+    learning_rate=learning_rate)
 
-  model.fit(tox21_dataset, nb_epochs=nb_epochs, 
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
-  mean_scores, std_scores = model.evaluate(
-      sider_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
+model.fit(
+    tox21_dataset,
+    nb_epochs=nb_epochs,
+    n_episodes_per_epoch=n_train_trials,
+    n_pos=n_pos,
+    n_neg=n_neg,
+    log_every_n_samples=log_every_n_samples)
+mean_scores, std_scores = model.evaluate(
+    sider_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
 
 print("Mean Scores on evaluation dataset")
 print(mean_scores)
