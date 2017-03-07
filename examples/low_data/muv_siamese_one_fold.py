@@ -11,7 +11,7 @@ import tensorflow as tf
 from datasets import load_muv_convmol
 
 # Number of folds for split 
-K = 4 
+K = 4
 # num positive/negative ligands
 n_pos = 10
 n_neg = 10
@@ -20,7 +20,7 @@ test_batch_size = 128
 support_batch_size = n_pos + n_neg
 nb_epochs = 1
 n_train_trials = 2000
-n_eval_trials = 20 
+n_eval_trials = 20
 n_steps_per_trial = 1
 learning_rate = 1e-4
 log_every_n_samples = 50
@@ -35,7 +35,7 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
 
-train_folds = fold_datasets[:-1] 
+train_folds = fold_datasets[:-1]
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
@@ -52,17 +52,22 @@ support_model.add(dc.nn.GraphPool())
 support_model.add(dc.nn.Dense(128, 64, activation='tanh'))
 
 support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
-support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
+support_model.add_support(
+    dc.nn.GraphGather(support_batch_size, activation='tanh'))
 
 model = dc.models.SupportGraphClassifier(
-  support_model,
-  test_batch_size=test_batch_size,
-  support_batch_size=support_batch_size,
-  learning_rate=learning_rate)
+    support_model,
+    test_batch_size=test_batch_size,
+    support_batch_size=support_batch_size,
+    learning_rate=learning_rate)
 
-model.fit(train_dataset, nb_epochs=nb_epochs,
-          n_episodes_per_epoch=n_train_trials,
-          n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
+model.fit(
+    train_dataset,
+    nb_epochs=nb_epochs,
+    n_episodes_per_epoch=n_train_trials,
+    n_pos=n_pos,
+    n_neg=n_neg,
+    log_every_n_samples=log_every_n_samples)
 mean_scores, std_scores = model.evaluate(
     test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
 

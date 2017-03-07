@@ -13,7 +13,7 @@ import deepchem as dc
 from datasets import load_tox21_convmol
 
 # Number of folds for split 
-K = 4 
+K = 4
 # Depth of attention module
 max_depth = 3
 # num positive/negative ligands
@@ -38,7 +38,7 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
 
-train_folds = fold_datasets[:-1] 
+train_folds = fold_datasets[:-1]
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
@@ -55,21 +55,27 @@ support_model.add(dc.nn.GraphPool())
 support_model.add(dc.nn.Dense(128, 64, activation='tanh'))
 
 support_model.add_test(dc.nn.GraphGather(test_batch_size, activation='tanh'))
-support_model.add_support(dc.nn.GraphGather(support_batch_size, activation='tanh'))
+support_model.add_support(
+    dc.nn.GraphGather(support_batch_size, activation='tanh'))
 
 # Apply a residual lstm layer
-support_model.join(dc.nn.ResiLSTMEmbedding(
-    test_batch_size, support_batch_size, 128, max_depth))
+support_model.join(
+    dc.nn.ResiLSTMEmbedding(test_batch_size, support_batch_size, 128,
+                            max_depth))
 
 model = dc.models.SupportGraphClassifier(
-  support_model,
-  test_batch_size=test_batch_size,
-  support_batch_size=support_batch_size,
-  learning_rate=learning_rate)
+    support_model,
+    test_batch_size=test_batch_size,
+    support_batch_size=support_batch_size,
+    learning_rate=learning_rate)
 
-model.fit(train_dataset, nb_epochs=nb_epochs,
-          n_episodes_per_epoch=n_train_trials,
-          n_pos=n_pos, n_neg=n_neg, log_every_n_samples=log_every_n_samples)
+model.fit(
+    train_dataset,
+    nb_epochs=nb_epochs,
+    n_episodes_per_epoch=n_train_trials,
+    n_pos=n_pos,
+    n_neg=n_neg,
+    log_every_n_samples=log_every_n_samples)
 mean_scores, std_scores = model.evaluate(
     test_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
 
