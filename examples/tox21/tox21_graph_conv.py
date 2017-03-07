@@ -20,7 +20,6 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 metric = dc.metrics.Metric(
     dc.metrics.roc_auc_score, np.mean, mode="classification")
 
-# Do setup required for tf/keras models
 # Number of features on conv-mols
 n_feat = 75
 # Batch size of models

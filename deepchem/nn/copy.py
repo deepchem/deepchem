@@ -334,11 +334,7 @@ class Dense(Layer):
     output = model_ops.dot(x, self.W)
     if self.bias:
       output += self.b
-    ################################################# DEBUG
-    #outputs = to_list(self.activation(output))
-    #return outputs
     return output
-    ################################################# DEBUG
 
 
 class Dropout(Layer):
@@ -467,13 +463,11 @@ class BatchNormalization(Layer):
         shape, initializer='one', name='{}_running_std'.format(self.name))
 
   def call(self, x):
-    ###################################################### DEBUG
     if not isinstance(x, list):
       input_shape = model_ops.int_shape(x)
     else:
       x = x[0]
       input_shape = model_ops.int_shape(x)
-    ###################################################### DEBUG
     self.build(input_shape)
     if self.mode == 0 or self.mode == 2:
 

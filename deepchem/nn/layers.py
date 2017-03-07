@@ -562,18 +562,7 @@ class AttnLSTMEmbedding(Layer):
     x, xp = x_xp
 
     ## Initializes trainable weights.
-    ######################################################### DEBUG
-    #n_feat = xp_input_shape[1]
-    #n_feat = xp.get_shape()[1]
     n_feat = self.n_feat
-    ######################################################### DEBUG
-    ######################################################### DEBUG
-    print("AttnLSTMEmbedding")
-    print("x")
-    print(x)
-    print("xp")
-    print(xp)
-    ######################################################### DEBUG
 
     self.lstm = LSTMStep(n_feat, 2 * n_feat)
     self.q_init = model_ops.zeros([self.n_test, n_feat])
@@ -702,9 +691,7 @@ class ResiLSTMEmbedding(Layer):
       Returns two tensors of same shape as input. Namely the output shape will
       be [(n_test, n_feat), (n_support, n_feat)]
     """
-    ########################################################### DEBUG
     self.build()
-    ########################################################### DEBUG
     x, xp = argument
 
     # Get initializations
@@ -795,10 +782,6 @@ class LSTMStep(Layer):
 
   #def build(self, input_shape):
   def build(self):
-    #################################### DEBUG
-    #x, _, _ = input_shape # Unpack
-    #self.input_dim = x[1]
-    #################################### DEBUG
 
     self.W = self.init((self.input_dim, 4 * self.output_dim))
     self.U = self.inner_init((self.output_dim, 4 * self.output_dim))
@@ -814,24 +797,10 @@ class LSTMStep(Layer):
     return [(x[0], self.output_dim), h_tm1, c_tm1]
 
   def call(self, x_states, mask=None):
-    ############################################### DEBUG
     self.build()
-    ############################################### DEBUG
     x, h_tm1, c_tm1 = x_states  # Unpack
 
     # Taken from Keras code [citation needed]
-    ####################################################### DEBUG
-    #print("x")
-    #print(x)
-    #print("self.W")
-    #print(self.W)
-    #print("h_tm1")
-    #print(h_tm1)
-    #print("self.U")
-    #print(self.U)
-    #print("self.b")
-    #print(self.b)
-    ####################################################### DEBUG
     z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]

@@ -53,7 +53,7 @@ class Sequential(Model):
 
   def __init__(self, name=None, logdir=None):
     self.layers = []  # stack of layers
-    self.outputs = []  # tensors (length 1)
+    self.outputs = None  # tensors (length 1)
 
     if not name:
       prefix = 'sequential_'
@@ -88,7 +88,7 @@ class Sequential(Model):
         # first layer in model: check that it is an input layer
 
       else:
-        self.outputs = layer(self.outputs[0])
+        self.outputs = layer(self.outputs)
 
       self.layers.append(layer)
 
@@ -101,7 +101,7 @@ class Sequential(Model):
       raise ValueError("First layer in sequential model must be InputLayer")
     with self.graph.as_default():
       self.features = layer()[0]
-      self.outputs = [self.features]
+      self.outputs = self.features
       self.layers = [layer]
 
   def add_labels(self, layer):
@@ -119,7 +119,7 @@ class Sequential(Model):
     # Add losses to graph
     with self.graph.as_default():
       # Loss for each batch element
-      batch_loss = loss(self.outputs[0], self.labels)
+      batch_loss = loss(self.outputs, self.labels)
       # Loss should be a float
       self.loss = tf.reduce_sum(batch_loss)
 
@@ -172,9 +172,9 @@ class Sequential(Model):
             if ind % log_every_N_batches == 0:
               print("On batch %d" % ind)
             feed_dict = {self.features: X_b, self.labels: y_b}
-            fetches = self.outputs + [train_op, self.loss]
+            fetches = [self.outputs] + [train_op, self.loss]
             fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            output = fetched_values[:len(self.outputs)]
+            output = fetched_values[:1]
             loss = fetched_values[-1]
             avg_loss += loss
             y_pred = np.squeeze(np.array(output))
