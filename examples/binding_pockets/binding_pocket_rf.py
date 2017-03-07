@@ -19,10 +19,10 @@ from binding_pocket_datasets import load_pdbbind_pockets
 np.random.seed(123)
 
 split = "random"
-subset = "refined"
+subset = "full"
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_pockets(
     split=split, subset=subset)
-train_dataset, valid_dataset, test_dataset = pdbbind_datasets 
+train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
 

@@ -17,6 +17,9 @@ def load_qm9(featurizer=None, split='random'):
   print("About to featurize qm9 dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(current_dir, "./gdb9.sdf")
+  if not os.path.exists(dataset_file):
+    os.system('sh ' + current_dir + '/get_qm9.sh')
+
   qm9_tasks = [
       "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
       "u0_atom", "u298_atom", "h298_atom", "g298_atom"
