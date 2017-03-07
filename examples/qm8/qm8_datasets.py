@@ -10,6 +10,7 @@ import numpy as np
 import shutil
 import deepchem as dc
 
+
 def load_qm8(featurizer=None, split='random'):
   """Load qm8 datasets."""
   # Featurize qm8 dataset
@@ -20,8 +21,9 @@ def load_qm8(featurizer=None, split='random'):
     os.system('sh ' + current_dir + '/get_qm8.sh')
 
   qm8_tasks = [
-      "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0",
-      "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM", "f1-CAM", "f2-CAM"
+      "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0",
+      "f2-PBE0", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM",
+      "f1-CAM", "f2-CAM"
   ]
   if featurizer is None:
     featurizer = dc.feat.CoulombMatrix(26)
