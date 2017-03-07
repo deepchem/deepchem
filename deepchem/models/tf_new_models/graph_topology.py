@@ -12,10 +12,12 @@ import tensorflow as tf
 from deepchem.nn.copy import Input
 from deepchem.feat.mol_graphs import ConvMol
 
+
 def merge_two_dicts(x, y):
   z = x.copy()
   z.update(y)
   return z
+
 
 def merge_dicts(l):
   """Convenience function to merge list of dictionaries."""
@@ -24,10 +26,11 @@ def merge_dicts(l):
     merged = merge_two_dicts(merged, dict)
   return merged
 
+
 class GraphTopology(object):
   """Manages placeholders associated with batch of graphs and their topology"""
-  def __init__(self, n_feat, name='topology', max_deg=10,
-               min_deg=0):
+
+  def __init__(self, n_feat, name='topology', max_deg=10, min_deg=0):
     """
     Note that batch size is not specified in a GraphTopology object. A batch
     of molecules must be combined into a disconnected graph and fed to topology
@@ -44,7 +47,7 @@ class GraphTopology(object):
     min_deg: int, optional
       Minimum #bonds for atoms in molecules.
     """
-    
+
     #self.n_atoms = n_atoms
     self.n_feat = n_feat
 
@@ -52,22 +55,23 @@ class GraphTopology(object):
     self.max_deg = max_deg
     self.min_deg = min_deg
 
-    self.atom_features_placeholder = Input(
-        tensor=tf.placeholder(
-            dtype='float32', shape=(None, self.n_feat),
-            name=self.name+'_atom_features'))
+    self.atom_features_placeholder = tensor = tf.placeholder(
+        dtype='float32',
+        shape=(None, self.n_feat),
+        name=self.name + '_atom_features')
     self.deg_adj_lists_placeholders = [
-        Input(tensor=tf.placeholder(
-          dtype='int32', shape=(None, deg), name=self.name+'_deg_adj'+str(deg)))
-        for deg in range(1, self.max_deg+1)]
-    self.deg_slice_placeholder = Input(
-        tensor=tf.placeholder(
-            dtype='int32', shape=(self.max_deg-self.min_deg+1,2),
-            name="deg_slice",),
-        name=self.name+'_deg_slice')
-    self.membership_placeholder = Input(
-          tensor=tf.placeholder(dtype='int32', shape=(None,), name="membership"),
-          name=self.name+'_membership')
+        tf.placeholder(
+            dtype='int32',
+            shape=(None, deg),
+            name=self.name + '_deg_adj' + str(deg))
+        for deg in range(1, self.max_deg + 1)
+    ]
+    self.deg_slice_placeholder = tf.placeholder(
+        dtype='int32',
+        shape=(self.max_deg - self.min_deg + 1, 2),
+        name=self.name + '_deg_slice')
+    self.membership_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name + '_membership')
 
     # Define the list of tensors to be used as topology
     self.topology = [self.deg_slice_placeholder, self.membership_placeholder]
@@ -122,12 +126,16 @@ class GraphTopology(object):
     # Merge mol conv objects
     batch = ConvMol.agglomerate_mols(batch)
     atoms = batch.get_atom_features()
-    deg_adj_lists = [batch.deg_adj_lists[deg]
-                     for deg in range(1, self.max_deg+1)]
+    deg_adj_lists = [
+        batch.deg_adj_lists[deg] for deg in range(1, self.max_deg + 1)
+    ]
 
     # Generate dicts
-    deg_adj_dict = dict(list(zip(self.deg_adj_lists_placeholders, deg_adj_lists)))
-    atoms_dict = {self.atom_features_placeholder : atoms,
-                  self.deg_slice_placeholder : batch.deg_slice,
-                  self.membership_placeholder : batch.membership}
+    deg_adj_dict = dict(
+        list(zip(self.deg_adj_lists_placeholders, deg_adj_lists)))
+    atoms_dict = {
+        self.atom_features_placeholder: atoms,
+        self.deg_slice_placeholder: batch.deg_slice,
+        self.membership_placeholder: batch.membership
+    }
     return merge_dicts([atoms_dict, deg_adj_dict])
