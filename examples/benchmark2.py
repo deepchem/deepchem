@@ -64,8 +64,7 @@ parser.add_argument(
     dest='dataset_args',
     default=[],
     help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-    'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv'
-)
+    'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv')
 parser.add_argument(
     '-t',
     action='store_true',
@@ -83,8 +82,7 @@ if len(splitters) == 0:
   splitters = ['index', 'random', 'scaffold']
 if len(models) == 0:
   models = [
-      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
-      'graphconvreg'
+      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression', 'graphconvreg'
   ]
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:
@@ -92,7 +90,6 @@ if len(datasets) == 0:
       'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 'sampl',
       'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b', 'qm9'
   ]
-
 
 for split in splitters:
   for dataset in datasets:
