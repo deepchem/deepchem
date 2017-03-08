@@ -30,7 +30,7 @@ hps['tf_robust'] = {
     'bypass_bias_init_consts': [1.],
     'bypass_dropouts': [0.5],
     'penalty': 0.1,
-    'penalty_ty23:44 deepchepe': 'l2',
+    'penalty_type': 'l2',
     'batch_size': 50,
     'nb_epoch': 10,
     'learning_rate': 0.0005
@@ -51,7 +51,7 @@ hps['irv'] = {
     'n_K': 10
 }
 hps['graphconv'] = {
-     'batch_size': 50,
+    'batch_size': 50,
     'nb_epoch': 15,
     'learning_rate': 0.0005,
     'n_filters': 64,
