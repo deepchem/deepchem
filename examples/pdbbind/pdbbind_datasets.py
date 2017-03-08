@@ -2,18 +2,29 @@
 PDBBind dataset loader.
 """
 
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
+import logging
+import multiprocessing
 import os
+import multiprocessing
+from multiprocessing.pool import Pool
+
 import numpy as np
 import pandas as pd
 import shutil
 import time
 import re
-from rdkit import Chem
+import time
+from multiprocessing.pool import Pool
+
 import deepchem as dc
+import numpy as np
+import pandas as pd
+from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.utils.rdkit_util import MoleculeLoadException
 
 
 def load_pdbbind_labels(labels_file):
@@ -60,11 +71,16 @@ def load_pdbbind_labels(labels_file):
 
 def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   """Compute features for a given complex"""
-  protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
-  ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
-  features = grid_featurizer.featurize_complexes([ligand_file], [protein_file])
-  features = np.squeeze(features)
-  return features
+  try:
+    protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
+    ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
+    features = grid_featurizer.featurize_complexes([ligand_file],
+                                                   [protein_file])
+    features = np.squeeze(features)
+    return features
+  except Exception as e:
+    print(e)
+    return None
 
 
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
@@ -94,7 +110,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 
   # Define featurizers
   if feat == "grid":
-    featurizer = dc.feat.GridFeaturizer(
+    featurizer = dc.feat.RdkitGridFeaturizer(
         voxel_width=16.0,
         feature_types="voxel_combined",
         # TODO(rbharath, enf, leswing): Figure out why pi_stack and cation_pi
@@ -116,30 +132,25 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
 
   # Featurize Dataset
   features = []
-  feature_len = None
   y_inds = []
-  missing_pdbs = []
   time1 = time.time()
+  p = Pool(multiprocessing.cpu_count())
+  args = []
   for ind, pdb_code in enumerate(ids):
-    print("Processing complex %d, %s" % (ind, str(pdb_code)))
-    pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
-    if not os.path.exists(pdb_subdir):
-      print("%s is missing!" % pdb_subdir)
-      missing_pdbs.append(pdb_subdir)
+    args.append((ind, pdb_code, pdbbind_dir, featurizer))
+  results = p.map(compute_single_pdbbind_feature, args)
+  feature_len = None
+  for result in results:
+    if result is None:
       continue
-    computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
-                                                pdb_code)
     if feature_len is None:
-      feature_len = len(computed_feature)
-    if len(computed_feature) != feature_len:
-      print("Featurization failed for %s!" % pdb_code)
+      feature_len = len(result[1])
+    if len(result[1]) != feature_len:
       continue
-    y_inds.append(ind)
-    features.append(computed_feature)
+    y_inds.append(result[0])
+    features.append(result[1])
   time2 = time.time()
   print("TIMING: PDBBind Featurization took %0.3f s" % (time2 - time1))
-  print("missing_pdbs")
-  print(missing_pdbs)
   y = y[y_inds]
   X = np.vstack(features)
   w = np.ones_like(y)
@@ -148,7 +159,32 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   return dataset, tasks
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
+def compute_single_pdbbind_feature(x):
+  ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
+  print("Processing complex %d, %s" % (ind, str(pdb_code)))
+  pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
+  try:
+    computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
+                                                pdb_code)
+  except MoleculeLoadException as e:
+    logging.warning("Unable to compute features for %s" % x)
+    return None
+  except Exception as e:
+    logging.warning("Unable to compute features for %s" % x)
+    return None
+  return ind, computed_feature
+
+
+def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
+  """Compute features for a given complex"""
+  protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
+  ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
+  features = grid_featurizer.featurize_complexes([ligand_file], [protein_file])
+  features = np.squeeze(features)
+  return features
+
+
+def load_pdbbind_grid(split="index", featurizer="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
 
@@ -168,3 +204,7 @@ def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
     test = transformer.transform(test)
 
   return tasks, (train, valid, test), transformers
+
+
+if __name__ == "__main__":
+  load_pdbbind_grid()

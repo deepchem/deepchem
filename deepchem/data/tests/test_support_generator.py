@@ -295,7 +295,7 @@ class TestSupports(unittest.TestCase):
 
   def test_get_task_minus_support_missing(self):
     """Test that support can be removed from dataset with missing data"""
-    n_samples = 20
+    n_samples = int(20)
     n_support = 4 
     n_features = 3
     n_tasks = 1

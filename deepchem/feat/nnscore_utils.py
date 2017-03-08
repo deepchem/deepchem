@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+from deepchem.utils import rdkit_util
+
 __author__ = "Bharath Ramsundar and Jacob Durrant"
 __license__ = "GNU General Public License"
 
@@ -13,6 +15,7 @@ import os
 import subprocess
 import openbabel
 import numpy as np
+from rdkit.Chem import rdPartialCharges
 
 
 def force_partial_charge_computation(mol):
@@ -117,6 +120,41 @@ def hydrogenate_and_compute_partial_charges(input_file, input_format,
       filtered_lines.append(line)
     with open(pdbqt_output, "w") as f:
       f.writelines(filtered_lines)
+
+
+def rdkit_hydrogenate_and_compute_partial_charges(input_file, input_format,
+                                                  hyd_output=None,
+                                                  pdbqt_output=None,
+                                                  protein=True,
+                                                  verbose=True):
+  """Outputs a hydrogenated pdb and a pdbqt with partial charges.
+
+  Takes an input file in specified format. Generates two outputs:
+
+  -) A pdb file that contains a hydrogenated (at pH 7.4) version of
+     original compound.
+  -) A pdbqt file that has computed Gasteiger partial charges. This pdbqt
+     file is build from the hydrogenated pdb.
+
+  Parameters
+  ----------
+  input_file: String
+    Path to input file.
+  input_format: String
+    Name of input format.
+  """
+  if verbose:
+    print("Create pdb with hydrogens added")
+
+  mol = rdkit_util.load_molecule(input_file, add_hydrogens=True)[1]
+  if verbose:
+    print("Create pdb with hydrogens added")
+  rdkit_util.write_molecule(mol, hyd_output)
+  rdPartialCharges.ComputeGasteigerCharges(mol)
+  if verbose:
+    print("Create a pdbqt file from the hydrogenated pdb above.")
+  rdkit_util.write_molecule(mol, pdbqt_output)
+
 
 class AromaticRing(object):
   """Holds information about an aromatic ring."""

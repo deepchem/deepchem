@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Contains an abstract base class that supports data transformations.
 """
