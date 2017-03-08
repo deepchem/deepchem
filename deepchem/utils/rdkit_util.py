@@ -6,6 +6,7 @@ import tempfile
 import shutil
 from rdkit import Chem
 import networkx as nx
+
 from rdkit.Chem import AllChem
 from pdbfixer import PDBFixer
 from simtk.openmm.app import PDBFile
@@ -17,6 +18,7 @@ except ImportError:
 
 
 class MoleculeLoadException(Exception):
+
   def __init__(self, *args, **kwargs):
     Exception.__init__(*args, **kwargs)
 
@@ -50,7 +52,7 @@ def add_hydrogens_to_mol(mol):
     PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
     hydrogenated_io.seek(0)
     return Chem.MolFromPDBBlock(
-      hydrogenated_io.read(), sanitize=False, removeHs=False)
+        hydrogenated_io.read(), sanitize=False, removeHs=False)
   except ValueError as e:
     logging.warning("Unable to add hydrogens", e)
     raise MoleculeLoadException(e)
@@ -83,7 +85,7 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
     raise MoleculeLoadException("Don't support pdbqt files yet")
   elif ".pdb" in molecule_file:
     my_mol = Chem.MolFromPDBFile(
-      str(molecule_file), sanitize=False, removeHs=False)
+        str(molecule_file), sanitize=False, removeHs=False)
   else:
     raise ValueError("Unrecognized file type")
 
@@ -98,6 +100,7 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
   xyz = get_xyz_from_mol(my_mol)
 
   return xyz, my_mol
+
 
 
 def pdbqt_file_hack_protein(mol, outfile):
@@ -132,6 +135,7 @@ def write_molecule(mol, outfile, is_protein=False):
       pdbqt_file_hack_protein(mol, outfile)
     else:
       pdbqt_file_hack_ligand(mol, outfile)
+
   elif ".pdb" in outfile:
     writer = Chem.PDBWriter(outfile)
     writer.write(mol)
@@ -148,6 +152,7 @@ def pdbqt_to_pdb(filename):
     for line in pdbqt_data:
       fout.write("%s\n" % line[:66])
   return pdb_filename
+
 
 
 class PdbqtLigandWriter(object):
