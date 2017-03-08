@@ -85,7 +85,7 @@ def run_benchmark(datasets,
       if dataset in ['kaggle']:
         featurizer = None  # kaggle dataset is already featurized
         if isinstance(model,
-                      str) and not model in ['tf_regression, rf_regression']:
+                      str) and not model in ['tf_regression', 'rf_regression']:
           return
         if split in ['scaffold', 'butina', 'random']:
           return
@@ -100,7 +100,7 @@ def run_benchmark(datasets,
       elif dataset in ['pdbbind']:
         featurizer = 'grid'  # pdbbind accepts grid featurizer
         if isinstance(model,
-                      str) and not model in ['tf_regression, rf_regression']:
+                      str) and not model in ['tf_regression', 'rf_regression']:
           return
         if split in ['scaffold', 'butina']:
           return
