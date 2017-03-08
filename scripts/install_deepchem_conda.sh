@@ -14,6 +14,7 @@ export envname=$1
 conda create -y --name $envname python=3.5
 source activate $envname
 conda install -y -c omnia openbabel=2.4.0
+conda install -y -c omnia pdbfixer=1.4
 conda install -y -c rdkit rdkit
 conda install -y joblib
 yes | pip install six
@@ -22,5 +23,6 @@ conda install -y scikit-learn
 conda install -y setuptools
 conda install -y keras=1.1.1
 conda install -y -c conda-forge protobuf=3.1.0
+conda install -c anaconda networkx=1.11
 yes | pip install $tensorflow==0.12.1
 yes | pip install nose
