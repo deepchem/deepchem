@@ -13,6 +13,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import precision_score
 from scipy.stats import pearsonr
 
+
 def to_one_hot(y):
   """Transforms label vector into one-hot encoding.
 
@@ -26,6 +27,7 @@ def to_one_hot(y):
   y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
   return y_hot
 
+
 def from_one_hot(y, axis=1):
   """Transorms label vector from one-hot encoding.
 
@@ -33,6 +35,7 @@ def from_one_hot(y, axis=1):
     A vector of shape [n_samples, num_classes]
   """
   return np.argmax(y, axis=axis)
+
 
 def compute_roc_auc_scores(y, y_pred):
   """Transforms the results dict into roc-auc-scores and prints scores.
@@ -51,17 +54,21 @@ def compute_roc_auc_scores(y, y_pred):
     score = 0.5
   return score
 
+
 def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
+
 
 def rms_score(y_true, y_pred):
   """Computes RMS error."""
   return np.sqrt(mean_squared_error(y_true, y_pred))
 
+
 def mae_score(y_true, y_pred):
   """Computes MAE."""
   return mean_absolute_error(y_true, y_pred)
+
 
 def kappa_score(y_true, y_pred):
   """Calculate Cohen's kappa for classification tasks.
@@ -86,21 +93,27 @@ def kappa_score(y_true, y_pred):
   yp = np.asarray(y_pred, dtype=int)
   assert np.array_equal(np.unique(yt), [0, 1]), (
       'Class labels must be binary: %s' % np.unique(yt))
-  observed_agreement = np.true_divide(np.count_nonzero(np.equal(yt, yp)),
-                                      len(yt))
+  observed_agreement = np.true_divide(
+      np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
-      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
-      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0),
-      len(yt) ** 2)
+      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) + np.count_nonzero(
+          yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
   kappa = np.true_divide(observed_agreement - expected_agreement,
                          1.0 - expected_agreement)
   return kappa
 
+
 class Metric(object):
   """Wrapper class for computing user-defined metrics."""
 
-  def __init__(self, metric, task_averager=None, name=None, threshold=None,
-               verbose=True, mode=None, compute_energy_metric=False):
+  def __init__(self,
+               metric,
+               task_averager=None,
+               name=None,
+               threshold=None,
+               verbose=True,
+               mode=None,
+               compute_energy_metric=False):
     """
     Args:
       metric: function that takes args y_true, y_pred (in that order) and
@@ -113,23 +126,24 @@ class Metric(object):
     self.task_averager = task_averager
     self.is_multitask = (self.task_averager is not None)
     if name is None:
-      if not self.is_multitask:  
+      if not self.is_multitask:
         self.name = self.metric.__name__
       else:
         self.name = self.task_averager.__name__ + "-" + self.metric.__name__
     else:
       self.name = name
-    self.verbose = verbose 
+    self.verbose = verbose
     self.threshold = threshold
     if mode is None:
-      if self.metric.__name__ in ["roc_auc_score", "matthews_corrcoef",
-                                  "recall_score", "accuracy_score",
-                                  "kappa_score", "precision_score"]:
+      if self.metric.__name__ in [
+          "roc_auc_score", "matthews_corrcoef", "recall_score",
+          "accuracy_score", "kappa_score", "precision_score"
+      ]:
         mode = "classification"
-      elif self.metric.__name__ in ["pearson_r2_score", "r2_score",
-                                    "mean_squared_error",
-                                    "mean_absolute_error", "rms_score",
-                                    "mae_score"]:
+      elif self.metric.__name__ in [
+          "pearson_r2_score", "r2_score", "mean_squared_error",
+          "mean_absolute_error", "rms_score", "mae_score"
+      ]:
         mode = "regression"
       else:
         raise ValueError("Must specify mode for new metric.")
@@ -141,7 +155,12 @@ class Metric(object):
     # user-space as a custom task_averager function.
     self.compute_energy_metric = compute_energy_metric
 
-  def compute_metric(self, y_true, y_pred, w=None, n_classes=2, filter_nans=True,
+  def compute_metric(self,
+                     y_true,
+                     y_pred,
+                     w=None,
+                     n_classes=2,
+                     filter_nans=True,
                      per_task_metrics=False):
     """Compute a performance metric for each task.
 
@@ -165,7 +184,7 @@ class Metric(object):
     A numpy nd.array containing metric values for each task.
     """
     if len(y_true.shape) > 1:
-      n_samples, n_tasks = y_true.shape[0], y_true.shape[1] 
+      n_samples, n_tasks = y_true.shape[0], y_true.shape[1]
     else:
       n_samples, n_tasks = y_true.shape[0], 1
     if self.mode == "classification":
@@ -184,9 +203,8 @@ class Metric(object):
       else:
         y_pred_task = y_pred[:, task, :]
       w_task = w[:, task]
-    
-      metric_value = self.compute_singletask_metric(
-          y_task, y_pred_task, w_task)
+
+      metric_value = self.compute_singletask_metric(y_task, y_pred_task, w_task)
       computed_metrics.append(metric_value)
     log("computed_metrics: %s" % str(computed_metrics), self.verbose)
     if n_tasks == 1:
@@ -199,14 +217,14 @@ class Metric(object):
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
       if self.compute_energy_metric:
         # TODO(rbharath, joegomes): What is this magic number?    
-        force_error = self.task_averager(computed_metrics[1:])*4961.47596096    
-        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name, force_error))    
+        force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
+        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" %
+              (self.name, force_error))
         return computed_metrics[0]
       elif not per_task_metrics:
         return self.task_averager(computed_metrics)
       else:
         return self.task_averager(computed_metrics), computed_metrics
-
 
   def compute_singletask_metric(self, y_true, y_pred, w):
     """Compute a metric value.
@@ -249,13 +267,11 @@ class Metric(object):
     else:
       y_pred = np.reshape(y_pred, (n_samples,))
 
-      
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
     try:
       metric_value = self.metric(y_true, y_pred)
     except (AssertionError, ValueError) as e:
-      warnings.warn("Error calculating metric %s: %s"
-                    % (self.name, e))
+      warnings.warn("Error calculating metric %s: %s" % (self.name, e))
       metric_value = np.nan
-    return metric_value 
+    return metric_value
