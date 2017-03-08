@@ -1,5 +1,5 @@
 """
-Implements a multitask classifier.
+Implements a multitask graph convolutional classifier.
 """
 from __future__ import print_function
 from __future__ import division
