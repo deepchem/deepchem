@@ -193,20 +193,21 @@ def benchmark_classification(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)
-    graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
+        dc.nn.Dense(int(n_fully_connected_nodes), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
     model = dc.models.MultitaskGraphClassifier(
         graph_model,
         len(tasks),
+        n_features,
         batch_size=batch_size,
         learning_rate=learning_rate,
         optimizer_type="adam",
@@ -367,20 +368,21 @@ def benchmark_regression(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)
-    graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
+        dc.nn.Dense(int(n_fully_connected_nodes), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
     model = dc.models.MultitaskGraphRegressor(
         graph_model,
         len(tasks),
+        n_features,
         batch_size=batch_size,
         learning_rate=learning_rate,
         optimizer_type="adam",

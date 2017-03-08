@@ -19,7 +19,7 @@ def load_qm9(featurizer=None, split='random'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./gdb9.sdf")
+      data_dir, "gdb9.sdf")
   
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 

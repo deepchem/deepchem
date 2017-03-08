@@ -18,7 +18,7 @@ def load_muv(featurizer='ECFP', split='index'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./muv.csv.gz")
+      data_dir, "muv.csv.gz")
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/muv.csv.gz')

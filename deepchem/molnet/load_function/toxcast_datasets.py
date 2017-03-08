@@ -16,7 +16,7 @@ def load_toxcast(featurizer='ECFP', split='index'):
     data_dir = "/tmp"
 
   dataset_file = os.path.join(
-      data_dir, "./toxcast_data.csv.gz")
+      data_dir, "toxcast_data.csv.gz")
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz')

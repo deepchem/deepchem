@@ -18,9 +18,8 @@ def load_delaney(featurizer='ECFP', split='index'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./delaney-processed.csv")
-  print(dataset_file)
-  print(os.path.exists(dataset_file))
+      data_dir, "delaney-processed.csv")
+
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv')

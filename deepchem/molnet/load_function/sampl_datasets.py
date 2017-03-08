@@ -19,7 +19,7 @@ def load_sampl(featurizer='ECFP', split='index'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./SAMPL.csv")
+      data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/SAMPL.csv')

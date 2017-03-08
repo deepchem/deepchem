@@ -20,7 +20,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./nci_unique.csv")
+      data_dir, "nci_unique.csv")
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/nci_unique.csv')

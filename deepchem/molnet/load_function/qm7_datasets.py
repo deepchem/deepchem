@@ -18,7 +18,7 @@ def load_qm7_from_mat(featurizer=None, split='stratified'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./qm7.mat")
+      data_dir, "qm7.mat")
 
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir +
@@ -63,7 +63,7 @@ def load_qm7b_from_mat(featurizer=None, split='stratified'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./qm7b.mat")
+      data_dir, "qm7b.mat")
 
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir +
@@ -108,7 +108,7 @@ def load_qm7(featurizer=None, split='random'):
     data_dir = "/tmp"
   
   dataset_file = os.path.join(
-      data_dir, "./gdb7.sdf")
+      data_dir, "gdb7.sdf")
   
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 

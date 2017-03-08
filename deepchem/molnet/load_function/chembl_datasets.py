@@ -18,7 +18,7 @@ def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random
     data_dir = "/tmp"
   
   dataset_path = os.path.join(
-      data_dir, "./chembl_%s.csv.gz" % set)
+      data_dir, "chembl_%s.csv.gz" % set)
   if not os.path.exists(dataset_path):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/chembl_5thresh.csv.gz')
