@@ -18,7 +18,7 @@ def load_supertoxic(featurizer='ECFP', split='index'):
   print("About to load supertoxic dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
   dataset_file = os.path.join(
-      current_dir, "./datasets/stox_processed-canonicalized.csv.gz")
+      current_dir, "./datasets/stox_processed-canonicalized-dense10K.csv.gz")
   dataset = dc.utils.save.load_from_disk(dataset_file)
   supertoxic_tasks = dataset.columns.values[1:].tolist()
   
