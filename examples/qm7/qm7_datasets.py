@@ -15,7 +15,7 @@ import csv
 
 def load_qm7_from_mat(featurizer=None, split='stratified'):
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  dataset_file = os.path.join(current_dir, "./qm7.mat")
+  dataset_file = os.path.join(current_dir, "qm7.mat")
 
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + current_dir +
