@@ -37,7 +37,15 @@ class MetricsTest(googletest.TestCase):
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     assert np.isclose(dc.metrics.r2_score(y_true, y_pred),
                       regression_metric.compute_metric(y_true, y_pred))
-  
+
+  def test_one_hot(self):
+    y = np.array([0, 0, 1, 0, 1, 1, 0])
+    y_hot = metrics.to_one_hot(y)
+    expected = np.array([[1,0], [1,0], [0,1], [1,0], [0,1], [0,1], [1,0]])
+    yp = metrics.from_one_hot(y_hot)
+    assert np.array_equal(expected, y_hot)
+    assert np.array_equal(y, yp)
+
 
 if __name__ == '__main__':
   googletest.main()

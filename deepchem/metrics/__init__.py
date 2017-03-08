@@ -23,11 +23,7 @@ def to_one_hot(y):
   """
   n_samples = np.shape(y)[0]
   y_hot = np.zeros((n_samples, 2))
-  for index, val in enumerate(y):
-    if val == 0:
-      y_hot[index] = np.array([1, 0])
-    elif val == 1:
-      y_hot[index] = np.array([0, 1])
+  y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
   return y_hot
 
 def from_one_hot(y, axis=1):
