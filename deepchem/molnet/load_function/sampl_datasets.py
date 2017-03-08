@@ -29,6 +29,9 @@ def load_sampl(featurizer='ECFP', split='index'):
     featurizer = dc.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
+
   loader = dc.data.CSVLoader(
       tasks=SAMPL_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(

@@ -28,9 +28,12 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
 
   # Featurize nci dataset
   print("About to featurize nci dataset.")
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
 
   all_nci_tasks = (['CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226',
                     'SR', 'A549/ATCC', 'EKVX', 'HOP-62', 'HOP-92', 'NCI-H226',

@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 import deepchem as dc
-from deepchem.molnet.kaggle_features import merck_descriptors
+from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 def remove_missing_entries(dataset):
   """Remove missing entries.

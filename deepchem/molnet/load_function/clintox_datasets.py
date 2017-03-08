@@ -34,9 +34,13 @@ def load_clintox(featurizer='ECFP', split='index'):
 
   # Featurize clintox dataset
   print("About to featurize clintox dataset.")
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
+
   loader = dc.data.CSVLoader(
       tasks=clintox_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)

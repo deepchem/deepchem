@@ -62,7 +62,7 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
       raise ValueError('Dataset not supported')
     
     if featurizer == None:
-      # Assigning featurizer
+      # Assigning featurizer if not user defined
       if model in ['graphconv', 'graphconvreg']:
         featurizer = 'GraphConv'
         n_features = 75
@@ -124,8 +124,11 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
     # loading datasets
     if split is not None:
       print('Splitting function: %s' % split)
-    tasks, all_dataset, transformers = loading_functions[dataset](
+      tasks, all_dataset, transformers = loading_functions[dataset](
           featurizer=featurizer, split=split)
+    else:
+      tasks, all_dataset, transformers = loading_functions[dataset](
+          featurizer=featurizer)
 
     train_dataset, valid_dataset, test_dataset = all_dataset
     if dataset in ['kaggle', 'pdbbind']:
@@ -137,6 +140,7 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
     train_scores = {}
     valid_scores = {}
     test_scores = {}
+
     if isinstance(model, str):
       if mode == 'classification':
         train_score, valid_score, test_score = benchmark_classification(

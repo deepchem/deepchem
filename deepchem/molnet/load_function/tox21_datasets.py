@@ -25,9 +25,12 @@ def load_tox21(featurizer='ECFP', split='index'):
   tox21_tasks = ['NR-AR', 'NR-AR-LBD', 'NR-AhR', 'NR-Aromatase', 'NR-ER',
                  'NR-ER-LBD', 'NR-PPAR-gamma', 'SR-ARE', 'SR-ATAD5',
                  'SR-HSE', 'SR-MMP', 'SR-p53']
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
 
   loader = dc.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)

@@ -24,9 +24,12 @@ def load_pcba(featurizer='ECFP', split='random'):
     
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
 
   PCBA_tasks = [
       'PCBA-1030','PCBA-1379','PCBA-1452','PCBA-1454','PCBA-1457',

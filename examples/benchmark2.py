@@ -101,8 +101,8 @@ for split in splitters:
     ]:
       for model in models:
         if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv']:
-          dc.molnet.run_benchmark([dataset], model, split=split, test=test)
+          dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)
     else:
       for model in models:
         if model in ['tf_regression', 'rf_regression', 'graphconvreg']:
-          dc.molnet.run_benchmark([dataset], model, split=split, test=test)
+          dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)

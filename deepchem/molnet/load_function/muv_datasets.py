@@ -26,9 +26,12 @@ def load_muv(featurizer='ECFP', split='index'):
   # Featurize MUV dataset
   print("About to featurize MUV dataset.")
 
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
       
   MUV_tasks = sorted(['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
                       'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',

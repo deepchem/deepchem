@@ -19,14 +19,20 @@ def load_delaney(featurizer='ECFP', split='index'):
   
   dataset_file = os.path.join(
       data_dir, "./delaney-processed.csv")
+  print(dataset_file)
+  print(os.path.exists(dataset_file))
   if not os.path.exists(dataset_file):
     os.system('wget -P ' + data_dir + 
     ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv')
 
   delaney_tasks = ['measured log solubility in mols per litre']
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
+
   loader = dc.data.CSVLoader(
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(

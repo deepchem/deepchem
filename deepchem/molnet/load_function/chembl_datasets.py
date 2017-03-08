@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import os
 import deepchem as dc
 
-from deepchem.molnet.chembl_tasks import chembl_tasks
+from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
 def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random"):
 
@@ -48,9 +48,12 @@ def load_chembl(shard_size=2000, featurizer="ECFP", set="5thresh", split="random
 
   # Featurize ChEMBL dataset
   print("About to featurize ChEMBL dataset.")
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
 
   loader = dc.data.CSVLoader(
       tasks=chembl_tasks, smiles_field="smiles", featurizer=featurizer)

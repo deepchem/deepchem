@@ -28,9 +28,12 @@ def load_toxcast(featurizer='ECFP', split='index'):
   # Featurize TOXCAST dataset
   print("About to featurize TOXCAST dataset.")
 
-  featurizers = {'ECFP': dc.feat.CircularFingerprint(size=1024),
-                 'GraphConv': dc.feat.ConvMolFeaturizer()}
-  featurizer = featurizers[featurizer]
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
+  elif featurizer == 'Raw':
+    featurizer = dc.feat.RawFeaturizer()
 
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
