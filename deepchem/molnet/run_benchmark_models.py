@@ -16,17 +16,19 @@ from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 
-def benchmark_classification(train_dataset,
-                             valid_dataset,
-                             test_dataset,
-                             tasks,
-                             transformers,
-                             n_features,
-                             metric,
-                             model,
-                             test=False,
-                             hyper_parameters=None,
-                             seed=123,):
+
+def benchmark_classification(
+    train_dataset,
+    valid_dataset,
+    test_dataset,
+    tasks,
+    transformers,
+    n_features,
+    metric,
+    model,
+    test=False,
+    hyper_parameters=None,
+    seed=123,):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -74,7 +76,7 @@ def benchmark_classification(train_dataset,
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
-  
+
   if model_name == 'tf':
     # Loading hyper parameters    
     layer_sizes = hyper_parameters['layer_sizes']
@@ -193,15 +195,18 @@ def benchmark_classification(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)
-    graph_model.add(dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(int(n_fully_connected_nodes), int(n_filters), activation='relu'))
+        dc.nn.Dense(
+            int(n_fully_connected_nodes), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
     model = dc.models.MultitaskGraphClassifier(
@@ -218,6 +223,7 @@ def benchmark_classification(train_dataset,
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
     nb_epoch = None
+
     # Building scikit random forest model
     def model_builder(model_dir_rf):
       sklearn_model = RandomForestClassifier(
@@ -231,28 +237,26 @@ def benchmark_classification(train_dataset,
   else:
     model.fit(train_dataset, nb_epoch=nb_epoch)
 
-  train_scores[model_name] = model.evaluate(
-      train_dataset, metric, transformers)
-  valid_scores[model_name] = model.evaluate(
-      valid_dataset, metric, transformers)
+  train_scores[model_name] = model.evaluate(train_dataset, metric, transformers)
+  valid_scores[model_name] = model.evaluate(valid_dataset, metric, transformers)
   if test:
-    test_scores[model_name] = model.evaluate(
-        test_dataset, metric, transformers)
-    
+    test_scores[model_name] = model.evaluate(test_dataset, metric, transformers)
+
   return train_scores, valid_scores, test_scores
 
 
-def benchmark_regression(train_dataset,
-                         valid_dataset,
-                         test_dataset,
-                         tasks,
-                         transformers,
-                         n_features,
-                         metric,
-                         model,
-                         test=False,
-                         hyper_parameters=None,
-                         seed=123,):
+def benchmark_regression(
+    train_dataset,
+    valid_dataset,
+    test_dataset,
+    tasks,
+    transformers,
+    n_features,
+    metric,
+    model,
+    test=False,
+    hyper_parameters=None,
+    seed=123,):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -295,11 +299,13 @@ def benchmark_regression(train_dataset,
   valid_scores = {}
   test_scores = {}
 
-  assert model in ['tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg']
+  assert model in [
+      'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg'
+  ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
-  
+
   if model_name == 'tf_regression':
     # Loading hyper parameters
     layer_sizes = hyper_parameters['layer_sizes']
@@ -311,20 +317,19 @@ def benchmark_regression(train_dataset,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
-    
+
     model = dc.models.TensorflowMultiTaskRegressor(
-          len(tasks),
-          n_features,
-          layer_sizes=layer_sizes,
-          weight_init_stddevs=weight_init_stddevs,
-          bias_init_consts=bias_init_consts,
-          dropouts=dropouts,
-          penalty=penalty,
-          penalty_type=penalty_type,
-          batch_size=batch_size,
-          learning_rate=learning_rate,
-          seed=seed)
-    
+        len(tasks),
+        n_features,
+        layer_sizes=layer_sizes,
+        weight_init_stddevs=weight_init_stddevs,
+        bias_init_consts=bias_init_consts,
+        dropouts=dropouts,
+        penalty=penalty,
+        penalty_type=penalty_type,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        seed=seed)
 
     # Building tensorflow MultiTaskDNN model
   elif model_name == 'tf_regression_ft':
@@ -354,7 +359,6 @@ def benchmark_regression(train_dataset,
         fit_transformers=fit_transformers,
         n_eval=10,
         seed=seed)
-      
 
   if model_name == 'graphconvreg':
     # Initialize model folder
@@ -368,15 +372,18 @@ def benchmark_regression(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)
-    graph_model.add(dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
-    graph_model.add(dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(int(n_fully_connected_nodes), int(n_filters), activation='relu'))
+        dc.nn.Dense(
+            int(n_fully_connected_nodes), int(n_filters), activation='relu'))
     graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
     model = dc.models.MultitaskGraphRegressor(
@@ -389,11 +396,11 @@ def benchmark_regression(train_dataset,
         beta1=.9,
         beta2=.999)
 
-
   if model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
     nb_epoch = None
+
     # Building scikit random forest model
     def model_builder(model_dir_rf_regression):
       sklearn_model = RandomForestRegressor(
@@ -401,8 +408,7 @@ def benchmark_regression(train_dataset,
       return dc.models.sklearn_models.SklearnModel(sklearn_model,
                                                    model_dir_rf_regression)
 
-    model = dc.models.multitask.SingletaskToMultitask(
-        tasks, model_builder)
+    model = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
 
   print('-----------------------------')
   print('Start fitting: %s' % model_name)
@@ -411,12 +417,9 @@ def benchmark_regression(train_dataset,
   else:
     model.fit(train_dataset, nb_epoch=nb_epoch)
 
-  train_scores[model_name] = model.evaluate(
-      train_dataset, metric, transformers)
-  valid_scores[model_name] = model.evaluate(
-      valid_dataset, metric, transformers)
+  train_scores[model_name] = model.evaluate(train_dataset, metric, transformers)
+  valid_scores[model_name] = model.evaluate(valid_dataset, metric, transformers)
   if test:
-    test_scores[model_name] = model.evaluate(
-        test_dataset, metric, transformers)
+    test_scores[model_name] = model.evaluate(test_dataset, metric, transformers)
 
   return train_scores, valid_scores, test_scores

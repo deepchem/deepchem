@@ -16,6 +16,7 @@ import deepchem as dc
 import numpy as np
 import pandas as pd
 
+
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   """Featurizes pdbbind according to provided featurization"""
   tasks = ["-logKd/Ki"]
@@ -25,20 +26,26 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     data_dir = "/tmp"
   data_dir = os.path.join(data_dir, "pdbbind")
   dataset_dir = os.path.join(data_dir, "%s_%s" % (subset, feat))
-  
+
   if not os.path.exists(dataset_dir):
-    os.system('wget -P ' + data_dir + 
-    ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz')
-    os.system('wget -P ' + data_dir + 
-    ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz')
-    os.system('wget -P ' + data_dir + 
-    ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz')
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'core_grid.tar.gz') + 
-    ' -C ' + data_dir)
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'full_grid.tar.gz') + 
-    ' -C ' + data_dir)
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'refined_grid.tar.gz') + 
-    ' -C ' + data_dir)
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz'
+    )
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz'
+    )
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz'
+    )
+    os.system('tar -zxvf ' + os.path.join(data_dir, 'core_grid.tar.gz') + ' -C '
+              + data_dir)
+    os.system('tar -zxvf ' + os.path.join(data_dir, 'full_grid.tar.gz') + ' -C '
+              + data_dir)
+    os.system('tar -zxvf ' + os.path.join(data_dir, 'refined_grid.tar.gz') +
+              ' -C ' + data_dir)
 
   return dc.data.DiskDataset(dataset_dir), tasks
 

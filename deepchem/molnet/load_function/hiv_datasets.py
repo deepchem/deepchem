@@ -17,13 +17,13 @@ def load_hiv(featurizer='ECFP', split='index'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
-  
-  dataset_file = os.path.join(
-      data_dir, "HIV.csv")
-  if not os.path.exists(dataset_file):
-    os.system('wget -P ' + data_dir + 
-    ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv')
 
+  dataset_file = os.path.join(data_dir, "HIV.csv")
+  if not os.path.exists(dataset_file):
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
+    )
 
   hiv_tasks = ["HIV_active"]
   if featurizer == 'ECFP':

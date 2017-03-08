@@ -17,16 +17,16 @@ def load_qm9(featurizer=None, split='random'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
-  
-  dataset_file = os.path.join(
-      data_dir, "gdb9.sdf")
-  
+
+  dataset_file = os.path.join(data_dir, "gdb9.sdf")
+
   if not os.path.exists(dataset_file):
-    os.system('wget -P ' + data_dir + 
-    ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/gdb9.tar.gz ')
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + 
-    ' -C ' + data_dir)
-    
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/gdb9.tar.gz '
+    )
+    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
+              data_dir)
 
   qm9_tasks = [
       "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",

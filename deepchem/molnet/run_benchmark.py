@@ -16,8 +16,14 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 
-def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
-                  out_path='.', test=False):
+
+def run_benchmark(datasets,
+                  model,
+                  split=None,
+                  metric=None,
+                  featurizer=None,
+                  out_path='.',
+                  test=False):
   """
   Run benchmark test on designated datasets with deepchem(or user-defined) model
   
@@ -36,9 +42,9 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
       choice of splitter function, None = using the default splitter
   metric: string,  optional (default=None)
       choice of evaluation metrics, None = using the default metrics(AUC & R2)
-  featurizer: string,  optional (default=None)
+  featurizer: string or dc.feat.Featurizer,  optional (default=None)
       choice of featurization, None = using the default corresponding to model
-      (only applicable to deepchem models)
+      (string only applicable to deepchem models)
   out_path: string, optional(default='.')
       path of result file
   test: boolean, optional(default=False)
@@ -60,24 +66,26 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
         metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
     else:
       raise ValueError('Dataset not supported')
-    
+
     if featurizer == None:
       # Assigning featurizer if not user defined
       if model in ['graphconv', 'graphconvreg']:
         featurizer = 'GraphConv'
         n_features = 75
       elif model in [
-          'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 
+          'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
           'rf_regression'
       ]:
         featurizer = 'ECFP'
         n_features = 1024
       else:
-        raise ValueError('featurization should be specified for user-defined models')
+        raise ValueError(
+            'featurization should be specified for user-defined models')
       # Some exceptions in datasets
       if dataset in ['kaggle']:
         featurizer = None  # kaggle dataset is already featurized
-        if isinstance(model, str) and not model in ['tf_regression, rf_regression']:
+        if isinstance(model,
+                      str) and not model in ['tf_regression, rf_regression']:
           return
         if split in ['scaffold', 'butina', 'random']:
           return
@@ -91,12 +99,15 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
           return
       elif dataset in ['pdbbind']:
         featurizer = 'grid'  # pdbbind accepts grid featurizer
-        if isinstance(model, str) and not model in ['tf_regression, rf_regression']:
+        if isinstance(model,
+                      str) and not model in ['tf_regression, rf_regression']:
           return
         if split in ['scaffold', 'butina']:
           return
-          
-    if not split in [None, 'index', 'random', 'scaffold', 'butina', 'stratified']:
+
+    if not split in [
+        None, 'index', 'random', 'scaffold', 'butina', 'stratified'
+    ]:
       raise ValueError('Splitter function not supported')
 
     loading_functions = {
@@ -135,7 +146,7 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
       n_features = train_dataset.get_data_shape()[0]
     elif dataset in ['qm7', 'qm7b', 'qm9']:
       n_features = list(train_dataset.get_data_shape())
-    
+
     time_start_fitting = time.time()
     train_scores = {}
     valid_scores = {}
@@ -166,17 +177,16 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
             test=test)
     else:
       model.fit(train_dataset)
-      train_scores['user_defined'] = model.evaluate(
-          train_dataset, metric, transformers)
-      valid_scores['user_defined'] = model.evaluate(
-          valid_dataset, metric, transformers)
+      train_scores['user_defined'] = model.evaluate(train_dataset, metric,
+                                                    transformers)
+      valid_scores['user_defined'] = model.evaluate(valid_dataset, metric,
+                                                    transformers)
       if test:
-        test_scores['user_defined'] = model.evaluate(
-            test_dataset, metric, transformers)
-        
+        test_scores['user_defined'] = model.evaluate(test_dataset, metric,
+                                                     transformers)
+
     time_finish_fitting = time.time()
 
-    
     with open(os.path.join(out_path, 'results.csv'), 'a') as f:
       writer = csv.writer(f)
       for i in train_score:
@@ -186,7 +196,8 @@ def run_benchmark(datasets, model, split=None, metric=None, featurizer=None,
             valid_score[i][valid_score[i].keys()[0]]
         ]
         if test:
-          output_line.extend(['test', i, test_score[i][test_score[i].keys()[0]]])
+          output_line.extend(
+              ['test', i, test_score[i][test_score[i].keys()[0]]])
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)

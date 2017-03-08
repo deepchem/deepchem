@@ -89,5 +89,5 @@ hps['graphconvreg'] = {
     'learning_rate': 0.0005,
     'n_filters': 128,
     'n_fully_connected_nodes': 256,
-     'seed': 123
+    'seed': 123
 }
