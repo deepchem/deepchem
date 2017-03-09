@@ -71,17 +71,12 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install -c omnia mdtraj
    ```
 
-7. `openmm`
+7. `pdbfixer`
    ```bash
-   conda install -c omnia openmm
+   conda install -c omnia pdbfixer=1.4
    ```
 
-8. `pdbfixer`
-   ```bash
-   pip install git+https://github.com/pandegroup/pdbfixer.git
-   ```
-
-9. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
+8. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
@@ -89,7 +84,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
     pip install tensorflow-gpu==0.12.1
     ```
 
-10. `deepchem`: Clone the `deepchem` github repo:
+9. `deepchem`: Clone the `deepchem` github repo:
    ```bash
    git clone https://github.com/deepchem/deepchem.git
    ```
@@ -98,7 +93,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
    python setup.py install
    ```
 
-11. To run test suite, install `nosetests`:
+10. To run test suite, install `nosetests`:
    ```bash
    pip install nose
    ```
@@ -109,7 +104,7 @@ Installation from source is the only currently supported format. ```deepchem``` 
    You might need to uninstall a system install of `nosetests` if
    there is a conflict.
 
-12. If installation has been successful, all tests in test suite should pass:
+11. If installation has been successful, all tests in test suite should pass:
     ```bash
     nosetests -v deepchem --nologcapture 
     ```
