@@ -12,6 +12,7 @@ import pandas as pd
 import deepchem as dc
 import csv
 
+
 class TestMolnet(unittest.TestCase):
   """
   Test basic function of molnet
