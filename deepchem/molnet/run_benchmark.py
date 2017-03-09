@@ -200,12 +200,12 @@ def run_benchmark(datasets,
       for i in train_score:
         output_line = [
             dataset, str(split), mode, 'train', i,
-            train_score[i][train_score[i].keys()[0]], 'valid', i,
-            valid_score[i][valid_score[i].keys()[0]]
+            train_score[i][list(train_score[i].keys())[0]], 'valid', i,
+            valid_score[i][list(valid_score[i].keys())[0]]
         ]
         if test:
           output_line.extend(
-              ['test', i, test_score[i][test_score[i].keys()[0]]])
+              ['test', i, test_score[i][list(test_score[i].keys(0))[0]]])
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)

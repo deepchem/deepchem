@@ -28,14 +28,15 @@ class TestMolnet(unittest.TestCase):
     model = 'graphconvreg'
     split = 'random'
     out_path = self.current_dir
-    dc.molnet.run_benchmark(datasets, model, split=split, out_path=out_path)
+    dc.molnet.run_benchmark(datasets, str(model), split=split, out_path=out_path)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
       assert lastrow[-4] == model
       assert lastrow[-5] == 'valid'
-      assert lastrow[-3] > 0.75
+      assert float(lastrow[-3]) > 0.75
+    os.remove(os.path.join(out_path, 'results.csv'))
 
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
@@ -43,14 +44,15 @@ class TestMolnet(unittest.TestCase):
     model = 'tf_regression'
     split = 'random'
     out_path = self.current_dir
-    dc.molnet.run_benchmark(datasets, model, split=split, out_path=out_path)
+    dc.molnet.run_benchmark(datasets, str(model), split=split, out_path=out_path)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
       assert lastrow[-4] == model + '_ft'
       assert lastrow[-5] == 'valid'
-      assert lastrow[-3] > 0.95
+      assert float(lastrow[-3]) > 0.95
+    os.remove(os.path.join(out_path, 'results.csv'))
 
   def test_tox21_multitask(self):
     """Tests molnet benchmarking on tox21 with multitask network."""
@@ -58,11 +60,13 @@ class TestMolnet(unittest.TestCase):
     model = 'tf'
     split = 'random'
     out_path = self.current_dir
-    dc.molnet.run_benchmark(datasets, model, split=split, out_path=out_path)
+    dc.molnet.run_benchmark(datasets, str(model), split=split, out_path=out_path)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
       assert lastrow[-4] == model
       assert lastrow[-5] == 'valid'
-      assert lastrow[-3] > 0.75
+      assert float(lastrow[-3]) > 0.75
+    os.remove(os.path.join(out_path, 'results.csv'))
+
