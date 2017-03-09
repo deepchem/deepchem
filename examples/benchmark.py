@@ -495,45 +495,47 @@ def benchmark_classification(train_dataset,
     sess = tf.Session(graph=g)
     K.set_session(sess)
     # Building graph convolution model
-    with g.as_default():
-      tf.set_random_seed(seed)
-      graph_model = dc.nn.SequentialGraph(n_features)
-      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphPool())
-      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphPool())
-      # Gather Projection
-      graph_model.add(
-          dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
-      with tf.Session() as sess:
-        model_graphconv = dc.models.MultitaskGraphClassifier(
-            sess,
-            graph_model,
-            len(tasks),
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            optimizer_type="adam",
-            beta1=.9,
-            beta2=.999)
+    tf.set_random_seed(seed)
+    graph_model = dc.nn.SequentialGraph(n_features)
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    # Gather Projection
+    graph_model.add(
+        dc.nn.Dense(
+            int(n_fully_connected_nodes), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+    with tf.Session() as sess:
+      model_graphconv = dc.models.MultitaskGraphClassifier(
+          graph_model,
+          len(tasks),
+          n_features,
+          batch_size=batch_size,
+          learning_rate=learning_rate,
+          optimizer_type="adam",
+          beta1=.9,
+          beta2=.999)
 
-        print('-------------------------------------')
-        print('Start fitting by graph convolution')
-        # Fit trained model
-        model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
-        # Evaluating graph convolution model
-        train_scores['graphconv'] = model_graphconv.evaluate(
-            train_dataset, [classification_metric], transformers)
+      print('-------------------------------------')
+      print('Start fitting by graph convolution')
+      # Fit trained model
+      model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
+      # Evaluating graph convolution model
+      train_scores['graphconv'] = model_graphconv.evaluate(
+          train_dataset, [classification_metric], transformers)
 
-        valid_scores['graphconv'] = model_graphconv.evaluate(
-            valid_dataset, [classification_metric], transformers)
+      valid_scores['graphconv'] = model_graphconv.evaluate(
+          valid_dataset, [classification_metric], transformers)
 
-        if test:
-          test_scores['graphconv'] = model_graphconv.evaluate(
-              test_dataset, [classification_metric], transformers)
+      if test:
+        test_scores['graphconv'] = model_graphconv.evaluate(
+            test_dataset, [classification_metric], transformers)
 
   if model == 'rf':
     # Loading hyper parameters
@@ -693,45 +695,47 @@ def benchmark_regression(train_dataset,
     sess = tf.Session(graph=g)
     K.set_session(sess)
     # Building graph convoluwtion model
-    with g.as_default():
-      tf.set_random_seed(seed)
-      graph_model = dc.nn.SequentialGraph(n_features)
-      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphPool())
-      graph_model.add(dc.nn.GraphConv(int(n_filters), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphPool())
-      # Gather Projection
-      graph_model.add(
-          dc.nn.Dense(int(n_fully_connected_nodes), activation='relu'))
-      graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
-      with tf.Session() as sess:
-        model_graphconvreg = dc.models.MultitaskGraphRegressor(
-            sess,
-            graph_model,
-            len(tasks),
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            optimizer_type="adam",
-            beta1=.9,
-            beta2=.999)
+    tf.set_random_seed(seed)
+    graph_model = dc.nn.SequentialGraph(n_features)
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    # Gather Projection
+    graph_model.add(
+        dc.nn.Dense(
+            int(n_fully_connected_nodes), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+    with tf.Session() as sess:
+      model_graphconvreg = dc.models.MultitaskGraphRegressor(
+          graph_model,
+          len(tasks),
+          n_features,
+          batch_size=batch_size,
+          learning_rate=learning_rate,
+          optimizer_type="adam",
+          beta1=.9,
+          beta2=.999)
 
-        print('-------------------------------------')
-        print('Start fitting by graph convolution')
-        # Fit trained model
-        model_graphconvreg.fit(train_dataset, nb_epoch=nb_epoch)
-        # Evaluating graph convolution model
-        train_scores['graphconvreg'] = model_graphconvreg.evaluate(
-            train_dataset, [regression_metric], transformers)
+      print('-------------------------------------')
+      print('Start fitting by graph convolution')
+      # Fit trained model
+      model_graphconvreg.fit(train_dataset, nb_epoch=nb_epoch)
+      # Evaluating graph convolution model
+      train_scores['graphconvreg'] = model_graphconvreg.evaluate(
+          train_dataset, [regression_metric], transformers)
 
-        valid_scores['graphconvreg'] = model_graphconvreg.evaluate(
-            valid_dataset, [regression_metric], transformers)
+      valid_scores['graphconvreg'] = model_graphconvreg.evaluate(
+          valid_dataset, [regression_metric], transformers)
 
-        if test:
-          test_scores['graphconvreg'] = model_graphconvreg.evaluate(
-              test_dataset, [regression_metric], transformers)
+      if test:
+        test_scores['graphconvreg'] = model_graphconvreg.evaluate(
+            test_dataset, [regression_metric], transformers)
 
   if model == 'rf_regression':
     # Loading hyper parameters
