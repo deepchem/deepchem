@@ -6,13 +6,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import sys
 import time
 
 import numpy as np
 import deepchem as dc
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from kaggle_features import merck_descriptors
+from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 
 def remove_missing_entries(dataset):
@@ -48,19 +46,32 @@ def gen_kaggle(KAGGLE_tasks,
                train_dir,
                valid_dir,
                test_dir,
+               data_dir,
                shard_size=2000):
   """Load KAGGLE datasets. Does not do train/test split"""
   ############################################################## TIMING
   time1 = time.time()
   ############################################################## TIMING
   # Set some global variables up top
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  train_files = os.path.join(current_dir,
+  train_files = os.path.join(data_dir,
                              "KAGGLE_training_disguised_combined_full.csv.gz")
-  valid_files = os.path.join(current_dir,
+  valid_files = os.path.join(data_dir,
                              "KAGGLE_test1_disguised_combined_full.csv.gz")
-  test_files = os.path.join(current_dir,
+  test_files = os.path.join(data_dir,
                             "KAGGLE_test2_disguised_combined_full.csv.gz")
+  if not os.path.exists(train_files):
+    os.system(
+        'wget -c -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_training_disguised_combined_full.csv.gz'
+    )
+    os.system(
+        'wget -c -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_test1_disguised_combined_full.csv.gz'
+    )
+    os.system(
+        'wget -c -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/KAGGLE_test2_disguised_combined_full.csv.gz'
+    )
 
   # Featurize KAGGLE dataset
   print("About to featurize KAGGLE dataset.")
@@ -69,7 +80,6 @@ def gen_kaggle(KAGGLE_tasks,
   loader = dc.data.UserCSVLoader(
       tasks=KAGGLE_tasks, id_field="Molecule", featurizer=featurizer)
 
-  train_datasets, valid_datasets, test_datasets = [], [], []
   print("Featurizing train datasets")
   train_dataset = loader.featurize(train_files, shard_size=shard_size)
 
@@ -112,18 +122,22 @@ def gen_kaggle(KAGGLE_tasks,
   return (raw_train_dataset, train_dataset, valid_dataset, test_dataset)
 
 
-def load_kaggle(shard_size=1024, featurizer="foobar"):
+def load_kaggle(shard_size=2000, featurizer=None, split=None):
   """Loads kaggle datasets. Generates if not stored already."""
   KAGGLE_tasks = [
       '3A4', 'CB1', 'DPP4', 'HIVINT', 'HIV_PROT', 'LOGD', 'METAB', 'NK1', 'OX1',
       'OX2', 'PGP', 'PPB', 'RAT_F', 'TDI', 'THROMBIN'
   ]
+  if "DEEPCHEM_DATA_DIR" in os.environ:
+    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
+  else:
+    data_dir = "/tmp"
 
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  raw_train_dir = os.path.join(current_dir, "raw_train_dir")
-  train_dir = os.path.join(current_dir, "train_dir")
-  valid_dir = os.path.join(current_dir, "valid_dir")
-  test_dir = os.path.join(current_dir, "test_dir")
+  data_dir = os.path.join(data_dir, "kaggle")
+  raw_train_dir = os.path.join(data_dir, "raw_train_dir")
+  train_dir = os.path.join(data_dir, "train_dir")
+  valid_dir = os.path.join(data_dir, "valid_dir")
+  test_dir = os.path.join(data_dir, "test_dir")
 
   if (os.path.exists(raw_train_dir) and os.path.exists(train_dir) and
       os.path.exists(valid_dir) and os.path.exists(test_dir)):
@@ -135,7 +149,7 @@ def load_kaggle(shard_size=1024, featurizer="foobar"):
   else:
     print("Featurizing datasets")
     (raw_train_dataset, train_dataset, valid_dataset, test_dataset) = \
-      gen_kaggle(KAGGLE_tasks, raw_train_dir, train_dir, valid_dir, test_dir,
+      gen_kaggle(KAGGLE_tasks, raw_train_dir, train_dir, valid_dir, test_dir, data_dir,
                   shard_size=shard_size)
 
   transformers = get_transformers(raw_train_dataset)
