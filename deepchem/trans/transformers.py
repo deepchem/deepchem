@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Contains an abstract base class that supports data transformations.
 """
@@ -700,7 +701,7 @@ class IRVTransformer():
   def X_transform(self, X_target):
     """ Calculate similarity between target dataset(X_target) and 
     reference dataset(X): #(1 in intersection)/#(1 in union)
-         similarity = (X_target ∩ X)/(X_target U X)
+         similarity = (X_target intersect X)/(X_target union X)
     Parameters:
     -----------
     X_target: np.ndarray

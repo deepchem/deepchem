@@ -15,3 +15,4 @@ import deepchem.splits
 import deepchem.trans
 import deepchem.utils
 import deepchem.dock
+import deepchem.molnet

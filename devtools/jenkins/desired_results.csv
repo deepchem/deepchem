@@ -1,5 +1,7 @@
 split,dataset,model,Train score/ROC-AUC,Valid score/ROC-AUC
 Index splitting,tox21,logistic regression,0.903,0.705
+Index splitting,tox21,Random Forest,0.999,0.733
+Index splitting,tox21,IRV,0.811,0.767
 Index splitting,tox21,Multitask network,0.856,0.763
 Index splitting,tox21,robust MT-NN,0.857,0.767
 Index splitting,tox21,graph convolution,0.872,0.798
@@ -12,6 +14,8 @@ Index splitting,pcba,Multitask network,0.826,0.802
 Index splitting,pcba,robust MT-NN,0.809,0.783
 Index splitting,pcba,graph convolution,0.876,0.852
 Index splitting,sider,logistic regression,0.933,0.620
+Index splitting,sider,Random Forest,0.999,0.670
+Index splitting,sider,IRV,0.649,0.642
 Index splitting,sider,Multitask network,0.775,0.634
 Index splitting,sider,robust MT-NN,0.803,0.632
 Index splitting,sider,graph convolution,0.708,0.594
@@ -20,10 +24,20 @@ Index splitting,toxcast,Multitask network,0.830,0.678
 Index splitting,toxcast,robust MT-NN,0.825,0.680
 Index splitting,toxcast,graph convolution,0.821,0.720
 Index splitting,clintox,logistic regression,0.967,0.676
+Index splitting,clintox,Random Forest,0.995,0.776
+Index splitting,clintox,IRV,0.763,0.814
 Index splitting,clintox,Multitask network,0.934,0.830
 Index splitting,clintox,robust MT-NN,0.949,0.827
 Index splitting,clintox,graph convolution,0.946,0.860
+Index splitting,hiv,logistic regression,0.864,0.739
+Index splitting,hiv,Random Forest,0.999,0.720
+Index splitting,hiv,IRV,0.841,0.724
+Index splitting,hiv,Multitask network,0.761,0.652
+Index splitting,hiv,robust MT-NN,0.780,0.708
+Index splitting,hiv,graph convolution,0.876,0.779
 Random splitting,tox21,logistic regression,0.902,0.715
+Random splitting,tox21,Random Forest,0.999,0.764
+Random splitting,tox21,IRV,0.808,0.767
 Random splitting,tox21,Multitask network,0.844,0.795
 Random splitting,tox21,robust MT-NN,0.855,0.773
 Random splitting,tox21,graph convolution,0.865,0.827
@@ -36,6 +50,8 @@ Random splitting,pcba,Multitask network,0.811,0.778
 Random splitting,pcba,robust MT-NN,0.811,0.771
 Random splitting,pcba,graph convolution,0.872,0.844
 Random splitting,sider,logistic regression,0.929,0.656
+Random splitting,sider,Random Forest,0.999,0.665
+Random splitting,sider,IRV,0.648,0.596
 Random splitting,sider,Multitask network,0.777,0.655
 Random splitting,sider,robust MT-NN,0.804,0.630
 Random splitting,sider,graph convolution,0.705,0.618
@@ -44,10 +60,20 @@ Random splitting,toxcast,Multitask network,0.836,0.684
 Random splitting,toxcast,robust MT-NN,0.822,0.681
 Random splitting,toxcast,graph convolution,0.820,0.717
 Random splitting,clintox,logistic regression,0.972,0.725
+Random splitting,clintox,Random Forest,0.997,0.670
+Random splitting,clintox,IRV,0.809,0.846
 Random splitting,clintox,Multitask network,0.951,0.834
 Random splitting,clintox,robust MT-NN,0.959,0.830
 Random splitting,clintox,graph convolution,0.975,0.876
+Random splitting,hiv,logistic regression,0.860,0.806
+Random splitting,hiv,Random Forest,0.999,0.850
+Random splitting,hiv,IRV,0.839,0.809
+Random splitting,hiv,Multitask network,0.742,0.715
+Random splitting,hiv,robust MT-NN,0.753,0.727
+Random splitting,hiv,graph convolution,0.847,0.803
 Scaffold splitting,tox21,logistic regression,0.900,0.650
+Scaffold splitting,tox21,Random Forest,0.999,0.629
+Scaffold splitting,tox21,IRV,0.823,0.708
 Scaffold splitting,tox21,Multitask network,0.863,0.703
 Scaffold splitting,tox21,robust MT-NN,0.861,0.710
 Scaffold splitting,tox21,graph convolution,0.885,0.732
@@ -60,6 +86,8 @@ Scaffold splitting,pcba,Multitask network,0.814,0.760
 Scaffold splitting,pcba,robust MT-NN,0.812,0.756
 Scaffold splitting,pcba,graph convolution,0.874,0.817
 Scaffold splitting,sider,logistic regression,0.926,0.592
+Scaffold splitting,sider,Random Forest,0.999,0.619
+Scaffold splitting,sider,IRV,0.639,0.599
 Scaffold splitting,sider,Multitask network,0.776,0.557
 Scaffold splitting,sider,robust MT-NN,0.797,0.560
 Scaffold splitting,sider,graph convolution,0.722,0.583
@@ -68,6 +96,57 @@ Scaffold splitting,toxcast,Multitask network,0.828,0.617
 Scaffold splitting,toxcast,robust MT-NN,0.830,0.614
 Scaffold splitting,toxcast,graph convolution,0.832,0.638
 Scaffold splitting,clintox,logistic regression,0.960,0.803
+Scaffold splitting,clintox,Random Forest,0.993,0.735
+Scaffold splitting,clintox,IRV,0.793,0.718
 Scaffold splitting,clintox,Multitask network,0.947,0.862
 Scaffold splitting,clintox,robust MT-NN,0.953,0.890
 Scaffold splitting,clintox,graph convolution,0.957,0.823
+Scaffold splitting,hiv,logistic regression,0.858,0.798
+Scaffold splitting,hiv,Random Forest,0.946,0.562
+Scaffold splitting,hiv,IRV,0.847,0.811
+Scaffold splitting,hiv,Multitask network,0.775,0.765
+Scaffold splitting,hiv,robust MT-NN,0.785,0.748
+Scaffold splitting,hiv,graph convolution,0.867,0.769
+Index splitting,delaney,Random Forest,0.953,0.626
+Index splitting,delaney,NN regression,0.868,0.578
+Index splitting,delaney,graphconv regression,0.967,0.790
+Random splitting,delaney,Random Forest,0.951,0.684
+Random splitting,delaney,NN regression,0.865,0.574
+Random splitting,delaney,graphconv regression,0.964,0.782
+Scaffold splitting,delaney,Random Forest,0.953,0.284
+Scaffold splitting,delaney,NN regression,0.866,0.342
+Scaffold splitting,delaney,graphconv regression,0.967,0.606
+Index splitting,sampl,Random Forest,0.968,0.736
+Index splitting,sampl,NN regression,0.917,0.764
+Index splitting,sampl,graphconv regression,0.982,0.864
+Random splitting,sampl,Random Forest,0.967,0.752
+Random splitting,sampl,NN regression,0.908,0.830
+Random splitting,sampl,graphconv regression,0.987,0.868
+Scaffold splitting,sampl,Random Forest,0.966,0.473
+Scaffold splitting,sampl,NN regression,0.891,0.217
+Scaffold splitting,sampl,graphconv regression,0.985,0.666
+Index splitting,nci,NN regression,0.171,0.062
+Index splitting,nci,graphconv regression,0.123,0.048
+Random splitting,nci,NN regression,0.168,0.085
+Random splitting,nci,graphconv regression,0.117,0.076
+Scaffold splitting,nci,NN regression,0.180,0.052
+Scaffold splitting,nci,graphconv regression,0.131,0.046
+Random splitting,pdbbind(core),Random Forest,0.969,0.445
+Random splitting,pdbbind(core),NN regression,0.973,0.494
+Random splitting,pdbbind(refined),Random Forest,0.963,0.511
+Random splitting,pdbbind(refined),NN regression,0.987,0.503
+Random splitting,pdbbind(full),Random Forest,0.965,0.493
+Random splitting,pdbbind(full),NN regression,0.983,0.528
+Index splitting,chembl,NN regression,0.443,0.427
+Random splitting,chembl,NN regression,0.464,0.434
+Scaffold splitting,chembl,NN regression,0.484,0.361
+Index splitting,qm7,NN regression,0.997,0.986
+Random splitting,qm7,NN regression,0.999,0.999
+Stratified splitting,qm7,NN regression,0.999,0.999
+Index splitting,qm7b,NN regression,0.931,0.803
+Random splitting,qm7b,NN regression,0.923,0.884
+Stratified splitting,qm7b,NN regression,0.934,0.884
+Index splitting,qm9,NN regression,0.733,0.791
+Random splitting,qm9,NN regression,0.811,0.823
+Stratified splitting,qm9,NN regression,0.843,0.818
+User-defined splitting,kaggle,NN regression,0.748,0.452
