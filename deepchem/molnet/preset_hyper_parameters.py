@@ -5,7 +5,7 @@ Created on Tue Mar  7 00:07:10 2017
 
 @author: zqwu
 """
-import deepchem as dc
+import deepchem
 
 hps = {}
 hps['tf'] = {
@@ -80,7 +80,7 @@ hps['tf_regression_ft'] = {
     'batch_size': 128,
     'nb_epoch': 50,
     'learning_rate': 0.0008,
-    'fit_transformers': dc.trans.CoulombFitTransformer
+    'fit_transformers': deepchem.trans.CoulombFitTransformer
 }
 hps['rf_regression'] = {'n_estimators': 500}
 hps['graphconvreg'] = {

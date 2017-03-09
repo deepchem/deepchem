@@ -13,7 +13,7 @@ import time
 import csv
 import numpy as np
 import tensorflow as tf
-import deepchem as dc
+import deepchem
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 
 
@@ -56,14 +56,18 @@ def run_benchmark(datasets,
     ]:
       mode = 'classification'
       if metric == None:
-        metric = [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)]
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)
+        ]
     elif dataset in [
         'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
         'sampl'
     ]:
       mode = 'regression'
       if metric == None:
-        metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
+        ]
     else:
       raise ValueError('Dataset not supported')
 
@@ -111,22 +115,22 @@ def run_benchmark(datasets,
       raise ValueError('Splitter function not supported')
 
     loading_functions = {
-        'tox21': dc.molnet.load_tox21,
-        'muv': dc.molnet.load_muv,
-        'pcba': dc.molnet.load_pcba,
-        'nci': dc.molnet.load_nci,
-        'sider': dc.molnet.load_sider,
-        'toxcast': dc.molnet.load_toxcast,
-        'kaggle': dc.molnet.load_kaggle,
-        'delaney': dc.molnet.load_delaney,
-        'pdbbind': dc.molnet.load_pdbbind_grid,
-        'chembl': dc.molnet.load_chembl,
-        'qm7': dc.molnet.load_qm7_from_mat,
-        'qm7b': dc.molnet.load_qm7b_from_mat,
-        'qm9': dc.molnet.load_qm9,
-        'sampl': dc.molnet.load_sampl,
-        'clintox': dc.molnet.load_clintox,
-        'hiv': dc.molnet.load_hiv
+        'tox21': deepchem.molnet.load_tox21,
+        'muv': deepchem.molnet.load_muv,
+        'pcba': deepchem.molnet.load_pcba,
+        'nci': deepchem.molnet.load_nci,
+        'sider': deepchem.molnet.load_sider,
+        'toxcast': deepchem.molnet.load_toxcast,
+        'kaggle': deepchem.molnet.load_kaggle,
+        'delaney': deepchem.molnet.load_delaney,
+        'pdbbind': deepchem.molnet.load_pdbbind_grid,
+        'chembl': deepchem.molnet.load_chembl,
+        'qm7': deepchem.molnet.load_qm7_from_mat,
+        'qm7b': deepchem.molnet.load_qm7b_from_mat,
+        'qm9': deepchem.molnet.load_qm9,
+        'sampl': deepchem.molnet.load_sampl,
+        'clintox': deepchem.molnet.load_clintox,
+        'hiv': deepchem.molnet.load_hiv
     }
 
     print('-------------------------------------')

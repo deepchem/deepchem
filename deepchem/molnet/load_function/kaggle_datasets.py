@@ -9,7 +9,7 @@ import os
 import time
 
 import numpy as np
-import deepchem as dc
+import deepchem
 from deepchem.molnet.load_function.kaggle_features import merck_descriptors
 
 
@@ -34,8 +34,8 @@ def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
   transformers = []
   #transformers = [
-  #    dc.trans.LogTransformer(transform_X=True),
-  #    dc.trans.NormalizationTransformer(transform_y=True,
+  #    deepchem.trans.LogTransformer(transform_X=True),
+  #    deepchem.trans.NormalizationTransformer(transform_y=True,
   #                                      dataset=train_dataset)]
   return transformers
 
@@ -75,9 +75,9 @@ def gen_kaggle(KAGGLE_tasks,
 
   # Featurize KAGGLE dataset
   print("About to featurize KAGGLE dataset.")
-  featurizer = dc.feat.UserDefinedFeaturizer(merck_descriptors)
+  featurizer = deepchem.feat.UserDefinedFeaturizer(merck_descriptors)
 
-  loader = dc.data.UserCSVLoader(
+  loader = deepchem.data.UserCSVLoader(
       tasks=KAGGLE_tasks, id_field="Molecule", featurizer=featurizer)
 
   print("Featurizing train datasets")
@@ -142,10 +142,10 @@ def load_kaggle(shard_size=2000, featurizer=None, split=None):
   if (os.path.exists(raw_train_dir) and os.path.exists(train_dir) and
       os.path.exists(valid_dir) and os.path.exists(test_dir)):
     print("Reloading existing datasets")
-    raw_train_dataset = dc.data.DiskDataset(raw_train_dir)
-    train_dataset = dc.data.DiskDataset(train_dir)
-    valid_dataset = dc.data.DiskDataset(valid_dir)
-    test_dataset = dc.data.DiskDataset(test_dir)
+    raw_train_dataset = deepchem.data.DiskDataset(raw_train_dir)
+    train_dataset = deepchem.data.DiskDataset(train_dir)
+    valid_dataset = deepchem.data.DiskDataset(valid_dir)
+    test_dataset = deepchem.data.DiskDataset(test_dir)
   else:
     print("Featurizing datasets")
     (raw_train_dataset, train_dataset, valid_dataset, test_dataset) = \

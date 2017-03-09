@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_pcba(featurizer='ECFP', split='random'):
@@ -27,11 +27,11 @@ def load_pcba(featurizer='ECFP', split='random'):
   # Featurize PCBA dataset
   print("About to featurize PCBA dataset.")
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
   PCBA_tasks = [
       'PCBA-1030', 'PCBA-1379', 'PCBA-1452', 'PCBA-1454', 'PCBA-1457',
@@ -61,13 +61,13 @@ def load_pcba(featurizer='ECFP', split='random'):
       'PCBA-924', 'PCBA-925', 'PCBA-926', 'PCBA-927', 'PCBA-938', 'PCBA-995'
   ]
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file)
   # Initialize transformers 
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
 
   print("About to transform data")
@@ -75,9 +75,9 @@ def load_pcba(featurizer='ECFP', split='random'):
     dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
   print("Performing new split.")

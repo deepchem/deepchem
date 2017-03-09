@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_muv(featurizer='ECFP', split='index'):
@@ -29,11 +29,11 @@ def load_muv(featurizer='ECFP', split='index'):
   print("About to featurize MUV dataset.")
 
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
   MUV_tasks = sorted([
       'MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644', 'MUV-548',
@@ -41,22 +41,22 @@ def load_muv(featurizer='ECFP', split='index'):
       'MUV-713', 'MUV-733', 'MUV-652', 'MUV-466', 'MUV-832'
   ])
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers 
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)

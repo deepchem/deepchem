@@ -12,7 +12,7 @@ import os
 import re
 import time
 
-import deepchem as dc
+import deepchem
 import numpy as np
 import pandas as pd
 
@@ -47,7 +47,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     os.system('tar -zxvf ' + os.path.join(data_dir, 'refined_grid.tar.gz') +
               ' -C ' + data_dir)
 
-  return dc.data.DiskDataset(dataset_dir), tasks
+  return deepchem.data.DiskDataset(dataset_dir), tasks
 
 
 def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
@@ -55,8 +55,8 @@ def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
