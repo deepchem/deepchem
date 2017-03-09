@@ -71,6 +71,16 @@ Installation from source is the only currently supported format. ```deepchem``` 
    conda install -c omnia mdtraj
    ```
 
+7. `openmm`
+   ```bash
+   conda install -c omnia openmm
+   ```
+
+8. `pdbfixer`
+   ```bash
+   pip install git+https://github.com/pandegroup/pdbfixer.git
+   ```
+
 7. `tensorflow`: Installing `tensorflow` on older versions of Linux (which
     have glibc < 2.17) can be very challenging. For these older Linux versions,
     contact your local sysadmin to work out a custom installation. If your
