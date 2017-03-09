@@ -22,6 +22,7 @@ def run_benchmark(datasets,
                   split=None,
                   metric=None,
                   featurizer=None,
+                  n_features=0,
                   out_path='.',
                   test=False):
   """
@@ -45,6 +46,9 @@ def run_benchmark(datasets,
   featurizer: string or dc.feat.Featurizer,  optional (default=None)
       choice of featurization, None = using the default corresponding to model
       (string only applicable to deepchem models)
+  n_features: int, optional(default=0)
+      depending on featurizers, redefined when using deepchem featurizers,
+      need to be specified for user-defined featurizers(if using deepchem models)
   out_path: string, optional(default='.')
       path of result file
   test: boolean, optional(default=False)
