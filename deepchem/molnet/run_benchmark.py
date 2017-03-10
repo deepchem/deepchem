@@ -156,9 +156,9 @@ def run_benchmark(datasets,
       n_features = list(train_dataset.get_data_shape())
 
     time_start_fitting = time.time()
-    train_scores = {}
-    valid_scores = {}
-    test_scores = {}
+    train_score = {}
+    valid_score = {}
+    test_score = {}
 
     if isinstance(model, str):
       if mode == 'classification':
@@ -185,13 +185,13 @@ def run_benchmark(datasets,
             test=test)
     else:
       model.fit(train_dataset)
-      train_scores['user_defined'] = model.evaluate(train_dataset, metric,
-                                                    transformers)
-      valid_scores['user_defined'] = model.evaluate(valid_dataset, metric,
-                                                    transformers)
+      train_score['user_defined'] = model.evaluate(train_dataset, metric,
+                                                   transformers)
+      valid_score['user_defined'] = model.evaluate(valid_dataset, metric,
+                                                   transformers)
       if test:
-        test_scores['user_defined'] = model.evaluate(test_dataset, metric,
-                                                     transformers)
+        test_score['user_defined'] = model.evaluate(test_dataset, metric,
+                                                    transformers)
 
     time_finish_fitting = time.time()
 
