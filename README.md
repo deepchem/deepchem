@@ -25,7 +25,6 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [About Us](#about-us)
     
 ## Requirements
-* [openbabel](http://openbabel.org/wiki/Main_Page)
 * [pandas](http://pandas.pydata.org/)
 * [rdkit](http://www.rdkit.org/docs/Install.html)
 * [boost](http://www.boost.org/)
@@ -43,29 +42,27 @@ Installation from source is the only currently supported format. ```deepchem``` 
 ### Full Anaconda distribution
 
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
-   
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
 
-2. `openbabel`
-   ```bash
-   conda install -c omnia openbabel=2.4.0
-   ``` 
-
-3. `rdkit`
+2. `rdkit`
    ```bash
    conda install -c rdkit rdkit
    ```
 
-4. `joblib`
+3. `joblib`
    ```bash
    conda install joblib 
    ```
 
-5. `six`
+4. `six`
    ```bash
    pip install six
    ```
-      
+5. `networkx`
+   ```bash
+   conda install -c anaconda networkx=1.11
+   ```
+
 6. `mdtraj`
    ```bash
    conda install -c omnia mdtraj
