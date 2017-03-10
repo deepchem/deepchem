@@ -205,7 +205,7 @@ def run_benchmark(datasets,
         ]
         if test:
           output_line.extend(
-              ['test', i, test_score[i][list(test_score[i].keys(0))[0]]])
+              ['test', i, test_score[i][list(test_score[i].keys())[0]]])
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)
