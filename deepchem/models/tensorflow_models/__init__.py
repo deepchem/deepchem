@@ -360,8 +360,8 @@ class TensorflowGraphModel(Model):
           if epoch % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self._save_path, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches
-          log('Ending epoch %d: Average loss %g' %
-              (epoch, avg_loss), self.verbose)
+          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
+              self.verbose)
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch + 1)
     ############################################################## TIMING
