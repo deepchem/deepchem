@@ -11,7 +11,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tensorflow as tf
-import deepchem as dc
+import deepchem
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -90,7 +90,7 @@ def benchmark_classification(
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow MultiTaskDNN model
-    model = dc.models.TensorflowMultiTaskClassifier(
+    model = deepchem.models.TensorflowMultiTaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -122,7 +122,7 @@ def benchmark_classification(
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow robust MultiTaskDNN model
-    model = dc.models.RobustMultitaskClassifier(
+    model = deepchem.models.RobustMultitaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -148,7 +148,7 @@ def benchmark_classification(
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow logistic regression model
-    model = dc.models.TensorflowLogisticRegression(
+    model = deepchem.models.TensorflowLogisticRegression(
         len(tasks),
         n_features,
         penalty=penalty,
@@ -167,14 +167,14 @@ def benchmark_classification(
     n_K = hyper_parameters['n_K']
 
     # Transform fingerprints to IRV features
-    transformer = dc.trans.IRVTransformer(n_K, len(tasks), train_dataset)
+    transformer = deepchem.trans.IRVTransformer(n_K, len(tasks), train_dataset)
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     if test:
       test_dataset = transformer.transform(test_dataset)
 
     # Building tensorflow IRV model
-    model = dc.models.TensorflowMultiTaskIRVClassifier(
+    model = deepchem.models.TensorflowMultiTaskIRVClassifier(
         len(tasks),
         K=n_K,
         penalty=penalty,
@@ -194,22 +194,23 @@ def benchmark_classification(
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
     tf.set_random_seed(seed)
-    graph_model = dc.nn.SequentialGraph(n_features)
+    graph_model = deepchem.nn.SequentialGraph(n_features)
     graph_model.add(
-        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphPool())
+        deepchem.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphPool())
     graph_model.add(
-        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphPool())
+        deepchem.nn.GraphConv(
+            int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(
+        deepchem.nn.Dense(
             int(n_fully_connected_nodes), int(n_filters), activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
-    model = dc.models.MultitaskGraphClassifier(
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphGather(batch_size, activation="tanh"))
+    model = deepchem.models.MultitaskGraphClassifier(
         graph_model,
         len(tasks),
         n_features,
@@ -228,9 +229,11 @@ def benchmark_classification(
     def model_builder(model_dir_rf):
       sklearn_model = RandomForestClassifier(
           class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
-      return dc.models.sklearn_models.SklearnModel(sklearn_model, model_dir_rf)
+      return deepchem.models.sklearn_models.SklearnModel(sklearn_model,
+                                                         model_dir_rf)
 
-    model = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
 
   if nb_epoch is None:
     model.fit(train_dataset)
@@ -318,7 +321,7 @@ def benchmark_regression(
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    model = dc.models.TensorflowMultiTaskRegressor(
+    model = deepchem.models.TensorflowMultiTaskRegressor(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
@@ -345,7 +348,7 @@ def benchmark_regression(
     learning_rate = hyper_parameters['learning_rate']
     fit_transformers = [hyper_parameters['fit_transformers'](train_dataset)]
 
-    model = dc.models.TensorflowMultiTaskFitTransformRegressor(
+    model = deepchem.models.TensorflowMultiTaskFitTransformRegressor(
         n_tasks=len(tasks),
         n_features=n_features,
         layer_sizes=layer_sizes,
@@ -371,22 +374,23 @@ def benchmark_regression(
     n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
     tf.set_random_seed(seed)
-    graph_model = dc.nn.SequentialGraph(n_features)
+    graph_model = deepchem.nn.SequentialGraph(n_features)
     graph_model.add(
-        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphPool())
+        deepchem.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphPool())
     graph_model.add(
-        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphPool())
+        deepchem.nn.GraphConv(
+            int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphPool())
     # Gather Projection
     graph_model.add(
-        dc.nn.Dense(
+        deepchem.nn.Dense(
             int(n_fully_connected_nodes), int(n_filters), activation='relu'))
-    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
-    model = dc.models.MultitaskGraphRegressor(
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(deepchem.nn.GraphGather(batch_size, activation="tanh"))
+    model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
         len(tasks),
         n_features,
@@ -405,10 +409,11 @@ def benchmark_regression(
     def model_builder(model_dir_rf_regression):
       sklearn_model = RandomForestRegressor(
           n_estimators=n_estimators, n_jobs=-1)
-      return dc.models.sklearn_models.SklearnModel(sklearn_model,
-                                                   model_dir_rf_regression)
+      return deepchem.models.sklearn_models.SklearnModel(
+          sklearn_model, model_dir_rf_regression)
 
-    model = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
 
   print('-----------------------------')
   print('Start fitting: %s' % model_name)

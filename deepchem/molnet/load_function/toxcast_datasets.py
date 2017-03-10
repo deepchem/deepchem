@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_toxcast(featurizer='ECFP', split='index'):
@@ -23,7 +23,7 @@ def load_toxcast(featurizer='ECFP', split='index'):
         ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz'
     )
 
-  dataset = dc.utils.save.load_from_disk(dataset_file)
+  dataset = deepchem.utils.save.load_from_disk(dataset_file)
   print("Columns of dataset: %s" % str(dataset.columns.values))
   print("Number of examples in dataset: %s" % str(dataset.shape[0]))
 
@@ -31,30 +31,30 @@ def load_toxcast(featurizer='ECFP', split='index'):
   print("About to featurize TOXCAST dataset.")
 
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
   TOXCAST_tasks = dataset.columns.values[1:].tolist()
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=TOXCAST_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
 
   # Initialize transformers 
   transformers = [
-      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+      deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
   print("About to transform data")
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
 
