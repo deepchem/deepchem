@@ -308,6 +308,7 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           log_every_N_batches=50,
+          checkpoint_interval=10,
           **kwargs):
     """Perform fit transformations on each minibatch. Fit the model.
 
@@ -322,6 +323,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
     log_every_N_batches: int
       Report every N batches. Useful for training on very large datasets,
       where epochs can take long time to finish.
+    checkpoint_interval: int
+      Frequency at which to write checkpoints, measured in epochs
 
     Raises
     ------
@@ -361,7 +364,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
             n_batches += 1
-          saver.save(sess, self._save_path, global_step=epoch)
+          if epoch % checkpoint_interval == checkpoint_interval - 1:
+            saver.save(sess, self._save_path, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches
           log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
               self.verbose)
