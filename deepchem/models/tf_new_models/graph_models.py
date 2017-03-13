@@ -11,7 +11,7 @@ __license__ = "GPL"
 
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
-from deepchem.models.tf_new_models.graph_topology import GraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology
 
 
 class SequentialGraph(object):
@@ -79,6 +79,66 @@ class SequentialGraph(object):
   def get_layer(self, layer_id):
     return self.layers[layer_id]
 
+class SequentialDTNNGraph(object):
+  """An analog of Keras Sequential class for Graph data.
+
+  Like the Sequential class from Keras, but automatically passes topology
+  placeholders from GraphTopology to each graph layer (from layers) added
+  to the network. Non graph layers don't get the extra placeholders. 
+  """
+
+  def __init__(self, max_n_atoms, n_distance):
+    """
+    Parameters
+    ----------
+    n_feat: int
+      Number of features per atom.
+    """
+    self.graph = tf.Graph()
+    with self.graph.as_default():
+      self.graph_DTNN_topology = DTNNGraphTopology(max_n_atoms, n_distance)
+      self.output = self.graph_topology.get_atom_number_placeholder()
+    # Keep track of the layers
+    self.layers = []
+
+  def add(self, layer):
+    """Adds a new layer to model."""
+    with self.graph.as_default():
+      ############################################# DEBUG
+      #print("start - add()")
+      #print("self.output")
+      #print(self.output)
+      ############################################# DEBUG
+      # For graphical layers, add connectivity placeholders 
+      if type(layer).__name__ in ['DTNNStep']:
+        self.output = layer([self.output] +
+                            self.graph_DTNN_topology.get_topology_placeholders())
+      else:
+        self.output = layer(self.output)
+      ############################################# DEBUG
+      #print("end- add()")
+      #print("self.output")
+      #print(self.output)
+      ############################################# DEBUG
+
+      # Add layer to the layer list
+      self.layers.append(layer)
+
+  def get_graph_topology(self):
+    return self.graph_topology
+
+  def get_num_output_features(self):
+    """Gets the output shape of the featurization layers of the network"""
+    return self.layers[-1].output_shape[1]
+
+  def return_outputs(self):
+    return self.output
+
+  def return_inputs(self):
+    return self.graph_topology.get_input_placeholders()
+
+  def get_layer(self, layer_id):
+    return self.layers[layer_id]
 
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""

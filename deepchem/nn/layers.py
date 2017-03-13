@@ -819,3 +819,133 @@ class LSTMStep(Layer):
     #return o, [h, c]
     return h, [h, c]
     ####################################################### DEBUG
+
+class DTNNembedding(Layer):
+
+  def __init__(self, 
+               n_features=20, 
+               periodic_table_length=83, 
+               init='glorot_uniform',
+               **kwargs):
+    self.n_features = n_features
+    self.periodic_table_length = periodic_table_length
+    self.init = initializations.get(init)  # Set weight initialization
+
+    super(GraphPool, self).__init__(**kwargs)
+
+  def build(self, input_shape):
+      
+    self.embedding_list = self.init([self.periodic_table_length, self.n_features])
+    self.trainable_weights = [self.embedding_list]
+
+  def call(self, x):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: Tensor 
+      1D tensor of length n_atoms (atomic number)
+
+    Returns
+    -------
+    tf.Tensor
+      Of shape (n_atoms, n_feat), where n_feat is number of atom_features
+    """
+    atom_features = tf.nn.embedding_lookup(self.embedding_list, x)
+    return atom_features
+    
+class DTNNStep(Layer):
+
+  def __init__(self, 
+               n_features,
+               n_distance,
+               n_hidden=20,
+               init='glorot_uniform',
+               activation='tanh',
+               **kwargs):
+    self.n_features = n_features
+    self.n_distance = n_distance
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+        
+    super(GraphPool, self).__init__(**kwargs)
+
+  def build(self, input_shape):
+    self.W_cf = self.init([self.n_features, self.n_hidden])
+    self.W_df = self.init([self.n_distance, self.n_hidden])
+    self.W_fc = self.init([self.n_hidden, self.n_features])
+    self.b_cf = model_ops.zeros(shape=[self.n_hidden,])
+    self.b_df = model_ops.zeros(shape=[self.n_hidden,])
+    
+    self.trainable_weights = [self.W_cf, self.W_df, self.W_fc, 
+                              self.b_cf, self.b_df]
+
+  def call(self, x):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: Tensor 
+      1D tensor of length n_atoms (atomic number)
+
+    Returns
+    -------
+    tf.Tensor
+      Of shape (n_atoms, n_feat), where n_feat is number of atom_features
+    """
+    atom_features = x[0]
+    distance_matrix = x[1]
+    distance_matrix_mask = x[2]
+    outputs = tf.multiply((tf.tensordot(distance_matrix, self.W_df, [[3], [0]]) + self.b_df),
+        tf.expand_dims(tf.tensordot(atom_features, self.W_cf, [[2], [0]]) + self.b_cf, axis=1))
+    outputs = tf.tensordot(outputs, self.W_fc, [[3], [0]])
+    outputs = tf.multiply(outputs, tf.expand_dims(distance_matrix_mask, axis=3))
+    outputs = self.activation(outputs)
+    outputs = tf.reduce_sum(outputs, axis=2) + atom_features
+
+    return outputs
+    
+class DTNNGather(Layer):
+
+  def __init__(self, 
+               n_features,
+               n_hidden=20,
+               init='glorot_uniform',
+               activation='tanh',
+               **kwargs):
+    self.n_features = n_features
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+        
+    super(GraphPool, self).__init__(**kwargs)
+
+  def build(self, input_shape):
+    self.W_out1 = self.init([self.n_features, self.n_hidden])
+    self.W_out2 = self.init([self.n_hidden, 1])
+    self.b_out1 = model_ops.zeros(shape=[self.n_hidden,])
+    self.b_out2 = model_ops.zeros(shape=[1,])
+    
+    self.trainable_weights = [self.W_out1, self.W_out2, 
+                              self.b_out1, self.b_out2]
+
+  def call(self, x):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: Tensor 
+      1D tensor of length n_atoms (atomic number)
+
+    Returns
+    -------
+    tf.Tensor
+      Of shape (n_atoms, n_feat), where n_feat is number of atom_features
+    """
+    outputs = tf.tensordot(x, self.W_out1, [[2], [0]]) + self.b_out1
+    outputs = self.activation(outputs)
+    outputs = tf.tensordot(outputs, self.W_out2, [[2], [0]]) + self.b_out2
+    outputs = tf.reduce_sum(tf.squeeze(outputs, axis=2), axis=1)
+
+    return outputs
