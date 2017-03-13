@@ -144,7 +144,7 @@ class GraphTopology(object):
 class DTNNGraphTopology(object):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_n_atoms, n_distance, name='DTNN_topology'):
+  def __init__(self, max_n_atoms=30, n_distance=100, name='DTNN_topology'):
     """
     Note that batch size is not specified in a GraphTopology object. A batch
     of molecules must be combined into a disconnected graph and fed to topology
@@ -230,16 +230,19 @@ class DTNNGraphTopology(object):
     for molecule in atom_number:
         ZiZj.append(np.outer(molecule, molecule))
     ZiZj = np.asarray(ZiZj)
-    distance_matrix = batch[:]
+    distance_matrix = np.expand_dims(batch[:], axis=3)
+    distance_matrix = np.concatenate([distance_matrix]*self.n_distance, axis=3)
+    distance_matrix_mask = batch[:]
     for im, molecule in enumerate(batch):
       for ir, row in enumerate(molecule):
         for ie, element in enumerate(row):
           if element>0 and ir != ie:
-            distance_matrix[im, ir, ie] = ZiZj[im, ir,ie]/element
+            distance_matrix[im, ir, ie, :] = self.gauss_expand(ZiZj[im, ir, ie]/element, 
+                                                               self.n_distance)
+            distance_matrix_mask[im, ir, ie] = 1
           else:
-            distance_matrix[im, ir, ie] = 0
-    distance_matrix_mask = np.asarray(np.asarray(distance_matrix, dtype=bool), dtype=float)
-    distance_matrix = self.gauss_expand(distance_matrix)
+            distance_matrix[im, ir, ie, :] = 0
+            distance_matrix_mask[im, ir, ie] = 0
     # Generate dicts
     dict_DTNN = {
         self.atom_number_placeholder: atom_number,
@@ -249,8 +252,9 @@ class DTNNGraphTopology(object):
     return dict_DTNN
     
   @staticmethod
-  def gauss_expand(distance_matrix):
-    for im, molecule in enumerate(distance_matrix):
-      for ir, row in enumerate(molecule):
-        for ie, element in enumerate(row):
-          if element>0
+  def gauss_expand(distance, n_distance, distance_min=-1., distance_max=18.):
+    step_size = (distance_max - distance_min)/n_distance
+    steps = np.array([distance_min+i*step_size for i in range(n_distance)])
+    distance_vector = np.exp(-np.square(distance - steps)/(2*step_size**2))
+    return distance_vector
+      
