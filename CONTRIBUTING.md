@@ -7,7 +7,7 @@ We actively encourage community contributions to DeepChem. The first place to st
 Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
 
 ## Contributor License Agreement
-In order to get a pull request accepted you must fill our our [License Agreement]("https://www.clahub.com/agreements/lilleswing/deepchem).  The purpose of this agreement is to enable DeepChem to distribute your code and its derivatives.
+In order to get a pull request accepted you must fill our our [License Agreement](https://www.clahub.com/agreements/lilleswing/deepchem).  The purpose of this agreement is to enable DeepChem to distribute your code and its derivatives.
 
 ### The Agreement
 Contributor offers to license certain software (a “Contribution” or multiple “Contributions”) to DeepChem, and DeepChem agrees to accept said Contributions, under the terms of the open source license [The MIT License](https://opensource.org/licenses/MIT)
