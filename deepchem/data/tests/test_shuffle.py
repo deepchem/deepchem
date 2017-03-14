@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import shutil
@@ -16,10 +16,12 @@ import unittest
 import deepchem as dc
 import numpy as np
 
+
 class TestShuffle(unittest.TestCase):
   """
   Test singletask/multitask dataset shuffling.
   """
+
   #def test_shuffle(self):
   #  """Test that datasets can be merged."""
   #  current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -55,15 +57,13 @@ class TestShuffle(unittest.TestCase):
     """Test that sparse datasets can be shuffled quickly."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/example.csv")
+    dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(
-        dataset_file, shard_size=2)
+    dataset = loader.featurize(dataset_file, shard_size=2)
 
     X_orig, y_orig, w_orig, orig_ids = (dataset.X, dataset.y, dataset.w,
                                         dataset.ids)
@@ -72,7 +72,7 @@ class TestShuffle(unittest.TestCase):
     dataset.sparse_shuffle()
     X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
                                     dataset.ids)
-    
+
     assert len(dataset) == orig_len
     # The shuffling should have switched up the ordering
     assert not np.array_equal(orig_ids, new_ids)

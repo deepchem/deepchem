@@ -7,12 +7,13 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import tempfile
 import unittest
 import numpy as np
 import deepchem as dc
+
 
 class TestSplitters(unittest.TestCase):
   """
@@ -34,8 +35,7 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(
         [train_data, valid_data, test_data])
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   def test_singletask_index_split(self):
     """
@@ -52,8 +52,7 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(
         [train_data, valid_data, test_data])
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   # TODO(rbharath): The IndexSplitter() had a bug with splitting sharded
   # data. Make a test for properly splitting of sharded data. Perhaps using
@@ -83,12 +82,11 @@ class TestSplitters(unittest.TestCase):
             solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
-    assert len(test_data) == 1  
+    assert len(test_data) == 1
 
     merged_dataset = dc.data.DiskDataset.merge(
         [train_data, valid_data, test_data])
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   def test_singletask_butina_split(self):
     """
@@ -131,8 +129,7 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   def test_singletask_index_k_fold_split(self):
     """
@@ -162,9 +159,8 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
-    
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
+
   def test_singletask_scaffold_k_fold_split(self):
     """
     Test singletask ScaffoldSplitter class.
@@ -193,8 +189,7 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.ids) == (
-           sorted(solubility_dataset.ids))
+    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   def test_singletask_stratified_column_indices(self):
     """
@@ -235,7 +230,7 @@ class TestSplitters(unittest.TestCase):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
-    w[:n_positives/2] = 0
+    w[:n_positives / 2] = 0
     ids = np.arange(n_samples)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
@@ -257,7 +252,7 @@ class TestSplitters(unittest.TestCase):
     n_features = 10
     n_tasks = 10
     X = np.random.rand(n_samples, n_features)
-    p = .05 # proportion actives
+    p = .05  # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
 
@@ -269,7 +264,7 @@ class TestSplitters(unittest.TestCase):
       split_index = split_indices[task]
       task_actives = np.count_nonzero(y[:, task])
       # The split index should partition dataset in half.
-      assert np.count_nonzero(y[:split_index, task]) == int(task_actives/2)
+      assert np.count_nonzero(y[:split_index, task]) == int(task_actives / 2)
 
   def test_multitask_stratified_column_indices_masked(self):
     """
@@ -279,11 +274,11 @@ class TestSplitters(unittest.TestCase):
     n_features = 10
     n_tasks = 10
     X = np.random.rand(n_samples, n_features)
-    p = .05 # proportion actives
+    p = .05  # proportion actives
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Mask half the examples
-    w[:n_samples/2] = 0
+    w[:n_samples / 2] = 0
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     split_indices = stratified_splitter.get_task_split_indices(
@@ -295,7 +290,8 @@ class TestSplitters(unittest.TestCase):
       split_index = split_indices[task]
       task_actives = np.count_nonzero(y_present[:, task])
       # The split index should partition dataset in half.
-      assert np.count_nonzero(y_present[:split_index, task]) == int(task_actives/2)
+      assert np.count_nonzero(y_present[:split_index, task]) == int(task_actives
+                                                                    / 2)
 
   def test_singletask_stratified_split(self):
     """
@@ -316,19 +312,18 @@ class TestSplitters(unittest.TestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    dataset_1, dataset_2 = stratified_splitter.split(
-        dataset, frac_split=.5)
-  
+    dataset_1, dataset_2 = stratified_splitter.split(dataset, frac_split=.5)
+
     # Should have split cleanly in half (picked random seed to ensure this)
     assert len(dataset_1) == 10
     assert len(dataset_2) == 10
 
     # Check positives are correctly distributed
     y_1 = dataset_1.y
-    assert np.count_nonzero(y_1) == n_positives/2
+    assert np.count_nonzero(y_1) == n_positives / 2
 
     y_2 = dataset_2.y
-    assert np.count_nonzero(y_2) == n_positives/2
+    assert np.count_nonzero(y_2) == n_positives / 2
 
   def test_singletask_stratified_k_fold_split(self):
     """
@@ -346,7 +341,7 @@ class TestSplitters(unittest.TestCase):
     ids = np.arange(n_samples)
 
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
-    
+
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     ids_set = set(dataset.ids)
 
@@ -360,7 +355,7 @@ class TestSplitters(unittest.TestCase):
       # assert len(fold_dataset) == n_samples/K
       fold_labels = fold_dataset.y
       # Verify that each fold has n_positives/K = 4 positive examples.
-      assert np.count_nonzero(fold_labels == 1) == n_positives/K
+      assert np.count_nonzero(fold_labels == 1) == n_positives / K
       # Verify that compounds in this fold are subset of original compounds
       fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
@@ -374,9 +369,7 @@ class TestSplitters(unittest.TestCase):
 
     merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
     assert len(merged_dataset) == len(dataset)
-    assert sorted(merged_dataset.ids) == (
-           sorted(dataset.ids))
-
+    assert sorted(merged_dataset.ids) == (sorted(dataset.ids))
 
   def test_multitask_random_split(self):
     """
@@ -425,7 +418,7 @@ class TestSplitters(unittest.TestCase):
     # task structure of w np array is such that each row corresponds to a
     # sample. The loaded sparse dataset has many rows with only zeros
     sparse_dataset = dc.data.tests.load_sparse_multitask_dataset()
-    
+
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     datasets = stratified_splitter.train_valid_test_split(
         sparse_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
