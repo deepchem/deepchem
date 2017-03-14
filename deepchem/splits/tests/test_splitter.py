@@ -290,8 +290,8 @@ class TestSplitters(unittest.TestCase):
       split_index = split_indices[task]
       task_actives = np.count_nonzero(y_present[:, task])
       # The split index should partition dataset in half.
-      assert np.count_nonzero(y_present[:split_index, task]) == int(task_actives
-                                                                    / 2)
+      assert np.count_nonzero(y_present[:split_index, task]) == int(
+          task_actives / 2)
 
   def test_singletask_stratified_split(self):
     """
