@@ -9,6 +9,8 @@ __author__ = "Bharath Ramsundar and Jacob Durrant"
 __license__ = "GNU General Public License"
 
 import math
+import os
+import subprocess
 import numpy as np
 import deepchem.utils.rdkit_util as rdkit_util
 

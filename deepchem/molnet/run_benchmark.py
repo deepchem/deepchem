@@ -13,7 +13,7 @@ import time
 import csv
 import numpy as np
 import tensorflow as tf
-import deepchem as dc
+import deepchem
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 
 
@@ -22,6 +22,7 @@ def run_benchmark(datasets,
                   split=None,
                   metric=None,
                   featurizer=None,
+                  n_features=0,
                   out_path='.',
                   test=False):
   """
@@ -45,6 +46,9 @@ def run_benchmark(datasets,
   featurizer: string or dc.feat.Featurizer,  optional (default=None)
       choice of featurization, None = using the default corresponding to model
       (string only applicable to deepchem models)
+  n_features: int, optional(default=0)
+      depending on featurizers, redefined when using deepchem featurizers,
+      need to be specified for user-defined featurizers(if using deepchem models)
   out_path: string, optional(default='.')
       path of result file
   test: boolean, optional(default=False)
@@ -56,14 +60,18 @@ def run_benchmark(datasets,
     ]:
       mode = 'classification'
       if metric == None:
-        metric = [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)]
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)
+        ]
     elif dataset in [
         'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
         'sampl'
     ]:
       mode = 'regression'
       if metric == None:
-        metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
+        ]
     else:
       raise ValueError('Dataset not supported')
 
@@ -111,22 +119,22 @@ def run_benchmark(datasets,
       raise ValueError('Splitter function not supported')
 
     loading_functions = {
-        'tox21': dc.molnet.load_tox21,
-        'muv': dc.molnet.load_muv,
-        'pcba': dc.molnet.load_pcba,
-        'nci': dc.molnet.load_nci,
-        'sider': dc.molnet.load_sider,
-        'toxcast': dc.molnet.load_toxcast,
-        'kaggle': dc.molnet.load_kaggle,
-        'delaney': dc.molnet.load_delaney,
-        'pdbbind': dc.molnet.load_pdbbind_grid,
-        'chembl': dc.molnet.load_chembl,
-        'qm7': dc.molnet.load_qm7_from_mat,
-        'qm7b': dc.molnet.load_qm7b_from_mat,
-        'qm9': dc.molnet.load_qm9,
-        'sampl': dc.molnet.load_sampl,
-        'clintox': dc.molnet.load_clintox,
-        'hiv': dc.molnet.load_hiv
+        'tox21': deepchem.molnet.load_tox21,
+        'muv': deepchem.molnet.load_muv,
+        'pcba': deepchem.molnet.load_pcba,
+        'nci': deepchem.molnet.load_nci,
+        'sider': deepchem.molnet.load_sider,
+        'toxcast': deepchem.molnet.load_toxcast,
+        'kaggle': deepchem.molnet.load_kaggle,
+        'delaney': deepchem.molnet.load_delaney,
+        'pdbbind': deepchem.molnet.load_pdbbind_grid,
+        'chembl': deepchem.molnet.load_chembl,
+        'qm7': deepchem.molnet.load_qm7_from_mat,
+        'qm7b': deepchem.molnet.load_qm7b_from_mat,
+        'qm9': deepchem.molnet.load_qm9,
+        'sampl': deepchem.molnet.load_sampl,
+        'clintox': deepchem.molnet.load_clintox,
+        'hiv': deepchem.molnet.load_hiv
     }
 
     print('-------------------------------------')
@@ -148,9 +156,9 @@ def run_benchmark(datasets,
       n_features = list(train_dataset.get_data_shape())
 
     time_start_fitting = time.time()
-    train_scores = {}
-    valid_scores = {}
-    test_scores = {}
+    train_score = {}
+    valid_score = {}
+    test_score = {}
 
     if isinstance(model, str):
       if mode == 'classification':
@@ -177,13 +185,13 @@ def run_benchmark(datasets,
             test=test)
     else:
       model.fit(train_dataset)
-      train_scores['user_defined'] = model.evaluate(train_dataset, metric,
-                                                    transformers)
-      valid_scores['user_defined'] = model.evaluate(valid_dataset, metric,
-                                                    transformers)
+      train_score['user_defined'] = model.evaluate(train_dataset, metric,
+                                                   transformers)
+      valid_score['user_defined'] = model.evaluate(valid_dataset, metric,
+                                                   transformers)
       if test:
-        test_scores['user_defined'] = model.evaluate(test_dataset, metric,
-                                                     transformers)
+        test_score['user_defined'] = model.evaluate(test_dataset, metric,
+                                                    transformers)
 
     time_finish_fitting = time.time()
 
@@ -192,12 +200,12 @@ def run_benchmark(datasets,
       for i in train_score:
         output_line = [
             dataset, str(split), mode, 'train', i,
-            train_score[i][train_score[i].keys()[0]], 'valid', i,
-            valid_score[i][valid_score[i].keys()[0]]
+            train_score[i][list(train_score[i].keys())[0]], 'valid', i,
+            valid_score[i][list(valid_score[i].keys())[0]]
         ]
         if test:
           output_line.extend(
-              ['test', i, test_score[i][test_score[i].keys()[0]]])
+              ['test', i, test_score[i][list(test_score[i].keys())[0]]])
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)

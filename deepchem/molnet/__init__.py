@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
 from deepchem.molnet.load_function.chembl_datasets import load_chembl
 from deepchem.molnet.load_function.clintox_datasets import load_clintox
 from deepchem.molnet.load_function.delaney_datasets import load_delaney
