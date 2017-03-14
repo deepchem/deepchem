@@ -16,7 +16,6 @@ import tempfile
 import mdtraj as md
 from deepchem.utils.save import log
 from scipy.spatial import ConvexHull
-from deepchem.feat import hydrogenate_and_compute_partial_charges
 from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.grid_featurizer import load_molecule
 from deepchem.feat import Featurizer
