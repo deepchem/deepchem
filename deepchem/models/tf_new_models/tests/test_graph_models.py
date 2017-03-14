@@ -56,60 +56,56 @@ class TestGraphModels(test_util.TensorFlowTestCase):
 
   def test_sample_attn_lstm_architecture(self):
     """Tests that an attention architecture can be created without crash."""
-    g = tf.Graph()
-    with g.as_default():
-      max_depth = 5
-      n_test = 5
-      n_support = 11
-      n_feat = 10
-      batch_size = 3
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+    batch_size = 3
 
-      support_model = SequentialSupportGraph(n_feat)
+    support_model = SequentialSupportGraph(n_feat)
 
-      # Add layers
-      support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
-      # Need to add batch-norm separately to test/support due to differing
-      # shapes.
-      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(dc.nn.GraphPool())
+    # Add layers
+    support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
+    # Need to add batch-norm separately to test/support due to differing
+    # shapes.
+    support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(dc.nn.GraphPool())
 
-      # Apply an attention lstm layer
-      support_model.join(
-          dc.nn.AttnLSTMEmbedding(n_test, n_support, 64, max_depth))
+    # Apply an attention lstm layer
+    support_model.join(
+        dc.nn.AttnLSTMEmbedding(n_test, n_support, 64, max_depth))
 
-      # Gather Projection
-      support_model.add(dc.nn.Dense(128, 64))
-      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+    # Gather Projection
+    support_model.add(dc.nn.Dense(128, 64))
+    support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
 
   def test_sample_resi_lstm_architecture(self):
     """Tests that an attention architecture can be created without crash."""
-    g = tf.Graph()
-    with g.as_default():
-      max_depth = 5
-      n_test = 5
-      n_support = 11
-      n_feat = 10
-      batch_size = 3
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+    batch_size = 3
 
-      support_model = SequentialSupportGraph(n_feat)
+    support_model = SequentialSupportGraph(n_feat)
 
-      # Add layers
-      support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
-      # Need to add batch-norm separately to test/support due to differing
-      # shapes.
-      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(dc.nn.GraphPool())
+    # Add layers
+    support_model.add(dc.nn.GraphConv(64, n_feat, activation='relu'))
+    # Need to add batch-norm separately to test/support due to differing
+    # shapes.
+    support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(dc.nn.GraphPool())
 
-      # Apply an attention lstm layer
-      support_model.join(
-          dc.nn.ResiLSTMEmbedding(n_test, n_support, 64, max_depth))
+    # Apply an attention lstm layer
+    support_model.join(
+        dc.nn.ResiLSTMEmbedding(n_test, n_support, 64, max_depth))
 
-      # Gather Projection
-      support_model.add(dc.nn.Dense(128, 64))
-      support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-      support_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+    # Gather Projection
+    support_model.add(dc.nn.Dense(128, 64))
+    support_model.add_test(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add_support(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    support_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
