@@ -454,22 +454,6 @@ Time needed for benchmark test(~20h in total)
 |kaggle          |MT-NN regression    |2200            |3200           |
 
 
-## Contributing to DeepChem
-
-We actively encourage community contributions to DeepChem. The first place to start getting involved is by running our examples locally. Afterwards, we encourage contributors to give a shot to improving our documentation. While we take effort to provide good docs, there's plenty of room for improvement. All docs are hosted on Github, either in this `README.md` file, or in the `docs/` directory.
-
-Once you've got a sense of how the package works, we encourage the use of Github issues to discuss more complex changes,  raise requests for new features or propose changes to the global architecture of DeepChem. Once consensus is reached on the issue, please submit a PR with proposed modifications. All contributed code to DeepChem will be reviewed by a member of the DeepChem team, so please make sure your code style and documentation style match our guidelines!
-
-### Code Style Guidelines
-DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.  We created a git pre-commit hook to make this process easier.
-
-``` bash
-cp devtools/travis-ci/pre-commit .git/hooks
-pip install yapf==0.16.0
-```
-
-### Documentation Style Guidelines
-DeepChem uses [NumPy style documentation](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt). Please follow these conventions when documenting code, since we use [Sphinx+Napoleon](http://www.sphinx-doc.org/en/stable/ext/napoleon.html) to automatically generate docs on [deepchem.io](deepchem.io).
 
 ### Gitter
 Join us on gitter at [https://gitter.im/deepchem/Lobby](https://gitter.im/deepchem/Lobby). Probably the easiest place to ask simple questions or float requests for new features.
