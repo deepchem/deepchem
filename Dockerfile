@@ -1,7 +1,9 @@
 FROM nvidia/cuda
 
 # Install some utilities
-RUN apt-get update && apt-get install -y wget git
+RUN apt-get update && \
+    apt-get install -y -q wget git libxrender1 && \
+    apt-get clean
 
 # Install miniconda
 RUN MINICONDA="Miniconda2-latest-Linux-x86_64.sh" && \
