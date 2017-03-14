@@ -141,7 +141,7 @@ class GraphTopology(object):
     }
     return merge_dicts([atoms_dict, deg_adj_dict])
 
-class DTNNGraphTopology(object):
+class DTNNGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
   def __init__(self, max_n_atoms=30, n_distance=100, name='DTNN_topology'):
@@ -185,21 +185,6 @@ class DTNNGraphTopology(object):
                      self.distance_matrix_mask_placeholder]
     self.inputs = [self.atom_number_placeholder]
     self.inputs += self.topology
-
-  def get_input_placeholders(self):
-    """All placeholders.
-
-    Contains atom_features placeholder and topology placeholders.
-    """
-    return self.inputs
-
-  def get_topology_placeholders(self):
-    """Returns topology placeholders
-
-    Consists of deg_slice_placeholder, membership_placeholder, and the
-    deg_adj_list_placeholders.
-    """
-    return self.topology
 
   def get_atom_number_placeholder(self):
     return self.atom_number_placeholder

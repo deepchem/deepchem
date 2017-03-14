@@ -79,7 +79,7 @@ class SequentialGraph(object):
   def get_layer(self, layer_id):
     return self.layers[layer_id]
 
-class SequentialDTNNGraph(object):
+class SequentialDTNNGraph(SequentialGraph):
   """An analog of Keras Sequential class for Graph data.
 
   Like the Sequential class from Keras, but automatically passes topology
@@ -87,7 +87,7 @@ class SequentialDTNNGraph(object):
   to the network. Non graph layers don't get the extra placeholders. 
   """
 
-  def __init__(self, max_n_atoms, n_distance):
+  def __init__(self, max_n_atoms=30, n_distance=100):
     """
     Parameters
     ----------
@@ -96,7 +96,7 @@ class SequentialDTNNGraph(object):
     """
     self.graph = tf.Graph()
     with self.graph.as_default():
-      self.graph_DTNN_topology = DTNNGraphTopology(max_n_atoms, n_distance)
+      self.graph_topology = DTNNGraphTopology(max_n_atoms, n_distance)
       self.output = self.graph_topology.get_atom_number_placeholder()
     # Keep track of the layers
     self.layers = []
@@ -112,7 +112,7 @@ class SequentialDTNNGraph(object):
       # For graphical layers, add connectivity placeholders 
       if type(layer).__name__ in ['DTNNStep']:
         self.output = layer([self.output] +
-                            self.graph_DTNN_topology.get_topology_placeholders())
+                            self.graph_topology.get_topology_placeholders())
       else:
         self.output = layer(self.output)
       ############################################# DEBUG
@@ -124,18 +124,9 @@ class SequentialDTNNGraph(object):
       # Add layer to the layer list
       self.layers.append(layer)
 
-  def get_graph_topology(self):
-    return self.graph_topology
-
-  def get_num_output_features(self):
-    """Gets the output shape of the featurization layers of the network"""
-    return self.layers[-1].output_shape[1]
-
-  def return_outputs(self):
-    return self.output
 
   def return_inputs(self):
-    return self.graph_topology.get_input_placeholders()
+    return self.graph_topology.get_atom_number_placeholders()
 
   def get_layer(self, layer_id):
     return self.layers[layer_id]

@@ -85,8 +85,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     rel_atoms = deg_summed[deg - 1]
 
     # Get self atoms
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Apply hidden affine to relevant atoms and append
@@ -100,8 +100,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
   if min_deg == 0:
     deg = 0
 
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Only use the self layer
@@ -110,7 +110,7 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     new_rel_atoms_collection[deg - min_deg] = out
 
   # Combine all atoms back into the list
-  activated_atoms = tf.concat(0, new_rel_atoms_collection)
+  activated_atoms = tf.concat(axis=0, values=new_rel_atoms_collection)
 
   return activated_atoms
 
@@ -145,7 +145,7 @@ def graph_gather(atoms, membership_placeholder, batch_size):
   ]
 
   # Get the final sparse representations
-  sparse_reps = tf.concat(0, sparse_reps)
+  sparse_reps = tf.concat(axis=0, values=sparse_reps)
 
   return sparse_reps
 
@@ -178,8 +178,8 @@ def graph_pool(atoms, deg_adj_lists, deg_slice, max_deg, min_deg):
 
   for deg in range(1, max_deg + 1):
     # Get self atoms
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Expand dims
@@ -187,18 +187,18 @@ def graph_pool(atoms, deg_adj_lists, deg_slice, max_deg, min_deg):
 
     # always deg-1 for deg_adj_lists
     gathered_atoms = tf.gather(atoms, deg_adj_lists[deg - 1])
-    gathered_atoms = tf.concat(1, [self_atoms, gathered_atoms])
+    gathered_atoms = tf.concat(axis=1, values=[self_atoms, gathered_atoms])
 
     maxed_atoms = tf.reduce_max(gathered_atoms, 1)
     deg_maxed[deg - min_deg] = maxed_atoms
 
   if min_deg == 0:
-    begin = tf.pack([deg_slice[0, 0], 0])
-    size = tf.pack([deg_slice[0, 1], -1])
+    begin = tf.stack([deg_slice[0, 0], 0])
+    size = tf.stack([deg_slice[0, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
     deg_maxed[0] = self_atoms
 
-  return tf.concat(0, deg_maxed)
+  return tf.concat(axis=0, values=deg_maxed)
 
 
 class GraphConv(Layer):
@@ -820,7 +820,7 @@ class LSTMStep(Layer):
     return h, [h, c]
     ####################################################### DEBUG
 
-class DTNNembedding(Layer):
+class DTNNEmbedding(Layer):
 
   def __init__(self, 
                n_features=20, 
@@ -831,9 +831,9 @@ class DTNNembedding(Layer):
     self.periodic_table_length = periodic_table_length
     self.init = initializations.get(init)  # Set weight initialization
 
-    super(GraphPool, self).__init__(**kwargs)
+    super(DTNNEmbedding, self).__init__(**kwargs)
 
-  def build(self, input_shape):
+  def build(self):
       
     self.embedding_list = self.init([self.periodic_table_length, self.n_features])
     self.trainable_weights = [self.embedding_list]
@@ -851,14 +851,15 @@ class DTNNembedding(Layer):
     tf.Tensor
       Of shape (n_atoms, n_feat), where n_feat is number of atom_features
     """
+    self.build()
     atom_features = tf.nn.embedding_lookup(self.embedding_list, x)
     return atom_features
     
 class DTNNStep(Layer):
 
   def __init__(self, 
-               n_features,
-               n_distance,
+               n_features=20,
+               n_distance=100,
                n_hidden=20,
                init='glorot_uniform',
                activation='tanh',
@@ -869,9 +870,9 @@ class DTNNStep(Layer):
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
         
-    super(GraphPool, self).__init__(**kwargs)
+    super(DTNNStep, self).__init__(**kwargs)
 
-  def build(self, input_shape):
+  def build(self):
     self.W_cf = self.init([self.n_features, self.n_hidden])
     self.W_df = self.init([self.n_distance, self.n_hidden])
     self.W_fc = self.init([self.n_hidden, self.n_features])
@@ -894,6 +895,7 @@ class DTNNStep(Layer):
     tf.Tensor
       Of shape (n_atoms, n_feat), where n_feat is number of atom_features
     """
+    self.build()
     atom_features = x[0]
     distance_matrix = x[1]
     distance_matrix_mask = x[2]
@@ -909,7 +911,7 @@ class DTNNStep(Layer):
 class DTNNGather(Layer):
 
   def __init__(self, 
-               n_features,
+               n_features=20,
                n_hidden=20,
                init='glorot_uniform',
                activation='tanh',
@@ -919,9 +921,9 @@ class DTNNGather(Layer):
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
         
-    super(GraphPool, self).__init__(**kwargs)
+    super(DTNNGather, self).__init__(**kwargs)
 
-  def build(self, input_shape):
+  def build(self):
     self.W_out1 = self.init([self.n_features, self.n_hidden])
     self.W_out2 = self.init([self.n_hidden, 1])
     self.b_out1 = model_ops.zeros(shape=[self.n_hidden,])
@@ -943,9 +945,9 @@ class DTNNGather(Layer):
     tf.Tensor
       Of shape (n_atoms, n_feat), where n_feat is number of atom_features
     """
+    self.build()
     outputs = tf.tensordot(x, self.W_out1, [[2], [0]]) + self.b_out1
     outputs = self.activation(outputs)
     outputs = tf.tensordot(outputs, self.W_out2, [[2], [0]]) + self.b_out2
     outputs = tf.reduce_sum(tf.squeeze(outputs, axis=2), axis=1)
-
     return outputs
