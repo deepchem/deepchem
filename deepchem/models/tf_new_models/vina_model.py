@@ -32,47 +32,101 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, ndim=3, k=5):
   start = tf.reduce_min(coords)
   stop = tf.reduce_max(coords)
   cells = get_cells(start, stop, nbr_cutoff, ndim)
+  # Associate each atom with cell it belongs to. O(N*n_cells)
   atoms_in_cells = put_atoms_in_cells(coords, cells, N, ndim, k)
   
-  # Associate each atom with cell it belongs to. O(N)
-  cell_to_atoms, atom_to_cell = put_atoms_in_cells(
-      coords, x_bins, y_bins, z_bins)
   # Associate each cell with its neighbor cells. Assumes periodic boundary   
   # conditions, so does wrapround. O(constant)    
-  N_x, N_y, N_z = len(x_bins), len(y_bins), len(z_bins)   
-  neighbor_cell_map = compute_neighbor_cell_map(N_x, N_y, N_z)    
+  neighbor_cells = compute_neighbor_cells(cells, ndim)    
+
+def get_cells_for_atoms(coords, cells, N, ndim=3):
+  """Compute the cells each atom belongs to.
+
+  TODO(rbharath): Move this past a stub implementation.
+
+  Parameters
+  ----------
+  coords: tf.Tensor
+    Shape (N, ndim)
+  cells: tf.Tensor
+    (box_size**ndim, ndim) shape.
+  Returns
+  -------
+  cells_for_atoms: tf.Tensor
+    Shape (N, 1)
+  """ 
+  return tf.zeros((N, 1))
     
-  # For each atom, loop through all atoms in its cell and neighboring cells.    
-  # Accept as neighbors only those within threshold. This computation should be   
-  # O(Nm), where m is the number of atoms within a set of neighboring-cells.
-  neighbor_list = {}
+
+def compute_closest_neighbors(coords, cells, atoms_in_cells, neighbor_cells, N, ndim=3, k=5):
+  """Computes nearest neighbors from neighboring cells.
+
+  TODO(rbharath): Make this pass test
+
+  Parameters
+  ---------
+  atoms_in_cells: list
+    Of length n_cells. Each entry tensor of shape (k, ndim)
+  neighbor_cells: list
+    Of length n_cells. Each entry tensor of shape (26,)
+  N: int
+    Number atoms
+  """
+  n_cells = len(atoms_in_cells)
+  # Tensor of shape (n_cells, k, ndim)
+  atoms_in_cells = tf.pack(atoms_in_cells)
+  ## Tensor of shape (n_cells, 26)
+  neighbor_cells = tf.pack(neighbor_cells)
+
+  cells_for_atoms = get_cells_for_atoms(coords, cells, N, ndim)
+  all_closest = []
   for atom in range(N):
-    cell = atom_to_cell[atom]
-    neighbor_cells = neighbor_cell_map[cell]
-    # For smaller systems especially, the periodic boundary conditions can
-    # result in neighboring cells being seen multiple times. Use a set() to
-    # make sure duplicate neighbors are ignored. Convert back to list before
-    # returning. 
-    neighbor_list[atom] = set()
-    for neighbor_cell in neighbor_cells:
-      atoms_in_cell = cell_to_atoms[neighbor_cell]
-      for neighbor_atom in atoms_in_cell:
-        if neighbor_atom == atom:    
-           continue    
-        # TODO(rbharath): How does distance need to be modified here to   
-        # account for periodic boundary conditions?   
-        dist = np.linalg.norm(coords[atom] - coords[neighbor_atom])   
-        if dist < neighbor_cutoff:    
-          neighbor_list[atom].add((neighbor_atom, dist))    
-             
-    # Sort neighbors by distance    
-    closest_neighbors = sorted(   
-        list(neighbor_list[atom]), key=lambda elt: elt[1])    
-    closest_neighbors = [nbr for (nbr, dist) in closest_neighbors]    
-    # Pick up to max_num_neighbors    
-    closest_neighbors = closest_neighbors[:max_num_neighbors]   
-    neighbor_list[atom] = closest_neighbors
-  return neighbor_list   
+    atom_vec = coords[atom]
+    cell = cells_for_atoms[atom] 
+    nbr_inds = neighbor_cells[cell]
+    # Tensor of shape (26, k, ndim)
+    nbr_atoms = tf.gather(atoms_in_cells, nbr_inds)
+    # Reshape to (26*k, ndim)
+    nbr_atoms = tf.reshape(nbr_atoms, (-1, 3))
+    # Subtract out atom vector. Still of shape (26*k, ndim) due to broadcast.
+    nbr_atoms = nbr_atoms - atom_vec
+    # Dists of shape (26*k, 1)
+    nbr_dists = tf.reduce_sum(nbr_atoms**2, axis=1)
+    # Of shape (k, ndim)
+    closest_inds = tf.nn.top_k(nbr_dists, k=k)[1]
+    all_closest.append(closest_inds)
+  return all_closest
+  ## For each atom, loop through all atoms in its cell and neighboring cells.    
+  ## Accept as neighbors only those within threshold. This computation should be   
+  ## O(Nm), where m is the number of atoms within a set of neighboring-cells.
+  #neighbor_list = {}
+  #for atom in range(N):
+  #  cell = atom_to_cell[atom]
+  #  neighbor_cells = neighbor_cell_map[cell]
+  #  # For smaller systems especially, the periodic boundary conditions can
+  #  # result in neighboring cells being seen multiple times. Use a set() to
+  #  # make sure duplicate neighbors are ignored. Convert back to list before
+  #  # returning. 
+  #  neighbor_list[atom] = set()
+  #  for neighbor_cell in neighbor_cells:
+  #    atoms_in_cell = cell_to_atoms[neighbor_cell]
+  #    for neighbor_atom in atoms_in_cell:
+  #      if neighbor_atom == atom:    
+  #         continue    
+  #      # TODO(rbharath): How does distance need to be modified here to   
+  #      # account for periodic boundary conditions?   
+  #      dist = np.linalg.norm(coords[atom] - coords[neighbor_atom])   
+  #      if dist < neighbor_cutoff:    
+  #        neighbor_list[atom].add((neighbor_atom, dist))    
+  #           
+  #  # Sort neighbors by distance    
+  #  closest_neighbors = sorted(   
+  #      list(neighbor_list[atom]), key=lambda elt: elt[1])    
+  #  closest_neighbors = [nbr for (nbr, dist) in closest_neighbors]    
+  #  # Pick up to max_num_neighbors    
+  #  closest_neighbors = closest_neighbors[:max_num_neighbors]   
+  #  neighbor_list[atom] = closest_neighbors
+  #return neighbor_list   
 
 def get_cells(start, stop, nbr_cutoff, ndim=3):
   """Returns the locations of all grid points in box.
@@ -81,7 +135,10 @@ def get_cells(start, stop, nbr_cutoff, ndim=3):
   Then would return a list of length 20^3 whose entries would be
   [(-10, -10, -10), (-10, -10, -9), ..., (9, 9, 9)]
 
-  TODO(rbharath): Make this work in more than 3 dimensions.
+  Returns
+  -------
+  cells: tf.Tensor
+    (box_size**ndim, ndim) shape.
   """
   return tf.reshape(tf.transpose(tf.pack(tf.meshgrid(
       *[tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))), (-1, ndim))
@@ -137,11 +194,14 @@ def put_atoms_in_cells(coords, cells, N, ndim, k=5):
   #   - Return N lists corresponding to neighbors for every atom.
   
         
-def compute_neighbor_cell_map(cells, ndim):
+def compute_neighbor_cells(cells, ndim):
   """Compute neighbors of cells in grid.    
 
   # TODO(rbharath): Do we need to handle periodic boundary conditions
   properly here?
+  # TODO(rbharath): This doesn't handle boundaries well. We hard-code
+  # looking for 26 neighbors, which isn't right for boundary cells in
+  # the cube.
       
   Parameters    
   ----------    
@@ -158,9 +218,13 @@ def compute_neighbor_cell_map(cells, ndim):
   # Tile cells to form arrays of size (n_cells*n_cells, ndim)
   # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
   # Tile (a, a, a, b, b, b, etc.)
-  tiled_centers = tf.reshape(tf.tile(cells, (1, N)), (n_cells*N, ndim))
+  tiled_centers = tf.reshape(tf.tile(cells, (1, n_cells)), (n_cells*n_cells, ndim))
   # Tile (a, b, c, a, b, c, ...)
   tiled_cells = tf.tile(cells, (n_cells, 1))
+
+  # Lists of n_cells tensors of shape (N, 1)
+  tiled_centers = tf.split_v(tiled_centers, n_cells)
+  tiled_cells = tf.split_v(tiled_cells, n_cells)
 
   # Lists of length n_cells
   coords_rel = [tf.to_float(cells) - tf.to_float(centers)
@@ -169,7 +233,7 @@ def compute_neighbor_cell_map(cells, ndim):
 
   # Lists of length n_cells
   # Get indices of k atoms closest to each cell point
-  # n_cells tensors of shape (26, ndim)
+  # n_cells tensors of shape (26,)
   closest_inds = [tf.nn.top_k(norm, k=k)[1] for norm in coords_norm]
 
   return closest_inds
@@ -335,6 +399,3 @@ class VinaModel(Model):
         if loc_score < best_score:
           best_conf = loc_conf
     return best_conf
-        
-      
-
