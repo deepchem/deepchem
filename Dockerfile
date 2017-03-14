@@ -20,7 +20,7 @@ ENV PATH /miniconda/bin:$PATH
 RUN git clone https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
     git checkout 415aebadff54175b7ba108964723c8f69438af94 && \
-    bash scripts/install_deepchem_conda.sh deepchem && \
+    bash scripts/install_deepchem_conda.sh root && \
     pip install tensorflow-gpu==0.12.1 && \
     python setup.py install
 
