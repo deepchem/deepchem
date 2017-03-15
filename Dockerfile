@@ -24,8 +24,12 @@ RUN git clone https://github.com/deepchem/deepchem.git && \
     git checkout 415aebadff54175b7ba108964723c8f69438af94 && \
     bash scripts/install_deepchem_conda.sh root && \
     pip install tensorflow-gpu==0.12.1 && \
-    python setup.py install
+    python setup.py develop
+
+# Clean up
+RUN cd deepchem && \
+    git clean -fX
 
 # Run tests
-RUN pip install nose && \
-    nosetests -v deepchem --nologcapture
+#RUN pip install nose && \
+#    nosetests -v deepchem --nologcapture
