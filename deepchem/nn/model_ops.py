@@ -218,7 +218,7 @@ def concatenate(tensors, axis=-1):
   try:
     return tf.concat_v2([x for x in tensors], axis)
   except AttributeError:
-    return tf.concat(axis=axis, values=[x for x in tensors])
+    return tf.concat(axis, [x for x in tensors])
 
 
 def _normalize_axis(axis, ndim):
@@ -253,7 +253,7 @@ def mean(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
+  return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
 
 
 def dot(x, y):
@@ -273,14 +273,14 @@ def dot(x, y):
   """
   if get_ndim(x) is not None and (get_ndim(x) > 2 or get_ndim(y) > 2):
     x_shape = []
-    for i, s in zip(int_shape(x), tf.unstack(tf.shape(x))):
+    for i, s in zip(int_shape(x), tf.unpack(tf.shape(x))):
       if i is not None:
         x_shape.append(i)
       else:
         x_shape.append(s)
     x_shape = tuple(x_shape)
     y_shape = []
-    for i, s in zip(int_shape(y), tf.unstack(tf.shape(y))):
+    for i, s in zip(int_shape(y), tf.unpack(tf.shape(y))):
       if i is not None:
         y_shape.append(i)
       else:
@@ -431,7 +431,7 @@ def max(x, axis=None, keepdims=False):
   A tensor with maximum values of `x`.
   """
   axis = _normalize_axis(axis, get_ndim(x))
-  return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
+  return tf.reduce_max(x, reduction_indices=axis, keep_dims=keepdims)
 
 
 def l2_normalize(x, axis):
@@ -463,12 +463,12 @@ def categorical_crossentropy(output, target, from_logits=False):
   if not from_logits:
     # scale preds so that the class probas of each sample sum to 1
     output /= tf.reduce_sum(
-        output, axis=len(output.get_shape()) - 1, keep_dims=True)
+        output, reduction_indices=len(output.get_shape()) - 1, keep_dims=True)
     # manual computation of crossentropy
     epsilon = _to_tensor(_EPSILON, output.dtype.base_dtype)
     output = tf.clip_by_value(output, epsilon, 1. - epsilon)
     return -tf.reduce_sum(
-        target * tf.log(output), axis=len(output.get_shape()) - 1)
+        target * tf.log(output), reduction_indices=len(output.get_shape()) - 1)
   else:
     try:
       return tf.nn.softmax_cross_entropy_with_logits(
@@ -700,10 +700,10 @@ def var(x, axis=None, keepdims=False):
   axis = _normalize_axis(axis, get_ndim(x))
   if x.dtype.base_dtype == tf.bool:
     x = tf.cast(x, tf.float32)
-  m = tf.reduce_mean(x, axis=axis, keep_dims=True)
+  m = tf.reduce_mean(x, reduction_indices=axis, keep_dims=True)
   devs_squared = tf.square(x - m)
   return tf.reduce_mean(
-      devs_squared, axis=axis, keep_dims=keepdims)
+      devs_squared, reduction_indices=axis, keep_dims=keepdims)
 
 
 def euclidean_distance(test, support, max_dist_sq=20):
@@ -959,7 +959,7 @@ def softmax_N(tensor, name=None):
     return tf.div(exp_tensor,
                   tf.reduce_sum(
                       exp_tensor,
-                      axis=reduction_indices,
+                      reduction_indices=reduction_indices,
                       keep_dims=True))
 
 

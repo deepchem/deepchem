@@ -30,23 +30,23 @@ def get_loss_fn(final_loss):
   if final_loss == 'L2':
 
     def loss_fn(x, t):
-      diff = tf.substract(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.square(diff), 0)
   elif final_loss == 'weighted_L2':
 
     def loss_fn(x, t, w):
-      diff = tf.substract(x, t)
+      diff = tf.subtract(x, t)
       weighted_diff = tf.multiply(diff, w)
       return tf.reduce_sum(tf.square(weighted_diff), 0)
   elif final_loss == 'L1':
 
     def loss_fn(x, t):
-      diff = tf.substract(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.abs(diff), 0)
   elif final_loss == 'huber':
 
     def loss_fn(x, t):
-      diff = tf.substract(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(
           tf.minimum(0.5 * tf.square(diff),
                      huber_d * (tf.abs(diff) - 0.5 * huber_d)), 0)
@@ -188,10 +188,8 @@ class MultitaskGraphClassifier(Model):
     task_losses = []
     # label_placeholder of shape (batch_size, n_tasks). Split into n_tasks
     # tensors of shape (batch_size,)
-    task_labels = tf.split(
-        axis=1, num_or_size_splits=self.n_tasks, value=self.label_placeholder)
-    task_weights = tf.split(
-        axis=1, num_or_size_splits=self.n_tasks, value=self.weight_placeholder)
+    task_labels = tf.split(1, self.n_tasks, self.label_placeholder)
+    task_weights = tf.split(1, self.n_tasks, self.weight_placeholder)
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]
