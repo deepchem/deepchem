@@ -80,23 +80,28 @@ class SequentialGraph(object):
     return self.layers[layer_id]
 
 class SequentialDTNNGraph(SequentialGraph):
-  """An analog of Keras Sequential class for Graph data.
+  """An analog of Keras Sequential class for Coulomb Matrix data.
 
-  Like the Sequential class from Keras, but automatically passes topology
-  placeholders from GraphTopology to each graph layer (from layers) added
-  to the network. Non graph layers don't get the extra placeholders. 
+  automatically generates and passes topology placeholders to each layer. 
   """
 
-  def __init__(self, max_n_atoms=30, n_distance=100):
+  def __init__(self, max_n_atoms, n_distance=100, distance_min=-1., distance_max=18.):
     """
     Parameters
     ----------
-    n_feat: int
-      Number of features per atom.
+    max_n_atoms: int
+      maximum number of atoms in a molecule
+    n_distance: int, optional
+      granularity of distance matrix
+      step size will be (distance_max-distance_min)/n_distance
+    distance_min: float, optional
+      minimum distance of atom pairs, default = -1 Angstorm
+    distance_max: float, optional
+      maximum distance of atom pairs, default = 18 Angstorm
     """
     self.graph = tf.Graph()
     with self.graph.as_default():
-      self.graph_topology = DTNNGraphTopology(max_n_atoms, n_distance)
+      self.graph_topology = DTNNGraphTopology(max_n_atoms, n_distance, distance_min=distance_min, distance_max=distance_max)
       self.output = self.graph_topology.get_atom_number_placeholder()
     # Keep track of the layers
     self.layers = []
@@ -104,24 +109,11 @@ class SequentialDTNNGraph(SequentialGraph):
   def add(self, layer):
     """Adds a new layer to model."""
     with self.graph.as_default():
-      ############################################# DEBUG
-      #print("start - add()")
-      #print("self.output")
-      #print(self.output)
-      ############################################# DEBUG
-      # For graphical layers, add connectivity placeholders 
       if type(layer).__name__ in ['DTNNStep']:
         self.output = layer([self.output] +
                             self.graph_topology.get_topology_placeholders())
       else:
         self.output = layer(self.output)
-      ############################################# DEBUG
-      #print("end- add()")
-      #print("self.output")
-      #print(self.output)
-      ############################################# DEBUG
-
-      # Add layer to the layer list
       self.layers.append(layer)
 
 

@@ -144,29 +144,28 @@ class GraphTopology(object):
 class DTNNGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_n_atoms=30, n_distance=100, name='DTNN_topology'):
+  def __init__(self, max_n_atoms, n_distance=100, distance_min=-1., distance_max=18., name='DTNN_topology'):
     """
-    Note that batch size is not specified in a GraphTopology object. A batch
-    of molecules must be combined into a disconnected graph and fed to topology
-    directly to handle batches.
-
     Parameters
     ----------
-    n_feat: int
-      Number of features per atom.
-    name: str, optional
-      Name of this manager.
-    max_deg: int, optional
-      Maximum #bonds for atoms in molecules.
-    min_deg: int, optional
-      Minimum #bonds for atoms in molecules.
+    max_n_atoms: int
+      maximum number of atoms in a molecule
+    n_distance: int, optional
+      granularity of distance matrix
+      step size will be (distance_max-distance_min)/n_distance
+    distance_min: float, optional
+      minimum distance of atom pairs, default = -1 Angstorm
+    distance_max: float, optional
+      maximum distance of atom pairs, default = 18 Angstorm
     """
 
     #self.n_atoms = n_atoms
     self.name = name
     self.max_n_atoms = max_n_atoms
     self.n_distance = n_distance
-    
+    self.distance_min = distance_min
+    self.distance_max = distance_max
+
     self.atom_number_placeholder = tf.placeholder(
         dtype='int32', 
         shape=(None,self.max_n_atoms), 
@@ -193,22 +192,22 @@ class DTNNGraphTopology(GraphTopology):
     return self.distance_matrix_placeholder
 
   def batch_to_feed_dict(self, batch):
-    """Converts the current batch of mol_graphs into tensorflow feed_dict.
+    """Converts the current batch of Coulomb Matrix into tensorflow feed_dict.
 
-    Assigns the graph information in array of ConvMol objects to the
+    Assigns the atom number and distance info to the
     placeholders tensors
 
     params
     ------
     batch : np.ndarray
-      Array of ConvMol objects
+      Array of Coulomb Matrix
 
     returns
     -------
     feed_dict : dict
       Can be merged with other feed_dicts for input into tensorflow
     """
-    # Merge mol conv objects
+    # Extract atom numbers
     atom_number = np.asarray(map(np.diag, batch))
     atom_number = np.asarray(np.round(np.power(2*atom_number, 1/2.4)), dtype=int)
     ZiZj = []
@@ -222,8 +221,9 @@ class DTNNGraphTopology(GraphTopology):
       for ir, row in enumerate(molecule):
         for ie, element in enumerate(row):
           if element>0 and ir != ie:
+            # expand a float value distance to a distance vector
             distance_matrix[im, ir, ie, :] = self.gauss_expand(ZiZj[im, ir, ie]/element, 
-                                                               self.n_distance)
+                self.n_distance, self.distance_min, self.distance_max)
             distance_matrix_mask[im, ir, ie] = 1
           else:
             distance_matrix[im, ir, ie, :] = 0
@@ -237,7 +237,7 @@ class DTNNGraphTopology(GraphTopology):
     return dict_DTNN
     
   @staticmethod
-  def gauss_expand(distance, n_distance, distance_min=-1., distance_max=18.):
+  def gauss_expand(distance, n_distance, distance_min, distance_max):
     step_size = (distance_max - distance_min)/n_distance
     steps = np.array([distance_min+i*step_size for i in range(n_distance)])
     distance_vector = np.exp(-np.square(distance - steps)/(2*step_size**2))

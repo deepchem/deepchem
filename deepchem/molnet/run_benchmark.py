@@ -82,7 +82,7 @@ def run_benchmark(datasets,
         n_features = 75
       elif model in [
           'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
-          'rf_regression'
+          'rf_regression', 'DTNN'
       ]:
         featurizer = 'ECFP'
         n_features = 1024
@@ -99,7 +99,7 @@ def run_benchmark(datasets,
           return
       elif dataset in ['qm7', 'qm7b', 'qm9']:
         featurizer = None  # qm* datasets are already featurized
-        if isinstance(model, str) and not model in ['tf_regression']:
+        if isinstance(model, str) and not model in ['tf_regression', 'DTNN']:
           return
         elif model in ['tf_regression']:
           model = 'tf_regression_ft'

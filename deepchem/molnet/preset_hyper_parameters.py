@@ -95,7 +95,8 @@ hps['DTNN'] = {
     'batch_size': 128,
     'nb_epoch': 20,
     'learning_rate': 0.0005,
-    'n_hidden': 20,
+    'n_embedding': 20,
+    'n_hidden': 50,
     'n_distance': 100,
     'seed': 123
 }
