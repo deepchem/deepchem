@@ -23,10 +23,10 @@ metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
 # Batch size of models
 batch_size = 50
 graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=23, n_distance=100)
-graph_model.add(dc.nn.DTNNEmbedding(n_features=20))
-graph_model.add(dc.nn.DTNNStep(n_features=20, n_distance=100))
-graph_model.add(dc.nn.DTNNStep(n_features=20, n_distance=100))
-graph_model.add(dc.nn.DTNNGather())
+graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
+graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
+graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
+graph_model.add(dc.nn.DTNNGather(n_embedding=20))
 
 model = dc.models.DTNNRegressor(
     graph_model,
