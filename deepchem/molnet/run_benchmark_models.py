@@ -363,7 +363,7 @@ def benchmark_regression(
         n_eval=10,
         seed=seed)
 
-  if model_name == 'graphconvreg':
+  elif model_name == 'graphconvreg':
     # Initialize model folder
 
     # Loading hyper parameters
@@ -400,7 +400,34 @@ def benchmark_regression(
         beta1=.9,
         beta2=.999)
 
-  if model_name == 'rf_regression':
+  elif model_name == 'DTNN':
+    # Initialize model folder
+
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_distance = hyper_parameters['n_distance']
+    n_hidden = hyper_parameters['n_hidden']
+
+    tf.set_random_seed(seed)
+    graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=n_features[0], 
+                                            n_distance=n_distance)
+    graph_model.add(dc.nn.DTNNEmbedding(n_features=n_hidden))
+    graph_model.add(dc.nn.DTNNStep(n_features=n_hidden, n_distance=n_distance))
+    graph_model.add(dc.nn.DTNNStep(n_features=n_hidden, n_distance=n_distance))
+    graph_model.add(dc.nn.DTNNGather(n_tasks=len(tasks)))
+
+    model = dc.models.DTNNRegressor(
+        graph_model,
+        n_tasks=len(tasks),
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
     nb_epoch = None
