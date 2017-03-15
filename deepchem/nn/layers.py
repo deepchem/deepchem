@@ -100,8 +100,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
   if min_deg == 0:
     deg = 0
 
-    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Only use the self layer
@@ -911,11 +911,13 @@ class DTNNStep(Layer):
 class DTNNGather(Layer):
 
   def __init__(self, 
+               n_tasks=1,
                n_features=20,
-               n_hidden=20,
+               n_hidden=50,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
+    self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_hidden = n_hidden
     self.init = initializations.get(init)  # Set weight initialization
@@ -924,13 +926,17 @@ class DTNNGather(Layer):
     super(DTNNGather, self).__init__(**kwargs)
 
   def build(self):
-    self.W_out1 = self.init([self.n_features, self.n_hidden])
-    self.W_out2 = self.init([self.n_hidden, 1])
-    self.b_out1 = model_ops.zeros(shape=[self.n_hidden,])
-    self.b_out2 = model_ops.zeros(shape=[1,])
+    self.W_out1_list = []
+    self.W_out2_list = []
+    self.b_out1_list = []
+    self.b_out2_list = []
+    for i in range(self.n_tasks):
+      self.W_out1_list.append(self.init([self.n_features, self.n_hidden]))
+      self.W_out2_list.append(self.init([self.n_hidden, 1]))
+      self.b_out1_list.append(model_ops.zeros(shape=[self.n_hidden,]))
+      self.b_out2_list.append(model_ops.zeros(shape=[1,]))
     
-    self.trainable_weights = [self.W_out1, self.W_out2, 
-                              self.b_out1, self.b_out2]
+    self.trainable_weights = self.W_out1_list + self.W_out2_list + self.b_out1_list + self.b_out2_list
 
   def call(self, x):
     """Execute this layer on input tensors.
@@ -946,8 +952,12 @@ class DTNNGather(Layer):
       Of shape (n_atoms, n_feat), where n_feat is number of atom_features
     """
     self.build()
-    outputs = tf.tensordot(x, self.W_out1, [[2], [0]]) + self.b_out1
-    outputs = self.activation(outputs)
-    outputs = tf.tensordot(outputs, self.W_out2, [[2], [0]]) + self.b_out2
-    outputs = tf.reduce_sum(tf.squeeze(outputs, axis=2), axis=1)
+    outputs = []
+    for i in range(self.n_tasks):
+      output = tf.tensordot(x, self.W_out1_list[i], [[2], [0]]) + self.b_out1_list[i]
+      output = self.activation(output)
+      output = tf.tensordot(output, self.W_out2_list[i], [[2], [0]]) + self.b_out2_list[i]
+      output = tf.reduce_sum(tf.squeeze(output, axis=2), axis=1)
+      outputs.append(output)
+      
     return outputs

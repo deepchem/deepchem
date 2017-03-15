@@ -10,9 +10,6 @@ import numpy as np
 import tensorflow as tf
 import sklearn.metrics
 import tempfile
-from deepchem.utils.save import log
-from deepchem.models.tf_new_models.graph_topology import merge_dicts
-from deepchem.models.tf_new_models.multitask_classifier import get_loss_fn
 from deepchem.models.tf_new_models.multitask_regressor import MultitaskGraphRegressor
 
 
@@ -31,7 +28,7 @@ class DTNNRegressor(MultitaskGraphRegressor):
                beta2=.999,
                pad_batches=True,
                verbose=True):
-
+    self.n_tasks  = n_tasks
     self.verbose = verbose
     self.n_tasks = n_tasks
     self.final_loss = final_loss
@@ -82,4 +79,4 @@ class DTNNRegressor(MultitaskGraphRegressor):
         dtype='float32', shape=(None, self.n_tasks), name="weight_placholder")
 
     outputs = self.model.return_outputs()
-    return [outputs]
+    return outputs
