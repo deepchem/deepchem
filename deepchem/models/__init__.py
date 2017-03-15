@@ -22,3 +22,6 @@ from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
 from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskRegressor
 from deepchem.models.tensorflow_models.progressive_joint import ProgressiveJointRegressor
 from deepchem.models.tensorflow_models.IRV import TensorflowMultiTaskIRVClassifier
+
+from deepchem.models.torch_models.torch_multitask_classification import TorchMultitaskClassification
+from deepchem.models.torch_models.torch_multitask_regression import TorchMultitaskRegression
