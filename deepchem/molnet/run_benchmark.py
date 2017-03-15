@@ -37,7 +37,7 @@ def run_benchmark(datasets,
   model: string or user-defined model stucture
       choice of which model to use, deepchem provides implementation of
       logistic regression, random forest, multitask network, 
-      bypass multitask network, irv, graph convolution, deep tensor NN(only for QM);
+      bypass multitask network, irv, graph convolution;
       for user define model, it should include function: fit, evaluate
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
@@ -82,7 +82,7 @@ def run_benchmark(datasets,
         n_features = 75
       elif model in [
           'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
-          'rf_regression', 'DTNN'
+          'rf_regression'
       ]:
         featurizer = 'ECFP'
         n_features = 1024
@@ -99,7 +99,7 @@ def run_benchmark(datasets,
           return
       elif dataset in ['qm7', 'qm7b', 'qm9']:
         featurizer = None  # qm* datasets are already featurized
-        if isinstance(model, str) and not model in ['tf_regression', 'DTNN']:
+        if isinstance(model, str) and not model in ['tf_regression']:
           return
         elif model in ['tf_regression']:
           model = 'tf_regression_ft'
@@ -112,8 +112,7 @@ def run_benchmark(datasets,
           return
         if split in ['scaffold', 'butina']:
           return
-    if model == 'DTNN' and not dataset in ['qm7', 'qm7b', 'qm9']:
-      return
+
     if not split in [
         None, 'index', 'random', 'scaffold', 'butina', 'stratified'
     ]:
