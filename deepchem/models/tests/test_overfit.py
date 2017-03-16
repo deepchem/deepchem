@@ -663,7 +663,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[classification_metric.name] < .2
 
   def test_DTNN_multitask_regression_overfit(self):
-    """Test graph-conv multitask overfits tiny data."""
+    """Test deep tensor neural net overfits tiny data."""
     np.random.seed(123)
     tf.set_random_seed(123)
     g = tf.Graph()
@@ -677,8 +677,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones_like(y)
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
     regression_metric = dc.metrics.Metric(
-        dc.metrics.r2_score,
-        task_averager=np.mean)
+        dc.metrics.r2_score, task_averager=np.mean)
     n_tasks = y.shape[1]
     n_feat = list(dataset.get_data_shape())
     batch_size = 10
