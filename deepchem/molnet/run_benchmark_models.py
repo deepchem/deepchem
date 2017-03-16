@@ -303,7 +303,8 @@ def benchmark_regression(
   test_scores = {}
 
   assert model in [
-      'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg', 'DTNN'
+      'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
+      'DTNN'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -412,12 +413,16 @@ def benchmark_regression(
     n_hidden = hyper_parameters['n_hidden']
 
     tf.set_random_seed(seed)
-    graph_model = deepchem.nn.SequentialDTNNGraph(max_n_atoms=n_features[0], 
-                                                  n_distance=n_distance)
+    graph_model = deepchem.nn.SequentialDTNNGraph(
+        max_n_atoms=n_features[0], n_distance=n_distance)
     graph_model.add(deepchem.nn.DTNNEmbedding(n_embedding=n_embedding))
-    graph_model.add(deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
-    graph_model.add(deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
-    graph_model.add(deepchem.nn.DTNNGather(n_tasks=len(tasks), n_embedding=n_embedding, n_hidden=n_hidden))
+    graph_model.add(
+        deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
+    graph_model.add(
+        deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
+    graph_model.add(
+        deepchem.nn.DTNNGather(
+            n_tasks=len(tasks), n_embedding=n_embedding, n_hidden=n_hidden))
 
     model = deepchem.models.DTNNRegressor(
         graph_model,

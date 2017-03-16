@@ -79,13 +79,18 @@ class SequentialGraph(object):
   def get_layer(self, layer_id):
     return self.layers[layer_id]
 
+
 class SequentialDTNNGraph(SequentialGraph):
   """An analog of Keras Sequential class for Coulomb Matrix data.
 
   automatically generates and passes topology placeholders to each layer. 
   """
 
-  def __init__(self, max_n_atoms, n_distance=100, distance_min=-1., distance_max=18.):
+  def __init__(self,
+               max_n_atoms,
+               n_distance=100,
+               distance_min=-1.,
+               distance_max=18.):
     """
     Parameters
     ----------
@@ -101,7 +106,11 @@ class SequentialDTNNGraph(SequentialGraph):
     """
     self.graph = tf.Graph()
     with self.graph.as_default():
-      self.graph_topology = DTNNGraphTopology(max_n_atoms, n_distance, distance_min=distance_min, distance_max=distance_max)
+      self.graph_topology = DTNNGraphTopology(
+          max_n_atoms,
+          n_distance,
+          distance_min=distance_min,
+          distance_max=distance_max)
       self.output = self.graph_topology.get_atom_number_placeholder()
     # Keep track of the layers
     self.layers = []
@@ -116,12 +125,12 @@ class SequentialDTNNGraph(SequentialGraph):
         self.output = layer(self.output)
       self.layers.append(layer)
 
-
   def return_inputs(self):
     return self.graph_topology.get_atom_number_placeholders()
 
   def get_layer(self, layer_id):
     return self.layers[layer_id]
+
 
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""

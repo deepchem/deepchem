@@ -820,12 +820,14 @@ class LSTMStep(Layer):
     return h, [h, c]
     ####################################################### DEBUG
 
+
 class DTNNEmbedding(Layer):
   """Generate embeddings for all atoms in the batch
   """
-  def __init__(self, 
-               n_embedding=20, 
-               periodic_table_length=83, 
+
+  def __init__(self,
+               n_embedding=20,
+               periodic_table_length=83,
                init='glorot_uniform',
                **kwargs):
     self.n_embedding = n_embedding
@@ -835,8 +837,9 @@ class DTNNEmbedding(Layer):
     super(DTNNEmbedding, self).__init__(**kwargs)
 
   def build(self):
-      
-    self.embedding_list = self.init([self.periodic_table_length, self.n_embedding])
+
+    self.embedding_list = self.init(
+        [self.periodic_table_length, self.n_embedding])
     self.trainable_weights = [self.embedding_list]
 
   def call(self, x):
@@ -855,12 +858,14 @@ class DTNNEmbedding(Layer):
     self.build()
     atom_features = tf.nn.embedding_lookup(self.embedding_list, x)
     return atom_features
-    
+
+
 class DTNNStep(Layer):
   """A convolution step that merge in distance and atom info of 
      all other atoms into current atom.
   """
-  def __init__(self, 
+
+  def __init__(self,
                n_embedding=20,
                n_distance=100,
                n_hidden=20,
@@ -872,18 +877,23 @@ class DTNNStep(Layer):
     self.n_hidden = n_hidden
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
-        
+
     super(DTNNStep, self).__init__(**kwargs)
 
   def build(self):
     self.W_cf = self.init([self.n_embedding, self.n_hidden])
     self.W_df = self.init([self.n_distance, self.n_hidden])
     self.W_fc = self.init([self.n_hidden, self.n_embedding])
-    self.b_cf = model_ops.zeros(shape=[self.n_hidden,])
-    self.b_df = model_ops.zeros(shape=[self.n_hidden,])
-    
-    self.trainable_weights = [self.W_cf, self.W_df, self.W_fc, 
-                              self.b_cf, self.b_df]
+    self.b_cf = model_ops.zeros(shape=[
+        self.n_hidden,
+    ])
+    self.b_df = model_ops.zeros(shape=[
+        self.n_hidden,
+    ])
+
+    self.trainable_weights = [
+        self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
+    ]
 
   def call(self, x):
     """Execute this layer on input tensors.
@@ -904,8 +914,11 @@ class DTNNStep(Layer):
     atom_features = x[0]
     distance_matrix = x[1]
     distance_matrix_mask = x[2]
-    outputs = tf.multiply((tf.tensordot(distance_matrix, self.W_df, [[3], [0]]) + self.b_df),
-        tf.expand_dims(tf.tensordot(atom_features, self.W_cf, [[2], [0]]) + self.b_cf, axis=1))
+    outputs = tf.multiply(
+        (tf.tensordot(distance_matrix, self.W_df, [[3], [0]]) + self.b_df),
+        tf.expand_dims(
+            tf.tensordot(atom_features, self.W_cf, [[2], [0]]) + self.b_cf,
+            axis=1))
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
     outputs = tf.tensordot(outputs, self.W_fc, [[3], [0]])
@@ -916,11 +929,13 @@ class DTNNStep(Layer):
     # for atom i, sum the influence from all other atom j in the molecule
 
     return outputs
-    
+
+
 class DTNNGather(Layer):
   """Map the atomic features into molecular properties and sum
   """
-  def __init__(self, 
+
+  def __init__(self,
                n_tasks=1,
                n_embedding=20,
                n_hidden=50,
@@ -932,7 +947,7 @@ class DTNNGather(Layer):
     self.n_hidden = n_hidden
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
-        
+
     super(DTNNGather, self).__init__(**kwargs)
 
   def build(self):
@@ -943,9 +958,13 @@ class DTNNGather(Layer):
     for i in range(self.n_tasks):
       self.W_out1_list.append(self.init([self.n_embedding, self.n_hidden]))
       self.W_out2_list.append(self.init([self.n_hidden, 1]))
-      self.b_out1_list.append(model_ops.zeros(shape=[self.n_hidden,]))
-      self.b_out2_list.append(model_ops.zeros(shape=[1,]))
-    
+      self.b_out1_list.append(model_ops.zeros(shape=[
+          self.n_hidden,
+      ]))
+      self.b_out2_list.append(model_ops.zeros(shape=[
+          1,
+      ]))
+
     self.trainable_weights = self.W_out1_list + self.W_out2_list + self.b_out1_list + self.b_out2_list
 
   def call(self, x):
@@ -964,11 +983,13 @@ class DTNNGather(Layer):
     self.build()
     outputs = []
     for i in range(self.n_tasks):
-      output = tf.tensordot(x, self.W_out1_list[i], [[2], [0]]) + self.b_out1_list[i]
+      output = tf.tensordot(x, self.W_out1_list[i],
+                            [[2], [0]]) + self.b_out1_list[i]
       output = self.activation(output)
-      output = tf.tensordot(output, self.W_out2_list[i], [[2], [0]]) + self.b_out2_list[i]
+      output = tf.tensordot(output, self.W_out2_list[i],
+                            [[2], [0]]) + self.b_out2_list[i]
       # each task has one independent hidden layer
       output = tf.reduce_sum(tf.squeeze(output, axis=2), axis=1)
       outputs.append(output)
-      
+
     return outputs

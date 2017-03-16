@@ -28,7 +28,7 @@ class DTNNRegressor(MultitaskGraphRegressor):
                beta2=.999,
                pad_batches=True,
                verbose=True):
-    self.n_tasks  = n_tasks
+    self.n_tasks = n_tasks
     self.verbose = verbose
     self.n_tasks = n_tasks
     self.final_loss = final_loss

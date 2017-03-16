@@ -141,10 +141,16 @@ class GraphTopology(object):
     }
     return merge_dicts([atoms_dict, deg_adj_dict])
 
+
 class DTNNGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_n_atoms, n_distance=100, distance_min=-1., distance_max=18., name='DTNN_topology'):
+  def __init__(self,
+               max_n_atoms,
+               n_distance=100,
+               distance_min=-1.,
+               distance_max=18.,
+               name='DTNN_topology'):
     """
     Parameters
     ----------
@@ -167,8 +173,8 @@ class DTNNGraphTopology(GraphTopology):
     self.distance_max = distance_max
 
     self.atom_number_placeholder = tf.placeholder(
-        dtype='int32', 
-        shape=(None,self.max_n_atoms), 
+        dtype='int32',
+        shape=(None, self.max_n_atoms),
         name=self.name + '_atom_number')
     self.distance_matrix_placeholder = tf.placeholder(
         dtype='float32',
@@ -180,8 +186,9 @@ class DTNNGraphTopology(GraphTopology):
         name=self.name + '_distance_matrix_mask')
 
     # Define the list of tensors to be used as topology
-    self.topology = [self.distance_matrix_placeholder, 
-                     self.distance_matrix_mask_placeholder]
+    self.topology = [
+        self.distance_matrix_placeholder, self.distance_matrix_mask_placeholder
+    ]
     self.inputs = [self.atom_number_placeholder]
     self.inputs += self.topology
 
@@ -209,21 +216,24 @@ class DTNNGraphTopology(GraphTopology):
     """
     # Extract atom numbers
     atom_number = np.asarray(map(np.diag, batch))
-    atom_number = np.asarray(np.round(np.power(2*atom_number, 1/2.4)), dtype=int)
+    atom_number = np.asarray(
+        np.round(np.power(2 * atom_number, 1 / 2.4)), dtype=int)
     ZiZj = []
     for molecule in atom_number:
-        ZiZj.append(np.outer(molecule, molecule))
+      ZiZj.append(np.outer(molecule, molecule))
     ZiZj = np.asarray(ZiZj)
     distance_matrix = np.expand_dims(batch[:], axis=3)
-    distance_matrix = np.concatenate([distance_matrix]*self.n_distance, axis=3)
+    distance_matrix = np.concatenate(
+        [distance_matrix] * self.n_distance, axis=3)
     distance_matrix_mask = batch[:]
     for im, molecule in enumerate(batch):
       for ir, row in enumerate(molecule):
         for ie, element in enumerate(row):
-          if element>0 and ir != ie:
+          if element > 0 and ir != ie:
             # expand a float value distance to a distance vector
-            distance_matrix[im, ir, ie, :] = self.gauss_expand(ZiZj[im, ir, ie]/element, 
-                self.n_distance, self.distance_min, self.distance_max)
+            distance_matrix[im, ir, ie, :] = self.gauss_expand(
+                ZiZj[im, ir, ie] / element, self.n_distance, self.distance_min,
+                self.distance_max)
             distance_matrix_mask[im, ir, ie] = 1
           else:
             distance_matrix[im, ir, ie, :] = 0
@@ -235,11 +245,10 @@ class DTNNGraphTopology(GraphTopology):
         self.distance_matrix_mask_placeholder: distance_matrix_mask
     }
     return dict_DTNN
-    
+
   @staticmethod
   def gauss_expand(distance, n_distance, distance_min, distance_max):
-    step_size = (distance_max - distance_min)/n_distance
-    steps = np.array([distance_min+i*step_size for i in range(n_distance)])
-    distance_vector = np.exp(-np.square(distance - steps)/(2*step_size**2))
+    step_size = (distance_max - distance_min) / n_distance
+    steps = np.array([distance_min + i * step_size for i in range(n_distance)])
+    distance_vector = np.exp(-np.square(distance - steps) / (2 * step_size**2))
     return distance_vector
-      

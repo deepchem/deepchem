@@ -677,7 +677,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     w = np.ones_like(y)
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
     regression_metric = dc.metrics.Metric(
-        dc.metrics.mean_absolute_error, mode="regression", task_averager=np.mean)
+        dc.metrics.r2_score,
+        task_averager=np.mean)
     n_tasks = y.shape[1]
     n_feat = list(dataset.get_data_shape())
     batch_size = 10
@@ -703,10 +704,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
     model.save()
 
     # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
+    scores = model.evaluate(dataset, [regression_metric])
 
-    assert scores[classification_metric.name] < .2
-
+    assert scores[regression_metric.name] < .2
 
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
