@@ -83,7 +83,13 @@ def compute_closest_neighbors(coords, cells, atoms_in_cells, neighbor_cells, N, 
   for atom in range(N):
     atom_vec = coords[atom]
     cell = cells_for_atoms[atom] 
-    nbr_inds = neighbor_cells[cell]
+    ###################################################### DEBUG
+    print("cell")
+    print(cell)
+    print("neighbor_cells")
+    print(neighbor_cells)
+    ###################################################### DEBUG
+    nbr_inds = tf.gather(neighbor_cells, tf.to_int32(cell))
     # Tensor of shape (26, k, ndim)
     nbr_atoms = tf.gather(atoms_in_cells, nbr_inds)
     # Reshape to (26*k, ndim)
