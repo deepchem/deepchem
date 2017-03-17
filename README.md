@@ -39,7 +39,24 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 
 Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
-### Full Anaconda distribution
+### Using a conda environment
+Alternatively, you can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
+
+```bash
+bash scripts/install_deepchem_conda.sh deepchem
+pip install tensorflow-gpu==0.12.1                      # If you want GPU support
+git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
+cd deepchem
+python setup.py install                                 # Manual install
+nosetests -v deepchem --nologcapture                    # Run tests
+```
+This creates a new conda environment `deepchem` and installs in it the dependencies that
+are needed. To access it, use the `source activate deepchem` command.
+Check [this link](https://conda.io/docs/using/envs.html) for more information about
+the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
+via this installation procedure.
+
+### Installing Dependencies Manually
 
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
@@ -108,22 +125,25 @@ Installation from source is the only currently supported format. ```deepchem``` 
     Note that the full test-suite uses up a fair amount of memory. 
     Try running tests for one submodule at a time if memory proves an issue.
 
-### Using a conda environment
-Alternatively, you can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
+### Using a Docker Image
+For major releases we will create docker environments with everything pre-installed
+``` bash
+# This will the deepchem docker image into your images
+docker pull deepchemio/deepchem
 
-```bash
-bash scripts/install_deepchem_conda.sh deepchem
-pip install tensorflow-gpu==0.12.1                      # If you want GPU support
-git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
-cd deepchem
-python setup.py install                                 # Manual install
-nosetests -v deepchem --nologcapture                    # Run tests
+# This will create a container out of our latest image
+docker run -i -t deepchemio/deepchem
+
+# You are now in a docker container whose python has deepchem installed
+# For example you can run our tox21 benchmark
+cd deepchem/examples
+python benchmark.py -d tox21
+
+# Or you can start playing with it in the command line
+pip install jupyter
+ipython
+import deepchem as dc
 ```
-This creates a new conda environment `deepchem` and installs in it the dependencies that
-are needed. To access it, use the `source activate deepchem` command.
-Check [this link](https://conda.io/docs/using/envs.html) for more information about
-the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
-via this installation procedure.
 
 ## FAQ
 1. Question: I'm seeing some failures in my test suite having to do with MKL
