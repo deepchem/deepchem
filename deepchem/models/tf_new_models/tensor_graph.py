@@ -61,11 +61,12 @@ class TensorGraph(Model):
       time1 = time.time()
       print("Training for %d epochs" % nb_epoch)
       self.train_op = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
+      saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
+        saver.restore(sess, tf.train.latest_checkpoint(self.data_dir))
+        #sess.run(tf.global_variables_initializer())
         # Save an initial checkpoint.
-        saver.save(sess, self.data_dir, global_step=0)
+        #saver.save(sess, self.data_dir, global_step=0)
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
           # TODO(rbharath): Don't support example weighting yet.
@@ -80,11 +81,12 @@ class TensorGraph(Model):
             avg_loss += loss
             n_batches += 1
           if epoch % checkpoint_interval == checkpoint_interval - 1:
-            saver.save(sess, self.data_dir, global_step=epoch)
+            pass
+            #saver.save(sess, self.data_dir, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches
           print('Ending epoch %d: Average loss %g' % (epoch, avg_loss))
           # Always save a final checkpoint when complete.
-          saver.save(sess, self.data_dir, global_step=epoch + 1)
+          #saver.save(sess, self.data_dir, global_step=epoch + 1)
       ############################################################## TIMING
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
@@ -135,6 +137,7 @@ class Dense(Layer):
       w = tf.random_normal(shape=(parent_shape[1].value, self.out_channels))
       b = tf.random_normal([self.out_channels])
       self.out_tensor = tf.matmul(parent.out_tensor, w) + b
+    return self.out_tensor
 
 
 class Flatten(Layer):
