@@ -1,5 +1,5 @@
 """
-qm9 dataset loader.
+qm8 dataset loader.
 """
 from __future__ import print_function
 from __future__ import division
@@ -8,34 +8,31 @@ from __future__ import unicode_literals
 import os
 import deepchem
 
-
-def load_qm9(featurizer=None, split='random'):
-  """Load qm9 datasets."""
-  # Featurize qm9 dataset
-  print("About to featurize qm9 dataset.")
+def load_qm8(featurizer=None, split='random'):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
 
-  dataset_file = os.path.join(data_dir, "gdb9.sdf")
-
+  dataset_file = os.path.join(data_dir, "qm8.sdf")
+  
   if not os.path.exists(dataset_file):
     os.system(
         'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz '
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz '
     )
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
+    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb8.tar.gz') + ' -C ' +
               data_dir)
 
-  qm9_tasks = [
-      "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
-      "u0_atom", "u298_atom", "h298_atom", "g298_atom"
+  qm8_tasks = [
+      "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0",
+      "f2-PBE0", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM",
+      "f1-CAM", "f2-CAM"
   ]
   if featurizer is None:
-    featurizer = deepchem.feat.CoulombMatrix(29)
+    featurizer = deepchem.feat.CoulombMatrix(26)
   loader = deepchem.data.SDFLoader(
-      tasks=qm9_tasks,
+      tasks=qm8_tasks,
       smiles_field="smiles",
       mol_field="mol",
       featurizer=featurizer)
@@ -43,7 +40,7 @@ def load_qm9(featurizer=None, split='random'):
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=11)
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=0)
   }
   splitter = splitters[split]
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
@@ -56,4 +53,4 @@ def load_qm9(featurizer=None, split='random'):
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
-  return qm9_tasks, (train_dataset, valid_dataset, test_dataset), transformers
+  return qm8_tasks, (train_dataset, valid_dataset, test_dataset), transformers

@@ -15,7 +15,7 @@ import numpy as np
 import tensorflow as tf
 import deepchem
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
-
+from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
 
 def run_benchmark(datasets,
                   model,
@@ -56,7 +56,7 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox', 'hiv'
+        'muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox', 'hiv', 'bace_c'
     ]:
       mode = 'classification'
       if metric == None:
@@ -64,8 +64,8 @@ def run_benchmark(datasets,
             deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)
         ]
     elif dataset in [
-        'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
-        'sampl'
+        'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm8', 'qm9',
+        'sampl', 'bace_r', 'clearance', 'hopv', 'lipo', 'ppb'
     ]:
       mode = 'regression'
       if metric == None:
@@ -75,48 +75,17 @@ def run_benchmark(datasets,
     else:
       raise ValueError('Dataset not supported')
 
-    if featurizer == None:
+    if featurizer == None and isinstance(model, str):
       # Assigning featurizer if not user defined
-      if model in ['graphconv', 'graphconvreg']:
-        featurizer = 'GraphConv'
-        n_features = 75
-      elif model in [
-          'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
-          'rf_regression'
-      ]:
-        featurizer = 'ECFP'
-        n_features = 1024
+      pair = (dataset, model)
+      if pair in CheckFeaturizer:
+        featurizer = CheckFeaturizer[pair][0]
+        n_features = CheckFeaturizer[pair][1]
       else:
-        raise ValueError(
-            'featurization should be specified for user-defined models')
-      # Some exceptions in datasets
-      if dataset in ['kaggle']:
-        featurizer = None  # kaggle dataset is already featurized
-        if isinstance(model,
-                      str) and not model in ['tf_regression', 'rf_regression']:
-          return
-        if split in ['scaffold', 'butina', 'random']:
-          return
-      elif dataset in ['qm7', 'qm7b', 'qm9']:
-        featurizer = None  # qm* datasets are already featurized
-        if isinstance(model, str) and not model in ['tf_regression']:
-          return
-        elif model in ['tf_regression']:
-          model = 'tf_regression_ft'
-        if split in ['scaffold', 'butina']:
-          return
-      elif dataset in ['pdbbind']:
-        featurizer = 'grid'  # pdbbind accepts grid featurizer
-        if isinstance(model,
-                      str) and not model in ['tf_regression', 'rf_regression']:
-          return
-        if split in ['scaffold', 'butina']:
-          return
+        continue
 
-    if not split in [
-        None, 'index', 'random', 'scaffold', 'butina', 'stratified'
-    ]:
-      raise ValueError('Splitter function not supported')
+    if not split in [None] + CheckSplit[dataset]:
+      continue
 
     loading_functions = {
         'tox21': deepchem.molnet.load_tox21,
@@ -131,10 +100,17 @@ def run_benchmark(datasets,
         'chembl': deepchem.molnet.load_chembl,
         'qm7': deepchem.molnet.load_qm7_from_mat,
         'qm7b': deepchem.molnet.load_qm7b_from_mat,
+        'qm8': deepchem.molnet.load_qm8,
         'qm9': deepchem.molnet.load_qm9,
         'sampl': deepchem.molnet.load_sampl,
         'clintox': deepchem.molnet.load_clintox,
-        'hiv': deepchem.molnet.load_hiv
+        'hiv': deepchem.molnet.load_hiv,
+        'bace_c': deepchem.molnet.load_bace_classification,
+        'bace_r': deepchem.molnet.load_bace_regression,
+        'clearance': deepchem.molnet.load_clearance,
+        'hopv': deepchem.molnet.load_hopv,
+        'lipo': deepchem.molnet.load_lipo,
+        'ppb': deepchem.molnet.load_ppb
     }
 
     print('-------------------------------------')
@@ -150,11 +126,9 @@ def run_benchmark(datasets,
           featurizer=featurizer)
 
     train_dataset, valid_dataset, test_dataset = all_dataset
-    if dataset in ['kaggle', 'pdbbind']:
+    if dataset in ['pdbbind']:
       n_features = train_dataset.get_data_shape()[0]
-    elif dataset in ['qm7', 'qm7b', 'qm9']:
-      n_features = list(train_dataset.get_data_shape())
-
+      print(n_features)
     time_start_fitting = time.time()
     train_score = {}
     valid_score = {}
