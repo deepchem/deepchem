@@ -45,12 +45,13 @@ class LossLayer(Layer):
 
 
 def main2():
-  from deepchem.feat.one_hot import zinc_charset
   dense_hidden_size = 435
   latent_vector_size = 292
   gru_hidden = 100
   gru_channels = 501
   batch_size = 200
+  charset_size = 47
+  max_smile_size = 120
 
   # import json
   #
@@ -75,7 +76,8 @@ def main2():
 
   graph_model = TensorGraph(
       data_dir="/home/leswing/Documents/graph_model/graph_model")
-  input_layer = Input((batch_size, 120, 47), name="features")
+  input_layer = Input(
+      (batch_size, max_smile_size, charset_size), name="features")
   conv1 = Conv1DLayer(width=9, out_channels=9, name="conv1")
   conv2 = Conv1DLayer(width=9, out_channels=9, name="conv2")
   conv3 = Conv1DLayer(width=10, out_channels=11, name="conv3")
@@ -85,7 +87,7 @@ def main2():
   z_std = Dense(out_channels=latent_vector_size, name="z_std")
   latent = CombineMeanStd(name="latent")
   dense2 = Dense(out_channels=latent_vector_size, name="dense2")
-  repeat1 = Repeat(n_times=120)
+  repeat1 = Repeat(n_times=max_smile_size)
   gru1 = GRU(n_hidden=gru_hidden,
              out_channels=gru_channels,
              batch_size=batch_size,
@@ -98,7 +100,7 @@ def main2():
              out_channels=gru_channels,
              batch_size=batch_size,
              name="GRU3")
-  ts_dense = TimeSeriesDense(out_channels=47)
+  decoded = TimeSeriesDense(out_channels=charset_size, name="decoded")
 
   graph_model.add_layer(input_layer, parents=list())
   graph_model.add_layer(conv1, parents=[input_layer])
@@ -114,15 +116,17 @@ def main2():
   graph_model.add_layer(gru1, parents=[repeat1])
   graph_model.add_layer(gru2, parents=[gru1])
   graph_model.add_layer(gru3, parents=[gru2])
-  graph_model.add_layer(ts_dense, parents=[gru3])
+  graph_model.add_layer(decoded, parents=[gru3])
 
   loss_layer = graph_model.add_layer(
-      LossLayer(name="loss"), parents=[z_mean, z_std, input_layer, ts_dense])
+      LossLayer(name="loss"), parents=[z_mean, z_std, input_layer, decoded])
 
-  labels = graph_model.add_layer(Input((200, 5640), name="labels"), parents=[])
+  labels = graph_model.add_layer(
+      Input((batch_size, charset_size * max_smile_size), name="labels"),
+      parents=[])
   graph_model.features = input_layer.out_tensor
   graph_model.labels = labels.out_tensor
-  graph_model.outputs = ts_dense.out_tensor
+  graph_model.outputs = decoded.out_tensor
   graph_model.loss = loss_layer.out_tensor
 
   # end graph default
