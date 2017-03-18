@@ -5,7 +5,7 @@ Created on Mon Nov 07 22:41:34 2016
 @author: Zhenqin Wu
 """
 import numpy as np
-from benchmark import benchmark_loading_datasets
+import deepchem as dc
 import os
 import time
 import sys
@@ -41,7 +41,6 @@ n_estimators_0 = [500]
 seed = None
 
 out_path='.'
-base_dir_o="/tmp/benchmark_test_"+time.strftime("%Y_%m_%d", time.localtime())
 
 dname = sys.argv[1]
 model = sys.argv[2]
@@ -64,7 +63,6 @@ parameters_printed = {'tf':['layer_sizes', 'weight_init_stddevs',
                                    'n_filters', 'n_fully_connected_nodes'],
                       'rf':['n_estimators']}
 hps = {}
-hps[model] = []
 for i in range(int(sys.argv[3])):
   layer_sizes = layer_sizes_0
   weight_init_stddevs = weight_init_stddevs_0
@@ -88,7 +86,7 @@ for i in range(int(sys.argv[3])):
   n_fully_connected_nodes = np.random.choice(n_fully_connected_nodes_0)
   n_estimators = np.random.choice(n_estimators_0)
   
-  hps[model].append({'layer_sizes': layer_sizes,
+  hps[model] = {'layer_sizes': layer_sizes,
       'weight_init_stddevs': weight_init_stddevs,
       'bias_init_consts': bias_init_consts,
       'dropouts': dropouts, 'bypass_layer_sizes': bypass_layer_sizes, 
@@ -99,7 +97,7 @@ for i in range(int(sys.argv[3])):
       'batch_size': batch_size, 'nb_epoch': nb_epoch,
       'learning_rate': learning_rate, 'n_filters': n_filters,
       'n_fully_connected_nodes': n_fully_connected_nodes, 
-      'n_estimators': n_estimators, 'seed': seed})
+      'n_estimators': n_estimators, 'seed': seed}
   
   with open(os.path.join(out_path,'hps.csv'),'a') as f:        
     f.write('\n'+str(i)+','+dname+',')
@@ -108,9 +106,8 @@ for i in range(int(sys.argv[3])):
         f.write(item+',')
         f.write(str(hps[model][i][item])+',')
 
-benchmark_loading_datasets(base_dir_o, hps, dataset=dname,
-                           model=model, reload=True,
-                           verbosity='high', out_path=out_path)
+  dc.molnet.run_benchmark([dname], str(model), out_path=out_path,
+                          hyper_parameters=hps)
 
 
 

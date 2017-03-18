@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from deepchem.molnet.load_function.bace_datasets import load_bace_classification, load_bace_regression
+from deepchem.molnet.load_function.bbbp_datasets import load_bbbp
 from deepchem.molnet.load_function.chembl_datasets import load_chembl
 from deepchem.molnet.load_function.clearance_datasets import load_clearance
 from deepchem.molnet.load_function.clintox_datasets import load_clintox
@@ -23,6 +24,5 @@ from deepchem.molnet.load_function.sampl_datasets import load_sampl
 from deepchem.molnet.load_function.sider_datasets import load_sider
 from deepchem.molnet.load_function.tox21_datasets import load_tox21
 from deepchem.molnet.load_function.toxcast_datasets import load_toxcast
-
 
 from deepchem.molnet.run_benchmark import run_benchmark
