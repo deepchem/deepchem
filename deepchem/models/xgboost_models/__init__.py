@@ -53,11 +53,12 @@ class XGBoostModel(SklearnModel):
     if isinstance(self.model_instance,xgb.XGBClassifier):
         xgb_metric = "auc"
         sklearn_metric = "roc_auc"
+        stratify = y
     elif isinstance(self.model_instance,xgb.XGBRegressor):
         xgb_metric = "mae"
         sklearn_metric = "neg_mean_absolute_error"
-
-    best_param = self._search_param(sklearn_metric)
+	stratify = None
+    best_param = self._search_param(sklearn_metric,X,y)
     # update model with best param
     self.model_instance = self.model_class(**best_param)
 
@@ -66,11 +67,12 @@ class XGBoostModel(SklearnModel):
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size = 0.2,
                                                         random_state=seed,
-                                                        stratify=y)
+                                                        stratify=stratify)
 
     self.model_instance.fit(X_train, y_train,
 			                early_stopping_rounds=self.early_stopping_rounds,
-                            eval_metric=xgb_metric,eval_set=[(X_test, y_test)],
+                            eval_metric=xgb_metric,
+			    eval_set=[(X_train,y_train),(X_test, y_test)],
                             verbose=self.verbose)
     # Since test size is 20%, when retrain model to whole data, expect
     # n_estimator increased to 1/0.8 = 1.25 time.
@@ -79,14 +81,14 @@ class XGBoostModel(SklearnModel):
     self.model_instance.fit(X_train, y_train, eval_metric=xgb_metric,
 			    verbose=self.verbose)
 
-  def _search_param(self,metric):
+  def _search_param(self,metric,X,y):
     '''
     Find best potential parameters set using few n_estimators
     '''
     # Make sure user specified params are in the grid.
     max_depth_grid = list(np.unique([self.model_instance.max_depth,5,7]))
     colsample_bytree_grid = list(np.unique(
-                                [self.model_instance.colsample_tree,0.66,0.9]))
+                                [self.model_instance.colsample_bytree,0.66,0.9]))
     reg_lambda_grid = list(np.unique(
                                 [self.model_instance.reg_lambda,1,5]))
     param_grid = {
