@@ -10,6 +10,7 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
+import tempfile
 
 class XGBoostModel(SklearnModel):
   """
