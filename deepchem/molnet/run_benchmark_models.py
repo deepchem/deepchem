@@ -431,8 +431,7 @@ def benchmark_regression(
 
 def low_data_benchmark_classification(
     train_dataset, 
-    valid_dataset, 
-    test_dataset,
+    valid_dataset,
     n_features,
     metric,
     model='siamese',
@@ -447,8 +446,6 @@ def low_data_benchmark_classification(
       loaded dataset, ConvMol struct, used for training
   valid_dataset : dataset struct
       loaded dataset, ConvMol struct, used for validation
-  test_dataset : dataset struct
-      loaded dataset, ConvMol struct, used for test
   n_features : integer
       number of features, or length of binary fingerprints
   metric: list of dc.metrics.Metric objects
@@ -460,16 +457,16 @@ def low_data_benchmark_classification(
 
   Returns
   -------
-  scores : dict
+  valid_scores : dict
 	predicting results(AUC) on valid set
 
   """
-  scores = {}
+  train_scores = {} # train set not evaluated in low data model
+  valid_scores = {}
   
   assert model in ['siamese','attn','res']
   if hyper_parameters is None:
     hyper_parameters = hps[model]
-  model_name = model
 
   # Loading hyperparameters
   # num positive/negative ligands
@@ -494,45 +491,46 @@ def low_data_benchmark_classification(
   prev_features = n_features
   for count, n_filter in enumerate(n_filters):
     support_graph.add(
-        dc.nn.GraphConv(int(n_filter), prev_features, activation='relu'))
-    support_graph.add(dc.nn.GraphPool())
+        deepchem.nn.GraphConv(int(n_filter), prev_features, activation='relu'))
+    support_graph.add(deepchem.nn.GraphPool())
     prev_features = int(n_filter)
 
   for count, n_fcnode in enumerate(n_fully_connected_nodes):
     support_graph.add(
-        dc.nn.Dense(int(n_fcnode), prev_features, activation='tanh'))
+        deepchem.nn.Dense(int(n_fcnode), prev_features, activation='tanh'))
     prev_features = int(n_fcnode)
 
-  support_graph.add_test(dc.nn.GraphGather(test_batch_size, 
+  support_graph.add_test(deepchem.nn.GraphGather(test_batch_size, 
                                            activation='tanh'))
-  support_graph.add_support(dc.nn.GraphGather(support_batch_size, 
+  support_graph.add_support(deepchem.nn.GraphGather(support_batch_size, 
                                               activation='tanh'))
   if model in ['siamese']:
     pass
   elif model in ['attn']:
     max_depth = hyper_parameters['max_depth']
-    support_graph.join(dc.nn.AttnLSTMEmbedding(
-        test_batch_size, support_batch_size, max_depth))
+    support_graph.join(deepchem.nn.AttnLSTMEmbedding(
+        test_batch_size, support_batch_size, prev_features, max_depth))
   elif model in ['res']:
     max_depth = hyper_parameters['max_depth']
-    support_graph.join(dc.nn.ResiLSTMEmbedding(
-        test_batch_size, support_batch_size, max_depth))
+    support_graph.join(deepchem.nn.ResiLSTMEmbedding(
+        test_batch_size, support_batch_size, prev_features, max_depth))
       
-    with tf.Session() as sess:
-      model_low_data = dc.models.SupportGraphClassifier(
-          sess, support_graph, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=learning_rate)
+  model_low_data = deepchem.models.SupportGraphClassifier(
+      support_graph, test_batch_size=test_batch_size,
+      support_batch_size=support_batch_size, learning_rate=learning_rate)
         
-      print('-------------------------------------')
-      print('Start fitting by low data model: ' + model)
-      # Fit trained model
-      model_low_data.fit(train_dataset, nb_epochs=nb_epochs,
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg,
-            log_every_n_samples=50)
-      # Evaluating graph convolution model
-      scores[model] = model_low_data.evaluate(valid_dataset, 
-                          classification_metric, n_pos, n_neg, 
-                          n_trials=n_eval_trials)
-      
-  return scores
+  print('-------------------------------------')
+  print('Start fitting by low data model: ' + model)
+  # Fit trained model
+  model_low_data.fit(train_dataset, nb_epochs=nb_epochs,
+        n_episodes_per_epoch=n_train_trials,
+        n_pos=n_pos, n_neg=n_neg,
+        log_every_n_samples=50)
+
+  # Evaluating low data model
+  valid_scores[model] = model_low_data.evaluate(valid_dataset, 
+                            metric, n_pos, n_neg, 
+                            n_trials=n_eval_trials)
+
+  return valid_scores
+

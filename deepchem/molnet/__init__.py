@@ -26,3 +26,4 @@ from deepchem.molnet.load_function.tox21_datasets import load_tox21
 from deepchem.molnet.load_function.toxcast_datasets import load_toxcast
 
 from deepchem.molnet.run_benchmark import run_benchmark
+from deepchem.molnet.run_benchmark_low_data import run_benchmark_low_data

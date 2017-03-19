@@ -53,6 +53,8 @@ def run_benchmark(datasets,
       need to be specified for user-defined featurizers(if using deepchem models)
   out_path: string, optional(default='.')
       path of result file
+  hyper_parameters: dict, optional (default=None)
+      hyper parameters for designated model, None = use preset values
   test: boolean, optional(default=False)
       whether to evaluate on test set
   """
@@ -76,7 +78,9 @@ def run_benchmark(datasets,
 
     metric_all = {'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
                   'r2': deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)}
-    metric = [metric_all[metric]]
+    
+    if isinstance(metric, str):
+      metric = [metric_all[metric]]
 
     if featurizer == None and isinstance(model, str):
       # Assigning featurizer if not user defined
