@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from deepchem.models.models import Model
 from deepchem.models.sklearn_models import SklearnModel
+from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.tf_new_models.multitask_classifier import MultitaskGraphClassifier
 from deepchem.models.tf_new_models.multitask_regressor import MultitaskGraphRegressor
 from deepchem.models.tf_new_models.support_classifier import SupportGraphClassifier

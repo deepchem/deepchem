@@ -7,18 +7,18 @@ Created on Tue Oct 18 15:53:27 2016
 
 Benchmark test:
 
-Giving classification performances of: 
-    Random forest(rf), MultitaskDNN(tf), 
+Giving classification performances of:
+    Random forest(rf), MultitaskDNN(tf),
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
-    Graph convolution(graphconv)                 
+    Graph convolution(graphconv)
 on datasets: muv, pcba, tox21, sider, toxcast, clintox, hiv
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Random forest(rf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney(ESOL), nci, kaggle, pdbbind, 
+on datasets: delaney(ESOL), nci, kaggle, pdbbind,
              qm7, qm7b, qm9, chembl, sampl(FreeSolv)
 
 time estimation listed in README file
@@ -56,7 +56,7 @@ from qm9.qm9_datasets import load_qm9
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 from hiv.hiv_datasets import load_hiv
-
+import xgboost
 
 def benchmark_loading_datasets(hyper_parameters,
                                dataset='tox21',
@@ -67,13 +67,13 @@ def benchmark_loading_datasets(hyper_parameters,
                                test=False):
   """
   Loading dataset for benchmark test
-  
+
   Parameters
   ----------
   hyper_parameters: dict
       hyper parameters including layer size, dropout, learning rate, etc.
   dataset: string, optional (default='tox21')
-      choice of which dataset to use, should be: tox21, muv, sider, 
+      choice of which dataset to use, should be: tox21, muv, sider,
       toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
       qm7, qm7b, qm9, sampl
   model: string,  optional (default='tf')
@@ -272,7 +272,7 @@ def benchmark_classification(train_dataset,
                              test=False):
   """
   Calculate performance of different models on the specific dataset & tasks
-  
+
   Parameters
   ----------
   train_dataset: dataset struct
@@ -292,7 +292,7 @@ def benchmark_classification(train_dataset,
       irv, graphconv
   test: boolean
       whether to calculate test_set performance
-  
+
 
   Returns
   -------
@@ -302,7 +302,7 @@ def benchmark_classification(train_dataset,
 	predicting results(AUC) on valid set
   test_scores : dict
 	predicting results(AUC) on test set
- 
+
 
   """
   train_scores = {}
@@ -313,7 +313,8 @@ def benchmark_classification(train_dataset,
   if metric == 'auc':
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-  assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv']
+  assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv',
+                   'xgb_classifier']
 
   if model == 'tf':
     # Loading hyper parameters
@@ -564,6 +565,62 @@ def benchmark_classification(train_dataset,
       test_scores['rf'] = model_rf.evaluate(
           test_dataset, [classification_metric], transformers)
 
+  if model == 'xgb_classifier':
+    # Loading hyper parameters
+    max_depth = hyper_parameters['max_depth']
+    learning_rate = hyper_parameters['learning_rate']
+    n_estimators = hyper_parameters['n_estimators']
+    gamma = hyper_parameters['gamma']
+    min_child_weight = hyper_parameters['min_child_weight']
+    max_delta_step = hyper_parameters['max_delta_step']
+    subsample = hyper_parameters['subsample']
+    colsample_bytree = hyper_parameters['colsample_bytree']
+    colsample_bylevel = hyper_parameters['colsample_bylevel']
+    reg_alpha = hyper_parameters['reg_alpha']
+    reg_lambda = hyper_parameters['reg_lambda']
+    scale_pos_weight = hyper_parameters['scale_pos_weight']
+    base_score = hyper_parameters['base_score']
+    seed = hyper_parameters['seed']
+    early_stopping_rounds = hyper_parameters['early_stopping_rounds']
+
+    esr = {'early_stopping_rounds' : early_stopping_rounds}
+    # Building xgboost classification model
+    def model_builder(model_dir_xgb):
+        xgboost_model = xgboost.XGBClassifier(
+            max_depth=max_depth,
+            learning_rate=learning_rate,
+            n_estimators=n_estimators,
+            gamma=gamma,
+            min_child_weight=min_child_weight,
+            max_delta_step=max_delta_step,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            colsample_bylevel=colsample_bylevel,
+            reg_alpha=reg_alpha,
+            reg_lambda=reg_lambda,
+            scale_pos_weight=scale_pos_weight,
+            base_score=base_score,
+            seed=seed)
+        return dc.models.xgboost_models.XGBoostModel(xgboost_model,
+                                                            model_dir_xgb,
+                                                            **esr)
+    model_xgb = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
+
+    print('-------------------------------------')
+    print('Start fitting by xgoost')
+    model_xgb.fit(train_dataset)
+
+    # Evaluating xgboost classification model
+    train_scores['xgb_classifier'] = model_xgb.evaluate(
+        train_dataset, [classification_metric], transformers)
+
+    valid_scores['xgb_classifier'] = model_xgb.evaluate(
+       valid_dataset, [classification_metric], transformers)
+
+    if test:
+      test_scores['xgb_classifier'] = model_xgb.evaluate(
+          test_dataset, [classification_metric], transformers)
+
   return train_scores, valid_scores, test_scores
 
 
@@ -581,7 +638,7 @@ def benchmark_regression(train_dataset,
                          test=False):
   """
   Calculate performance of different models on the specific dataset & tasks
-  
+
   Parameters
   ----------
   train_dataset: dataset struct
@@ -600,17 +657,17 @@ def benchmark_regression(train_dataset,
       choice of which model to use, should be: tf_regression, graphconvreg,
       rf_regression
   test: boolean
-      whether to calculate test_set performance  
+      whether to calculate test_set performance
 
   Returns
   -------
   train_scores: dict
       predicting results(R2 or mae) on training set
   valid_scores: dict
-      predicting results(R2 or mae) on valid set  
+      predicting results(R2 or mae) on valid set
   test_scores : dict
 	predicting results(R2 or mae) on test set
- 
+
   """
   train_scores = {}
   valid_scores = {}
@@ -623,7 +680,8 @@ def benchmark_regression(train_dataset,
     regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
                                           np.mean)
 
-  assert model in ['tf_regression', 'rf_regression', 'graphconvreg']
+  assert model in ['tf_regression', 'rf_regression', 'graphconvreg',
+                   'xgb_regression']
 
   if model == 'tf_regression':
     # Loading hyper parameters
@@ -766,6 +824,62 @@ def benchmark_regression(train_dataset,
       test_scores['rf_regression'] = model_rf_regression.evaluate(
           test_dataset, [regression_metric], transformers)
 
+  if model == 'xgb_regression':
+    # Loading hyper parameters
+    max_depth = hyper_parameters['max_depth']
+    learning_rate = hyper_parameters['learning_rate']
+    n_estimators = hyper_parameters['n_estimators']
+    gamma = hyper_parameters['gamma']
+    min_child_weight = hyper_parameters['min_child_weight']
+    max_delta_step = hyper_parameters['max_delta_step']
+    subsample = hyper_parameters['subsample']
+    colsample_bytree = hyper_parameters['colsample_bytree']
+    colsample_bylevel = hyper_parameters['colsample_bylevel']
+    reg_alpha = hyper_parameters['reg_alpha']
+    reg_lambda = hyper_parameters['reg_lambda']
+    scale_pos_weight = hyper_parameters['scale_pos_weight']
+    base_score = hyper_parameters['base_score']
+    seed = hyper_parameters['seed']
+    early_stopping_rounds = hyper_parameters['early_stopping_rounds']
+
+    esr = {'early_stopping_rounds' : early_stopping_rounds}
+    # Building xgboost classification model
+    def model_builder(model_dir_xgb):
+        xgboost_model = xgboost.XGBRegressor(
+            max_depth=max_depth,
+            learning_rate=learning_rate,
+            n_estimators=n_estimators,
+            gamma=gamma,
+            min_child_weight=min_child_weight,
+            max_delta_step=max_delta_step,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            colsample_bylevel=colsample_bylevel,
+            reg_alpha=reg_alpha,
+            reg_lambda=reg_lambda,
+            scale_pos_weight=scale_pos_weight,
+            base_score=base_score,
+            seed=seed)
+        return dc.models.xgboost_models.XGBoostModel(xgboost_model,
+                                                            model_dir_xgb,
+                                                            **esr)
+    model_xgb = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
+
+    print('-------------------------------------')
+    print('Start fitting by xgoost')
+    model_xgb.fit(train_dataset)
+
+    # Evaluating xgboost classification model
+    train_scores['xgb_regression'] = model_xgb.evaluate(
+        train_dataset, [regression_metric], transformers)
+
+    valid_scores['xgb_regression'] = model_xgb.evaluate(
+       valid_dataset, [regression_metric], transformers)
+
+    if test:
+      test_scores['xgb_regression'] = model_xgb.evaluate(
+          test_dataset, [regression_metric], transformers)
+
   return train_scores, valid_scores, test_scores
 
 
@@ -788,7 +902,7 @@ if __name__ == '__main__':
       dest='model_args',
       default=[],
       help='Choice of model: tf, tf_robust, logreg, rf, irv, graphconv, ' +
-      'tf_regression, rf_regression, graphconvreg')
+      'tf_regression, rf_regression, graphconvreg, xgb_classifier, xgb_regression')
   parser.add_argument(
       '-d',
       action='append',
@@ -906,13 +1020,50 @@ if __name__ == '__main__':
       'seed': 123
   }]
 
+  hps['xgb_classifier'] = [{
+      'max_depth': 5,
+      'learning_rate': 0.05,
+      'n_estimators': 3000,
+      'gamma': 0,
+      'min_child_weight': 5,
+      'max_delta_step': 1,
+      'subsample': 0.53,
+      'colsample_bytree': 0.66,
+      'colsample_bylevel': 1,
+      'reg_alpha': 0,
+      'reg_lambda': 1,
+      'scale_pos_weight': 1,
+      'base_score': 0.5,
+      'seed': 2016,
+      'early_stopping_rounds': 100
+  }]
+
+  hps['xgb_regression'] = [{
+      'max_depth': 5,
+      'learning_rate': 0.05,
+      'n_estimators': 3000,
+      'gamma': 0,
+      'min_child_weight': 5,
+      'max_delta_step': 1,
+      'subsample': 0.53,
+      'colsample_bytree': 0.66,
+      'colsample_bylevel': 1,
+      'reg_alpha': 0,
+      'reg_lambda': 1,
+      'scale_pos_weight': 1,
+      'base_score': 0.5,
+      'seed': 2016,
+      'early_stopping_rounds': 100
+  }]
+
   for split in splitters:
     for dataset in datasets:
       if dataset in [
           'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv'
       ]:
         for model in models:
-          if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv']:
+          if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv',
+                        'xgb_classifier']:
             benchmark_loading_datasets(
                 hps,
                 dataset=dataset,
@@ -922,7 +1073,8 @@ if __name__ == '__main__':
                 test=test)
       else:
         for model in models:
-          if model in ['tf_regression', 'rf_regression', 'graphconvreg']:
+          if model in ['tf_regression', 'rf_regression', 'graphconvreg',
+                        'xgb_regression']:
             benchmark_loading_datasets(
                 hps,
                 dataset=dataset,
