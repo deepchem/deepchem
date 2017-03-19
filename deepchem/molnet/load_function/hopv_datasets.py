@@ -26,7 +26,7 @@ def load_hopv(featurizer='ECFP', split='index'):
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'hopv.tar.gz') + ' -C ' +
               data_dir)
-    
+
   hopv_tasks = [
       'HOMO', 'LUMO', 'electrochemical_gap', 'optical_gap', 'PCE', 'V_OC',
       'J_SC', 'fill_factor'
@@ -37,14 +37,15 @@ def load_hopv(featurizer='ECFP', split='index'):
     featurizer_func = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-    
+
   loader = deepchem.data.CSVLoader(
       tasks=hopv_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Initialize transformers 
   transformers = [
-      deepchem.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=dataset)
   ]
 
   print("About to transform data")

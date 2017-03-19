@@ -22,15 +22,28 @@ import deepchem as dc
 import argparse
 
 np.random.seed(123)
-  
-parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
+
+parser = argparse.ArgumentParser(
+    description='Deepchem benchmark: ' +
     'giving performances of different learning models on datasets')
-parser.add_argument('-m', action='append', dest='model_args', default=[], 
+parser.add_argument(
+    '-m',
+    action='append',
+    dest='model_args',
+    default=[],
     help='Choice of model: siamese, attn, res')
-parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
+parser.add_argument(
+    '-d',
+    action='append',
+    dest='dataset_args',
+    default=[],
     help='Choice of dataset: tox21, sider, muv')
-parser.add_argument('--cv', action='store_true', dest='cross_valid', 
-    default=False, help='whether to implement cross validation')
+parser.add_argument(
+    '--cv',
+    action='store_true',
+    dest='cross_valid',
+    default=False,
+    help='whether to implement cross validation')
 
 args = parser.parse_args()
 #Datasets and models used in the benchmark test
@@ -46,6 +59,5 @@ if len(datasets) == 0:
 
 for dataset in datasets:
   for model in models:
-    dc.molnet.run_benchmark_low_data([dataset], str(model), 
-                                     cross_valid=cross_valid)
-
+    dc.molnet.run_benchmark_low_data(
+        [dataset], str(model), cross_valid=cross_valid)

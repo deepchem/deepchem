@@ -17,18 +17,17 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 
 
-def benchmark_classification(
-    train_dataset,
-    valid_dataset,
-    test_dataset,
-    tasks,
-    transformers,
-    n_features,
-    metric,
-    model,
-    test=False,
-    hyper_parameters=None,
-    seed=123):
+def benchmark_classification(train_dataset,
+                             valid_dataset,
+                             test_dataset,
+                             tasks,
+                             transformers,
+                             n_features,
+                             metric,
+                             model,
+                             test=False,
+                             hyper_parameters=None,
+                             seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -248,18 +247,17 @@ def benchmark_classification(
   return train_scores, valid_scores, test_scores
 
 
-def benchmark_regression(
-    train_dataset,
-    valid_dataset,
-    test_dataset,
-    tasks,
-    transformers,
-    n_features,
-    metric,
-    model,
-    test=False,
-    hyper_parameters=None,
-    seed=123):
+def benchmark_regression(train_dataset,
+                         valid_dataset,
+                         test_dataset,
+                         tasks,
+                         transformers,
+                         n_features,
+                         metric,
+                         model,
+                         test=False,
+                         hyper_parameters=None,
+                         seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
   
@@ -429,14 +427,14 @@ def benchmark_regression(
 
   return train_scores, valid_scores, test_scores
 
-def low_data_benchmark_classification(
-    train_dataset, 
-    valid_dataset,
-    n_features,
-    metric,
-    model='siamese',
-    hyper_parameters=None,
-    seed=123):
+
+def low_data_benchmark_classification(train_dataset,
+                                      valid_dataset,
+                                      n_features,
+                                      metric,
+                                      model='siamese',
+                                      hyper_parameters=None,
+                                      seed=123):
   """
   Calculate low data benchmark performance
   
@@ -461,10 +459,10 @@ def low_data_benchmark_classification(
 	predicting results(AUC) on valid set
 
   """
-  train_scores = {} # train set not evaluated in low data model
+  train_scores = {}  # train set not evaluated in low data model
   valid_scores = {}
-  
-  assert model in ['siamese','attn','res']
+
+  assert model in ['siamese', 'attn', 'res']
   if hyper_parameters is None:
     hyper_parameters = hps[model]
 
@@ -482,7 +480,7 @@ def low_data_benchmark_classification(
   # Traning settings
   nb_epochs = hyper_parameters['nb_epochs']
   n_train_trials = hyper_parameters['n_train_trials']
-  n_eval_trials = hyper_parameters['n_eval_trials'] 
+  n_eval_trials = hyper_parameters['n_eval_trials']
 
   learning_rate = hyper_parameters['learning_rate']
 
@@ -500,37 +498,42 @@ def low_data_benchmark_classification(
         deepchem.nn.Dense(int(n_fcnode), prev_features, activation='tanh'))
     prev_features = int(n_fcnode)
 
-  support_graph.add_test(deepchem.nn.GraphGather(test_batch_size, 
-                                           activation='tanh'))
-  support_graph.add_support(deepchem.nn.GraphGather(support_batch_size, 
-                                              activation='tanh'))
+  support_graph.add_test(
+      deepchem.nn.GraphGather(test_batch_size, activation='tanh'))
+  support_graph.add_support(
+      deepchem.nn.GraphGather(support_batch_size, activation='tanh'))
   if model in ['siamese']:
     pass
   elif model in ['attn']:
     max_depth = hyper_parameters['max_depth']
-    support_graph.join(deepchem.nn.AttnLSTMEmbedding(
-        test_batch_size, support_batch_size, prev_features, max_depth))
+    support_graph.join(
+        deepchem.nn.AttnLSTMEmbedding(test_batch_size, support_batch_size,
+                                      prev_features, max_depth))
   elif model in ['res']:
     max_depth = hyper_parameters['max_depth']
-    support_graph.join(deepchem.nn.ResiLSTMEmbedding(
-        test_batch_size, support_batch_size, prev_features, max_depth))
-      
+    support_graph.join(
+        deepchem.nn.ResiLSTMEmbedding(test_batch_size, support_batch_size,
+                                      prev_features, max_depth))
+
   model_low_data = deepchem.models.SupportGraphClassifier(
-      support_graph, test_batch_size=test_batch_size,
-      support_batch_size=support_batch_size, learning_rate=learning_rate)
-        
+      support_graph,
+      test_batch_size=test_batch_size,
+      support_batch_size=support_batch_size,
+      learning_rate=learning_rate)
+
   print('-------------------------------------')
   print('Start fitting by low data model: ' + model)
   # Fit trained model
-  model_low_data.fit(train_dataset, nb_epochs=nb_epochs,
-        n_episodes_per_epoch=n_train_trials,
-        n_pos=n_pos, n_neg=n_neg,
-        log_every_n_samples=50)
+  model_low_data.fit(
+      train_dataset,
+      nb_epochs=nb_epochs,
+      n_episodes_per_epoch=n_train_trials,
+      n_pos=n_pos,
+      n_neg=n_neg,
+      log_every_n_samples=50)
 
   # Evaluating low data model
-  valid_scores[model] = model_low_data.evaluate(valid_dataset, 
-                            metric, n_pos, n_neg, 
-                            n_trials=n_eval_trials)
+  valid_scores[model] = model_low_data.evaluate(
+      valid_dataset, metric, n_pos, n_neg, n_trials=n_eval_trials)
 
   return valid_scores
-

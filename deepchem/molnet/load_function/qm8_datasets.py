@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import deepchem
 
+
 def load_qm8(featurizer=None, split='random'):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
@@ -15,7 +16,7 @@ def load_qm8(featurizer=None, split='random'):
     data_dir = "/tmp"
 
   dataset_file = os.path.join(data_dir, "qm8.sdf")
-  
+
   if not os.path.exists(dataset_file):
     os.system(
         'wget -P ' + data_dir +

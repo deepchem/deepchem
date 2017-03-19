@@ -94,35 +94,35 @@ hps['graphconvreg'] = {
 hps['siamese'] = {
     'n_pos': 1,
     'n_neg': 1,
-    'test_batch_size': 128, 
+    'test_batch_size': 128,
     'n_filters': [64, 128, 64],
     'n_fully_connected_nodes': [128],
-    'nb_epochs': 1, 
-    'n_train_trials': 2000, 
-    'n_eval_trials': 20, 
+    'nb_epochs': 1,
+    'n_train_trials': 2000,
+    'n_eval_trials': 20,
     'learning_rate': 1e-4
 }
 hps['res'] = {
     'n_pos': 1,
     'n_neg': 1,
-    'test_batch_size': 128, 
+    'test_batch_size': 128,
     'n_filters': [64, 128, 64],
-    'n_fully_connected_nodes': [128], 
+    'n_fully_connected_nodes': [128],
     'max_depth': 3,
-    'nb_epochs': 1, 
-    'n_train_trials': 2000, 
-    'n_eval_trials': 20, 
+    'nb_epochs': 1,
+    'n_train_trials': 2000,
+    'n_eval_trials': 20,
     'learning_rate': 1e-4
 }
 hps['attn'] = {
     'n_pos': 1,
     'n_neg': 1,
-    'test_batch_size': 128, 
+    'test_batch_size': 128,
     'n_filters': [64, 128, 64],
-    'n_fully_connected_nodes': [128], 
+    'n_fully_connected_nodes': [128],
     'max_depth': 3,
-    'nb_epochs': 1, 
-    'n_train_trials': 2000, 
-    'n_eval_trials': 20, 
+    'nb_epochs': 1,
+    'n_train_trials': 2000,
+    'n_eval_trials': 20,
     'learning_rate': 1e-4
 }

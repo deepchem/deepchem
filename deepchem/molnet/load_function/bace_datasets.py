@@ -9,6 +9,7 @@ import os
 import deepchem
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
+
 def load_bace_regression(featurizer=None, split='random'):
   """Load bace datasets."""
   # Featurize bace dataset
@@ -34,15 +35,17 @@ def load_bace_regression(featurizer=None, split='random'):
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == None:
-    featurizer = deepchem.feat.UserDefinedFeaturizer(bace_user_specified_features)
-    
+    featurizer = deepchem.feat.UserDefinedFeaturizer(
+        bace_user_specified_features)
+
   loader = deepchem.data.CSVLoader(
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
-  
+
   dataset = loader.featurize(dataset_file, shard_size=8192)
   # Initialize transformers 
   transformers = [
-      deepchem.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=dataset)
   ]
 
   print("About to transform data")
@@ -54,8 +57,9 @@ def load_bace_regression(featurizer=None, split='random'):
       'random': deepchem.splits.RandomSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)  
+  train, valid, test = splitter.train_valid_test_split(dataset)
   return bace_tasks, (train, valid, test), transformers
+
 
 def load_bace_classification(featurizer=None, split='random'):
   """Load bace datasets."""
@@ -82,11 +86,12 @@ def load_bace_classification(featurizer=None, split='random'):
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == None:
-    featurizer = deepchem.feat.UserDefinedFeaturizer(bace_user_specified_features)
-    
+    featurizer = deepchem.feat.UserDefinedFeaturizer(
+        bace_user_specified_features)
+
   loader = deepchem.data.CSVLoader(
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
-  
+
   dataset = loader.featurize(dataset_file, shard_size=8192)
   # Initialize transformers 
   transformers = [
@@ -102,5 +107,5 @@ def load_bace_classification(featurizer=None, split='random'):
       'random': deepchem.splits.RandomSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)  
+  train, valid, test = splitter.train_valid_test_split(dataset)
   return bace_tasks, (train, valid, test), transformers

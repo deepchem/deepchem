@@ -59,8 +59,8 @@ parser.add_argument(
     dest='dataset_args',
     default=[],
     help='Choice of dataset: bace_c, bace_r, bbbp, chembl, clearance, ' +
-         'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, ' + 
-         'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast') 
+    'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, ' +
+    'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast')
 parser.add_argument(
     '-t',
     action='store_true',
@@ -78,16 +78,18 @@ if len(splitters) == 0:
   splitters = ['index', 'random', 'scaffold']
 if len(models) == 0:
   models = [
-      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression', 'tf_regression_ft', 'graphconvreg'
+      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
+      'tf_regression_ft', 'graphconvreg'
   ]
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:
   datasets = [
-      'bace_c', 'bace_r', 'bbbp', 'clearance', 'clintox', 'delaney', 
-      'hiv', 'hopv', 'lipo', 'muv', 'pcba', 'pdbbind', 'ppb', 'qm7b', 
-      'qm8', 'qm9', 'sampl', 'sider', 'tox21', 'toxcast']
+      'bace_c', 'bace_r', 'bbbp', 'clearance', 'clintox', 'delaney', 'hiv',
+      'hopv', 'lipo', 'muv', 'pcba', 'pdbbind', 'ppb', 'qm7b', 'qm8', 'qm9',
+      'sampl', 'sider', 'tox21', 'toxcast'
+  ]
 
 for split in splitters:
   for dataset in datasets:
     for model in models:
-       dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)
+      dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)

@@ -17,6 +17,7 @@ import deepchem
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
 
+
 def run_benchmark(datasets,
                   model,
                   split=None,
@@ -60,15 +61,15 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 
-        'tox21',  'toxcast'
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
+        'toxcast'
     ]:
       mode = 'classification'
       if metric == None:
         metric = 'auc'
     elif dataset in [
-        'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo', 
-        'nci', 'pdbbind', 'ppb',  'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
+        'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
+        'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
     ]:
       mode = 'regression'
       if metric == None:
@@ -76,9 +77,12 @@ def run_benchmark(datasets,
     else:
       raise ValueError('Dataset not supported')
 
-    metric_all = {'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
-                  'r2': deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)}
-    
+    metric_all = {
+        'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
+        'r2':
+        deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
+    }
+
     if isinstance(metric, str):
       metric = [metric_all[metric]]
 

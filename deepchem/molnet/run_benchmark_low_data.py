@@ -17,6 +17,7 @@ import deepchem
 from deepchem.molnet.run_benchmark_models import low_data_benchmark_classification
 from deepchem.molnet.check_availability import CheckFeaturizer
 
+
 def run_benchmark_low_data(datasets,
                            model,
                            split='task',
@@ -65,8 +66,10 @@ def run_benchmark_low_data(datasets,
     else:
       raise ValueError('Dataset not supported')
 
-    metric_all = {'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)}
-                
+    metric_all = {
+        'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)
+    }
+
     if isinstance(metric, str):
       metric = [metric_all[metric]]
 
@@ -85,7 +88,7 @@ def run_benchmark_low_data(datasets,
         'tox21': deepchem.molnet.load_tox21
     }
     assert split == 'task'
-    
+
     print('-------------------------------------')
     print('Benchmark on dataset: %s' % dataset)
     print('-------------------------------------')
@@ -95,14 +98,15 @@ def run_benchmark_low_data(datasets,
         featurizer=featurizer, split=split, K=K)
 
     if cross_valid:
-        num_iter = K # K iterations for cross validation
+      num_iter = K  # K iterations for cross validation
     else:
-        num_iter = 1
+      num_iter = 1
     for count_iter in range(num_iter):
       # Assembling train and valid datasets
-      train_folds = all_dataset[:K-count_iter-1] + all_dataset[K-count_iter:]
+      train_folds = all_dataset[:K - count_iter - 1] + all_dataset[K -
+                                                                   count_iter:]
       train_dataset = deepchem.splits.merge_fold_datasets(train_folds)
-      valid_dataset = all_dataset[K-count_iter-1]
+      valid_dataset = all_dataset[K - count_iter - 1]
 
       time_start_fitting = time.time()
       train_score = {}
@@ -131,7 +135,7 @@ def run_benchmark_low_data(datasets,
         writer = csv.writer(f)
         for i in valid_score:
           output_line = [
-              dataset, str(split), mode, 'valid', i,
-              valid_score[i],
-              'time_for_running', time_finish_fitting - time_start_fitting]
+              dataset, str(split), mode, 'valid', i, valid_score[i],
+              'time_for_running', time_finish_fitting - time_start_fitting
+          ]
           writer.writerow(output_line)
