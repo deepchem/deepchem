@@ -20,6 +20,8 @@ from deepchem.models.tf_new_models.vina_model import get_cells
 from deepchem.models.tf_new_models.vina_model import put_atoms_in_cells
 from deepchem.models.tf_new_models.vina_model import compute_neighbor_cells
 from deepchem.models.tf_new_models.vina_model import compute_closest_neighbors
+from deepchem.models.tf_new_models.vina_model import get_cells_for_atoms
+from deepchem.models.tf_new_models.vina_model import compute_neighbor_list
 import deepchem.utils.rdkit_util as rdkit_util
 from deepchem.utils.save import load_sdf_files
 
@@ -55,6 +57,28 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       assert cells.shape[0] == 4**ndim
 
       # TODO(rbharath): Check that this operation is differentiable.
+
+  def test_compute_neighbor_list(self):
+    """Test that neighbor list can be computed with tensorflow"""
+    N = 10
+    start = 0
+    stop = 12 
+    nbr_cutoff = 3 
+    ndim = 3
+    M = 6
+    k = 5
+    # The number of cells which we should theoretically have
+    n_cells = ((stop - start)/nbr_cutoff)**ndim
+    ################################################### DEBUG
+    print("n_cells")
+    print(n_cells)
+    ################################################### DEBUG
+
+    with self.test_session() as sess:
+      coords = start + np.random.rand(N, ndim)*(stop-start)
+      nbr_list = compute_neighbor_list(coords, nbr_cutoff, N, M, ndim, k)
+      nbr_list = nbr_list.eval()
+      assert nbr_list.shape == (N, M)
 
   def test_put_atoms_in_cells(self):
     """Test that atoms can be partitioned into spatial cells."""
@@ -116,8 +140,37 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       nbr_cells = compute_neighbor_cells(cells, ndim)
       coords = np.random.rand(N, ndim)
-      atoms_in_cells = put_atoms_in_cells(coords, cells, N, ndim, k)
-      nbrs = compute_closest_neighbors(coords, cells, atoms_in_cells, nbr_cells, N)
+      atoms_in_cells = put_atoms_in_cells(coords, cells, N, n_cells,
+                                          ndim, k)
+      nbrs = compute_closest_neighbors(coords, cells, atoms_in_cells,
+                                       nbr_cells, N, n_cells)
+
+  def test_get_cells_for_atoms(self):
+    """Test that atoms are placed in the correct cells."""
+    N = 10
+    start = 0
+    stop = 4
+    nbr_cutoff = 1
+    ndim = 3
+    k = 5
+    # The number of cells which we should theoretically have
+    n_cells = ((stop - start)/nbr_cutoff)**ndim
+
+    # TODO(rbharath): The test below only checks that shapes work out.
+    # Need to do a correctness implementation vs. a simple CPU impl.
+
+    with self.test_session() as sess:
+      cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
+      coords = np.random.rand(N, ndim)
+      cells_for_atoms = get_cells_for_atoms(coords, cells, N, n_cells, ndim)
+      cells_for_atoms = cells_for_atoms.eval()
+      ################################################################## DEBUG
+      print("cells_for_atoms")
+      print(cells_for_atoms)
+      print("cells_for_atoms.shape")
+      print(cells_for_atoms.shape)
+      ################################################################## DEBUG
+      assert cells_for_atoms.shape == (N, 1)
 
   def test_vina_generate_confs(self):
     """Test that vina model can generate meaningful conformations."""
