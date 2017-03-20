@@ -21,6 +21,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 import xgboost
 
+
 class TestGeneralize(unittest.TestCase):
   """
   Test that models can learn generalizable models on simple datasets.
@@ -34,7 +35,7 @@ class TestGeneralize(unittest.TestCase):
     X, y = dataset.data, dataset.target
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
@@ -61,7 +62,7 @@ class TestGeneralize(unittest.TestCase):
 
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
@@ -71,13 +72,13 @@ class TestGeneralize(unittest.TestCase):
     transformers = [
         dc.trans.NormalizationTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.trans.ClippingTransformer(
-            transform_X=True, dataset=train_dataset),
+        dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset),
         dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)]
+            transform_y=True, dataset=train_dataset)
+    ]
     for data in [train_dataset, test_dataset]:
       for transformer in transformers:
-          data = transformer.transform(data)
+        data = transformer.transform(data)
 
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     sklearn_model = LinearRegression()
@@ -108,16 +109,18 @@ class TestGeneralize(unittest.TestCase):
 
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
     test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
+
     def model_builder(model_dir):
       sklearn_model = LinearRegression()
       return dc.models.SklearnModel(sklearn_model, model_dir)
+
     model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
     # Fit trained model
@@ -194,7 +197,7 @@ class TestGeneralize(unittest.TestCase):
     X, y = dataset.data, dataset.target
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
@@ -202,9 +205,9 @@ class TestGeneralize(unittest.TestCase):
 
     regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
     # Set early stopping round = n_estimators so that esr won't work
-    esr = {'early_stopping_rounds' : 50}
-    xgb_model = xgboost.XGBRegressor(n_estimators=50,seed=123)
-    model = dc.models.XGBoostModel(xgb_model,verbose=False,**esr)
+    esr = {'early_stopping_rounds': 50}
+    xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123)
+    model = dc.models.XGBoostModel(xgb_model, verbose=False, **esr)
 
     # Fit trained model
     model.fit(train_dataset)
@@ -226,20 +229,18 @@ class TestGeneralize(unittest.TestCase):
 
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
     test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
     regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
-    esr = {'early_stopping_rounds' : 50}
+    esr = {'early_stopping_rounds': 50}
+
     def model_builder(model_dir):
-      xgb_model = xgboost.XGBRegressor(n_estimators=50,seed=123)
-      return dc.models.XGBoostModel(xgb_model,
-                                    model_dir,
-                                    verbose=False,
-                                    **esr)
+      xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123)
+      return dc.models.XGBoostModel(xgb_model, model_dir, verbose=False, **esr)
 
     model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
@@ -260,16 +261,16 @@ class TestGeneralize(unittest.TestCase):
 
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
     test_dataset = dc.data.NumpyDataset(X_test, y_test)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    esr = {'early_stopping_rounds' : 50}
-    xgb_model = xgboost.XGBClassifier(n_estimators=50,seed=123)
-    model = dc.models.XGBoostModel(xgb_model,verbose=False,**esr)
+    esr = {'early_stopping_rounds': 50}
+    xgb_model = xgboost.XGBClassifier(n_estimators=50, seed=123)
+    model = dc.models.XGBoostModel(xgb_model, verbose=False, **esr)
 
     # Fit trained model
     model.fit(train_dataset)
