@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import unittest
@@ -15,21 +15,22 @@ import tempfile
 import shutil
 import deepchem as dc
 
+
 class TestDataLoader(unittest.TestCase):
   """
   Test DataLoader 
   """
+
   def setUp(self):
     super(TestDataLoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
   def unlabelled_test(self):
-    input_file = os.path.join(
-        self.current_dir, "../../data/tests/no_labels.csv")
+    input_file = os.path.join(self.current_dir,
+                              "../../data/tests/no_labels.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     loader = dc.data.CSVLoader(
-        tasks=[], smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=[], smiles_field="smiles", featurizer=featurizer)
     loader.featurize(input_file)
 
   def scaffold_test_train_valid_test_split(self):
@@ -41,14 +42,13 @@ class TestDataLoader(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/example.csv")
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -69,14 +69,13 @@ class TestDataLoader(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/example.csv")
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -94,14 +93,13 @@ class TestDataLoader(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/example.csv")
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
 
     input_file = os.path.join(self.current_dir, input_file)
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -120,12 +118,11 @@ class TestDataLoader(unittest.TestCase):
     tasks = ["log-solubility"]
     task_type = "regression"
     task_types = {task: task_type for task in tasks}
-    input_file = os.path.join(
-        self.current_dir, "../../models/tests/example.csv")
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example.csv")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
 
     dataset = loader.featurize(input_file)
 
@@ -144,10 +141,11 @@ class TestDataLoader(unittest.TestCase):
     tasks = ["log-solubility"]
     smiles_field = "smiles"
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
+        tasks=tasks,
+        smiles_field="smiles",
         featurizer=dc.feat.CircularFingerprint(size=1024))
     dataset = loader.featurize(input_file)
-    
+
     assert len(dataset) == 10
 
   def test_dataset_move(self):
@@ -155,18 +153,16 @@ class TestDataLoader(unittest.TestCase):
     base_dir = tempfile.mkdtemp()
     data_dir = os.path.join(base_dir, "data")
     moved_data_dir = os.path.join(base_dir, "moved_data")
-    dataset_file = os.path.join(
-        self.current_dir, "../../models/tests/example.csv")
+    dataset_file = os.path.join(self.current_dir,
+                                "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
-    featurized_dataset = loader.featurize(
-        dataset_file, data_dir)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    featurized_dataset = loader.featurize(dataset_file, data_dir)
     n_dataset = len(featurized_dataset)
-  
+
     # Now perform move
     shutil.move(data_dir, moved_data_dir)
 

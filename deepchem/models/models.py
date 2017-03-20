@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar and Joseph Gomes"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import sys
 import numpy as np
@@ -29,8 +29,12 @@ class Model(object):
   """
   Abstract base class for different ML models.
   """
-  def __init__(self, model_instance=None, model_dir=None,
-               verbose=True, **kwargs):
+
+  def __init__(self,
+               model_instance=None,
+               model_dir=None,
+               verbose=True,
+               **kwargs):
     """Abstract class for all models.
     Parameters:
     -----------
@@ -116,13 +120,13 @@ class Model(object):
     # TODO(rbharath/enf): We need a structured way to deal with potential GPU
     #                     memory overflows.
     for epoch in range(nb_epoch):
-      log("Starting epoch %s" % str(epoch+1), self.verbose)
+      log("Starting epoch %s" % str(epoch + 1), self.verbose)
       losses = []
-      for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-          batch_size):
+      for (X_batch, y_batch, w_batch,
+           ids_batch) in dataset.iterbatches(batch_size):
         losses.append(self.fit_on_batch(X_batch, y_batch, w_batch))
-      log("Avg loss for epoch %d: %f"
-          % (epoch+1,np.array(losses).mean()),self.verbose)
+      log("Avg loss for epoch %d: %f" % (epoch + 1, np.array(losses).mean()),
+          self.verbose)
 
   def predict(self, dataset, transformers=[], batch_size=None):
     """
@@ -145,18 +149,17 @@ class Model(object):
       y_pred_batch = undo_transforms(y_pred_batch, transformers)
       y_preds.append(y_pred_batch)
     y_pred = np.vstack(y_preds)
-  
+
     # The iterbatches does padding with zero-weight examples on the last batch.
     # Remove padded examples.
     n_samples = len(dataset)
     y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     # Special case to handle singletasks.
     if n_tasks == 1:
-      y_pred = np.reshape(y_pred, (n_samples,)) 
+      y_pred = np.reshape(y_pred, (n_samples,))
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[],
-               per_task_metrics=False):
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
     """
     Evaluates the performance of this model on specified dataset.
   
@@ -185,7 +188,10 @@ class Model(object):
           metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
 
-  def predict_proba(self, dataset, transformers=[], batch_size=None,
+  def predict_proba(self,
+                    dataset,
+                    transformers=[],
+                    batch_size=None,
                     n_classes=2):
     """
     TODO: Do transformers even make sense here?
