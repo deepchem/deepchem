@@ -68,7 +68,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     M = 6
     k = 5
     # The number of cells which we should theoretically have
-    n_cells = ((stop - start)/nbr_cutoff)**ndim
+    n_cells = int(((stop - start)/nbr_cutoff)**ndim)
     ################################################### DEBUG
     print("n_cells")
     print(n_cells)
@@ -76,7 +76,8 @@ class TestVinaModel(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = start + np.random.rand(N, ndim)*(stop-start)
-      nbr_list = compute_neighbor_list(coords, nbr_cutoff, N, M, ndim, k)
+      nbr_list = compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells,
+                                       ndim=ndim, k=k)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N, M)
 
@@ -95,7 +96,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       coords = np.random.rand(N, ndim)
       atoms_in_cells = put_atoms_in_cells(coords, cells, N, ndim, k)
-      atoms_in_cells = [atoms.eval() for atoms in atoms_in_cells]
+      atoms_in_cells = atoms_in_cells.eval()
       assert len(atoms_in_cells) == n_cells
       # Each atom neighbors tensor should be (k, ndim) shaped.
       for atoms in atoms_in_cells:
@@ -116,7 +117,8 @@ class TestVinaModel(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
-      nbr_cells = compute_neighbor_cells(cells, ndim)
+      nbr_cells = compute_neighbor_cells(cells, ndim, n_cells)
+      nbr_cells = nbr_cells.eval()
       assert len(nbr_cells) == n_cells
       nbr_cells = [nbr_cell.eval() for nbr_cell in nbr_cells]
       for nbr_cell in nbr_cells:
@@ -138,7 +140,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
-      nbr_cells = compute_neighbor_cells(cells, ndim)
+      nbr_cells = compute_neighbor_cells(cells, ndim, n_cells)
       coords = np.random.rand(N, ndim)
       atoms_in_cells = put_atoms_in_cells(coords, cells, N, n_cells,
                                           ndim, k)
