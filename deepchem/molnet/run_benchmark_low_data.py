@@ -62,7 +62,7 @@ def run_benchmark_low_data(datasets,
     if dataset in ['muv', 'sider', 'tox21']:
       mode = 'classification'
       if metric == None:
-        metric = 'auc'
+        metric = str('auc')
     else:
       raise ValueError('Dataset not supported')
 

@@ -66,14 +66,14 @@ def run_benchmark(datasets,
     ]:
       mode = 'classification'
       if metric == None:
-        metric = 'auc'
+        metric = str('auc')
     elif dataset in [
         'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
         'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
     ]:
       mode = 'regression'
       if metric == None:
-        metric = 'r2'
+        metric = str('r2'）
     else:
       raise ValueError('Dataset not supported')
 
