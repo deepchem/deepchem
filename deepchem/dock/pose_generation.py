@@ -9,7 +9,7 @@ from deepchem.utils import mol_xyz_util
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import numpy as np
 import os

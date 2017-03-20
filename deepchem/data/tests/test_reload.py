@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import shutil
@@ -16,20 +16,23 @@ import tempfile
 import deepchem as dc
 import numpy as np
 
+
 class TestReload(unittest.TestCase):
   """
   Test reload for datasets.
   """
+
   def _run_muv_experiment(self, dataset_file, reload=False):
     """Loads or reloads a small version of MUV dataset."""
     # Load MUV dataset
     print("About to featurize compounds")
     featurizer = dc.feat.CircularFingerprint(size=1024)
     raw_dataset = dc.utils.save.load_from_disk(dataset_file)
-    MUV_tasks = ['MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644',
-                 'MUV-548', 'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712',
-                 'MUV-737', 'MUV-858', 'MUV-713', 'MUV-733', 'MUV-652',
-                 'MUV-466', 'MUV-832']
+    MUV_tasks = [
+        'MUV-692', 'MUV-689', 'MUV-846', 'MUV-859', 'MUV-644', 'MUV-548',
+        'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712', 'MUV-737', 'MUV-858',
+        'MUV-713', 'MUV-733', 'MUV-652', 'MUV-466', 'MUV-832'
+    ]
     loader = dc.data.CSVLoader(
         tasks=MUV_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
@@ -55,27 +58,27 @@ class TestReload(unittest.TestCase):
     # reloading will cause the transform to be reapplied. This is undesirable in
     # almost all cases. Need to understand a method to fix this.
     transformers = [
-        dc.trans.BalancingTransformer(
-            transform_w=True, dataset=train_dataset)]
+        dc.trans.BalancingTransformer(transform_w=True, dataset=train_dataset)
+    ]
     print("Transforming datasets")
     for dataset in [train_dataset, valid_dataset, test_dataset]:
       for transformer in transformers:
-          dataset = transformer.transform(dataset)
+        dataset = transformer.transform(dataset)
 
     return (len(train_dataset), len(valid_dataset), len(test_dataset))
-    
+
   def test_reload_after_gen(self):
     """Check num samples for loaded and reloaded datasets is equal."""
-    reload = False 
+    reload = False
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_file = os.path.join(
-        current_dir, "../../../datasets/mini_muv.csv.gz")
+    dataset_file = os.path.join(current_dir,
+                                "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time without reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload)
+    (len_train, len_valid, len_test) = self._run_muv_experiment(dataset_file,
+                                                                reload)
 
     print("Running experiment for second time with reload.")
-    reload = True 
+    reload = True
     (len_reload_train, len_reload_valid, len_reload_test) = (
         self._run_muv_experiment(dataset_file, reload))
     assert len_train == len_reload_train
@@ -84,13 +87,13 @@ class TestReload(unittest.TestCase):
 
   def test_reload_twice(self):
     """Check ability to repeatedly run experiments with reload set True."""
-    reload = True 
+    reload = True
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_file = os.path.join(
-        current_dir, "../../../datasets/mini_muv.csv.gz")
+    dataset_file = os.path.join(current_dir,
+                                "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time with reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload)
+    (len_train, len_valid, len_test) = self._run_muv_experiment(dataset_file,
+                                                                reload)
 
     print("Running experiment for second time with reload.")
     (len_reload_train, len_reload_valid, len_reload_test) = (

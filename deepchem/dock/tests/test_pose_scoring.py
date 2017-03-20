@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import sys
 import unittest
@@ -19,13 +19,17 @@ import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 from subprocess import call
 
+
 class TestPoseScoring(unittest.TestCase):
   """
   Does sanity checks on pose generation. 
   """
+
   def setUp(self):
     """Downloads dataset."""
-    call("wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".split())
+    call(
+        "wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz".
+        split())
     call("tar -zxvf core_grid.tar.gz".split())
     self.core_dataset = dc.data.DiskDataset("core_grid/")
 
@@ -35,7 +39,7 @@ class TestPoseScoring(unittest.TestCase):
 
   def test_pose_scorer_init(self):
     """Tests that pose-score works."""
-    if sys.version_info >= (3,0):
+    if sys.version_info >= (3, 0):
       return
     sklearn_model = RandomForestRegressor(n_estimators=10)
     model = dc.models.SklearnModel(sklearn_model)
@@ -46,7 +50,7 @@ class TestPoseScoring(unittest.TestCase):
 
   def test_pose_scorer_score(self):
     """Tests that scores are generated"""
-    if sys.version_info >= (3,0):
+    if sys.version_info >= (3, 0):
       return
     current_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
