@@ -71,7 +71,7 @@ def run_benchmark_low_data(datasets,
     }
 
     if isinstance(metric, str):
-      metric = [metric_all[metric]]
+      metric = metric_all[metric]
 
     if featurizer == None and isinstance(model, str):
       # Assigning featurizer if not user defined

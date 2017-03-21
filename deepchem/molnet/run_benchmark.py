@@ -73,7 +73,7 @@ def run_benchmark(datasets,
     ]:
       mode = 'regression'
       if metric == None:
-        metric = str('r2'）
+        metric = str('r2')
     else:
       raise ValueError('Dataset not supported')
 
