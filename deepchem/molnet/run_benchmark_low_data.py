@@ -124,8 +124,6 @@ def run_benchmark_low_data(datasets,
               seed=seed)
       else:
         model.fit(train_dataset)
-        train_score['user_defined'] = model.evaluate(train_dataset, metric,
-                                                     transformers)
         valid_score['user_defined'] = model.evaluate(valid_dataset, metric,
                                                      transformers)
 
@@ -134,8 +132,10 @@ def run_benchmark_low_data(datasets,
       with open(os.path.join(out_path, 'results.csv'), 'a') as f:
         writer = csv.writer(f)
         for i in valid_score:
-          output_line = [
-              dataset, str(split), mode, 'valid', i, valid_score[i],
-              'time_for_running', time_finish_fitting - time_start_fitting
-          ]
+          output_line = [dataset, str(split), mode, 'valid', i]
+          for task in valid_score[i][0]:
+            output_line.extend(
+                [task.valid_score[i][0][task], valid_score[i][1][task]])
+          output_line.extend(
+              ['time_for_running', time_finish_fitting - time_start_fitting])
           writer.writerow(output_line)

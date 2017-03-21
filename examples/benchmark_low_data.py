@@ -51,7 +51,6 @@ models = args.model_args
 datasets = args.dataset_args
 cross_valid = args.cross_valid
 
-splitters = ['task']
 if len(models) == 0:
   models = ['siamese', 'attn', 'res']
 if len(datasets) == 0:
