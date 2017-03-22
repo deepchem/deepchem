@@ -7,15 +7,14 @@ from nn.copy import Layer
 
 
 class TensorGraph(Model):
-
-  def __init__(self, data_dir, **kwargs):
-    self.data_dir = data_dir
+  def __init__(self, **kwargs):
     self.nxgraph = nx.DiGraph()
     self.features = None
     self.labels = None
     self.outputs = None
-    self.train_op = None
     self.loss = None
+
+    self.train_op = None
     self.graph = tf.Graph()
     super().__init__(**kwargs)
 
@@ -26,7 +25,7 @@ class TensorGraph(Model):
       for parent in parents:
         self.nxgraph.add_edge(parent.name, layer.name)
       # TODO(LESWING) do this lazily and call in Topological sort order after call to "build"
-      layer.set_parents(parents)
+      layer.__call__(*parents)
       return layer
 
   def fit(self,
@@ -63,45 +62,68 @@ class TensorGraph(Model):
       self.train_op = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
-        saver.restore(sess, tf.train.latest_checkpoint(self.data_dir))
-        #sess.run(tf.global_variables_initializer())
-        # Save an initial checkpoint.
-        #saver.save(sess, self.data_dir, global_step=0)
+        sess.run(tf.global_variables_initializer())
+        saver.save(sess, self.model_dir, global_step=0)
         for epoch in range(nb_epoch):
           avg_loss, n_batches = 0., 0
           # TODO(rbharath): Don't support example weighting yet.
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              dataset.iterbatches(batch_size, pad_batches=True)):
+            dataset.iterbatches(batch_size, pad_batches=True)):
             if ind % log_every_N_batches == 0:
               print("On batch %d" % ind)
             feed_dict = {self.features: X_b, self.labels: y_b}
             fetches = [self.outputs] + [self.train_op, self.loss]
             fetched_values = sess.run(fetches, feed_dict=feed_dict)
             loss = fetched_values[-1]
+            print(loss)
+            print(fetched_values[0])
+            print(y_b)
             avg_loss += loss
             n_batches += 1
           if epoch % checkpoint_interval == checkpoint_interval - 1:
             pass
-            #saver.save(sess, self.data_dir, global_step=epoch)
+            # saver.save(sess, self.model_dir, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches
           print('Ending epoch %d: Average loss %g' % (epoch, avg_loss))
-          # Always save a final checkpoint when complete.
-          #saver.save(sess, self.data_dir, global_step=epoch + 1)
+        # Always save a final checkpoint when complete.
+        print("Saving Model to %s" % self.model_dir)
+        saver.save(sess, self.model_dir, global_step=epoch + 1)
       ############################################################## TIMING
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
       ############################################################## TIMING
 
+  def predict(self, x, batch_size=32, verbose=0):
+    """Generates output predictions for the input samples,
+      processing the samples in a batched way.
+
+      # Arguments
+          x: the input data, as a Numpy array.
+          batch_size: integer.
+          verbose: verbosity mode, 0 or 1.
+
+      # Returns
+          A Numpy array of predictions.
+      """
+    with self.graph.as_default():
+      saver = tf.train.Saver()
+      with tf.Session() as sess:
+        saver.recover_last_checkpoints(self.model_dir)
+        print("Recovered Weights")
+        fetches = [self.outputs]
+        feed_dict = {self.features: x}
+        fetched_values = sess.run(fetches, feed_dict=feed_dict)
+        return fetched_values
+
 
 class Conv1DLayer(Layer):
-
   def __init__(self, width, out_channels, **kwargs):
     self.width = width
     self.out_channels = out_channels
     self.out_tensor = None
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Only One Parent to conv1D over")
     parent = parents[0]
@@ -111,8 +133,8 @@ class Conv1DLayer(Layer):
     parent_channel_size = parent_shape[2].value
     with tf.name_scope(self.name):
       f = tf.Variable(
-          tf.random_normal([self.width, parent_channel_size, self.out_channels
-                           ]))
+        tf.random_normal([self.width, parent_channel_size, self.out_channels
+                          ]))
       b = tf.Variable(tf.random_normal([self.out_channels]))
       t = tf.nn.conv1d(parent.out_tensor, f, stride=1, padding="SAME")
       t = tf.nn.bias_add(t, b)
@@ -120,32 +142,30 @@ class Conv1DLayer(Layer):
 
 
 class Dense(Layer):
-
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     self.out_tensor = None
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Only One Parent to Dense over")
     parent = parents[0]
     if len(parent.out_tensor.get_shape()) != 2:
       raise ValueError("Parent tensor must be (batch, width)")
-    parent_shape = parent.out_tensor.get_shape()
-    with tf.name_scope(self.name):
-      w = tf.random_normal(shape=(parent_shape[1].value, self.out_channels))
-      b = tf.random_normal([self.out_channels])
-      self.out_tensor = tf.matmul(parent.out_tensor, w) + b
+    self.out_tensor = tf.contrib.layers.fully_connected(parent.out_tensor,
+                                                        num_outputs=self.out_channels,
+                                                        activation_fn=tf.nn.sigmoid,
+                                                        scope=self.name,
+                                                        trainable=True)
     return self.out_tensor
 
 
 class Flatten(Layer):
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Only One Parent to conv1D over")
     parent = parents[0]
@@ -156,31 +176,30 @@ class Flatten(Layer):
     parent_tensor = parent.out_tensor
     with tf.name_scope(self.name):
       self.out_tensor = tf.reshape(parent_tensor, shape=(-1, vector_size))
+    return self.out_tensor
 
 
 class CombineMeanStd(Layer):
-
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 2:
       raise ValueError("Must have two parents")
     mean_parent, std_parent = parents[0], parents[1]
     mean_parent_tensor, std_parent_tensor = mean_parent.out_tensor, std_parent.out_tensor
     with tf.name_scope(self.name):
       sample_noise = tf.random_normal(
-          mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
+        mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
       self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
 
 
 class Repeat(Layer):
-
   def __init__(self, n_times, **kwargs):
     self.n_times = n_times
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
@@ -191,14 +210,13 @@ class Repeat(Layer):
 
 
 class GRU(Layer):
-
   def __init__(self, n_hidden, out_channels, batch_size, **kwargs):
     self.n_hidden = n_hidden
     self.out_channels = out_channels
     self.batch_size = batch_size
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
@@ -206,21 +224,20 @@ class GRU(Layer):
       gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
       initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
       rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
-          gru_cell,
-          parent_tensor,
-          initial_state=initial_gru_state,
-          scope=self.name)
+        gru_cell,
+        parent_tensor,
+        initial_state=initial_gru_state,
+        scope=self.name)
       projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
       self.out_tensor = tf.map_fn(projection, rnn_outputs)
 
 
 class TimeSeriesDense(Layer):
-
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
@@ -231,11 +248,21 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
-
   def __init__(self, t_shape, **kwargs):
     self.t_shape = t_shape
     super().__init__(**kwargs)
 
-  def set_parents(self, parents):
+  def __call__(self, *parents):
     with tf.name_scope(self.name):
       self.out_tensor = tf.placeholder(tf.float32, shape=self.t_shape)
+
+
+class LossLayer(Layer):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    guess, label = parents[0], parents[1]
+    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
+      logits=guess.out_tensor, labels=label.out_tensor)
+    return self.out_tensor
