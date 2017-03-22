@@ -219,9 +219,7 @@ def run_benchmark(datasets,
 #   2+. The cache can even happen at Travis CI to accelerate
 #       CI testing.
 #
-def load_dataset(dataset,
-                 split=None,
-                 featurizer=None):
+def load_dataset(dataset, featurizer, split=None):
   """
   Load specific dataset for benchmark.
   
@@ -231,29 +229,28 @@ def load_dataset(dataset,
       choice of which datasets to use, should be: tox21, muv, sider, 
       toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
       qm7, qm7b, qm9, sampl
+  featurizer: string or dc.feat.Featurizer.
+      choice of featurization.
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
-  featurizer: string or dc.feat.Featurizer,  optional (default=None)
-      choice of featurization, None = using the default corresponding to model
-      (string only applicable to deepchem models)
   """
   dataset_loading_functions = {
-    'tox21': deepchem.molnet.load_tox21,
-    'muv': deepchem.molnet.load_muv,
-    'pcba': deepchem.molnet.load_pcba,
-    'nci': deepchem.molnet.load_nci,
-    'sider': deepchem.molnet.load_sider,
-    'toxcast': deepchem.molnet.load_toxcast,
-    'kaggle': deepchem.molnet.load_kaggle,
-    'delaney': deepchem.molnet.load_delaney,
-    'pdbbind': deepchem.molnet.load_pdbbind_grid,
-    'chembl': deepchem.molnet.load_chembl,
-    'qm7': deepchem.molnet.load_qm7_from_mat,
-    'qm7b': deepchem.molnet.load_qm7b_from_mat,
-    'qm9': deepchem.molnet.load_qm9,
-    'sampl': deepchem.molnet.load_sampl,
-    'clintox': deepchem.molnet.load_clintox,
-    'hiv': deepchem.molnet.load_hiv
+      'tox21': deepchem.molnet.load_tox21,
+      'muv': deepchem.molnet.load_muv,
+      'pcba': deepchem.molnet.load_pcba,
+      'nci': deepchem.molnet.load_nci,
+      'sider': deepchem.molnet.load_sider,
+      'toxcast': deepchem.molnet.load_toxcast,
+      'kaggle': deepchem.molnet.load_kaggle,
+      'delaney': deepchem.molnet.load_delaney,
+      'pdbbind': deepchem.molnet.load_pdbbind_grid,
+      'chembl': deepchem.molnet.load_chembl,
+      'qm7': deepchem.molnet.load_qm7_from_mat,
+      'qm7b': deepchem.molnet.load_qm7b_from_mat,
+      'qm9': deepchem.molnet.load_qm9,
+      'sampl': deepchem.molnet.load_sampl,
+      'clintox': deepchem.molnet.load_clintox,
+      'hiv': deepchem.molnet.load_hiv
   }
   print('-------------------------------------')
   print('Loading dataset: %s' % dataset)
@@ -262,14 +259,11 @@ def load_dataset(dataset,
   if split is not None:
     print('Splitting function: %s' % split)
   tasks, all_dataset, transformers = dataset_loading_functions[dataset](
-        featurizer=featurizer, split=split)
+      featurizer=featurizer, split=split)
   return tasks, all_dataset, transformers
 
-def benchmark_model(model,
-                    all_dataset,
-                    transformers,
-                    metric,
-                    test=False):
+
+def benchmark_model(model, all_dataset, transformers, metric, test=False):
   """
   Benchmark custom model.
 
@@ -294,13 +288,10 @@ def benchmark_model(model,
   train_dataset, valid_dataset, test_dataset = all_dataset
 
   model.fit(train_dataset)
-  train_score = model.evaluate(train_dataset, metric,
-                               transformers)
-  valid_score = model.evaluate(valid_dataset, metric,
-                               transformers)
+  train_score = model.evaluate(train_dataset, metric, transformers)
+  valid_score = model.evaluate(valid_dataset, metric, transformers)
   if test:
-    test_score = model.evaluate(test_dataset, metric,
-                                transformers)
+    test_score = model.evaluate(test_dataset, metric, transformers)
 
   time_finish_fitting = time.time()
   time_for_running = time_finish_fitting - time_start_fitting
