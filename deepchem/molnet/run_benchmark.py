@@ -287,22 +287,20 @@ def benchmark_model(model,
 
   """
   time_start_fitting = time.time()
-  train_score = {}
-  valid_score = {}
-  test_score = {}
+  train_score = .0
+  valid_score = .0
+  test_score = .0
 
   train_dataset, valid_dataset, test_dataset = all_dataset
 
   model.fit(train_dataset)
-  train_score['user_defined'] = model.evaluate(train_dataset, metric,
-                                               transformers)
-  valid_score['user_defined'] = model.evaluate(valid_dataset, metric,
-                                               transformers)
+  train_score = model.evaluate(train_dataset, metric,
+                               transformers)
+  valid_score = model.evaluate(valid_dataset, metric,
+                               transformers)
   if test:
-    test_score['user_defined'] = model.evaluate(test_dataset, metric,
-                                                transformers)
-  else:
-    test_score['user_defined'] = None
+    test_score = model.evaluate(test_dataset, metric,
+                                transformers)
 
   time_finish_fitting = time.time()
   time_for_running = time_finish_fitting - time_start_fitting
