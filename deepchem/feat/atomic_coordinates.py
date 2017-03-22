@@ -161,10 +161,10 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     complex_pdb: list
       Should be a list of lines of the PDB file.
     """
-    mol_coords, ob_mol = load_molecule(mol_pdb_file)
+    mol_coords, mol = load_molecule(mol_pdb_file)
     protein_coords, protein_mol = load_molecule(protein_pdb_file)
     system_coords, system_mol = merge_molecules(
-        mol_coords, ob_mol, protein_coords, protein_mol)
+        mol_coords, mol, protein_coords, protein_mol)
     
     system_neighbor_list = compute_neighbor_list(
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
