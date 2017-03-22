@@ -135,7 +135,7 @@ def run_benchmark_low_data(datasets,
           output_line = [dataset, str(split), mode, 'valid', i]
           for task in valid_score[i][0]:
             output_line.extend(
-                [task.valid_score[i][0][task], valid_score[i][1][task]])
+                [task, valid_score[i][0][task], valid_score[i][1][task]])
           output_line.extend(
               ['time_for_running', time_finish_fitting - time_start_fitting])
           writer.writerow(output_line)
