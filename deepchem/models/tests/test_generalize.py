@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import sklearn
 import sklearn.datasets
@@ -17,8 +17,9 @@ import unittest
 import tempfile
 import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression 
+from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
+
 
 class TestGeneralize(unittest.TestCase):
   """
@@ -33,7 +34,7 @@ class TestGeneralize(unittest.TestCase):
     X, y = dataset.data, dataset.target
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
@@ -60,7 +61,7 @@ class TestGeneralize(unittest.TestCase):
 
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.NumpyDataset(X_train, y_train)
@@ -70,13 +71,13 @@ class TestGeneralize(unittest.TestCase):
     transformers = [
         dc.trans.NormalizationTransformer(
             transform_X=True, dataset=train_dataset),
-        dc.trans.ClippingTransformer(
-            transform_X=True, dataset=train_dataset),
+        dc.trans.ClippingTransformer(transform_X=True, dataset=train_dataset),
         dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)]
+            transform_y=True, dataset=train_dataset)
+    ]
     for data in [train_dataset, test_dataset]:
       for transformer in transformers:
-          data = transformer.transform(data)
+        data = transformer.transform(data)
 
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
     sklearn_model = LinearRegression()
@@ -104,19 +105,21 @@ class TestGeneralize(unittest.TestCase):
     X, y = dataset.data, dataset.target
     y = np.reshape(y, (len(y), 1))
     y = np.hstack([y] * n_tasks)
-    
+
     frac_train = .7
     n_samples = len(X)
-    n_train = int(frac_train*n_samples)
+    n_train = int(frac_train * n_samples)
     X_train, y_train = X[:n_train], y[:n_train]
     X_test, y_test = X[n_train:], y[n_train:]
     train_dataset = dc.data.DiskDataset.from_numpy(X_train, y_train)
     test_dataset = dc.data.DiskDataset.from_numpy(X_test, y_test)
 
     regression_metric = dc.metrics.Metric(dc.metrics.r2_score)
+
     def model_builder(model_dir):
       sklearn_model = LinearRegression()
       return dc.models.SklearnModel(sklearn_model, model_dir)
+
     model = dc.models.SingletaskToMultitask(tasks, model_builder)
 
     # Fit trained model

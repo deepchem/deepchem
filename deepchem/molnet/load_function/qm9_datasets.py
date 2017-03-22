@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_qm9(featurizer=None, split='random'):
@@ -33,23 +33,23 @@ def load_qm9(featurizer=None, split='random'):
       "u0_atom", "u298_atom", "h298_atom", "g298_atom"
   ]
   if featurizer is None:
-    featurizer = dc.feat.CoulombMatrix(29)
-  loader = dc.data.SDFLoader(
+    featurizer = deepchem.feat.CoulombMatrix(29)
+  loader = deepchem.data.SDFLoader(
       tasks=qm9_tasks,
       smiles_field="smiles",
       mol_field="mol",
       featurizer=featurizer)
   dataset = loader.featurize(dataset_file)
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'stratified': dc.splits.SingletaskStratifiedSplitter(task_number=11)
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=11)
   }
   splitter = splitters[split]
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
       dataset)
   transformers = [
-      dc.trans.NormalizationTransformer(
+      deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=train_dataset)
   ]
   for transformer in transformers:

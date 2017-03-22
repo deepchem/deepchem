@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2017, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import time
 import os
@@ -133,7 +133,8 @@ class Sequential(Model):
           max_checkpoints_to_keep=5,
           log_every_N_batches=50,
           learning_rate=.001,
-          batch_size=50):
+          batch_size=50,
+          checkpoint_interval=10):
     """Trains the model for a fixed number of epochs.
 
     TODO(rbharath0: This is mostly copied from TensorflowGraphModel. Should
@@ -151,6 +152,8 @@ class Sequential(Model):
             1 for progress bar logging, 2 for one log line per epoch.
         initial_epoch: epoch at which to start training
             (useful for resuming a previous training run)
+    checkpoint_interval: int
+      Frequency at which to write checkpoints, measured in epochs
     """
     ############################################################## TIMING
     time1 = time.time()
@@ -180,7 +183,8 @@ class Sequential(Model):
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
             n_batches += 1
-          saver.save(sess, self._save_path, global_step=epoch)
+          if epoch % checkpoint_interval == checkpoint_interval - 1:
+            saver.save(sess, self._save_path, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches
           print('Ending epoch %d: Average loss %g' % (epoch, avg_loss))
         # Always save a final checkpoint when complete.

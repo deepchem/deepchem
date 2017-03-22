@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_delaney(featurizer='ECFP', split='index'):
@@ -28,19 +28,20 @@ def load_delaney(featurizer='ECFP', split='index'):
 
   delaney_tasks = ['measured log solubility in mols per litre']
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Initialize transformers 
   transformers = [
-      dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=dataset)
   ]
 
   print("About to transform data")
@@ -48,9 +49,9 @@ def load_delaney(featurizer='ECFP', split='index'):
     dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)

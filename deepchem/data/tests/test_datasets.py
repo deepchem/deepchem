@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import unittest
 import tempfile
@@ -15,6 +15,7 @@ import os
 import shutil
 import numpy as np
 import deepchem as dc
+
 
 class TestDatasets(unittest.TestCase):
   """
@@ -50,11 +51,11 @@ class TestDatasets(unittest.TestCase):
     batch_size = 100
     num_features = 10
     num_tasks = 5
-  
+
     # Test cases where n_samples < 2*n_samples < batch_size
     n_samples = 29
     X_b = np.zeros((n_samples, num_features))
-  
+
     X_out = dc.data.pad_features(batch_size, X_b)
     assert len(X_out) == batch_size
 
@@ -65,7 +66,7 @@ class TestDatasets(unittest.TestCase):
     assert len(X_out) == batch_size
 
     # Test case where n_samples == batch_size
-    n_samples = 100 
+    n_samples = 100
     X_b = np.zeros((n_samples, num_features))
     X_out = dc.data.pad_features(batch_size, X_b)
     assert len(X_out) == batch_size
@@ -89,23 +90,22 @@ class TestDatasets(unittest.TestCase):
     X_b = np.zeros((n_samples, num_atoms, d))
     X_out = dc.data.pad_features(batch_size, X_b)
     assert len(X_out) == batch_size
-  
 
   def test_pad_batches(self):
     """Test that pad_batch pads batches correctly."""
     batch_size = 100
     num_features = 10
     num_tasks = 5
-  
+
     # Test cases where n_samples < 2*n_samples < batch_size
     n_samples = 29
     X_b = np.zeros((n_samples, num_features))
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-  
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
 
     # Test cases where n_samples < batch_size
@@ -114,20 +114,20 @@ class TestDatasets(unittest.TestCase):
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-  
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
 
     # Test case where n_samples == batch_size
-    n_samples = 100 
+    n_samples = 100
     X_b = np.zeros((n_samples, num_features))
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-  
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
 
     # Test case for object featurization.
@@ -136,8 +136,8 @@ class TestDatasets(unittest.TestCase):
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
 
     # Test case for more complicated object featurization
@@ -146,8 +146,8 @@ class TestDatasets(unittest.TestCase):
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
 
     # Test case with multidimensional data
@@ -158,27 +158,28 @@ class TestDatasets(unittest.TestCase):
     y_b = np.zeros((n_samples, num_tasks))
     w_b = np.zeros((n_samples, num_tasks))
     ids_b = np.zeros((n_samples,))
-  
-    X_out, y_out, w_out, ids_out = dc.data.pad_batch(
-        batch_size, X_b, y_b, w_b, ids_b)
+
+    X_out, y_out, w_out, ids_out = dc.data.pad_batch(batch_size, X_b, y_b, w_b,
+                                                     ids_b)
     assert len(X_out) == len(y_out) == len(w_out) == len(ids_out) == batch_size
-    
+
   def test_get_task_names(self):
     """Test that get_task_names returns correct task_names"""
     solubility_dataset = dc.data.tests.load_solubility_data()
     assert solubility_dataset.get_task_names() == ["log-solubility"]
 
     multitask_dataset = dc.data.tests.load_multitask_data()
-    assert sorted(multitask_dataset.get_task_names()) == sorted(["task0",
-        "task1", "task2", "task3", "task4", "task5", "task6", "task7", "task8",
-        "task9", "task10", "task11", "task12", "task13", "task14", "task15",
-        "task16"])
+    assert sorted(multitask_dataset.get_task_names()) == sorted([
+        "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
+        "task8", "task9", "task10", "task11", "task12", "task13", "task14",
+        "task15", "task16"
+    ])
 
   def test_get_data_shape(self):
     """Test that get_data_shape returns currect data shape"""
     solubility_dataset = dc.data.tests.load_solubility_data()
-    assert solubility_dataset.get_data_shape() == (1024,) 
-    
+    assert solubility_dataset.get_data_shape() == (1024,)
+
     multitask_dataset = dc.data.tests.load_multitask_data()
     assert multitask_dataset.get_data_shape() == (1024,)
 
@@ -245,7 +246,7 @@ class TestDatasets(unittest.TestCase):
     y = np.random.randint(2, size=(num_datapoints, num_tasks))
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
-    
+
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     X_shape, y_shape, w_shape, ids_shape = dataset.get_shape()
@@ -253,14 +254,14 @@ class TestDatasets(unittest.TestCase):
     assert y_shape == y.shape
     assert w_shape == w.shape
     assert ids_shape == ids.shape
-  
+
   def test_iterbatches(self):
     """Test that iterating over batches of data works."""
     solubility_dataset = dc.data.tests.load_solubility_data()
     batch_size = 2
     data_shape = solubility_dataset.get_data_shape()
     tasks = solubility_dataset.get_task_names()
-    for (X_b, y_b, w_b, ids_b)  in solubility_dataset.iterbatches(batch_size):
+    for (X_b, y_b, w_b, ids_b) in solubility_dataset.iterbatches(batch_size):
       assert X_b.shape == (batch_size,) + data_shape
       assert y_b.shape == (batch_size,) + (len(tasks),)
       assert w_b.shape == (batch_size,) + (len(tasks),)
@@ -278,10 +279,10 @@ class TestDatasets(unittest.TestCase):
     ids = np.array(["id"] * num_datapoints)
     dataset = dc.data.NumpyDataset(X, y, w, ids)
     for i, (sx, sy, sw, sid) in enumerate(dataset.itersamples()):
-        np.testing.assert_array_equal(sx, X[i])
-        np.testing.assert_array_equal(sy, y[i])
-        np.testing.assert_array_equal(sw, w[i])
-        np.testing.assert_array_equal(sid, ids[i])
+      np.testing.assert_array_equal(sx, X[i])
+      np.testing.assert_array_equal(sy, y[i])
+      np.testing.assert_array_equal(sw, w[i])
+      np.testing.assert_array_equal(sid, ids[i])
 
   def test_itersamples_disk(self):
     """Test that iterating over samples in a DiskDataset works."""
@@ -291,10 +292,10 @@ class TestDatasets(unittest.TestCase):
     w = solubility_dataset.w
     ids = solubility_dataset.ids
     for i, (sx, sy, sw, sid) in enumerate(solubility_dataset.itersamples()):
-        np.testing.assert_array_equal(sx, X[i])
-        np.testing.assert_array_equal(sy, y[i])
-        np.testing.assert_array_equal(sw, w[i])
-        np.testing.assert_array_equal(sid, ids[i])
+      np.testing.assert_array_equal(sx, X[i])
+      np.testing.assert_array_equal(sy, y[i])
+      np.testing.assert_array_equal(sw, w[i])
+      np.testing.assert_array_equal(sid, ids[i])
 
   def test_transform_numpy(self):
     """Test that the transform() method works for NumpyDatasets."""
@@ -312,14 +313,15 @@ class TestDatasets(unittest.TestCase):
     # Transform it
 
     def fn(x, y, w):
-      return (2*x, 1.5*y, w)
+      return (2 * x, 1.5 * y, w)
+
     transformed = dataset.transform(fn)
     np.testing.assert_array_equal(X, dataset.X)
     np.testing.assert_array_equal(y, dataset.y)
     np.testing.assert_array_equal(w, dataset.w)
     np.testing.assert_array_equal(ids, dataset.ids)
-    np.testing.assert_array_equal(2*X, transformed.X)
-    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(2 * X, transformed.X)
+    np.testing.assert_array_equal(1.5 * y, transformed.y)
     np.testing.assert_array_equal(w, transformed.w)
     np.testing.assert_array_equal(ids, transformed.ids)
 
@@ -333,14 +335,15 @@ class TestDatasets(unittest.TestCase):
 
     # Transform it
     def fn(x, y, w):
-      return (2*x, 1.5*y, w)
+      return (2 * x, 1.5 * y, w)
+
     transformed = dataset.transform(fn)
     np.testing.assert_array_equal(X, dataset.X)
     np.testing.assert_array_equal(y, dataset.y)
     np.testing.assert_array_equal(w, dataset.w)
     np.testing.assert_array_equal(ids, dataset.ids)
-    np.testing.assert_array_equal(2*X, transformed.X)
-    np.testing.assert_array_equal(1.5*y, transformed.y)
+    np.testing.assert_array_equal(2 * X, transformed.X)
+    np.testing.assert_array_equal(1.5 * y, transformed.y)
     np.testing.assert_array_equal(w, transformed.w)
     np.testing.assert_array_equal(ids, transformed.ids)
 
@@ -353,7 +356,7 @@ class TestDatasets(unittest.TestCase):
                     solubility_dataset.w, solubility_dataset.ids)
     N_samples = len(solubility_dataset)
     N_tasks = len(tasks)
-    
+
     assert X.shape == (N_samples,) + data_shape
     assert y.shape == (N_samples, N_tasks)
     assert w.shape == (N_samples, N_tasks)

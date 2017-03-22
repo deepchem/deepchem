@@ -17,4 +17,4 @@ export retval2=$?
 source deactivate
 conda remove --name $envname --all
 export retval=$(($retval1 + $retval2))
-return ${retval}
+exit ${retval}

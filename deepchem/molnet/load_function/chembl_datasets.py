@@ -6,7 +6,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
@@ -68,13 +68,13 @@ def load_chembl(shard_size=2000,
   # Featurize ChEMBL dataset
   print("About to featurize ChEMBL dataset.")
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=chembl_tasks, smiles_field="smiles", featurizer=featurizer)
 
   if split == "year":
@@ -90,7 +90,7 @@ def load_chembl(shard_size=2000,
   print("About to transform data")
   if split == "year":
     transformers = [
-        dc.trans.NormalizationTransformer(
+        deepchem.trans.NormalizationTransformer(
             transform_y=True, dataset=train_dataset)
     ]
     for transformer in transformers:
@@ -99,15 +99,16 @@ def load_chembl(shard_size=2000,
       test = transformer.transform(test_dataset)
   else:
     transformers = [
-        dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+        deepchem.trans.NormalizationTransformer(
+            transform_y=True, dataset=dataset)
     ]
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
 
   if split in splitters:

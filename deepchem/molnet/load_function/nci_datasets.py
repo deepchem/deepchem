@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import deepchem as dc
+import deepchem
 
 
 def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
@@ -30,11 +30,11 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
   # Featurize nci dataset
   print("About to featurize nci dataset.")
   if featurizer == 'ECFP':
-    featurizer = dc.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer = dc.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Raw':
-    featurizer = dc.feat.RawFeaturizer()
+    featurizer = deepchem.feat.RawFeaturizer()
 
   all_nci_tasks = ([
       'CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226', 'SR',
@@ -49,7 +49,7 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
       'BT-549', 'T-47D'
   ])
 
-  loader = dc.data.CSVLoader(
+  loader = deepchem.data.CSVLoader(
       tasks=all_nci_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file, shard_size=shard_size)
@@ -57,15 +57,16 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random'):
   # Initialize transformers
   print("About to transform data")
   transformers = [
-      dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+      deepchem.trans.NormalizationTransformer(
+          transform_y=True, dataset=dataset)
   ]
   for transformer in transformers:
     dataset = transformer.transform(dataset)
 
   splitters = {
-      'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter(),
-      'scaffold': dc.splits.ScaffoldSplitter()
+      'index': deepchem.splits.IndexSplitter(),
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
   print("Performing new split.")
