@@ -69,15 +69,12 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     k = 5
     # The number of cells which we should theoretically have
     n_cells = int(((stop - start)/nbr_cutoff)**ndim)
-    ################################################### DEBUG
-    print("n_cells")
-    print(n_cells)
-    ################################################### DEBUG
 
     with self.test_session() as sess:
       coords = start + np.random.rand(N, ndim)*(stop-start)
+      coords = tf.pack(coords)
       nbr_list = compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells,
-                                       ndim=ndim, k=k)
+                                       ndim=ndim, k=k, sess=sess)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N, M)
 
@@ -95,7 +92,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       coords = np.random.rand(N, ndim)
-      atoms_in_cells = put_atoms_in_cells(coords, cells, N, ndim, k)
+      _, atoms_in_cells = put_atoms_in_cells(coords, cells, N, ndim, k)
       atoms_in_cells = atoms_in_cells.eval()
       assert len(atoms_in_cells) == n_cells
       # Each atom neighbors tensor should be (k, ndim) shaped.
@@ -142,7 +139,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       cells = get_cells(start, stop, nbr_cutoff, ndim=ndim)
       nbr_cells = compute_neighbor_cells(cells, ndim, n_cells)
       coords = np.random.rand(N, ndim)
-      atoms_in_cells = put_atoms_in_cells(coords, cells, N, n_cells,
+      _, atoms_in_cells = put_atoms_in_cells(coords, cells, N, n_cells,
                                           ndim, k)
       nbrs = compute_closest_neighbors(coords, cells, atoms_in_cells,
                                        nbr_cells, N, n_cells)
