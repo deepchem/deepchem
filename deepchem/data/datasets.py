@@ -18,7 +18,7 @@ import shutil
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 
 def sparsify_features(X):

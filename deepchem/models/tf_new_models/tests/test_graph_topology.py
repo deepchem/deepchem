@@ -7,11 +7,12 @@ from __future__ import unicode_literals
 
 __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import unittest
 import tensorflow as tf
 from deepchem.models.tf_new_models.graph_topology import GraphTopology
+
 
 class TestGraphTopology(unittest.TestCase):
   """
@@ -30,7 +31,7 @@ class TestGraphTopology(unittest.TestCase):
     # Degrees from 1 to max_deg inclusive 
     # TODO(rbharath): Should this be 0 to max_deg inclusive?
     deg_adj_lists_placeholders = topology.get_deg_adjacency_lists_placeholders()
-    assert len(deg_adj_lists_placeholders) == max_deg 
+    assert len(deg_adj_lists_placeholders) == max_deg
     for ind, deg_adj_list in enumerate(deg_adj_lists_placeholders):
       deg = ind + 1
       # Should have shape (?, deg)
@@ -44,4 +45,4 @@ class TestGraphTopology(unittest.TestCase):
     deg_slice = topology.get_deg_slice_placeholder()
     print("deg_slice.get_shape()")
     print(deg_slice.get_shape())
-    assert deg_slice.get_shape() == (max_deg+1-min_deg, 2)
+    assert deg_slice.get_shape() == (max_deg + 1 - min_deg, 2)

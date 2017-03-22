@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import sys
@@ -219,6 +219,7 @@ class MultitaskGraphClassifier(Model):
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           log_every_N_batches=50,
+          checkpoint_interval=10,
           **kwargs):
     # Perform the optimization
     log("Training for %d epochs" % nb_epoch, self.verbose)
