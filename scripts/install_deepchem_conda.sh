@@ -24,5 +24,5 @@ conda install -y setuptools
 conda install -y keras=1.1.1
 conda install -y -c conda-forge protobuf=3.1.0
 conda install -y -c anaconda networkx=1.11
-yes | pip install $tensorflow==0.12.1
+yes | pip install $tensorflow==1.0.1
 yes | pip install nose

@@ -65,7 +65,7 @@ def Mask(t, mask):
   if not t.get_shape()[:-1].is_compatible_with(mask.get_shape()):
     raise ValueError('Shapes do not match: %s vs. %s' % (t.get_shape(),
                                                          mask.get_shape()))
-  return tf.mul(t, tf.expand_dims(mask, -1))
+  return tf.multiply(t, tf.expand_dims(mask, -1))
 
 
 def Mean(tensor, reduction_indices=None, mask=None):
@@ -150,7 +150,7 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
     tensor = Mask(tensor, mask)
     ones = tf.constant(1, dtype=tf.float32, shape=tensor.get_shape())
     divisor = tf.reduce_sum(Mask(ones, mask),
-                            reduction_indices=reduction_indices,
+                            axis=reduction_indices,
                             keep_dims=True)
   elif reduction_indices is None:
     divisor = tf.constant(np.prod(tensor.get_shape().as_list()), tensor.dtype)
@@ -165,7 +165,7 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   # note that mean is a raw moment, not a central moment
   mean = tf.div(
       tf.reduce_sum(tensor,
-                    reduction_indices=reduction_indices,
+                    axis=reduction_indices,
                     keep_dims=True),
       divisor)
   delta = tensor - mean
@@ -173,12 +173,12 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
     delta = Mask(delta, mask)
   moment = tf.div(
       tf.reduce_sum(math_ops.pow(delta, k),
-                    reduction_indices=reduction_indices,
+                    axis=reduction_indices,
                     keep_dims=True),
       divisor)
   moment = tf.squeeze(moment, reduction_indices)
   if standardize:
-    moment = tf.mul(
+    moment = tf.multiply(
         moment,
         math_ops.pow(
             tf.rsqrt(Moment(2,

@@ -121,7 +121,7 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
 
         if num_bypass_layers > 0:
           # task_layer has shape [None, layer_sizes[-1] + bypass_layer_sizes[-1]]
-          task_layer = tf.concat(1, [top_multitask_layer, top_bypass_layer])
+          task_layer = tf.concat(axis=1, values=[top_multitask_layer, top_bypass_layer])
           task_layer_size = layer_sizes[-1] + bypass_layer_sizes[-1]
         else:
           task_layer = top_multitask_layer
@@ -248,7 +248,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
 
         if num_bypass_layers > 0:
           # task_layer has shape [None, layer_sizes[-1] + bypass_layer_sizes[-1]]
-          task_layer = tf.concat(1, [top_multitask_layer, top_bypass_layer])
+          task_layer = tf.concat(axis=1, values=[top_multitask_layer, top_bypass_layer])
           task_layer_size = layer_sizes[-1] + bypass_layer_sizes[-1]
         else:
           task_layer = top_multitask_layer
