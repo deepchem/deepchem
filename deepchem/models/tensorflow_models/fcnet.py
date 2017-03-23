@@ -33,7 +33,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     n_features = self.n_features
     with graph.as_default():
       with placeholder_scope:
-        self.mol_features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, n_features], name='mol_features')
 
       layer_sizes = self.layer_sizes
@@ -50,7 +50,20 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       n_layers = lengths_set.pop()
       assert n_layers > 0, 'Must have some layers defined.'
 
-      prev_layer = self.mol_features
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph, name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(capacity=5, dtypes=[tf.float32]*(len(label_placeholders)+len(weight_placeholders)+1))
+        graph.enqueue = graph.queue.enqueue([mol_features]+label_placeholders+weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders)+1]
+        weights = queue_outputs[len(label_placeholders)+1:]
+        prev_layer = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        prev_layer = mol_features
+
       prev_layer_size = n_features
       for i in range(n_layers):
         layer = tf.nn.relu(
@@ -67,7 +80,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         prev_layer_size = layer_sizes[i]
 
       output = model_ops.multitask_logits(layer, self.n_tasks)
-    return output
+    return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -112,7 +125,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                                                               name_scopes)
     with graph.as_default():
       with placeholder_scope:
-        self.mol_features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, n_features], name='mol_features')
 
       layer_sizes = self.layer_sizes
@@ -129,7 +142,20 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       n_layers = lengths_set.pop()
       assert n_layers > 0, 'Must have some layers defined.'
 
-      prev_layer = self.mol_features
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph, name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(capacity=5, dtypes=[tf.float32]*(len(label_placeholders)+len(weight_placeholders)+1))
+        graph.enqueue = graph.queue.enqueue([mol_features]+label_placeholders+weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders)+1]
+        weights = queue_outputs[len(label_placeholders)+1:]
+        prev_layer = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        prev_layer = mol_features
+
       prev_layer_size = n_features
       for i in range(n_layers):
         layer = tf.nn.relu(
@@ -157,7 +183,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                         stddev=weight_init_stddevs[i]),
                     bias_init=tf.constant(value=bias_init_consts[i], shape=[1
                                                                            ]))))
-      return output
+    return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
