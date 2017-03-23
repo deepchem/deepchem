@@ -54,8 +54,9 @@ def load_bace_regression(featurizer=None, split='random'):
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter()
-  }
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
+ }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
   return bace_tasks, (train, valid, test), transformers
@@ -104,7 +105,8 @@ def load_bace_classification(featurizer=None, split='random'):
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
-      'random': deepchem.splits.RandomSplitter()
+      'random': deepchem.splits.RandomSplitter(),
+      'scaffold': deepchem.splits.ScaffoldSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)

@@ -100,9 +100,9 @@ CheckFeaturizer = {
 }
 
 CheckSplit = {
-    'bace_c': ['index', 'random'],
-    'bace_r': ['index', 'random'],
-    'bbbp': ['index', 'random', 'scaffold'],
+    'bace_c': ['random', 'scaffold'],
+    'bace_r': ['random', 'scaffold'],
+    'bbbp': ['random', 'scaffold'],
     'chembl': ['index', 'random', 'scaffold', 'year'],
     'clearance': ['index', 'random', 'scaffold'],
     'clintox': ['index', 'random', 'scaffold'],

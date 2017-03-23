@@ -193,172 +193,244 @@ Index splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.903              |0.705              |
-|           |Random Forest       |0.999              |0.733              |
-|           |IRV                 |0.811              |0.767              |
-|           |Multitask network   |0.856              |0.763              |
-|           |robust MT-NN        |0.857              |0.767              |
-|           |graph convolution   |0.872              |0.798              |
-|muv        |logistic regression |0.963              |0.766              |
-|           |Multitask network   |0.904              |0.764              |
-|           |robust MT-NN        |0.934              |0.781              |
-|           |graph convolution   |0.840              |0.823              |
-|pcba       |logistic regression |0.809              |0.776              |
-|           |Multitask network   |0.826              |0.802              |
-|           |robust MT-NN        |0.809              |0.783              |
-|           |graph convolution   |0.876              |0.852              |
-|sider      |logistic regression |0.933              |0.620              |
-|           |Random Forest       |0.999              |0.670              |
-|           |IRV                 |0.649              |0.642              |
-|           |Multitask network   |0.775              |0.634              |
-|           |robust MT-NN        |0.803              |0.632              |
-|           |graph convolution   |0.708              |0.594              |
-|toxcast    |logistic regression |0.721              |0.575              |
-|           |Multitask network   |0.830              |0.678              |
-|           |robust MT-NN        |0.825              |0.680              |
-|           |graph convolution   |0.821              |0.720              |
-|clintox    |logistic regression |0.967              |0.676              |
-|           |Random Forest       |0.995              |0.776              |
+|clintox    |Logistic regression |0.967              |0.676              |
+|           |Random forest       |0.995              |0.776              |
 |           |IRV                 |0.763              |0.814              |
-|           |Multitask network   |0.934              |0.830              |
-|           |robust MT-NN        |0.949              |0.827              |
-|           |graph convolution   |0.946              |0.860              |
-|hiv        |logistic regression |0.864              |0.739              |
-|           |Random Forest       |0.999              |0.720              |
+|           |MT-NN classification|0.934              |0.830              |
+|           |Robust MT-NN        |0.949              |0.827              |
+|           |Graph convolution   |0.946              |0.860              |
+|hiv        |Logistic regression |0.864              |0.739              |
+|           |Random forest       |0.999              |0.720              |
 |           |IRV                 |0.841              |0.724              |
-|           |Multitask network   |0.761              |0.652              |
-|           |robust MT-NN        |0.780              |0.708              |
-|           |graph convolution   |0.876              |0.779              |
+|           |NN classification   |0.761              |0.652              |
+|           |Robust NN           |0.780              |0.708              |
+|           |Graph convolution   |0.876              |0.779              |
+|muv        |Logistic regression |0.963              |0.766              |
+|           |MT-NN classification|0.904              |0.764              |
+|           |Robust MT-NN        |0.934              |0.781              |
+|           |Graph convolution   |0.840              |0.823              |
+|pcba       |Logistic regression |0.809              |0.776              |
+|           |MT-NN classification|0.826              |0.802              |
+|           |Robust MT-NN        |0.809              |0.783              |
+|           |Graph convolution   |0.876              |0.852              |
+|sider      |Logistic regression |0.933              |0.620              |
+|           |Random forest       |0.999              |0.670              |
+|           |IRV                 |0.649              |0.642              |
+|           |MT-NN classification|0.775              |0.634              |
+|           |Robust MT-NN        |0.803              |0.632              |
+|           |Graph convolution   |0.708              |0.594              |
+|tox21      |Logistic regression |0.903              |0.705              |
+|           |Random forest       |0.999              |0.733              |
+|           |IRV                 |0.811              |0.767              |
+|           |MT-NN classification|0.856              |0.763              |
+|           |Robust MT-NN        |0.857              |0.767              |
+|           |Graph convolution   |0.872              |0.798              |
+|toxcast    |Logistic regression |0.721              |0.575              |
+|           |MT-NN classification|0.830              |0.678              |
+|           |Robust MT-NN        |0.825              |0.680              |
+|           |Graph convolution   |0.821              |0.720              |
 
 Random splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.902              |0.715              |
-|           |Random Forest       |0.999              |0.764              |
-|           |IRV                 |0.808              |0.767              |
-|           |Multitask network   |0.844              |0.795              |
-|           |robust MT-NN        |0.855              |0.773              |
-|           |graph convolution   |0.865              |0.827              |
-|muv        |logistic regression |0.957              |0.719              |
-|           |Multitask network   |0.902              |0.734              |
-|           |robust MT-NN        |0.933              |0.732              |
-|           |graph convolution   |0.860              |0.730              |
-|pcba       |logistic regression |0.808        	     |0.776              |
-|           |Multitask network   |0.811        	     |0.778              |
-|           |robust MT-NN        |0.811              |0.771              |
-|           |graph convolution   |0.872       	     |0.844              |
-|sider      |logistic regression |0.929        	     |0.656              |
-|           |Random Forest       |0.999              |0.665              |
-|           |IRV                 |0.648              |0.596              |
-|           |Multitask network   |0.777        	     |0.655              |
-|           |robust MT-NN        |0.804              |0.630              |
-|           |graph convolution   |0.705        	     |0.618              |
-|toxcast    |logistic regression |0.725        	     |0.586              |
-|           |Multitask network   |0.836        	     |0.684              |
-|           |robust MT-NN        |0.822              |0.681              |
-|           |graph convolution   |0.820        	     |0.717              |
-|clintox    |logistic regression |0.972              |0.725              |
-|           |Random Forest       |0.997              |0.670              |
+|bace_c     |Logistic regression |0.954              |0.850              |
+|           |Random forest       |0.999              |0.939              |
+|           |IRV                 |0.876              |0.871              |
+|           |NN classification   |0.877              |0.790              |
+|           |Robust NN           |0.887              |0.864              |
+|           |Graph convolution   |0.906              |0.861              |
+|bbbp       |Logistic regression |0.980              |0.876              |
+|           |Random forest       |0.999              |0.918              |
+|           |IRV                 |0.904              |0.917              |
+|           |NN classification   |0.882              |0.915              |
+|           |Robust NN           |0.878              |0.878              |
+|           |Graph convolution   |0.962              |0.897              |
+|clintox    |Logistic regression |0.972              |0.725              |
+|           |Random forest       |0.997              |0.670              |
 |           |IRV                 |0.809              |0.846              |
-|           |Multitask network   |0.951              |0.834              |
-|           |robust MT-NN        |0.959              |0.830              |
-|           |graph convolution   |0.975              |0.876              |
-|hiv        |logistic regression |0.860              |0.806              |
-|           |Random Forest       |0.999              |0.850              |
+|           |MT-NN classification|0.951              |0.834              |
+|           |Robust MT-NN        |0.959              |0.830              |
+|           |Graph convolution   |0.975              |0.876              |
+|hiv        |Logistic regression |0.860              |0.806              |
+|           |Random forest       |0.999              |0.850              |
 |           |IRV                 |0.839              |0.809              |
-|           |Multitask network   |0.742              |0.715              |
-|           |robust MT-NN        |0.753              |0.727              |
-|           |graph convolution   |0.847              |0.803              |
+|           |NN classification   |0.742              |0.715              |
+|           |Robust NN           |0.753              |0.727              |
+|           |Graph convolution   |0.847              |0.803              |
+|muv        |Logistic regression |0.957              |0.719              |
+|           |MT-NN classification|0.902              |0.734              |
+|           |Robust MT-NN        |0.933              |0.732              |
+|           |Graph convolution   |0.860              |0.730              |
+|pcba       |Logistic regression |0.808        	     |0.776              |
+|           |MT-NN classification|0.811        	     |0.778              |
+|           |Robust MT-NN        |0.811              |0.771              |
+|           |Graph convolution   |0.872       	     |0.844              |
+|sider      |Logistic regression |0.929        	     |0.656              |
+|           |Random forest       |0.999              |0.665              |
+|           |IRV                 |0.648              |0.596              |
+|           |MT-NN classification|0.777        	     |0.655              |
+|           |Robust MT-NN        |0.804              |0.630              |
+|           |Graph convolution   |0.705        	     |0.618              |
+|tox21      |Logistic regression |0.902              |0.715              |
+|           |Random forest       |0.999              |0.764              |
+|           |IRV                 |0.808              |0.767              |
+|           |MT-NN classification|0.844              |0.795              |
+|           |Robust MT-NN        |0.855              |0.773              |
+|           |Graph convolution   |0.865              |0.827              |
+|toxcast    |Logistic regression |0.725        	     |0.586              |
+|           |MT-NN classification|0.836        	     |0.684              |
+|           |Robust MT-NN        |0.822              |0.681              |
+|           |Graph convolution   |0.820        	     |0.717              |
+
 
 Scaffold splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
 |-----------|--------------------|-------------------|-------------------|
-|tox21      |logistic regression |0.900              |0.650              |
-|           |Random Forest       |0.999              |0.629              |
-|           |IRV                 |0.823              |0.708              |
-|           |Multitask network   |0.863              |0.703              |
-|           |robust MT-NN        |0.861              |0.710              |
-|           |graph convolution   |0.885              |0.732              |
-|muv        |logistic regression |0.947              |0.767              |
-|           |Multitask network   |0.899              |0.762              |
-|           |robust MT-NN        |0.944              |0.726              |
-|           |graph convolution   |0.872              |0.795              |
-|pcba       |logistic regression |0.810              |0.742              |
-|           |Multitask network   |0.814              |0.760              |
-|           |robust MT-NN        |0.812              |0.756              |
-|           |graph convolution   |0.874              |0.817              |
-|sider      |logistic regression |0.926              |0.592              |
-|           |Random Forest       |0.999              |0.619              |
-|           |IRV                 |0.639              |0.599              |
-|           |Multitask network   |0.776              |0.557              |
-|           |robust MT-NN        |0.797              |0.560              |
-|           |graph convolution   |0.722              |0.583              |
-|toxcast    |logistic regression |0.716              |0.492              |
-|           |Multitask network   |0.828              |0.617              |
-|           |robust MT-NN        |0.830              |0.614              |
-|           |graph convolution   |0.832              |0.638              |
-|clintox    |logistic regression |0.960              |0.803              |
-|           |Random Forest       |0.993              |0.735              |
+|bace_c     |Logistic regression |0.957              |0.729              |
+|           |Random forest       |0.999              |0.720              |
+|           |IRV                 |0.899              |0.701              |
+|           |NN classification   |0.897              |0.743              |
+|           |Robust NN           |0.910              |0.747              |
+|           |Graph convolution   |0.920              |0.682              |
+|bbbp       |Logistic regression |0.980              |0.959              |
+|           |Random forest       |0.999              |0.953              |
+|           |IRV                 |0.914              |0.961              |
+|           |NN classification   |0.899              |0.961              |
+|           |Robust NN           |0.908              |0.956              |
+|           |Graph convolution   |0.968              |0.950              |
+|clintox    |Logistic regression |0.960              |0.803              |
+|           |Random forest       |0.993              |0.735              |
 |           |IRV                 |0.793              |0.718              |
-|           |Multitask network   |0.947              |0.862              |
-|           |robust MT-NN        |0.953              |0.890              |
-|           |graph convolution   |0.957              |0.823              |
-|hiv        |logistic regression |0.858              |0.798              |
-|           |Random Forest       |0.946              |0.562              |
+|           |MT-NN classification|0.947              |0.862              |
+|           |Robust MT-NN        |0.953              |0.890              |
+|           |Graph convolution   |0.957              |0.823              |
+|hiv        |Logistic regression |0.858              |0.798              |
+|           |Random forest       |0.946              |0.562              |
 |           |IRV                 |0.847              |0.811              |
-|           |Multitask network   |0.775              |0.765              |
-|           |robust MT-NN        |0.785              |0.748              |
-|           |graph convolution   |0.867              |0.769              |
+|           |NN classification   |0.775              |0.765              |
+|           |Robust NN           |0.785              |0.748              |
+|           |Graph convolution   |0.867              |0.769              |
+|muv        |Logistic regression |0.947              |0.767              |
+|           |MT-NN classification|0.899              |0.762              |
+|           |Robust MT-NN        |0.944              |0.726              |
+|           |Graph convolution   |0.872              |0.795              |
+|pcba       |Logistic regression |0.810              |0.742              |
+|           |MT-NN classification|0.814              |0.760              |
+|           |Robust MT-NN        |0.812              |0.756              |
+|           |Graph convolution   |0.874              |0.817              |
+|sider      |Logistic regression |0.926              |0.592              |
+|           |Random forest       |0.999              |0.619              |
+|           |IRV                 |0.639              |0.599              |
+|           |MT-NN classification|0.776              |0.557              |
+|           |Robust MT-NN        |0.797              |0.560              |
+|           |Graph convolution   |0.722              |0.583              |
+|tox21      |Logistic regression |0.900              |0.650              |
+|           |Random forest       |0.999              |0.629              |
+|           |IRV                 |0.823              |0.708              |
+|           |MT-NN classification|0.863              |0.703              |
+|           |Robust MT-NN        |0.861              |0.710              |
+|           |Graph convolution   |0.885              |0.732              |
+|toxcast    |Logistic regression |0.716              |0.492              |
+|           |MT-NN classification|0.828              |0.617              |
+|           |Robust MT-NN        |0.830              |0.614              |
+|           |Graph convolution   |0.832              |0.638              |
+
 
 * Regression
 
 |Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
 |----------------|--------------------|------------|--------------|--------------|
-|delaney         |Random Forest       |Index       |0.953         |0.626         |
-|                |NN regression       |Index       |0.868         |0.578         |
-|                |graphconv regression|Index       |0.967         |0.790         |
-|                |Random Forest       |Random      |0.951         |0.684         |
-|                |NN regression       |Random      |0.865         |0.574         |
-|                |graphconv regression|Random      |0.964         |0.782         |
-|                |Random Forest       |Scaffold    |0.953         |0.284         |
-|                |NN regression       |Scaffold    |0.866         |0.342         |
-|                |graphconv regression|Scaffold    |0.967         |0.606         |
-|sampl           |Random Forest       |Index       |0.968         |0.736         |
-|                |NN regression       |Index       |0.917         |0.764         |
-|                |graphconv regression|Index       |0.982         |0.864         |
-|                |Random Forest       |Random      |0.967         |0.752         |
-|                |NN regression       |Random      |0.908         |0.830         |
-|                |graphconv regression|Random      |0.987         |0.868         |
-|                |Random Forest       |Scaffold    |0.966         |0.473         |
-|                |NN regression       |Scaffold    |0.891         |0.217         |
-|                |graphconv regression|Scaffold    |0.985         |0.666         |
-|nci             |NN regression       |Index       |0.171         |0.062         |
-|                |graphconv regression|Index       |0.123         |0.048         |
-|                |NN regression       |Random      |0.168         |0.085         |
-|                |graphconv regression|Random      |0.117         |0.076         |
-|                |NN regression       |Scaffold    |0.180         |0.052         |
-|                |graphconv regression|Scaffold    |0.131         |0.046         |
-|pdbbind(core)   |Random Forest       |Random      |0.969         |0.445         |
-|                |NN regression       |Random      |0.973         |0.494         |
-|pdbbind(refined)|Random Forest       |Random      |0.963         |0.511         |
-|                |NN regression       |Random      |0.987         |0.503         |
-|pdbbind(full)   |Random Forest       |Random      |0.965         |0.493         |
-|                |NN regression       |Random      |0.983         |0.528         |
+|bace_r          |Random forest       |Random      |0.958         |0.646         |
+|                |NN regression       |Random      |0.898         |0.680         |
+|                |Graphconv regression|Random      |0.760         |0.676         |
+|                |Random forest       |Scaffold    |0.956         |0.201         |
+|                |NN regression       |Scaffold    |0.897         |0.208         |
+|                |Graphconv regression|Scaffold    |0.783         |0.068         |
 |chembl          |MT-NN regression    |Index       |0.443         |0.427         |
 |                |MT-NN regression    |Random      |0.464         |0.434         |
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
-|qm7             |NN regression       |Index       |0.997         |0.986         |
-|                |NN regression       |Random      |0.999         |0.999         |
-|                |NN regression       |Stratified  |0.999         |0.999         | 
-|qm7b            |MT-NN regression    |Index       |0.931         |0.803         |
-|                |MT-NN regression    |Random      |0.923         |0.884         |
-|                |MT-NN regression    |Stratified  |0.934         |0.884         | 
+|clearance       |Random forest       |Index       |0.953         |0.244         |
+|                |NN regression       |Index       |0.884         |0.211         |
+|                |Graphconv regression|Index       |0.696         |0.230         |
+|                |Random forest       |Random      |0.952         |0.547         |
+|                |NN regression       |Random      |0.880         |0.273         |
+|                |Graphconv regression|Random      |0.685         |0.302         |
+|                |Random forest       |Scaffold    |0.952         |0.266         |
+|                |NN regression       |Scaffold    |0.871         |0.154         |
+|                |Graphconv regression|Scaffold    |0.628         |0.277         |
+|delaney         |Random forest       |Index       |0.953         |0.626         |
+|                |NN regression       |Index       |0.868         |0.578         |
+|                |Graphconv regression|Index       |0.967         |0.790         |
+|                |Random forest       |Random      |0.951         |0.684         |
+|                |NN regression       |Random      |0.865         |0.574         |
+|                |Graphconv regression|Random      |0.964         |0.782         |
+|                |Random forest       |Scaffold    |0.953         |0.284         |
+|                |NN regression       |Scaffold    |0.866         |0.342         |
+|                |Graphconv regression|Scaffold    |0.967         |0.606         |
+|hopv            |Random forest       |Index       |0.943         |0.338         |
+|                |MT-NN regression    |Index       |0.725         |0.293         |
+|                |Graphconv regression|Index       |0.307         |0.284         |
+|                |Random forest       |Random      |0.943         |0.513         |
+|                |MT-NN regression    |Random      |0.716         |0.289         |
+|                |Graphconv regression|Random      |0.329         |0.239         |
+|                |Random forest       |Scaffold    |0.946         |0.470         |
+|                |MT-NN regression    |Scaffold    |0.719         |0.429         |
+|                |Graphconv regression|Scaffold    |0.286         |0.155         |
+|kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
+|lipo            |Random forest       |Index       |0.960         |0.483         |
+|                |NN regression       |Index       |0.825         |0.513         |
+|                |Graphconv regression|Index       |0.865         |0.704         |
+|                |Random forest       |Random      |0.958         |0.518         |
+|                |NN regression       |Random      |0.818         |0.445         |
+|                |Graphconv regression|Random      |0.867         |0.722         |
+|                |Random forest       |Scaffold    |0.958         |0.329         |
+|                |NN regression       |Scaffold    |0.831         |0.302         |
+|                |Graphconv regression|Scaffold    |0.882         |0.593         |
+|nci             |MT-NN regression    |Index       |0.171         |0.062         |
+|                |Graphconv regression|Index       |0.123         |0.048         |
+|                |MT-NN regression    |Random      |0.168         |0.085         |
+|                |Graphconv regression|Random      |0.117         |0.076         |
+|                |MT-NN regression    |Scaffold    |0.180         |0.052         |
+|                |Graphconv regression|Scaffold    |0.131         |0.046         |
+|pdbbind(core)   |Random forest       |Random      |0.969         |0.445         |
+|                |NN regression       |Random      |0.973         |0.494         |
+|pdbbind(refined)|Random forest       |Random      |0.963         |0.511         |
+|                |NN regression       |Random      |0.987         |0.503         |
+|pdbbind(full)   |Random forest       |Random      |0.965         |0.493         |
+|                |NN regression       |Random      |0.983         |0.528         |
+|ppb             |Random forest       |Index       |0.951         |0.235         |
+|                |NN regression       |Index       |0.902         |0.333         |
+|                |Graphconv regression|Index       |0.673         |0.442         |
+|                |Random forest       |Random      |0.950         |0.220         |
+|                |NN regression       |Random      |0.903         |0.244         |
+|                |Graphconv regression|Random      |0.646         |0.429         |
+|                |Random forest       |Scaffold    |0.943         |0.176         |
+|                |NN regression       |Scaffold    |0.902         |0.144         |
+|                |Graphconv regression|Scaffold    |0.695         |0.391         |
+|qm7             |NN regression       |Index       |0.997         |0.992         |
+|                |NN regression       |Random      |0.998         |0.997         |
+|                |NN regression       |Stratified  |0.998         |0.997         | 
+|qm7b            |MT-NN regression    |Index       |0.903         |0.789         |
+|                |MT-NN regression    |Random      |0.893         |0.839         |
+|                |MT-NN regression    |Stratified  |0.891         |0.859         | 
+|qm8             |MT-NN regression    |Index       |0.783         |0.656         |
+|                |MT-NN regression    |Random      |0.747         |0.660         |
+|                |MT-NN regression    |Stratified  |0.756         |0.681         | 
 |qm9             |MT-NN regression    |Index       |0.733         |0.791         |
 |                |MT-NN regression    |Random      |0.811         |0.823         |
 |                |MT-NN regression    |Stratified  |0.843         |0.818         | 
-|kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
+|sampl           |Random forest       |Index       |0.968         |0.736         |
+|                |NN regression       |Index       |0.917         |0.749         |
+|                |Graphconv regression|Index       |0.982         |0.864         |
+|                |Random forest       |Random      |0.967         |0.752         |
+|                |NN regression       |Random      |0.908         |0.711         |
+|                |Graphconv regression|Random      |0.987         |0.868         |
+|                |Random forest       |Scaffold    |0.966         |0.473         |
+|                |NN regression       |Scaffold    |0.891         |0.217         |
+|                |Graphconv regression|Scaffold    |0.985         |0.666         |
+
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
 |----------------|-----------------|------------|-------------------------|-------------------------|
@@ -373,83 +445,118 @@ Number of tasks and examples in the datasets
 
 |Dataset         |N(tasks)   |N(samples) |
 |----------------|-----------|-----------| 
-|tox21           |12         |8014       |
+|bace_c          |1          |1522       |
+|bbbp            |1          |2053       |
+|clintox         |2          |1491       |
+|hiv             |1          |41913      |
 |muv             |17         |93127      |
 |pcba            |128        |439863     |
 |sider           |27         |1427       |
+|tox21           |12         |8014       |
 |toxcast         |617        |8615       |
-|clintox         |2          |1491       |
-|hiv             |1          |41913      |
+|bace_r          |1          |1522       |
+|chembl(5thresh) |691        |23871      |
+|clearance       |1          |837        |
 |delaney         |1          |1128       |
-|sampl           |1          |643        |
+|hopv            |8          |350        |
 |kaggle          |15         |173065     |
+|lipo            |1          |4200       |
 |nci             |60         |19127      |
 |pdbbind(core)   |1          |195        |
 |pdbbind(refined)|1          |3706       |
 |pdbbind(full)   |1          |11908      |
-|chembl(5thresh) |691        |23871      |
+|ppb             |1          |1614       |
 |qm7             |1          |7165       |
 |qm7b            |14         |7211       |
+|qm8             |16         |21786      |
 |qm9             |15         |133885     |
+|sampl           |1          |643        |
 
 
 Time needed for benchmark test(~20h in total)
 
 |Dataset         |Model               |Time(loading)/s |Time(running)/s|
 |----------------|--------------------|----------------|---------------| 
-|tox21           |logistic regression |30              |60             |
-|                |Multitask network   |30              |60             |
-|                |robust MT-NN        |30              |90             |
-|                |random forest       |30              |6000           |
-|                |IRV                 |30              |650            |
-|                |graph convolution   |40              |160            |
-|muv             |logistic regression |600             |450            |
-|                |Multitask network   |600             |400            |
-|                |robust MT-NN        |600             |550            |
-|                |graph convolution   |800             |1800           |
-|pcba            |logistic regression |1800            |10000          |
-|                |Multitask network   |1800            |9000           |
-|                |robust MT-NN        |1800            |14000          |
-|                |graph convolution   |2200            |14000          |
-|sider           |logistic regression |15              |80             |
-|                |Multitask network   |15              |75             |
-|                |robust MT-NN        |15              |150            |
-|                |random forest       |15              |2200           |
-|                |IRV                 |15              |150            |
-|                |graph convolution   |20              |50             |
-|toxcast         |logistic regression |80              |2600           |
-|                |Multitask network   |80              |2300           |
-|                |robust MT-NN        |80              |4000           |
-|                |graph convolution   |80              |900            |
-|clintox         |logistic regression |15              |10             |
-|                |Multitask network   |15              |20             |
-|                |robust MT-NN        |15              |30             |
-|                |random forest       |15              |200            |
+|bace_c          |Logistic regression |10              |10             |
+|                |NN classification   |10              |10             |
+|                |Robust NN           |10              |10             |
+|                |Random forest       |10              |80             |
+|                |IRV                 |10              |10             |
+|                |Graph convolution   |15              |70             |
+|bbbp            |Logistic regression |              |              |
+|                |NN classification   |              |              |
+|                |Robust NN           |              |              |
+|                |Random forest       |              |              |
+|                |IRV                 |              |              |
+|                |Graph convolution   |              |              |
+|clintox         |Logistic regression |15              |10             |
+|                |MT-NN classification|15              |20             |
+|                |Robust MT-NN        |15              |30             |
+|                |Random forest       |15              |200            |
 |                |IRV                 |15              |10             |
-|                |graph convolution   |20              |130            |
-|hiv             |logistic regression |180             |40             |
-|                |Multitask network   |180             |350            |
-|                |robust MT-NN        |180             |450            |
-|                |random forest       |180             |2800           |
+|                |Graph convolution   |20              |130            |
+|hiv             |Logistic regression |180             |40             |
+|                |NN classification   |180             |350            |
+|                |Robust NN           |180             |450            |
+|                |Random forest       |180             |2800           |
 |                |IRV                 |180             |200            |
-|                |graph convolution   |180             |1300           |
-|delaney         |MT-NN regression    |10              |40             |
+|                |Graph convolution   |180             |1300           |
+|muv             |Logistic regression |600             |450            |
+|                |MT-NN classification|600             |400            |
+|                |Robust MT-NN        |600             |550            |
+|                |Graph convolution   |800             |1800           |
+|pcba            |Logistic regression |1800            |10000          |
+|                |MT-NN classification|1800            |9000           |
+|                |Robust MT-NN        |1800            |14000          |
+|                |Graph convolution   |2200            |14000          |
+|sider           |Logistic regression |15              |80             |
+|                |MT-NN classification|15              |75             |
+|                |Robust MT-NN        |15              |150            |
+|                |Random forest       |15              |2200           |
+|                |IRV                 |15              |150            |
+|                |Graph convolution   |20              |50             |
+|tox21           |Logistic regression |30              |60             |
+|                |MT-NN classification|30              |60             |
+|                |Robust MT-NN        |30              |90             |
+|                |Random forest       |30              |6000           |
+|                |IRV                 |30              |650            |
+|                |Graph convolution   |30              |160            |
+|toxcast         |Logistic regression |80              |2600           |
+|                |MT-NN classification|80              |2300           |
+|                |Robust MT-NN        |80              |4000           |
+|                |Graph convolution   |80              |900            |
+|bace_r          |NN regression       |10              |30             |
+|                |Graphconv regression|10              |110            |
+|                |Random forest       |10              |50             |
+|chembl          |MT-NN regression    |200             |9000           |
+|clearance       |NN regression       |10              |20             |
+|                |Graphconv regression|10              |60             |
+|                |Random forest       |10              |10             |
+|delaney         |NN regression       |10              |40             |
 |                |graphconv regression|10              |40             |
-|                |random forest       |10              |30             |
-|sampl           |MT-NN regression    |10              |30             |
-|                |graphconv regression|10              |40             |
-|                |random forest       |10              |20             |
+|                |Random forest       |10              |30             |
+|hopv            |MT-NN regression    |10              |20             |
+|                |Graphconv regression|10              |50             |
+|                |Random forest       |10              |50             |
+|kaggle          |MT-NN regression    |2200            |3200           |
+|lipo            |NN regression       |30              |60             |
+|                |Graphconv regression|30              |240            |
+|                |Random forest       |30              |60             |
 |nci             |MT-NN regression    |400             |1200           |
 |                |graphconv regression|400             |2500           |
-|pdbbind(core)   |MT-NN regression    |0(featurized)   |30             |
-|pdbbind(refined)|MT-NN regression    |0(featurized)   |40             |
-|pdbbind(full)   |MT-NN regression    |0(featurized)   |60             |
-|chembl          |MT-NN regression    |200             |9000           |
+|pdbbind(core)   |NN regression       |0(featurized)   |30             |
+|pdbbind(refined)|NN regression       |0(featurized)   |40             |
+|pdbbind(full)   |NN regression       |0(featurized)   |60             |
+|ppb             |NN regression       |20              |30             |
+|                |Graphconv regression|20              |100            |
+|                |Random forest       |20              |30             |
 |qm7             |MT-NN regression    |10              |400            |
 |qm7b            |MT-NN regression    |10              |600            |
+|qm8             |MT-NN regression    |60              |1000           |
 |qm9             |MT-NN regression    |220             |10000          |
-|kaggle          |MT-NN regression    |2200            |3200           |
-
+|sampl           |NN regression       |10              |30             |
+|                |graphconv regression|10              |40             |
+|                |Random forest       |10              |20             |
 
 ## Contributing to DeepChem
 

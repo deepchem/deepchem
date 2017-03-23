@@ -43,7 +43,7 @@ class TestMolnet(unittest.TestCase):
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
     datasets = ['qm7']
-    model = 'tf_regressioni_ft'
+    model = 'tf_regression_ft'
     split = 'random'
     out_path = tempfile.mkdtemp()
     dc.molnet.run_benchmark(
