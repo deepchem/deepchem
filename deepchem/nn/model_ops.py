@@ -474,7 +474,8 @@ def categorical_crossentropy(output, target, from_logits=False):
       return tf.nn.softmax_cross_entropy_with_logits(
           labels=target, logits=output)
     except TypeError:
-      return tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
+      return tf.nn.softmax_cross_entropy_with_logits(
+          logits=output, labels=target)
 
 
 def sparse_categorical_crossentropy(output, target, from_logits=False):
@@ -495,7 +496,8 @@ def sparse_categorical_crossentropy(output, target, from_logits=False):
     res = tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=targets, logits=logits)
   except TypeError:
-    res = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
+    res = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=logits, labels=targets)
   if len(output_shape) == 3:
     # if our output includes timesteps we need to reshape
     return tf.reshape(res, tf.shape(output)[:-1])
@@ -702,8 +704,7 @@ def var(x, axis=None, keepdims=False):
     x = tf.cast(x, tf.float32)
   m = tf.reduce_mean(x, axis=axis, keep_dims=True)
   devs_squared = tf.square(x - m)
-  return tf.reduce_mean(
-      devs_squared, axis=axis, keep_dims=keepdims)
+  return tf.reduce_mean(devs_squared, axis=axis, keep_dims=keepdims)
 
 
 def euclidean_distance(test, support, max_dist_sq=20):
@@ -958,9 +959,7 @@ def softmax_N(tensor, name=None):
     reduction_indices = [tensor.get_shape().ndims - 1]
     return tf.div(exp_tensor,
                   tf.reduce_sum(
-                      exp_tensor,
-                      axis=reduction_indices,
-                      keep_dims=True))
+                      exp_tensor, axis=reduction_indices, keep_dims=True))
 
 
 def optimizer(optimizer="adam", learning_rate=.001, momentum=.9):

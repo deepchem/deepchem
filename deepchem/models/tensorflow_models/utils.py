@@ -15,7 +15,6 @@
 # limitations under the License.
 """Utils for graph convolution models."""
 
-
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
@@ -81,8 +80,12 @@ def Mean(tensor, reduction_indices=None, mask=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
-  return Moment(1, tensor, standardize=False,
-                reduction_indices=reduction_indices, mask=mask)[0]
+  return Moment(
+      1,
+      tensor,
+      standardize=False,
+      reduction_indices=reduction_indices,
+      mask=mask)[0]
 
 
 def Variance(tensor, reduction_indices=None, mask=None):
@@ -96,8 +99,12 @@ def Variance(tensor, reduction_indices=None, mask=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
-  return Moment(2, tensor, standardize=False,
-                reduction_indices=reduction_indices, mask=mask)[1]
+  return Moment(
+      2,
+      tensor,
+      standardize=False,
+      reduction_indices=reduction_indices,
+      mask=mask)[1]
 
 
 def Skewness(tensor, reduction_indices=None):
@@ -110,8 +117,8 @@ def Skewness(tensor, reduction_indices=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
-  return Moment(3, tensor, standardize=True,
-                reduction_indices=reduction_indices)[1]
+  return Moment(
+      3, tensor, standardize=True, reduction_indices=reduction_indices)[1]
 
 
 def Kurtosis(tensor, reduction_indices=None):
@@ -124,8 +131,8 @@ def Kurtosis(tensor, reduction_indices=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
-  return Moment(4, tensor, standardize=True,
-                reduction_indices=reduction_indices)[1] - 3
+  return Moment(
+      4, tensor, standardize=True, reduction_indices=reduction_indices)[1] - 3
 
 
 def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
@@ -149,9 +156,8 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   if mask is not None:
     tensor = Mask(tensor, mask)
     ones = tf.constant(1, dtype=tf.float32, shape=tensor.get_shape())
-    divisor = tf.reduce_sum(Mask(ones, mask),
-                            axis=reduction_indices,
-                            keep_dims=True)
+    divisor = tf.reduce_sum(
+        Mask(ones, mask), axis=reduction_indices, keep_dims=True)
   elif reduction_indices is None:
     divisor = tf.constant(np.prod(tensor.get_shape().as_list()), tensor.dtype)
   else:
@@ -164,26 +170,20 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   # compute the requested central moment
   # note that mean is a raw moment, not a central moment
   mean = tf.div(
-      tf.reduce_sum(tensor,
-                    axis=reduction_indices,
-                    keep_dims=True),
-      divisor)
+      tf.reduce_sum(tensor, axis=reduction_indices, keep_dims=True), divisor)
   delta = tensor - mean
   if mask is not None:
     delta = Mask(delta, mask)
   moment = tf.div(
-      tf.reduce_sum(math_ops.pow(delta, k),
-                    axis=reduction_indices,
-                    keep_dims=True),
+      tf.reduce_sum(
+          math_ops.pow(delta, k), axis=reduction_indices, keep_dims=True),
       divisor)
   moment = tf.squeeze(moment, reduction_indices)
   if standardize:
     moment = tf.multiply(
         moment,
         math_ops.pow(
-            tf.rsqrt(Moment(2,
-                            tensor,
-                            reduction_indices=reduction_indices)[1]),
+            tf.rsqrt(Moment(2, tensor, reduction_indices=reduction_indices)[1]),
             k))
 
   return tf.squeeze(mean, reduction_indices), moment

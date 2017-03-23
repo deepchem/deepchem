@@ -1,11 +1,9 @@
 """
-Imports all submodules
+Imports all submodules 
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
-
-from pkg_resources import get_distribution
 
 import deepchem.data
 import deepchem.feat
@@ -18,4 +16,3 @@ import deepchem.trans
 import deepchem.utils
 import deepchem.dock
 import deepchem.molnet
-
