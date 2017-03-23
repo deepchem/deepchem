@@ -167,12 +167,11 @@ class APIChangeSpec(object):
         "tf.sparse_split": ["axis", "num_or_size_splits", "value", "name"],
         "tf.concat": ["concat_dim", "values", "name"],
         "tf.svd": ["tensor", "compute_uv", "full_matrices", "name"],
-        "tf.nn.softmax_cross_entropy_with_logits": [
-            "logits", "labels", "dim", "name"],
-        "tf.nn.sparse_softmax_cross_entropy_with_logits": [
-            "logits", "labels", "name"],
-        "tf.nn.sigmoid_cross_entropy_with_logits": [
-            "logits", "labels", "name"],
+        "tf.nn.softmax_cross_entropy_with_logits":
+        ["logits", "labels", "dim", "name"],
+        "tf.nn.sparse_softmax_cross_entropy_with_logits":
+        ["logits", "labels", "name"],
+        "tf.nn.sigmoid_cross_entropy_with_logits": ["logits", "labels", "name"],
         "tf.op_scope": ["values", "name", "default_name"],
     }
 
@@ -186,16 +185,18 @@ class APIChangeSpec(object):
     comment = ("ERROR: tf.reverse has had its argument semantics changed\n"
                "significantly the converter cannot detect this reliably, so you"
                "need to inspect this usage manually.\n")
-    file_edit_recorder.add(comment,
-                           node.lineno,
-                           node.col_offset,
-                           "tf.reverse",
-                           "tf.reverse",
-                           error="tf.reverse requires manual check.")
+    file_edit_recorder.add(
+        comment,
+        node.lineno,
+        node.col_offset,
+        "tf.reverse",
+        "tf.reverse",
+        error="tf.reverse requires manual check.")
 
 
-class FileEditTuple(collections.namedtuple(
-    "FileEditTuple", ["comment", "line", "start", "old", "new"])):
+class FileEditTuple(
+    collections.namedtuple("FileEditTuple",
+                           ["comment", "line", "start", "old", "new"])):
   """Each edit that is recorded by a FileEditRecorder.
 
   Fields:
@@ -326,8 +327,7 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
     function_renames = self._api_change_spec.function_renames
     try:
       new_name = function_renames[full_name]
-      self._file_edit.add("Renamed function %r to %r" % (full_name,
-                                                         new_name),
+      self._file_edit.add("Renamed function %r to %r" % (full_name, new_name),
                           node.lineno, node.col_offset, full_name, new_name)
     except KeyError:
       pass
@@ -374,7 +374,7 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
       # loop over lines
       while 1:
         # Reverse the text to and regular expression search for whitespace
-        text = self._lines[line-1]
+        text = self._lines[line - 1]
         reversed_preceding_text = text[:col][::-1]
         # First find if a [ can be found with only whitespace between it and
         # col.
@@ -383,8 +383,8 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
           new_col_offset = col - m.start(1) - 1
           return line, new_col_offset
         else:
-          if (reversed_preceding_text=="" or
-             reversed_preceding_text.isspace()):
+          if (reversed_preceding_text == "" or
+              reversed_preceding_text.isspace()):
             line = line - 1
             prev_line = self._lines[line - 1]
             # TODO(aselle):
@@ -395,8 +395,8 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
             # node ranges to filter out spurious #'s that appear in string
             # literals.
             comment_start = prev_line.find("#")
-            if comment_start ==  -1:
-              col = len(prev_line) -1
+            if comment_start == -1:
+              col = len(prev_line) - 1
             elif find_string_chars.search(prev_line[comment_start:]) is None:
               col = comment_start
             else:
@@ -407,14 +407,12 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
     # it is not possible to use that in an argument.
     return node.lineno, node.col_offset
 
-
   def visit_Call(self, node):  # pylint: disable=invalid-name
     """Handle visiting a call node in the AST.
 
     Args:
       node: Current Node
     """
-
 
     # Find a simple attribute name path e.g. "tf.foo.bar"
     full_name = self._get_attribute_full_path(node.func)
@@ -440,18 +438,21 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
           lineno, col_offset = self._find_true_position(arg)
           if lineno is None or col_offset is None:
             self._file_edit.add(
-                "Failed to add keyword %r to reordered function %r"
-                % (reordered[idx], full_name), arg.lineno, arg.col_offset,
-                "", "",
+                "Failed to add keyword %r to reordered function %r" %
+                (reordered[idx], full_name),
+                arg.lineno,
+                arg.col_offset,
+                "",
+                "",
                 error="A necessary keyword argument failed to be inserted.")
           else:
             keyword_arg = reordered[idx]
             if (full_name in function_keyword_renames and
                 keyword_arg in function_keyword_renames[full_name]):
               keyword_arg = function_keyword_renames[full_name][keyword_arg]
-            self._file_edit.add("Added keyword %r to reordered function %r"
-                                % (reordered[idx], full_name), lineno,
-                                col_offset, "", keyword_arg + "=")
+            self._file_edit.add("Added keyword %r to reordered function %r" %
+                                (reordered[idx], full_name), lineno, col_offset,
+                                "", keyword_arg + "=")
 
       # Examine each keyword argument and convert it to the final renamed form
       renamed_keywords = ({} if full_name not in function_keyword_renames else
@@ -469,19 +470,21 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
             # value.
             key_start = argval_col_offset - len(argkey) - 1
             key_end = key_start + len(argkey) + 1
-            if self._lines[argval_lineno - 1][key_start:key_end] == argkey + "=":
+            if self._lines[argval_lineno -
+                           1][key_start:key_end] == argkey + "=":
               self._file_edit.add("Renamed keyword argument from %r to %r" %
-                              (argkey, renamed_keywords[argkey]),
-                              argval_lineno,
-                              argval_col_offset - len(argkey) - 1,
-                              argkey + "=", renamed_keywords[argkey] + "=")
+                                  (argkey, renamed_keywords[argkey]),
+                                  argval_lineno,
+                                  argval_col_offset - len(argkey) - 1,
+                                  argkey + "=", renamed_keywords[argkey] + "=")
               continue
           self._file_edit.add(
               "Failed to rename keyword argument from %r to %r" %
               (argkey, renamed_keywords[argkey]),
               argval.lineno,
               argval.col_offset - len(argkey) - 1,
-              "", "",
+              "",
+              "",
               error="Failed to find keyword lexographically. Fix manually.")
 
     ast.NodeVisitor.generic_visit(self, node)
@@ -498,7 +501,7 @@ class TensorFlowCallVisitor(ast.NodeVisitor):
     if full_name in self._api_change_spec.change_to_function:
       if not hasattr(node, "is_function_for_call"):
         new_text = full_name + "()"
-        self._file_edit.add("Changed %r to %r"%(full_name, new_text),
+        self._file_edit.add("Changed %r to %r" % (full_name, new_text),
                             node.lineno, node.col_offset, full_name, new_text)
 
     ast.NodeVisitor.generic_visit(self, node)
@@ -523,8 +526,8 @@ class TensorFlowCodeUpgrader(object):
     # Write to a temporary file, just in case we are doing an implace modify.
     with open(in_filename, "r") as in_file, \
         tempfile.NamedTemporaryFile("w", delete=False) as temp_file:
-      ret = self.process_opened_file(
-          in_filename, in_file, out_filename, temp_file)
+      ret = self.process_opened_file(in_filename, in_file, out_filename,
+                                     temp_file)
 
     shutil.move(temp_file.name, out_filename)
     return ret
@@ -567,9 +570,11 @@ class TensorFlowCodeUpgrader(object):
         out_file.write(out_text)
     text += "\n"
     return 1, text, process_errors
+
   # pylint: enable=broad-except
 
-  def process_tree(self, root_directory, output_root_directory, copy_other_files):
+  def process_tree(self, root_directory, output_root_directory,
+                   copy_other_files):
     """Processes upgrades on an entire tree of python files in place.
 
     Note that only Python files. If you have custom code in other languages,
@@ -584,16 +589,16 @@ class TensorFlowCodeUpgrader(object):
 
     # make sure output directory doesn't exist
     if output_root_directory and os.path.exists(output_root_directory):
-      print("Output directory %r must not already exist." % (
-          output_root_directory))
+      print("Output directory %r must not already exist." %
+            (output_root_directory))
       sys.exit(1)
 
     # make sure output directory does not overlap with root_directory
     norm_root = os.path.split(os.path.normpath(root_directory))
     norm_output = os.path.split(os.path.normpath(output_root_directory))
     if norm_root == norm_output:
-      print("Output directory %r same as input directory %r" % (
-          root_directory, output_root_directory))
+      print("Output directory %r same as input directory %r" %
+            (root_directory, output_root_directory))
       sys.exit(1)
 
     # Collect list of files to process (we do this to correctly handle if the
@@ -636,6 +641,7 @@ class TensorFlowCodeUpgrader(object):
         os.makedirs(output_directory)
       shutil.copy(input_path, output_path)
     return file_count, report, tree_errors
+
 
 def old_main():
   parser = argparse.ArgumentParser(
@@ -704,6 +710,7 @@ Simple usage:
     print("\n".join(errors))
     print("\nMake sure to read the detailed log %r\n" % report_filename)
 
+
 def deepchem_main():
   paths = []
   for root, dirs, files in os.walk("deepchem"):
@@ -729,5 +736,4 @@ def deepchem_main():
 
 
 if __name__ == "__main__":
-    deepchem_main()
-
+  deepchem_main()
