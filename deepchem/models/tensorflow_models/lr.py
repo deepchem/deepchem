@@ -125,7 +125,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
 
   def cost(self, logits, labels, weights):
     return tf.multiply(
-        tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels), weights)
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_output_ops(self, graph, output):
     # adding output nodes of sigmoid function

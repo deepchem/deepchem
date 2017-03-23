@@ -609,7 +609,8 @@ class TensorflowClassifier(TensorflowGraphModel):
       example.
     """
     return tf.multiply(
-        tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels), weights)
+        tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
