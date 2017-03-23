@@ -24,6 +24,7 @@ from deepchem.models.tf_new_models.vina_model import get_cells_for_atoms
 from deepchem.models.tf_new_models.vina_model import compute_neighbor_list
 import deepchem.utils.rdkit_util as rdkit_util
 from deepchem.utils.save import load_sdf_files
+from deepchem.utils import pad_array
 
 
 class TestVinaModel(test_util.TensorFlowTestCase):
@@ -171,16 +172,25 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       ################################################################## DEBUG
       assert cells_for_atoms.shape == (N, 1)
 
-  def test_vina_generate_confs(self):
+  def test_vina_construct_graph(self):
     """Test that vina model can generate meaningful conformations."""
     data_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(data_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(data_dir, "1jld_ligand.pdb")
+  
+    max_protein_atoms = 3500 
+    max_ligand_atoms = 100
 
     print("Loading protein file")
-    protein_mol = rdkit_util.load_molecule(protein_file)
+    protein_xyz, protein_mol = rdkit_util.load_molecule(protein_file)
+    protein_Z = pad_array(
+        np.array([atom.GetAtomicNum() for atom in protein_mol.GetAtoms()]),
+        max_protein_atoms)
     print("Loading ligand file")
-    ligand_mol = rdkit_util.load_molecule(ligand_file)
+    ligand_xyz, ligand_mol = rdkit_util.load_molecule(ligand_file)
+    ligand_Z = pad_array(
+        np.array([atom.GetAtomicNum() for atom in ligand_mol.GetAtoms()]),
+        max_ligand_atoms)
 
     vina_model = VinaModel()
 

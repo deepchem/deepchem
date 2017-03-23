@@ -15,7 +15,7 @@ from deepchem.models import Model
 from deepchem.nn import model_ops
 import deepchem.utils.rdkit_util as rdkit_util
 
-def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5, sess=None):
+def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   """Computes a neighbor list from atom coordinates.
 
   Parameters
@@ -240,13 +240,6 @@ def put_atoms_in_cells(coords, cells, N, n_cells, ndim, k=5):
   closest_atoms = tf.pack([tf.gather(coords, inds) for inds in closest_inds])
   # Tensor of shape (n_cells, k)
   closest_inds = tf.pack(closest_inds)
-  ########################################################################## DEBUG
-  #print("put_atoms_in_cells")
-  #print("closest_inds")
-  #print(closest_inds)
-  #print("closest_atoms")
-  #print(closest_atoms)
-  ########################################################################## DEBUG
 
   return closest_inds, closest_atoms
 
@@ -342,6 +335,18 @@ def g(c, w, Nrot):
   """Nonlinear function mapping interactions to free energy."""
   return c/(1 + w*Nrot)
   
+def h(d):
+  """Sum of energy terms used in Autodock Vina.
+
+  .. math:: h_{t_i,t_j}(d) = w_1\textrm{gauss}_1(d) + w_2\textrm{gauss}_2(d) + w_3\textrm{repulsion}(d) + w_4\textrm{hydrophobic}(d) + w_5\textrm{hbond}(d)
+
+  """
+  w_1 = tf.Variable(tf.random_normal([1,], stddev=.3))
+  w_2 = tf.Variable(tf.random_normal([1,], stddev=.3))
+  w_3 = tf.Variable(tf.random_normal([1,], stddev=.3))
+  w_4 = tf.Variable(tf.random_normal([1,], stddev=.3))
+  w_5 = tf.Variable(tf.random_normal([1,], stddev=.3))
+  return w_1*gauss_1(d) + w_2*gauss_2(d) + w_3*repulsion(d) + w_4*hydrophobic(d) + w_5*hbond(d)
 
 class VinaModel(Model):
 
@@ -359,7 +364,7 @@ class VinaModel(Model):
 
     .. math:: c = c_\textrm{inter} + c_\textrm{intra}
 
-    depending on whether atoms can move relative to one another. Free energey is
+    depending on whether atoms can move relative to one another. Free energy is
     predicted only from :math:`c_\textrm{inter}`. Let :math:`R_t` be the Van der Waal's radius of
     atom of type t. Then define surface distance
 
@@ -432,14 +437,63 @@ class VinaModel(Model):
   def __init__(self, max_local_steps=10, max_mutations=10):
     self.max_local_steps = max_local_steps
     self.max_mutations = max_mutations
-    self.graph = self.construct_graph()
+    self.graph, self.input_placeholders, self.output_placeholder = self.construct_graph()
     self.sess = tf.Session(graph=self.graph)
 
-
-  def construct_graph(self):
+  def construct_graph(self, N_protein=1000, N_ligand=100, M=50, ndim=3, k=5, nbr_cutoff=6):
     """Builds the computational graph for Vina."""
-    # TODO(rbharath): Fill in for real
-    return tf.Graph()
+    graph = tf.Graph()
+    with graph.as_default():
+      n_cells = 64
+      # TODO(rbharath): Make this handle minibatches
+      protein_coords_placeholder = tf.placeholder(tf.float32, shape=(N_protein, 3))
+      ligand_coords_placeholder = tf.placeholder(tf.float32, shape=(N_ligand, 3))
+      protein_Z_placeholder = tf.placeholder(tf.int32, shape=(N_protein,))
+      ligand_Z_placeholder = tf.placeholder(tf.int32, shape=(N_ligand,))
+
+      label_placeholder = tf.placeholder(tf.float32, shape=(1,))
+
+      # Shape (N_protein+N_ligand, 3)
+      coords = tf.concat(0, [protein_coords_placeholder, ligand_coords_placeholder])
+      # Shape (N_protein+N_ligand,)
+      Z = tf.concat(0, [protein_Z_placeholder, ligand_Z_placeholder])
+
+      # Shape (N_protein+N_ligand, M)
+      nbr_list = compute_neighbor_list(coords, nbr_cutoff, N_protein+N_ligand, M,
+                                       n_cells, ndim=ndim, k=k)
+      all_interactions = []
+      for atom in range(N_protein+N_ligand):
+        # Shape (3,)
+        atom_coords = tf.gather(coords, atom)
+        # Shape (1,)
+        atom_Z = tf.gather(Z, [atom])
+
+        # Shape (M,)
+        nbrs = tf.squeeze(tf.gather(nbr_list, [atom]))
+        # Shape (M, 3)
+        nbr_coords = tf.gather(coords, nbrs)
+        # Shape (M,)
+        nbr_Z = tf.gather(Z, nbrs)
+
+        # Shape (M, 3)
+        tiled_atom_coords = tf.tile(tf.reshape(atom_coords, (1, 3)), (M, 1))
+        # Shape (M,)
+        dists = tf.reduce_sum((tiled_atom_coords - nbr_coords)**2, axis=1)
+
+        atom_interactions = h(dists)
+        all_interactions.append(atom_interactions)
+      all_interactions = tf.pack(all_interactions)
+      energy = tf.reduce_sum(all_interactions)
+      loss = tf.mul(0.5 * tf.square(energy - label_placeholder), weights)
+      ############################################## DEBUG
+      print("dists")
+      print(dists)
+      assert 0 == 1
+      ############################################## DEBUG
+
+        
+    return (graph, (protein_coords_placeholder, protein_Z_placeholder,
+                    ligand_coords_placeholder, ligand_Z_placeholder), label_placeholder)
 
   def fit(self, dataset):
     """Fit to actual data."""
