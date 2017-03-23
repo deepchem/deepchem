@@ -1,8 +1,10 @@
-import numpy as np
 import unittest
+
+import numpy as np
+
 import deepchem as dc
-from deepchem.models.tf_new_models.tensor_graph import TensorGraph, LossLayer, Flatten
-from deepchem.models.tf_new_models.tensor_graph import Input, Dense
+from models.tensorgraph.tensor_graph import Input, Dense
+from models.tensorgraph.tensor_graph import TensorGraph, LossLayer, Flatten
 
 
 class TestTensorGraph(unittest.TestCase):
@@ -20,7 +22,7 @@ class TestTensorGraph(unittest.TestCase):
     ids = np.arange(n_samples)
 
     dataset = dc.data.NumpyDataset(X, y, None, ids)
-    g = TensorGraph()
+    g = TensorGraph(model_dir='/tmp/tmpss5_ki5_')
 
     inLayer = Input(t_shape=(None, n_samples, n_features))
     g.add_layer(inLayer)
@@ -37,11 +39,16 @@ class TestTensorGraph(unittest.TestCase):
     loss = LossLayer()
     g.add_layer(loss, parents=[dense, label_out])
 
-    g.features = inLayer.out_tensor
-    g.labels = label_out.out_tensor
-    g.loss = loss.out_tensor
-    g.outputs = dense.out_tensor
+    g.add_feature(inLayer)
+    g.add_label(label_out)
+    g.set_loss(loss)
+    g.add_output(dense)
 
-    g.fit(dataset)
-    print(g.predict(dataset.X))
+
+    g.fit(dataset, nb_epoch=100)
+    g.save()
+    g1 = TensorGraph.load_from_dir('/tmp/tmpss5_ki5_')
+    print(g1)
+    print(g1.predict_on_batch(X))
+    #print(g.predict(dataset.X))
 

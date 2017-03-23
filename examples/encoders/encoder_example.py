@@ -1,12 +1,11 @@
-from rdkit import Chem
-
 import tensorflow as tf
+from rdkit import Chem
 
 from data import DiskDataset
 from deepchem.data import NumpyDataset
-from deepchem.models.autoencoder_models.autoencoder import TensorflowMoleculeEncoder, TensorflowMoleculeDecoder
 from deepchem.feat.one_hot import OneHotFeaturizer, zinc_charset
-from models.tf_new_models.tensor_graph import TensorGraph, Conv1DLayer, Flatten, Dense, CombineMeanStd, GRU, \
+from deepchem.models.autoencoder_models.autoencoder import TensorflowMoleculeEncoder, TensorflowMoleculeDecoder
+from models.tensorgraph.tensor_graph import TensorGraph, Conv1DLayer, Flatten, Dense, CombineMeanStd, GRU, \
   TimeSeriesDense, Input, Repeat
 from nn.copy import Layer
 

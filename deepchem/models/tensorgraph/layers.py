@@ -1,119 +1,18 @@
-import networkx as nx
+import random
+import string
+
 import tensorflow as tf
-import time
-
-from deepchem.models.models import Model
-from nn.copy import Layer
 
 
-class TensorGraph(Model):
+class Layer(object):
   def __init__(self, **kwargs):
-    self.nxgraph = nx.DiGraph()
-    self.features = None
-    self.labels = None
-    self.outputs = None
-    self.loss = None
+    if "name" not in kwargs:
+      self.name = self._random_name()
+    else:
+      self.name = kwargs['name']
 
-    self.train_op = None
-    self.graph = tf.Graph()
-    super().__init__(**kwargs)
-
-  def add_layer(self, layer, parents=list()):
-    with self.graph.as_default():
-      # TODO(LESWING) Assert layer.name not already in nxgraph to not allow duplicates
-      self.nxgraph.add_node(layer.name)
-      for parent in parents:
-        self.nxgraph.add_edge(parent.name, layer.name)
-      # TODO(LESWING) do this lazily and call in Topological sort order after call to "build"
-      layer.__call__(*parents)
-      return layer
-
-  def fit(self,
-          dataset,
-          nb_epoch=10,
-          max_checkpoints_to_keep=5,
-          log_every_N_batches=50,
-          learning_rate=.001,
-          batch_size=50,
-          checkpoint_interval=10):
-    """Trains the model for a fixed number of epochs.
-
-    TODO(rbharath0: This is mostly copied from TensorflowGraphModel. Should
-    eventually refactor both together.
-
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-    nb_epoch: 10
-      Number of training epochs.
-      Dataset object holding training data
-        batch_size: integer. Number of samples per gradient update.
-        nb_epoch: integer, the number of epochs to train the model.
-        verbose: 0 for no logging to stdout,
-            1 for progress bar logging, 2 for one log line per epoch.
-        initial_epoch: epoch at which to start training
-            (useful for resuming a previous training run)
-    checkpoint_interval: int
-      Frequency at which to write checkpoints, measured in epochs
-    """
-    with self.graph.as_default():
-      time1 = time.time()
-      print("Training for %d epochs" % nb_epoch)
-      self.train_op = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
-      saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-      with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        saver.save(sess, self.model_dir, global_step=0)
-        for epoch in range(nb_epoch):
-          avg_loss, n_batches = 0., 0
-          # TODO(rbharath): Don't support example weighting yet.
-          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-            dataset.iterbatches(batch_size, pad_batches=True)):
-            if ind % log_every_N_batches == 0:
-              print("On batch %d" % ind)
-            feed_dict = {self.features: X_b, self.labels: y_b}
-            fetches = [self.outputs] + [self.train_op, self.loss]
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            loss = fetched_values[-1]
-            print(loss)
-            print(fetched_values[0])
-            print(y_b)
-            avg_loss += loss
-            n_batches += 1
-          if epoch % checkpoint_interval == checkpoint_interval - 1:
-            pass
-            # saver.save(sess, self.model_dir, global_step=epoch)
-          avg_loss = float(avg_loss) / n_batches
-          print('Ending epoch %d: Average loss %g' % (epoch, avg_loss))
-        # Always save a final checkpoint when complete.
-        print("Saving Model to %s" % self.model_dir)
-        saver.save(sess, self.model_dir, global_step=epoch + 1)
-      ############################################################## TIMING
-      time2 = time.time()
-      print("TIMING: model fitting took %0.3f s" % (time2 - time1))
-      ############################################################## TIMING
-
-  def predict(self, x, batch_size=32, verbose=0):
-    """Generates output predictions for the input samples,
-      processing the samples in a batched way.
-
-      # Arguments
-          x: the input data, as a Numpy array.
-          batch_size: integer.
-          verbose: verbosity mode, 0 or 1.
-
-      # Returns
-          A Numpy array of predictions.
-      """
-    with self.graph.as_default():
-      saver = tf.train.Saver()
-      with tf.Session() as sess:
-        saver.recover_last_checkpoints(self.model_dir)
-        print("Recovered Weights")
-        fetches = [self.outputs]
-        feed_dict = {self.features: x}
-        fetched_values = sess.run(fetches, feed_dict=feed_dict)
-        return fetched_values
+  def _random_name(self):
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
 
 
 class Conv1DLayer(Layer):
@@ -142,9 +41,10 @@ class Conv1DLayer(Layer):
 
 
 class Dense(Layer):
-  def __init__(self, out_channels, **kwargs):
+  def __init__(self, out_channels, activation_fn=tf.nn.sigmoid, **kwargs):
     self.out_channels = out_channels
     self.out_tensor = None
+    self.activation_fn = activation_fn
     super().__init__(**kwargs)
 
   def __call__(self, *parents):
@@ -155,7 +55,7 @@ class Dense(Layer):
       raise ValueError("Parent tensor must be (batch, width)")
     self.out_tensor = tf.contrib.layers.fully_connected(parent.out_tensor,
                                                         num_outputs=self.out_channels,
-                                                        activation_fn=tf.nn.sigmoid,
+                                                        activation_fn=self.activation_fn,
                                                         scope=self.name,
                                                         trainable=True)
     return self.out_tensor
@@ -263,6 +163,43 @@ class LossLayer(Layer):
 
   def __call__(self, *parents):
     guess, label = parents[0], parents[1]
-    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
-      logits=guess.out_tensor, labels=label.out_tensor)
+    self.out_tensor = tf.reduce_mean(tf.square(guess.out_tensor - label.out_tensor))
+    return self.out_tensor
+
+
+class SoftMax(Layer):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    if len(parents) != 1:
+      raise ValueError("Must only Softmax single parent")
+    parent = parents[0]
+    self.out_tensor = tf.contrib.layers.softmax(parent.out_tensor)
+    return self.out_tensor
+
+
+class Concat(Layer):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    if len(parents) <= 1:
+      raise ValueError("Concat must join at least two tensors")
+    out_tensors = [x.out_tensor for x in parents]
+
+    self.out_tensor = tf.concat_v2(out_tensors, 1)
+    return self.out_tensor
+
+
+class SoftMaxCrossEntropy(Layer):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    if len(parents) != 2:
+      raise ValueError()
+    labels, logits = parents[0].out_tensor, parents[1].out_tensor
+    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(labels, logits)
+    self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     return self.out_tensor
