@@ -173,11 +173,15 @@ class TestVinaModel(test_util.TensorFlowTestCase):
       assert cells_for_atoms.shape == (N, 1)
 
   def test_vina_construct_graph(self):
-    """Test that vina model can generate meaningful conformations."""
+    """Test that vina model graph can be constructed."""
     data_dir = os.path.dirname(os.path.realpath(__file__))
     protein_file = os.path.join(data_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(data_dir, "1jld_ligand.pdb")
-  
+
+    vina_model = VinaModel()
+
+  def test_vina_generate_conformers(self):
+    """Test that Vina Model can generate conformers"""
     max_protein_atoms = 3500 
     max_ligand_atoms = 100
 
@@ -191,6 +195,4 @@ class TestVinaModel(test_util.TensorFlowTestCase):
     ligand_Z = pad_array(
         np.array([atom.GetAtomicNum() for atom in ligand_mol.GetAtoms()]),
         max_ligand_atoms)
-
-    vina_model = VinaModel()
 
