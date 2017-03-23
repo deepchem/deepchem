@@ -32,9 +32,12 @@ from low_data.datasets import load_muv_convmol
 from low_data.datasets import load_sider_convmol
 
 
-def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
-                               dataset='tox21', model='siamese', split='task',
-                               out_path='.'):
+def low_data_benchmark_loading_datasets(hyper_parameters,
+                                        cross_valid=False,
+                                        dataset='tox21',
+                                        model='siamese',
+                                        split='task',
+                                        out_path='.'):
   """
   Loading dataset for low data benchmark test
   
@@ -59,20 +62,23 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
       path of result file
   """
   # Check input
-  if dataset in ['muv','tox21','sider']:
+  if dataset in ['muv', 'tox21', 'sider']:
     mode = 'classification'
   else:
     raise ValueError('Dataset not supported')
-  
-  if not model in ['siamese','attn','res']:
+
+  if not model in ['siamese', 'attn', 'res']:
     raise ValueError('Model not supported')
 
   if not split in ['task']:
     raise ValueError('Only task splitter is supported')
-  
-  loading_functions = {'tox21': load_tox21_convmol, 'muv': load_muv_convmol,
-                       'sider': load_sider_convmol}
-  
+
+  loading_functions = {
+      'tox21': load_tox21_convmol,
+      'muv': load_muv_convmol,
+      'sider': load_sider_convmol
+  }
+
   print('-------------------------------------')
   print('Low data benchmark %s on dataset: %s' % (model, dataset))
   print('-------------------------------------')
@@ -80,7 +86,7 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
   #loading datasets
   tasks, all_dataset, transformers = loading_functions[dataset]()
   time_finish_loading = time.time()
-  
+
   #defining splitter function
   splitters = {'task': dc.splits.TaskSplitter()}
   splitter = splitters[split]
@@ -94,21 +100,21 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
 
     fold_datasets = splitter.k_fold_split(all_dataset, K)
     if cross_valid:
-        num_iter = K # K iterations for cross validation
+      num_iter = K  # K iterations for cross validation
     else:
-        num_iter = 1
+      num_iter = 1
     for count_iter in range(num_iter):
       # Assembling train and valid datasets
-      train_folds = fold_datasets[:num_iter-count_iter-1] + fold_datasets[num_iter-count_iter:]
+      train_folds = fold_datasets[:num_iter - count_iter - 1] + fold_datasets[
+          num_iter - count_iter:]
       train_dataset = dc.splits.merge_fold_datasets(train_folds)
-      valid_dataset = fold_datasets[num_iter-count_iter-1]
+      valid_dataset = fold_datasets[num_iter - count_iter - 1]
 
       time_start_fitting = time.time()
       valid_scores = low_data_benchmark_classification(
-                         train_dataset, valid_dataset, hp, n_feat,
-                         model=model)
-      time_finish_fitting = time.time() 
-      with open(os.path.join(out_path, 'results.csv'),'ab') as f:
+          train_dataset, valid_dataset, hp, n_feat, model=model)
+      time_finish_fitting = time.time()
+      with open(os.path.join(out_path, 'results.csv'), 'ab') as f:
         writer = csv.writer(f)
         output_line = [count_hp, count_iter, dataset, model, 'valid']
         for i in valid_scores:
@@ -116,14 +122,18 @@ def low_data_benchmark_loading_datasets(hyper_parameters, cross_valid=False,
           for count in valid_scores[i]:
             output_line.append(valid_scores[i][count])
         output_line.append('time_for_running')
-        output_line.append(time_finish_fitting-time_start_fitting)
+        output_line.append(time_finish_fitting - time_start_fitting)
         writer.writerow(output_line)
 
   return None
 
-def low_data_benchmark_classification(train_dataset, valid_dataset, 
-                                      hyper_parameters, n_features, 
-                                      model='siamese', seed=123):
+
+def low_data_benchmark_classification(train_dataset,
+                                      valid_dataset,
+                                      hyper_parameters,
+                                      n_features,
+                                      model='siamese',
+                                      seed=123):
   """
   Calculate low data benchmark performance
   
@@ -151,12 +161,12 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
 
   """
   scores = {}
-  
-  # Initialize metrics
-  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
-                                            mode="classification")
 
-  assert model in ['siamese','attn','res']
+  # Initialize metrics
+  classification_metric = dc.metrics.Metric(
+      dc.metrics.roc_auc_score, np.mean, mode="classification")
+
+  assert model in ['siamese', 'attn', 'res']
 
   # Loading hyperparameters
   # num positive/negative ligands
@@ -172,7 +182,7 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
   # Traning settings
   nb_epochs = hyper_parameters['nb_epochs']
   n_train_trials = hyper_parameters['n_train_trials']
-  n_eval_trials = hyper_parameters['n_eval_trials'] 
+  n_eval_trials = hyper_parameters['n_eval_trials']
 
   learning_rate = hyper_parameters['learning_rate']
 
@@ -183,63 +193,91 @@ def low_data_benchmark_classification(train_dataset, valid_dataset,
   with g.as_default():
     tf.set_random_seed(seed)
     support_graph = dc.nn.SequentialSupportGraph(n_features)
-    
+
     for count, n_filter in enumerate(n_filters):
       support_graph.add(dc.nn.GraphConv(int(n_filter), activation='relu'))
       support_graph.add(dc.nn.GraphPool())
-    
+
     for count, n_fcnode in enumerate(n_fully_connected_nodes):
       support_graph.add(dc.nn.Dense(int(n_fcnode), activation='tanh'))
-      
-    support_graph.add_test(dc.nn.GraphGather(test_batch_size, 
-                                             activation='tanh'))
-    support_graph.add_support(dc.nn.GraphGather(support_batch_size, 
-                                                activation='tanh'))
+
+    support_graph.add_test(
+        dc.nn.GraphGather(test_batch_size, activation='tanh'))
+    support_graph.add_support(
+        dc.nn.GraphGather(support_batch_size, activation='tanh'))
     if model in ['siamese']:
       pass
     elif model in ['attn']:
       max_depth = hyper_parameters['max_depth']
-      support_graph.join(dc.nn.AttnLSTMEmbedding(
-          test_batch_size, support_batch_size, max_depth))
+      support_graph.join(
+          dc.nn.AttnLSTMEmbedding(test_batch_size, support_batch_size,
+                                  max_depth))
     elif model in ['res']:
       max_depth = hyper_parameters['max_depth']
-      support_graph.join(dc.nn.ResiLSTMEmbedding(
-          test_batch_size, support_batch_size, max_depth))
-      
+      support_graph.join(
+          dc.nn.ResiLSTMEmbedding(test_batch_size, support_batch_size,
+                                  max_depth))
+
     with tf.Session() as sess:
       model_low_data = dc.models.SupportGraphClassifier(
-          sess, support_graph, test_batch_size=test_batch_size,
-          support_batch_size=support_batch_size, learning_rate=learning_rate)
-        
+          sess,
+          support_graph,
+          test_batch_size=test_batch_size,
+          support_batch_size=support_batch_size,
+          learning_rate=learning_rate)
+
       print('-------------------------------------')
       print('Start fitting by low data model: ' + model)
       # Fit trained model
-      model_low_data.fit(train_dataset, nb_epochs=nb_epochs,
-            n_episodes_per_epoch=n_train_trials,
-            n_pos=n_pos, n_neg=n_neg,
-            log_every_n_samples=50)
+      model_low_data.fit(
+          train_dataset,
+          nb_epochs=nb_epochs,
+          n_episodes_per_epoch=n_train_trials,
+          n_pos=n_pos,
+          n_neg=n_neg,
+          log_every_n_samples=50)
       # Evaluating graph convolution model
-      scores[model] = model_low_data.evaluate(valid_dataset, 
-                          classification_metric, n_pos, n_neg, 
-                          n_trials=n_eval_trials)
-      
+      scores[model] = model_low_data.evaluate(
+          valid_dataset,
+          classification_metric,
+          n_pos,
+          n_neg,
+          n_trials=n_eval_trials)
+
   return scores
 
-    
+
 if __name__ == '__main__':
   # Global variables
   np.random.seed(123)
-  
-  parser = argparse.ArgumentParser(description='Deepchem benchmark: '+
+
+  parser = argparse.ArgumentParser(
+      description='Deepchem benchmark: ' +
       'giving performances of different learning models on datasets')
-  parser.add_argument('-s', action='append', dest='splitter_args', default=[],
+  parser.add_argument(
+      '-s',
+      action='append',
+      dest='splitter_args',
+      default=[],
       help='Choice of splitting function: task')
-  parser.add_argument('-m', action='append', dest='model_args', default=[], 
+  parser.add_argument(
+      '-m',
+      action='append',
+      dest='model_args',
+      default=[],
       help='Choice of model: siamese, attn, res')
-  parser.add_argument('-d', action='append', dest='dataset_args', default=[], 
+  parser.add_argument(
+      '-d',
+      action='append',
+      dest='dataset_args',
+      default=[],
       help='Choice of dataset: tox21, sider, muv')
-  parser.add_argument('--cv', action='store_true', dest='cross_valid', 
-      default=False, help='whether to implement cross validation')
+  parser.add_argument(
+      '--cv',
+      action='store_true',
+      dest='cross_valid',
+      default=False,
+      help='whether to implement cross validation')
 
   args = parser.parse_args()
   #Datasets and models used in the benchmark test
@@ -260,18 +298,30 @@ if __name__ == '__main__':
   #    batch_size
   hps = {}
   hps = {}
-  hps['siamese'] = [{'K': 4, 'n_feat': 75, 'n_pos': 1, 'n_neg': 1,
-                     'test_batch_size': 128, 'n_filters': [64, 128, 64],
-                     'n_fully_connected_nodes': [128], 'max_depth': 3,
-                     'nb_epochs': 1, 'n_train_trials': 2000, 
-                     'n_eval_trials': 20, 'learning_rate': 1e-4}]
+  hps['siamese'] = [{
+      'K': 4,
+      'n_feat': 75,
+      'n_pos': 1,
+      'n_neg': 1,
+      'test_batch_size': 128,
+      'n_filters': [64, 128, 64],
+      'n_fully_connected_nodes': [128],
+      'max_depth': 3,
+      'nb_epochs': 1,
+      'n_train_trials': 2000,
+      'n_eval_trials': 20,
+      'learning_rate': 1e-4
+  }]
   hps['res'] = hps['siamese']
   hps['attn'] = hps['siamese']
 
   for split in splitters:
     for dataset in datasets:
       for model in models:
-        low_data_benchmark_loading_datasets(hps, cross_valid=cross_valid, 
-                                            dataset=dataset, model=model, 
-                                            split=split, out_path='.')
-
+        low_data_benchmark_loading_datasets(
+            hps,
+            cross_valid=cross_valid,
+            dataset=dataset,
+            model=model,
+            split=split,
+            out_path='.')
