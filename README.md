@@ -283,7 +283,6 @@ Random splitting
 |           |Robust MT-NN        |0.822              |0.681              |
 |           |Graph convolution   |0.820        	     |0.717              |
 
-
 Scaffold splitting
 
 |Dataset    |Model               |Train score/ROC-AUC|Valid score/ROC-AUC|
@@ -300,12 +299,12 @@ Scaffold splitting
 |           |NN classification   |0.899              |0.961              |
 |           |Robust NN           |0.908              |0.956              |
 |           |Graph convolution   |0.968              |0.950              |
-|clintox    |Logistic regression |0.960              |0.803              |
+|clintox    |Logistic regression |0.965              |0.688              |
 |           |Random forest       |0.993              |0.735              |
 |           |IRV                 |0.793              |0.718              |
-|           |MT-NN classification|0.947              |0.862              |
-|           |Robust MT-NN        |0.953              |0.890              |
-|           |Graph convolution   |0.957              |0.823              |
+|           |MT-NN classification|0.937              |0.828              |
+|           |Robust MT-NN        |0.956              |0.821              |
+|           |Graph convolution   |0.965              |0.900              |
 |hiv        |Logistic regression |0.858              |0.798              |
 |           |Random forest       |0.946              |0.562              |
 |           |IRV                 |0.847              |0.811              |
@@ -388,7 +387,7 @@ Scaffold splitting
 |                |Random forest       |Scaffold    |0.958         |0.329         |
 |                |NN regression       |Scaffold    |0.831         |0.302         |
 |                |Graphconv regression|Scaffold    |0.882         |0.593         |
-|nci             |MT-NN regression    |Index       |0.171         |0.062         |
+|nci             |MT-NN regression    |Index       |0.690         |0.062         |
 |                |Graphconv regression|Index       |0.123         |0.048         |
 |                |MT-NN regression    |Random      |0.168         |0.085         |
 |                |Graphconv regression|Random      |0.117         |0.076         |
@@ -418,16 +417,16 @@ Scaffold splitting
 |qm8             |MT-NN regression    |Index       |0.783         |0.656         |
 |                |MT-NN regression    |Random      |0.747         |0.660         |
 |                |MT-NN regression    |Stratified  |0.756         |0.681         | 
-|qm9             |MT-NN regression    |Index       |0.733         |0.791         |
-|                |MT-NN regression    |Random      |0.811         |0.823         |
-|                |MT-NN regression    |Stratified  |0.843         |0.818         | 
+|qm9             |MT-NN regression    |Index       |0.733         |0.766         |
+|                |MT-NN regression    |Random      |0.852         |0.833         |
+|                |MT-NN regression    |Stratified  |0.764         |0.792         | 
 |sampl           |Random forest       |Index       |0.968         |0.736         |
-|                |NN regression       |Index       |0.917         |0.749         |
-|                |Graphconv regression|Index       |0.982         |0.864         |
+|                |NN regression       |Index       |0.917         |0.764         |
+|                |Graphconv regression|Index       |0.982         |0.903         |
 |                |Random forest       |Random      |0.967         |0.752         |
 |                |NN regression       |Random      |0.908         |0.711         |
 |                |Graphconv regression|Random      |0.987         |0.868         |
-|                |Random forest       |Scaffold    |0.966         |0.473         |
+|                |Random forest       |Scaffold    |0.966         |0.477         |
 |                |NN regression       |Scaffold    |0.891         |0.217         |
 |                |Graphconv regression|Scaffold    |0.985         |0.666         |
 
@@ -483,12 +482,12 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |10              |80             |
 |                |IRV                 |10              |10             |
 |                |Graph convolution   |15              |70             |
-|bbbp            |Logistic regression |              |              |
-|                |NN classification   |              |              |
-|                |Robust NN           |              |              |
-|                |Random forest       |              |              |
-|                |IRV                 |              |              |
-|                |Graph convolution   |              |              |
+|bbbp            |Logistic regression |20              |10             |
+|                |NN classification   |20              |20             |
+|                |Robust NN           |20              |20             |
+|                |Random forest       |20              |120            |
+|                |IRV                 |20              |10             |
+|                |Graph convolution   |20              |150            |
 |clintox         |Logistic regression |15              |10             |
 |                |MT-NN classification|15              |20             |
 |                |Robust MT-NN        |15              |30             |
