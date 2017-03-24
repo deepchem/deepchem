@@ -144,7 +144,6 @@ class TensorGraph(Model):
       order = self.topsort()
       for node in order:
         node_layer = self.layers[node]
-        print(node_layer)
         in_edges = self.nxgraph.in_edges(node)
         parents = [self.layers[in_edge[0]] for in_edge in in_edges]
         node_layer.__call__(*parents)
