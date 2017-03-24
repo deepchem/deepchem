@@ -484,3 +484,7 @@ Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 
 ## About Us
 DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
+
+
+## Version
+1.0.1
