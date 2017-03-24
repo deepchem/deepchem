@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.data import NumpyDataset
-from deepchem.metrics import to_one_hot
+from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
 
 
@@ -229,5 +229,6 @@ class MultiTaskTensorGraph(TensorGraph):
 
   def predict_on_batch(self, X):
     prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
-    i = 1
+    prediction = np.transpose(from_one_hot(prediction, axis=2))
+    return prediction
 

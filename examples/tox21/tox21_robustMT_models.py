@@ -25,20 +25,20 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean,
                            mode="classification")
 
-n_layers = 1
-n_bypass_layers = 1
-nb_epoch = 10
+# n_layers = 1
+# n_bypass_layers = 1
+# nb_epoch = 10
 model_dir = "/tmp/multiclass"
-model = tensorGraphMultitaskClassifier(
-  len(tox21_tasks), train_dataset.get_data_shape()[0],
-  layer_sizes=[500] * n_layers, bypass_layer_sizes=[50] * n_bypass_layers,
-  model_dir=model_dir)
-# Fit trained model
-model.fit(train_dataset, nb_epoch=nb_epoch)
-model.save()
-print("saved")
+# model = tensorGraphMultitaskClassifier(
+#   len(tox21_tasks), train_dataset.get_data_shape()[0],
+#   layer_sizes=[500] * n_layers, bypass_layer_sizes=[50] * n_bypass_layers,
+#   model_dir=model_dir)
+# # Fit trained model
+# model.fit(train_dataset, nb_epoch=nb_epoch)
+# model.save()
+# print("saved")
 
-#model = TensorGraph.load_from_dir(model_dir=model_dir)
+model = TensorGraph.load_from_dir(model_dir=model_dir)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

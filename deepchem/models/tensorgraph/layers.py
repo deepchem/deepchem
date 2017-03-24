@@ -105,7 +105,7 @@ class Repeat(Layer):
     parent_tensor = parents[0].out_tensor
     with tf.name_scope(self.name):
       t = tf.expand_dims(parent_tensor, 1)
-      pattern = tf.pack([1, self.n_times, 1])
+      pattern = tf.stack([1, self.n_times, 1])
       self.out_tensor = tf.tile(t, pattern)
 
 
@@ -188,7 +188,7 @@ class Concat(Layer):
       raise ValueError("Concat must join at least two tensors")
     out_tensors = [x.out_tensor for x in parents]
 
-    self.out_tensor = tf.concat_v2(out_tensors, 1)
+    self.out_tensor = tf.concat(out_tensors, 1)
     return self.out_tensor
 
 
@@ -200,6 +200,6 @@ class SoftMaxCrossEntropy(Layer):
     if len(parents) != 2:
       raise ValueError()
     labels, logits = parents[0].out_tensor, parents[1].out_tensor
-    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(labels, logits)
+    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(logits=labels, labels=logits)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     return self.out_tensor
