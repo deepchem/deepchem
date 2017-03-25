@@ -27,7 +27,7 @@ n_layers = 1
 n_bypass_layers = 1
 nb_epoch = 10
 model_dir = "/tmp/multiclass"
-old = True
+old = False
 if old:
   model = dc.models.RobustMultitaskClassifier(
       len(tox21_tasks), train_dataset.get_data_shape()[0],
@@ -47,6 +47,7 @@ else:
 # print(model.layers['GUESS0'].out_tensor.get_shape())
 # Fit trained model
 # model.fit(train_dataset, nb_epoch=100, learning_rate=0.0003)
+model.tensorboard = True
 model.fit(train_dataset, nb_epoch=10)
 model.save()
 

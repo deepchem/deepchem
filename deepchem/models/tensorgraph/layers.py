@@ -7,12 +7,16 @@ import tensorflow as tf
 class Layer(object):
   def __init__(self, **kwargs):
     if "name" not in kwargs:
-      self.name = self._random_name()
+      self.name = "%s%s" % (self.__class__.__name__, self._random_name())
     else:
       self.name = kwargs['name']
+    if "tensorboard" not in kwargs:
+      self.tensorboard = True
+    else:
+      self.tensorboard = kwargs['tensorboard']
 
   def _random_name(self):
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
 
 
 class Conv1DLayer(Layer):

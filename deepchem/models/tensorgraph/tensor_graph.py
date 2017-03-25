@@ -12,7 +12,19 @@ from deepchem.models.models import Model
 
 
 class TensorGraph(Model):
-  def __init__(self, **kwargs):
+  def __init__(self, tensorboard=False, learning_rate=0.001, **kwargs):
+    """
+    TODO(LESWING) allow a model to change its learning rate
+    Parameters
+    ----------
+    tensorboard: bool
+      Should we log to model_dir data for tensorboard?
+    learning_rate: float
+      learning rate for the model
+    kwargs
+    """
+
+    # Layer Management
     self.nxgraph = nx.DiGraph()
     self.layers = dict()
     self.parents = dict()
@@ -20,12 +32,22 @@ class TensorGraph(Model):
     self.labels = list()
     self.outputs = list()
     self.loss = None
-
-    self.graph = tf.Graph()
-
     self.built = False
-    self.last_checkpoint = None
+
+    # Singular place to hold Tensor objects which don't serialize
+    # These have to be reconstructed on restoring from pickle
+    # See TensorGraph._get_tf() for more details on lazy construction
+    self.tensor_objects = {
+      "FileWriter": None,
+      "Graph": tf.Graph(),
+      "train_op": None,
+      "summary_op": None,
+    }
     self.epoch = 0
+    self.last_checkpoint = None
+    self.tensorboard = tensorboard
+
+    self.learning_rate = learning_rate
     super().__init__(**kwargs)
     self.save_file = "%s/%s" % (self.model_dir, "model")
 
@@ -43,25 +65,19 @@ class TensorGraph(Model):
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           log_every_N_batches=50,
-          learning_rate=.001,
           batch_size=50,
           checkpoint_interval=10):
     if not self.built:
       self.build()
-    with self.graph.as_default():
+    with self._get_tf("Graph").as_default():
       time1 = time.time()
       print("Training for %d epochs" % nb_epoch)
-      train_op = tf.train.AdamOptimizer(learning_rate).minimize(self.loss.out_tensor)
+      train_op = self._get_tf('train_op')
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
-        if self.last_checkpoint is None:
-          sess.run(tf.global_variables_initializer())
-          saver.save(sess, self.save_file, global_step=0)
-        else:
-          saver.restore(sess, self.last_checkpoint)
+        self._initialize_weights(sess, saver)
         for self.epoch in range(self.epoch, self.epoch + nb_epoch):
           avg_loss, n_batches = 0., 0
-          # TODO(rbharath): Don't support example weighting yet.
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
             dataset.iterbatches(batch_size, pad_batches=True)):
             if ind % log_every_N_batches == 0:
@@ -73,17 +89,38 @@ class TensorGraph(Model):
             loss = fetched_values[-1]
             avg_loss += loss
             n_batches += 1
+            self._log_tensorboard(sess, feed_dict)
           if self.epoch % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.epoch)
           avg_loss = float(avg_loss) / n_batches
           print('Ending epoch %d: Average loss %g' % (self.epoch, avg_loss))
-        print("Saving Model to %s" % self.save_file)
-        save_path = saver.save(sess, self.save_file, global_step=nb_epoch + 1)
         self.last_checkpoint = saver.last_checkpoints[-1]
       ############################################################## TIMING
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
       ############################################################## TIMING
+
+  def _log_tensorboard(self, sess, feed_dict):
+    """
+    TODO(LESWING) set epoch
+    Parameters
+    ----------
+    sess
+    feed_dict
+
+    Returns
+    -------
+
+    """
+    if not self.tensorboard:
+      return
+    summary = sess.run(self._get_tf("summary_op"), feed_dict=feed_dict)
+    print("Loggin")
+    writer = self._get_tf("FileWriter")
+    writer.reopen()
+    writer.add_summary(summary, current_global_step=self.epoch)
+    writer.close()
+
 
   def fit_on_batch(self, X, y, w):
     if not self.built:
@@ -116,7 +153,7 @@ class TensorGraph(Model):
     features = self.features[0]
     if not self.built:
       self.build()
-    with self.graph.as_default():
+    with self.tensor_objects['Graph'].as_default():
       saver = tf.train.Saver()
       with tf.Session() as sess:
         saver.restore(sess, self.last_checkpoint)
@@ -128,7 +165,7 @@ class TensorGraph(Model):
   def predict_proba_on_batch(self, X):
     if not self.built:
       self.build()
-    with self.graph.as_default():
+    with self.tensor_objects['Graph'].as_default():
       saver = tf.train.Saver()
       with tf.Session() as sess:
         saver.restore(sess, self.last_checkpoint)
@@ -142,7 +179,7 @@ class TensorGraph(Model):
     return nx.topological_sort(self.nxgraph)
 
   def build(self):
-    with self.graph.as_default():
+    with self.tensor_objects['Graph'].as_default():
       order = self.topsort()
       for node in order:
         node_layer = self.layers[node]
@@ -150,6 +187,19 @@ class TensorGraph(Model):
         with tf.name_scope(node):
           node_layer.__call__(*parents)
       self.built = True
+
+
+    for layer in self.layers.values():
+      if layer.tensorboard:
+        self.tensorboard = True
+    tf.summary.scalar("loss", self.loss.out_tensor)
+    for layer in self.layers.values():
+      if layer.tensorboard:
+        tf.summary.tensor_summary(layer.name, layer.out_tensor)
+    if self.tensorboard:
+      writer = self._get_tf("FileWriter")
+      writer.add_graph(self.tensor_objects['Graph'])
+      writer.close()
 
   def set_loss(self, layer):
     self.loss = layer
@@ -167,8 +217,8 @@ class TensorGraph(Model):
     # Remove out_tensor from the object to be pickled
     must_restore = False
     out_tensors = []
-    graph = self.graph
-    self.graph = None
+    tensor_objects = self.tensor_objects
+    self.tensor_objects = {}
     if self.built:
       must_restore = True
       out_tensors = []
@@ -189,15 +239,60 @@ class TensorGraph(Model):
         node_layer = self.layers[node]
         node_layer.out_tensor = out_tensors[index]
       self.built = True
-    self.graph = graph
+    self.tensor_objects = tensor_objects
 
-  @staticmethod
-  def load_from_dir(model_dir):
-    pickle_name = os.path.join(model_dir, "model.pickle")
-    with open(pickle_name, 'rb') as fout:
-      tensorgraph = pickle.load(fout)
-      tensorgraph.graph = tf.Graph()
-      return tensorgraph
+  def _get_tf(self, obj):
+    """
+    TODO(LESWING) REALLY NEED TO DOCUMENT THIS
+    Parameters
+    ----------
+    obj
+
+    Returns
+    -------
+    TensorFlow Object
+
+    """
+
+    if self.tensor_objects[obj] is not None:
+      return self.tensor_objects[obj]
+    if obj == "Graph":
+      self.tensor_objects['Graph'] = tf.Graph()
+    elif obj == "FileWriter":
+      self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
+    elif obj == 'train_op':
+      self.tensor_objects['train_op'] = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss.out_tensor)
+    elif obj == 'summary_op':
+      self.tensor_objects['summary_op'] = tf.summary.merge_all(key=tf.GraphKeys.SUMMARIES)
+    return self._get_tf(obj)
+
+  def _initialize_weights(self, sess, saver):
+    """
+    Parameters
+    ----------
+    sess: tf.Session
+      The Session must be open
+    saver: tf.train.Saver
+      A saver object to save/restore checkpoints
+
+    Returns
+    -------
+
+    """
+    if self.last_checkpoint is None:
+      sess.run(tf.global_variables_initializer())
+      saver.save(sess, self.save_file, global_step=self.epoch)
+    else:
+      saver.restore(sess, self.last_checkpoint)
+
+
+@staticmethod
+def load_from_dir(model_dir):
+  pickle_name = os.path.join(model_dir, "model.pickle")
+  with open(pickle_name, 'rb') as fout:
+    tensorgraph = pickle.load(fout)
+    tensorgraph.graph = tf.Graph()
+    return tensorgraph
 
 
 class MultiTaskTensorGraph(TensorGraph):
@@ -230,12 +325,13 @@ class MultiTaskTensorGraph(TensorGraph):
 
   def predict_on_batch(self, X):
     # sample x task
+    # Class is implied by the value of task [0,1]
     prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
     prediction = np.transpose(from_one_hot(prediction, axis=2))
     return prediction
 
   def predict_proba_on_batch(self, X):
     prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
-    # sample x task x prob_per_class
+    # sample x task x class
     prediction1 = np.transpose(prediction, axes=[1, 0, 2])
     return prediction1
