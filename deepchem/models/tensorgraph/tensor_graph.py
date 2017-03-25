@@ -12,6 +12,7 @@ from deepchem.models.models import Model
 
 
 class TensorGraph(Model):
+
   def __init__(self, tensorboard=False, learning_rate=0.001, **kwargs):
     """
     TODO(LESWING) allow a model to change its learning rate
@@ -38,10 +39,10 @@ class TensorGraph(Model):
     # These have to be reconstructed on restoring from pickle
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
-      "FileWriter": None,
-      "Graph": tf.Graph(),
-      "train_op": None,
-      "summary_op": None,
+        "FileWriter": None,
+        "Graph": tf.Graph(),
+        "train_op": None,
+        "summary_op": None,
     }
     self.epoch = 0
     self.last_checkpoint = None
@@ -80,7 +81,7 @@ class TensorGraph(Model):
         for self.epoch in range(self.epoch, self.epoch + nb_epoch):
           avg_loss, n_batches = 0., 0
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-            dataset.iterbatches(batch_size, pad_batches=True)):
+              dataset.iterbatches(batch_size, pad_batches=True)):
             if ind % log_every_N_batches == 0:
               print("On batch %d" % ind)
             feed_dict = self._construct_feed_dict(X_b, y_b, w_b, ids_b)
@@ -121,7 +122,6 @@ class TensorGraph(Model):
     writer.reopen()
     writer.add_summary(summary, global_step=self.epoch)
     writer.close()
-
 
   def fit_on_batch(self, X, y, w):
     if not self.built:
@@ -188,7 +188,6 @@ class TensorGraph(Model):
         with tf.name_scope(node):
           node_layer.__call__(*parents)
       self.built = True
-
 
     for layer in self.layers.values():
       if layer.tensorboard:
@@ -262,9 +261,11 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
-      self.tensor_objects['train_op'] = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss.out_tensor)
+      self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
+          self.learning_rate).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
-      self.tensor_objects['summary_op'] = tf.summary.merge_all(key=tf.GraphKeys.SUMMARIES)
+      self.tensor_objects['summary_op'] = tf.summary.merge_all(
+          key=tf.GraphKeys.SUMMARIES)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):

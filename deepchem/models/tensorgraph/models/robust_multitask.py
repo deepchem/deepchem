@@ -4,16 +4,18 @@ from deepchem.models.tensorgraph.layers import Input, Dense, Concat, SoftMax, So
 
 
 class WeightedError(Layer):
+
   def __call__(self, *parents):
     entropy, weights = parents[0], parents[1]
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
     return self.out_tensor
 
 
-def tensorGraphMultitaskClassifier(n_tasks, n_features,
-                                    layer_sizes=[500],
-                                    bypass_layer_sizes=[100],
-                                    model_dir=None):
+def tensorGraphMultitaskClassifier(n_tasks,
+                                   n_features,
+                                   layer_sizes=[500],
+                                   bypass_layer_sizes=[100],
+                                   model_dir=None):
   g = MultiTaskTensorGraph(model_dir=model_dir)
   in_layer = Input(shape=(None, n_features), name="FEATURE")
   g.add_layer(in_layer)
@@ -23,7 +25,10 @@ def tensorGraphMultitaskClassifier(n_tasks, n_features,
   prev_layer = in_layer
   dense_layers = []
   for i in range(len(layer_sizes)):
-    dense = Dense(out_channels=layer_sizes[i], name="SDENSE%s" % i, activation_fn=tf.nn.relu)
+    dense = Dense(
+        out_channels=layer_sizes[i],
+        name="SDENSE%s" % i,
+        activation_fn=tf.nn.relu)
     g.add_layer(dense, parents=[prev_layer])
     dense_layers.append(dense)
     prev_layer = dense
@@ -33,7 +38,8 @@ def tensorGraphMultitaskClassifier(n_tasks, n_features,
   for task in range(n_tasks):
     prev_layer = in_layer
     for i in range(len(bypass_layer_sizes)):
-      dense = Dense(out_channels=bypass_layer_sizes[i], name="BDENSE%s_%s" % (i, task))
+      dense = Dense(
+          out_channels=bypass_layer_sizes[i], name="BDENSE%s_%s" % (i, task))
       g.add_layer(dense, parents=[prev_layer])
       prev_layer = dense
     joined_layer = Concat(name="JOIN%s" % task)
