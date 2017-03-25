@@ -15,6 +15,7 @@ class TensorGraph(Model):
   def __init__(self, **kwargs):
     self.nxgraph = nx.DiGraph()
     self.layers = dict()
+    self.parents = dict()
     self.features = list()
     self.labels = list()
     self.outputs = list()
@@ -35,6 +36,7 @@ class TensorGraph(Model):
     self.layers[layer.name] = layer
     for parent in parents:
       self.nxgraph.add_edge(parent.name, layer.name)
+    self.parents[layer.name] = parents
 
   def fit(self,
           dataset,
@@ -92,23 +94,23 @@ class TensorGraph(Model):
   def _construct_feed_dict(self, X_b, y_b, w_b, ids_b):
     feed_dict = dict()
     if len(self.labels) > 0 and y_b is not None:
-      feed_dict[self.labels.out_tensor] = y_b
+      feed_dict[self.labels[0].out_tensor] = y_b
     if len(self.features) > 0 and X_b is not None:
-      feed_dict[self.features.out_tensor] = X_b
+      feed_dict[self.features[0].out_tensor] = X_b
     return feed_dict
 
   def predict_on_batch(self, X):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
-      # Arguments
-          x: the input data, as a Numpy array.
-          batch_size: integer.
-          verbose: verbosity mode, 0 or 1.
+    # Arguments
+        x: the input data, as a Numpy array.
+        batch_size: integer.
+        verbose: verbosity mode, 0 or 1.
 
-      # Returns
-          A Numpy array of predictions.
-      """
+    # Returns
+        A Numpy array of predictions.
+    """
     if len(self.features) != 1:
       raise ValueError("Only allow one input set of features")
     features = self.features[0]
@@ -144,9 +146,9 @@ class TensorGraph(Model):
       order = self.topsort()
       for node in order:
         node_layer = self.layers[node]
-        in_edges = self.nxgraph.in_edges(node)
-        parents = [self.layers[in_edge[0]] for in_edge in in_edges]
-        node_layer.__call__(*parents)
+        parents = self.parents[node]
+        with tf.name_scope(node):
+          node_layer.__call__(*parents)
       self.built = True
 
   def set_loss(self, layer):
@@ -227,7 +229,13 @@ class MultiTaskTensorGraph(TensorGraph):
     return len(self.labels)
 
   def predict_on_batch(self, X):
+    # sample x task
     prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
     prediction = np.transpose(from_one_hot(prediction, axis=2))
     return prediction
 
+  def predict_proba_on_batch(self, X):
+    prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
+    # sample x task x prob_per_class
+    prediction1 = np.transpose(prediction, axes=[1, 0, 2])
+    return prediction1

@@ -191,6 +191,7 @@ class TensorflowGraphModel(Model):
     self.pad_batches = pad_batches
     self.verbose = verbose
     self.seed = seed
+    self.summaries = list()
 
     if logdir is not None:
       if not os.path.exists(logdir):
@@ -258,6 +259,7 @@ class TensorflowGraphModel(Model):
         loss=loss)
 
   def add_training_cost(self, graph, name_scopes, output, labels, weights):
+    print("ADDING TRAINING COSTS")
     with graph.as_default():
       epsilon = 1e-3  # small float to avoid dividing by zero
       weighted_costs = []  # weighted costs for each example
@@ -271,6 +273,7 @@ class TensorflowGraphModel(Model):
             with tf.name_scope('weighted'):
               weighted_cost = self.cost(output[task], labels[task],
                                         weights[task])
+
               weighted_costs.append(weighted_cost)
 
             with tf.name_scope('gradient'):
@@ -287,6 +290,10 @@ class TensorflowGraphModel(Model):
                                                name_scopes):
           with tf.name_scope('gradient'):
             loss = tf.add_n(gradient_costs)
+            with tf.name_scope("loss"):
+                print("REALLY ADDING IT")
+                tf.summary.scalar("loss_scaler", loss)
+                tf.summary.tensor_summary("loss_summ", loss)
 
           # weight decay
           if self.penalty != 0.0:
@@ -330,6 +337,7 @@ class TensorflowGraphModel(Model):
     with self.train_graph.graph.as_default():
       train_op = self.get_training_op(self.train_graph.graph,
                                       self.train_graph.loss)
+      summary_op = tf.summary.merge_all(key=tf.GraphKeys.SUMMARIES)
       with self._get_shared_session(train=True) as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
@@ -357,6 +365,8 @@ class TensorflowGraphModel(Model):
             y_pred = np.squeeze(np.array(output))
             y_b = y_b.flatten()
             n_batches += 1
+            summary_str = sess.run(summary_op, feed_dict)
+            self.summaries.append(summary_str)
           if epoch % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self._save_path, global_step=epoch)
           avg_loss = float(avg_loss) / n_batches

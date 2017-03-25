@@ -30,18 +30,18 @@ class Conv1DLayer(Layer):
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.out_tensor.get_shape()
     parent_channel_size = parent_shape[2].value
-    with tf.name_scope(self.name):
-      f = tf.Variable(
-        tf.random_normal([self.width, parent_channel_size, self.out_channels
-                          ]))
-      b = tf.Variable(tf.random_normal([self.out_channels]))
-      t = tf.nn.conv1d(parent.out_tensor, f, stride=1, padding="SAME")
-      t = tf.nn.bias_add(t, b)
-      self.out_tensor = tf.nn.relu(t)
+    f = tf.Variable(
+      tf.random_normal([self.width, parent_channel_size, self.out_channels
+                        ]))
+    b = tf.Variable(tf.random_normal([self.out_channels]))
+    t = tf.nn.conv1d(parent.out_tensor, f, stride=1, padding="SAME")
+    t = tf.nn.bias_add(t, b)
+    self.out_tensor = tf.nn.relu(t)
+    return self.out_tensor
 
 
 class Dense(Layer):
-  def __init__(self, out_channels, activation_fn=tf.nn.sigmoid, **kwargs):
+  def __init__(self, out_channels, activation_fn=None, **kwargs):
     self.out_channels = out_channels
     self.out_tensor = None
     self.activation_fn = activation_fn
@@ -74,8 +74,7 @@ class Flatten(Layer):
     parent_shape = parent.out_tensor.get_shape()
     vector_size = parent_shape[1].value * parent_shape[2].value
     parent_tensor = parent.out_tensor
-    with tf.name_scope(self.name):
-      self.out_tensor = tf.reshape(parent_tensor, shape=(-1, vector_size))
+    self.out_tensor = tf.reshape(parent_tensor, shape=(-1, vector_size))
     return self.out_tensor
 
 
@@ -88,10 +87,9 @@ class CombineMeanStd(Layer):
       raise ValueError("Must have two parents")
     mean_parent, std_parent = parents[0], parents[1]
     mean_parent_tensor, std_parent_tensor = mean_parent.out_tensor, std_parent.out_tensor
-    with tf.name_scope(self.name):
-      sample_noise = tf.random_normal(
-        mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
-      self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
+    sample_noise = tf.random_normal(
+      mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
+    self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
 
 
 class Repeat(Layer):
@@ -103,10 +101,9 @@ class Repeat(Layer):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
-    with tf.name_scope(self.name):
-      t = tf.expand_dims(parent_tensor, 1)
-      pattern = tf.stack([1, self.n_times, 1])
-      self.out_tensor = tf.tile(t, pattern)
+    t = tf.expand_dims(parent_tensor, 1)
+    pattern = tf.stack([1, self.n_times, 1])
+    self.out_tensor = tf.tile(t, pattern)
 
 
 class GRU(Layer):
@@ -120,16 +117,15 @@ class GRU(Layer):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
-    with tf.name_scope(self.name):
-      gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
-      initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
-      rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
-        gru_cell,
-        parent_tensor,
-        initial_state=initial_gru_state,
-        scope=self.name)
-      projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
-      self.out_tensor = tf.map_fn(projection, rnn_outputs)
+    gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
+    initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
+    rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
+      gru_cell,
+      parent_tensor,
+      initial_state=initial_gru_state,
+      scope=self.name)
+    projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
+    self.out_tensor = tf.map_fn(projection, rnn_outputs)
 
 
 class TimeSeriesDense(Layer):
@@ -141,10 +137,9 @@ class TimeSeriesDense(Layer):
     if len(parents) != 1:
       raise ValueError("Must have one parent")
     parent_tensor = parents[0].out_tensor
-    with tf.name_scope(self.name):
-      dense_fn = lambda x: tf.contrib.layers.fully_connected(x, num_outputs=self.out_channels,
-                                                             activation_fn=tf.nn.sigmoid)
-      self.out_tensor = tf.map_fn(dense_fn, parent_tensor)
+    dense_fn = lambda x: tf.contrib.layers.fully_connected(x, num_outputs=self.out_channels,
+                                                           activation_fn=tf.nn.sigmoid)
+    self.out_tensor = tf.map_fn(dense_fn, parent_tensor)
 
 
 class Input(Layer):
@@ -153,8 +148,7 @@ class Input(Layer):
     super().__init__(**kwargs)
 
   def __call__(self, *parents):
-    with tf.name_scope(self.name):
-      self.out_tensor = tf.placeholder(tf.float32, shape=self.t_shape)
+    self.out_tensor = tf.placeholder(tf.float32, shape=self.t_shape)
 
 
 class LossLayer(Layer):
@@ -184,8 +178,9 @@ class Concat(Layer):
     super().__init__(**kwargs)
 
   def __call__(self, *parents):
-    if len(parents) <= 1:
-      raise ValueError("Concat must join at least two tensors")
+    if len(parents) == 1:
+      self.out_tensor = parents[0].out_tensor
+      return self.out_tensor
     out_tensors = [x.out_tensor for x in parents]
 
     self.out_tensor = tf.concat(out_tensors, 1)
@@ -200,6 +195,6 @@ class SoftMaxCrossEntropy(Layer):
     if len(parents) != 2:
       raise ValueError()
     labels, logits = parents[0].out_tensor, parents[1].out_tensor
-    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(logits=labels, labels=logits)
+    self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     return self.out_tensor
