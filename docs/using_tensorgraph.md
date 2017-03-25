@@ -95,3 +95,7 @@ Using Tensorboard with TensorGraph
 Saving and Restoring TensorGraph
 
 Experimenting on new architectures with TensorGraph
+
+Adding complexity while fighting overfitting
+
+Transfer Learning
