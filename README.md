@@ -347,9 +347,12 @@ Scaffold splitting
 |                |Random forest       |Scaffold    |0.956         |0.201         |
 |                |NN regression       |Scaffold    |0.897         |0.208         |
 |                |Graphconv regression|Scaffold    |0.783         |0.068         |
-|chembl          |MT-NN regression    |Index       |0.443         |0.427         |
-|                |MT-NN regression    |Random      |0.464         |0.434         |
-|                |MT-NN regression    |Scaffold    |0.484         |0.361         |
+|chembl          |MT-NN regression    |Index       |0.828         |0.565         |
+|                |Graphconv regression|Index       |0.192         |0.293         |
+|                |MT-NN regression    |Random      |0.829         |0.562         |
+|                |Graphconv regression|Random      |0.198         |0.271         |
+|                |MT-NN regression    |Scaffold    |0.843         |0.430         |
+|                |Graphconv regression|Scaffold    |0.231         |0.294         |
 |clearance       |Random forest       |Index       |0.953         |0.244         |
 |                |NN regression       |Index       |0.884         |0.211         |
 |                |Graphconv regression|Index       |0.696         |0.230         |
@@ -388,11 +391,11 @@ Scaffold splitting
 |                |NN regression       |Scaffold    |0.831         |0.302         |
 |                |Graphconv regression|Scaffold    |0.882         |0.593         |
 |nci             |MT-NN regression    |Index       |0.690         |0.062         |
-|                |Graphconv regression|Index       |0.123         |0.048         |
-|                |MT-NN regression    |Random      |0.168         |0.085         |
+|                |Graphconv regression|Index       |0.123         |0.053         |
+|                |MT-NN regression    |Random      |0.698         |0.117         |
 |                |Graphconv regression|Random      |0.117         |0.076         |
-|                |MT-NN regression    |Scaffold    |0.180         |0.052         |
-|                |Graphconv regression|Scaffold    |0.131         |0.046         |
+|                |MT-NN regression    |Scaffold    |0.692         |0.036         |
+|                |Graphconv regression|Scaffold    |0.131         |0.036         |
 |pdbbind(core)   |Random forest       |Random      |0.969         |0.445         |
 |                |NN regression       |Random      |0.973         |0.494         |
 |pdbbind(refined)|Random forest       |Random      |0.963         |0.511         |
@@ -528,6 +531,7 @@ Time needed for benchmark test(~20h in total)
 |                |Graphconv regression|10              |110            |
 |                |Random forest       |10              |50             |
 |chembl          |MT-NN regression    |200             |9000           |
+|                |Graphconv regression|250             |1800           |
 |clearance       |NN regression       |10              |20             |
 |                |Graphconv regression|10              |60             |
 |                |Random forest       |10              |10             |
