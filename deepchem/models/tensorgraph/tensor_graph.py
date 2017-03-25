@@ -76,6 +76,7 @@ class TensorGraph(Model):
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
         self._initialize_weights(sess, saver)
+        feed_dict = {}
         for self.epoch in range(self.epoch, self.epoch + nb_epoch):
           avg_loss, n_batches = 0., 0
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
@@ -89,9 +90,9 @@ class TensorGraph(Model):
             loss = fetched_values[-1]
             avg_loss += loss
             n_batches += 1
-            self._log_tensorboard(sess, feed_dict)
           if self.epoch % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.epoch)
+            self._log_tensorboard(sess, feed_dict)
           avg_loss = float(avg_loss) / n_batches
           print('Ending epoch %d: Average loss %g' % (self.epoch, avg_loss))
         self.last_checkpoint = saver.last_checkpoints[-1]
@@ -118,7 +119,7 @@ class TensorGraph(Model):
     print("Loggin")
     writer = self._get_tf("FileWriter")
     writer.reopen()
-    writer.add_summary(summary, current_global_step=self.epoch)
+    writer.add_summary(summary, global_step=self.epoch)
     writer.close()
 
 

@@ -14,7 +14,7 @@ from sklearn.metrics import precision_score
 from scipy.stats import pearsonr
 
 
-def to_one_hot(y):
+def to_one_hot(y, axis=-1):
   """Transforms label vector into one-hot encoding.
 
   Turns y into vector of shape [n_samples, 2] (assuming binary labels).
@@ -23,7 +23,8 @@ def to_one_hot(y):
     A vector of shape [n_samples, 1]
   """
   n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
+  n_classes = np.max(y, axis=axis)
+  y_hot = np.zeros((n_samples, n_classes))
   y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
   return y_hot
 

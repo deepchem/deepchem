@@ -11,7 +11,7 @@ class Layer(object):
     else:
       self.name = kwargs['name']
     if "tensorboard" not in kwargs:
-      self.tensorboard = True
+      self.tensorboard = False
     else:
       self.tensorboard = kwargs['tensorboard']
 
@@ -73,13 +73,21 @@ class Flatten(Layer):
     if len(parents) != 1:
       raise ValueError("Only One Parent to conv1D over")
     parent = parents[0]
-    if len(parent.out_tensor.get_shape()) != 3:
-      raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.out_tensor.get_shape()
-    vector_size = parent_shape[1].value * parent_shape[2].value
+    vector_size = 1
+    for i in range(1, len(parent_shape)):
+      vector_size *= parent_shape[i].value
     parent_tensor = parent.out_tensor
     self.out_tensor = tf.reshape(parent_tensor, shape=(-1, vector_size))
     return self.out_tensor
+
+class Reshape(Layer):
+  def __init__(self, shape, **kwargs):
+    self.shape = shape
+    super().__init__(**kwargs)
+  def __call__(self, *parents):
+    parent_tensor = parents[0].out_tensor
+    self.out_tensor = tf.reshape(parent_tensor, self.shape)
 
 
 class CombineMeanStd(Layer):
@@ -147,8 +155,8 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
-  def __init__(self, t_shape, **kwargs):
-    self.t_shape = t_shape
+  def __init__(self, shape, **kwargs):
+    self.t_shape = shape
     super().__init__(**kwargs)
 
   def __call__(self, *parents):
@@ -201,4 +209,10 @@ class SoftMaxCrossEntropy(Layer):
     labels, logits = parents[0].out_tensor, parents[1].out_tensor
     self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
+    return self.out_tensor
+
+class ReduceMean(Layer):
+  def __call__(self, *parents):
+    parent_tensor = parents[0].out_tensor
+    self.out_tensor = tf.reduce_mean(parent_tensor)
     return self.out_tensor

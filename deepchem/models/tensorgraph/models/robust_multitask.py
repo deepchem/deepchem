@@ -15,7 +15,7 @@ def tensorGraphMultitaskClassifier(n_tasks, n_features,
                                     bypass_layer_sizes=[100],
                                     model_dir=None):
   g = MultiTaskTensorGraph(model_dir=model_dir)
-  in_layer = Input(t_shape=(None, n_features), name="FEATURE")
+  in_layer = Input(shape=(None, n_features), name="FEATURE")
   g.add_layer(in_layer)
   g.add_feature(in_layer)
 
@@ -46,7 +46,7 @@ def tensorGraphMultitaskClassifier(n_tasks, n_features,
     g.add_layer(softmax, parents=[classification])
     g.add_output(softmax)
 
-    label = Input(t_shape=(None, 2), name="LABEL%s" % task)
+    label = Input(shape=(None, 2), name="LABEL%s" % task)
     g.add_layer(label)
     g.add_label(label)
 
@@ -57,7 +57,7 @@ def tensorGraphMultitaskClassifier(n_tasks, n_features,
   entropy = Concat(name="ENT")
   g.add_layer(entropy, parents=costs)
 
-  task_weights = Input(t_shape=(None, n_tasks), name="W")
+  task_weights = Input(shape=(None, n_tasks), name="W")
   g.add_layer(task_weights)
   g.set_task_weights(task_weights)
 
