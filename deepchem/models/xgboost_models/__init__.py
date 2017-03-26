@@ -22,7 +22,7 @@ class XGBoostModel(SklearnModel):
   def __init__(self,
                model_instance=None,
                model_dir=None,
-               verbose=True,
+               verbose=False,
                **kwargs):
     """Abstract class for XGBoost models.
     Parameters:
