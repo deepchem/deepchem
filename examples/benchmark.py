@@ -11,13 +11,15 @@ Giving classification performances of:
     Random forest(rf), MultitaskDNN(tf),
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
-    Graph convolution(graphconv)
+    Graph convolution(graphconv),
+    Xgboost classifier(xgb_classifier)
 on datasets: muv, pcba, tox21, sider, toxcast, clintox, hiv
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Random forest(rf_regression),
-    Graph convolution regression(graphconvreg)
+    Graph convolution regression(graphconvreg),
+    Xgboost regression(xgb_regression)
 on datasets: delaney(ESOL), nci, kaggle, pdbbind,
              qm7, qm7b, qm9, chembl, sampl(FreeSolv)
 
@@ -79,7 +81,8 @@ def benchmark_loading_datasets(hyper_parameters,
       qm7, qm7b, qm9, sampl
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      irv, graphconv, tf_regression, rf_regression, graphconvreg
+      irv, graphconv, xgb_classifier, tf_regression, rf_regression, 
+      graphconvreg, xgb_regression
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
   out_path: string, optional(default='.')
@@ -101,7 +104,8 @@ def benchmark_loading_datasets(hyper_parameters,
     featurizer = 'GraphConv'
     n_features = 75
   elif model in [
-      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 'rf_regression'
+      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 'rf_regression',
+      'xgb_classifier', 'xgb_regression'
   ]:
     featurizer = 'ECFP'
     n_features = 1024
@@ -290,7 +294,7 @@ def benchmark_classification(train_dataset,
       number of features, or length of binary fingerprints
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      irv, graphconv
+      irv, graphconv, xgb_classifier
   test: boolean
       whether to calculate test_set performance
 
@@ -658,7 +662,7 @@ def benchmark_regression(train_dataset,
       number of features, or length of binary fingerprints
   model: string,  optional (default='tf_regression')
       choice of which model to use, should be: tf_regression, graphconvreg,
-      rf_regression
+      rf_regression, xgb_regression
   test: boolean
       whether to calculate test_set performance
 
@@ -871,7 +875,7 @@ def benchmark_regression(train_dataset,
     model_xgb = dc.models.multitask.SingletaskToMultitask(tasks, model_builder)
 
     print('-------------------------------------')
-    print('Start fitting by xgoost')
+    print('Start fitting by xgboost')
     model_xgb.fit(train_dataset)
 
     # Evaluating xgboost classification model
