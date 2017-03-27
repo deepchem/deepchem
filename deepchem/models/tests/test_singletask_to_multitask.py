@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import tempfile
 import shutil
@@ -16,10 +16,12 @@ import numpy as np
 import deepchem as dc
 from sklearn.linear_model import LogisticRegression
 
+
 class TestSingletasktoMultitask(unittest.TestCase):
   """
   Test top-level API for singletask_to_multitask ML models.
   """
+
   #def test_singletask_to_multitask_classification(self):
   #  n_features = 10
   #  n_tasks = 17
@@ -57,7 +59,6 @@ class TestSingletasktoMultitask(unittest.TestCase):
   #  _ = multitask_model.evaluate(train_dataset, classification_metrics)
   #  _ = multitask_model.evaluate(test_dataset, classification_metrics)
 
-
   def test_to_singletask(self):
     """Test that to_singletask works."""
     num_datapoints = 100
@@ -68,7 +69,7 @@ class TestSingletasktoMultitask(unittest.TestCase):
     y = np.random.randint(2, size=(num_datapoints, num_tasks))
     w = np.random.randint(2, size=(num_datapoints, num_tasks))
     ids = np.array(["id"] * num_datapoints)
-    
+
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     task_dirs = []
@@ -84,8 +85,10 @@ class TestSingletasktoMultitask(unittest.TestCase):
             singletask_dataset.ids)
         w_nonzero = w[:, task] != 0
         np.testing.assert_array_equal(X_task, X[w_nonzero != 0])
-        np.testing.assert_array_equal(y_task.flatten(), y[:, task][w_nonzero != 0])
-        np.testing.assert_array_equal(w_task.flatten(), w[:, task][w_nonzero != 0])
+        np.testing.assert_array_equal(y_task.flatten(),
+                                      y[:, task][w_nonzero != 0])
+        np.testing.assert_array_equal(w_task.flatten(),
+                                      w[:, task][w_nonzero != 0])
         np.testing.assert_array_equal(ids_task, ids[w_nonzero != 0])
     finally:
       # Cleanup

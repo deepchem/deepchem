@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import sys
@@ -188,8 +188,10 @@ class MultitaskGraphClassifier(Model):
     task_losses = []
     # label_placeholder of shape (batch_size, n_tasks). Split into n_tasks
     # tensors of shape (batch_size,)
-    task_labels = tf.split(1, self.n_tasks, self.label_placeholder)
-    task_weights = tf.split(1, self.n_tasks, self.weight_placeholder)
+    task_labels = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.label_placeholder)
+    task_weights = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.weight_placeholder)
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]

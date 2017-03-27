@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import shutil
@@ -16,27 +16,26 @@ import unittest
 import deepchem as dc
 import numpy as np
 
+
 class TestMerge(unittest.TestCase):
   """
   Test singletask/multitask dataset merging.
   """
+
   def test_merge(self):
     """Test that datasets can be merged."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/example.csv")
+    dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     loader = dc.data.CSVLoader(
-        tasks=tasks, smiles_field="smiles",
-        featurizer=featurizer)
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
     first_dataset = loader.featurize(dataset_file)
-    second_dataset = loader.featurize( dataset_file)
+    second_dataset = loader.featurize(dataset_file)
 
-    merged_dataset = dc.data.DiskDataset.merge(
-        [first_dataset, second_dataset])
+    merged_dataset = dc.data.DiskDataset.merge([first_dataset, second_dataset])
 
     assert len(merged_dataset) == len(first_dataset) + len(second_dataset)
 
@@ -44,15 +43,13 @@ class TestMerge(unittest.TestCase):
     """Tests that subsetting of datasets works."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/example.csv")
+    dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
     loader = dc.data.CSVLoader(
         tasks=tasks, smiles_field="smiles", featurizer=featurizer)
-    dataset = loader.featurize(
-        dataset_file, shard_size=2)
+    dataset = loader.featurize(dataset_file, shard_size=2)
 
     shard_nums = [1, 2]
 

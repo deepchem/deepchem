@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import numpy as np
 import tensorflow as tf
@@ -85,8 +85,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     rel_atoms = deg_summed[deg - 1]
 
     # Get self atoms
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Apply hidden affine to relevant atoms and append
@@ -100,8 +100,8 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
   if min_deg == 0:
     deg = 0
 
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Only use the self layer
@@ -110,7 +110,7 @@ def graph_conv(atoms, deg_adj_lists, deg_slice, max_deg, min_deg, W_list,
     new_rel_atoms_collection[deg - min_deg] = out
 
   # Combine all atoms back into the list
-  activated_atoms = tf.concat(0, new_rel_atoms_collection)
+  activated_atoms = tf.concat(axis=0, values=new_rel_atoms_collection)
 
   return activated_atoms
 
@@ -145,7 +145,7 @@ def graph_gather(atoms, membership_placeholder, batch_size):
   ]
 
   # Get the final sparse representations
-  sparse_reps = tf.concat(0, sparse_reps)
+  sparse_reps = tf.concat(axis=0, values=sparse_reps)
 
   return sparse_reps
 
@@ -178,8 +178,8 @@ def graph_pool(atoms, deg_adj_lists, deg_slice, max_deg, min_deg):
 
   for deg in range(1, max_deg + 1):
     # Get self atoms
-    begin = tf.pack([deg_slice[deg - min_deg, 0], 0])
-    size = tf.pack([deg_slice[deg - min_deg, 1], -1])
+    begin = tf.stack([deg_slice[deg - min_deg, 0], 0])
+    size = tf.stack([deg_slice[deg - min_deg, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
 
     # Expand dims
@@ -187,18 +187,18 @@ def graph_pool(atoms, deg_adj_lists, deg_slice, max_deg, min_deg):
 
     # always deg-1 for deg_adj_lists
     gathered_atoms = tf.gather(atoms, deg_adj_lists[deg - 1])
-    gathered_atoms = tf.concat(1, [self_atoms, gathered_atoms])
+    gathered_atoms = tf.concat(axis=1, values=[self_atoms, gathered_atoms])
 
     maxed_atoms = tf.reduce_max(gathered_atoms, 1)
     deg_maxed[deg - min_deg] = maxed_atoms
 
   if min_deg == 0:
-    begin = tf.pack([deg_slice[0, 0], 0])
-    size = tf.pack([deg_slice[0, 1], -1])
+    begin = tf.stack([deg_slice[0, 0], 0])
+    size = tf.stack([deg_slice[0, 1], -1])
     self_atoms = tf.slice(atoms, begin, size)
     deg_maxed[0] = self_atoms
 
-  return tf.concat(0, deg_maxed)
+  return tf.concat(axis=0, values=deg_maxed)
 
 
 class GraphConv(Layer):
