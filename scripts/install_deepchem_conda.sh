@@ -2,8 +2,8 @@
 # Used to make a conda environment with deepchem
 
 # Change commented out line For gpu tensorflow
-export tensorflow=tensorflow-gpu
-#export tensorflow=tensorflow
+#export tensorflow=tensorflow-gpu
+export tensorflow=tensorflow
 
 if [ -z "$1" ]
 then

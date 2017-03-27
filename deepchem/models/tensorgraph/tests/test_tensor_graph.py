@@ -44,10 +44,8 @@ class TestTensorGraph(unittest.TestCase):
     g.set_loss(loss)
     g.add_output(dense)
 
-
     g.fit(dataset, nb_epoch=100)
     g.save()
     g1 = TensorGraph.load_from_dir('/tmp/tmpss5_ki5_')
     prediction = g1.predict_on_batch(X)
-    assert(np.sum(prediction) > 9.9)
-
+    assert (np.sum(prediction) > 9.9)

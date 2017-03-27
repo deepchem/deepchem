@@ -13,10 +13,7 @@ from deepchem.models.models import Model
 
 class TensorGraph(Model):
 
-  def __init__(self,
-               tensorboard=False,
-               learning_rate=0.001,
-               **kwargs):
+  def __init__(self, tensorboard=False, learning_rate=0.001, **kwargs):
     """
     TODO(LESWING) allow a model to change its learning rate
     TODO(LESWING) DOCUMENTATION AND TESTING
@@ -294,7 +291,6 @@ class TensorGraph(Model):
   def get_num_tasks(self):
     return len(self.labels)
 
-
   @staticmethod
   def load_from_dir(model_dir):
     pickle_name = os.path.join(model_dir, "model.pickle")
@@ -310,8 +306,9 @@ class MultiTaskTensorGraph(TensorGraph):
   classification metrics
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, mode='classification', **kwargs):
     self.task_weights = None
+    self.mode = mode
     super().__init__(**kwargs)
 
   def set_task_weights(self, layer):
