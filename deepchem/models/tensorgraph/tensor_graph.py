@@ -288,7 +288,7 @@ class TensorGraph(Model):
       saver.restore(sess, self.last_checkpoint)
 
   def get_num_tasks(self):
-    return len(self.outputs)
+    return len(self.labels)
 
 
   @staticmethod
@@ -323,9 +323,6 @@ class MultiTaskTensorGraph(TensorGraph):
     if self.features is not None:
       feed_dict[self.features[0].out_tensor] = X_b
     return feed_dict
-
-  def get_num_tasks(self):
-    return len(self.labels)
 
   def predict_on_batch(self, X):
     # sample x task
