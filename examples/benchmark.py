@@ -104,8 +104,8 @@ def benchmark_loading_datasets(hyper_parameters,
     featurizer = 'GraphConv'
     n_features = 75
   elif model in [
-      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 'rf_regression',
-      'xgb_classifier', 'xgb_regression'
+      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
+      'rf_regression', 'xgb_classifier', 'xgb_regression'
   ]:
     featurizer = 'ECFP'
     n_features = 1024

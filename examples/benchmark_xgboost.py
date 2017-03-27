@@ -104,8 +104,8 @@ def benchmark_loading_datasets(hyper_parameters,
     featurizer = 'GraphConv'
     n_features = 75
   elif model in [
-      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression', 'rf_regression',
-      'xgb_classifier', 'xgb_regression'
+      'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
+      'rf_regression', 'xgb_classifier', 'xgb_regression'
   ]:
     featurizer = 'ECFP'
     n_features = 1024
@@ -938,9 +938,7 @@ if __name__ == '__main__':
   if len(splitters) == 0:
     splitters = ['index', 'random', 'scaffold']
   if len(models) == 0:
-    models = [
-        'xgb_classifier', 'xgb_regression'
-    ]
+    models = ['xgb_classifier', 'xgb_regression']
   if len(datasets) == 0:
     datasets = [
         'tox21', 'sider', 'muv', 'toxcast', 'clintox', 'hiv', 'sampl',
@@ -1064,7 +1062,6 @@ if __name__ == '__main__':
       'early_stopping_rounds': 100
   }]
 
-
   for split in splitters:
     for dataset in datasets:
       if dataset in [
@@ -1100,9 +1097,4 @@ if __name__ == '__main__':
   dataset = 'pcba'
   model = 'xgb_classifier'
   benchmark_loading_datasets(
-      hps,
-      dataset=dataset,
-      model=model,
-      split=split,
-      out_path='.',
-      test=test)
+      hps, dataset=dataset, model=model, split=split, out_path='.', test=test)
