@@ -29,7 +29,7 @@ graph_model = dc.nn.SequentialGraph(n_feat)
 graph_model.add(dc.nn.GraphConv(128, n_feat, activation='relu'))
 graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 graph_model.add(dc.nn.GraphPool())
-graph_model.add(dc.nn.GraphConv(128, 64, activation='relu'))
+graph_model.add(dc.nn.GraphConv(128, 128, activation='relu'))
 graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 graph_model.add(dc.nn.GraphPool())
 # Gather Projection
