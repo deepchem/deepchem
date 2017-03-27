@@ -271,7 +271,7 @@ class Metric(object):
     if self.threshold is not None:
       y_pred = np.greater(y_pred, threshold)
     try:
-      metric_value = self.metric(y_true, y_pred)
+      metric_value = self.(y_true, y_pred)
     except (AssertionError, ValueError) as e:
       warnings.warn("Error calculating metric %s: %s" % (self.name, e))
       metric_value = np.nan
