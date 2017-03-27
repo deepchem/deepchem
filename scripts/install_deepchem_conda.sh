@@ -21,9 +21,9 @@ yes | pip install six
 conda install -y -c omnia mdtraj
 conda install -y scikit-learn
 conda install -y setuptools
-conda install -y keras=1.1.1
+conda install -y -c conda-forge keras=1.2.2
 conda install -y -c conda-forge protobuf=3.1.0
 conda install -y -c anaconda networkx=1.11
 conda install -c bioconda xgboost=0.6a2
-yes | pip install $tensorflow==0.12.1
+yes | pip install $tensorflow==1.0.1
 yes | pip install nose

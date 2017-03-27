@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import tempfile
@@ -439,7 +439,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     classification_metric = dc.metrics.Metric(
         dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.TensorflowMultiTaskIRVClassifier(
-        n_tasks, K=5, learning_rate=0.001, batch_size=n_samples)
+        n_tasks, K=5, learning_rate=0.01, batch_size=n_samples)
 
     # Fit trained model
     model.fit(dataset_trans)

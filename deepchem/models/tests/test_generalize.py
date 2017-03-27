@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import sklearn
 import sklearn.datasets
@@ -20,6 +20,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 import xgboost
+
 
 
 class TestGeneralize(unittest.TestCase):
