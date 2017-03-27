@@ -17,14 +17,14 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 
 # Batch size of models
 batch_size = 50
-n_feat = [23, 23]
 graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=23, n_distance=100)
 graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
 graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
 graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
 graph_model.add(dc.nn.DTNNGather(n_tasks=len(tasks), n_embedding=20))
+n_feat = 20
 
-model = dc.models.MultitaskGraphRegressor(
+model = dc.models.DTNNGraphRegressor(
     graph_model,
     len(tasks),
     n_feat,
@@ -36,7 +36,7 @@ model = dc.models.MultitaskGraphRegressor(
     beta2=.999)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=10)
+model.fit(train_dataset, nb_epoch=50)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)

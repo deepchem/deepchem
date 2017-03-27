@@ -128,9 +128,6 @@ class SequentialDTNNGraph(SequentialGraph):
         self.output = layer(self.output)
       self.layers.append(layer)
 
-  def return_inputs(self):
-    return self.graph_topology.get_atom_number_placeholders()
-
 
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""

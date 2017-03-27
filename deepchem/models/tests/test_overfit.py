@@ -666,8 +666,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     """Test deep tensor neural net overfits tiny data."""
     np.random.seed(123)
     tf.set_random_seed(123)
-    g = tf.Graph()
-    sess = tf.Session(graph=g)
 
     # Load mini log-solubility dataset.
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
@@ -688,11 +686,12 @@ class TestOverfit(test_util.TensorFlowTestCase):
     graph_model.add(dc.nn.DTNNStep())
     graph_model.add(dc.nn.DTNNGather(n_tasks=n_tasks))
 
-    model = dc.models.DTNNRegressor(
+    model = dc.models.DTNNGraphRegressor(
         graph_model,
-        n_tasks=n_tasks,
+        n_tasks,
+        n_feat,
         batch_size=batch_size,
-        learning_rate=1e-2,
+        learning_rate=1e-3,
         learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
