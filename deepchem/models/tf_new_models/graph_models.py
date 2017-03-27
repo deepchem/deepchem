@@ -121,15 +121,15 @@ class SequentialDTNNGraph(SequentialGraph):
       if type(layer).__name__ in ['DTNNStep']:
         self.output = layer([self.output] +
                             self.graph_topology.get_topology_placeholders())
+      elif type(layer).__name__ in ['DTNNGather']:
+        self.output = layer(
+            [self.output, self.graph_topology.atom_mask_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
 
   def return_inputs(self):
     return self.graph_topology.get_atom_number_placeholders()
-
-  def get_layer(self, layer_id):
-    return self.layers[layer_id]
 
 
 class SequentialSupportGraph(object):

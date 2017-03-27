@@ -863,6 +863,8 @@ class DTNNEmbedding(Layer):
 class DTNNStep(Layer):
   """A convolution step that merge in distance and atom info of 
      all other atoms into current atom.
+   
+     model based on https://arxiv.org/abs/1609.08259
   """
 
   def __init__(self,
@@ -936,44 +938,43 @@ class DTNNGather(Layer):
   """
 
   def __init__(self,
-               n_tasks=1,
                n_embedding=20,
-               n_hidden=50,
+               layer_sizes=[100],
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
-    self.n_tasks = n_tasks
     self.n_embedding = n_embedding
-    self.n_hidden = n_hidden
+    self.layer_sizes = layer_sizes
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 
     super(DTNNGather, self).__init__(**kwargs)
 
   def build(self):
-    self.W_out1_list = []
-    self.W_out2_list = []
-    self.b_out1_list = []
-    self.b_out2_list = []
-    for i in range(self.n_tasks):
-      self.W_out1_list.append(self.init([self.n_embedding, self.n_hidden]))
-      self.W_out2_list.append(self.init([self.n_hidden, 1]))
-      self.b_out1_list.append(model_ops.zeros(shape=[
-          self.n_hidden,
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_embedding
+    for layer_size in self.layer_sizes:
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
       ]))
-      self.b_out2_list.append(model_ops.zeros(shape=[
-          1,
-      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_embedding]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_embedding,
+    ]))
 
-    self.trainable_weights = self.W_out1_list + self.W_out2_list + self.b_out1_list + self.b_out2_list
+    self.trainable_weights = self.W_list + self.b_list
 
   def call(self, x):
     """Execute this layer on input tensors.
 
     Parameters
     ----------
-    x: Tensor 
-      embedding tensor of molecules, of shape (batch_size*max_n_atoms*n_embedding)
+    x: list of Tensor 
+      should be [embedding tensor of molecules, of shape (batch_size*max_n_atoms*n_embedding),
+                 mask tensor of molecules, of shape (batch_size*max_n_atoms)]
 
     Returns
     -------
@@ -981,15 +982,13 @@ class DTNNGather(Layer):
       Of shape (batch_size)
     """
     self.build()
-    outputs = []
-    for i in range(self.n_tasks):
-      output = tf.tensordot(x, self.W_out1_list[i],
-                            [[2], [0]]) + self.b_out1_list[i]
+    output = x[0]
+    atom_mask = x[1]
+    for idw, W in enumerate(self.W_list):
+      output = tf.tensordot(output, W, [[2], [0]]) + self.b_list[idw]
       output = self.activation(output)
-      output = tf.tensordot(output, self.W_out2_list[i],
-                            [[2], [0]]) + self.b_out2_list[i]
-      # each task has one independent hidden layer
-      output = tf.reduce_sum(tf.squeeze(output, axis=2), axis=1)
-      outputs.append(output)
 
-    return outputs
+    output = tf.reduce_sum(
+        tf.multiply(output, tf.expand_dims(atom_mask, axis=2)), axis=1)
+
+    return output

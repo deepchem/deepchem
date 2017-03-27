@@ -91,12 +91,3 @@ hps['graphconvreg'] = {
     'n_fully_connected_nodes': 256,
     'seed': 123
 }
-hps['DTNN'] = {
-    'batch_size': 128,
-    'nb_epoch': 20,
-    'learning_rate': 0.0005,
-    'n_embedding': 20,
-    'n_hidden': 50,
-    'n_distance': 100,
-    'seed': 123
-}

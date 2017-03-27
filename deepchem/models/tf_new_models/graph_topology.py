@@ -176,12 +176,16 @@ class DTNNGraphTopology(GraphTopology):
         dtype='int32',
         shape=(None, self.max_n_atoms),
         name=self.name + '_atom_number')
+    self.atom_mask_placeholder = tf.placeholder(
+        dtype='float32',
+        shape=(None, self.max_n_atoms),
+        name=self.name + '_atom_mask')
     self.distance_matrix_placeholder = tf.placeholder(
         dtype='float32',
         shape=(None, self.max_n_atoms, self.max_n_atoms, self.n_distance),
         name=self.name + '_distance_matrix')
     self.distance_matrix_mask_placeholder = tf.placeholder(
-        dtype=tf.float32,
+        dtype='float32',
         shape=(None, self.max_n_atoms, self.max_n_atoms),
         name=self.name + '_distance_matrix_mask')
 
@@ -216,6 +220,7 @@ class DTNNGraphTopology(GraphTopology):
     """
     # Extract atom numbers
     atom_number = np.asarray(map(np.diag, batch))
+    atom_mask = np.sign(atom_number)
     atom_number = np.asarray(
         np.round(np.power(2 * atom_number, 1 / 2.4)), dtype=int)
     ZiZj = []
@@ -241,6 +246,7 @@ class DTNNGraphTopology(GraphTopology):
     # Generate dicts
     dict_DTNN = {
         self.atom_number_placeholder: atom_number,
+        self.atom_mask_placeholder: atom_mask,
         self.distance_matrix_placeholder: distance_matrix,
         self.distance_matrix_mask_placeholder: distance_matrix_mask
     }
