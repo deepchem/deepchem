@@ -180,7 +180,7 @@ class TensorGraph(Model):
     return nx.topological_sort(self.nxgraph)
 
   def build(self):
-    with self.tensor_objects['Graph'].as_default():
+    with self._get_tf("Graph").as_default():
       order = self.topsort()
       for node in order:
         node_layer = self.layers[node]
@@ -198,7 +198,7 @@ class TensorGraph(Model):
         tf.summary.tensor_summary(layer.name, layer.out_tensor)
     if self.tensorboard:
       writer = self._get_tf("FileWriter")
-      writer.add_graph(self.tensor_objects['Graph'])
+      writer.add_graph(self._get_tf("Graph"))
       writer.close()
 
   def set_loss(self, layer):
@@ -254,7 +254,7 @@ class TensorGraph(Model):
 
     """
 
-    if self.tensor_objects[obj] is not None:
+    if obj in self.tensor_objects and self.tensor_objects[obj] is not None:
       return self.tensor_objects[obj]
     if obj == "Graph":
       self.tensor_objects['Graph'] = tf.Graph()
@@ -287,14 +287,16 @@ class TensorGraph(Model):
     else:
       saver.restore(sess, self.last_checkpoint)
 
+  def get_num_tasks(self):
+    return len(self.outputs)
 
-@staticmethod
-def load_from_dir(model_dir):
-  pickle_name = os.path.join(model_dir, "model.pickle")
-  with open(pickle_name, 'rb') as fout:
-    tensorgraph = pickle.load(fout)
-    tensorgraph.graph = tf.Graph()
-    return tensorgraph
+
+  @staticmethod
+  def load_from_dir(model_dir):
+    pickle_name = os.path.join(model_dir, "model.pickle")
+    with open(pickle_name, 'rb') as fout:
+      tensorgraph = pickle.load(fout)
+      return tensorgraph
 
 
 class MultiTaskTensorGraph(TensorGraph):
