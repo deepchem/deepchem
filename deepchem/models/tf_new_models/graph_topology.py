@@ -219,7 +219,7 @@ class DTNNGraphTopology(GraphTopology):
       Can be merged with other feed_dicts for input into tensorflow
     """
     # Extract atom numbers
-    atom_number = np.asarray(map(np.diag, batch))
+    atom_number = np.asarray(list(map(np.diag, batch)))
     atom_mask = np.sign(atom_number)
     atom_number = np.asarray(
         np.round(np.power(2 * atom_number, 1 / 2.4)), dtype=int)
