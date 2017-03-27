@@ -44,7 +44,7 @@ You can install deepchem in a new conda environment using the conda commands in 
 
 ```bash
 bash scripts/install_deepchem_conda.sh deepchem
-pip install tensorflow-gpu==0.12.1                      # If you want GPU support
+pip install tensorflow-gpu==1.0.1                      # If you want GPU support
 git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
 python setup.py install                                 # Manual install
@@ -95,7 +95,7 @@ via this installation procedure.
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    pip install tensorflow-gpu==0.12.1
+    pip install tensorflow-gpu==1.0.1
     ```
 
 9. `deepchem`: Clone the `deepchem` github repo:
@@ -484,3 +484,7 @@ Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 
 ## About Us
 DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
+
+
+## Version
+1.0.1

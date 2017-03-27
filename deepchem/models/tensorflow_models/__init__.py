@@ -608,8 +608,9 @@ class TensorflowClassifier(TensorflowGraphModel):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    return tf.mul(
-        tf.nn.softmax_cross_entropy_with_logits(logits, labels), weights)
+    return tf.multiply(
+        tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
@@ -762,7 +763,7 @@ class TensorflowRegressor(TensorflowGraphModel):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    return tf.mul(0.5 * tf.square(output - labels), weights)
+    return tf.multiply(0.5 * tf.square(output - labels), weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
