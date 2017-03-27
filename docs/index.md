@@ -1,6 +1,6 @@
 # Deecphem
 
 ### TensorGraph
-[Using TensorGraph](docs/using_tensorgraph.md)
+[Using TensorGraph](using_tensorgraph.md)
 
-[TensorGraph MNIST](docs/MNIST.md)
+[TensorGraph MNIST](MNIST.md)
