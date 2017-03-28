@@ -992,3 +992,270 @@ class DTNNGather(Layer):
         tf.multiply(output, tf.expand_dims(atom_mask, axis=2)), axis=1)
 
     return output
+
+
+class DAGLayer(Layer):
+  """" Main layer of DAG model
+  For a molecule with n atoms, n different graphs are generated and run through
+  The final outputs of each graph become the graph features of corresponding
+  atom, which will be summed and put into another network in DAGGather Layer
+  """
+
+  def __init__(self,
+               n_graph_feat=30,
+               n_atom_features=75,
+               layer_sizes=[100],
+               init='glorot_uniform',
+               activation='relu',
+               dropout=None,
+               max_atoms=50,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    n_graph_feat: int
+      Number of features for each node(and the whole grah).
+    n_atom_features: int
+      Number of features listed per atom.
+    layer_sizes: list of int, optional(default=[1000])
+      Structure of hidden layer(s)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    dropout: float, optional
+      Dropout probability, not supported here
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
+    """
+    super(DAGLayer, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.layer_sizes = layer_sizes
+    self.dropout = dropout
+    self.max_atoms = max_atoms
+    self.n_inputs = n_atom_features + (self.max_atoms - 1) * n_graph_feat
+    # number of inputs each step
+    self.n_graph_feat = n_graph_feat
+    self.n_outputs = n_graph_feat
+    self.n_atom_features = n_atom_features
+
+  def build(self):
+    """"Construct internal trainable weights.
+    """
+
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_inputs
+    for layer_size in self.layer_sizes:
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
+      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_outputs,
+    ]))
+
+    self.trainable_weights = self.W_list + self.b_list
+
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = [atom_features, parents, calculation_orders, membership]
+    
+    Parameters
+    ----------
+    x: list
+      list of Tensors of form described above.
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    outputs: tf.Tensor
+      Tensor of atom features, of shape (n_atoms, n_graph_feat)
+    """
+    # Add trainable weights
+    self.build()
+
+    # Extract atom_features
+    atom_features = x[0]
+    # Basic features of every atom: (batch_size*max_atoms) * n_atom_features
+
+    parents = x[1]
+    # Structure of graph: (batch_size*max_atoms) * max_atoms * max_atoms
+    # each atom corresponds to a graph, which is represented by the max_atoms * max_atoms int32 matrix of indices
+    # there are in total max_atoms number of steps(corresponding to rows) in calculating the graph outputs
+    # in step i, we calculate the graph features of atom(i,0)
+    # from inputs: atom features of atom(i,0), graph_features of this atom's parents in the graph(atom(i,1) through atom(i,max_atoms))
+    # if number of parents is less than max_atoms-1, padded it with max_atoms, representing a dummy with all zeros)
+    calculation_orders = x[2]
+    # (batch_size*max_atoms) * max_atoms
+    # indices of atom(i,0)
+    # represent the same atoms of parents[:, :, 0], different in that the indices are for atom_features(0~max_atoms*batch_size)
+    # paded with max_atoms*batch_size
+    membership = x[3]
+    # (batch_size*max_atoms)
+    # 0 for dummy atoms, 1 for real atoms
+    n_atoms = atom_features.get_shape()[0]
+    # number of atoms in total, =batch_size
+    graph_features = tf.Variable(
+        tf.constant(0., shape=(n_atoms, self.max_atoms + 1, self.n_graph_feat)),
+        trainable=False)
+    # Initialize graph features for atoms in the molecule for each graph
+    # for each graph, another row of zeros is generated as the dummy
+    atom_features = tf.concat(
+        axis=0,
+        values=[
+            atom_features, tf.constant(0., shape=(1, self.n_atom_features))
+        ])
+    # dummy
+    for count in range(self.max_atoms):
+      # count-th step
+      batch_atom_features = tf.gather(atom_features,
+                                      calculation_orders[:, count])
+      # extracting atom features of target atoms, shape: (batch_size*max_atoms) * n_atom_features
+
+      indice = tf.stack(
+          [
+              tf.reshape(
+                  tf.stack([tf.range(n_atoms)] * (self.max_atoms - 1), axis=1),
+                  [-1]), tf.reshape(parents[:, count, 1:], [-1])
+          ],
+          axis=1)
+      # generating indices for graph features used in the inputs
+      batch_graph_features = tf.reshape(
+          tf.gather_nd(graph_features, indice),
+          [-1, (self.max_atoms - 1) * self.n_graph_feat])
+      # extracting graph features of the parents of the target atoms, then flatten
+      # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
+      batch_inputs = tf.concat(
+          axis=1, values=[batch_atom_features, batch_graph_features])
+      # concat into the input tensor, shape: (batch_size*max_atoms) * n_inputs
+      batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
+      # DAGgraph_step mapping from batch_inputs to a batch of graph_features
+      # shape: (batch_size*max_atoms) * n_graph_features
+      # representing the graph features of the target atoms in each graph
+      target_indices = tf.stack(
+          [tf.range(n_atoms), parents[:, count, 0]], axis=1)
+      target_indices2 = tf.stack(
+          [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
+          axis=1)
+      graph_features = tf.scatter_nd_update(graph_features, target_indices,
+                                            batch_outputs)
+      # update the graph features for target atoms
+      graph_features = tf.scatter_nd_update(graph_features, target_indices2,
+                                            tf.zeros(
+                                                (n_atoms, self.n_graph_feat)))
+      # recover dummies to zeros if being updated
+
+    outputs = tf.multiply(batch_outputs,
+                          tf.expand_dims(tf.to_float(membership), axis=1))
+    # masking the outputs of the last step
+    return outputs
+
+  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+    outputs = batch_inputs
+    for idw, W in enumerate(W_list):
+      outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
+      outputs = self.activation(outputs)
+    return outputs
+
+
+class DAGGather(Layer):
+  """ Gather layer of DAG model
+  for each molecule, graph outputs are summed and input into another NN
+  """
+
+  def __init__(self,
+               n_graph_feat=30,
+               n_outputs=30,
+               layer_sizes=[1000],
+               init='glorot_uniform',
+               activation='relu',
+               dropout=None,
+               max_atoms=50,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    n_graph_feat: int
+      Number of features for each atom
+    n_outputs: int
+      Number of features for each molecule.
+    layer_sizes: list of int, optional(default=[1000])
+      Structure of hidden layer(s)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    dropout: float, optional
+      Dropout probability, not supported
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
+    """
+    super(DAGGather, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.layer_sizes = layer_sizes
+    self.dropout = dropout
+    self.max_atoms = max_atoms
+    self.n_graph_feat = n_graph_feat
+    self.n_outputs = n_outputs
+
+  def build(self):
+    """"Construct internal trainable weights.
+    """
+
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_graph_feat
+    for layer_size in self.layer_sizes:
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
+      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_outputs,
+    ]))
+
+    self.trainable_weights = self.W_list + self.b_list
+
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = graph_features
+    
+    Parameters
+    ----------
+    x: tf.Tensor
+      Tensor of each atom's graph features
+
+    Returns
+    -------
+    outputs: tf.Tensor
+      Tensor of each molecule's features
+      
+    """
+    # Add trainable weights
+    self.build()
+
+    # Extract atom_features
+    graph_features = tf.reshape(x, [-1, self.max_atoms, self.n_graph_feat])
+    graph_features = tf.reduce_sum(graph_features, axis=1)
+    # sum all graph outputs
+    outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
+    return outputs
+
+  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+    outputs = batch_inputs
+    for idw, W in enumerate(W_list):
+      outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
+      outputs = self.activation(outputs)
+    return outputs
