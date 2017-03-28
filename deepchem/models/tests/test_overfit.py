@@ -17,6 +17,7 @@ import sklearn
 import shutil
 import tensorflow as tf
 import deepchem as dc
+import scipy.io
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -660,6 +661,50 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
 
     assert scores[classification_metric.name] < .2
+
+  def test_DTNN_multitask_regression_overfit(self):
+    """Test deep tensor neural net overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+
+    # Load mini log-solubility dataset.
+    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
+    dataset = scipy.io.loadmat(input_file)
+    X = dataset['X']
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+    n_tasks = y.shape[1]
+    max_n_atoms = list(dataset.get_data_shape())[0]
+    batch_size = 10
+
+    graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=max_n_atoms)
+    graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
+    graph_model.add(dc.nn.DTNNStep(n_embedding=20))
+    graph_model.add(dc.nn.DTNNStep(n_embedding=20))
+    graph_model.add(dc.nn.DTNNGather(n_embedding=20))
+    n_feat = 20
+    model = dc.models.DTNNGraphRegressor(
+        graph_model,
+        n_tasks,
+        n_feat,
+        batch_size=batch_size,
+        learning_rate=1e-3,
+        learning_rate_decay_time=1000,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=20)
+    model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .9
 
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
