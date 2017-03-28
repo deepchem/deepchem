@@ -22,7 +22,6 @@ from sklearn.linear_model import LogisticRegression
 import xgboost
 
 
-
 class TestGeneralize(unittest.TestCase):
   """
   Test that models can learn generalizable models on simple datasets.
