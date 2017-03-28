@@ -168,6 +168,9 @@ class Layer(object):
     #outputs = to_list(self.call(x))
     #return outputs
 
+  def set_parents(self, parents):
+    raise ValueError("Must implement setting parents in base classes")
+
 
 class InputLayer(Layer):
   """Layer to be used as an entry point into a graph.

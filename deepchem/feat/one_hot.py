@@ -14,7 +14,7 @@ class OneHotFeaturizer(Featurizer):
   NOTE(LESWING) Not Thread Safe in initialization of charset
   """
 
-  def __init__(self, charset, padlength=120):
+  def __init__(self, charset=None, padlength=120):
     """
     Parameters
     ----------
@@ -44,7 +44,8 @@ class OneHotFeaturizer(Featurizer):
     """
     smiles = [Chem.MolToSmiles(mol) for mol in mols]
     if self.charset is None:
-      self.charset = self._create_charset(mols)
+      self.charset = self._create_charset(smiles)
+    print(self.charset)
     return np.array([self.one_hot_encoded(smile) for smile in smiles])
 
   def one_hot_array(self, i):
@@ -143,5 +144,6 @@ class OneHotFeaturizer(Featurizer):
     """
     s = set()
     for smile in smiles:
-      s.union(list(smile))
-    return sorted(list(s))
+      for c in smile:
+        s.add(c)
+    return [' '] + sorted(list(s))

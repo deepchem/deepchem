@@ -374,22 +374,12 @@ def benchmark_classification(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
 
     # Building tensorflow robust MultiTaskDNN model
-    model_tf_robust = dc.models.RobustMultitaskClassifier(
+    from deepchem.models.tensorgraph.models.robust_multitask import tensorGraphMultitaskClassifier
+    model_tf_robust = tensorGraphMultitaskClassifier(
         len(tasks),
         n_features,
         layer_sizes=layer_sizes,
-        weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts,
-        dropouts=dropouts,
-        bypass_layer_sizes=bypass_layer_sizes,
-        bypass_weight_init_stddevs=bypass_weight_init_stddevs,
-        bypass_bias_init_consts=bypass_bias_init_consts,
-        bypass_dropouts=bypass_dropouts,
-        penalty=penalty,
-        penalty_type=penalty_type,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        seed=seed)
+        bypass_layer_sizes=bypass_layer_sizes)
 
     print('--------------------------------------------')
     print('Start fitting by robust multitask DNN')
