@@ -37,7 +37,6 @@ import time
 import deepchem as dc
 import tensorflow as tf
 import argparse
-from keras import backend as K
 import csv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -493,7 +492,6 @@ def benchmark_classification(train_dataset,
 
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
     # Building graph convolution model
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)
@@ -693,7 +691,6 @@ def benchmark_regression(train_dataset,
 
     g = tf.Graph()
     sess = tf.Session(graph=g)
-    K.set_session(sess)
     # Building graph convoluwtion model
     tf.set_random_seed(seed)
     graph_model = dc.nn.SequentialGraph(n_features)

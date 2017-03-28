@@ -21,9 +21,9 @@ ENV PATH /miniconda/bin:$PATH
 # TODO: Get rid of this when there is a stable release of deepchem.
 RUN git clone https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    git checkout 415aebadff54175b7ba108964723c8f69438af94 && \
+    git checkout tags/1.0.0 && \
     bash scripts/install_deepchem_conda.sh root && \
-    pip install tensorflow-gpu==0.12.1 && \
+    pip install tensorflow-gpu==1.0.1 && \
     python setup.py develop
 
 # Clean up
