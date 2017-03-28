@@ -174,9 +174,9 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
-
-  def __init__(self, shape, **kwargs):
-    self.t_shape = shape
+  def __init__(self, shape, pre_queue=False, **kwargs):
+    self.shape = shape
+    self.pre_queue = pre_queue
     super().__init__(**kwargs)
 
   def __call__(self, *parents):
