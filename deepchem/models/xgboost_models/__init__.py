@@ -83,8 +83,7 @@ class XGBoostModel(SklearnModel):
     # n_estimator increased to 1/0.8 = 1.25 time.
     estimated_best_round = np.round(self.model_instance.best_ntree_limit * 1.25)
     self.model_instance.n_estimators = np.int64(estimated_best_round)
-    self.model_instance.fit(
-        X_train, y_train, eval_metric=xgb_metric, verbose=self.verbose)
+    self.model_instance.fit(X, y, eval_metric=xgb_metric, verbose=self.verbose)
 
   def _search_param(self, metric, X, y):
     '''
