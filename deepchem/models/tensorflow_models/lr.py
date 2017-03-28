@@ -35,7 +35,7 @@ def weight_decay(penalty_type, penalty):
     else:
       raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
     cost *= penalty
-    tf.scalar_summary('Weight Decay Cost', cost)
+    tf.summary.scalar('Weight Decay Cost', cost)
   return cost
 
 
@@ -144,8 +144,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       return loss
 
   def cost(self, logits, labels, weights):
-    return tf.mul(
-        tf.nn.sigmoid_cross_entropy_with_logits(logits, labels), weights)
+    return tf.multiply(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_output_ops(self, graph, output):
     # adding output nodes of sigmoid function
