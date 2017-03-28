@@ -104,13 +104,18 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
         b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
       if training:
-        graph.queue = tf.FIFOQueue(capacity=5, dtypes=[tf.float32]*(len(label_placeholders)+len(weight_placeholders)+1))
-        graph.enqueue = graph.queue.enqueue([mol_features]+label_placeholders+weight_placeholders)
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
-        labels = queue_outputs[1:len(label_placeholders)+1]
-        weights = queue_outputs[len(label_placeholders)+1:]
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
         features = queue_outputs[0]
       else:
         labels = label_placeholders
@@ -119,8 +124,7 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
 
       for count in range(self.n_tasks):
         similarity = features[:, 2 * K * count:(2 * K * count + K)]
-        ys = tf.to_int32(
-            features[:, (2 * K * count + K):2 * K * (count + 1)])
+        ys = tf.to_int32(features[:, (2 * K * count + K):2 * K * (count + 1)])
         R = b + W[0] * similarity + W[1] * tf.constant(
             np.arange(K) + 1, dtype=tf.float32)
         R = tf.sigmoid(R)
