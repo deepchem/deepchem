@@ -41,7 +41,6 @@ class TestTensorGraph(unittest.TestCase):
     g.add_layer(loss, parents=[dense, label_out])
     g.set_loss(loss)
 
-
     g.fit(dataset, nb_epoch=100)
     g.save()
     g1 = TensorGraph.load_from_dir('/tmp/tmpss5_ki5_')

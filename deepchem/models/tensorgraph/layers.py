@@ -183,6 +183,7 @@ class Input(Layer):
   def __call__(self, *parents):
     self.out_tensor = tf.placeholder(tf.float32, shape=self.t_shape)
 
+
 class LossLayer(Layer):
 
   def __init__(self, **kwargs):
@@ -247,10 +248,8 @@ class ReduceMean(Layer):
 
 
 class Conv2d(Layer):
-  def __init__(self,
-               num_outputs,
-               kernel_size=5,
-               **kwargs):
+
+  def __init__(self, num_outputs, kernel_size=5, **kwargs):
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
     super().__init__(**kwargs)
@@ -258,16 +257,17 @@ class Conv2d(Layer):
   def __call__(self, *parents):
     parent_tensor = parents[0].out_tensor
     out_tensor = tf.contrib.layers.conv2d(
-      parent_tensor,
-      num_outputs=self.num_outputs,
-      kernel_size=self.kernel_size,
-      padding="SAME",
-      activation_fn=tf.nn.relu,
-      normalizer_fn=tf.contrib.layers.batch_norm)
+        parent_tensor,
+        num_outputs=self.num_outputs,
+        kernel_size=self.kernel_size,
+        padding="SAME",
+        activation_fn=tf.nn.relu,
+        normalizer_fn=tf.contrib.layers.batch_norm)
     self.out_tensor = out_tensor
 
 
 class MaxPool(Layer):
+
   def __init__(self,
                ksize=[1, 2, 2, 1],
                strides=[1, 2, 2, 1],
@@ -281,7 +281,7 @@ class MaxPool(Layer):
   def __call__(self, *parents):
     in_tensor = parents[0].out_tensor
     self.out_tensor = tf.nn.max_pool(
-      in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     return self.out_tensor
 
 
@@ -302,7 +302,7 @@ class InputFifoQueue(Layer):
     if self.dtypes is None:
       self.dtypes = [tf.float32] * len(self.shapes)
     self.queue = tf.FIFOQueue(
-      self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in parents}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.out_tensors = self.queue.dequeue()

@@ -16,6 +16,7 @@ from deepchem.trans import undo_transforms
 
 
 class TensorGraph(Model):
+
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
@@ -49,10 +50,10 @@ class TensorGraph(Model):
     # These have to be reconstructed on restoring from pickle
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
-      "FileWriter": None,
-      "Graph": tf.Graph(),
-      "train_op": None,
-      "summary_op": None,
+        "FileWriter": None,
+        "Graph": tf.Graph(),
+        "train_op": None,
+        "summary_op": None,
     }
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
@@ -98,8 +99,8 @@ class TensorGraph(Model):
           coord = tf.train.Coordinator()
           n_samples = 0
           enqueue_thread = threading.Thread(
-            target=_enqueue_batch,
-            args=(self, dataset, self._get_tf("Graph"), sess, coord))
+              target=_enqueue_batch,
+              args=(self, dataset, self._get_tf("Graph"), sess, coord))
           enqueue_thread.start()
           while not coord.should_stop() or n_samples < coord.num_samples:
             output_tensors = [x.out_tensor for x in self.outputs]
@@ -210,7 +211,7 @@ class TensorGraph(Model):
         y_preds = []
         n_tasks = self.get_num_tasks()
         for (X_batch, y_b, w_b, ids_batch) in dataset.iterbatches(
-          batch_size, deterministic=True):
+            batch_size, deterministic=True):
           y_pred_batch = self.predict_on_batch(X_batch, sess=sess)
           y_pred_batch = undo_transforms(y_pred_batch, transformers)
           y_preds.append(y_pred_batch)
@@ -223,10 +224,7 @@ class TensorGraph(Model):
         y_pred = np.reshape(y_pred, (n_samples, n_tasks))
         return y_pred
 
-  def predict_proba(self,
-                    dataset,
-                    transformers=[],
-                    batch_size=None):
+  def predict_proba(self, dataset, transformers=[], batch_size=None):
     """
     TODO: Do transformers even make sense here?
 
@@ -242,7 +240,7 @@ class TensorGraph(Model):
         y_preds = []
         n_tasks = self.get_num_tasks()
         for (X_batch, y_batch, w_batch, ids_batch) in dataset.iterbatches(
-          batch_size, deterministic=True):
+            batch_size, deterministic=True):
           n_samples = len(X_batch)
           y_pred_batch = self.predict_proba_on_batch(X_batch, sess=sess)
           y_pred_batch = y_pred_batch[:n_samples]
@@ -368,10 +366,10 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-        self.learning_rate).minimize(self.loss.out_tensor)
+          self.learning_rate).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
-        key=tf.GraphKeys.SUMMARIES)
+          key=tf.GraphKeys.SUMMARIES)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):
@@ -427,7 +425,7 @@ def _enqueue_batch(tg, dataset, graph, sess, coord):
   with graph.as_default():
     num_samples = 0
     for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-      dataset.iterbatches(tg.batch_size, pad_batches=True)):
+        dataset.iterbatches(tg.batch_size, pad_batches=True)):
       feed_dict = tg._construct_feed_dict(X_b, y_b, w_b, ids_b)
       enq = {}
       for layer in tg.features + tg.labels + tg.task_weights:
