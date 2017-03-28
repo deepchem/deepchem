@@ -458,16 +458,3 @@ class MultiTaskTensorGraph(TensorGraph):
     if self.features is not None:
       feed_dict[self.features[0].out_tensor] = X_b
     return feed_dict
-
-  def predict_on_batch(self, X, tf_initialized=False):
-    # sample x task
-    # Class is implied by the value of task [0,1]
-    prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
-    prediction = np.transpose(from_one_hot(prediction, axis=2))
-    return prediction
-
-  def predict_proba_on_batch(self, X, tf_initialized=False):
-    prediction = super(MultiTaskTensorGraph, self).predict_on_batch(X)
-    # sample x task x class
-    prediction1 = np.transpose(prediction, axes=[1, 0, 2])
-    return prediction1

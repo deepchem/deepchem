@@ -431,7 +431,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     np.random.seed(123)
     ids = np.arange(n_samples)
     X = np.random.randint(2, size=(n_samples, n_features))
-    y = np.zeros((n_samples, n_tasks))
+    y = np.ones((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
     IRV_transformer = dc.trans.IRVTransformer(5, n_tasks, dataset)
