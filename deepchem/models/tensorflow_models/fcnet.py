@@ -52,13 +52,18 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       assert n_layers > 0, 'Must have some layers defined.'
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
       if training:
-        graph.queue = tf.FIFOQueue(capacity=5, dtypes=[tf.float32]*(len(label_placeholders)+len(weight_placeholders)+1))
-        graph.enqueue = graph.queue.enqueue([mol_features]+label_placeholders+weight_placeholders)
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
-        labels = queue_outputs[1:len(label_placeholders)+1]
-        weights = queue_outputs[len(label_placeholders)+1:]
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
         prev_layer = queue_outputs[0]
       else:
         labels = label_placeholders
@@ -144,13 +149,18 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       assert n_layers > 0, 'Must have some layers defined.'
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
       if training:
-        graph.queue = tf.FIFOQueue(capacity=5, dtypes=[tf.float32]*(len(label_placeholders)+len(weight_placeholders)+1))
-        graph.enqueue = graph.queue.enqueue([mol_features]+label_placeholders+weight_placeholders)
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
         queue_outputs = graph.queue.dequeue()
-        labels = queue_outputs[1:len(label_placeholders)+1]
-        weights = queue_outputs[len(label_placeholders)+1:]
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
         prev_layer = queue_outputs[0]
       else:
         labels = label_placeholders
@@ -375,7 +385,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
         def enqueue(sess, dataset, nb_epoch, epoch_end_indices):
           index = 0
           for epoch in range(nb_epoch):
-            for X_b, y_b, w_b, ids_b in dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches):
+            for X_b, y_b, w_b, ids_b in dataset.iterbatches(
+                self.batch_size, pad_batches=self.pad_batches):
               for transformer in self.fit_transformers:
                 X_b = transformer.X_transform(X_b)
               feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
@@ -385,7 +396,8 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
           sess.run(self.train_graph.graph.queue.close())
 
         epoch_end_indices = []
-        enqueue_thread = threading.Thread(target=enqueue, args=[sess, dataset, nb_epoch, epoch_end_indices])
+        enqueue_thread = threading.Thread(
+            target=enqueue, args=[sess, dataset, nb_epoch, epoch_end_indices])
         enqueue_thread.daemon = True
         enqueue_thread.start()
 

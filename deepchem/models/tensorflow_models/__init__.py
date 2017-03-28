@@ -294,7 +294,6 @@ class TensorflowGraphModel(Model):
 
       return loss
 
-
   def fit(self,
           dataset,
           nb_epoch=10,
@@ -340,7 +339,8 @@ class TensorflowGraphModel(Model):
         def enqueue(sess, dataset, nb_epoch, epoch_end_indices):
           index = 0
           for epoch in range(nb_epoch):
-            for X_b, y_b, w_b, ids_b in dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches):
+            for X_b, y_b, w_b, ids_b in dataset.iterbatches(
+                self.batch_size, pad_batches=self.pad_batches):
               feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
               sess.run(self.train_graph.graph.enqueue, feed_dict=feed_dict)
               index += 1
@@ -348,7 +348,8 @@ class TensorflowGraphModel(Model):
           sess.run(self.train_graph.graph.queue.close())
 
         epoch_end_indices = []
-        enqueue_thread = threading.Thread(target=enqueue, args=[sess, dataset, nb_epoch, epoch_end_indices])
+        enqueue_thread = threading.Thread(
+            target=enqueue, args=[sess, dataset, nb_epoch, epoch_end_indices])
         enqueue_thread.daemon = True
         enqueue_thread.start()
 
