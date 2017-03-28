@@ -377,6 +377,7 @@ class TensorflowGraphModel(Model):
               avg_loss = float(avg_loss) / index_in_epoch
               log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
                   self.verbose)
+              epoch += 1
               index_in_epoch = 0
               avg_loss = 0.0
               del epoch_end_indices[0]
