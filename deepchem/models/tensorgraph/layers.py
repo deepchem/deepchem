@@ -20,6 +20,14 @@ class Layer(object):
     return ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
 
+  def none_tensors(self):
+    out_tensor = self.out_tensor
+    self.out_tensor = None
+    return out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensor = tensor
+
 
 class Conv1DLayer(Layer):
 
@@ -175,7 +183,6 @@ class Input(Layer):
   def __call__(self, *parents):
     self.out_tensor = tf.placeholder(tf.float32, shape=self.t_shape)
 
-
 class LossLayer(Layer):
 
   def __init__(self, **kwargs):
@@ -237,3 +244,76 @@ class ReduceMean(Layer):
     parent_tensor = parents[0].out_tensor
     self.out_tensor = tf.reduce_mean(parent_tensor)
     return self.out_tensor
+
+
+class Conv2d(Layer):
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               **kwargs):
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    parent_tensor = parents[0].out_tensor
+    out_tensor = tf.contrib.layers.conv2d(
+      parent_tensor,
+      num_outputs=self.num_outputs,
+      kernel_size=self.kernel_size,
+      padding="SAME",
+      activation_fn=tf.nn.relu,
+      normalizer_fn=tf.contrib.layers.batch_norm)
+    self.out_tensor = out_tensor
+
+
+class MaxPool(Layer):
+  def __init__(self,
+               ksize=[1, 2, 2, 1],
+               strides=[1, 2, 2, 1],
+               padding="SAME",
+               **kwargs):
+    self.ksize = ksize
+    self.strides = strides
+    self.padding = padding
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    in_tensor = parents[0].out_tensor
+    self.out_tensor = tf.nn.max_pool(
+      in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+    return self.out_tensor
+
+
+class InputFifoQueue(Layer):
+  """
+  This Queue Is used to allow asynchronous batching of inputs
+  During the fitting process
+  """
+
+  def __init__(self, shapes, names, dtypes=None, capacity=5, **kwargs):
+    self.shapes = shapes
+    self.names = names
+    self.capacity = capacity
+    self.dtypes = dtypes
+    super().__init__(**kwargs)
+
+  def __call__(self, *parents):
+    if self.dtypes is None:
+      self.dtypes = [tf.float32] * len(self.shapes)
+    self.queue = tf.FIFOQueue(
+      self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    feed_dict = {x.name: x.out_tensor for x in parents}
+    self.out_tensor = self.queue.enqueue(feed_dict)
+    self.out_tensors = self.queue.dequeue()
+
+  def none_tensors(self):
+    queue, out_tensors, out_tensor = self.queue, self.out_tensor, self.out_tensor
+    self.queue, self.out_tensor, self.out_tensors = None, None, None
+    return queue, out_tensors, out_tensor
+
+  def set_tensors(self, tensors):
+    self.queue, self.out_tensor, self.out_tensors = tensors
+
+  def close(self):
+    self.queue.close()
