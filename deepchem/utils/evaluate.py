@@ -15,17 +15,20 @@ from deepchem.trans import undo_transforms
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
+
 
 def relative_difference(x, y):
   """Compute the relative difference between x and y"""
-  return np.abs(x-y)/np.abs(max(x, y))
+  return np.abs(x - y) / np.abs(max(x, y))
+
 
 def threshold_predictions(y, threshold):
   y_out = np.zeros_like(y)
   for ind, pred in enumerate(y):
     y_out[ind] = 1 if pred > threshold else 0
   return y_out
+
 
 # TODO(rbharath): This is now simple enough that we should probably get rid of
 # Evaluator object to avoid clutter.
@@ -36,7 +39,8 @@ class Evaluator(object):
     self.model = model
     self.dataset = dataset
     self.output_transformers = [
-        transformer for transformer in transformers if transformer.transform_y]
+        transformer for transformer in transformers if transformer.transform_y
+    ]
     self.task_names = dataset.get_task_names()
     self.verbose = verbose
 
@@ -65,7 +69,10 @@ class Evaluator(object):
       for mol_id, y_pred in zip(mol_ids, y_preds):
         csvwriter.writerow([mol_id] + list(y_pred))
 
-  def compute_model_performance(self, metrics, csv_out=None, stats_out=None,
+  def compute_model_performance(self,
+                                metrics,
+                                csv_out=None,
+                                stats_out=None,
                                 per_task_metrics=False):
     """
     Computes statistics of model on test data and saves results to csv.
@@ -91,8 +98,8 @@ class Evaluator(object):
       mode = metrics[0].mode
     if mode == "classification":
       y_pred = self.model.predict_proba(self.dataset, self.output_transformers)
-      y_pred_print = self.model.predict(
-          self.dataset, self.output_transformers).astype(int)
+      y_pred_print = self.model.predict(self.dataset,
+                                        self.output_transformers).astype(int)
     else:
       y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
@@ -112,11 +119,11 @@ class Evaluator(object):
       else:
         multitask_scores[metric.name] = metric.compute_metric(
             y, y_pred, w, per_task_metrics=False)
-    
+
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbose)
       self.output_statistics(multitask_scores, stats_out)
-  
+
     if not per_task_metrics:
       return multitask_scores
     else:

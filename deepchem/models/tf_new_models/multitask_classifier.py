@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import sys
@@ -30,38 +30,38 @@ def get_loss_fn(final_loss):
   if final_loss == 'L2':
 
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.square(diff), 0)
   elif final_loss == 'weighted_L2':
 
     def loss_fn(x, t, w):
-      diff = tf.sub(x, t)
-      weighted_diff = tf.mul(diff, w)
+      diff = tf.subtract(x, t)
+      weighted_diff = tf.multiply(diff, w)
       return tf.reduce_sum(tf.square(weighted_diff), 0)
   elif final_loss == 'L1':
 
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(tf.abs(diff), 0)
   elif final_loss == 'huber':
 
     def loss_fn(x, t):
-      diff = tf.sub(x, t)
+      diff = tf.subtract(x, t)
       return tf.reduce_sum(
           tf.minimum(0.5 * tf.square(diff),
                      huber_d * (tf.abs(diff) - 0.5 * huber_d)), 0)
   elif final_loss == 'cross_entropy':
 
     def loss_fn(x, t, w):
-      costs = tf.nn.sigmoid_cross_entropy_with_logits(x, t)
-      weighted_costs = tf.mul(costs, w)
+      costs = tf.nn.sigmoid_cross_entropy_with_logits(logits=x, labels=t)
+      weighted_costs = tf.multiply(costs, w)
       return tf.reduce_sum(weighted_costs)
   elif final_loss == 'hinge':
 
     def loss_fn(x, t, w):
-      t = tf.mul(2.0, t) - 1
-      costs = tf.maximum(0.0, 1.0 - tf.mul(t, x))
-      weighted_costs = tf.mul(costs, w)
+      t = tf.multiply(2.0, t) - 1
+      costs = tf.maximum(0.0, 1.0 - tf.multiply(t, x))
+      weighted_costs = tf.multiply(costs, w)
       return tf.reduce_sum(weighted_costs)
 
   return loss_fn
@@ -188,8 +188,10 @@ class MultitaskGraphClassifier(Model):
     task_losses = []
     # label_placeholder of shape (batch_size, n_tasks). Split into n_tasks
     # tensors of shape (batch_size,)
-    task_labels = tf.split(1, self.n_tasks, self.label_placeholder)
-    task_weights = tf.split(1, self.n_tasks, self.weight_placeholder)
+    task_labels = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.label_placeholder)
+    task_weights = tf.split(
+        axis=1, num_or_size_splits=self.n_tasks, value=self.weight_placeholder)
     for task in range(self.n_tasks):
       task_label_vector = task_labels[task]
       task_weight_vector = task_weights[task]

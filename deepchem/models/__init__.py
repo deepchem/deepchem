@@ -7,8 +7,11 @@ from __future__ import unicode_literals
 
 from deepchem.models.models import Model
 from deepchem.models.sklearn_models import SklearnModel
+from deepchem.models.xgboost_models import XGBoostModel
 from deepchem.models.tf_new_models.multitask_classifier import MultitaskGraphClassifier
 from deepchem.models.tf_new_models.multitask_regressor import MultitaskGraphRegressor
+from deepchem.models.tf_new_models.DTNN_regressor import DTNNGraphRegressor
+
 from deepchem.models.tf_new_models.support_classifier import SupportGraphClassifier
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.sequential import Sequential
@@ -22,3 +25,4 @@ from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
 from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskRegressor
 from deepchem.models.tensorflow_models.progressive_joint import ProgressiveJointRegressor
 from deepchem.models.tensorflow_models.IRV import TensorflowMultiTaskIRVClassifier
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph, MultiTaskTensorGraph

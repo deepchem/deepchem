@@ -4,6 +4,7 @@
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+from builtins import range
 
 import os
 import numpy as np
@@ -23,13 +24,13 @@ LMBDA = 1e-4
 
 def retrieve_datasets():
   os.system(
-      'wget %s' %
+      'wget -c %s' %
       'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_logd.csv')
   os.system(
-      'wget %s' %
+      'wget -c %s' %
       'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_hppb.csv')
   os.system(
-      'wget %s' %
+      'wget -c %s' %
       'https://s3-us-west-1.amazonaws.com/deep-crystal-california/az_clearance.csv'
   )
 
@@ -144,7 +145,7 @@ model, train, val, test, transformers = experiment(
 if MODEL == 'GraphConv':
   best_val_score = 0.0
   train_score = 0.0
-  for l in xrange(0, MAX_EPOCH):
+  for l in range(0, MAX_EPOCH):
     model.fit(train, nb_epoch=1)
     latest_train_score = model.evaluate(train, [metric],
                                         transformers)['mean-pearson_r2_score']

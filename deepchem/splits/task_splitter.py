@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import tempfile
 import numpy as np
@@ -17,6 +17,7 @@ from deepchem.utils.save import log
 from deepchem.data import NumpyDataset
 from deepchem.utils.save import load_data
 from deepchem.splits import Splitter
+
 
 def merge_fold_datasets(fold_datasets):
   """Merges fold datasets together.
@@ -40,6 +41,7 @@ def merge_fold_datasets(fold_datasets):
   w = np.concatenate(ws, axis=1)
   return NumpyDataset(X, y, w, ids)
 
+
 class TaskSplitter(Splitter):
   """
   Provides a simple interface for splitting datasets task-wise.
@@ -54,7 +56,10 @@ class TaskSplitter(Splitter):
     "Creates Task Splitter object."
     pass
 
-  def train_valid_test_split(self, dataset, frac_train=.8, frac_valid=.1,
+  def train_valid_test_split(self,
+                             dataset,
+                             frac_train=.8,
+                             frac_valid=.1,
                              frac_test=.1):
     """Performs a train/valid/test split of the tasks for dataset.
 
@@ -75,15 +80,15 @@ class TaskSplitter(Splitter):
     n_tasks = len(dataset.get_task_names())
     n_train = int(np.round(frac_train * n_tasks))
     n_valid = int(np.round(frac_valid * n_tasks))
-    n_test = n_tasks - n_train - n_valid 
+    n_test = n_tasks - n_train - n_valid
 
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
-    
-    train_dataset = NumpyDataset(X, y[:,:n_train], w[:,:n_train], ids)
-    valid_dataset = NumpyDataset(
-        X, y[:,n_train:n_train+n_valid], w[:,n_train:n_train+n_valid], ids)
-    test_dataset = NumpyDataset(
-        X, y[:,n_train+n_valid:], w[:,n_train+n_valid:], ids)
+
+    train_dataset = NumpyDataset(X, y[:, :n_train], w[:, :n_train], ids)
+    valid_dataset = NumpyDataset(X, y[:, n_train:n_train + n_valid],
+                                 w[:, n_train:n_train + n_valid], ids)
+    test_dataset = NumpyDataset(X, y[:, n_train + n_valid:],
+                                w[:, n_train + n_valid:], ids)
     return train_dataset, valid_dataset, test_dataset
 
   def k_fold_split(self, dataset, K):
@@ -99,18 +104,18 @@ class TaskSplitter(Splitter):
       Number of splits to be made
     """
     n_tasks = len(dataset.get_task_names())
-    n_per_fold = int(np.round(n_tasks/float(K)))
+    n_per_fold = int(np.round(n_tasks / float(K)))
     if K * n_per_fold != n_tasks:
       print("Assigning extra tasks to last fold due to uneven split")
-    
+
     X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
     fold_datasets = []
     for fold in range(K):
-      if fold != K-1:
-        fold_tasks = range(fold*n_per_fold, (fold+1)*n_per_fold)
+      if fold != K - 1:
+        fold_tasks = range(fold * n_per_fold, (fold + 1) * n_per_fold)
       else:
-        fold_tasks = range(fold*n_per_fold, n_tasks)
+        fold_tasks = range(fold * n_per_fold, n_tasks)
       fold_datasets.append(
           NumpyDataset(X, y[:, fold_tasks], w[:, fold_tasks], ids))
     return fold_datasets
