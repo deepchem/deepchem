@@ -5,6 +5,7 @@ import tensorflow as tf
 
 
 class Layer(object):
+
   def __init__(self, **kwargs):
     if "name" not in kwargs:
       self.name = "%s%s" % (self.__class__.__name__, self._random_name())
@@ -174,6 +175,7 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
+
   def __init__(self, shape, pre_queue=False, **kwargs):
     self.shape = shape
     self.pre_queue = pre_queue
@@ -198,7 +200,6 @@ class Input(Layer):
     if self.pre_queue:
       raise ValueError("You are already pre_q")
     return "%s_pre_q" % self.name
-
 
 
 class LossLayer(Layer):
