@@ -207,7 +207,7 @@ def run_benchmark(datasets,
 #   2+. The cache can even happen at Travis CI to accelerate
 #       CI testing.
 #
-def load_dataset(dataset, featurizer, split="random"):
+def load_dataset(dataset, featurizer, split='random'):
   """
   Load specific dataset for benchmark.
   
