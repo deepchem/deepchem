@@ -79,8 +79,8 @@ def run_benchmark(datasets,
 
     metric_all = {
         'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
-        'r2':
-        deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
+        'r2': deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score,
+                                      np.mean)
     }
 
     if isinstance(metric, str):
@@ -207,7 +207,7 @@ def run_benchmark(datasets,
 #   2+. The cache can even happen at Travis CI to accelerate
 #       CI testing.
 #
-def load_dataset(dataset, featurizer, split=None):
+def load_dataset(dataset, featurizer, split="random"):
   """
   Load specific dataset for benchmark.
   
