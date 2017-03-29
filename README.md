@@ -23,7 +23,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 * [DeepChem Publications](#deepchem-publications)
 * [Examples](/examples)
 * [About Us](#about-us)
-    
+
 ## Requirements
 * [pandas](http://pandas.pydata.org/)
 * [rdkit](http://www.rdkit.org/docs/Install.html)
@@ -58,7 +58,7 @@ via this installation procedure.
 
 ### Installing Dependencies Manually
 
-1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix). 
+1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).
    Follow the [installation instructions](http://docs.continuum.io/anaconda/install#linux-install)
 
 2. `rdkit`
@@ -68,7 +68,7 @@ via this installation procedure.
 
 3. `joblib`
    ```bash
-   conda install joblib 
+   conda install joblib
    ```
 
 4. `six`
@@ -113,16 +113,16 @@ via this installation procedure.
    ```
    Make sure that the correct version of `nosetests` is active by running
    ```bash
-   which nosetests 
+   which nosetests
    ```
    You might need to uninstall a system install of `nosetests` if
    there is a conflict.
 
 11. If installation has been successful, all tests in test suite should pass:
     ```bash
-    nosetests -v deepchem --nologcapture 
+    nosetests -v deepchem --nologcapture
     ```
-    Note that the full test-suite uses up a fair amount of memory. 
+    Note that the full test-suite uses up a fair amount of memory.
     Try running tests for one submodule at a time if memory proves an issue.
 
 ### Using a Docker Image
@@ -159,14 +159,14 @@ import deepchem as dc
    [rbharath]$ nosetests -v deepchem --nologcapture
    Illegal instruction (core dumped)
    ```
-   
+
    Answer: This is often due to `openbabel` issues on older linux systems. Open `ipython` and run the following
    ```
    In [1]: import openbabel as ob
    ```
    If you see a core-dump, then it's a sign there's an issue with your `openbabel` install. Try reinstalling `openbabel` from source for your machine.
-   
-   
+
+
 ## Getting Started
 The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
 
@@ -179,11 +179,11 @@ following columns to have entries for each row in the csv file.
 2. A column containing an experimental measurement.
 3. (Optional) A column containing a unique compound identifier.
 
-Here's an example of a potential input file. 
+Here's an example of a potential input file.
 
-|Compound ID    | measured log solubility in mols per litre | smiles         | 
-|---------------|-------------------------------------------|----------------| 
-| benzothiazole | -1.5                                      | c2ccc1scnc1c2  | 
+|Compound ID    | measured log solubility in mols per litre | smiles         |
+|---------------|-------------------------------------------|----------------|
+| benzothiazole | -1.5                                      | c2ccc1scnc1c2  |
 
 
 Here the "smiles" column contains the SMILES string, the "measured log
@@ -200,7 +200,7 @@ Most machine learning algorithms require that input data form vectors.
 However, input data for drug-discovery datasets routinely come in the
 format of lists of molecules and associated experimental readouts. To
 transform lists of molecules into vectors, we need to subclasses of DeepChem
-loader class ```dc.data.DataLoader``` such as ```dc.data.CSVLoader``` or 
+loader class ```dc.data.DataLoader``` such as ```dc.data.CSVLoader``` or
 ```dc.data.SDFLoader```. Users can subclass ```dc.data.DataLoader``` to
 load arbitrary file formats. All loaders must be
 passed a ```dc.feat.Featurizer``` object. DeepChem provides a number of
@@ -215,36 +215,43 @@ Index splitting
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.903              |0.705              |
 |           |Random Forest       |0.999              |0.733              |
+|           |XGBoost             |0.891              |0.753              |
 |           |IRV                 |0.811              |0.767              |
 |           |Multitask network   |0.856              |0.763              |
 |           |robust MT-NN        |0.857              |0.767              |
 |           |graph convolution   |0.872              |0.798              |
 |muv        |logistic regression |0.963              |0.766              |
+|           |XGBoost             |0.895              |0.714              |
 |           |Multitask network   |0.904              |0.764              |
 |           |robust MT-NN        |0.934              |0.781              |
 |           |graph convolution   |0.840              |0.823              |
 |pcba       |logistic regression |0.809              |0.776              |
+|           |XGBoost             |0.931              |0.847              |
 |           |Multitask network   |0.826              |0.802              |
 |           |robust MT-NN        |0.809              |0.783              |
 |           |graph convolution   |0.876              |0.852              |
 |sider      |logistic regression |0.933              |0.620              |
 |           |Random Forest       |0.999              |0.670              |
+|           |XGBoost             |0.829              |0.639              |
 |           |IRV                 |0.649              |0.642              |
 |           |Multitask network   |0.775              |0.634              |
 |           |robust MT-NN        |0.803              |0.632              |
 |           |graph convolution   |0.708              |0.594              |
 |toxcast    |logistic regression |0.721              |0.575              |
+|           |XGBoost             |0.738              |0.621              |
 |           |Multitask network   |0.830              |0.678              |
 |           |robust MT-NN        |0.825              |0.680              |
 |           |graph convolution   |0.821              |0.720              |
 |clintox    |logistic regression |0.967              |0.676              |
 |           |Random Forest       |0.995              |0.776              |
+|           |XGBoost             |0.879              |0.890              |
 |           |IRV                 |0.763              |0.814              |
 |           |Multitask network   |0.934              |0.830              |
 |           |robust MT-NN        |0.949              |0.827              |
 |           |graph convolution   |0.946              |0.860              |
 |hiv        |logistic regression |0.864              |0.739              |
 |           |Random Forest       |0.999              |0.720              |
+|           |XGBoost             |0.917              |0.745              |
 |           |IRV                 |0.841              |0.724              |
 |           |Multitask network   |0.761              |0.652              |
 |           |robust MT-NN        |0.780              |0.708              |
@@ -256,11 +263,13 @@ Random splitting
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.902              |0.715              |
 |           |Random Forest       |0.999              |0.764              |
+|           |XGBoost             |0.874              |0.773              |
 |           |IRV                 |0.808              |0.767              |
 |           |Multitask network   |0.844              |0.795              |
 |           |robust MT-NN        |0.855              |0.773              |
 |           |graph convolution   |0.865              |0.827              |
 |muv        |logistic regression |0.957              |0.719              |
+|           |XGBoost             |0.874              |0.696              |
 |           |Multitask network   |0.902              |0.734              |
 |           |robust MT-NN        |0.933              |0.732              |
 |           |graph convolution   |0.860              |0.730              |
@@ -270,22 +279,26 @@ Random splitting
 |           |graph convolution   |0.872       	     |0.844              |
 |sider      |logistic regression |0.929        	     |0.656              |
 |           |Random Forest       |0.999              |0.665              |
+|           |XGBoost             |0.824              |0.635              |
 |           |IRV                 |0.648              |0.596              |
 |           |Multitask network   |0.777        	     |0.655              |
 |           |robust MT-NN        |0.804              |0.630              |
 |           |graph convolution   |0.705        	     |0.618              |
 |toxcast    |logistic regression |0.725        	     |0.586              |
+|           |XGBoost             |0.738              |0.633              |
 |           |Multitask network   |0.836        	     |0.684              |
 |           |robust MT-NN        |0.822              |0.681              |
 |           |graph convolution   |0.820        	     |0.717              |
 |clintox    |logistic regression |0.972              |0.725              |
 |           |Random Forest       |0.997              |0.670              |
+|           |XGBoost             |0.886              |0.731              |
 |           |IRV                 |0.809              |0.846              |
 |           |Multitask network   |0.951              |0.834              |
 |           |robust MT-NN        |0.959              |0.830              |
 |           |graph convolution   |0.975              |0.876              |
 |hiv        |logistic regression |0.860              |0.806              |
 |           |Random Forest       |0.999              |0.850              |
+|           |XGBoost             |0.933              |0.841              |
 |           |IRV                 |0.839              |0.809              |
 |           |Multitask network   |0.742              |0.715              |
 |           |robust MT-NN        |0.753              |0.727              |
@@ -297,11 +310,13 @@ Scaffold splitting
 |-----------|--------------------|-------------------|-------------------|
 |tox21      |logistic regression |0.900              |0.650              |
 |           |Random Forest       |0.999              |0.629              |
+|           |XGBoost             |0.881              |0.703              |
 |           |IRV                 |0.823              |0.708              |
 |           |Multitask network   |0.863              |0.703              |
 |           |robust MT-NN        |0.861              |0.710              |
 |           |graph convolution   |0.885              |0.732              |
 |muv        |logistic regression |0.947              |0.767              |
+|           |XGBoost             |0.875              |0.705              |
 |           |Multitask network   |0.899              |0.762              |
 |           |robust MT-NN        |0.944              |0.726              |
 |           |graph convolution   |0.872              |0.795              |
@@ -311,22 +326,26 @@ Scaffold splitting
 |           |graph convolution   |0.874              |0.817              |
 |sider      |logistic regression |0.926              |0.592              |
 |           |Random Forest       |0.999              |0.619              |
+|           |XGBoost             |0.796              |0.560              |
 |           |IRV                 |0.639              |0.599              |
 |           |Multitask network   |0.776              |0.557              |
 |           |robust MT-NN        |0.797              |0.560              |
 |           |graph convolution   |0.722              |0.583              |
 |toxcast    |logistic regression |0.716              |0.492              |
+|           |XGBoost             |0.741              |0.587              |
 |           |Multitask network   |0.828              |0.617              |
 |           |robust MT-NN        |0.830              |0.614              |
 |           |graph convolution   |0.832              |0.638              |
 |clintox    |logistic regression |0.960              |0.803              |
 |           |Random Forest       |0.993              |0.735              |
+|           |XGBoost             |0.873              |0.850              |
 |           |IRV                 |0.793              |0.718              |
 |           |Multitask network   |0.947              |0.862              |
 |           |robust MT-NN        |0.953              |0.890              |
 |           |graph convolution   |0.957              |0.823              |
 |hiv        |logistic regression |0.858              |0.798              |
 |           |Random Forest       |0.946              |0.562              |
+|           |XGBoost             |0.927              |0.830              |
 |           |IRV                 |0.847              |0.811              |
 |           |Multitask network   |0.775              |0.765              |
 |           |robust MT-NN        |0.785              |0.748              |
@@ -337,27 +356,36 @@ Scaffold splitting
 |Dataset         |Model               |Splitting   |Train score/R2|Valid score/R2|
 |----------------|--------------------|------------|--------------|--------------|
 |delaney         |Random Forest       |Index       |0.953         |0.626         |
+|                |XGBoost             |Index       |0.898         |0.664         |
 |                |NN regression       |Index       |0.868         |0.578         |
 |                |graphconv regression|Index       |0.967         |0.790         |
 |                |Random Forest       |Random      |0.951         |0.684         |
+|                |XGBoost             |Random      |0.927         |0.727         |
 |                |NN regression       |Random      |0.865         |0.574         |
 |                |graphconv regression|Random      |0.964         |0.782         |
 |                |Random Forest       |Scaffold    |0.953         |0.284         |
+|                |XGBoost             |Scaffold    |0.890         |0.316         |
 |                |NN regression       |Scaffold    |0.866         |0.342         |
 |                |graphconv regression|Scaffold    |0.967         |0.606         |
 |sampl           |Random Forest       |Index       |0.968         |0.736         |
+|                |XGBoost             |Index       |0.884         |0.784         |
 |                |NN regression       |Index       |0.917         |0.764         |
 |                |graphconv regression|Index       |0.982         |0.864         |
 |                |Random Forest       |Random      |0.967         |0.752         |
+|                |XGBoost             |Random      |0.906         |0.745         |
 |                |NN regression       |Random      |0.908         |0.830         |
 |                |graphconv regression|Random      |0.987         |0.868         |
 |                |Random Forest       |Scaffold    |0.966         |0.473         |
+|                |XGBoost             |Scaffold    |0.918         |0.439         |
 |                |NN regression       |Scaffold    |0.891         |0.217         |
 |                |graphconv regression|Scaffold    |0.985         |0.666         |
-|nci             |NN regression       |Index       |0.171         |0.062         |
+|nci             |XGBoost             |Index       |0.441         |0.066         |
+|                |NN regression       |Index       |0.171         |0.062         |
 |                |graphconv regression|Index       |0.123         |0.048         |
+|                |XGBoost             |Random      |0.409         |0.106         |
 |                |NN regression       |Random      |0.168         |0.085         |
 |                |graphconv regression|Random      |0.117         |0.076         |
+|                |XGBoost             |Scaffold    |0.445         |0.046         |
 |                |NN regression       |Scaffold    |0.180         |0.052         |
 |                |graphconv regression|Scaffold    |0.131         |0.046         |
 |pdbbind(core)   |Random Forest       |Random      |0.969         |0.445         |
@@ -371,13 +399,13 @@ Scaffold splitting
 |                |MT-NN regression    |Scaffold    |0.484         |0.361         |
 |qm7             |NN regression       |Index       |0.997         |0.986         |
 |                |NN regression       |Random      |0.999         |0.999         |
-|                |NN regression       |Stratified  |0.999         |0.999         | 
+|                |NN regression       |Stratified  |0.999         |0.999         |
 |qm7b            |MT-NN regression    |Index       |0.931         |0.803         |
 |                |MT-NN regression    |Random      |0.923         |0.884         |
-|                |MT-NN regression    |Stratified  |0.934         |0.884         | 
+|                |MT-NN regression    |Stratified  |0.934         |0.884         |
 |qm9             |MT-NN regression    |Index       |0.733         |0.791         |
 |                |MT-NN regression    |Random      |0.811         |0.823         |
-|                |MT-NN regression    |Stratified  |0.843         |0.818         | 
+|                |MT-NN regression    |Stratified  |0.843         |0.818         |
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
@@ -392,7 +420,7 @@ Scaffold splitting
 Number of tasks and examples in the datasets
 
 |Dataset         |N(tasks)   |N(samples) |
-|----------------|-----------|-----------| 
+|----------------|-----------|-----------|
 |tox21           |12         |8014       |
 |muv             |17         |93127      |
 |pcba            |128        |439863     |
@@ -416,38 +444,45 @@ Number of tasks and examples in the datasets
 Time needed for benchmark test(~20h in total)
 
 |Dataset         |Model               |Time(loading)/s |Time(running)/s|
-|----------------|--------------------|----------------|---------------| 
+|----------------|--------------------|----------------|---------------|
 |tox21           |logistic regression |30              |60             |
+|                |XGBoost             |30              |1500           |
 |                |Multitask network   |30              |60             |
 |                |robust MT-NN        |30              |90             |
 |                |random forest       |30              |6000           |
 |                |IRV                 |30              |650            |
 |                |graph convolution   |40              |160            |
 |muv             |logistic regression |600             |450            |
+|                |XGBoost             |600             |3492           |
 |                |Multitask network   |600             |400            |
 |                |robust MT-NN        |600             |550            |
 |                |graph convolution   |800             |1800           |
 |pcba            |logistic regression |1800            |10000          |
+|                |XGBoost             |1800            |470521         |
 |                |Multitask network   |1800            |9000           |
 |                |robust MT-NN        |1800            |14000          |
 |                |graph convolution   |2200            |14000          |
 |sider           |logistic regression |15              |80             |
+|                |XGBoost             |15              |660            |
 |                |Multitask network   |15              |75             |
 |                |robust MT-NN        |15              |150            |
 |                |random forest       |15              |2200           |
 |                |IRV                 |15              |150            |
 |                |graph convolution   |20              |50             |
 |toxcast         |logistic regression |80              |2600           |
+|                |XGBoost             |80              |30000          |
 |                |Multitask network   |80              |2300           |
 |                |robust MT-NN        |80              |4000           |
 |                |graph convolution   |80              |900            |
 |clintox         |logistic regression |15              |10             |
+|                |XGBoost             |15              |33             |
 |                |Multitask network   |15              |20             |
 |                |robust MT-NN        |15              |30             |
 |                |random forest       |15              |200            |
 |                |IRV                 |15              |10             |
 |                |graph convolution   |20              |130            |
 |hiv             |logistic regression |180             |40             |
+|                |XGBoost             |180             |1062           |
 |                |Multitask network   |180             |350            |
 |                |robust MT-NN        |180             |450            |
 |                |random forest       |180             |2800           |
@@ -456,11 +491,14 @@ Time needed for benchmark test(~20h in total)
 |delaney         |MT-NN regression    |10              |40             |
 |                |graphconv regression|10              |40             |
 |                |random forest       |10              |30             |
+|                |XGBoost             |10              |51             |
 |sampl           |MT-NN regression    |10              |30             |
 |                |graphconv regression|10              |40             |
 |                |random forest       |10              |20             |
+|                |XGBoost             |10              |18             |
 |nci             |MT-NN regression    |400             |1200           |
 |                |graphconv regression|400             |2500           |
+|                |XGBoost             |400             |28096          |
 |pdbbind(core)   |MT-NN regression    |0(featurized)   |30             |
 |pdbbind(refined)|MT-NN regression    |0(featurized)   |40             |
 |pdbbind(full)   |MT-NN regression    |0(featurized)   |60             |
