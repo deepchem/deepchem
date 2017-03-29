@@ -102,8 +102,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
       prev_layer_size = num_features
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        print("Adding weights of shape %s" % str(
-            [prev_layer_size, layer_sizes[i]]))
+        print("Adding weights of shape %s" %
+              str([prev_layer_size, layer_sizes[i]]))
         layer = tf.nn.relu(
             model_ops.fully_connected_layer(
                 tensor=prev_layer,
@@ -260,8 +260,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
       prev_layer_size = num_features
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        print("Adding weights of shape %s" % str(
-            [prev_layer_size, layer_sizes[i]]))
+        print("Adding weights of shape %s" %
+              str([prev_layer_size, layer_sizes[i]]))
         layer = tf.nn.relu(
             model_ops.fully_connected_layer(
                 tensor=prev_layer,
