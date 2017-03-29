@@ -828,9 +828,6 @@ def fully_connected_layer(tensor,
   #print("tensor")
   #print(tensor)
   ###################################################### DEBUG
-  if len(tensor.get_shape()) != 2:
-    raise ValueError('Dense layer input must be 2D, not %dD' %
-                     len(tensor.get_shape()))
   if weight_init is None:
     num_features = tensor.get_shape()[-1].value
     weight_init = tf.truncated_normal([num_features, size], stddev=0.01)
