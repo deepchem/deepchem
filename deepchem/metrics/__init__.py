@@ -14,7 +14,7 @@ from sklearn.metrics import precision_score
 from scipy.stats import pearsonr
 
 
-def to_one_hot(y):
+def to_one_hot(y, n_classes=2):
   """Transforms label vector into one-hot encoding.
 
   Turns y into vector of shape [n_samples, 2] (assuming binary labels).
@@ -23,7 +23,7 @@ def to_one_hot(y):
     A vector of shape [n_samples, 1]
   """
   n_samples = np.shape(y)[0]
-  y_hot = np.zeros((n_samples, 2))
+  y_hot = np.zeros((n_samples, n_classes))
   y_hot[np.arange(n_samples), y.astype(np.int64)] = 1
   return y_hot
 
@@ -216,7 +216,7 @@ class Metric(object):
         computed_metrics = np.array(computed_metrics)
         computed_metrics = computed_metrics[~np.isnan(computed_metrics)]
       if self.compute_energy_metric:
-        # TODO(rbharath, joegomes): What is this magic number?    
+        # TODO(rbharath, joegomes): What is this magic number?
         force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
         print("Force error (metric: np.mean(%s)): %f kJ/mol/A" %
               (self.name, force_error))
