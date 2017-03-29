@@ -20,8 +20,10 @@ def load_qm7_from_mat(featurizer=None, split='stratified'):
   dataset_file = os.path.join(data_dir, "qm7.mat")
 
   if not os.path.exists(dataset_file):
-    os.system('wget -P ' + data_dir +
-              ' http://www.quantum-machine.org/data/qm7.mat')
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+    )
 
   dataset = scipy.io.loadmat(dataset_file)
 
@@ -64,8 +66,10 @@ def load_qm7b_from_mat(featurizer=None, split='stratified'):
   dataset_file = os.path.join(data_dir, "qm7b.mat")
 
   if not os.path.exists(dataset_file):
-    os.system('wget -P ' + data_dir +
-              ' http://www.quantum-machine.org/data/qm7b.mat')
+    os.system(
+        'wget -P ' + data_dir +
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat'
+    )
   dataset = scipy.io.loadmat(dataset_file)
 
   X = dataset['X']
@@ -110,7 +114,7 @@ def load_qm7(featurizer=None, split='random'):
   if not os.path.exists(dataset_file):
     os.system(
         'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/gdb7.tar.gz '
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz '
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb7.tar.gz') + ' -C ' +
               data_dir)

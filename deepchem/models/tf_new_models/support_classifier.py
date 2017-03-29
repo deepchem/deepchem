@@ -193,8 +193,8 @@ class SupportGraphClassifier(Model):
     """Adds training loss and scores for network."""
     pred, scores = self.get_scores()
     losses = tf.nn.sigmoid_cross_entropy_with_logits(
-        scores, self.test_label_placeholder)
-    weighted_losses = tf.mul(losses, self.test_weight_placeholder)
+        logits=scores, labels=self.test_label_placeholder)
+    weighted_losses = tf.multiply(losses, self.test_weight_placeholder)
     loss = tf.reduce_sum(weighted_losses)
 
     return pred, scores, loss

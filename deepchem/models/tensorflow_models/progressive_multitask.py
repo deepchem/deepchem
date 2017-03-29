@@ -226,13 +226,13 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       prev_layers.append(all_layers[(i - 1, prev_task)])
     # prev_layers is a list with elements of size
     # (batch_size, layer_sizes[i-1])
-    prev_layer = tf.concat(1, prev_layers)
+    prev_layer = tf.concat(axis=1, values=prev_layers)
     alpha = tf.Variable(
         tf.truncated_normal([
             1,
         ], stddev=alpha_init_stddev),
         name="alpha_layer_%d_task%d" % (i, task))
-    prev_layer = tf.mul(alpha, prev_layer)
+    prev_layer = tf.multiply(alpha, prev_layer)
     prev_layer_size = task * layer_sizes[i - 1]
     print("Creating V_layer_%d_task%d of shape %s" %
           (i, task, str([prev_layer_size, layer_sizes[i - 1]])))
@@ -417,7 +417,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
 
       sess = self._get_shared_session(train=True)
       #with self._get_shared_session(train=True) as sess:
-      sess.run(tf.initialize_all_variables())
+      sess.run(tf.global_variables_initializer())
       # Save an initial checkpoint.
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       saver.save(sess, self._save_path, global_step=0)

@@ -13,7 +13,7 @@ def load_sampl(featurizer='ECFP', split='index'):
   """Load SAMPL datasets."""
   # Featurize SAMPL dataset
   print("About to featurize SAMPL dataset.")
-  print("About to load MUV dataset.")
+  print("About to load SAMPL dataset.")
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
