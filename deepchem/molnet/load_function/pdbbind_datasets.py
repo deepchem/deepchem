@@ -50,7 +50,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   return deepchem.data.DiskDataset(dataset_dir), tasks
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="full"):
+def load_pdbbind_grid(split="random", featurizer="grid", subset="full"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
 
