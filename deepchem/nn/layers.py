@@ -1082,79 +1082,84 @@ class DAGLayer(Layer):
     self.build()
 
     # Extract atom_features
-    atom_features = x[0]
     # Basic features of every atom: (batch_size*max_atoms) * n_atom_features
-
+    atom_features = x[0]
+    
+    # calculation orders of graph: (batch_size*max_atoms) * max_atoms * max_atoms
+    # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
+    # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+    # step i calculates the graph features for atoms of index `parents[:,i,0]`
     parents = x[1]
-    # Structure of graph: (batch_size*max_atoms) * max_atoms * max_atoms
-    # each atom corresponds to a graph, which is represented by the max_atoms * max_atoms int32 matrix of indices
-    # there are in total max_atoms number of steps(corresponding to rows) in calculating the graph outputs
-    # in step i, we calculate the graph features of atom(i,0)
-    # from inputs: atom features of atom(i,0), graph_features of this atom's parents in the graph(atom(i,1) through atom(i,max_atoms))
-    # if number of parents is less than max_atoms-1, padded it with max_atoms, representing a dummy with all zeros)
-    calculation_orders = x[2]
-    # (batch_size*max_atoms) * max_atoms
-    # indices of atom(i,0)
-    # represent the same atoms of parents[:, :, 0], different in that the indices are for atom_features(0~max_atoms*batch_size)
+    
+    # target atoms for each step: (batch_size*max_atoms) * max_atoms
+    # represent the same atoms of `parents[:, :, 0]`, 
+    # different in that these index are positions in `atom_features`
     # paded with max_atoms*batch_size
+    calculation_orders = x[2]
+    # flags: (batch_size*max_atoms)
+    # 0 for paddings, 1 for real atoms
     membership = x[3]
-    # (batch_size*max_atoms)
-    # 0 for dummy atoms, 1 for real atoms
+    # number of atoms in total, should equal `batch_size*max_atoms`
     n_atoms = atom_features.get_shape()[0]
-    # number of atoms in total, =batch_size
+    
+    # initialize graph features for each graph
+    # another row of zeros is generated for padded dummy atoms
     graph_features = tf.Variable(
         tf.constant(0., shape=(n_atoms, self.max_atoms + 1, self.n_graph_feat)),
         trainable=False)
-    # Initialize graph features for atoms in the molecule for each graph
-    # for each graph, another row of zeros is generated as the dummy
+    # add dummy
     atom_features = tf.concat(
         axis=0,
         values=[
             atom_features, tf.constant(0., shape=(1, self.n_atom_features))
         ])
-    # dummy
     for count in range(self.max_atoms):
-      # count-th step
+      # `count`-th step
+      # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
       batch_atom_features = tf.gather(atom_features,
                                       calculation_orders[:, count])
-      # extracting atom features of target atoms, shape: (batch_size*max_atoms) * n_atom_features
-
-      indice = tf.stack(
+      
+      # generating index for graph features used in the inputs
+      index = tf.stack(
           [
               tf.reshape(
                   tf.stack([tf.range(n_atoms)] * (self.max_atoms - 1), axis=1),
                   [-1]), tf.reshape(parents[:, count, 1:], [-1])
           ],
           axis=1)
-      # generating indices for graph features used in the inputs
-      batch_graph_features = tf.reshape(
-          tf.gather_nd(graph_features, indice),
-          [-1, (self.max_atoms - 1) * self.n_graph_feat])
-      # extracting graph features of the parents of the target atoms, then flatten
+      # extracting graph features for parents of the target atoms, then flatten
       # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
+      batch_graph_features = tf.reshape(
+          tf.gather_nd(graph_features, index),
+          [-1, (self.max_atoms - 1) * self.n_graph_feat])
+      
+      # concat into the input tensor: (batch_size*max_atoms) * n_inputs
       batch_inputs = tf.concat(
           axis=1, values=[batch_atom_features, batch_graph_features])
-      # concat into the input tensor, shape: (batch_size*max_atoms) * n_inputs
+      # DAGgraph_step maps from batch_inputs to a batch of graph_features
+      # of shape: (batch_size*max_atoms) * n_graph_features
+      # representing the graph features of target atoms in each graph
       batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
-      # DAGgraph_step mapping from batch_inputs to a batch of graph_features
-      # shape: (batch_size*max_atoms) * n_graph_features
-      # representing the graph features of the target atoms in each graph
-      target_indices = tf.stack(
+      
+      # index for targe atoms
+      target_index = tf.stack(
           [tf.range(n_atoms), parents[:, count, 0]], axis=1)
-      target_indices2 = tf.stack(
+      # index for dummies
+      target_index2 = tf.stack(
           [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
           axis=1)
-      graph_features = tf.scatter_nd_update(graph_features, target_indices,
-                                            batch_outputs)
       # update the graph features for target atoms
-      graph_features = tf.scatter_nd_update(graph_features, target_indices2,
+      graph_features = tf.scatter_nd_update(graph_features, target_index,
+                                            batch_outputs)
+      # recover dummies to zeros if being updated
+      graph_features = tf.scatter_nd_update(graph_features, target_index2,
                                             tf.zeros(
                                                 (n_atoms, self.n_graph_feat)))
-      # recover dummies to zeros if being updated
-
+      
+    # last step generates graph features for all target atoms
+    # masking the outputs
     outputs = tf.multiply(batch_outputs,
                           tf.expand_dims(tf.to_float(membership), axis=1))
-    # masking the outputs of the last step
     return outputs
 
   def DAGgraph_step(self, batch_inputs, W_list, b_list):
