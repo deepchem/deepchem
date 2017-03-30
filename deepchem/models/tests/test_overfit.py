@@ -750,7 +750,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
 
-    assert scores[regression_metric.name] > .9
+    assert scores[regression_metric.name] > .85
 
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
