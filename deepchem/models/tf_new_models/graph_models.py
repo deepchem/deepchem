@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
-from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology
 
 
 class SequentialGraph(object):
@@ -124,6 +124,39 @@ class SequentialDTNNGraph(SequentialGraph):
       elif type(layer).__name__ in ['DTNNGather']:
         self.output = layer(
             [self.output, self.graph_topology.atom_mask_placeholder])
+      else:
+        self.output = layer(self.output)
+      self.layers.append(layer)
+
+
+class SequentialDAGGraph(SequentialGraph):
+  """SequentialGraph for DAG models
+  """
+
+  def __init__(self, n_feat, batch_size=50, max_atoms=50):
+    """
+    Parameters
+    ----------
+    n_feat: int
+      Number of features per atom.
+    batch_size: int, optional(default=50)
+      Number of molecules in a batch
+    max_atoms: int, optional(default=50)
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    """
+    self.graph = tf.Graph()
+    with self.graph.as_default():
+      self.graph_topology = DAGGraphTopology(
+          n_feat, batch_size, max_atoms=max_atoms)
+      self.output = self.graph_topology.get_atom_features_placeholder()
+    self.layers = []
+
+  def add(self, layer):
+    """Adds a new layer to model."""
+    with self.graph.as_default():
+      if type(layer).__name__ in ['DAGLayer']:
+        self.output = layer([self.output] +
+                            self.graph_topology.get_topology_placeholders())
       else:
         self.output = layer(self.output)
       self.layers.append(layer)

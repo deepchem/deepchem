@@ -13,6 +13,8 @@ class DTNNGraphRegressor(MultitaskGraphRegressor):
 
     feat = self.model.return_outputs()
     feat_size = self.feat_dim
+    # dimension of `feat` becomes Unknown after tf.tensordot operation
+    # need to define dimension of W and b explicitly
     outputs = []
     W_list = []
     b_list = []

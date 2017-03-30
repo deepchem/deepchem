@@ -499,9 +499,9 @@ class DiskDataset(Dataset):
       w_next = np.zeros((0,) + (len(tasks),))
       ids_next = np.zeros((0,), dtype=object)
       for (X, y, w, ids) in self.itershards():
-        X_next = np.vstack([X_next, X])
-        y_next = np.vstack([y_next, y])
-        w_next = np.vstack([w_next, w])
+        X_next = np.concatenate([X_next, X], axis=0)
+        y_next = np.concatenate([y_next, y], axis=0)
+        w_next = np.concatenate([w_next, w], axis=0)
         ids_next = np.concatenate([ids_next, ids])
         while len(X_next) > shard_size:
           X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
@@ -526,9 +526,8 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_X = load_from_disk(
-        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))[
-            0]
-    return np.shape(sample_X)
+        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
+    return np.shape(sample_X)[1:]
 
   def get_shard_size(self):
     """Gets size of shards on disk."""

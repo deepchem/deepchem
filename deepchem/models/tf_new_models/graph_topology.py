@@ -258,3 +258,137 @@ class DTNNGraphTopology(GraphTopology):
     steps = np.array([distance_min + i * step_size for i in range(n_distance)])
     distance_vector = np.exp(-np.square(distance - steps) / (2 * step_size**2))
     return distance_vector
+
+
+class DAGGraphTopology(GraphTopology):
+  """GraphTopology for DAG models
+  """
+
+  def __init__(self, n_feat, batch_size, name='topology', max_atoms=50):
+
+    self.n_feat = n_feat
+    self.name = name
+    self.max_atoms = max_atoms
+    self.batch_size = batch_size
+    self.atom_features_placeholder = tf.placeholder(
+        dtype='float32',
+        shape=(self.batch_size * self.max_atoms, self.n_feat),
+        name=self.name + '_atom_features')
+
+    self.parents_placeholder = tf.placeholder(
+        dtype='int32',
+        shape=(self.batch_size * self.max_atoms, self.max_atoms,
+               self.max_atoms),
+        # molecule * atom(graph) => step => features
+        name=self.name + '_parents')
+
+    self.calculation_orders_placeholder = tf.placeholder(
+        dtype='int32',
+        shape=(self.batch_size * self.max_atoms, self.max_atoms),
+        # molecule * atom(graph) => step
+        name=self.name + '_orders')
+
+    self.membership_placeholder = tf.placeholder(
+        dtype='int32',
+        shape=(self.batch_size * self.max_atoms),
+        name=self.name + '_membership')
+
+    # Define the list of tensors to be used as topology
+    self.topology = [
+        self.parents_placeholder, self.calculation_orders_placeholder,
+        self.membership_placeholder
+    ]
+
+    self.inputs = [self.atom_features_placeholder]
+    self.inputs += self.topology
+
+  def get_parents_placeholder(self):
+    return self.parents_placeholder
+
+  def get_calculation_orders_placeholder(self):
+    return self.calculation_orders_placeholder
+
+  def batch_to_feed_dict(self, batch):
+    """Converts the current batch of mol_graphs into tensorflow feed_dict.
+
+    Assigns the graph information in array of ConvMol objects to the
+    placeholders tensors for DAG models
+
+    params
+    ------
+    batch : np.ndarray
+      Array of ConvMol objects
+
+    returns
+    -------
+    feed_dict : dict
+      Can be merged with other feed_dicts for input into tensorflow
+    """
+
+    atoms_per_mol = [mol.get_num_atoms() for mol in batch]
+    n_atom_features = batch[0].get_atom_features().shape[1]
+    membership = np.concatenate(
+        [
+            np.array([1] * n_atoms + [0] * (self.max_atoms - n_atoms))
+            for i, n_atoms in enumerate(atoms_per_mol)
+        ],
+        axis=0)
+
+    atoms_all = []
+    # calculation orders for a batch of molecules
+    parents_all = []
+    calculation_orders = []
+    for idm, mol in enumerate(batch):
+      # padding atom features vector of each molecule with 0
+      atom_features_padded = np.concatenate(
+          [
+              mol.get_atom_features(), np.zeros(
+                  (self.max_atoms - atoms_per_mol[idm], n_atom_features))
+          ],
+          axis=0)
+      atoms_all.append(atom_features_padded)
+
+      # calculation orders for DAGs
+      parents = mol.parents
+      # number of DAGs should equal number of atoms
+      assert len(parents) == atoms_per_mol[idm]
+      parents_all.extend(parents[:])
+      # padding with `max_atoms`
+      parents_all.extend([
+          self.max_atoms * np.ones((self.max_atoms, self.max_atoms), dtype=int)
+          for i in range(self.max_atoms - atoms_per_mol[idm])
+      ])
+      for parent in parents:
+        # index for an atom in `parents_all` and `atoms_all` is different, 
+        # this function changes the index from the position in current molecule(DAGs, `parents_all`) 
+        # to position in batch of molecules(`atoms_all`)
+        # only used in tf.gather on `atom_features_placeholder`
+        calculation_orders.append(self.index_changing(parent[:, 0], idm))
+
+      # padding with `batch_size*max_atoms`
+      calculation_orders.extend([
+          self.batch_size * self.max_atoms * np.ones(
+              (self.max_atoms,), dtype=int)
+          for i in range(self.max_atoms - atoms_per_mol[idm])
+      ])
+
+    atoms_all = np.concatenate(atoms_all, axis=0)
+    parents_all = np.stack(parents_all, axis=0)
+    calculation_orders = np.stack(calculation_orders, axis=0)
+    atoms_dict = {
+        self.atom_features_placeholder: atoms_all,
+        self.membership_placeholder: membership,
+        self.parents_placeholder: parents_all,
+        self.calculation_orders_placeholder: calculation_orders
+    }
+
+    return atoms_dict
+
+  def index_changing(self, index, n_mol):
+    output = np.zeros_like(index)
+    for ide, element in enumerate(index):
+      if element < self.max_atoms:
+        output[ide] = element + n_mol * self.max_atoms
+      else:
+        output[ide] = self.batch_size * self.max_atoms
+    return output

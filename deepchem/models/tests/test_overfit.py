@@ -706,6 +706,52 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
+  def test_DAG_singletask_regression_overfit(self):
+    """Test DAG regressor multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+    n_feat = 75
+    batch_size = 10
+    transformer = dc.trans.DAGTransformer(max_atoms=50)
+    dataset = transformer.transform(dataset)
+
+    graph = dc.nn.SequentialDAGGraph(
+        n_feat, batch_size=batch_size, max_atoms=50)
+    graph.add(dc.nn.DAGLayer(30, n_feat, max_atoms=50))
+    graph.add(dc.nn.DAGGather(max_atoms=50))
+
+    model = dc.models.MultitaskGraphRegressor(
+        graph,
+        n_tasks,
+        n_feat,
+        batch_size=batch_size,
+        learning_rate=0.005,
+        learning_rate_decay_time=1000,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=50)
+    model.save()
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .8
+
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""
     np.random.seed(123)
