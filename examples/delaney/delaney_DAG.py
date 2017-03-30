@@ -19,14 +19,26 @@ train_dataset, valid_dataset, test_dataset = delaney_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
+max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
+train_dataset.reshard(512)
+train_dataset = transformer.transform(train_dataset)
+valid_dataset.reshard(512)
+valid_dataset = transformer.transform(valid_dataset)
+test_dataset.reshard(512)
+test_dataset = transformer.transform(test_dataset)
 # Do setup required for tf/keras models
 # Number of features on conv-mols
 n_feat = 75
 # Batch size of models
-batch_size = 32
-graph = dc.nn.SequentialDAGGraph(75, batch_size=batch_size, max_atoms=55)
-graph.add(dc.nn.DAGLayer(30, 75, max_atoms=55))
-graph.add(dc.nn.DAGGather(max_atoms=55))
+batch_size = 64
+graph = dc.nn.SequentialDAGGraph(75, batch_size=batch_size, max_atoms=max_atoms)
+graph.add(dc.nn.DAGLayer(30, 75, max_atoms=max_atoms))
+graph.add(dc.nn.DAGGather(max_atoms=max_atoms))
 
 model = dc.models.MultitaskGraphRegressor(
     graph,
