@@ -1084,13 +1084,13 @@ class DAGLayer(Layer):
     # Extract atom_features
     # Basic features of every atom: (batch_size*max_atoms) * n_atom_features
     atom_features = x[0]
-    
+
     # calculation orders of graph: (batch_size*max_atoms) * max_atoms * max_atoms
     # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
     # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
     # step i calculates the graph features for atoms of index `parents[:,i,0]`
     parents = x[1]
-    
+
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
     # represent the same atoms of `parents[:, :, 0]`, 
     # different in that these index are positions in `atom_features`
@@ -1101,7 +1101,7 @@ class DAGLayer(Layer):
     membership = x[3]
     # number of atoms in total, should equal `batch_size*max_atoms`
     n_atoms = atom_features.get_shape()[0]
-    
+
     # initialize graph features for each graph
     # another row of zeros is generated for padded dummy atoms
     graph_features = tf.Variable(
@@ -1118,7 +1118,7 @@ class DAGLayer(Layer):
       # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
       batch_atom_features = tf.gather(atom_features,
                                       calculation_orders[:, count])
-      
+
       # generating index for graph features used in the inputs
       index = tf.stack(
           [
@@ -1132,7 +1132,7 @@ class DAGLayer(Layer):
       batch_graph_features = tf.reshape(
           tf.gather_nd(graph_features, index),
           [-1, (self.max_atoms - 1) * self.n_graph_feat])
-      
+
       # concat into the input tensor: (batch_size*max_atoms) * n_inputs
       batch_inputs = tf.concat(
           axis=1, values=[batch_atom_features, batch_graph_features])
@@ -1140,10 +1140,9 @@ class DAGLayer(Layer):
       # of shape: (batch_size*max_atoms) * n_graph_features
       # representing the graph features of target atoms in each graph
       batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
-      
+
       # index for targe atoms
-      target_index = tf.stack(
-          [tf.range(n_atoms), parents[:, count, 0]], axis=1)
+      target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
       # index for dummies
       target_index2 = tf.stack(
           [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
@@ -1155,7 +1154,7 @@ class DAGLayer(Layer):
       graph_features = tf.scatter_nd_update(graph_features, target_index2,
                                             tf.zeros(
                                                 (n_atoms, self.n_graph_feat)))
-      
+
     # last step generates graph features for all target atoms
     # masking the outputs
     outputs = tf.multiply(batch_outputs,
