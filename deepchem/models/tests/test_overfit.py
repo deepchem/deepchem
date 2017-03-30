@@ -725,6 +725,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     n_feat = 75
     batch_size = 10
+    transformer = dc.trans.DAGTransformer(max_atoms=50)
+    dataset = transformer.transform(dataset)
 
     graph = dc.nn.SequentialDAGGraph(
         n_feat, batch_size=batch_size, max_atoms=50)
