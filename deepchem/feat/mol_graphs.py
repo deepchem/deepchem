@@ -388,3 +388,28 @@ class MultiConvMol(object):
 
   def get_num_molecules(self):
     return self.num_mols
+
+
+class WeaveMol(object):
+  """Holds information about a molecule
+  Molecule struct used in weave models
+  """
+
+  def __init__(self, nodes, pairs):
+
+    self.nodes = nodes
+    self.pairs = pairs
+    self.num_atom = self.nodes.shape[0]
+    self.n_features = self.nodes.shape[1]
+
+  def get_pair_features(self):
+    return self.pairs
+
+  def get_atom_features(self):
+    return self.nodes
+
+  def get_num_atoms(self):
+    return self.num_atoms
+
+  def get_num_features(self):
+    return self.n_features
