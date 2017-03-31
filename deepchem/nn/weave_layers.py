@@ -19,10 +19,9 @@ from deepchem.nn.copy import Layer
 
 
 class WeaveLayer(Layer):
-  """" Main layer of DAG model
-  For a molecule with n atoms, n different graphs are generated and run through
-  The final outputs of each graph become the graph features of corresponding
-  atom, which will be summed and put into another network in DAGGather Layer
+  """" Main layer of Weave model
+  For each molecule, atom features and pair features are recombined to 
+  generate new atom(pair) features
   """
 
   def __init__(self,
@@ -160,21 +159,55 @@ class WeaveLayer(Layer):
     P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
     return A, P
 
+class WeaveConcat(Layer):
+  """" Concat a batch of molecules into a batch of atoms
+  """
+
+  def __init__(self,
+               **kwargs):
+    super(WeaveConcat, self).__init__(**kwargs)
+
+  def build(self, shape):
+    pass
+
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: list
+      Tensors: atom_features, atom_masks
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    outputs: Tensor
+      Tensor of concatenated atom features
+    """
+    self.build()
+    atom_features = x[0]
+    atom_masks = x[1]
+    A = tf.unstack(atom_features, axis=0)
+    A_mask = tf.unstack(tf.cast(atom_masks, dtype=tf.bool), axis=0)
+    outputs = tf.concat([tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
+    return outputs
 
 class WeaveGather(Layer):
-  """" Main layer of DAG model
-  For a molecule with n atoms, n different graphs are generated and run through
-  The final outputs of each graph become the graph features of corresponding
-  atom, which will be summed and put into another network in DAGGather Layer
+  """" Gather layer of Weave model
+  a batch of normalized atom features go through a hidden layer, 
+  then summed to form molecular features
   """
 
   def __init__(self,
                n_atom_input_feat=50,
                n_hidden=128,
                init='glorot_uniform',
-               activation='relu',
+               activation='tanh',
                gaussian_expand=True,
                dropout=None,
+               epsilon=1e-3,
+               momentum=0.99,
                **kwargs):
     """
     Parameters
@@ -210,15 +243,15 @@ class WeaveGather(Layer):
       self.n_outputs = self.n_hidden * 11
     else:
       self.n_outputs = self.n_hidden
+    self.epsilon = epsilon
+    self.momentum = momentum
 
-  def build(self):
+  def build(self, shape):
     """"Construct internal trainable weights.
     """
 
     self.W = self.init([self.n_atom_input_feat, self.n_hidden])
-    self.b = model_ops.zeros(shape=[
-        self.n_hidden,
-    ])
+    self.b = model_ops.zeros(shape=[self.n_hidden,])
 
     self.trainable_weights = self.W + self.b
 
@@ -227,8 +260,8 @@ class WeaveGather(Layer):
 
     Parameters
     ----------
-    x: Tensor
-      Tensors of atom features
+    x: list
+      Tensors: atom_features, atom_masks
     mask: bool, optional
       Ignored. Present only to shadow superclass call() method.
 
@@ -239,13 +272,15 @@ class WeaveGather(Layer):
     """
     # Add trainable weights
     self.build()
-
-    outputs = tf.tensordot(x, self.W, [[2], [0]]) + self.b
+    atom_features = x[0]
+    atom_masks = x[1]
+    outputs = tf.matmul(atom_features, self.W) + self.b
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
+      
     outputs = tf.reduce_sum(outputs, axis=1)
     return outputs
 
   def gaussian_histogram(x):
-
+      
     return x
