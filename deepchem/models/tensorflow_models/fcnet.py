@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import time
 import numpy as np
 import tensorflow as tf
+import threading
 
 import deepchem as dc
 from deepchem.nn import model_ops
@@ -33,7 +34,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
     n_features = self.n_features
     with graph.as_default():
       with placeholder_scope:
-        self.mol_features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, n_features], name='mol_features')
 
       layer_sizes = self.layer_sizes
@@ -50,7 +51,25 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       n_layers = lengths_set.pop()
       assert n_layers > 0, 'Must have some layers defined.'
 
-      prev_layer = self.mol_features
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
+        prev_layer = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        prev_layer = mol_features
+
       prev_layer_size = n_features
       for i in range(n_layers):
         layer = tf.nn.relu(
@@ -67,7 +86,7 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         prev_layer_size = layer_sizes[i]
 
       output = model_ops.multitask_logits(layer, self.n_tasks)
-    return output
+    return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -112,7 +131,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                                                               name_scopes)
     with graph.as_default():
       with placeholder_scope:
-        self.mol_features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, n_features], name='mol_features')
 
       layer_sizes = self.layer_sizes
@@ -129,7 +148,25 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       n_layers = lengths_set.pop()
       assert n_layers > 0, 'Must have some layers defined.'
 
-      prev_layer = self.mol_features
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
+        prev_layer = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        prev_layer = mol_features
+
       prev_layer_size = n_features
       for i in range(n_layers):
         layer = tf.nn.relu(
@@ -157,7 +194,7 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                         stddev=weight_init_stddevs[i]),
                     bias_init=tf.constant(value=bias_init_consts[i], shape=[1
                                                                            ]))))
-      return output
+    return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
     """Construct a feed dictionary from minibatch data.
@@ -343,32 +380,59 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
         saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
         # Save an initial checkpoint.
         saver.save(sess, self._save_path, global_step=0)
-        for epoch in range(nb_epoch):
-          avg_loss, n_batches = 0., 0
-          for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-              dataset.iterbatches(
-                  self.batch_size, pad_batches=self.pad_batches)):
-            if ind % log_every_N_batches == 0:
-              log("On batch %d" % ind, self.verbose)
-            for transformer in self.fit_transformers:
-              X_b = transformer.X_transform(X_b)
+
+        # Define the code that runs on a separate thread to feed data into the queue.
+        def enqueue(sess, dataset, nb_epoch, epoch_end_indices):
+          index = 0
+          for epoch in range(nb_epoch):
+            for X_b, y_b, w_b, ids_b in dataset.iterbatches(
+                self.batch_size, pad_batches=self.pad_batches):
+              for transformer in self.fit_transformers:
+                X_b = transformer.X_transform(X_b)
+              feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
+              sess.run(self.train_graph.graph.enqueue, feed_dict=feed_dict)
+              index += 1
+            epoch_end_indices.append(index)
+          sess.run(self.train_graph.graph.queue.close())
+
+        epoch_end_indices = []
+        enqueue_thread = threading.Thread(
+            target=enqueue, args=[sess, dataset, nb_epoch, epoch_end_indices])
+        enqueue_thread.daemon = True
+        enqueue_thread.start()
+
+        # Main training loop.
+        try:
+          epoch = 0
+          index = 0
+          index_in_epoch = 0
+          avg_loss = 0.0
+          while True:
+            if index_in_epoch % log_every_N_batches == 0:
+              log("On batch %d" % index_in_epoch, self.verbose)
             # Run training op.
-            feed_dict = self.construct_feed_dict(X_b, y_b, w_b, ids_b)
             fetches = self.train_graph.output + [
                 train_op, self.train_graph.loss
             ]
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            output = fetched_values[:len(self.train_graph.output)]
+            fetched_values = sess.run(fetches)
             loss = fetched_values[-1]
             avg_loss += loss
-            y_pred = np.squeeze(np.array(output))
-            y_b = y_b.flatten()
-            n_batches += 1
-          if epoch % checkpoint_interval == checkpoint_interval - 1:
-            saver.save(sess, self._save_path, global_step=epoch)
-          avg_loss = float(avg_loss) / n_batches
-          log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
-              self.verbose)
+            index += 1
+            index_in_epoch += 1
+            if len(epoch_end_indices) > 0 and index >= epoch_end_indices[0]:
+              # We have reached the end of an epoch.
+              if epoch % checkpoint_interval == checkpoint_interval - 1:
+                saver.save(sess, self._save_path, global_step=epoch)
+              avg_loss = float(avg_loss) / index_in_epoch
+              log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
+                  self.verbose)
+              epoch += 1
+              index_in_epoch = 0
+              avg_loss = 0.0
+              del epoch_end_indices[0]
+        except tf.errors.OutOfRangeError:
+          # We have reached the end of the data.
+          pass
         # Always save a final checkpoint when complete.
         saver.save(sess, self._save_path, global_step=epoch + 1)
     ############################################################## TIMING
