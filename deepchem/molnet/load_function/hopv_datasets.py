@@ -7,14 +7,18 @@ from __future__ import unicode_literals
 
 import os
 import deepchem
+import pickle
 
 
-def load_hopv(featurizer='ECFP', split='index'):
+def load_hopv(featurizer='ECFP', split='index', reload=True):
   """Load HOPV datasets. Does not do train/test split"""
   # Featurize HOPV dataset
   print("About to featurize HOPV dataset.")
+  save = False
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
+    if reload:
+      save = True
   else:
     data_dir = "/tmp"
 
@@ -31,6 +35,22 @@ def load_hopv(featurizer='ECFP', split='index'):
       'HOMO', 'LUMO', 'electrochemical_gap', 'optical_gap', 'PCE', 'V_OC',
       'J_SC', 'fill_factor'
   ]
+
+  if save:
+    save_dir = os.path.join(data_dir, "hopv/" + featurizer + "/" + split)
+    train_dir = os.path.join(save_dir, "train_dir")
+    valid_dir = os.path.join(save_dir, "valid_dir")
+    test_dir = os.path.join(save_dir, "test_dir")
+    if os.path.exists(train_dir) and os.path.exists(
+        valid_dir) and os.path.exists(test_dir):
+      train = deepchem.data.DiskDataset(train_dir)
+      valid = deepchem.data.DiskDataset(valid_dir)
+      test = deepchem.data.DiskDataset(test_dir)
+      all_dataset = (train, valid, test)
+      with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
+        transformers = pickle.load(f)
+      return hopv_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer_func = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -60,4 +80,10 @@ def load_hopv(featurizer='ECFP', split='index'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+  if save:
+    train.move(train_dir)
+    valid.move(valid_dir)
+    test.move(test_dir)
+    with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
+      pickle.dump(transformers, f)
   return hopv_tasks, (train, valid, test), transformers

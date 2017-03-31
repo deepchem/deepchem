@@ -7,11 +7,15 @@ from __future__ import unicode_literals
 
 import os
 import deepchem
+import pickle
 
 
-def load_qm8(featurizer=None, split='random'):
+def load_qm8(featurizer=None, split='random', reload=True):
+  save = False
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
+    if reload:
+      save = True
   else:
     data_dir = "/tmp"
 
@@ -30,6 +34,22 @@ def load_qm8(featurizer=None, split='random'):
       "f2-PBE0", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM",
       "f1-CAM", "f2-CAM"
   ]
+
+  if save:
+    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
+    train_dir = os.path.join(save_dir, "train_dir")
+    valid_dir = os.path.join(save_dir, "valid_dir")
+    test_dir = os.path.join(save_dir, "test_dir")
+    if os.path.exists(train_dir) and os.path.exists(
+        valid_dir) and os.path.exists(test_dir):
+      train = deepchem.data.DiskDataset(train_dir)
+      valid = deepchem.data.DiskDataset(valid_dir)
+      test = deepchem.data.DiskDataset(test_dir)
+      all_dataset = (train, valid, test)
+      with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
+        transformers = pickle.load(f)
+      return qm8_tasks, all_dataset, transformers
+
   if featurizer is None:
     featurizer = deepchem.feat.CoulombMatrix(26)
   loader = deepchem.data.SDFLoader(
@@ -54,4 +74,10 @@ def load_qm8(featurizer=None, split='random'):
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
+  if save:
+    train_dataset.move(train_dir)
+    valid_dataset.move(valid_dir)
+    test_dataset.move(test_dir)
+    with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
+      pickle.dump(transformers, f)
   return qm8_tasks, (train_dataset, valid_dataset, test_dataset), transformers
