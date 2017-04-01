@@ -223,22 +223,30 @@ def load_dataset(dataset, featurizer, split='random'):
       choice of splitter function, None = using the default splitter
   """
   dataset_loading_functions = {
-      'tox21': deepchem.molnet.load_tox21,
-      'muv': deepchem.molnet.load_muv,
-      'pcba': deepchem.molnet.load_pcba,
-      'nci': deepchem.molnet.load_nci,
-      'sider': deepchem.molnet.load_sider,
-      'toxcast': deepchem.molnet.load_toxcast,
-      'kaggle': deepchem.molnet.load_kaggle,
-      'delaney': deepchem.molnet.load_delaney,
-      'pdbbind': deepchem.molnet.load_pdbbind_grid,
+      'bace_c': deepchem.molnet.load_bace_classification,
+      'bace_r': deepchem.molnet.load_bace_regression,
+      'bbbp': deepchem.molnet.load_bbbp,
       'chembl': deepchem.molnet.load_chembl,
+      'clearance': deepchem.molnet.load_clearance,
+      'clintox': deepchem.molnet.load_clintox,
+      'delaney': deepchem.molnet.load_delaney,
+      'hiv': deepchem.molnet.load_hiv,
+      'hopv': deepchem.molnet.load_hopv,
+      'kaggle': deepchem.molnet.load_kaggle,
+      'lipo': deepchem.molnet.load_lipo,
+      'muv': deepchem.molnet.load_muv,
+      'nci': deepchem.molnet.load_nci,
+      'pcba': deepchem.molnet.load_pcba,
+      'pdbbind': deepchem.molnet.load_pdbbind_grid,
+      'ppb': deepchem.molnet.load_ppb,
       'qm7': deepchem.molnet.load_qm7_from_mat,
       'qm7b': deepchem.molnet.load_qm7b_from_mat,
+      'qm8': deepchem.molnet.load_qm8,
       'qm9': deepchem.molnet.load_qm9,
       'sampl': deepchem.molnet.load_sampl,
-      'clintox': deepchem.molnet.load_clintox,
-      'hiv': deepchem.molnet.load_hiv
+      'sider': deepchem.molnet.load_sider,
+      'tox21': deepchem.molnet.load_tox21,
+      'toxcast': deepchem.molnet.load_toxcast
   }
   print('-------------------------------------')
   print('Loading dataset: %s' % dataset)
