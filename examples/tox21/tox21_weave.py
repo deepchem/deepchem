@@ -1,5 +1,5 @@
 """
-Script that trains weave models on delaney dataset.
+Script that trains Weave models on Tox21 dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -11,13 +11,14 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 
-# Load Delaney dataset
-delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney(
-    featurizer='Weave', split='index')
-train_dataset, valid_dataset, test_dataset = delaney_datasets
+# Load Tox21 dataset
+tox21_tasks, tox21_datasets, transformers = dc.molnet.load_tox21(
+    featurizer='Weave')
+train_dataset, valid_dataset, test_dataset = tox21_datasets
 
 # Fit models
-metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
+metric = dc.metrics.Metric(
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
 
 max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
 max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
@@ -38,9 +39,9 @@ graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
 graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
 graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat, gaussian_expand=False))
 
-model = dc.models.MultitaskGraphRegressor(
+model = dc.models.MultitaskGraphClassifier(
     graph,
-    len(delaney_tasks),
+    len(tox21_tasks),
     n_feat,
     batch_size=batch_size,
     learning_rate=1e-3,
@@ -50,7 +51,8 @@ model = dc.models.MultitaskGraphRegressor(
     beta2=.999)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50, log_every_N_batches=50)
+model.fit(train_dataset, nb_epoch=20, log_every_N_batches=5)
+
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)

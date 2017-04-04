@@ -192,13 +192,15 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6):
   rings = mol.GetRingInfo().AtomRings()
   for a1 in range(num_atoms):
     for a2 in canon_adj_list[a1]:
+      # first `bt_len` features are bond features(if applicable)
       features[a1, a2, :bt_len] = np.asarray(
           edge_list[tuple(sorted((a1, a2)))], dtype=float)
     for ring in rings:
       if a1 in ring:
+        # `bt_len`-th feature is if the pair of atoms are in the same ring
         features[a1, ring, bt_len] = 1
         features[a1, a1, bt_len] = 0.
-    # find graph distance between two atoms
+    # graph distance between two atoms
     distance = find_distance(
         a1, num_atoms, canon_adj_list, max_distance=max_distance)
     features[a1, :, bt_len + 1:] = distance
@@ -209,11 +211,14 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6):
 def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
   distance = np.zeros((num_atoms, max_distance))
   radial = 0
+  # atoms `radial` bonds away from `a1`
   adj_list = set(canon_adj_list[a1])
+  # atoms less than `radial` bonds away
   all_list = set([a1])
   while radial < max_distance:
     distance[list(adj_list), radial] = 1
     all_list.update(adj_list)
+    # find atoms `radial`+1 bonds away
     next_adj = set()
     for adj in adj_list:
       next_adj.update(canon_adj_list[adj])

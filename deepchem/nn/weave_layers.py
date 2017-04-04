@@ -17,6 +17,7 @@ from deepchem.nn import initializations
 from deepchem.nn import model_ops
 from deepchem.nn.copy import Layer
 
+
 class WeaveLayer(Layer):
   """" Main layer of Weave model
   For each molecule, atom features and pair features are recombined to 
@@ -24,6 +25,7 @@ class WeaveLayer(Layer):
   """
 
   def __init__(self,
+               max_atoms,
                n_atom_input_feat=75,
                n_pair_input_feat=14,
                n_atom_output_feat=50,
@@ -58,7 +60,7 @@ class WeaveLayer(Layer):
 
     """
     super(WeaveLayer, self).__init__(**kwargs)
-
+    self.max_atoms = max_atoms
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
     self.n_hidden_AA = n_hidden_AA
@@ -107,9 +109,10 @@ class WeaveLayer(Layer):
         self.n_pair_output_feat,
     ])
 
-    self.trainable_weights = [self.W_AA, self.b_AA, self.W_PA, self.b_PA,
-        self.W_A, self.b_A, self.W_AP, self.b_AP, self.W_PP, self.b_PP,
-        self.W_P, self.b_P]
+    self.trainable_weights = [
+        self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A,
+        self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P
+    ]
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
@@ -138,7 +141,7 @@ class WeaveLayer(Layer):
 
     atom_mask = x[2]
     pair_mask = x[3]
-    max_atoms = atom_features.get_shape().as_list()[1]
+    max_atoms = self.max_atoms
 
     AA = tf.tensordot(atom_features, self.W_AA, [[2], [0]]) + self.b_AA
     AA = self.activation(AA)
@@ -147,7 +150,7 @@ class WeaveLayer(Layer):
     PA = self.activation(PA)
     A = tf.tensordot(tf.concat([AA, PA], 2), self.W_A, [[2], [0]]) + self.b_A
     A = self.activation(A)
-    
+
     AP_combine = tf.concat([
         tf.stack([atom_features] * max_atoms, axis=2),
         tf.stack([atom_features] * max_atoms, axis=1)
@@ -164,13 +167,14 @@ class WeaveLayer(Layer):
     P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
     return A, P
 
+
 class WeaveConcat(Layer):
   """" Concat a batch of molecules into a batch of atoms
   """
 
-  def __init__(self, 
-               batch_size, 
-               n_atom_input_feat=50, 
+  def __init__(self,
+               batch_size,
+               n_atom_input_feat=50,
                n_output=128,
                init='glorot_uniform',
                activation='tanh',
@@ -202,7 +206,9 @@ class WeaveConcat(Layer):
     """
 
     self.W = self.init([self.n_atom_input_feat, self.n_output])
-    self.b = model_ops.zeros(shape=[self.n_output,])
+    self.b = model_ops.zeros(shape=[
+        self.n_output,
+    ])
 
     self.trainable_weights = self.W + self.b
 
@@ -227,11 +233,14 @@ class WeaveConcat(Layer):
     atom_features = x[0]
     atom_masks = x[1]
     A = tf.split(atom_features, self.batch_size, axis=0)
-    A_mask = tf.split(tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
-    outputs = tf.concat([tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
+    A_mask = tf.split(
+        tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
+    outputs = tf.concat(
+        [tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
     outputs = tf.matmul(outputs, self.W) + self.b
     outputs = self.activation(outputs)
     return outputs
+
 
 class WeaveGather(Layer):
   """" Gather layer of Weave model
@@ -241,7 +250,8 @@ class WeaveGather(Layer):
 
   def __init__(self,
                batch_size,
-               gaussian_expand=True,
+               n_input=128,
+               gaussian_expand=False,
                epsilon=1e-3,
                momentum=0.99,
                **kwargs):
@@ -254,13 +264,13 @@ class WeaveGather(Layer):
       Whether to expand each dimension of atomic features by gaussian histogram
 
     """
-
+    self.n_input = n_input
     self.batch_size = batch_size
     self.gaussian_expand = gaussian_expand
     self.epsilon = epsilon
     self.momentum = momentum
     super(WeaveGather, self).__init__(**kwargs)
-    
+
   def build(self):
     pass
 
@@ -285,16 +295,26 @@ class WeaveGather(Layer):
     self.build()
     outputs = x[0]
     membership = x[1]
-    
+
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
-    
+
     outputs = tf.dynamic_partition(outputs, membership, self.batch_size)
 
     output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
 
-    output_molecules =  tf.stack(output_molecules)
+    output_molecules = tf.stack(output_molecules)
     return output_molecules
 
-  def gaussian_histogram(x):
-    return x
+  def gaussian_histogram(self, x):
+    gaussian_memberships = [(-1.645, 0.080), (-1.080, 0.029), (-0.739, 0.018),
+                            (-0.468, 0.014), (-0.228, 0.013), (0., 0.013),
+                            (0.228, 0.013), (0.468, 0.014), (0.739, 0.018),
+                            (1.080, 0.029), (1.645, 0.080)]
+    dist = [
+        tf.contrib.distributions.Normal(mu=p[0], sigma=p[1])
+        for p in gaussian_memberships
+    ]
+    outputs = [dist[i].pdf(x) for i in range(11)]
+    outputs = tf.concat(outputs, axis=1)
+    return outputs
