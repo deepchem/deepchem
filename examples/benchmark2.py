@@ -11,14 +11,17 @@ Giving classification performances of:
     Random forest(rf), MultitaskDNN(tf), 
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
-    Graph convolution(graphconv)                 
+    Graph convolution(graphconv), xgboost(xgb),
+    Directed acyclic graph(dag) 
 on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast  
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
     Fit Transformer MultitaskDNN(tf_regression_ft),
     Random forest(rf_regression),
-    Graph convolution regression(graphconvreg)
+    Graph convolution regression(graphconvreg),
+    xgboost(xgb_regression), Deep tensor neural net(dtnn),
+    Directed acyclic graph(dag_regression)
 on datasets: bace_r, chembl, clearance, delaney(ESOL), hopv, kaggle, lipo,
              nci, pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl(FreeSolv)
                 

@@ -232,7 +232,7 @@ def benchmark_classification(train_dataset,
     max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
     max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
 
-    reshard_size = 512
+    reshard_size = 256
     transformer = deepchem.trans.DAGTransformer(max_atoms=max_atoms)
     train_dataset.reshard(reshard_size)
     train_dataset = transformer.transform(train_dataset)

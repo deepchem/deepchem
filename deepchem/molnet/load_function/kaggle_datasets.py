@@ -119,7 +119,7 @@ def gen_kaggle(KAGGLE_tasks,
   return train_dataset, valid_dataset, test_dataset
 
 
-def load_kaggle(shard_size=2000, featurizer=None, split=None):
+def load_kaggle(shard_size=2000, featurizer=None, split=None, reload=True):
   """Loads kaggle datasets. Generates if not stored already."""
   KAGGLE_tasks = [
       '3A4', 'CB1', 'DPP4', 'HIVINT', 'HIV_PROT', 'LOGD', 'METAB', 'NK1', 'OX1',

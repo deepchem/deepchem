@@ -9,20 +9,18 @@ from __future__ import unicode_literals
 
 import os
 import deepchem
-import pickle
 
 
 def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
 
   # Load nci dataset
   print("About to load NCI dataset.")
-  save = False
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-    if reload:
-      save = True
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "nci_unique.csv")
   if not os.path.exists(dataset_file):
@@ -44,19 +42,10 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
       'BT-549', 'T-47D'
   ])
 
-  if save:
-    save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + split)
-    train_dir = os.path.join(save_dir, "train_dir")
-    valid_dir = os.path.join(save_dir, "valid_dir")
-    test_dir = os.path.join(save_dir, "test_dir")
-    if os.path.exists(train_dir) and os.path.exists(
-        valid_dir) and os.path.exists(test_dir):
-      train = deepchem.data.DiskDataset(train_dir)
-      valid = deepchem.data.DiskDataset(valid_dir)
-      test = deepchem.data.DiskDataset(test_dir)
-      all_dataset = (train, valid, test)
-      with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
-        transformers = pickle.load(f)
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
       return all_nci_tasks, all_dataset, transformers
 
   # Featurize nci dataset
@@ -90,10 +79,8 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
   splitter = splitters[split]
   print("Performing new split.")
   train, valid, test = splitter.train_valid_test_split(dataset)
-  if save:
-    train.move(train_dir)
-    valid.move(valid_dir)
-    test.move(test_dir)
-    with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
-      pickle.dump(transformers, f)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return all_nci_tasks, (train, valid, test), transformers

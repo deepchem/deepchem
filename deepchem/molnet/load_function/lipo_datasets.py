@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 import deepchem
-import pickle
 
 
 def load_lipo(featurizer='ECFP', split='index', reload=True):
@@ -15,13 +14,12 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
   # Featurize Lipophilicity dataset
   print("About to featurize Lipophilicity dataset.")
   print("About to load Lipophilicity dataset.")
-  save = False
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-    if reload:
-      save = True
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
   if not os.path.exists(dataset_file):
@@ -32,19 +30,10 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
 
   Lipo_tasks = ['exp']
 
-  if save:
-    save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
-    train_dir = os.path.join(save_dir, "train_dir")
-    valid_dir = os.path.join(save_dir, "valid_dir")
-    test_dir = os.path.join(save_dir, "test_dir")
-    if os.path.exists(train_dir) and os.path.exists(
-        valid_dir) and os.path.exists(test_dir):
-      train = deepchem.data.DiskDataset(train_dir)
-      valid = deepchem.data.DiskDataset(valid_dir)
-      test = deepchem.data.DiskDataset(test_dir)
-      all_dataset = (train, valid, test)
-      with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
-        transformers = pickle.load(f)
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
       return Lipo_tasks, all_dataset, transformers
 
   if featurizer == 'ECFP':
@@ -75,10 +64,8 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
-  if save:
-    train.move(train_dir)
-    valid.move(valid_dir)
-    test.move(test_dir)
-    with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
-      pickle.dump(transformers, f)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return Lipo_tasks, (train, valid, test), transformers
