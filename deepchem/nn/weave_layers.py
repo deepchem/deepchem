@@ -16,7 +16,6 @@ from deepchem.nn import activations
 from deepchem.nn import initializations
 from deepchem.nn import model_ops
 from deepchem.nn.copy import Layer
-from deepchem.nn import GraphGather
 
 class WeaveLayer(Layer):
   """" Main layer of Weave model
@@ -142,9 +141,13 @@ class WeaveLayer(Layer):
     max_atoms = atom_features.get_shape().as_list()[1]
 
     AA = tf.tensordot(atom_features, self.W_AA, [[2], [0]]) + self.b_AA
+    AA = self.activation(AA)
     PA = tf.reduce_sum(
         tf.tensordot(pair_features, self.W_PA, [[3], [0]]) + self.b_PA, axis=2)
+    PA = self.activation(PA)
     A = tf.tensordot(tf.concat([AA, PA], 2), self.W_A, [[2], [0]]) + self.b_A
+    A = self.activation(A)
+    
     AP_combine = tf.concat([
         tf.stack([atom_features] * max_atoms, axis=2),
         tf.stack([atom_features] * max_atoms, axis=1)
@@ -152,9 +155,11 @@ class WeaveLayer(Layer):
     AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
     AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
                       [[3], [0]]) + self.b_AP
+    AP = self.activation(AP)
     PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
+    PP = self.activation(PP)
     P = tf.tensordot(tf.concat([AP, PP], 3), self.W_P, [[3], [0]]) + self.b_P
-
+    P = self.activation(P)
     A = tf.multiply(A, tf.expand_dims(atom_mask, axis=2))
     P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
     return A, P
@@ -163,12 +168,43 @@ class WeaveConcat(Layer):
   """" Concat a batch of molecules into a batch of atoms
   """
 
-  def __init__(self, batch_size, **kwargs):
+  def __init__(self, 
+               batch_size, 
+               n_atom_input_feat=50, 
+               n_output=128,
+               init='glorot_uniform',
+               activation='tanh',
+               **kwargs):
+    """
+    Parameters
+    ----------
+    batch_size: int
+      number of molecules in a batch
+    n_atom_input_feat: int, optional
+      Number of features for each atom in input.
+    n_output: int, optional
+      Number of output features for each atom(concatenated)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+
+    """
     self.batch_size = batch_size
+    self.n_atom_input_feat = n_atom_input_feat
+    self.n_output = n_output
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
     super(WeaveConcat, self).__init__(**kwargs)
 
   def build(self):
-    pass
+    """"Construct internal trainable weights.
+    """
+
+    self.W = self.init([self.n_atom_input_feat, self.n_output])
+    self.b = model_ops.zeros(shape=[self.n_output,])
+
+    self.trainable_weights = self.W + self.b
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
@@ -193,6 +229,8 @@ class WeaveConcat(Layer):
     A = tf.split(atom_features, self.batch_size, axis=0)
     A_mask = tf.split(tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
     outputs = tf.concat([tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
+    outputs = tf.matmul(outputs, self.W) + self.b
+    outputs = self.activation(outputs)
     return outputs
 
 class WeaveGather(Layer):
@@ -203,65 +241,38 @@ class WeaveGather(Layer):
 
   def __init__(self,
                batch_size,
-               n_atom_input_feat=50,
-               n_output=128,
-               init='glorot_uniform',
-               activation='tanh',
                gaussian_expand=True,
-               dropout=None,
                epsilon=1e-3,
                momentum=0.99,
                **kwargs):
     """
     Parameters
     ----------
-    n_atom_input_feat: int
-      Number of features for each atom in input.
-    n_pair_input_feat: int
-      Number of features for each pair of atoms in input.
-    n_atom_output_feat: int
-      Number of features for each atom in output.
-    n_pair_output_feat: int
-      Number of features for each pair of atoms in output.
-    n_hidden_XX: int
-      Number of units(convolution depths) in corresponding hidden layer
-    init: str, optional
-      Weight initialization for filters.
-    activation: str, optional
-      Activation function applied
-    dropout: float, optional
-      Dropout probability, not supported here
+    batch_size: int
+      number of molecules in a batch
     gaussian_expand: boolean. optional
       Whether to expand each dimension of atomic features by gaussian histogram
 
     """
-    super(WeaveGather, self).__init__(**kwargs)
 
     self.batch_size = batch_size
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
-    self.n_output = n_output
-    self.n_atom_input_feat = n_atom_input_feat
     self.gaussian_expand = gaussian_expand
     self.epsilon = epsilon
     self.momentum = momentum
-
+    super(WeaveGather, self).__init__(**kwargs)
+    
   def build(self):
-    """"Construct internal trainable weights.
-    """
-
-    self.W = self.init([self.n_atom_input_feat, self.n_output])
-    self.b = model_ops.zeros(shape=[self.n_output,])
-
-    self.trainable_weights = self.W + self.b
+    pass
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
 
+    x = [atom_features, membership]
+    
     Parameters
     ----------
     x: list
-      Tensors: atom_features, atom_masks
+      Tensors as listed above
     mask: bool, optional
       Ignored. Present only to shadow superclass call() method.
 
@@ -272,9 +283,9 @@ class WeaveGather(Layer):
     """
     # Add trainable weights
     self.build()
-    atom_features = x[0]
+    outputs = x[0]
     membership = x[1]
-    outputs = tf.matmul(atom_features, self.W) + self.b
+    
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
     
