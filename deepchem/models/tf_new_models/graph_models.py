@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
-from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology
 
 
 class SequentialGraph(object):
@@ -161,7 +161,39 @@ class SequentialDAGGraph(SequentialGraph):
         self.output = layer(self.output)
       self.layers.append(layer)
 
+class SequentialWeaveGraph(SequentialGraph):
+  """SequentialGraph for DAG models
+  """
 
+  def __init__(self, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    self.graph = tf.Graph()
+    self.max_atoms = max_atoms
+    self.n_atom_feat = n_atom_feat
+    self.n_pair_feat = n_pair_feat
+    with self.graph.as_default():
+      self.graph_topology = WeaveGraphTopology(self.max_atoms, 
+                                               self.n_atom_feat,
+                                               self.n_pair_feat)
+      self.output_A = self.graph_topology.get_atom_features_placeholder()
+      self.output_P = self.graph_topology.get_pair_features_placeholder()
+    self.layers = []
+
+  def add(self, layer):
+    """Adds a new layer to model."""
+    with self.graph.as_default():
+      if type(layer).__name__ in ['WeaveLayer']:
+        self.output_A, self.output_P = layer([self.output_A, self.output_P] +
+                            self.graph_topology.get_topology_placeholders())
+      elif type(layer).__name__ in ['WeaveConcat']:
+        self.output_A = layer(
+            [self.output_A, self.graph_topology.atom_mask_placeholder])
+      elif type(layer).__name__ in ['WeaveGather']:
+        self.output_A = layer(
+            [self.output_A, self.graph_topology.membership_placeholder])
+      else:
+        self.output_A = layer(self.output_A)
+      self.layers.append(layer)
+      
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""
 

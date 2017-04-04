@@ -399,7 +399,7 @@ class WeaveMol(object):
 
     self.nodes = nodes
     self.pairs = pairs
-    self.num_atom = self.nodes.shape[0]
+    self.num_atoms = self.nodes.shape[0]
     self.n_features = self.nodes.shape[1]
 
   def get_pair_features(self):
