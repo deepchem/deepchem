@@ -172,11 +172,13 @@ class WeaveConcat(Layer):
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
-
+    
+    x = [atom_features, atom_mask]
+    
     Parameters
     ----------
     x: list
-      Tensors: atom_features, atom_masks
+      Tensors as listed above
     mask: bool, optional
       Ignored. Present only to shadow superclass call() method.
 
@@ -189,7 +191,7 @@ class WeaveConcat(Layer):
     atom_features = x[0]
     atom_masks = x[1]
     A = tf.split(atom_features, self.batch_size, axis=0)
-    A_mask = tf.unstack(tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
+    A_mask = tf.split(tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
     outputs = tf.concat([tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
     return outputs
 
@@ -202,7 +204,7 @@ class WeaveGather(Layer):
   def __init__(self,
                batch_size,
                n_atom_input_feat=50,
-               n_hidden=128,
+               n_output=128,
                init='glorot_uniform',
                activation='tanh',
                gaussian_expand=True,
@@ -238,22 +240,18 @@ class WeaveGather(Layer):
     self.batch_size = batch_size
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
-    self.n_hidden = n_hidden
+    self.n_output = n_output
     self.n_atom_input_feat = n_atom_input_feat
     self.gaussian_expand = gaussian_expand
-    if gaussian_expand:
-      self.n_outputs = self.n_hidden * 11
-    else:
-      self.n_outputs = self.n_hidden
     self.epsilon = epsilon
     self.momentum = momentum
 
-  def build(self, shape):
+  def build(self):
     """"Construct internal trainable weights.
     """
 
-    self.W = self.init([self.n_atom_input_feat, self.n_hidden])
-    self.b = model_ops.zeros(shape=[self.n_hidden,])
+    self.W = self.init([self.n_atom_input_feat, self.n_output])
+    self.b = model_ops.zeros(shape=[self.n_output,])
 
     self.trainable_weights = self.W + self.b
 
@@ -285,7 +283,7 @@ class WeaveGather(Layer):
     output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
 
     output_molecules =  tf.stack(output_molecules)
-    return outputs
+    return output_molecules
 
   def gaussian_histogram(x):
     return x

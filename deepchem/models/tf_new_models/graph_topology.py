@@ -396,19 +396,16 @@ class DAGGraphTopology(GraphTopology):
 class WeaveGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_atoms, n_atom_feat, n_pair_feat, name='DTNN_topology'):
+  def __init__(self, max_atoms, n_atom_feat, n_pair_feat, name='Weave_topology'):
     """
     Parameters
     ----------
-    max_n_atoms: int
+    max_atoms: int
       maximum number of atoms in a molecule
-    n_distance: int, optional
-      granularity of distance matrix
-      step size will be (distance_max-distance_min)/n_distance
-    distance_min: float, optional
-      minimum distance of atom pairs, default = -1 Angstorm
-    distance_max: float, optional
-      maximum distance of atom pairs, default = 18 Angstorm
+    n_atom_feat: int
+      number of basic features of each atom
+    n_pair_feat: int
+      number of basic features of each pair
     """
 
     #self.n_atoms = n_atoms

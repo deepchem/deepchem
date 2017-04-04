@@ -13,7 +13,7 @@ import deepchem as dc
 
 # Load Delaney dataset
 delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney(
-    featurizer='Weave', split='random')
+    featurizer='Weave', split='scaffold')
 train_dataset, valid_dataset, test_dataset = delaney_datasets
 
 # Fit models
@@ -30,27 +30,28 @@ n_pair_feat = 14
 max_atoms = 55
 # Batch size of models
 batch_size = 64
+n_output = 128
 graph = dc.nn.SequentialWeaveGraph(max_atoms=max_atoms,
                                    n_atom_feat=n_atom_feat,
                                    n_pair_feat=n_pair_feat)
 
 graph.add(dc.nn.WeaveLayer())
 graph.add(dc.nn.WeaveConcat(batch_size))
-graph.add(dc.nn.WeaveGather(batch_size))
+graph.add(dc.nn.WeaveGather(batch_size, gaussian_expand=False, n_output=n_output))
 
 model = dc.models.MultitaskGraphRegressor(
     graph,
     len(delaney_tasks),
-    n_feat,
+    128,
     batch_size=batch_size,
-    learning_rate=1e-3,
+    learning_rate=1e-4,
     learning_rate_decay_time=1000,
     optimizer_type="adam",
     beta1=.9,
     beta2=.999)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=20, log_every_N_batches=5)
+model.fit(train_dataset, nb_epoch=100, log_every_N_batches=50)
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)
