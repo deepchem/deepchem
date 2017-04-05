@@ -495,7 +495,8 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
 
-    model_graphconv = dc.models.tensorgraph.models.graph_conv_model(batch_size, len(tasks))
+    model_graphconv = dc.models.tensorgraph.models.graph_conv_model(batch_size,
+                                                                    len(tasks))
     model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
     # Evaluating graph convolution model
     train_scores['graphconv'] = model_graphconv.evaluate(

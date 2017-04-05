@@ -176,6 +176,7 @@ class TensorGraph(Model):
     return retval
 
   def predict_proba_on_batch(self, X, sess=None):
+
     def predict():
       out_tensors = [x.out_tensor for x in self.outputs]
       fetches = out_tensors
@@ -376,7 +377,8 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-          self.learning_rate,beta1=.9, beta2=.999).minimize(self.loss.out_tensor)
+          self.learning_rate, beta1=.9,
+          beta2=.999).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)

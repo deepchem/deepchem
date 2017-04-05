@@ -19,12 +19,13 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 
 # Fit models
 metric = dc.metrics.Metric(
-  dc.metrics.roc_auc_score, np.mean, mode="classification")
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
 
 # Batch size of models
-batch_size=50
+batch_size = 50
 
-model = dc.models.tensorgraph.models.graph_conv_model(batch_size, len(tox21_tasks))
+model = dc.models.tensorgraph.models.graph_conv_model(batch_size,
+                                                      len(tox21_tasks))
 
 model.fit(train_dataset, nb_epoch=10, checkpoint_interval=10)
 

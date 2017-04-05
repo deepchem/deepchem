@@ -7,14 +7,14 @@ from deepchem.feat.mol_graphs import ConvMol
 import time
 
 
-
 class GraphConvTensorGraph(TensorGraph):
   """
   """
+
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-    self.min_degree=0
-    self.max_degree=10
+    self.min_degree = 0
+    self.max_degree = 10
 
   def _construct_feed_dict(self, X_b, y_b, w_b, ids_b):
     feed_dict = dict()
@@ -29,7 +29,8 @@ class GraphConvTensorGraph(TensorGraph):
       feed_dict[self.features[1].out_tensor] = multiConvMol.deg_slice
       feed_dict[self.features[2].out_tensor] = multiConvMol.membership
       for i in range(self.max_degree):
-        feed_dict[self.features[i + 3].out_tensor] = multiConvMol.get_deg_adjacency_lists()[i + 1]
+        feed_dict[self.features[i + 3]
+                  .out_tensor] = multiConvMol.get_deg_adjacency_lists()[i + 1]
     return feed_dict
 
   def fit(self,
@@ -63,7 +64,8 @@ class GraphConvTensorGraph(TensorGraph):
         avg_loss, n_batches = 0.0, 0.0
         for epoch in range(nb_epoch):
           for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-            dataset.iterbatches(self.batch_size, deterministic=True, pad_batches=True)):
+              dataset.iterbatches(
+                  self.batch_size, deterministic=True, pad_batches=True)):
             feed_dict = self._construct_feed_dict(X_b, y_b, w_b, ids_b)
             output_tensors = [x.out_tensor for x in self.outputs]
             fetches = output_tensors + [train_op, self.loss.out_tensor]
@@ -85,8 +87,7 @@ class GraphConvTensorGraph(TensorGraph):
 
 
 def graph_conv_model(batch_size, num_tasks):
-  model = GraphConvTensorGraph(batch_size=batch_size,
-                               use_queue=False)
+  model = GraphConvTensorGraph(batch_size=batch_size, use_queue=False)
   atom_features = Input(shape=(None, 75))
   model.add_feature(atom_features)
 
@@ -103,13 +104,15 @@ def graph_conv_model(batch_size, num_tasks):
     deg_adjs.append(deg_adj)
 
   gc1 = GraphConvLayer(64, activation_fn=tf.nn.relu)
-  model.add_layer(gc1, parents=[atom_features, degree_slice, membership] + deg_adjs)
+  model.add_layer(
+      gc1, parents=[atom_features, degree_slice, membership] + deg_adjs)
 
   batch_norm1 = BatchNormLayer()
   model.add_layer(batch_norm1, parents=[gc1])
 
   gp1 = GraphPoolLayer()
-  model.add_layer(gp1, parents=[batch_norm1, degree_slice, membership] + deg_adjs)
+  model.add_layer(
+      gp1, parents=[batch_norm1, degree_slice, membership] + deg_adjs)
 
   gc2 = GraphConvLayer(64, activation_fn=tf.nn.relu)
   model.add_layer(gc2, parents=[gp1, degree_slice, membership] + deg_adjs)
@@ -118,7 +121,8 @@ def graph_conv_model(batch_size, num_tasks):
   model.add_layer(batch_norm2, parents=[gc2])
 
   gp2 = GraphPoolLayer()
-  model.add_layer(gp2, parents=[batch_norm2, degree_slice, membership] + deg_adjs)
+  model.add_layer(
+      gp2, parents=[batch_norm2, degree_slice, membership] + deg_adjs)
 
   dense = Dense(out_channels=128, activation_fn=None)
   model.add_layer(dense, parents=[gp2])
@@ -127,11 +131,13 @@ def graph_conv_model(batch_size, num_tasks):
   model.add_layer(batch_norm3, parents=[dense])
 
   gg1 = GraphGather(batch_size=batch_size, activation_fn=tf.nn.tanh)
-  model.add_layer(gg1, parents=[batch_norm3, degree_slice, membership] + deg_adjs)
+  model.add_layer(
+      gg1, parents=[batch_norm3, degree_slice, membership] + deg_adjs)
 
   costs = []
   for task in range(num_tasks):
-    classification = Dense(out_channels=2, name="GUESS%s" % task, activation_fn=None)
+    classification = Dense(
+        out_channels=2, name="GUESS%s" % task, activation_fn=None)
     model.add_layer(classification, parents=[gg1])
 
     softmax = SoftMax(name="SOFTMAX%s" % task)
