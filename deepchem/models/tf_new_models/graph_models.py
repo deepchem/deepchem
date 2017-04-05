@@ -161,6 +161,7 @@ class SequentialDAGGraph(SequentialGraph):
         self.output = layer(self.output)
       self.layers.append(layer)
 
+
 class SequentialWeaveGraph(SequentialGraph):
   """SequentialGraph for Weave models
   """
@@ -171,8 +172,7 @@ class SequentialWeaveGraph(SequentialGraph):
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     with self.graph.as_default():
-      self.graph_topology = WeaveGraphTopology(self.max_atoms, 
-                                               self.n_atom_feat,
+      self.graph_topology = WeaveGraphTopology(self.max_atoms, self.n_atom_feat,
                                                self.n_pair_feat)
       self.output = self.graph_topology.get_atom_features_placeholder()
       self.output_P = self.graph_topology.get_pair_features_placeholder()
@@ -182,8 +182,9 @@ class SequentialWeaveGraph(SequentialGraph):
     """Adds a new layer to model."""
     with self.graph.as_default():
       if type(layer).__name__ in ['WeaveLayer']:
-        self.output, self.output_P = layer([self.output, self.output_P] +
-                            self.graph_topology.get_topology_placeholders())
+        self.output, self.output_P = layer([
+            self.output, self.output_P
+        ] + self.graph_topology.get_topology_placeholders())
       elif type(layer).__name__ in ['WeaveConcat']:
         self.output = layer(
             [self.output, self.graph_topology.atom_mask_placeholder])
@@ -193,7 +194,8 @@ class SequentialWeaveGraph(SequentialGraph):
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
-      
+
+
 class SequentialSupportGraph(object):
   """An analog of Keras Sequential model for test/support models."""
 

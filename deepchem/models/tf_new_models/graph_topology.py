@@ -393,10 +393,12 @@ class DAGGraphTopology(GraphTopology):
         output[ide] = self.batch_size * self.max_atoms
     return output
 
+
 class WeaveGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_atoms, n_atom_feat, n_pair_feat, name='Weave_topology'):
+  def __init__(self, max_atoms, n_atom_feat, n_pair_feat,
+               name='Weave_topology'):
     """
     Parameters
     ----------
@@ -431,14 +433,12 @@ class WeaveGraphTopology(GraphTopology):
         shape=(None, self.max_atoms, self.max_atoms),
         name=self.name + '_pair_mask')
     self.membership_placeholder = tf.placeholder(
-        dtype='int32',
-        shape=(None,),
-        name=self.name + '_membership')
+        dtype='int32', shape=(None,), name=self.name + '_membership')
     # Define the list of tensors to be used as topology
     self.topology = [self.atom_mask_placeholder, self.pair_mask_placeholder]
     self.inputs = [self.atom_features_placeholder]
     self.inputs += self.topology
-    
+
   def get_pair_features_placeholder(self):
     return self.pair_features_placeholder
 
@@ -467,17 +467,17 @@ class WeaveGraphTopology(GraphTopology):
     max_atoms = self.max_atoms
     for im, mol in enumerate(batch):
       n_atoms = mol.get_num_atoms()
-      atom_feat.append(np.pad(mol.get_atom_features(), ((0, max_atoms - n_atoms), 
-                                                        (0,0)), 
-                              'constant'))
-      atom_mask.append(np.array([1]*n_atoms + [0]*(max_atoms-n_atoms), dtype=float))
-      pair_feat.append(np.pad(mol.get_pair_features(), ((0, max_atoms - n_atoms),
-                                                        (0, max_atoms - n_atoms),
-                                                        (0,0)),
-                              'constant'))
+      atom_feat.append(
+          np.pad(mol.get_atom_features(), ((0, max_atoms - n_atoms), (0, 0)),
+                 'constant'))
+      atom_mask.append(
+          np.array([1] * n_atoms + [0] * (max_atoms - n_atoms), dtype=float))
+      pair_feat.append(
+          np.pad(mol.get_pair_features(), ((0, max_atoms - n_atoms), (
+              0, max_atoms - n_atoms), (0, 0)), 'constant'))
       pair_mask.append(np.array([[1]*n_atoms + [0]*(max_atoms-n_atoms)]*n_atoms + \
                        [[0]*max_atoms]*(max_atoms-n_atoms), dtype=float))
-      membership.extend([im]*n_atoms)
+      membership.extend([im] * n_atoms)
     atom_feat = np.stack(atom_feat)
     pair_feat = np.stack(pair_feat)
     atom_mask = np.stack(atom_mask)
