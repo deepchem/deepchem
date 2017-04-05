@@ -2,7 +2,7 @@
 Scikit-learn wrapper interface of xgboost
 """
 
-import xgboost as xgb
+from deepchem.utils.dependencies import xgboost as xgb
 import numpy as np
 import os
 from deepchem.models import Model
@@ -70,15 +70,15 @@ class XGBoostModel(SklearnModel):
     # Find optimal n_estimators based on original learning_rate
     # and early_stopping_rounds
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=seed, stratify=stratify)
+      X, y, test_size=0.2, random_state=seed, stratify=stratify)
 
     self.model_instance.fit(
-        X_train,
-        y_train,
-        early_stopping_rounds=self.early_stopping_rounds,
-        eval_metric=xgb_metric,
-        eval_set=[(X_train, y_train), (X_test, y_test)],
-        verbose=self.verbose)
+      X_train,
+      y_train,
+      early_stopping_rounds=self.early_stopping_rounds,
+      eval_metric=xgb_metric,
+      eval_set=[(X_train, y_train), (X_test, y_test)],
+      verbose=self.verbose)
     # Since test size is 20%, when retrain model to whole data, expect
     # n_estimator increased to 1/0.8 = 1.25 time.
     estimated_best_round = np.round(self.model_instance.best_ntree_limit * 1.25)
@@ -92,26 +92,26 @@ class XGBoostModel(SklearnModel):
     # Make sure user specified params are in the grid.
     max_depth_grid = list(np.unique([self.model_instance.max_depth, 5, 7]))
     colsample_bytree_grid = list(
-        np.unique([self.model_instance.colsample_bytree, 0.66, 0.9]))
+      np.unique([self.model_instance.colsample_bytree, 0.66, 0.9]))
     reg_lambda_grid = list(np.unique([self.model_instance.reg_lambda, 1, 5]))
     param_grid = {
-        'max_depth': max_depth_grid,
-        'learning_rate': [max(self.model_instance.learning_rate, 0.3)],
-        'n_estimators': [min(self.model_instance.n_estimators, 60)],
-        'gamma': [self.model_instance.gamma],
-        'min_child_weight': [self.model_instance.min_child_weight],
-        'max_delta_step': [self.model_instance.max_delta_step],
-        'subsample': [self.model_instance.subsample],
-        'colsample_bytree': colsample_bytree_grid,
-        'colsample_bylevel': [self.model_instance.colsample_bylevel],
-        'reg_alpha': [self.model_instance.reg_alpha],
-        'reg_lambda': reg_lambda_grid,
-        'scale_pos_weight': [self.model_instance.scale_pos_weight],
-        'base_score': [self.model_instance.base_score],
-        'seed': [self.model_instance.seed]
+      'max_depth': max_depth_grid,
+      'learning_rate': [max(self.model_instance.learning_rate, 0.3)],
+      'n_estimators': [min(self.model_instance.n_estimators, 60)],
+      'gamma': [self.model_instance.gamma],
+      'min_child_weight': [self.model_instance.min_child_weight],
+      'max_delta_step': [self.model_instance.max_delta_step],
+      'subsample': [self.model_instance.subsample],
+      'colsample_bytree': colsample_bytree_grid,
+      'colsample_bylevel': [self.model_instance.colsample_bylevel],
+      'reg_alpha': [self.model_instance.reg_alpha],
+      'reg_lambda': reg_lambda_grid,
+      'scale_pos_weight': [self.model_instance.scale_pos_weight],
+      'base_score': [self.model_instance.base_score],
+      'seed': [self.model_instance.seed]
     }
     grid_search = GridSearchCV(
-        self.model_instance, param_grid, cv=2, refit=False, scoring=metric)
+      self.model_instance, param_grid, cv=2, refit=False, scoring=metric)
     grid_search.fit(X, y)
     best_params = grid_search.best_params_
     # Change params back original params
