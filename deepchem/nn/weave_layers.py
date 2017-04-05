@@ -22,6 +22,10 @@ class WeaveLayer(Layer):
   """" Main layer of Weave model
   For each molecule, atom features and pair features are recombined to 
   generate new atom(pair) features
+  
+  Detailed structure and explanations:
+  https://arxiv.org/abs/1603.00856
+  
   """
 
   def __init__(self,
