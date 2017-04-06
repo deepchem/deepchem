@@ -36,7 +36,7 @@ graph.add(dc.nn.WeaveLayer(max_atoms, 75, 14))
 #graph.add(dc.nn.WeaveLayer(max_atoms, 50, 50))
 graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
 graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat, gaussian_expand=False))
+graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat, gaussian_expand=True))
 
 model = dc.models.MultitaskGraphRegressor(
     graph,
@@ -51,6 +51,7 @@ model = dc.models.MultitaskGraphRegressor(
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=50, log_every_N_batches=50)
+
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)

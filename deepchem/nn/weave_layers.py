@@ -256,6 +256,8 @@ class WeaveGather(Layer):
                batch_size,
                n_input=128,
                gaussian_expand=False,
+               init='glorot_uniform',
+               activation='tanh',
                epsilon=1e-3,
                momentum=0.99,
                **kwargs):
@@ -271,12 +273,21 @@ class WeaveGather(Layer):
     self.n_input = n_input
     self.batch_size = batch_size
     self.gaussian_expand = gaussian_expand
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
     self.epsilon = epsilon
     self.momentum = momentum
     super(WeaveGather, self).__init__(**kwargs)
 
   def build(self):
-    pass
+    if self.gaussian_expand:
+      self.W = self.init([self.n_input * 11, self.n_input])
+      self.b = model_ops.zeros(shape=[
+          self.n_input,
+      ])
+      self.trainable_weights = self.W + self.b
+    else:
+      self.trainable_weights = None
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
@@ -308,17 +319,23 @@ class WeaveGather(Layer):
     output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
 
     output_molecules = tf.stack(output_molecules)
+    if self.gaussian_expand:
+      output_molecules = tf.matmul(output_molecules, self.W) + self.b
+      output_molecules = self.activation(output_molecules)
     return output_molecules
 
   def gaussian_histogram(self, x):
-    gaussian_memberships = [(-1.645, 0.080), (-1.080, 0.029), (-0.739, 0.018),
-                            (-0.468, 0.014), (-0.228, 0.013), (0., 0.013),
-                            (0.228, 0.013), (0.468, 0.014), (0.739, 0.018),
-                            (1.080, 0.029), (1.645, 0.080)]
+    gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
+                            (-0.468, 0.118), (-0.228, 0.114), (0., 0.114),
+                            (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
+                            (1.080, 0.170), (1.645, 0.283)]
     dist = [
         tf.contrib.distributions.Normal(mu=p[0], sigma=p[1])
         for p in gaussian_memberships
     ]
-    outputs = [dist[i].pdf(x) for i in range(11)]
-    outputs = tf.concat(outputs, axis=1)
+    dist_max = [dist[i].pdf(gaussian_memberships[i][0]) for i in range(11)]
+    outputs = [dist[i].pdf(x) / dist_max[i] for i in range(11)]
+    outputs = tf.stack(outputs, axis=2)
+    outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
+    outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
