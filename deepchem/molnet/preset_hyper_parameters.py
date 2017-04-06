@@ -60,9 +60,17 @@ hps['graphconv'] = {
 }
 hps['dag'] = {
     'batch_size': 64,
-    'nb_epoch': 20,
-    'learning_rate': 0.0005,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
     'n_graph_feat': 30,
+    'seed': 123
+}
+hps['weave'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'n_graph_feat': 128,
+    'n_pair_feat': 14,
     'seed': 123
 }
 hps['rf'] = {'n_estimators': 500}
@@ -126,9 +134,17 @@ hps['dtnn'] = {
 }
 hps['dag_regression'] = {
     'batch_size': 64,
-    'nb_epoch': 20,
-    'learning_rate': 0.0005,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
     'n_graph_feat': 30,
+    'seed': 123
+}
+hps['weave_regression'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'n_graph_feat': 128,
+    'n_pair_feat': 14,
     'seed': 123
 }
 hps['xgb_regression'] = {

@@ -50,7 +50,7 @@ def benchmark_classification(train_dataset,
       metrics used for evaluation
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      irv, graphconv, dag, xgb
+      irv, graphconv, dag, xgb, weave
   test: boolean
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -73,7 +73,8 @@ def benchmark_classification(train_dataset,
   test_scores = {}
 
   assert model in [
-      'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb'
+      'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb',
+      'weave'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -258,6 +259,37 @@ def benchmark_classification(train_dataset,
         beta1=.9,
         beta2=.999)
 
+  elif model_name == 'weave':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+    n_pair_feat = hyper_parameters['n_pair_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    graph_model = deepchem.nn.SequentialWeaveGraph(
+        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
+    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(
+        deepchem.nn.WeaveGather(
+            batch_size, n_input=n_graph_feat, gaussian_expand=False))
+
+    model = deepchem.models.MultitaskGraphClassifier(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
   elif model_name == 'rf':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -362,7 +394,8 @@ def benchmark_regression(train_dataset,
       metrics used for evaluation
   model: string,  optional (default='tf_regression')
       choice of which model to use, should be: tf_regression, tf_regression_ft,
-      graphconvreg, rf_regression, dtnn, dag_regression, xgb_regression
+      graphconvreg, rf_regression, dtnn, dag_regression, xgb_regression,
+      weave_regression
   test: boolean
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -385,7 +418,7 @@ def benchmark_regression(train_dataset,
 
   assert model in [
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
-      'dtnn', 'dag_regression', 'xgb_regression'
+      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -537,6 +570,37 @@ def benchmark_regression(train_dataset,
     graph_model.add(
         deepchem.nn.DAGLayer(n_graph_feat, n_features, max_atoms=max_atoms))
     graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+
+    model = deepchem.models.MultitaskGraphRegressor(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'weave_regression':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+    n_pair_feat = hyper_parameters['n_pair_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    graph_model = deepchem.nn.SequentialWeaveGraph(
+        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
+    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(
+        deepchem.nn.WeaveGather(
+            batch_size, n_input=n_graph_feat, gaussian_expand=False))
 
     model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
