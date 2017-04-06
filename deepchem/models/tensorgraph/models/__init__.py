@@ -1,1 +1,0 @@
-from deepchem.models.tensorgraph.models.graph_conv import graph_conv_model

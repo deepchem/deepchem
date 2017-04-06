@@ -494,20 +494,53 @@ def benchmark_classification(train_dataset,
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
+    n_filters = hyper_parameters['n_filters']
+    n_fully_connected_nodes = hyper_parameters['n_fully_connected_nodes']
 
-    model_graphconv = dc.models.tensorgraph.models.graph_conv_model(batch_size,
-                                                                    len(tasks))
-    model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
-    # Evaluating graph convolution model
-    train_scores['graphconv'] = model_graphconv.evaluate(
-        train_dataset, [classification_metric], transformers)
+    g = tf.Graph()
+    sess = tf.Session(graph=g)
+    # Building graph convolution model
+    tf.set_random_seed(seed)
+    graph_model = dc.nn.SequentialGraph(n_features)
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), n_features, activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    graph_model.add(
+        dc.nn.GraphConv(int(n_filters), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphPool())
+    # Gather Projection
+    graph_model.add(
+        dc.nn.Dense(
+            int(n_fully_connected_nodes), int(n_filters), activation='relu'))
+    graph_model.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(dc.nn.GraphGather(batch_size, activation="tanh"))
+    with tf.Session() as sess:
+      model_graphconv = dc.models.MultitaskGraphClassifier(
+          graph_model,
+          len(tasks),
+          n_features,
+          batch_size=batch_size,
+          learning_rate=learning_rate,
+          optimizer_type="adam",
+          beta1=.9,
+          beta2=.999)
 
-    valid_scores['graphconv'] = model_graphconv.evaluate(
-        valid_dataset, [classification_metric], transformers)
+      print('-------------------------------------')
+      print('Start fitting by graph convolution')
+      # Fit trained model
+      model_graphconv.fit(train_dataset, nb_epoch=nb_epoch)
+      # Evaluating graph convolution model
+      train_scores['graphconv'] = model_graphconv.evaluate(
+          train_dataset, [classification_metric], transformers)
 
-    if test:
-      test_scores['graphconv'] = model_graphconv.evaluate(
-          test_dataset, [classification_metric], transformers)
+      valid_scores['graphconv'] = model_graphconv.evaluate(
+          valid_dataset, [classification_metric], transformers)
+
+      if test:
+        test_scores['graphconv'] = model_graphconv.evaluate(
+            test_dataset, [classification_metric], transformers)
 
   if model == 'rf':
     # Loading hyper parameters
