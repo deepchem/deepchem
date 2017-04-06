@@ -278,7 +278,7 @@ def benchmark_classification(train_dataset,
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
         deepchem.nn.WeaveGather(
-            batch_size, n_input=n_graph_feat, gaussian_expand=False))
+            batch_size, n_input=n_graph_feat, gaussian_expand=True))
 
     model = deepchem.models.MultitaskGraphClassifier(
         graph_model,
@@ -600,7 +600,7 @@ def benchmark_regression(train_dataset,
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
         deepchem.nn.WeaveGather(
-            batch_size, n_input=n_graph_feat, gaussian_expand=False))
+            batch_size, n_input=n_graph_feat, gaussian_expand=True))
 
     model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
