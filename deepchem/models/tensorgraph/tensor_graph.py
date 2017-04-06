@@ -292,9 +292,10 @@ class TensorGraph(Model):
       writer.close()
 
   def _install_queue(self):
-    if not self.use_queue or self.input_queue is not None:
-      for feature in self.features:
-        feature.pre_queue = True
+    if not self.use_queue:
+      for layer in self.features + self.labels + self.task_weights:
+        layer.pre_queue = True
+      return
     names = []
     shapes = []
     pre_q_inputs = []
