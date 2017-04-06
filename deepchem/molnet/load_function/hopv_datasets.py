@@ -41,16 +41,16 @@ def load_hopv(featurizer='ECFP', split='index', reload=True):
       return hopv_tasks, all_dataset, transformers
 
   if featurizer == 'ECFP':
-    featurizer_func = deepchem.feat.CircularFingerprint(size=1024)
+    featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
-    featurizer_func = deepchem.feat.ConvMolFeaturizer()
+    featurizer = deepchem.feat.ConvMolFeaturizer()
   elif featurizer == 'Weave':
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
   loader = deepchem.data.CSVLoader(
-      tasks=hopv_tasks, smiles_field="smiles", featurizer=featurizer_func)
+      tasks=hopv_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
   # Initialize transformers 

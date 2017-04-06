@@ -2,7 +2,7 @@
 Scikit-learn wrapper interface of xgboost
 """
 
-import xgboost as xgb
+from deepchem.utils.dependencies import xgboost as xgb
 import numpy as np
 import os
 from deepchem.models import Model
