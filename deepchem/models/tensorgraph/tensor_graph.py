@@ -22,6 +22,7 @@ class TensorGraph(Model):
                tensorboard_log_frequency=100,
                learning_rate=0.001,
                batch_size=100,
+               use_queue=True,
                mode="classification",
                **kwargs):
     """
@@ -61,6 +62,7 @@ class TensorGraph(Model):
     self.global_step = 0
     self.last_checkpoint = None
     self.input_queue = None
+    self.use_queue = use_queue
 
     self.learning_rate = learning_rate
     self.batch_size = batch_size
@@ -174,26 +176,29 @@ class TensorGraph(Model):
     return retval
 
   def predict_proba_on_batch(self, X, sess=None):
-    if not self.built:
-      self.build()
-    close_session = sess is None
-    with self._get_tf("Graph").as_default():
-      saver = tf.train.Saver()
-      if sess is None:
-        sess = tf.Session()
-        saver.restore(sess, self.last_checkpoint)
+
+    def predict():
       out_tensors = [x.out_tensor for x in self.outputs]
       fetches = out_tensors
       feed_dict = self._construct_feed_dict(X, None, None, None)
       fetched_values = sess.run(fetches, feed_dict=feed_dict)
-      retval = np.array(fetched_values)
-      if self.mode == 'classification':  # sample, task, class
-        retval = np.transpose(retval, axes=[1, 0, 2])
-      elif self.mode == 'regression':  # sample, task
-        retval = np.transpose(retval, axes=[1, 0])
-      if close_session:
-        sess.close()
-      return retval
+      return np.array(fetched_values)
+
+    if not self.built:
+      self.build()
+    if sess is None:
+      saver = tf.train.Saver()
+      with tf.Session() as sess:
+        saver.restore(sess, self.last_checkpoint)
+        with self._get_tf("Graph").as_default():
+          retval = predict()
+    else:
+      retval = predict()
+    if self.mode == 'classification':  # sample, task, class
+      retval = np.transpose(retval, axes=[1, 0, 2])
+    elif self.mode == 'regression':  # sample, task
+      retval = np.transpose(retval, axes=[1, 0])
+    return retval
 
   def predict(self, dataset, transformers=[], batch_size=None):
     """
@@ -204,6 +209,8 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
+    if batch_size is None:
+      batch_size = self.batch_size
     with self._get_tf("Graph").as_default():
       saver = tf.train.Saver()
       with tf.Session() as sess:
@@ -233,6 +240,8 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
+    if batch_size is None:
+      batch_size = self.batch_size
     with self._get_tf("Graph").as_default():
       saver = tf.train.Saver()
       with tf.Session() as sess:
@@ -267,7 +276,8 @@ class TensorGraph(Model):
         with tf.name_scope(node):
           node_layer.__call__(*parents)
       self.built = True
-      self.input_queue.out_tensors = None
+      if self.use_queue:
+        self.input_queue.out_tensors = None
 
     for layer in self.layers.values():
       if layer.tensorboard:
@@ -282,7 +292,9 @@ class TensorGraph(Model):
       writer.close()
 
   def _install_queue(self):
-    if self.input_queue is not None:
+    if not self.use_queue:
+      for layer in self.features + self.labels + self.task_weights:
+        layer.pre_queue = True
       return
     names = []
     shapes = []
@@ -366,7 +378,8 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-          self.learning_rate).minimize(self.loss.out_tensor)
+          self.learning_rate, beta1=.9,
+          beta2=.999).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
