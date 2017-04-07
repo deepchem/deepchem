@@ -43,9 +43,9 @@ Installation from source is the only currently supported format. ```deepchem``` 
 You can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
 
 ```bash
+git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 bash scripts/install_deepchem_conda.sh deepchem
 pip install tensorflow-gpu==1.0.1                      # If you want GPU support
-git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source code from GitHub
 cd deepchem
 python setup.py install                                 # Manual install
 nosetests -v deepchem --nologcapture                    # Run tests
