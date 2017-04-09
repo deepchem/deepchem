@@ -397,8 +397,8 @@ class DAGGraphTopology(GraphTopology):
 class WeaveGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_atoms, n_atom_feat, n_pair_feat,
-               name='Weave_topology'):
+  def __init__(self, batch_size, n_atom_feat, n_pair_feat, 
+               max_atoms=100, name='Weave_topology'):
     """
     Parameters
     ----------
@@ -412,36 +412,42 @@ class WeaveGraphTopology(GraphTopology):
 
     #self.n_atoms = n_atoms
     self.name = name
-    self.max_atoms = max_atoms
+    self.batch_size = batch_size
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
+    self.max_atoms = max_atoms * batch_size
 
     self.atom_features_placeholder = tf.placeholder(
         dtype='float32',
-        shape=(None, self.max_atoms, self.n_atom_feat),
+        shape=(None, self.n_atom_feat),
         name=self.name + '_atom_features')
-    self.atom_mask_placeholder = tf.placeholder(
-        dtype='float32',
-        shape=(None, self.max_atoms),
-        name=self.name + '_atom_mask')
     self.pair_features_placeholder = tf.placeholder(
         dtype='float32',
-        shape=(None, self.max_atoms, self.max_atoms, self.n_pair_feat),
+        shape=(None, self.n_pair_feat),
         name=self.name + '_pair_features')
-    self.pair_mask_placeholder = tf.placeholder(
-        dtype='float32',
-        shape=(None, self.max_atoms, self.max_atoms),
-        name=self.name + '_pair_mask')
-    self.membership_placeholder = tf.placeholder(
-        dtype='int32', shape=(None,), name=self.name + '_membership')
+    self.pair_split_placeholder = tf.placeholder(
+        dtype='int32', shape=(self.max_atoms,), 
+        name=self.name + '_pair_split')
+    self.pair_membership_placeholder = tf.placeholder(
+        dtype='bool', shape=(self.max_atoms,), 
+        name=self.name + '_pair_membership')
+    self.atom_split_placeholder = tf.placeholder(
+        dtype='int32', shape=(self.batch_size,), 
+        name=self.name + '_atom_split')
+    self.atom_to_pair_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,2), 
+        name=self.name + '_atom_to_pair')
+    
+    
     # Define the list of tensors to be used as topology
-    self.topology = [self.atom_mask_placeholder, self.pair_mask_placeholder]
+    self.topology = [self.pair_split_placeholder, self.pair_membership_placeholder,
+                     self.atom_split_placeholder, self.atom_to_pair_placeholder]
     self.inputs = [self.atom_features_placeholder]
     self.inputs += self.topology
 
   def get_pair_features_placeholder(self):
     return self.pair_features_placeholder
-
+    
   def batch_to_feed_dict(self, batch):
     """Converts the current batch of WeaveMol into tensorflow feed_dict.
 
@@ -461,34 +467,42 @@ class WeaveGraphTopology(GraphTopology):
     # Extract atom numbers
     atom_feat = []
     pair_feat = []
-    atom_mask = []
-    pair_mask = []
-    membership = []
+    atom_split = []
+    atom_to_pair = []
+    pair_split = []
     max_atoms = self.max_atoms
+    start = 0
     for im, mol in enumerate(batch):
       n_atoms = mol.get_num_atoms()
-      atom_feat.append(
-          np.pad(mol.get_atom_features(), ((0, max_atoms - n_atoms), (0, 0)),
-                 'constant'))
-      atom_mask.append(
-          np.array([1] * n_atoms + [0] * (max_atoms - n_atoms), dtype=float))
-      pair_feat.append(
-          np.pad(mol.get_pair_features(), ((0, max_atoms - n_atoms), (
-              0, max_atoms - n_atoms), (0, 0)), 'constant'))
-      pair_mask.append(np.array([[1]*n_atoms + [0]*(max_atoms-n_atoms)]*n_atoms + \
-                       [[0]*max_atoms]*(max_atoms-n_atoms), dtype=float))
-      membership.extend([im] * n_atoms)
-    atom_feat = np.stack(atom_feat)
-    pair_feat = np.stack(pair_feat)
-    atom_mask = np.stack(atom_mask)
-    pair_mask = np.stack(pair_mask)
-    membership = np.array(membership)
+      # number of atoms in each molecule
+      atom_split.append(n_atoms)
+      # index of pair features
+      C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+      atom_to_pair.append(np.transpose(np.array([C1.flatten()+start, C0.flatten()+start])))
+      start = start + n_atoms
+      # number of pairs for each atom
+      pair_split.extend([n_atoms]*n_atoms)
+      # atom features
+      atom_feat.append(mol.get_atom_features())
+      # pair features
+      pair_feat.append(np.reshape(mol.get_pair_features(), 
+                                  (n_atoms*n_atoms, self.n_pair_feat)))
+      
+    atom_feat = np.concatenate(atom_feat, axis=0)
+    pair_feat = np.concatenate(pair_feat, axis=0)
+    atom_to_pair = np.concatenate(atom_to_pair, axis=0)
+    atom_split = np.array(atom_split)
+    n_pair = len(pair_split)
+    pair_split = np.pad(pair_split, ((0, max_atoms-n_pair)), 'constant')
+    pair_membership = np.array([True]*n_pair + [False]*(max_atoms-n_pair))
+    
     # Generate dicts
     dict_DTNN = {
         self.atom_features_placeholder: atom_feat,
         self.pair_features_placeholder: pair_feat,
-        self.atom_mask_placeholder: atom_mask,
-        self.pair_mask_placeholder: pair_mask,
-        self.membership_placeholder: membership
+        self.pair_split_placeholder: pair_split,
+        self.pair_membership_placeholder: pair_membership,
+        self.atom_split_placeholder: atom_split,
+        self.atom_to_pair_placeholder: atom_to_pair
     }
     return dict_DTNN

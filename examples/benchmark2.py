@@ -55,8 +55,9 @@ parser.add_argument(
     action='append',
     dest='model_args',
     default=[],
-    help='Choice of model: tf, tf_robust, logreg, rf, irv, graphconv, xgb, dag, weave, tf_regression, tf_regression_ft, rf_regression, graphconvreg, xgb_regression, dtnn, dag_regression, weave_regression'
-)
+    help='Choice of model: tf, tf_robust, logreg, rf, irv, graphconv, xgb,' + \
+         ' dag, weave, tf_regression, tf_regression_ft, rf_regression, ' + \
+         'graphconvreg, xgb_regression, dtnn, dag_regression, weave_regression')
 parser.add_argument(
     '-d',
     action='append',

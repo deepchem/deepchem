@@ -266,15 +266,11 @@ def benchmark_classification(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
-    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
-    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
-    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
-
     graph_model = deepchem.nn.SequentialWeaveGraph(
-        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
-    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+        batch_size, n_atom_feat=n_features, n_pair_feat=n_pair_feat, max_atoms=120)
+    graph_model.add(deepchem.nn.WeaveLayer(75, 14))
+    graph_model.add(deepchem.nn.WeaveLayer(50, 50))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
         deepchem.nn.WeaveGather(
@@ -286,6 +282,7 @@ def benchmark_classification(train_dataset,
         n_features,
         batch_size=batch_size,
         learning_rate=learning_rate,
+        learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
         beta2=.999)
@@ -588,15 +585,11 @@ def benchmark_regression(train_dataset,
     n_graph_feat = hyper_parameters['n_graph_feat']
     n_pair_feat = hyper_parameters['n_pair_feat']
 
-    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
-    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
-    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
-    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
-
     graph_model = deepchem.nn.SequentialWeaveGraph(
-        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
-    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+        batch_size, n_atom_feat=n_features, n_pair_feat=n_pair_feat, max_atoms=80)
+    graph_model.add(deepchem.nn.WeaveLayer(75, 14))
+    graph_model.add(deepchem.nn.WeaveLayer(50, 50))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
         deepchem.nn.WeaveGather(
@@ -608,6 +601,7 @@ def benchmark_regression(train_dataset,
         n_features,
         batch_size=batch_size,
         learning_rate=learning_rate,
+        learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
         beta2=.999)

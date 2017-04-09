@@ -166,14 +166,15 @@ class SequentialWeaveGraph(SequentialGraph):
   """SequentialGraph for Weave models
   """
 
-  def __init__(self, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+  def __init__(self, batch_size, n_atom_feat=75, n_pair_feat=14, max_atoms=100):
     self.graph = tf.Graph()
+    self.batch_size = batch_size
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     with self.graph.as_default():
-      self.graph_topology = WeaveGraphTopology(self.max_atoms, self.n_atom_feat,
-                                               self.n_pair_feat)
+      self.graph_topology = WeaveGraphTopology(self.batch_size, self.n_atom_feat,
+                                               self.n_pair_feat, self.max_atoms)
       self.output = self.graph_topology.get_atom_features_placeholder()
       self.output_P = self.graph_topology.get_pair_features_placeholder()
     self.layers = []
@@ -185,12 +186,9 @@ class SequentialWeaveGraph(SequentialGraph):
         self.output, self.output_P = layer([
             self.output, self.output_P
         ] + self.graph_topology.get_topology_placeholders())
-      elif type(layer).__name__ in ['WeaveConcat']:
-        self.output = layer(
-            [self.output, self.graph_topology.atom_mask_placeholder])
       elif type(layer).__name__ in ['WeaveGather']:
         self.output = layer(
-            [self.output, self.graph_topology.membership_placeholder])
+            [self.output, self.graph_topology.atom_split_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
