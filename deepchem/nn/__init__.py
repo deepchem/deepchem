@@ -21,6 +21,7 @@ from deepchem.nn.layers import DAGLayer
 from deepchem.nn.layers import DAGGather
 
 from deepchem.nn.weave_layers import WeaveLayer
+from deepchem.nn.weave_layers import WeaveConcat
 from deepchem.nn.weave_layers import WeaveGather
 
 from deepchem.nn.model_ops import weight_decay
