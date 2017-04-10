@@ -5,6 +5,10 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 
+__author__ = "Joseph Gomes"
+__copyright__ = "Copyright 2016, Stanford University"
+__license__ = "MIT"
+
 ### AtomicNet fully-connected layer ops ###
 
 
