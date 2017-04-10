@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
-from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology, WeaveGraphTopology_v2
 
 
 class SequentialGraph(object):
@@ -194,7 +194,37 @@ class SequentialWeaveGraph(SequentialGraph):
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
-     
+
+class SequentialWeaveGraph_v2(SequentialGraph):
+  """SequentialGraph for Weave models
+  """
+
+  def __init__(self, batch_size, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    self.graph = tf.Graph()
+    self.batch_size = batch_size
+    self.max_atoms = max_atoms
+    self.n_atom_feat = n_atom_feat
+    self.n_pair_feat = n_pair_feat
+    with self.graph.as_default():
+      self.graph_topology = WeaveGraphTopology_v2(self.batch_size, self.max_atoms, 
+                                                  self.n_atom_feat,self.n_pair_feat)
+      self.output = self.graph_topology.get_atom_features_placeholder()
+      self.output_P = self.graph_topology.get_pair_features_placeholder()
+    self.layers = []
+
+  def add(self, layer):
+    """Adds a new layer to model."""
+    with self.graph.as_default():
+      if type(layer).__name__ in ['WeaveLayer_v2']:
+        self.output, self.output_P = layer([
+            self.output, self.output_P
+        ] + self.graph_topology.get_topology_placeholders())
+      elif type(layer).__name__ in ['WeaveGather_v2']:
+        self.output = layer(
+            [self.output, self.graph_topology.atom_split_placeholder])
+      else:
+        self.output = layer(self.output)
+      self.layers.append(layer)
 
 
 class SequentialSupportGraph(object):

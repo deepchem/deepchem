@@ -175,6 +175,66 @@ class WeaveLayer(Layer):
     return A, P
 
 
+class WeaveLayer_v2(WeaveLayer):
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = [atom_features, pair_features, pair_split, pair_membership, atom_split]
+    
+    Parameters
+    ----------
+    x: list
+      list of Tensors of form described above.
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    A: Tensor
+      Tensor of atom_features
+    P: Tensor
+      Tensor of pair_features
+    """
+    # Add trainable weights
+    self.build()
+
+    atom_features = x[0]
+    pair_features = x[1]
+
+    pair_split = x[2]
+    pair_membership = x[3]
+    atom_split = x[4]
+    atom_to_pair = x[5]
+
+    AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
+    AA = self.activation(AA)
+    PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
+    PA = self.activation(PA)
+    PAs = tf.split(PA, pair_split, axis=0)
+    PA = [tf.reduce_sum(molecule, 0) for molecule in PAs]
+    PA = tf.boolean_mask(PA, pair_membership)
+    
+    A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
+    A = self.activation(A)
+      
+    if self.update_pair:
+      AP_ij = tf.matmul(tf.reshape(tf.gather(atom_features, atom_to_pair), 
+                                   [-1, 2*self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ij = self.activation(AP_ij)
+      AP_ji = tf.matmul(tf.reshape(tf.gather(atom_features, tf.reverse(atom_to_pair, [1])), 
+                                   [-1, 2*self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ji = self.activation(AP_ji)
+      
+      PP = tf.matmul(pair_features, self.W_PP) + self.b_PP
+      PP = self.activation(PP)
+      P = tf.matmul(tf.concat([AP_ij + AP_ji, PP], 1), self.W_P) + self.b_P
+      P = self.activation(P)
+    else:
+      P = pair_features
+      
+    return A, P
+    
+    
 class WeaveConcat(Layer):
   """" Concat a batch of molecules into a batch of atoms
   """
@@ -342,3 +402,39 @@ class WeaveGather(Layer):
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
+    
+class WeaveGather_v2(WeaveGather):
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = [atom_features, atom_split]
+    
+    Parameters
+    ----------
+    x: list
+      Tensors as listed above
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    outputs: Tensor
+      Tensor of molecular features
+    """
+    # Add trainable weights
+    self.build()
+    outputs = x[0]
+    atom_split = x[1]
+
+    if self.gaussian_expand:
+      outputs = self.gaussian_histogram(outputs)
+
+    outputs = tf.split(outputs, atom_split, axis=0)
+
+    output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
+
+    output_molecules = tf.stack(output_molecules)
+    if self.gaussian_expand:
+      output_molecules = tf.matmul(output_molecules, self.W) + self.b
+      output_molecules = self.activation(output_molecules)
+    return output_molecules

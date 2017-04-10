@@ -1,5 +1,5 @@
 """
-Script that trains Weave models on Tox21 dataset.
+Script that trains Weave models on SIDER dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -11,10 +11,9 @@ import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
 
-# Load Tox21 dataset
-tox21_tasks, tox21_datasets, transformers = dc.molnet.load_tox21(
+sider_tasks, sider_datasets, transformers = dc.molnet.load_sider(
     featurizer='Weave')
-train_dataset, valid_dataset, test_dataset = tox21_datasets
+train_dataset, valid_dataset, test_dataset = sider_datasets
 
 # Fit models
 metric = dc.metrics.Metric(
@@ -30,18 +29,18 @@ n_pair_feat = 14
 # Batch size of models
 batch_size = 64
 n_feat = 128
-graph = dc.nn.SequentialWeaveGraph(
+graph = dc.nn.SequentialWeaveGraph_v2(batch_size,
     max_atoms=max_atoms, n_atom_feat=n_atom_feat, n_pair_feat=n_pair_feat)
 
-graph.add(dc.nn.WeaveLayer(max_atoms, 75, 14))
-#graph.add(dc.nn.WeaveLayer(max_atoms, 50, 50))
-graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
+graph.add(dc.nn.WeaveLayer_v2(max_atoms, 75, 14))
+#graph.add(dc.nn.WeaveLayer_v2(max_atoms, 50, 50))
+graph.add(dc.nn.Dense(n_feat, 50, activation='tanh'))
 graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat, gaussian_expand=True))
+graph.add(dc.nn.WeaveGather_v2(batch_size, n_input=n_feat, gaussian_expand=True))
 
 model = dc.models.MultitaskGraphClassifier(
     graph,
-    len(tox21_tasks),
+    len(sider_tasks),
     n_feat,
     batch_size=batch_size,
     learning_rate=1e-3,

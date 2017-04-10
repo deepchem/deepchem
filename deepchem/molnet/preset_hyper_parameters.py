@@ -68,7 +68,7 @@ hps['dag'] = {
 hps['weave'] = {
     'batch_size': 64,
     'nb_epoch': 40,
-    'learning_rate': 0.001,
+    'learning_rate': 0.0001,
     'n_graph_feat': 128,
     'n_pair_feat': 14,
     'seed': 123
