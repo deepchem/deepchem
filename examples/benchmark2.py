@@ -12,33 +12,28 @@ Giving classification performances of:
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
     Graph convolution(graphconv)                 
-on datasets: muv, pcba, tox21, sider, toxcast, clintox, hiv
+on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast  
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
+    Fit Transformer MultitaskDNN(tf_regression_ft),
     Random forest(rf_regression),
     Graph convolution regression(graphconvreg)
-on datasets: delaney(ESOL), nci, kaggle, pdbbind, 
-             qm7, qm7b, qm9, chembl, sampl(FreeSolv)
+on datasets: bace_r, chembl, clearance, delaney(ESOL), hopv, kaggle, lipo,
+             nci, pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl(FreeSolv)
+                
 
 time estimation listed in README file
 
-Total time of running a benchmark test(for one splitting function): 20h
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-import sys
 import os
 import numpy as np
-import shutil
-import time
 import deepchem as dc
-import tensorflow as tf
 import argparse
-from keras import backend as K
-import csv
 
 np.random.seed(123)
 
@@ -50,21 +45,22 @@ parser.add_argument(
     action='append',
     dest='splitter_args',
     default=[],
-    help='Choice of splitting function: index, random, scaffold')
+    help='Choice of splitting function: index, random, scaffold, stratified')
 parser.add_argument(
     '-m',
     action='append',
     dest='model_args',
     default=[],
     help='Choice of model: tf, tf_robust, logreg, rf, irv, graphconv, ' +
-    'tf_regression, rf_regression, graphconvreg')
+    'tf_regression, tf_regression_ft, rf_regression, graphconvreg')
 parser.add_argument(
     '-d',
     action='append',
     dest='dataset_args',
     default=[],
-    help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-    'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv')
+    help='Choice of dataset: bace_c, bace_r, bbbp, chembl, clearance, ' +
+    'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, ' +
+    'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast')
 parser.add_argument(
     '-t',
     action='store_true',
@@ -82,24 +78,18 @@ if len(splitters) == 0:
   splitters = ['index', 'random', 'scaffold']
 if len(models) == 0:
   models = [
-      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression', 'graphconvreg'
+      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
+      'tf_regression_ft', 'graphconvreg'
   ]
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:
   datasets = [
-      'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 'sampl',
-      'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b', 'qm9'
+      'bace_c', 'bace_r', 'bbbp', 'clearance', 'clintox', 'delaney', 'hiv',
+      'hopv', 'lipo', 'muv', 'pcba', 'pdbbind', 'ppb', 'qm7b', 'qm8', 'qm9',
+      'sampl', 'sider', 'tox21', 'toxcast'
   ]
 
 for split in splitters:
   for dataset in datasets:
-    if dataset in [
-        'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv'
-    ]:
-      for model in models:
-        if model in ['tf', 'tf_robust', 'logreg', 'graphconv', 'rf', 'irv']:
-          dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)
-    else:
-      for model in models:
-        if model in ['tf_regression', 'rf_regression', 'graphconvreg']:
-          dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)
+    for model in models:
+      dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)

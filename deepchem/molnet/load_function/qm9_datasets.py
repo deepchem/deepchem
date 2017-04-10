@@ -23,7 +23,7 @@ def load_qm9(featurizer=None, split='random'):
   if not os.path.exists(dataset_file):
     os.system(
         'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/gdb9.tar.gz '
+        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz '
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
               data_dir)

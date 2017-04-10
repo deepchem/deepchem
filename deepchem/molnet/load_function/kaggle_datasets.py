@@ -42,7 +42,6 @@ def get_transformers(train_dataset):
 
 # Set shard size low to avoid memory problems.
 def gen_kaggle(KAGGLE_tasks,
-               raw_train_dir,
                train_dir,
                valid_dir,
                test_dir,
@@ -94,9 +93,11 @@ def gen_kaggle(KAGGLE_tasks,
   remove_missing_entries(valid_dataset)
   remove_missing_entries(test_dataset)
 
+  print("Shuffling order of train dataset.")
+  train_dataset.sparse_shuffle()
+
   print("Transforming datasets with transformers.")
   transformers = get_transformers(train_dataset)
-  raw_train_dataset = train_dataset
 
   for transformer in transformers:
     print("Performing transformations with %s" % transformer.__class__.__name__)
@@ -105,11 +106,7 @@ def gen_kaggle(KAGGLE_tasks,
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
 
-  print("Shuffling order of train dataset.")
-  train_dataset.sparse_shuffle()
-
   print("Moving directories")
-  raw_train_dataset.move(raw_train_dir)
   train_dataset.move(train_dir)
   valid_dataset.move(valid_dir)
   test_dataset.move(test_dir)
@@ -119,7 +116,7 @@ def gen_kaggle(KAGGLE_tasks,
   print("TIMING: KAGGLE fitting took %0.3f s" % (time2 - time1))
   ############################################################## TIMING
 
-  return (raw_train_dataset, train_dataset, valid_dataset, test_dataset)
+  return train_dataset, valid_dataset, test_dataset
 
 
 def load_kaggle(shard_size=2000, featurizer=None, split=None):
@@ -134,24 +131,22 @@ def load_kaggle(shard_size=2000, featurizer=None, split=None):
     data_dir = "/tmp"
 
   data_dir = os.path.join(data_dir, "kaggle")
-  raw_train_dir = os.path.join(data_dir, "raw_train_dir")
   train_dir = os.path.join(data_dir, "train_dir")
   valid_dir = os.path.join(data_dir, "valid_dir")
   test_dir = os.path.join(data_dir, "test_dir")
 
-  if (os.path.exists(raw_train_dir) and os.path.exists(train_dir) and
-      os.path.exists(valid_dir) and os.path.exists(test_dir)):
+  if (os.path.exists(train_dir) and os.path.exists(valid_dir) and
+      os.path.exists(test_dir)):
     print("Reloading existing datasets")
-    raw_train_dataset = deepchem.data.DiskDataset(raw_train_dir)
     train_dataset = deepchem.data.DiskDataset(train_dir)
     valid_dataset = deepchem.data.DiskDataset(valid_dir)
     test_dataset = deepchem.data.DiskDataset(test_dir)
   else:
     print("Featurizing datasets")
-    (raw_train_dataset, train_dataset, valid_dataset, test_dataset) = \
-      gen_kaggle(KAGGLE_tasks, raw_train_dir, train_dir, valid_dir, test_dir, data_dir,
+    train_dataset, valid_dataset, test_dataset = \
+      gen_kaggle(KAGGLE_tasks, train_dir, valid_dir, test_dir, data_dir,
                   shard_size=shard_size)
 
-  transformers = get_transformers(raw_train_dataset)
+  transformers = get_transformers(train_dataset)
   return KAGGLE_tasks, (train_dataset, valid_dataset,
                         test_dataset), transformers

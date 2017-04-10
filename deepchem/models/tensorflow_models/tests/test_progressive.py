@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import tempfile
@@ -19,10 +19,12 @@ import tensorflow as tf
 import deepchem as dc
 from tensorflow.python.framework import test_util
 
+
 class TestProgressive(test_util.TensorFlowTestCase):
   """
   Test that progressive models satisfy basic sanity checks. 
   """
+
   def setUp(self):
     super(TestProgressive, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -30,8 +32,12 @@ class TestProgressive(test_util.TensorFlowTestCase):
   def test_construction(self):
     """Test that progressive models can be constructed without crash."""
     prog_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=1, n_features=100, alpha_init_stddevs=[.08], dropouts=[0.],
-        learning_rate=0.003, weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+        n_tasks=1,
+        n_features=100,
+        alpha_init_stddevs=[.08],
+        dropouts=[0.],
+        learning_rate=0.003,
+        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
         batch_size=200)
 
   def test_fit(self):
@@ -45,11 +51,14 @@ class TestProgressive(test_util.TensorFlowTestCase):
     y = np.zeros((n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
-    
+
     prog_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=n_tasks, n_features=n_features, alpha_init_stddevs=[.08],
-        dropouts=[0.], learning_rate=0.003,
-        weight_init_stddevs=[np.sqrt(6)/np.sqrt(1000)],
+        n_tasks=n_tasks,
+        n_features=n_features,
+        alpha_init_stddevs=[.08],
+        dropouts=[0.],
+        learning_rate=0.003,
+        weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
         batch_size=2)
 
     prog_model.fit(dataset)
@@ -72,10 +81,14 @@ class TestProgressive(test_util.TensorFlowTestCase):
 
     n_layers = 3
     prog_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=n_tasks, n_features=n_features,
-        alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
-        weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-        dropouts=[0.]*n_layers, learning_rate=0.003,
+        n_tasks=n_tasks,
+        n_features=n_features,
+        alpha_init_stddevs=[.08] * n_layers,
+        layer_sizes=[100] * n_layers,
+        weight_init_stddevs=[.02] * n_layers,
+        bias_init_consts=[1.] * n_layers,
+        dropouts=[0.] * n_layers,
+        learning_rate=0.003,
         batch_size=2)
 
     prog_model.fit(dataset)
@@ -98,10 +111,14 @@ class TestProgressive(test_util.TensorFlowTestCase):
 
     n_layers = 3
     prog_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=n_tasks, n_features=n_features,
-        alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
-        weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-        dropouts=[0.]*n_layers, learning_rate=0.003,
+        n_tasks=n_tasks,
+        n_features=n_features,
+        alpha_init_stddevs=[.08] * n_layers,
+        layer_sizes=[100] * n_layers,
+        weight_init_stddevs=[.02] * n_layers,
+        bias_init_consts=[1.] * n_layers,
+        dropouts=[0.] * n_layers,
+        learning_rate=0.003,
         batch_size=2)
 
     prog_model.fit(dataset)
@@ -123,10 +140,14 @@ class TestProgressive(test_util.TensorFlowTestCase):
 
     n_layers = 3
     prog_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=n_tasks, n_features=n_features,
-        alpha_init_stddevs=[.08]*n_layers, layer_sizes=[100]*n_layers,
-        weight_init_stddevs=[.02]*n_layers, bias_init_consts=[1.]*n_layers,
-        dropouts=[0.]*n_layers, learning_rate=0.003,
+        n_tasks=n_tasks,
+        n_features=n_features,
+        alpha_init_stddevs=[.08] * n_layers,
+        layer_sizes=[100] * n_layers,
+        weight_init_stddevs=[.02] * n_layers,
+        bias_init_consts=[1.] * n_layers,
+        dropouts=[0.] * n_layers,
+        learning_rate=0.003,
         batch_size=2)
 
     # Fit just on task zero 

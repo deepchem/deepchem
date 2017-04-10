@@ -15,6 +15,7 @@ import numpy as np
 import tensorflow as tf
 import deepchem
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
+from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
 
 
 def run_benchmark(datasets,
@@ -24,16 +25,18 @@ def run_benchmark(datasets,
                   featurizer=None,
                   n_features=0,
                   out_path='.',
-                  test=False):
+                  hyper_parameters=None,
+                  test=False,
+                  seed=123):
   """
   Run benchmark test on designated datasets with deepchem(or user-defined) model
   
   Parameters
   ----------
   datasets: list of string
-      choice of which datasets to use, should be: tox21, muv, sider, 
-      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
-      qm7, qm7b, qm9, sampl
+      choice of which datasets to use, should be: bace_c, bace_r, bbbp, chembl,
+      clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, 
+      pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast 
   model: string or user-defined model stucture
       choice of which model to use, deepchem provides implementation of
       logistic regression, random forest, multitask network, 
@@ -51,90 +54,75 @@ def run_benchmark(datasets,
       need to be specified for user-defined featurizers(if using deepchem models)
   out_path: string, optional(default='.')
       path of result file
+  hyper_parameters: dict, optional (default=None)
+      hyper parameters for designated model, None = use preset values
   test: boolean, optional(default=False)
       whether to evaluate on test set
   """
   for dataset in datasets:
     if dataset in [
-        'muv', 'pcba', 'tox21', 'sider', 'toxcast', 'clintox', 'hiv'
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
+        'toxcast'
     ]:
       mode = 'classification'
       if metric == None:
-        metric = [
-            deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean)
-        ]
+        metric = str('auc')
     elif dataset in [
-        'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
-        'sampl'
+        'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
+        'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
     ]:
       mode = 'regression'
       if metric == None:
-        metric = [
-            deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
-        ]
+        metric = str('r2')
     else:
       raise ValueError('Dataset not supported')
 
-    if featurizer == None:
-      # Assigning featurizer if not user defined
-      if model in ['graphconv', 'graphconvreg']:
-        featurizer = 'GraphConv'
-        n_features = 75
-      elif model in [
-          'tf', 'tf_robust', 'logreg', 'rf', 'irv', 'tf_regression',
-          'rf_regression'
-      ]:
-        featurizer = 'ECFP'
-        n_features = 1024
-      else:
-        raise ValueError(
-            'featurization should be specified for user-defined models')
-      # Some exceptions in datasets
-      if dataset in ['kaggle']:
-        featurizer = None  # kaggle dataset is already featurized
-        if isinstance(model,
-                      str) and not model in ['tf_regression', 'rf_regression']:
-          return
-        if split in ['scaffold', 'butina', 'random']:
-          return
-      elif dataset in ['qm7', 'qm7b', 'qm9']:
-        featurizer = None  # qm* datasets are already featurized
-        if isinstance(model, str) and not model in ['tf_regression']:
-          return
-        elif model in ['tf_regression']:
-          model = 'tf_regression_ft'
-        if split in ['scaffold', 'butina']:
-          return
-      elif dataset in ['pdbbind']:
-        featurizer = 'grid'  # pdbbind accepts grid featurizer
-        if isinstance(model,
-                      str) and not model in ['tf_regression', 'rf_regression']:
-          return
-        if split in ['scaffold', 'butina']:
-          return
+    metric_all = {
+        'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
+        'r2': deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score,
+                                      np.mean)
+    }
 
-    if not split in [
-        None, 'index', 'random', 'scaffold', 'butina', 'stratified'
-    ]:
-      raise ValueError('Splitter function not supported')
+    if isinstance(metric, str):
+      metric = [metric_all[metric]]
+
+    if featurizer == None and isinstance(model, str):
+      # Assigning featurizer if not user defined
+      pair = (dataset, model)
+      if pair in CheckFeaturizer:
+        featurizer = CheckFeaturizer[pair][0]
+        n_features = CheckFeaturizer[pair][1]
+      else:
+        continue
+
+    if not split in [None] + CheckSplit[dataset]:
+      continue
 
     loading_functions = {
-        'tox21': deepchem.molnet.load_tox21,
-        'muv': deepchem.molnet.load_muv,
-        'pcba': deepchem.molnet.load_pcba,
-        'nci': deepchem.molnet.load_nci,
-        'sider': deepchem.molnet.load_sider,
-        'toxcast': deepchem.molnet.load_toxcast,
-        'kaggle': deepchem.molnet.load_kaggle,
-        'delaney': deepchem.molnet.load_delaney,
-        'pdbbind': deepchem.molnet.load_pdbbind_grid,
+        'bace_c': deepchem.molnet.load_bace_classification,
+        'bace_r': deepchem.molnet.load_bace_regression,
+        'bbbp': deepchem.molnet.load_bbbp,
         'chembl': deepchem.molnet.load_chembl,
+        'clearance': deepchem.molnet.load_clearance,
+        'clintox': deepchem.molnet.load_clintox,
+        'delaney': deepchem.molnet.load_delaney,
+        'hiv': deepchem.molnet.load_hiv,
+        'hopv': deepchem.molnet.load_hopv,
+        'kaggle': deepchem.molnet.load_kaggle,
+        'lipo': deepchem.molnet.load_lipo,
+        'muv': deepchem.molnet.load_muv,
+        'nci': deepchem.molnet.load_nci,
+        'pcba': deepchem.molnet.load_pcba,
+        'pdbbind': deepchem.molnet.load_pdbbind_grid,
+        'ppb': deepchem.molnet.load_ppb,
         'qm7': deepchem.molnet.load_qm7_from_mat,
         'qm7b': deepchem.molnet.load_qm7b_from_mat,
+        'qm8': deepchem.molnet.load_qm8,
         'qm9': deepchem.molnet.load_qm9,
         'sampl': deepchem.molnet.load_sampl,
-        'clintox': deepchem.molnet.load_clintox,
-        'hiv': deepchem.molnet.load_hiv
+        'sider': deepchem.molnet.load_sider,
+        'tox21': deepchem.molnet.load_tox21,
+        'toxcast': deepchem.molnet.load_toxcast
     }
 
     print('-------------------------------------')
@@ -150,10 +138,6 @@ def run_benchmark(datasets,
           featurizer=featurizer)
 
     train_dataset, valid_dataset, test_dataset = all_dataset
-    if dataset in ['kaggle', 'pdbbind']:
-      n_features = train_dataset.get_data_shape()[0]
-    elif dataset in ['qm7', 'qm7b', 'qm9']:
-      n_features = list(train_dataset.get_data_shape())
 
     time_start_fitting = time.time()
     train_score = {}
@@ -170,8 +154,10 @@ def run_benchmark(datasets,
             transformers,
             n_features,
             metric,
-            model=model,
-            test=test)
+            model,
+            test=test,
+            hyper_parameters=hyper_parameters,
+            seed=seed)
       elif mode == 'regression':
         train_score, valid_score, test_score = benchmark_regression(
             train_dataset,
@@ -181,8 +167,10 @@ def run_benchmark(datasets,
             transformers,
             n_features,
             metric,
-            model=model,
-            test=test)
+            model,
+            test=test,
+            hyper_parameters=hyper_parameters,
+            seed=seed)
     else:
       model.fit(train_dataset)
       train_score['user_defined'] = model.evaluate(train_dataset, metric,
@@ -209,3 +197,99 @@ def run_benchmark(datasets,
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)
+
+
+#
+# Note by @XericZephyr. Reason why I spun off this function:
+#   1. Some model needs dataset information.
+#   2. It offers us possibility to **cache** the dataset
+#      if the featurizer runs very slow, e.g., GraphConv.
+#   2+. The cache can even happen at Travis CI to accelerate
+#       CI testing.
+#
+def load_dataset(dataset, featurizer, split='random'):
+  """
+  Load specific dataset for benchmark.
+  
+  Parameters
+  ----------
+  dataset: string
+      choice of which datasets to use, should be: tox21, muv, sider, 
+      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
+      qm7, qm7b, qm9, sampl
+  featurizer: string or dc.feat.Featurizer.
+      choice of featurization.
+  split: string,  optional (default=None)
+      choice of splitter function, None = using the default splitter
+  """
+  dataset_loading_functions = {
+      'bace_c': deepchem.molnet.load_bace_classification,
+      'bace_r': deepchem.molnet.load_bace_regression,
+      'bbbp': deepchem.molnet.load_bbbp,
+      'chembl': deepchem.molnet.load_chembl,
+      'clearance': deepchem.molnet.load_clearance,
+      'clintox': deepchem.molnet.load_clintox,
+      'delaney': deepchem.molnet.load_delaney,
+      'hiv': deepchem.molnet.load_hiv,
+      'hopv': deepchem.molnet.load_hopv,
+      'kaggle': deepchem.molnet.load_kaggle,
+      'lipo': deepchem.molnet.load_lipo,
+      'muv': deepchem.molnet.load_muv,
+      'nci': deepchem.molnet.load_nci,
+      'pcba': deepchem.molnet.load_pcba,
+      'pdbbind': deepchem.molnet.load_pdbbind_grid,
+      'ppb': deepchem.molnet.load_ppb,
+      'qm7': deepchem.molnet.load_qm7_from_mat,
+      'qm7b': deepchem.molnet.load_qm7b_from_mat,
+      'qm8': deepchem.molnet.load_qm8,
+      'qm9': deepchem.molnet.load_qm9,
+      'sampl': deepchem.molnet.load_sampl,
+      'sider': deepchem.molnet.load_sider,
+      'tox21': deepchem.molnet.load_tox21,
+      'toxcast': deepchem.molnet.load_toxcast
+  }
+  print('-------------------------------------')
+  print('Loading dataset: %s' % dataset)
+  print('-------------------------------------')
+  # loading datasets
+  if split is not None:
+    print('Splitting function: %s' % split)
+  tasks, all_dataset, transformers = dataset_loading_functions[dataset](
+      featurizer=featurizer, split=split)
+  return tasks, all_dataset, transformers
+
+
+def benchmark_model(model, all_dataset, transformers, metric, test=False):
+  """
+  Benchmark custom model.
+
+  model: user-defined model stucture
+    For user define model, it should include function: fit, evaluate.
+
+  all_dataset: (train, test, val) data tuple.
+    Returned by `load_dataset` function.
+
+  transformers
+
+  metric: string
+    choice of evaluation metrics.
+
+
+  """
+  time_start_fitting = time.time()
+  train_score = .0
+  valid_score = .0
+  test_score = .0
+
+  train_dataset, valid_dataset, test_dataset = all_dataset
+
+  model.fit(train_dataset)
+  train_score = model.evaluate(train_dataset, metric, transformers)
+  valid_score = model.evaluate(valid_dataset, metric, transformers)
+  if test:
+    test_score = model.evaluate(test_dataset, metric, transformers)
+
+  time_finish_fitting = time.time()
+  time_for_running = time_finish_fitting - time_start_fitting
+
+  return train_score, valid_score, test_score, time_for_running

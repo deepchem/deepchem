@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_muv(featurizer='ECFP', split='index'):
+def load_muv(featurizer='ECFP', split='index', K=4):
   """Load MUV datasets. Does not do train/test split"""
   # Load MUV dataset
   print("About to load MUV dataset.")
@@ -56,8 +56,14 @@ def load_muv(featurizer='ECFP', split='index'):
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'scaffold': deepchem.splits.ScaffoldSplitter()
+      'scaffold': deepchem.splits.ScaffoldSplitter(),
+      'task': deepchem.splits.TaskSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
-  return MUV_tasks, (train, valid, test), transformers
+  if split == 'task':
+    fold_datasets = splitter.k_fold_split(dataset, K)
+    all_dataset = fold_datasets
+  else:
+    train, valid, test = splitter.train_valid_test_split(dataset)
+    all_dataset = (train, valid, test)
+  return MUV_tasks, all_dataset, transformers

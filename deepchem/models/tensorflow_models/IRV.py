@@ -95,20 +95,39 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
     with graph.as_default():
       output = []
       with placeholder_scope:
-        self.features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, self.n_features], name='mol_features')
       with tf.name_scope('variable'):
         V = tf.Variable(tf.constant([0.01, 1.]), name="vote", dtype=tf.float32)
         W = tf.Variable(tf.constant([1., 1.]), name="w", dtype=tf.float32)
         b = tf.Variable(tf.constant([0.01]), name="b", dtype=tf.float32)
         b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
+
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
+        features = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        features = mol_features
+
       for count in range(self.n_tasks):
-        similarity = self.features[:, 2 * K * count:(2 * K * count + K)]
-        ys = tf.to_int32(
-            self.features[:, (2 * K * count + K):2 * K * (count + 1)])
+        similarity = features[:, 2 * K * count:(2 * K * count + K)]
+        ys = tf.to_int32(features[:, (2 * K * count + K):2 * K * (count + 1)])
         R = b + W[0] * similarity + W[1] * tf.constant(
             np.arange(K) + 1, dtype=tf.float32)
         R = tf.sigmoid(R)
         z = tf.reduce_sum(R * tf.gather(V, ys), axis=1) + b2
         output.append(tf.reshape(z, shape=[-1, 1]))
-    return output
+    return (output, labels, weights)

@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
-__license__ = "GPL"
+__license__ = "MIT"
 
 import os
 import shutil
@@ -15,6 +15,7 @@ import unittest
 import tempfile
 import deepchem as dc
 import numpy as np
+
 
 class TestLoad(unittest.TestCase):
   """
@@ -27,8 +28,7 @@ class TestLoad(unittest.TestCase):
     base_dir = tempfile.mkdtemp()
     data_dir = os.path.join(base_dir, "data")
     moved_data_dir = os.path.join(base_dir, "moved_data")
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/example.csv")
+    dataset_file = os.path.join(current_dir, "../../models/tests/example.csv")
 
     featurizer = dc.feat.CircularFingerprint(size=1024)
     tasks = ["log-solubility"]
@@ -57,17 +57,17 @@ class TestLoad(unittest.TestCase):
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     ##Make directories to store the raw and featurized datasets.
-    data_dir = tempfile.mkdtemp() 
+    data_dir = tempfile.mkdtemp()
 
     # Load dataset
     print("About to load dataset.")
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/multitask_example.csv")
+    dataset_file = os.path.join(current_dir,
+                                "../../models/tests/multitask_example.csv")
 
     # Featurize tox21 dataset
     print("About to featurize dataset.")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    all_tasks = ["task%d"%i for i in range(17)] 
+    all_tasks = ["task%d" % i for i in range(17)]
 
     ####### Do featurization
     loader = dc.data.CSVLoader(
@@ -77,7 +77,6 @@ class TestLoad(unittest.TestCase):
     # Do train/valid split.
     X_multi, y_multi, w_multi, ids_multi = (dataset.X, dataset.y, dataset.w,
                                             dataset.ids)
-
 
     ####### Do singletask load
     y_tasks, w_tasks, = [], []
@@ -111,19 +110,19 @@ class TestLoad(unittest.TestCase):
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     #Make directories to store the raw and featurized datasets.
-    data_dir = tempfile.mkdtemp() 
+    data_dir = tempfile.mkdtemp()
 
     # Load dataset
     print("About to load dataset.")
-    dataset_file = os.path.join(
-        current_dir, "../../models/tests/multitask_example.csv")
+    dataset_file = os.path.join(current_dir,
+                                "../../models/tests/multitask_example.csv")
 
     # Featurize tox21 dataset
     print("About to featurize dataset.")
     featurizer = dc.feat.CircularFingerprint(size=1024)
-    all_tasks = ["task%d"%i for i in range(17)] 
+    all_tasks = ["task%d" % i for i in range(17)]
     # For debugging purposes
-    n_tasks = 17 
+    n_tasks = 17
     tasks = all_tasks[0:n_tasks]
 
     ####### Do multitask load

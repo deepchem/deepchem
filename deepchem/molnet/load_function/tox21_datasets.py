@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_tox21(featurizer='ECFP', split='index'):
+def load_tox21(featurizer='ECFP', split='index', K=4):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
   if "DEEPCHEM_DATA_DIR" in os.environ:
@@ -32,6 +32,8 @@ def load_tox21(featurizer='ECFP', split='index'):
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
@@ -52,8 +54,14 @@ def load_tox21(featurizer='ECFP', split='index'):
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
       'scaffold': deepchem.splits.ScaffoldSplitter(),
-      'butina': deepchem.splits.ButinaSplitter()
+      'butina': deepchem.splits.ButinaSplitter(),
+      'task': deepchem.splits.TaskSplitter()
   }
   splitter = splitters[split]
-  train, valid, test = splitter.train_valid_test_split(dataset)
-  return tox21_tasks, (train, valid, test), transformers
+  if split == 'task':
+    fold_datasets = splitter.k_fold_split(dataset, K)
+    all_dataset = fold_datasets
+  else:
+    train, valid, test = splitter.train_valid_test_split(dataset)
+    all_dataset = (train, valid, test)
+  return tox21_tasks, all_dataset, transformers
