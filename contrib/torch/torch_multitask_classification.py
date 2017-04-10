@@ -8,7 +8,7 @@ Created on Mon Mar 13 22:31:24 2017
 import torch
 import numpy as np
 from deepchem.metrics import from_one_hot
-from deepchem.models.torch_models import TorchMultitaskModel
+from torch_model import TorchMultitaskModel
 
 
 class TorchMultitaskClassification(TorchMultitaskModel):
@@ -62,10 +62,10 @@ class TorchMultitaskClassification(TorchMultitaskModel):
     for i in range(n_layers):
       W_init = np.random.normal(0, weight_init_stddevs[i],
                                 (prev_layer_size, layer_sizes[i]))
-      W_init = torch.FloatTensor(W_init)
+      W_init = torch.cuda.FloatTensor(W_init)
       self.W_list.append(torch.autograd.Variable(W_init, requires_grad=True))
       b_init = np.full((layer_sizes[i],), bias_init_consts[i])
-      b_init = torch.FloatTensor(b_init)
+      b_init = torch.cuda.FloatTensor(b_init)
       self.b_list.append(torch.autograd.Variable(b_init, requires_grad=True))
       prev_layer_size = layer_sizes[i]
 
@@ -74,11 +74,11 @@ class TorchMultitaskClassification(TorchMultitaskModel):
     for i in range(self.n_tasks):
       W_init = np.random.normal(0, weight_init_stddevs[-1],
                                 (prev_layer_size, self.n_classes))
-      W_init = torch.FloatTensor(W_init)
+      W_init = torch.cuda.FloatTensor(W_init)
       self.task_W_list.append(
           torch.autograd.Variable(W_init, requires_grad=True))
       b_init = np.full((self.n_classes,), bias_init_consts[-1])
-      b_init = torch.FloatTensor(b_init)
+      b_init = torch.cuda.FloatTensor(b_init)
       self.task_b_list.append(
           torch.autograd.Variable(b_init, requires_grad=True))
     self.trainables = self.W_list + self.b_list + self.task_W_list + self.task_b_list
@@ -110,14 +110,14 @@ class TorchMultitaskClassification(TorchMultitaskModel):
     return loss
 
   def predict_on_batch(self, X_batch):
-    X_batch = torch.autograd.Variable(torch.FloatTensor(X_batch))
+    X_batch = torch.autograd.Variable(torch.cuda.FloatTensor(X_batch))
     outputs = self.forward(X_batch, training=False)
-    y_pred_batch = torch.stack(outputs, 1).data.numpy()[:]
+    y_pred_batch = torch.stack(outputs, 1).data.cpu().numpy()[:]
     y_pred_batch = from_one_hot(y_pred_batch, 2)
     return y_pred_batch
 
   def predict_proba_on_batch(self, X_batch):
-    X_batch = torch.autograd.Variable(torch.FloatTensor(X_batch))
+    X_batch = torch.autograd.Variable(torch.cuda.FloatTensor(X_batch))
     outputs = self.forward(X_batch, training=False)
-    y_pred_batch = torch.stack(outputs, 1).data.numpy()[:]
+    y_pred_batch = torch.stack(outputs, 1).data.cpu().numpy()[:]
     return y_pred_batch

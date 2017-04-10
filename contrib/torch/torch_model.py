@@ -159,16 +159,16 @@ class TorchMultitaskModel(Model):
           log("On batch %d" % ind, self.verbose)
         # Run training op.
         self.optimizer.zero_grad()
-        X_b_input = torch.autograd.Variable(torch.FloatTensor(X_b))
-        y_b_input = torch.autograd.Variable(torch.FloatTensor(y_b))
-        w_b_input = torch.autograd.Variable(torch.FloatTensor(w_b))
+        X_b_input = torch.autograd.Variable(torch.cuda.FloatTensor(X_b))
+        y_b_input = torch.autograd.Variable(torch.cuda.FloatTensor(y_b))
+        w_b_input = torch.autograd.Variable(torch.cuda.FloatTensor(w_b))
         outputs = self.forward(X_b_input, training=True)
         loss = self.add_training_cost(outputs, y_b_input, w_b_input)
         loss.backward()
         self.optimizer.step()
         avg_loss += loss
         n_batches += 1
-      avg_loss = float(avg_loss.data.numpy()) / n_batches
+      avg_loss = float(avg_loss.data.cpu().numpy()) / n_batches
       log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbose)
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2 - time1), self.verbose)
