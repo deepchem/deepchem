@@ -10,12 +10,10 @@ import numpy as np
 from deepchem.metrics import from_one_hot
 from deepchem.models.torch_models import TorchMultitaskModel
 
+
 class TorchMultitaskClassification(TorchMultitaskModel):
-  def __init__(self,
-               n_tasks,
-               n_features,
-               n_classes=2,
-               **kwargs):
+
+  def __init__(self, n_tasks, n_features, n_classes=2, **kwargs):
     """Constructs the computational graph.
 
     This function constructs the computational graph for the model. It relies
@@ -35,7 +33,7 @@ class TorchMultitaskClassification(TorchMultitaskModel):
     self.n_features = n_features
     self.n_classes = n_classes
     super(TorchMultitaskClassification, self).__init__(**kwargs)
-    
+
   def build(self):
     """Constructs the graph architecture as specified in its config.
 
@@ -77,10 +75,12 @@ class TorchMultitaskClassification(TorchMultitaskModel):
       W_init = np.random.normal(0, weight_init_stddevs[-1],
                                 (prev_layer_size, self.n_classes))
       W_init = torch.FloatTensor(W_init)
-      self.task_W_list.append(torch.autograd.Variable(W_init, requires_grad=True))
+      self.task_W_list.append(
+          torch.autograd.Variable(W_init, requires_grad=True))
       b_init = np.full((self.n_classes,), bias_init_consts[-1])
       b_init = torch.FloatTensor(b_init)
-      self.task_b_list.append(torch.autograd.Variable(b_init, requires_grad=True))
+      self.task_b_list.append(
+          torch.autograd.Variable(b_init, requires_grad=True))
     self.trainables = self.W_list + self.b_list + self.task_W_list + self.task_b_list
     self.regularizaed_variables = self.W_list + self.task_W_list
 
@@ -103,7 +103,9 @@ class TorchMultitaskClassification(TorchMultitaskModel):
   def cost(self, logit, label, weight):
     loss = []
     for i in range(logit.size()[0]):
-      loss.append(torch.nn.functional.cross_entropy(logit[i,:], label[i].long()).mul(weight[i]))
+      loss.append(
+          torch.nn.functional.cross_entropy(logit[i, :], label[i].long()).mul(
+              weight[i]))
     loss = torch.cat(loss).mean()
     return loss
 
@@ -113,7 +115,7 @@ class TorchMultitaskClassification(TorchMultitaskModel):
     y_pred_batch = torch.stack(outputs, 1).data.numpy()[:]
     y_pred_batch = from_one_hot(y_pred_batch, 2)
     return y_pred_batch
-  
+
   def predict_proba_on_batch(self, X_batch):
     X_batch = torch.autograd.Variable(torch.FloatTensor(X_batch))
     outputs = self.forward(X_batch, training=False)

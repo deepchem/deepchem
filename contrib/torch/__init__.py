@@ -12,7 +12,9 @@ from deepchem.trans import undo_transforms
 from deepchem.utils.save import log
 from deepchem.models import Model
 
+
 class TorchMultitaskModel(Model):
+
   def __init__(self,
                layer_sizes=[1000],
                weight_init_stddevs=[.02],
@@ -78,18 +80,18 @@ class TorchMultitaskModel(Model):
 
     self.build()
     self.optimizer = self.get_training_op()
-    
+
   def add_training_cost(self, outputs, labels, weights):
     weighted_costs = []  # weighted costs for each example
     for task in range(self.n_tasks):
       weighted_cost = self.cost(outputs[task], labels[:, task],
-                                        weights[:, task])
+                                weights[:, task])
       weighted_costs.append(weighted_cost)
     loss = torch.cat(weighted_costs).sum()
     # weight decay
     if self.penalty > 0.0:
       for variable in self.regularizaed_variables:
-        loss += self.penalty*0.5*variable.mul(variable).sum()
+        loss += self.penalty * 0.5 * variable.mul(variable).sum()
     return loss
 
   def get_training_op(self):
@@ -106,7 +108,8 @@ class TorchMultitaskModel(Model):
     elif self.optimizer == 'adagrad':
       train_op = torch.optim.Adagrad(self.trainables, lr=self.learning_rate)
     elif self.optimizer == 'rmsprop':
-      train_op = torch.optim.RMSprop(self.trainables, lr=self.learning_rate, momentum=self.momentum)
+      train_op = torch.optim.RMSprop(
+          self.trainables, lr=self.learning_rate, momentum=self.momentum)
     elif self.optimizer == 'sgd':
       train_op = torch.optim.SGD(self.trainables, lr=self.learning_rate)
     else:
@@ -151,8 +154,7 @@ class TorchMultitaskModel(Model):
           # Turns out there are valid cases where we don't want pad-batches
           # on by default.
           #dataset.iterbatches(batch_size, pad_batches=True)):
-          dataset.iterbatches(
-              self.batch_size, pad_batches=self.pad_batches)):
+          dataset.iterbatches(self.batch_size, pad_batches=self.pad_batches)):
         if ind % log_every_N_batches == 0:
           log("On batch %d" % ind, self.verbose)
         # Run training op.
@@ -167,8 +169,7 @@ class TorchMultitaskModel(Model):
         avg_loss += loss
         n_batches += 1
       avg_loss = float(avg_loss.data.numpy()) / n_batches
-      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss),
-            self.verbose)
+      log('Ending epoch %d: Average loss %g' % (epoch, avg_loss), self.verbose)
     time2 = time.time()
     print("TIMING: model fitting took %0.3f s" % (time2 - time1), self.verbose)
     ############################################################## TIMING
@@ -229,6 +230,6 @@ class TorchMultitaskModel(Model):
 
   def predict_on_batch(self, X_batch):
     raise NotImplementedError('Must be overridden by concrete subclass')
-  
+
   def predict_proba_on_batch(self, X_batch):
     raise NotImplementedError('Must be overridden by concrete subclass')
