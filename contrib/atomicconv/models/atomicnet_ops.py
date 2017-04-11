@@ -282,7 +282,7 @@ def AtomicConvolutionLayer(X, Nbrs, Nbrs_Z, atom_types, radial_params, boxsize,
   """Atomic convoluation layer
 
   N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
-  l = num_radial_filters
+  l = num_radial_filters * num_atom_types
 
   Parameters
   ----------

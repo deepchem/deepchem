@@ -40,7 +40,6 @@ transformers = [
 ]
 for transformer in transformers:
   train_dataset = transformer.transform(train_dataset)
-  test_dataset = transformer.transform(test_dataset)
 
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
@@ -56,7 +55,7 @@ penalty = 0.
 model = TensorflowFragmentRegressor(
     len(pdbbind_tasks),
     rp,
-    at,
+at,
     frag1_num_atoms,
     frag2_num_atoms,
     complex_num_atoms,
