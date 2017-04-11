@@ -80,8 +80,8 @@ def AtomicNNLayer(tensor, size, weights, biases, name=None):
   """
 
   if len(tensor.get_shape()) != 2:
-    raise ValueError(
-        'Dense layer input must be 2D, not %dD' % len(tensor.get_shape()))
+    raise ValueError('Dense layer input must be 2D, not %dD' %
+                     len(tensor.get_shape()))
   with tf.name_scope(name, 'fully_connected', [tensor, weights, biases]):
     return tf.nn.xw_plus_b(tensor, weights, biases)
 

@@ -40,6 +40,7 @@ transformers = [
 ]
 for transformer in transformers:
   train_dataset = transformer.transform(train_dataset)
+  test_dataset = transformer.transform(test_dataset)
 
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
@@ -85,7 +86,7 @@ train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset,
 train_scores = train_evaluator.compute_model_performance(metric)
 print("Train scores")
 print(train_scores)
-
-print("Prediction")
-predictions = model.predict(test_dataset, transformers)
-print(predictions)
+test_evaluator = dc.utils.evaluate.Evaluator(model, test_dataset, transformers)
+test_scores = test_evaluator.compute_model_performance(metric)
+print("Test scores")
+print(test_scores)
