@@ -416,8 +416,8 @@ class TensorflowGraphModel(Model):
     feeding and fetching the same tensor.
     """
     weights = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
         weights.append(
@@ -604,8 +604,9 @@ class TensorflowClassifier(TensorflowGraphModel):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    return tf.mul(
-        tf.nn.softmax_cross_entropy_with_logits(logits, labels), weights)
+    return tf.multiply(
+        tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
@@ -616,8 +617,8 @@ class TensorflowClassifier(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       n_classes = self.n_classes
@@ -758,7 +759,7 @@ class TensorflowRegressor(TensorflowGraphModel):
       A tensor with shape batch_size containing the weighted cost for each
       example.
     """
-    return tf.mul(0.5 * tf.square(output - labels), weights)
+    return tf.multiply(0.5 * tf.square(output - labels), weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     """Add Placeholders for labels for each task.
@@ -769,8 +770,8 @@ class TensorflowRegressor(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       labels = []
@@ -858,8 +859,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
         batch_size x n_features.
     """
     n_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with graph.as_default():
       with placeholder_scope:
         self.mol_features = tf.placeholder(
