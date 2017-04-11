@@ -55,7 +55,7 @@ penalty = 0.
 model = TensorflowFragmentRegressor(
     len(pdbbind_tasks),
     rp,
-at,
+    at,
     frag1_num_atoms,
     frag2_num_atoms,
     complex_num_atoms,
@@ -85,7 +85,7 @@ train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset,
 train_scores = train_evaluator.compute_model_performance(metric)
 print("Train scores")
 print(train_scores)
-test_evaluator = dc.utils.evaluate.Evaluator(model, test_dataset, transformers)
-test_scores = test_evaluator.compute_model_performance(metric)
-print("Test scores")
-print(test_scores)
+
+print("Prediction")
+predictions = model.predict(test_dataset, transformers)
+print(predictions)
