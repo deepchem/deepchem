@@ -214,7 +214,7 @@ class TensorGraph(Model):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  def predict_on_generator(self, generator, sess=None):
+  def predict_on_generator(self, generator):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
@@ -226,7 +226,7 @@ class TensorGraph(Model):
     # Returns
         A Numpy array of predictions.
     """
-    retval = self.predict_proba_on_generator(generator, sess)
+    retval = self.predict_proba_on_generator(generator)
     if self.mode == 'classification':
       retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
     return retval

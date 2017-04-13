@@ -19,8 +19,8 @@ class TestGeneratorEvaluator(TestCase):
     X = np.ones(shape=(n_data_points / 2, n_features)) * -1
     X1 = np.ones(shape=(n_data_points / 2, n_features))
     X = np.concatenate((X, X1))
-    class_1 = np.array([[0.0, 1.0] for x in range(n_data_points / 2)])
-    class_0 = np.array([[1.0, 0.0] for x in range(n_data_points / 2)])
+    class_1 = np.array([[0.0, 1.0] for x in range(int(n_data_points / 2))])
+    class_0 = np.array([[1.0, 0.0] for x in range(int(n_data_points / 2))])
     y1 = np.concatenate((class_0, class_1))
     y2 = np.concatenate((class_1, class_0))
     X = NumpyDataset(X)
@@ -34,7 +34,7 @@ class TestGeneratorEvaluator(TestCase):
     outputs = []
     entropies = []
     labels = []
-    for i in xrange(2):
+    for i in range(2):
       label = Label(shape=(None, 2))
       labels.append(label)
       dense = Dense(out_channels=2, in_layers=[features])
@@ -67,11 +67,11 @@ class TestGeneratorEvaluator(TestCase):
     n_data_points = 20
     n_features = 10
 
-    X = np.ones(shape=(n_data_points / 2, n_features)) * -1
-    X1 = np.ones(shape=(n_data_points / 2, n_features))
+    X = np.ones(shape=(int(n_data_points / 2), n_features)) * -1
+    X1 = np.ones(shape=(int(n_data_points / 2), n_features))
     X = np.concatenate((X, X1))
-    class_1 = np.array([[0.0, 1.0] for x in range(n_data_points / 2)])
-    class_0 = np.array([[1.0, 0.0] for x in range(n_data_points / 2)])
+    class_1 = np.array([[0.0, 1.0] for x in range(int(n_data_points / 2))])
+    class_0 = np.array([[1.0, 0.0] for x in range(int(n_data_points / 2))])
     y1 = np.concatenate((class_0, class_1))
     X = NumpyDataset(X)
     ys = [NumpyDataset(y1)]
@@ -84,7 +84,7 @@ class TestGeneratorEvaluator(TestCase):
     outputs = []
     entropies = []
     labels = []
-    for i in xrange(1):
+    for i in range(1):
       label = Label(shape=(None, 2))
       labels.append(label)
       dense = Dense(out_channels=2, in_layers=[features])
@@ -131,7 +131,7 @@ class TestGeneratorEvaluator(TestCase):
     outputs = []
     losses = []
     labels = []
-    for i in xrange(2):
+    for i in range(2):
       label = Label(shape=(None, 1))
       dense = Dense(out_channels=1, in_layers=[features])
       loss = ReduceSquareDifference(in_layers=[dense, label])
@@ -177,7 +177,7 @@ class TestGeneratorEvaluator(TestCase):
     outputs = []
     losses = []
     labels = []
-    for i in xrange(1):
+    for i in range(1):
       label = Label(shape=(None, 1))
       dense = Dense(out_channels=1, in_layers=[features])
       loss = ReduceSquareDifference(in_layers=[dense, label])
