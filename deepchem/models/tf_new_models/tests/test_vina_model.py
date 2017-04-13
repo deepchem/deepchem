@@ -182,6 +182,10 @@ class TestVinaModel(test_util.TensorFlowTestCase):
 
   def test_vina_generate_conformers(self):
     """Test that Vina Model can generate conformers"""
+    data_dir = os.path.dirname(os.path.realpath(__file__))
+    protein_file = os.path.join(data_dir, "1jld_protein.pdb")
+    ligand_file = os.path.join(data_dir, "1jld_ligand.pdb")
+
     max_protein_atoms = 3500 
     max_ligand_atoms = 100
 
