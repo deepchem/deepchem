@@ -97,8 +97,8 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   # N elts of size (M,) each 
   neighbor_list = [
       tf.gather(nbr_inds, closest_nbr_locs)
-      for (nbr_inds,
-           closest_nbr_locs) in zip(split_nbr_inds, split_closest_nbr_locs)
+      for (nbr_inds, closest_nbr_locs
+          ) in zip(split_nbr_inds, split_closest_nbr_locs)
   ]
 
   # Shape (N, M)
