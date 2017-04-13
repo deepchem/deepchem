@@ -493,10 +493,15 @@ class WeaveGraphTopology(GraphTopology):
     }
     return dict_DTNN
 
+
 class WeaveGraphTopology_v2(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, batch_size, max_atoms, n_atom_feat, n_pair_feat,
+  def __init__(self,
+               batch_size,
+               max_atoms,
+               n_atom_feat,
+               n_pair_feat,
                name='Weave_topology'):
     """
     Parameters
@@ -525,17 +530,17 @@ class WeaveGraphTopology_v2(GraphTopology):
         shape=(None, self.n_pair_feat),
         name=self.name + '_pair_features')
     self.pair_split_placeholder = tf.placeholder(
-        dtype='int32', shape=(None,), 
-        name=self.name + '_pair_split')
+        dtype='int32', shape=(None,), name=self.name + '_pair_split')
     self.atom_split_placeholder = tf.placeholder(
-        dtype='int32', shape=(self.batch_size,), 
-        name=self.name + '_atom_split')
+        dtype='int32', shape=(self.batch_size,), name=self.name + '_atom_split')
     self.atom_to_pair_placeholder = tf.placeholder(
-        dtype='int32', shape=(None,2), 
-        name=self.name + '_atom_to_pair')
-    
+        dtype='int32', shape=(None, 2), name=self.name + '_atom_to_pair')
+
     # Define the list of tensors to be used as topology
-    self.topology = [self.pair_split_placeholder, self.atom_split_placeholder, self.atom_to_pair_placeholder]
+    self.topology = [
+        self.pair_split_placeholder, self.atom_split_placeholder,
+        self.atom_to_pair_placeholder
+    ]
     self.inputs = [self.atom_features_placeholder]
     self.inputs += self.topology
 
@@ -572,17 +577,19 @@ class WeaveGraphTopology_v2(GraphTopology):
       atom_split.append(n_atoms)
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
-      atom_to_pair.append(np.transpose(np.array([C1.flatten()+start, C0.flatten()+start])))
+      atom_to_pair.append(
+          np.transpose(np.array([C1.flatten() + start, C0.flatten() + start])))
       # number of pairs for each atom
-      pair_split.extend(C1.flatten()+start)
+      pair_split.extend(C1.flatten() + start)
       start = start + n_atoms
-    
+
       # atom features
       atom_feat.append(mol.get_atom_features())
       # pair features
-      pair_feat.append(np.reshape(mol.get_pair_features(), 
-                                  (n_atoms*n_atoms, self.n_pair_feat)))
-      
+      pair_feat.append(
+          np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                               self.n_pair_feat)))
+
     atom_feat = np.concatenate(atom_feat, axis=0)
     pair_feat = np.concatenate(pair_feat, axis=0)
     atom_to_pair = np.concatenate(atom_to_pair, axis=0)

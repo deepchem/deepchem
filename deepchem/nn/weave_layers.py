@@ -68,7 +68,7 @@ class WeaveLayer(Layer):
     self.max_atoms = max_atoms
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
-    self.update_pair = update_pair # last weave layer does not need to update
+    self.update_pair = update_pair  # last weave layer does not need to update
     self.n_hidden_AA = n_hidden_AA
     self.n_hidden_PA = n_hidden_PA
     self.n_hidden_AP = n_hidden_AP
@@ -99,23 +99,28 @@ class WeaveLayer(Layer):
     self.b_A = model_ops.zeros(shape=[
         self.n_atom_output_feat,
     ])
-    
+
     self.trainable_weights = [
         self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A
     ]
     if self.update_pair:
       self.W_AP = self.init([self.n_atom_input_feat * 2, self.n_hidden_AP])
-      self.b_AP = model_ops.zeros(shape=[self.n_hidden_AP,])
+      self.b_AP = model_ops.zeros(shape=[
+          self.n_hidden_AP,
+      ])
 
       self.W_PP = self.init([self.n_pair_input_feat, self.n_hidden_PP])
-      self.b_PP = model_ops.zeros(shape=[self.n_hidden_PP,])
+      self.b_PP = model_ops.zeros(shape=[
+          self.n_hidden_PP,
+      ])
 
       self.W_P = self.init([self.n_hidden_P, self.n_pair_output_feat])
-      self.b_P = model_ops.zeros(shape=[self.n_pair_output_feat,])
-      
-      self.trainable_weights.extend([
-          self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P
+      self.b_P = model_ops.zeros(shape=[
+          self.n_pair_output_feat,
       ])
+
+      self.trainable_weights.extend(
+          [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
@@ -154,7 +159,7 @@ class WeaveLayer(Layer):
     A = tf.tensordot(tf.concat([AA, PA], 2), self.W_A, [[2], [0]]) + self.b_A
     A = self.activation(A)
     A = tf.multiply(A, tf.expand_dims(atom_mask, axis=2))
-      
+
     if self.update_pair:
       AP_combine = tf.concat([
           tf.stack([atom_features] * max_atoms, axis=2),
@@ -171,11 +176,12 @@ class WeaveLayer(Layer):
       P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
     else:
       P = pair_features
-      
+
     return A, P
 
 
 class WeaveLayer_v2(WeaveLayer):
+
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
 
@@ -210,28 +216,32 @@ class WeaveLayer_v2(WeaveLayer):
     PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
     PA = self.activation(PA)
     PA = tf.segment_sum(PA, pair_split)
-    
+
     A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
     A = self.activation(A)
-      
+
     if self.update_pair:
-      AP_ij = tf.matmul(tf.reshape(tf.gather(atom_features, atom_to_pair), 
-                                   [-1, 2*self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ij = tf.matmul(
+          tf.reshape(
+              tf.gather(atom_features, atom_to_pair),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       AP_ij = self.activation(AP_ij)
-      AP_ji = tf.matmul(tf.reshape(tf.gather(atom_features, tf.reverse(atom_to_pair, [1])), 
-                                   [-1, 2*self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ji = tf.matmul(
+          tf.reshape(
+              tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
       AP_ji = self.activation(AP_ji)
-      
+
       PP = tf.matmul(pair_features, self.W_PP) + self.b_PP
       PP = self.activation(PP)
       P = tf.matmul(tf.concat([AP_ij + AP_ji, PP], 1), self.W_P) + self.b_P
       P = self.activation(P)
     else:
       P = pair_features
-      
+
     return A, P
-    
-    
+
+
 class WeaveConcat(Layer):
   """" Concat a batch of molecules into a batch of atoms
   """
@@ -399,8 +409,10 @@ class WeaveGather(Layer):
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
-    
+
+
 class WeaveGather_v2(WeaveGather):
+
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
 

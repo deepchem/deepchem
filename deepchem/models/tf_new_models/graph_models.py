@@ -195,6 +195,7 @@ class SequentialWeaveGraph(SequentialGraph):
         self.output = layer(self.output)
       self.layers.append(layer)
 
+
 class SequentialWeaveGraph_v2(SequentialGraph):
   """SequentialGraph for Weave models
   """
@@ -206,8 +207,8 @@ class SequentialWeaveGraph_v2(SequentialGraph):
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     with self.graph.as_default():
-      self.graph_topology = WeaveGraphTopology_v2(self.batch_size, self.max_atoms, 
-                                                  self.n_atom_feat,self.n_pair_feat)
+      self.graph_topology = WeaveGraphTopology_v2(
+          self.batch_size, self.max_atoms, self.n_atom_feat, self.n_pair_feat)
       self.output = self.graph_topology.get_atom_features_placeholder()
       self.output_P = self.graph_topology.get_pair_features_placeholder()
     self.layers = []
