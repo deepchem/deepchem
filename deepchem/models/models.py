@@ -61,7 +61,7 @@ class Model(object):
     raise NotImplementedError(
         "Each model is responsible for its own fit_on_batch method.")
 
-  def predict_on_batch(self, X):
+  def predict_on_batch(self, X, **kwargs):
     """
     Makes predictions on given batch of new data.
 

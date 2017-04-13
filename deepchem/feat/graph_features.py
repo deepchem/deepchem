@@ -7,7 +7,8 @@ from rdkit import Chem
 import itertools, operator
 
 from deepchem.feat import Featurizer
-from deepchem.feat.mol_graphs import ConvMol
+from deepchem.feat.mol_graphs import ConvMol, WeaveMol
+
 
 def one_of_k_encoding(x, allowable_set):
   if x not in allowable_set:
@@ -15,11 +16,13 @@ def one_of_k_encoding(x, allowable_set):
         "input {0} not in allowable set{1}:".format(x, allowable_set))
   return list(map(lambda s: x == s, allowable_set))
 
+
 def one_of_k_encoding_unk(x, allowable_set):
   """Maps inputs not in the allowable set to the last element."""
   if x not in allowable_set:
     x = allowable_set[-1]
   return list(map(lambda s: x == s, allowable_set))
+
 
 def get_intervals(l):
   """For list of lists, gets the cumulative products of the lengths"""
@@ -27,9 +30,10 @@ def get_intervals(l):
   # Initalize with 1
   intervals[0] = 1
   for k in range(1, len(l)):
-    intervals[k] = (len(l[k]) + 1) * intervals[k-1]
+    intervals[k] = (len(l[k]) + 1) * intervals[k - 1]
 
   return intervals
+
 
 def safe_index(l, e):
   """Gets the index of e in l, providing an index of len(l) if not found"""
@@ -38,22 +42,26 @@ def safe_index(l, e):
   except:
     return len(l)
 
-possible_atom_list = ['C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br',
-                      'Fe', 'Ca', 'Cu', 'Mc', 'Pd', 'Pb',
-                      'K','I','Al','Ni','Mn']
+
+possible_atom_list = [
+    'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Mg', 'Na', 'Br', 'Fe', 'Ca', 'Cu',
+    'Mc', 'Pd', 'Pb', 'K', 'I', 'Al', 'Ni', 'Mn'
+]
 possible_numH_list = [0, 1, 2, 3, 4]
 possible_valence_list = [0, 1, 2, 3, 4, 5, 6]
 possible_formal_charge_list = [-3, -2, -1, 0, 1, 2, 3]
-possible_hybridization_list = [Chem.rdchem.HybridizationType.SP,
-                               Chem.rdchem.HybridizationType.SP2,
-                               Chem.rdchem.HybridizationType.SP3,
-                               Chem.rdchem.HybridizationType.SP3D,
-                               Chem.rdchem.HybridizationType.SP3D2]
+possible_hybridization_list = [
+    Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
+    Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.SP3D,
+    Chem.rdchem.HybridizationType.SP3D2
+]
 possible_number_radical_e_list = [0, 1, 2]
 
-reference_lists = [possible_atom_list, possible_numH_list,
-                   possible_valence_list, possible_formal_charge_list,
-                   possible_number_radical_e_list, possible_hybridization_list]
+reference_lists = [
+    possible_atom_list, possible_numH_list, possible_valence_list,
+    possible_formal_charge_list, possible_number_radical_e_list,
+    possible_hybridization_list
+]
 
 intervals = get_intervals(reference_lists)
 
@@ -70,6 +78,7 @@ def get_feature_list(atom):
 
   return features
 
+
 def features_to_id(features, intervals):
   """Convert list of features into index using spacings provided in intervals"""
   id = 0
@@ -80,61 +89,148 @@ def features_to_id(features, intervals):
   id = id + 1
   return id
 
+
 def id_to_features(id, intervals):
-  features = 6* [0]
+  features = 6 * [0]
 
   # Correct for null
   id -= 1
 
-  for k in range(0,6-1):
+  for k in range(0, 6 - 1):
     #print(6-k-1, id)
-    features[6-k-1] = id // intervals[6-k-1]
-    id -= features[6-k-1]*intervals[6-k-1]
+    features[6 - k - 1] = id // intervals[6 - k - 1]
+    id -= features[6 - k - 1] * intervals[6 - k - 1]
   # Correct for last one
   features[0] = id
   return features
+
 
 def atom_to_id(atom):
   """Return a unique id corresponding to the atom type"""
   features = get_feature_list(atom)
   return features_to_id(features, intervals)
 
+
 def atom_features(atom, bool_id_feat=False):
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
   else:
-    return np.array(one_of_k_encoding_unk(
-        atom.GetSymbol(),
-        ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na',
-         'Ca', 'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb',
-         'Sb', 'Sn', 'Ag', 'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H',    # H?
-         'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In', 'Mn', 'Zr',
-         'Cr', 'Pt', 'Hg', 'Pb', 'Unknown']) +
-        one_of_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) +
-        one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
-        one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) +
-        [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] +
+    return np.array(
         one_of_k_encoding_unk(
-            atom.GetHybridization(),
-            [Chem.rdchem.HybridizationType.SP,
-             Chem.rdchem.HybridizationType.SP2,
-             Chem.rdchem.HybridizationType.SP3,
-             Chem.rdchem.HybridizationType.SP3D,
-             Chem.rdchem.HybridizationType.SP3D2]) +
-        [atom.GetIsAromatic()])
+            atom.GetSymbol(),
+            [
+                'C',
+                'N',
+                'O',
+                'S',
+                'F',
+                'Si',
+                'P',
+                'Cl',
+                'Br',
+                'Mg',
+                'Na',
+                'Ca',
+                'Fe',
+                'As',
+                'Al',
+                'I',
+                'B',
+                'V',
+                'K',
+                'Tl',
+                'Yb',
+                'Sb',
+                'Sn',
+                'Ag',
+                'Pd',
+                'Co',
+                'Se',
+                'Ti',
+                'Zn',
+                'H',  # H?
+                'Li',
+                'Ge',
+                'Cu',
+                'Au',
+                'Ni',
+                'Cd',
+                'In',
+                'Mn',
+                'Zr',
+                'Cr',
+                'Pt',
+                'Hg',
+                'Pb',
+                'Unknown'
+            ]) + one_of_k_encoding(atom.GetDegree(), [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+            ]) + one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
+        one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6])
+        + [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] +
+        one_of_k_encoding_unk(atom.GetHybridization(), [
+            Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
+            Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
+            SP3D, Chem.rdchem.HybridizationType.SP3D2
+        ]) + [atom.GetIsAromatic()])
+
 
 def bond_features(bond):
   bt = bond.GetBondType()
-  return np.array([bt == Chem.rdchem.BondType.SINGLE,
-                   bt == Chem.rdchem.BondType.DOUBLE,
-                   bt == Chem.rdchem.BondType.TRIPLE,
-                   bt == Chem.rdchem.BondType.AROMATIC,
-                   bond.GetIsConjugated(),
-                   bond.IsInRing()])
+  return np.array([
+      bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,
+      bt == Chem.rdchem.BondType.TRIPLE, bt == Chem.rdchem.BondType.AROMATIC,
+      bond.GetIsConjugated(), bond.IsInRing()
+  ])
+
+
+def pair_features(mol, edge_list, canon_adj_list, bt_len=6):
+  max_distance = 7
+  features = np.zeros(
+      (mol.GetNumAtoms(), mol.GetNumAtoms(), bt_len + max_distance + 1))
+  num_atoms = mol.GetNumAtoms()
+  rings = mol.GetRingInfo().AtomRings()
+  for a1 in range(num_atoms):
+    for a2 in canon_adj_list[a1]:
+      # first `bt_len` features are bond features(if applicable)
+      features[a1, a2, :bt_len] = np.asarray(
+          edge_list[tuple(sorted((a1, a2)))], dtype=float)
+    for ring in rings:
+      if a1 in ring:
+        # `bt_len`-th feature is if the pair of atoms are in the same ring
+        features[a1, ring, bt_len] = 1
+        features[a1, a1, bt_len] = 0.
+    # graph distance between two atoms
+    distance = find_distance(
+        a1, num_atoms, canon_adj_list, max_distance=max_distance)
+    features[a1, :, bt_len + 1:] = distance
+
+  return features
+
+
+def find_distance(a1, num_atoms, canon_adj_list, max_distance=7):
+  distance = np.zeros((num_atoms, max_distance))
+  radial = 0
+  # atoms `radial` bonds away from `a1`
+  adj_list = set(canon_adj_list[a1])
+  # atoms less than `radial` bonds away
+  all_list = set([a1])
+  while radial < max_distance:
+    distance[list(adj_list), radial] = 1
+    all_list.update(adj_list)
+    # find atoms `radial`+1 bonds away
+    next_adj = set()
+    for adj in adj_list:
+      next_adj.update(canon_adj_list[adj])
+    adj_list = next_adj - all_list
+    radial = radial + 1
+  return distance
+
 
 class ConvMolFeaturizer(Featurizer):
 
   name = ['conv_mol']
+
   def __init__(self):
     # Since ConvMol is an object and not a numpy array, need to set dtype to
     # object.
@@ -151,7 +247,8 @@ class ConvMolFeaturizer(Featurizer):
     nodes = np.vstack(nodes)
 
     # Get bond lists with reverse edges included
-    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
+    edge_list = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+                 for b in mol.GetBonds()]
 
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
@@ -160,3 +257,39 @@ class ConvMolFeaturizer(Featurizer):
       canon_adj_list[edge[1]].append(edge[0])
 
     return ConvMol(nodes, canon_adj_list)
+
+
+class WeaveFeaturizer(Featurizer):
+
+  name = ['weave_mol']
+
+  def __init__(self):
+    # Set dtype
+    self.dtype = object
+
+  def _featurize(self, mol):
+    """Encodes mol as a WeaveMol object."""
+    # Atom features
+    idx_nodes = [(a.GetIdx(), atom_features(a)) for a in mol.GetAtoms()]
+    idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
+    idx, nodes = list(zip(*idx_nodes))
+
+    # Stack nodes into an array
+    nodes = np.vstack(nodes)
+
+    # Get bond lists
+    edge_list = {}
+    for b in mol.GetBonds():
+      edge_list[tuple(sorted([b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+                             ]))] = bond_features(b)
+
+    # Get canonical adjacency list
+    canon_adj_list = [[] for mol_id in range(len(nodes))]
+    for edge in edge_list.keys():
+      canon_adj_list[edge[0]].append(edge[1])
+      canon_adj_list[edge[1]].append(edge[0])
+
+    # Calculate pair features
+    pairs = pair_features(mol, edge_list, canon_adj_list, bt_len=6)
+
+    return WeaveMol(nodes, pairs)

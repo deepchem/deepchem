@@ -1,6 +1,8 @@
 from nose.tools import assert_true, nottest
 
 CUSHION_PERCENT = 0.01
+LOG_ALL_RESULTS = False
+
 BENCHMARK_TO_DESIRED_KEY_MAP = {
     "index": "Index splitting",
     "random": "Random splitting",
@@ -59,8 +61,8 @@ def is_good_result(my_result, desired_result):
   message = []
   for key in ['train_score', 'test_score']:
     # Higher is Better
-    desired_value = desired_result[key] * (1.0 - CUSHION_PERCENT)
-    if my_result[key] < desired_value:
+    desired_value = desired_result[key] - CUSHION_PERCENT
+    if my_result[key] < desired_value or LOG_ALL_RESULTS:
       message_part = "%s,%s,%s,%s,%s,%s" % (
           my_result['data_set'], my_result['model'], my_result['split'], key,
           my_result[key], desired_result[key])

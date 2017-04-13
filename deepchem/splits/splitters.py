@@ -93,10 +93,6 @@ class Splitter(object):
 
     Returns Dataset objects.
     """
-    if (isinstance(dataset, NumpyDataset)):
-      raise ValueError(
-          "Only possible with DiskDataset.  NumpyDataset doesn't support .select"
-      )
     log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
         dataset,

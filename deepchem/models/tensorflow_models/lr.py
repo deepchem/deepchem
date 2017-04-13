@@ -35,7 +35,7 @@ def weight_decay(penalty_type, penalty):
     else:
       raise NotImplementedError('Unsupported penalty_type %s' % penalty_type)
     cost *= penalty
-    tf.scalar_summary('Weight Decay Cost', cost)
+    tf.summary.scalar('Weight Decay Cost', cost)
   return cost
 
 
@@ -54,22 +54,42 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
     n_features = self.n_features
     with graph.as_default():
       with placeholder_scope:
-        self.mol_features = tf.placeholder(
+        mol_features = tf.placeholder(
             tf.float32, shape=[None, n_features], name='mol_features')
 
       weight_init_stddevs = self.weight_init_stddevs
       bias_init_consts = self.bias_init_consts
       lg_list = []
+
+      label_placeholders = self.add_label_placeholders(graph, name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(graph,
+                                                                 name_scopes)
+      if training:
+        graph.queue = tf.FIFOQueue(
+            capacity=5,
+            dtypes=[tf.float32] *
+            (len(label_placeholders) + len(weight_placeholders) + 1))
+        graph.enqueue = graph.queue.enqueue([mol_features] + label_placeholders
+                                            + weight_placeholders)
+        queue_outputs = graph.queue.dequeue()
+        labels = queue_outputs[1:len(label_placeholders) + 1]
+        weights = queue_outputs[len(label_placeholders) + 1:]
+        prev_layer = queue_outputs[0]
+      else:
+        labels = label_placeholders
+        weights = weight_placeholders
+        prev_layer = mol_features
+
       for task in range(self.n_tasks):
         #setting up n_tasks nodes(output nodes)
         lg = model_ops.fully_connected_layer(
-            tensor=self.mol_features,
+            tensor=prev_layer,
             size=1,
             weight_init=tf.truncated_normal(
                 shape=[self.n_features, 1], stddev=weight_init_stddevs[0]),
             bias_init=tf.constant(value=bias_init_consts[0], shape=[1]))
         lg_list.append(lg)
-    return lg_list
+    return (lg_list, labels, weights)
 
   def add_label_placeholders(self, graph, name_scopes):
     #label placeholders with size batch_size * 1
@@ -124,8 +144,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       return loss
 
   def cost(self, logits, labels, weights):
-    return tf.mul(
-        tf.nn.sigmoid_cross_entropy_with_logits(logits, labels), weights)
+    return tf.multiply(
+        tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=labels),
+        weights)
 
   def add_output_ops(self, graph, output):
     # adding output nodes of sigmoid function

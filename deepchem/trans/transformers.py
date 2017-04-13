@@ -775,3 +775,123 @@ class IRVTransformer():
   def untransform(self, z):
     raise NotImplementedError(
         "Cannot untransform datasets with IRVTransformer.")
+
+
+class DAGTransformer(Transformer):
+  """Performs transform from ConvMol adjacency lists to 
+  DAG calculation orders
+  """
+
+  def __init__(self,
+               max_atoms=50,
+               transform_X=True,
+               transform_y=False,
+               transform_w=False):
+    """Initializes DAGTransformer.
+    Only X can be transformed
+    """
+    self.max_atoms = max_atoms
+    self.transform_X = transform_X
+    self.transform_y = transform_y
+    self.transform_w = transform_w
+    assert self.transform_X
+    assert not self.transform_y
+    assert not self.transform_w
+
+  def transform_array(self, X, y, w):
+    """Add calculation orders to ConvMol objects"""
+    if self.transform_X:
+      for idm, mol in enumerate(X):
+        X[idm].parents = self.UG_to_DAG(mol)
+    return (X, y, w)
+
+  def untransform(self, z):
+    raise NotImplementedError(
+        "Cannot untransform datasets with DAGTransformer.")
+
+  def UG_to_DAG(self, sample):
+    """This function generates the DAGs for a molecule
+    """
+    # list of calculation orders for DAGs
+    # stemming from one specific atom in the molecule
+    parents = []
+    # starting from the adjacency list derived by graphconv featurizer
+    UG = sample.get_adjacency_list()
+    # number of atoms, also number of DAGs
+    n_atoms = sample.get_num_atoms()
+    # DAG on a molecule with k atoms includes k steps of calculation, 
+    # each step calculating graph features for one atom.
+    # `max_atoms` is the maximum number of steps
+    max_atoms = self.max_atoms
+    for count in range(n_atoms):
+      # each iteration generates the DAG starting from atom with index `count`
+      DAG = []
+      # list of lists, elements represent the calculation orders
+      # for atoms in the current graph
+      parent = [[] for i in range(n_atoms)]
+      # starting from the target atom with index `count`
+      current_atoms = [count]
+      # flags of whether the atom is already included in the DAG
+      atoms_indicator = np.ones((n_atoms,))
+      # atom `count` is in the DAG
+      atoms_indicator[count] = 0
+      # recording number of radial propagation steps
+      radial = 0
+      while np.sum(atoms_indicator) > 0:
+        # in the fisrt loop, atoms directly connected to `count` will be added 
+        # into the DAG(radial=0), then atoms two-bond away from `count` 
+        # will be added in the second loop(radial=1). 
+        # atoms i-bond away will be added in i-th loop
+        if radial > n_atoms:
+          # when molecules have separate parts, starting from one part,
+          # it is not possible to include all atoms.
+          # this break quit the loop when going into such condition
+          break
+        # reinitialize targets for next iteration
+        next_atoms = []
+        for current_atom in current_atoms:
+          for atom_adj in UG[current_atom]:
+            # atoms connected to current_atom
+            if atoms_indicator[atom_adj] > 0:
+              # generate the dependency map of current DAG
+              # atoms connected to `current_atoms`(and not included in the DAG)
+              # are added, and will be the `current_atoms` for next iteration.
+              DAG.append((current_atom, atom_adj))
+              atoms_indicator[atom_adj] = 0
+              next_atoms.append(atom_adj)
+        current_atoms = next_atoms
+        # into next iteration, finding atoms connected one more bond away
+        radial = radial + 1
+      # DAG starts from the target atom, calculation should go in reverse
+      for edge in reversed(DAG):
+        # `edge[1]` is the parent of `edge[0]`
+        parent[edge[0]].append(edge[1])
+        # all the parents of `edge[1]` is also the parents of `edge[0]`
+        parent[edge[0]].extend(parent[edge[1]])
+      # after this loop, `parents[i]` includes all parents of atom i
+
+      for ids, atom in enumerate(parent):
+        # manually adding the atom index into its parents list
+        parent[ids].insert(0, ids)
+      # after this loop, `parents[i][0]` is i, `parents[i][1:]` are all parents of atom i
+
+      # atoms with less parents(farther from the target atom) come first.
+      # graph features of atoms without parents will be first calculated,
+      # then atoms with more parents can be calculated in order 
+      # based on previously calculated graph features.
+      # target atom of this DAG will be calculated in the last step
+      parent = sorted(parent, key=len)
+
+      for ids, atom in enumerate(parent):
+        n_par = len(atom)
+        # padding with `max_atoms`
+        parent[ids].extend([max_atoms for i in range(max_atoms - n_par)])
+
+      while len(parent) < max_atoms:
+        # padding
+        parent.insert(0, [max_atoms] * max_atoms)
+      # `parents[i]` is the calculation order for the DAG stemming from atom i,
+      # which is a max_atoms * max_atoms numpy array after padding
+      parents.append(np.array(parent))
+
+    return parents
