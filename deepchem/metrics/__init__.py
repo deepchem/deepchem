@@ -55,6 +55,16 @@ def compute_roc_auc_scores(y, y_pred):
   return score
 
 
+def balanced_accuracy_score(y, y_pred):
+  """Computes balanced accuracy score."""
+  num_positive = float(np.count_nonzero(y))
+  num_negative = float(len(y) - num_positive)
+  pos_weight = num_positive/num_negative
+  weights = np.ones_like(y)
+  weights[y != 0] = pos_weight
+  return accuracy_score(y, y_pred, sample_weight=weights)
+
+
 def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
@@ -137,7 +147,8 @@ class Metric(object):
     if mode is None:
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
-          "accuracy_score", "kappa_score", "precision_score"
+          "accuracy_score", "kappa_score", "precision_score",
+          "balanced_accuracy_score"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
