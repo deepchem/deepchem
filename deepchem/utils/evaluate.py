@@ -176,7 +176,6 @@ class GeneratorEvaluator(object):
     self.weights = weights
     if len(self.label_keys) != len(self.output_keys):
       raise ValueError("Must have same number of labels and outputs")
-    self.verbose = verbose
 
   def compute_model_performance(self, metrics, per_task_metrics=False):
     """
