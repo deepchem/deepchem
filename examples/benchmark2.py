@@ -94,7 +94,7 @@ if len(datasets) == 0:
       'sider', 'tox21', 'toxcast'
   ]
 
-for split in splitters:
-  for dataset in datasets:
+for dataset in datasets:
+  for split in splitters:
     for model in models:
       dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)

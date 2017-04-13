@@ -271,14 +271,14 @@ def benchmark_classification(train_dataset,
     max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
     max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
     
-    graph_model = deepchem.nn.SequentialWeaveGraph(max_atoms=max_atoms,
-        n_atom_feat=n_features, n_pair_feat=n_pair_feat)
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 50, 50, update_pair=False))
-    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+    graph_model = deepchem.nn.SequentialWeaveGraph_v2(batch_size,
+        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.WeaveLayer_v2(max_atoms, 75, 14))
+    graph_model.add(deepchem.nn.WeaveLayer_v2(max_atoms, 50, 50, update_pair=False))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
-        deepchem.nn.WeaveGather(
+        deepchem.nn.WeaveGather_v2(
             batch_size, n_input=n_graph_feat, gaussian_expand=True))
 
     model = deepchem.models.MultitaskGraphClassifier(
@@ -291,7 +291,7 @@ def benchmark_classification(train_dataset,
         optimizer_type="adam",
         beta1=.9,
         beta2=.999)
-
+    
   elif model_name == 'rf':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -595,14 +595,14 @@ def benchmark_regression(train_dataset,
     max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
     max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
     
-    graph_model = deepchem.nn.SequentialWeaveGraph(max_atoms=max_atoms,
-        n_atom_feat=n_features, n_pair_feat=n_pair_feat)
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 75, 14))
-    graph_model.add(deepchem.nn.WeaveLayer(max_atoms, 50, 50, update_pair=False))
-    graph_model.add(deepchem.nn.WeaveConcat(batch_size, n_output=n_graph_feat))
+    graph_model = deepchem.nn.SequentialWeaveGraph_v2(batch_size,
+        max_atoms=max_atoms, n_atom_feat=n_features, n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.WeaveLayer_v2(max_atoms, 75, 14))
+    graph_model.add(deepchem.nn.WeaveLayer_v2(max_atoms, 50, 50, update_pair=False))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
     graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
     graph_model.add(
-        deepchem.nn.WeaveGather(
+        deepchem.nn.WeaveGather_v2(
             batch_size, n_input=n_graph_feat, gaussian_expand=True))
 
     model = deepchem.models.MultitaskGraphRegressor(

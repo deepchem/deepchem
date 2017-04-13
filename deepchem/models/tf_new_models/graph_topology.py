@@ -525,11 +525,8 @@ class WeaveGraphTopology_v2(GraphTopology):
         shape=(None, self.n_pair_feat),
         name=self.name + '_pair_features')
     self.pair_split_placeholder = tf.placeholder(
-        dtype='int32', shape=(self.max_atoms,), 
+        dtype='int32', shape=(None,), 
         name=self.name + '_pair_split')
-    self.pair_membership_placeholder = tf.placeholder(
-        dtype='bool', shape=(self.max_atoms,), 
-        name=self.name + '_pair_membership')
     self.atom_split_placeholder = tf.placeholder(
         dtype='int32', shape=(self.batch_size,), 
         name=self.name + '_atom_split')
@@ -538,8 +535,7 @@ class WeaveGraphTopology_v2(GraphTopology):
         name=self.name + '_atom_to_pair')
     
     # Define the list of tensors to be used as topology
-    self.topology = [self.pair_split_placeholder, self.pair_membership_placeholder,
-                     self.atom_split_placeholder, self.atom_to_pair_placeholder]
+    self.topology = [self.pair_split_placeholder, self.atom_split_placeholder, self.atom_to_pair_placeholder]
     self.inputs = [self.atom_features_placeholder]
     self.inputs += self.topology
 
@@ -577,9 +573,10 @@ class WeaveGraphTopology_v2(GraphTopology):
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
       atom_to_pair.append(np.transpose(np.array([C1.flatten()+start, C0.flatten()+start])))
-      start = start + n_atoms
       # number of pairs for each atom
-      pair_split.extend([n_atoms]*n_atoms)
+      pair_split.extend(C1.flatten()+start)
+      start = start + n_atoms
+    
       # atom features
       atom_feat.append(mol.get_atom_features())
       # pair features
@@ -590,15 +587,11 @@ class WeaveGraphTopology_v2(GraphTopology):
     pair_feat = np.concatenate(pair_feat, axis=0)
     atom_to_pair = np.concatenate(atom_to_pair, axis=0)
     atom_split = np.array(atom_split)
-    n_pair = len(pair_split)
-    pair_split = np.pad(pair_split, ((0, max_atoms-n_pair)), 'constant')
-    pair_membership = np.array([True]*n_pair + [False]*(max_atoms-n_pair))
     # Generate dicts
     dict_DTNN = {
         self.atom_features_placeholder: atom_feat,
         self.pair_features_placeholder: pair_feat,
         self.pair_split_placeholder: pair_split,
-        self.pair_membership_placeholder: pair_membership,
         self.atom_split_placeholder: atom_split,
         self.atom_to_pair_placeholder: atom_to_pair
     }

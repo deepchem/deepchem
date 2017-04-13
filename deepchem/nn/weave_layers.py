@@ -202,17 +202,14 @@ class WeaveLayer_v2(WeaveLayer):
     pair_features = x[1]
 
     pair_split = x[2]
-    pair_membership = x[3]
-    atom_split = x[4]
-    atom_to_pair = x[5]
+    atom_split = x[3]
+    atom_to_pair = x[4]
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
     AA = self.activation(AA)
     PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
     PA = self.activation(PA)
-    PAs = tf.split(PA, pair_split, axis=0)
-    PA = [tf.reduce_sum(molecule, 0) for molecule in PAs]
-    PA = tf.boolean_mask(PA, pair_membership)
+    PA = tf.segment_sum(PA, pair_split)
     
     A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
     A = self.activation(A)
