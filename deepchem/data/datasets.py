@@ -1081,6 +1081,6 @@ class Databag(object):
     kwargs['deterministic'] = True
     for epoch in range(epochs):
       iterators = [self.datasets[x].iterbatches(**kwargs) for x in key_order]
-      for tup in six.moves.zip(*iterators):
+      for tup in zip(*iterators):
         m_d = {key_order[i]: tup[i][0] for i in range(len(key_order))}
         yield m_d
