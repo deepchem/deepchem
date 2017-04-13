@@ -59,7 +59,7 @@ def balanced_accuracy_score(y, y_pred):
   """Computes balanced accuracy score."""
   num_positive = float(np.count_nonzero(y))
   num_negative = float(len(y) - num_positive)
-  pos_weight = num_positive / num_negative
+  pos_weight = num_negative / num_positive
   weights = np.ones_like(y)
   weights[y != 0] = pos_weight
   return accuracy_score(y, y_pred, sample_weight=weights)
