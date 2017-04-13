@@ -242,7 +242,7 @@ class Weights(Input):
     super(Weights, self).__init__(**kwargs)
 
 
-class LossLayer(Layer):
+class L2LossLayer(Layer):
 
   def __init__(self, **kwargs):
     super(LossLayer, self).__init__(**kwargs)

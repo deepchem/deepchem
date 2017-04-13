@@ -21,8 +21,8 @@ class TestTensorGraph(unittest.TestCase):
   """
 
   def test_single_task_classifier(self):
-    n_data_points = 200
-    n_features = 10
+    n_data_points = 20
+    n_features = 2
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
@@ -35,13 +35,13 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=100)
+    tg.fit(dataset, nb_epoch=10)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.05)))
+    assert_true(np.all(np.isclose(prediction, y, atol=0.2)))
 
   def test_multi_task_classifier(self):
     n_data_points = 20
-    n_features = 10
+    n_features = 2
 
     X = np.random.rand(n_data_points, n_features)
     y1 = np.array([[0, 1] for x in range(n_data_points)])
@@ -80,11 +80,11 @@ class TestTensorGraph(unittest.TestCase):
     for i in range(2):
       y_real = ys[i].X
       y_pred = prediction[:, i, :]
-      assert_true(np.all(np.isclose(y_pred, y_real, atol=0.05)))
+      assert_true(np.all(np.isclose(y_pred, y_real, atol=0.2)))
 
   def test_single_task_regressor(self):
-    n_data_points = 200
-    n_features = 10
+    n_data_points = 20
+    n_features = 2
     X = np.random.rand(n_data_points, n_features)
     y = [0.5 for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
@@ -95,13 +95,13 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(dense)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=100)
+    tg.fit(dataset, nb_epoch=10)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.05)))
+    assert_true(np.all(np.isclose(prediction, y, atol=0.5)))
 
   def test_multi_task_regressor(self):
     n_data_points = 20
-    n_features = 10
+    n_features = 2
 
     X = np.random.rand(n_data_points, n_features)
     y1 = np.expand_dims(np.array([0.5 for x in range(n_data_points)]), axis=-1)
@@ -139,7 +139,7 @@ class TestTensorGraph(unittest.TestCase):
     for i in range(2):
       y_real = ys[i].X
       y_pred = prediction[:, i, :]
-      assert_true(np.all(np.isclose(y_pred, y_real, atol=0.05)))
+      assert_true(np.all(np.isclose(y_pred, y_real, atol=0.5)))
 
   def test_mnist(self):
     from tensorflow.examples.tutorials.mnist import input_data
@@ -184,8 +184,8 @@ class TestTensorGraph(unittest.TestCase):
       assert_true(roc_auc[i] > 0.99)
 
   def test_no_queue(self):
-    n_data_points = 200
-    n_features = 10
+    n_data_points = 20
+    n_features = 2
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
@@ -195,16 +195,16 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=1.0, use_queue=False)
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=100)
+    tg.fit(dataset, nb_epoch=10)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.05)))
+    assert_true(np.all(np.isclose(prediction, y, atol=0.2)))
 
   def test_tensorboard(self):
-    n_data_points = 200
-    n_features = 10
+    n_data_points = 20
+    n_features = 2
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
@@ -221,17 +221,17 @@ class TestTensorGraph(unittest.TestCase):
         model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=100)
+    tg.fit(dataset, nb_epoch=10)
     files_in_dir = os.listdir(tg.model_dir)
-    event_file = filter(lambda x: x.startswith("events"), files_in_dir)
+    event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
     assert_true(len(event_file) > 0)
     event_file = os.path.join(tg.model_dir, event_file[0])
     file_size = os.stat(event_file).st_size
     assert_true(file_size > 0)
 
   def test_save_load(self):
-    n_data_points = 200
-    n_features = 10
+    n_data_points = 20
+    n_features = 2
     X = np.random.rand(n_data_points, n_features)
     y = [[0, 1] for x in range(n_data_points)]
     dataset = NumpyDataset(X, y)
@@ -244,11 +244,10 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=100)
+    tg.fit(dataset, nb_epoch=1)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.05)))
     tg.save()
 
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
-    prediction = np.squeeze(tg1.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.05)))
+    prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
+    assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))

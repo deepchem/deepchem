@@ -231,37 +231,29 @@ class TensorGraph(Model):
       retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
     return retval
 
-  def predict_proba_on_generator(self, generator, sess=None):
+  def predict_proba_on_generator(self, generator):
     """
-    TODO: Do transformers even make sense here?
-
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
     if not self.built:
       self.build()
-
-    def predict_closure(session):
-      out_tensors = [x.out_tensor for x in self.outputs]
-      results = []
-      for feed_dict in generator:
-        feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
-        }
-        result = np.array(session.run(out_tensors, feed_dict=feed_dict))
-        if len(result.shape) == 3:
-          result = np.transpose(result, axes=[1, 0, 2])
-        results.append(result)
-      return np.concatenate(results, axis=0)
-
-    if sess is not None:
-      return predict_closure(sess)
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, self.last_checkpoint)
-        return predict_closure(sess)
+        out_tensors = [x.out_tensor for x in self.outputs]
+        results = []
+        for feed_dict in generator:
+          feed_dict = {
+              self.layers[k.name].out_tensor: v
+              for k, v in six.iteritems(feed_dict)
+          }
+          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
+          if len(result.shape) == 3:
+            result = np.transpose(result, axes=[1, 0, 2])
+          results.append(result)
+        return np.concatenate(results, axis=0)
 
   def predict_on_batch(self, X, sess=None):
     """Generates output predictions for the input samples,
