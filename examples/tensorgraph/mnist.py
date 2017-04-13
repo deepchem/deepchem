@@ -6,82 +6,47 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 import deepchem as dc
 import tensorflow as tf
-from deepchem.models.tensorgraph.layers import Layer, Input, Reshape, Flatten
+from deepchem.models.tensorgraph.layers import Layer, Input, Reshape, Flatten, Feature, Conv2d, MaxPool, Label
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
 
 train = dc.data.NumpyDataset(mnist.train.images, mnist.train.labels)
 valid = dc.data.NumpyDataset(mnist.validation.images, mnist.validation.labels)
 
-tg = dc.models.TensorGraph(
-    tensorboard=True, model_dir='/tmp/mnist', batch_size=1000)
-feature = Input(shape=(None, 784))
-tg.add_feature(feature)
+
 
 # Images are square 28x28 (batch, height, width, channel)
-make_image = Reshape(shape=(-1, 28, 28, 1))
-tg.add_layer(make_image, parents=[feature])
+feature = Feature(shape=(None, 784), name="Feature")
+make_image = Reshape(shape=(-1, 28, 28, 1), in_layers=[feature])
 
+conv2d_1 = Conv2d(num_outputs=32, in_layers=[make_image])
+maxpool_1 = MaxPool(in_layers=[conv2d_1])
 
-class Conv2d(Layer):
+conv2d_2 = Conv2d(num_outputs=64, in_layers=[maxpool_1])
+maxpool_2 = MaxPool(in_layers=[conv2d_2])
+flatten = Flatten(in_layers=[maxpool_2])
 
-  def __init__(self, num_outputs, kernel_size=5, **kwargs):
-    self.num_outputs = num_outputs
-    self.kernel_size = kernel_size
-    super().__init__(**kwargs)
+dense1 = Dense(out_channels=1024, activation_fn=tf.nn.relu, in_layers=[flatten])
+dense2 = Dense(out_channels=10, in_layers=[dense1])
+label = Label(shape=(None, 10), name="Label")
+smce = SoftMaxCrossEntropy(in_layers=[label, dense2])
+loss = ReduceMean(in_layers=[smce])
+output = SoftMax(in_layers=[dense2])
 
-  def __call__(self, *parents):
-    parent_tensor = parents[0].out_tensor
-    out_tensor = tf.contrib.layers.conv2d(
-        parent_tensor,
-        num_outputs=self.num_outputs,
-        kernel_size=self.kernel_size,
-        padding="SAME",
-        activation_fn=tf.nn.relu,
-        normalizer_fn=tf.contrib.layers.batch_norm)
-    self.out_tensor = tf.nn.max_pool(
-        out_tensor, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-    return self.out_tensor
-
-
-conv2d_1 = Conv2d(num_outputs=32)
-tg.add_layer(conv2d_1, parents=[make_image])
-
-conv2d_2 = Conv2d(num_outputs=64)
-tg.add_layer(conv2d_2, parents=[conv2d_1])
-
-flatten = Flatten()
-tg.add_layer(flatten, parents=[conv2d_2])
-
-dense1 = Dense(out_channels=1024, activation_fn=tf.nn.relu)
-tg.add_layer(dense1, parents=[flatten])
-
-dense2 = Dense(out_channels=10)
-tg.add_layer(dense2, parents=[dense1])
-
-label = Input(shape=(None, 10))
-tg.add_label(label)
-
-smce = SoftMaxCrossEntropy()
-tg.add_layer(smce, parents=[label, dense2])
-
-loss = ReduceMean()
-tg.add_layer(loss, parents=[smce])
-tg.set_loss(loss)
-
-output = SoftMax()
-tg.add_layer(output, parents=[dense2])
+tg = dc.models.TensorGraph(
+  tensorboard=True,
+  model_dir='/tmp/mnist',
+  batch_size=1000,
+  use_queue=True)
 tg.add_output(output)
-
+tg.set_loss(loss)
 tg.fit(train, nb_epoch=2)
 tg.fit(train, nb_epoch=2)
-tg.save()
 
-# tg = TensorGraph.load_from_dir("/tmp/mnist")
 from sklearn.metrics import roc_curve, auc
 import numpy as np
 
 print("Validation")
-prediction = np.squeeze(tg.predict_on_batch(valid.X))
+prediction = np.squeeze(tg.predict_proba_on_batch(valid.X))
 print(prediction[0])
 print(valid.y[0])
 
