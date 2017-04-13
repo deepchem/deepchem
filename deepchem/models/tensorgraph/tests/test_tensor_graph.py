@@ -6,7 +6,7 @@ import os
 
 from data import NumpyDataset
 
-from data.datasets import Databag
+from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Input, Dense, LossLayer, Flatten, ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import Layer, Input, Reshape, Flatten, Feature, Conv2d, MaxPool, Label
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
@@ -74,7 +74,9 @@ class TestTensorGraph(unittest.TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=100, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=100, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -131,7 +133,9 @@ class TestTensorGraph(unittest.TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=200, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=200, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -142,7 +146,8 @@ class TestTensorGraph(unittest.TestCase):
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
     train = dc.data.NumpyDataset(mnist.train.images, mnist.train.labels)
-    valid = dc.data.NumpyDataset(mnist.validation.images, mnist.validation.labels)
+    valid = dc.data.NumpyDataset(mnist.validation.images,
+                                 mnist.validation.labels)
 
     # Images are square 28x28 (batch, height, width, channel)
     feature = Feature(shape=(None, 784), name="Feature")
@@ -155,7 +160,8 @@ class TestTensorGraph(unittest.TestCase):
     maxpool_2 = MaxPool(in_layers=[conv2d_2])
     flatten = Flatten(in_layers=[maxpool_2])
 
-    dense1 = Dense(out_channels=1024, activation_fn=tf.nn.relu, in_layers=[flatten])
+    dense1 = Dense(
+        out_channels=1024, activation_fn=tf.nn.relu, in_layers=[flatten])
     dense2 = Dense(out_channels=10, in_layers=[dense1])
     label = Label(shape=(None, 10), name="Label")
     smce = SoftMaxCrossEntropy(in_layers=[label, dense2])
@@ -163,9 +169,7 @@ class TestTensorGraph(unittest.TestCase):
     output = SoftMax(in_layers=[dense2])
 
     tg = dc.models.TensorGraph(
-      model_dir='/tmp/mnist',
-      batch_size=1000,
-      use_queue=True)
+        model_dir='/tmp/mnist', batch_size=1000, use_queue=True)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(train, nb_epoch=2)
@@ -211,10 +215,11 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(tensorboard=True,
-                               tensorboard_log_frequency=1,
-                               learning_rate=0.1,
-                               model_dir='/tmp/tensorgraph')
+    tg = dc.models.TensorGraph(
+        tensorboard=True,
+        tensorboard_log_frequency=1,
+        learning_rate=0.1,
+        model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=100)

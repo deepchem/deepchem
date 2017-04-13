@@ -12,8 +12,6 @@ from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, Reduc
 train = dc.data.NumpyDataset(mnist.train.images, mnist.train.labels)
 valid = dc.data.NumpyDataset(mnist.validation.images, mnist.validation.labels)
 
-
-
 # Images are square 28x28 (batch, height, width, channel)
 feature = Feature(shape=(None, 784), name="Feature")
 make_image = Reshape(shape=(-1, 28, 28, 1), in_layers=[feature])
@@ -33,10 +31,7 @@ loss = ReduceMean(in_layers=[smce])
 output = SoftMax(in_layers=[dense2])
 
 tg = dc.models.TensorGraph(
-  tensorboard=True,
-  model_dir='/tmp/mnist',
-  batch_size=1000,
-  use_queue=True)
+    tensorboard=True, model_dir='/tmp/mnist', batch_size=1000, use_queue=True)
 tg.add_output(output)
 tg.set_loss(loss)
 tg.fit(train, nb_epoch=2)

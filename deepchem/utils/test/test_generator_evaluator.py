@@ -11,6 +11,7 @@ from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
 
 class TestGeneratorEvaluator(TestCase):
+
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
     n_features = 10
@@ -51,11 +52,14 @@ class TestGeneratorEvaluator(TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=10, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=10, batch_size=tg.batch_size, pad_batches=True))
     metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, np.mean, mode="classification")
+        dc.metrics.roc_auc_score, np.mean, mode="classification")
 
-    scores = tg.evaluate_generator(databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
+    scores = tg.evaluate_generator(
+        databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.05)))
 
@@ -98,11 +102,14 @@ class TestGeneratorEvaluator(TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=50, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=50, batch_size=tg.batch_size, pad_batches=True))
     metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, np.mean, mode="classification")
+        dc.metrics.roc_auc_score, np.mean, mode="classification")
 
-    scores = tg.evaluate_generator(databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
+    scores = tg.evaluate_generator(
+        databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.isclose(scores, [1.0], atol=0.05))
 
@@ -141,11 +148,15 @@ class TestGeneratorEvaluator(TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=200, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=200, batch_size=tg.batch_size, pad_batches=True))
     metric = [
-      dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode="regression"),
+        dc.metrics.Metric(
+            dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
-    scores = tg.evaluate_generator(databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
+    scores = tg.evaluate_generator(
+        databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=0.05)))
 
@@ -183,10 +194,14 @@ class TestGeneratorEvaluator(TestCase):
       tg.add_output(output)
     tg.set_loss(total_loss)
 
-    tg.fit_generator(databag.iterbatches(epochs=200, batch_size=tg.batch_size, pad_batches=True))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=200, batch_size=tg.batch_size, pad_batches=True))
     metric = [
-      dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode="regression"),
+        dc.metrics.Metric(
+            dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
-    scores = tg.evaluate_generator(databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
+    scores = tg.evaluate_generator(
+        databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0], atol=0.05)))

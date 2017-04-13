@@ -40,7 +40,7 @@ class Evaluator(object):
     self.model = model
     self.dataset = dataset
     self.output_transformers = [
-      transformer for transformer in transformers if transformer.transform_y
+        transformer for transformer in transformers if transformer.transform_y
     ]
     self.task_names = dataset.get_task_names()
     self.verbose = verbose
@@ -115,11 +115,11 @@ class Evaluator(object):
     for metric in metrics:
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=True)
+            y, y_pred, w, per_task_metrics=True)
         all_task_scores[metric.name] = computed_metrics
       else:
         multitask_scores[metric.name] = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=False)
+            y, y_pred, w, per_task_metrics=False)
 
     if stats_out is not None:
       log("Saving stats to %s" % stats_out, self.verbose)
@@ -134,12 +134,18 @@ class Evaluator(object):
 class GeneratorEvaluator(object):
   """Class that evaluates a model on a given dataset."""
 
-  def __init__(self, model, generator, transformers,
-               labels, outputs=None, weights=list(), verbose=False):
+  def __init__(self,
+               model,
+               generator,
+               transformers,
+               labels,
+               outputs=None,
+               weights=list(),
+               verbose=False):
     self.model = model
     self.generator = generator
     self.output_transformers = [
-      transformer for transformer in transformers if transformer.transform_y
+        transformer for transformer in transformers if transformer.transform_y
     ]
     if outputs is None:
       self.output_keys = model.outputs
@@ -151,9 +157,7 @@ class GeneratorEvaluator(object):
       raise ValueError("Must have same number of labels and outputs")
     self.verbose = verbose
 
-  def compute_model_performance(self,
-                                metrics,
-                                per_task_metrics=False):
+  def compute_model_performance(self, metrics, per_task_metrics=False):
     """
     Computes statistics of model on test data and saves results to csv.
 
@@ -193,7 +197,7 @@ class GeneratorEvaluator(object):
     else:
       y_pred = self.model.predict_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.squeeze(y, axis=(0,-1))
+      y = np.squeeze(y, axis=(0, -1))
       y = np.reshape(y, newshape=(-1, len(self.label_keys)))
       y_pred = np.squeeze(y_pred, axis=-1)
     if len(w) != 0:
@@ -207,11 +211,11 @@ class GeneratorEvaluator(object):
     for metric in metrics:
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=True)
+            y, y_pred, w, per_task_metrics=True)
         all_task_scores[metric.name] = computed_metrics
       else:
         multitask_scores[metric.name] = metric.compute_metric(
-          y, y_pred, w, per_task_metrics=False)
+            y, y_pred, w, per_task_metrics=False)
 
     if not per_task_metrics:
       return multitask_scores

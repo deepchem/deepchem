@@ -17,6 +17,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 
 class TensorGraph(Model):
+
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
@@ -51,10 +52,10 @@ class TensorGraph(Model):
     # These have to be reconstructed on restoring from pickle
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
-      "FileWriter": None,
-      "Graph": tf.Graph(),
-      "train_op": None,
-      "summary_op": None,
+        "FileWriter": None,
+        "Graph": tf.Graph(),
+        "train_op": None,
+        "summary_op": None,
     }
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
@@ -90,14 +91,15 @@ class TensorGraph(Model):
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000):
-    return self.fit_generator(self.default_generator(dataset, epochs=nb_epoch),
-                              max_checkpoints_to_keep,
-                              checkpoint_interval)
+    return self.fit_generator(
+        self.default_generator(dataset, epochs=nb_epoch),
+        max_checkpoints_to_keep, checkpoint_interval)
 
   def fit_generator(self,
                     feed_dict_generator,
                     max_checkpoints_to_keep=5,
                     checkpoint_interval=1000):
+
     def create_feed_dict():
       if self.use_queue:
         while True:
@@ -118,8 +120,9 @@ class TensorGraph(Model):
         n_samples = 0
         if self.use_queue:
           enqueue_thread = threading.Thread(
-            target=_enqueue_batch,
-            args=(self, feed_dict_generator, self._get_tf("Graph"), sess, coord))
+              target=_enqueue_batch,
+              args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
+                    coord))
           enqueue_thread.start()
         output_tensors = [x.out_tensor for x in self.outputs]
         fetches = output_tensors + [train_op, self.loss.out_tensor]
@@ -132,16 +135,19 @@ class TensorGraph(Model):
             self.global_step += 1
             n_samples += 1
             if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
-              summary = sess.run(self._get_tf("summary_op"), feed_dict=feed_dict)
+              summary = sess.run(
+                  self._get_tf("summary_op"), feed_dict=feed_dict)
               self._log_tensorboard(summary)
           except OutOfRangeError:
             break
           if self.global_step % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.global_step)
             avg_loss = float(avg_loss) / n_batches
-            print('Ending global_step %d: Average loss %g' % (self.global_step, avg_loss))
+            print('Ending global_step %d: Average loss %g' %
+                  (self.global_step, avg_loss))
         avg_loss = float(avg_loss) / n_batches
-        print('Ending global_step %d: Average loss %g' % (self.global_step, avg_loss))
+        print('Ending global_step %d: Average loss %g' %
+              (self.global_step, avg_loss))
         saver.save(sess, self.save_file, global_step=self.global_step)
         self.last_checkpoint = saver.last_checkpoints[-1]
       ############################################################## TIMING
@@ -169,7 +175,11 @@ class TensorGraph(Model):
     dataset = NumpyDataset(X, y)
     return self.fit(dataset, nb_epoch=1)
 
-  def default_generator(self, dataset, epochs=1, predict=False, pad_batches=True):
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        pad_batches=True):
     if len(self.features) > 1:
       raise ValueError("More than one Feature, must use generator")
     if len(self.labels) > 1:
@@ -177,9 +187,10 @@ class TensorGraph(Model):
     if len(self.task_weights) > 1:
       raise ValueError("More than one Weights, must use generator")
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                                        deterministic=True,
-                                                        pad_batches=pad_batches):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
         feed_dict = dict()
         if len(self.labels) == 1 and y_b is not None and not predict:
           feed_dict[self.labels[0]] = y_b
@@ -220,7 +231,10 @@ class TensorGraph(Model):
       out_tensors = [x.out_tensor for x in self.outputs]
       results = []
       for feed_dict in generator:
-        feed_dict = {self.layers[k.name].out_tensor: v for k, v in six.iteritems(feed_dict)}
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
         result = np.array(session.run(out_tensors, feed_dict=feed_dict))
         if len(result.shape) == 3:
           result = np.transpose(result, axes=[1, 0, 2])
@@ -366,18 +380,30 @@ class TensorGraph(Model):
       self.built = True
     self.tensor_objects = tensor_objects
 
-  def evaluate_generator(self, dataset, metrics, transformers=[],
-                         labels=None, outputs=None, weights=[], per_task_metrics=False):
+  def evaluate_generator(self,
+                         dataset,
+                         metrics,
+                         transformers=[],
+                         labels=None,
+                         outputs=None,
+                         weights=[],
+                         per_task_metrics=False):
 
     if labels is None:
       raise ValueError
-    evaluator = GeneratorEvaluator(self, dataset, transformers, labels=labels, outputs=outputs, weights=weights)
+    evaluator = GeneratorEvaluator(
+        self,
+        dataset,
+        transformers,
+        labels=labels,
+        outputs=outputs,
+        weights=weights)
     if not per_task_metrics:
       scores = evaluator.compute_model_performance(metrics)
       return scores
     else:
       scores, per_task_scores = evaluator.compute_model_performance(
-        metrics, per_task_metrics=per_task_metrics)
+          metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
 
   def _get_tf(self, obj):
@@ -401,11 +427,11 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-        self.learning_rate, beta1=.9,
-        beta2=.999).minimize(self.loss.out_tensor)
+          self.learning_rate, beta1=.9,
+          beta2=.999).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
-        key=tf.GraphKeys.SUMMARIES)
+          key=tf.GraphKeys.SUMMARIES)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):

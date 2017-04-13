@@ -23,8 +23,11 @@ import deepchem as dc
 from tox21_datasets import load_tox21
 
 model_dir = "/tmp/graph_conv"
+
+
 def graph_conv_model(batch_size, tasks):
-  model = TensorGraph(model_dir=model_dir, batch_size=batch_size, use_queue=False)
+  model = TensorGraph(
+      model_dir=model_dir, batch_size=batch_size, use_queue=False)
   atom_features = Feature(shape=(None, 75), name="ATOMFEATURES")
   degree_slice = Feature(shape=(None, 2), dtype=tf.int32, name="DEGREE_SLICE")
   membership = Feature(shape=(None,), dtype=tf.int32, name="MEMBERSHIP")
@@ -33,29 +36,49 @@ def graph_conv_model(batch_size, tasks):
   for i in range(0, 10 + 1):
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32, name="DEGADJ%i" % i)
     deg_adjs.append(deg_adj)
-  gc1 = GraphConvLayer(64, activation_fn=tf.nn.relu, in_layers=[atom_features, degree_slice, membership] + deg_adjs, name="CONV1")
+  gc1 = GraphConvLayer(
+      64,
+      activation_fn=tf.nn.relu,
+      in_layers=[atom_features, degree_slice, membership] + deg_adjs,
+      name="CONV1")
   batch_norm1 = BatchNormLayer(in_layers=[gc1], name="BATCHNORM1")
-  gp1 = GraphPoolLayer(in_layers=[batch_norm1, degree_slice, membership] + deg_adjs, name="POOL1")
-  gc2 = GraphConvLayer(64, activation_fn=tf.nn.relu, in_layers=[gp1, degree_slice, membership] + deg_adjs, name="CONV2")
+  gp1 = GraphPoolLayer(
+      in_layers=[batch_norm1, degree_slice, membership] + deg_adjs,
+      name="POOL1")
+  gc2 = GraphConvLayer(
+      64,
+      activation_fn=tf.nn.relu,
+      in_layers=[gp1, degree_slice, membership] + deg_adjs,
+      name="CONV2")
   batch_norm2 = BatchNormLayer(in_layers=[gc2], name="BATCHNORM2")
-  gp2 = GraphPoolLayer(in_layers=[batch_norm2, degree_slice, membership] + deg_adjs, name="POOL2")
-  dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2], name="DENSE1")
+  gp2 = GraphPoolLayer(
+      in_layers=[batch_norm2, degree_slice, membership] + deg_adjs,
+      name="POOL2")
+  dense = Dense(
+      out_channels=128, activation_fn=None, in_layers=[gp2], name="DENSE1")
   batch_norm3 = BatchNormLayer(in_layers=[dense], name="BATCHNORM3")
-  gg1 = GraphGather(batch_size=batch_size, activation_fn=tf.nn.tanh,
-                    in_layers=[batch_norm3, degree_slice, membership] + deg_adjs, name="GATHER")
+  gg1 = GraphGather(
+      batch_size=batch_size,
+      activation_fn=tf.nn.tanh,
+      in_layers=[batch_norm3, degree_slice, membership] + deg_adjs,
+      name="GATHER")
 
   costs = []
   labels = []
   for task in tasks:
     classification = Dense(
-      out_channels=2, name="GUESS_%s" % task, activation_fn=None, in_layers=[gg1])
+        out_channels=2,
+        name="GUESS_%s" % task,
+        activation_fn=None,
+        in_layers=[gg1])
 
     softmax = SoftMax(name="SOFTMAX_%s" % task, in_layers=[classification])
     model.add_output(softmax)
 
     label = Label(shape=(None, 2), name="LABEL_%s" % task)
     labels.append(label)
-    cost = SoftMaxCrossEntropy(name="COST_%s" % task, in_layers=[label, classification])
+    cost = SoftMaxCrossEntropy(
+        name="COST_%s" % task, in_layers=[label, classification])
     costs.append(cost)
 
   entropy = Concat(name="ENT", in_layers=costs)
@@ -66,7 +89,7 @@ def graph_conv_model(batch_size, tasks):
   def feed_dict_generator(dataset, batch_size, epochs=1):
     for epoch in range(epochs):
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
-        dataset.iterbatches(batch_size, pad_batches=True)):
+          dataset.iterbatches(batch_size, pad_batches=True)):
         d = {}
         for index, label in enumerate(labels):
           d[label] = to_one_hot(y_b[:, index])
@@ -90,18 +113,27 @@ print(valid_dataset.data_dir)
 
 # Fit models
 metric = dc.metrics.Metric(
-  dc.metrics.roc_auc_score, np.mean, mode="classification")
+    dc.metrics.roc_auc_score, np.mean, mode="classification")
 
 # Batch size of models
 batch_size = 50
 
-model, generator, labels, task_weights = graph_conv_model(batch_size, tox21_tasks)
+model, generator, labels, task_weights = graph_conv_model(batch_size,
+                                                          tox21_tasks)
 
 model.fit_generator(generator(train_dataset, batch_size, epochs=10))
 
 print("Evaluating model")
-train_scores = model.evaluate_generator(generator(train_dataset, batch_size), [metric], transformers, labels, weights=[task_weights])
-valid_scores = model.evaluate_generator(generator(valid_dataset, batch_size), [metric], transformers, labels, weights=[task_weights])
+train_scores = model.evaluate_generator(
+    generator(train_dataset, batch_size), [metric],
+    transformers,
+    labels,
+    weights=[task_weights])
+valid_scores = model.evaluate_generator(
+    generator(valid_dataset, batch_size), [metric],
+    transformers,
+    labels,
+    weights=[task_weights])
 
 print("Train scores")
 print(train_scores)
