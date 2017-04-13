@@ -24,7 +24,7 @@ class TensorGraph(Model):
                learning_rate=0.001,
                batch_size=100,
                use_queue=True,
-               mode="classification",
+               mode="regression",
                **kwargs):
     """
     TODO(LESWING) allow a model to change its learning rate
@@ -32,8 +32,22 @@ class TensorGraph(Model):
     ----------
     tensorboard: bool
       Should we log to model_dir data for tensorboard?
+    tensorboard_log_frequency: int
+      How many training batches before logging tensorboard?
     learning_rate: float
-      learning rate for the model
+      learning rate for optimizer
+    batch_size: int
+      default batch size for training and evaluating
+    use_queue: boolean
+      if True when building we will create a tf.FIFO queue, which will hold
+      all features, weights, and labels.  We will feed the inputs into this
+      queue in batches of self.batch_size in a separate thread from the
+      thread training the model.  You cannot use a queue when
+      batches are not of consistent size
+    mode: str
+      "regression" or "classification".  "classification" models on
+      predict will do an argmax(axis=2) to determine the class of the
+      prediction.
     kwargs
     """
 
