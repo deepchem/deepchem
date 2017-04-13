@@ -15,7 +15,8 @@ call([
     "wget", "-c",
     "http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_v2015.tar.gz"
 ])
-# call(["tar", "-xvzf", "pdbbind_v2015.tar.gz"])
+if not os.path.exists("v2015"):
+  call(["tar", "-xvzf", "pdbbind_v2015.tar.gz"])
 
 base_dir = os.getcwd()
 pdbbind_dir = os.path.join(base_dir, "v2015")
