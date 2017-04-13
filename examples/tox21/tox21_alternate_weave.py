@@ -30,14 +30,19 @@ n_pair_feat = 14
 # Batch size of models
 batch_size = 64
 n_feat = 128
-graph = dc.nn.SequentialWeaveGraph(
-    max_atoms=max_atoms, n_atom_feat=n_atom_feat, n_pair_feat=n_pair_feat)
+graph = dc.nn.AlternateSequentialWeaveGraph(
+    batch_size,
+    max_atoms=max_atoms,
+    n_atom_feat=n_atom_feat,
+    n_pair_feat=n_pair_feat)
 
-graph.add(dc.nn.WeaveLayer(max_atoms, 75, 14))
-#graph.add(dc.nn.WeaveLayer(max_atoms, 50, 50))
-graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
+graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 75, 14))
+#graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 50, 50))
+graph.add(dc.nn.Dense(n_feat, 50, activation='tanh'))
 graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat, gaussian_expand=True))
+graph.add(
+    dc.nn.AlternateWeaveGather(
+        batch_size, n_input=n_feat, gaussian_expand=True))
 
 model = dc.models.MultitaskGraphClassifier(
     graph,

@@ -180,12 +180,15 @@ class WeaveLayer(Layer):
     return A, P
 
 
-class WeaveLayer_v2(WeaveLayer):
+class AlternateWeaveLayer(WeaveLayer):
+  """ Alternate implementation of weave module
+      same variables, different graph structures
+  """
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
 
-    x = [atom_features, pair_features, pair_split, pair_membership, atom_split]
+    x = [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
     
     Parameters
     ----------
@@ -411,7 +414,10 @@ class WeaveGather(Layer):
     return outputs
 
 
-class WeaveGather_v2(WeaveGather):
+class AlternateWeaveGather(WeaveGather):
+  """Alternate implementation of weave gather layer
+     corresponding to AlternateWeaveLayer
+  """
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.

@@ -494,7 +494,7 @@ class WeaveGraphTopology(GraphTopology):
     return dict_DTNN
 
 
-class WeaveGraphTopology_v2(GraphTopology):
+class AlternateWeaveGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
   def __init__(self,
