@@ -59,7 +59,7 @@ def balanced_accuracy_score(y, y_pred):
   """Computes balanced accuracy score."""
   num_positive = float(np.count_nonzero(y))
   num_negative = float(len(y) - num_positive)
-  pos_weight = num_positive/num_negative
+  pos_weight = num_positive / num_negative
   weights = np.ones_like(y)
   weights[y != 0] = pos_weight
   return accuracy_score(y, y_pred, sample_weight=weights)
@@ -106,8 +106,8 @@ def kappa_score(y_true, y_pred):
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
-      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) + np.count_nonzero(
-          yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
+      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
+      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
   kappa = np.true_divide(observed_agreement - expected_agreement,
                          1.0 - expected_agreement)
   return kappa
@@ -229,8 +229,8 @@ class Metric(object):
       if self.compute_energy_metric:
         # TODO(rbharath, joegomes): What is this magic number?
         force_error = self.task_averager(computed_metrics[1:]) * 4961.47596096
-        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" %
-              (self.name, force_error))
+        print("Force error (metric: np.mean(%s)): %f kJ/mol/A" % (self.name,
+                                                                  force_error))
         return computed_metrics[0]
       elif not per_task_metrics:
         return self.task_averager(computed_metrics)
