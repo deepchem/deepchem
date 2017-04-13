@@ -72,8 +72,8 @@ class TestTensorGraph(unittest.TestCase):
     tg.set_loss(total_loss)
 
     tg.fit_generator(
-        databag.iterbatches(
-            epochs=100, batch_size=tg.batch_size, pad_batches=True))
+      databag.iterbatches(
+        epochs=100, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -131,8 +131,8 @@ class TestTensorGraph(unittest.TestCase):
     tg.set_loss(total_loss)
 
     tg.fit_generator(
-        databag.iterbatches(
-            epochs=200, batch_size=tg.batch_size, pad_batches=True))
+      databag.iterbatches(
+        epochs=200, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -171,10 +171,10 @@ class TestTensorGraph(unittest.TestCase):
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
     tg = dc.models.TensorGraph(
-        tensorboard=True,
-        tensorboard_log_frequency=1,
-        learning_rate=0.1,
-        model_dir='/tmp/tensorgraph')
+      tensorboard=True,
+      tensorboard_log_frequency=1,
+      learning_rate=0.1,
+      model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=10)

@@ -4,7 +4,7 @@ from nose.tools import assert_true
 from unittest import TestCase
 
 import deepchem as dc
-from data.datasets import Databag
+from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
