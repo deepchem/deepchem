@@ -132,7 +132,11 @@ class Evaluator(object):
 
 
 class GeneratorEvaluator(object):
-  """Class that evaluates a model on a given dataset."""
+  """
+  Partner class to Evaluator.
+  Instead of operating over datasets this class operates over Generator.
+  Evaluate a Metric over a model and Generator.
+  """
 
   def __init__(self,
                model,
@@ -140,8 +144,25 @@ class GeneratorEvaluator(object):
                transformers,
                labels,
                outputs=None,
-               weights=list(),
-               verbose=False):
+               weights=list()):
+    """
+    Parameters
+    ----------
+    model: Model
+      Model to evaluate
+    generator: Generator
+      Generator which yields {layer: numpyArray} to feed into model
+    transformers:
+      Tranformers to "undo" when applied to the models outputs
+    labels: list of Layer
+      layers which are keys in the generator to compare to outputs
+    outputs: list of Layer
+      if None will use the outputs of the model
+    weights: np.array
+      Must be of the shape (n_samples, n_tasks)
+      if weights[sample][task] is 0 that sample will not be used
+      for computing the task metric
+    """
     self.model = model
     self.generator = generator
     self.output_transformers = [

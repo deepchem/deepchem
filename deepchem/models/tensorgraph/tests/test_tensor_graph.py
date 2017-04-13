@@ -4,8 +4,7 @@ import deepchem as dc
 import tensorflow as tf
 import os
 
-from data import NumpyDataset
-
+from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Input, Dense, LossLayer, Flatten, ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import Layer, Input, Reshape, Flatten, Feature, Conv2d, MaxPool, Label
@@ -57,7 +56,7 @@ class TestTensorGraph(unittest.TestCase):
 
     outputs = []
     entropies = []
-    for i in xrange(2):
+    for i in range(2):
       label = Label(shape=(None, 2))
       dense = Dense(out_channels=2, in_layers=[features])
       output = SoftMax(in_layers=[dense])
@@ -117,7 +116,7 @@ class TestTensorGraph(unittest.TestCase):
 
     outputs = []
     losses = []
-    for i in xrange(2):
+    for i in range(2):
       label = Label(shape=(None, 1))
       dense = Dense(out_channels=1, in_layers=[features])
       loss = ReduceSquareDifference(in_layers=[dense, label])
