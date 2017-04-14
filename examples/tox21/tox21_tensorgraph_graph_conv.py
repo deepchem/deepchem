@@ -50,8 +50,7 @@ def graph_conv_model(batch_size, tasks):
   batch_norm2 = BatchNormLayer(in_layers=[gc2])
   gp2 = GraphPoolLayer(
       in_layers=[batch_norm2, degree_slice, membership] + deg_adjs)
-  dense = Dense(
-      out_channels=128, activation_fn=None, in_layers=[gp2])
+  dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2])
   batch_norm3 = BatchNormLayer(in_layers=[dense])
   gg1 = GraphGather(
       batch_size=batch_size,
@@ -61,10 +60,7 @@ def graph_conv_model(batch_size, tasks):
   costs = []
   labels = []
   for task in tasks:
-    classification = Dense(
-        out_channels=2,
-        activation_fn=None,
-        in_layers=[gg1])
+    classification = Dense(out_channels=2, activation_fn=None, in_layers=[gg1])
 
     softmax = SoftMax(in_layers=[classification])
     model.add_output(softmax)
