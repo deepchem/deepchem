@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import pandas as pd
+import deepchem as dc
 from atomicnet_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 
 
@@ -68,7 +69,7 @@ def compute_pdbbind_coordinate_features(complex_featurizer, pdb_subdir,
   """
 
   protein_file = os.path.join(pdb_subdir, "%s_pocket.pdb" % pdb_code)
-  ligand_file = os.path.join(pdb_subdir, "%s_ligand.pdb" % pdb_code)
+  ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
   feature = complex_featurizer._featurize_complex(
       str(ligand_file), str(protein_file))
   return feature

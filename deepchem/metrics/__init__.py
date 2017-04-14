@@ -203,7 +203,7 @@ class Metric(object):
     else:
       y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     y_true = np.reshape(y_true, (n_samples, n_tasks))
-    if w is None:
+    if w is None or len(w) == 0:
       w = np.ones_like(y_true)
     assert y_true.shape[0] == y_pred.shape[0] == w.shape[0]
     computed_metrics = []
