@@ -387,7 +387,7 @@ class TensorGraph(Model):
     self.tensor_objects = tensor_objects
 
   def evaluate_generator(self,
-                         dataset,
+                         feed_dict_generator,
                          metrics,
                          transformers=[],
                          labels=None,
@@ -399,7 +399,7 @@ class TensorGraph(Model):
       raise ValueError
     evaluator = GeneratorEvaluator(
         self,
-        dataset,
+        feed_dict_generator,
         transformers,
         labels=labels,
         outputs=outputs,
@@ -496,7 +496,11 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     for feed_dict in generator:
       enq = {}
       for layer in tg.features + tg.labels + tg.task_weights:
-        enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
+        try:
+          enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
+        except KeyError as e:
+          print(layer)
+          print(tg.layers)
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       num_samples += 1
       if tg.tensorboard and num_samples % tg.tensorboard_log_frequency == 0:
