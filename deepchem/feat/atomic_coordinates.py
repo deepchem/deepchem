@@ -177,7 +177,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     complex_pdb: list
       Should be a list of lines of the PDB file.
     """
-    mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
+    mol_coords, _ = rdkit_util.load_molecule(mol_pdb_file)
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
     system_coords = rdkit_util.merge_molecules_xyz(mol_coords, protein_coords)
 
