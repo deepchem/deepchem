@@ -24,14 +24,14 @@ metric = [
 # Batch size of models
 batch_size = 50
 n_embedding = 20
-graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=23, n_distance=100)
+graph_model = dc.nn.SequentialDTNNGraph(n_distance=100)
 graph_model.add(dc.nn.DTNNEmbedding(n_embedding=n_embedding))
 graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
 graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
 graph_model.add(dc.nn.DTNNGather(n_embedding=n_embedding))
 n_feat = n_embedding
 
-model = dc.models.DTNNGraphRegressor(
+model = dc.models.MultitaskGraphRegressor(
     graph_model,
     len(tasks),
     n_feat,

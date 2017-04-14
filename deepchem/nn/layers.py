@@ -914,20 +914,23 @@ class DTNNStep(Layer):
     """
     self.build()
     atom_features = x[0]
-    distance_matrix = x[1]
-    distance_matrix_mask = x[2]
-    outputs = tf.multiply(
-        (tf.tensordot(distance_matrix, self.W_df, [[3], [0]]) + self.b_df),
-        tf.expand_dims(
-            tf.tensordot(atom_features, self.W_cf, [[2], [0]]) + self.b_cf,
-            axis=1))
+    distance = x[1]
+    atom_membership = x[2]
+    distance_membership_i = x[3]
+    distance_membership_j = x[3]
+    distance = tf.matmul(distance, self.W_df) + self.b_df
+    distance = self.activation(distance)
+    atom_features = tf.matmul(atom_features, self.W_cf) + self.b_cf
+    atom_features = self.activation(atom_features)
+    outputs = tf.multiply(distance,
+                          tf.gather(atom_features, distance_membership_j))
+
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
-    outputs = tf.tensordot(outputs, self.W_fc, [[3], [0]])
-    outputs = tf.multiply(outputs, tf.expand_dims(distance_matrix_mask, axis=3))
-    # masking the outputs tensor for pair(i,i) and all paddings
+    outputs = tf.matmul(outputs, self.W_fc)
     outputs = self.activation(outputs)
-    outputs = tf.reduce_sum(outputs, axis=2) + atom_features
+
+    outputs = tf.segment_sum(outputs, distance_membership_i) + atom_features
     # for atom i, sum the influence from all other atom j in the molecule
 
     return outputs
@@ -983,13 +986,12 @@ class DTNNGather(Layer):
     """
     self.build()
     output = x[0]
-    atom_mask = x[1]
+    atom_membership = x[1]
     for idw, W in enumerate(self.W_list):
-      output = tf.tensordot(output, W, [[2], [0]]) + self.b_list[idw]
+      output = tf.matmul(output, W) + self.b_list[idw]
       output = self.activation(output)
 
-    output = tf.reduce_sum(
-        tf.multiply(output, tf.expand_dims(atom_mask, axis=2)), axis=1)
+    output = tf.segment_sum(output, atom_membership)
 
     return output
 

@@ -86,11 +86,7 @@ class SequentialDTNNGraph(SequentialGraph):
   automatically generates and passes topology placeholders to each layer. 
   """
 
-  def __init__(self,
-               max_n_atoms,
-               n_distance=100,
-               distance_min=-1.,
-               distance_max=18.):
+  def __init__(self, n_distance=100, distance_min=-1., distance_max=18.):
     """
     Parameters
     ----------
@@ -107,10 +103,7 @@ class SequentialDTNNGraph(SequentialGraph):
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DTNNGraphTopology(
-          max_n_atoms,
-          n_distance,
-          distance_min=distance_min,
-          distance_max=distance_max)
+          n_distance, distance_min=distance_min, distance_max=distance_max)
       self.output = self.graph_topology.get_atom_number_placeholder()
     # Keep track of the layers
     self.layers = []
@@ -123,7 +116,7 @@ class SequentialDTNNGraph(SequentialGraph):
                             self.graph_topology.get_topology_placeholders())
       elif type(layer).__name__ in ['DTNNGather']:
         self.output = layer(
-            [self.output, self.graph_topology.atom_mask_placeholder])
+            [self.output, self.graph_topology.atom_membership_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
