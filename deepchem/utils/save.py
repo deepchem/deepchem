@@ -13,16 +13,20 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+import deepchem
 from rdkit import Chem
+
 
 def log(string, verbose=True):
   """Print string if verbose."""
   if verbose:
     print(string)
 
+
 def save_to_disk(dataset, filename, compress=3):
   """Save a dataset to file."""
   joblib.dump(dataset, filename, compress=compress)
+
 
 def get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
@@ -40,6 +44,7 @@ def get_input_type(input_file):
     return "sdf"
   else:
     raise ValueError("Unrecognized extension %s" % file_extension)
+
 
 def load_data(input_files, shard_size=None, verbose=True):
   """Loads data from disk.
@@ -61,12 +66,13 @@ def load_data(input_files, shard_size=None, verbose=True):
     for input_file in input_files:
       yield load_pickle_from_disk(input_file)
 
+
 def load_sdf_files(input_files):
   """Load SDF file into dataframe."""
   dataframes = []
   for input_file in input_files:
     # Tasks are stored in .sdf.csv file
-    raw_df = next(load_csv_files([input_file+".csv"], shard_size=None))
+    raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
     # Structures are stored in .sdf file
     print("Reading structures from %s." % input_file)
     suppl = Chem.SDMolSupplier(str(input_file), False, False, False)
@@ -74,10 +80,11 @@ def load_sdf_files(input_files):
     for ind, mol in enumerate(suppl):
       if mol is not None:
         smiles = Chem.MolToSmiles(mol)
-        df_rows.append([ind,smiles,mol])
+        df_rows.append([ind, smiles, mol])
     mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
     dataframes.append(pd.concat([mol_df, raw_df], axis=1, join='inner'))
   return dataframes
+
 
 def load_csv_files(filenames, shard_size=None, verbose=True):
   """Load data as pandas dataframe."""
@@ -94,6 +101,7 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
+
 
 def load_from_disk(filename):
   """Load a dataset from file."""
@@ -118,6 +126,7 @@ def load_from_disk(filename):
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
+
 def load_sharded_csv(filenames):
   """Load a dataset from multiple files. Each file MUST have same column headers"""
   dataframes = []
@@ -132,13 +141,14 @@ def load_sharded_csv(filenames):
       dataframes.append(df)
     else:
       raise ValueError("Unrecognized filetype for %s" % filename)
-  
+
   #combine dataframes
   combined_df = dataframes[0]
   for i in range(0, len(dataframes) - 1):
-    combined_df = combined_df.append(dataframes[i+1])
-  combined_df = combined_df.reset_index(drop=True)  
+    combined_df = combined_df.append(dataframes[i + 1])
+  combined_df = combined_df.reset_index(drop=True)
   return combined_df
+
 
 def load_pickle_from_disk(filename):
   """Load dataset from pickle file."""
@@ -149,3 +159,35 @@ def load_pickle_from_disk(filename):
     with open(filename, "rb") as f:
       df = pickle.load(f)
   return df
+
+
+def load_dataset_from_disk(save_dir):
+  train_dir = os.path.join(save_dir, "train_dir")
+  valid_dir = os.path.join(save_dir, "valid_dir")
+  test_dir = os.path.join(save_dir, "test_dir")
+  if os.path.exists(train_dir) and os.path.exists(valid_dir) and os.path.exists(
+      test_dir):
+    loaded = True
+    train = deepchem.data.DiskDataset(train_dir)
+    valid = deepchem.data.DiskDataset(valid_dir)
+    test = deepchem.data.DiskDataset(test_dir)
+    all_dataset = (train, valid, test)
+    with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
+      transformers = pickle.load(f)
+  else:
+    loaded = False
+    all_dataset = None
+    transformers = []
+  return loaded, all_dataset, transformers
+
+
+def save_dataset_to_disk(save_dir, train, valid, test, transformers):
+  train_dir = os.path.join(save_dir, "train_dir")
+  valid_dir = os.path.join(save_dir, "valid_dir")
+  test_dir = os.path.join(save_dir, "test_dir")
+  train.move(train_dir)
+  valid.move(valid_dir)
+  test.move(test_dir)
+  with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
+    pickle.dump(transformers, f)
+  return None

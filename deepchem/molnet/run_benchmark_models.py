@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 import deepchem
+import xgboost
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -49,7 +50,7 @@ def benchmark_classification(train_dataset,
       metrics used for evaluation
   model: string,  optional (default='tf')
       choice of which model to use, should be: rf, tf, tf_robust, logreg,
-      irv, graphconv
+      irv, graphconv, dag, xgb, weave
   test: boolean
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -71,7 +72,10 @@ def benchmark_classification(train_dataset,
   valid_scores = {}
   test_scores = {}
 
-  assert model in ['rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv']
+  assert model in [
+      'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb',
+      'weave'
+  ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
@@ -183,8 +187,6 @@ def benchmark_classification(train_dataset,
         seed=seed)
 
   elif model_name == 'graphconv':
-    # Initialize model folder
-
     # Loading hyper parameters
     batch_size = hyper_parameters['batch_size']
     nb_epoch = hyper_parameters['nb_epoch']
@@ -219,6 +221,83 @@ def benchmark_classification(train_dataset,
         beta1=.9,
         beta2=.999)
 
+  elif model_name == 'dag':
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    reshard_size = 256
+    transformer = deepchem.trans.DAGTransformer(max_atoms=max_atoms)
+    train_dataset.reshard(reshard_size)
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset.reshard(reshard_size)
+    valid_dataset = transformer.transform(valid_dataset)
+    if test:
+      test_dataset.reshard(reshard_size)
+      test_dataset = transformer.transform(test_dataset)
+
+    tf.set_random_seed(seed)
+    graph_model = deepchem.nn.SequentialDAGGraph(
+        n_features, batch_size=batch_size, max_atoms=max_atoms)
+    graph_model.add(
+        deepchem.nn.DAGLayer(n_graph_feat, n_features, max_atoms=max_atoms))
+    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+
+    model = deepchem.models.MultitaskGraphClassifier(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'weave':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+    n_pair_feat = hyper_parameters['n_pair_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    tf.set_random_seed(seed)
+    graph_model = deepchem.nn.AlternateSequentialWeaveGraph(
+        batch_size,
+        max_atoms=max_atoms,
+        n_atom_feat=n_features,
+        n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.AlternateWeaveLayer(max_atoms, 75, 14))
+    graph_model.add(
+        deepchem.nn.AlternateWeaveLayer(max_atoms, 50, 50, update_pair=False))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(
+        deepchem.nn.AlternateWeaveGather(
+            batch_size, n_input=n_graph_feat, gaussian_expand=True))
+
+    model = deepchem.models.MultitaskGraphClassifier(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        learning_rate_decay_time=1000,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
   elif model_name == 'rf':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -230,6 +309,50 @@ def benchmark_classification(train_dataset,
           class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(sklearn_model,
                                                          model_dir_rf)
+
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
+
+  elif model_name == 'xgb':
+    # Loading hyper parameters
+    max_depth = hyper_parameters['max_depth']
+    learning_rate = hyper_parameters['learning_rate']
+    n_estimators = hyper_parameters['n_estimators']
+    gamma = hyper_parameters['gamma']
+    min_child_weight = hyper_parameters['min_child_weight']
+    max_delta_step = hyper_parameters['max_delta_step']
+    subsample = hyper_parameters['subsample']
+    colsample_bytree = hyper_parameters['colsample_bytree']
+    colsample_bylevel = hyper_parameters['colsample_bylevel']
+    reg_alpha = hyper_parameters['reg_alpha']
+    reg_lambda = hyper_parameters['reg_lambda']
+    scale_pos_weight = hyper_parameters['scale_pos_weight']
+    base_score = hyper_parameters['base_score']
+    seed = hyper_parameters['seed']
+    early_stopping_rounds = hyper_parameters['early_stopping_rounds']
+    nb_epoch = None
+
+    esr = {'early_stopping_rounds': early_stopping_rounds}
+
+    # Building xgboost classification model
+    def model_builder(model_dir_xgb):
+      xgboost_model = xgboost.XGBClassifier(
+          max_depth=max_depth,
+          learning_rate=learning_rate,
+          n_estimators=n_estimators,
+          gamma=gamma,
+          min_child_weight=min_child_weight,
+          max_delta_step=max_delta_step,
+          subsample=subsample,
+          colsample_bytree=colsample_bytree,
+          colsample_bylevel=colsample_bylevel,
+          reg_alpha=reg_alpha,
+          reg_lambda=reg_lambda,
+          scale_pos_weight=scale_pos_weight,
+          base_score=base_score,
+          seed=seed)
+      return deepchem.models.xgboost_models.XGBoostModel(xgboost_model,
+                                                         model_dir_xgb, **esr)
 
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)
@@ -279,7 +402,8 @@ def benchmark_regression(train_dataset,
       metrics used for evaluation
   model: string,  optional (default='tf_regression')
       choice of which model to use, should be: tf_regression, tf_regression_ft,
-      graphconvreg, rf_regression
+      graphconvreg, rf_regression, dtnn, dag_regression, xgb_regression,
+      weave_regression
   test: boolean
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -301,7 +425,8 @@ def benchmark_regression(train_dataset,
   test_scores = {}
 
   assert model in [
-      'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg'
+      'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
+      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -361,7 +486,7 @@ def benchmark_regression(train_dataset,
         n_eval=10,
         seed=seed)
 
-  if model_name == 'graphconvreg':
+  elif model_name == 'graphconvreg':
     # Initialize model folder
 
     # Loading hyper parameters
@@ -398,7 +523,112 @@ def benchmark_regression(train_dataset,
         beta1=.9,
         beta2=.999)
 
-  if model_name == 'rf_regression':
+  elif model_name == 'dtnn':
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_embedding = hyper_parameters['n_embedding']
+    n_distance = hyper_parameters['n_distance']
+    assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
+
+    tf.set_random_seed(seed)
+    graph_model = deepchem.nn.SequentialDTNNGraph(
+        max_n_atoms=n_features[0], n_distance=n_distance)
+    graph_model.add(deepchem.nn.DTNNEmbedding(n_embedding=n_embedding))
+    graph_model.add(
+        deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
+    graph_model.add(
+        deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
+    graph_model.add(deepchem.nn.DTNNGather(n_embedding=n_embedding))
+    model = deepchem.models.DTNNGraphRegressor(
+        graph_model,
+        len(tasks),
+        n_embedding,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'dag_regression':
+    # Loading hyper parameters
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    reshard_size = 512
+    transformer = deepchem.trans.DAGTransformer(max_atoms=max_atoms)
+    train_dataset.reshard(reshard_size)
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset.reshard(reshard_size)
+    valid_dataset = transformer.transform(valid_dataset)
+    if test:
+      test_dataset.reshard(reshard_size)
+      test_dataset = transformer.transform(test_dataset)
+
+    tf.set_random_seed(seed)
+    graph_model = deepchem.nn.SequentialDAGGraph(
+        n_features, batch_size=batch_size, max_atoms=max_atoms)
+    graph_model.add(
+        deepchem.nn.DAGLayer(n_graph_feat, n_features, max_atoms=max_atoms))
+    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+
+    model = deepchem.models.MultitaskGraphRegressor(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'weave_regression':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    n_graph_feat = hyper_parameters['n_graph_feat']
+    n_pair_feat = hyper_parameters['n_pair_feat']
+
+    max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
+    max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
+    max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
+    max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
+
+    tf.set_random_seed(seed)
+    graph_model = deepchem.nn.AlternateSequentialWeaveGraph(
+        batch_size,
+        max_atoms=max_atoms,
+        n_atom_feat=n_features,
+        n_pair_feat=n_pair_feat)
+    graph_model.add(deepchem.nn.AlternateWeaveLayer(max_atoms, 75, 14))
+    graph_model.add(
+        deepchem.nn.AlternateWeaveLayer(max_atoms, 50, 50, update_pair=False))
+    graph_model.add(deepchem.nn.Dense(n_graph_feat, 50, activation='tanh'))
+    graph_model.add(deepchem.nn.BatchNormalization(epsilon=1e-5, mode=1))
+    graph_model.add(
+        deepchem.nn.AlternateWeaveGather(
+            batch_size, n_input=n_graph_feat, gaussian_expand=True))
+
+    model = deepchem.models.MultitaskGraphRegressor(
+        graph_model,
+        len(tasks),
+        n_features,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        learning_rate_decay_time=1000,
+        optimizer_type="adam",
+        beta1=.9,
+        beta2=.999)
+
+  elif model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
     nb_epoch = None
@@ -409,6 +639,50 @@ def benchmark_regression(train_dataset,
           n_estimators=n_estimators, n_jobs=-1)
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir_rf_regression)
+
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
+
+  elif model_name == 'xgb_regression':
+    # Loading hyper parameters
+    max_depth = hyper_parameters['max_depth']
+    learning_rate = hyper_parameters['learning_rate']
+    n_estimators = hyper_parameters['n_estimators']
+    gamma = hyper_parameters['gamma']
+    min_child_weight = hyper_parameters['min_child_weight']
+    max_delta_step = hyper_parameters['max_delta_step']
+    subsample = hyper_parameters['subsample']
+    colsample_bytree = hyper_parameters['colsample_bytree']
+    colsample_bylevel = hyper_parameters['colsample_bylevel']
+    reg_alpha = hyper_parameters['reg_alpha']
+    reg_lambda = hyper_parameters['reg_lambda']
+    scale_pos_weight = hyper_parameters['scale_pos_weight']
+    base_score = hyper_parameters['base_score']
+    seed = hyper_parameters['seed']
+    early_stopping_rounds = hyper_parameters['early_stopping_rounds']
+    nb_epoch = None
+
+    esr = {'early_stopping_rounds': early_stopping_rounds}
+
+    # Building xgboost classification model
+    def model_builder(model_dir_xgb):
+      xgboost_model = xgboost.XGBRegressor(
+          max_depth=max_depth,
+          learning_rate=learning_rate,
+          n_estimators=n_estimators,
+          gamma=gamma,
+          min_child_weight=min_child_weight,
+          max_delta_step=max_delta_step,
+          subsample=subsample,
+          colsample_bytree=colsample_bytree,
+          colsample_bylevel=colsample_bylevel,
+          reg_alpha=reg_alpha,
+          reg_lambda=reg_lambda,
+          scale_pos_weight=scale_pos_weight,
+          base_score=base_score,
+          seed=seed)
+      return deepchem.models.xgboost_models.XGBoostModel(xgboost_model,
+                                                         model_dir_xgb, **esr)
 
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)

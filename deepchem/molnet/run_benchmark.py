@@ -27,6 +27,7 @@ def run_benchmark(datasets,
                   out_path='.',
                   hyper_parameters=None,
                   test=False,
+                  reload=True,
                   seed=123):
   """
   Run benchmark test on designated datasets with deepchem(or user-defined) model
@@ -58,6 +59,8 @@ def run_benchmark(datasets,
       hyper parameters for designated model, None = use preset values
   test: boolean, optional(default=False)
       whether to evaluate on test set
+  reload: boolean, optional(default=True)
+      whether to save and reload featurized datasets
   """
   for dataset in datasets:
     if dataset in [
@@ -132,10 +135,10 @@ def run_benchmark(datasets,
     if split is not None:
       print('Splitting function: %s' % split)
       tasks, all_dataset, transformers = loading_functions[dataset](
-          featurizer=featurizer, split=split)
+          featurizer=featurizer, split=split, reload=reload)
     else:
       tasks, all_dataset, transformers = loading_functions[dataset](
-          featurizer=featurizer)
+          featurizer=featurizer, reload=reload)
 
     train_dataset, valid_dataset, test_dataset = all_dataset
 

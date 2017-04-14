@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_qm9(featurizer=None, split='random'):
+def load_qm9(featurizer=None, split='random', reload=True):
   """Load qm9 datasets."""
   # Featurize qm9 dataset
   print("About to featurize qm9 dataset.")
@@ -17,6 +17,8 @@ def load_qm9(featurizer=None, split='random'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
@@ -32,6 +34,13 @@ def load_qm9(featurizer=None, split='random'):
       "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
       "u0_atom", "u298_atom", "h298_atom", "g298_atom"
   ]
+
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return qm9_tasks, all_dataset, transformers
+
   if featurizer is None:
     featurizer = deepchem.feat.CoulombMatrix(29)
   loader = deepchem.data.SDFLoader(
@@ -56,4 +65,8 @@ def load_qm9(featurizer=None, split='random'):
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(
+        save_dir, train_dataset, valid_dataset, test_dataset, transformers)
   return qm9_tasks, (train_dataset, valid_dataset, test_dataset), transformers

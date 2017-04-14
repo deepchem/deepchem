@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_delaney(featurizer='ECFP', split='index'):
+def load_delaney(featurizer='ECFP', split='index', reload=True):
   """Load delaney datasets."""
   # Featurize Delaney dataset
   print("About to featurize Delaney dataset.")
@@ -17,6 +17,8 @@ def load_delaney(featurizer='ECFP', split='index'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "delaney/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
@@ -27,6 +29,12 @@ def load_delaney(featurizer='ECFP', split='index'):
     )
 
   delaney_tasks = ['measured log solubility in mols per litre']
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return delaney_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
@@ -57,4 +65,8 @@ def load_delaney(featurizer='ECFP', split='index'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return delaney_tasks, (train, valid, test), transformers

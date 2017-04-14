@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_hiv(featurizer='ECFP', split='index'):
+def load_hiv(featurizer='ECFP', split='index', reload=True):
   """Load hiv datasets. Does not do train/test split"""
   # Featurize hiv dataset
   print("About to featurize hiv dataset.")
@@ -17,6 +17,8 @@ def load_hiv(featurizer='ECFP', split='index'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "HIV.csv")
   if not os.path.exists(dataset_file):
@@ -26,10 +28,19 @@ def load_hiv(featurizer='ECFP', split='index'):
     )
 
   hiv_tasks = ["HIV_active"]
+
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return hiv_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
@@ -53,4 +64,9 @@ def load_hiv(featurizer='ECFP', split='index'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
+
   return hiv_tasks, (train, valid, test), transformers

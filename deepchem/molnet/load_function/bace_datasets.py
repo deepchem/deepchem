@@ -10,7 +10,7 @@ import deepchem
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
 
-def load_bace_regression(featurizer=None, split='random'):
+def load_bace_regression(featurizer=None, split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
@@ -18,6 +18,8 @@ def load_bace_regression(featurizer=None, split='random'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
@@ -28,10 +30,18 @@ def load_bace_regression(featurizer=None, split='random'):
     )
 
   bace_tasks = ["pIC50"]
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return bace_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == None:
@@ -59,10 +69,14 @@ def load_bace_regression(featurizer=None, split='random'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return bace_tasks, (train, valid, test), transformers
 
 
-def load_bace_classification(featurizer=None, split='random'):
+def load_bace_classification(featurizer=None, split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
@@ -70,6 +84,8 @@ def load_bace_classification(featurizer=None, split='random'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
@@ -80,10 +96,18 @@ def load_bace_classification(featurizer=None, split='random'):
     )
 
   bace_tasks = ["Class"]
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return bace_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == None:
@@ -110,4 +134,8 @@ def load_bace_classification(featurizer=None, split='random'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return bace_tasks, (train, valid, test), transformers
