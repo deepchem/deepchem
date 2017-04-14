@@ -125,10 +125,13 @@ class TensorGraph(Model):
       self.build()
     with self._get_tf("Graph").as_default():
       time1 = time.time()
+      print("Creating Training Op")
       train_op = self._get_tf('train_op')
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
+        print("Initializing Weights")
         self._initialize_weights(sess, saver)
+        print("Starting To Fit")
         avg_loss, n_batches = 0.0, 0.0
         coord = tf.train.Coordinator()
         n_samples = 0
@@ -311,6 +314,7 @@ class TensorGraph(Model):
       order = self.topsort()
       print(order)
       for node in order:
+        print("Building %s" % node)
         with tf.name_scope(node):
           node_layer = self.layers[node]
           node_layer._create_tensor()

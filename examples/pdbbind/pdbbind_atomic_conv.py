@@ -443,6 +443,7 @@ class AtomicConv(Layer):
     output_weights = []
     output_biases = []
 
+    print("Atomic Conv Layer Built")
     frag1_layer = tf.transpose(frag1_layer, [2, 1, 0])
     frag2_layer = tf.transpose(frag2_layer, [2, 1, 0])
     complex_layer = tf.transpose(complex_layer, [2, 1, 0])
@@ -482,6 +483,7 @@ class AtomicConv(Layer):
           weights=output_weights[0],
           biases=output_biases[0]))
       return output_layer
+    print("Per Atom Dense Built")
 
     frag1_outputs = tf.map_fn(lambda x: atomnet(x), frag1_layer)
     frag2_outputs = tf.map_fn(lambda x: atomnet(x), frag2_layer)
@@ -614,7 +616,7 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
 
       orig_dict[complex_nbrs] = complex_Nbrs
       orig_dict[complex_nbrs_z] = complex_Nbrs_Z
-      orig_dict[label] = y_b[:, 0]
+      orig_dict[label] = y_b
       yield orig_dict
 
 
@@ -622,9 +624,10 @@ tg = TensorGraph(batch_size=batch_size,
                  mode=str("regression"),
                  model_dir=str("/tmp/atom_conv"))
 tg.add_output(conv_layer)
-tg.set_loss(conv_layer)
+tg.set_loss(loss)
 
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
+print("Fitting")
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=1))
 
 metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
