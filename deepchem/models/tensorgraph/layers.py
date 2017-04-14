@@ -7,10 +7,10 @@ from deepchem.nn import model_ops, initializations
 
 
 class Layer(object):
-  num_layers = 0
+  layer_number_dict = {}
   def __init__(self, in_layers=None, **kwargs):
     if "name" not in kwargs:
-      self.name = "%s%s" % (self.__class__.__name__, self._random_name())
+      self.name = "%s_%s" % (self.__class__.__name__, self._get_layer_number())
     else:
       self.name = kwargs['name']
     if "tensorboard" not in kwargs:
@@ -21,11 +21,12 @@ class Layer(object):
       in_layers = list()
     self.in_layers = in_layers
 
-  def _random_name(self):
-    Layer.num_layers += 1
-    return "%s" % Layer.num_layers
-    # return ''.join(
-    #     random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
+  def _get_layer_number(self):
+    class_name = self.__class__.__name__
+    if class_name not in Layer.layer_number_dict:
+      Layer.layer_number_dict[class_name] = 0
+    Layer.layer_number_dict[class_name] += 1
+    return "%s" % Layer.layer_number_dict[class_name]
 
   def none_tensors(self):
     out_tensor = self.out_tensor
