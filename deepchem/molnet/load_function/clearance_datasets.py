@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_clearance(featurizer='ECFP', split='random'):
+def load_clearance(featurizer='ECFP', split='random', reload=True):
   """Load clearance datasets."""
   # Featurize clearance dataset
   print("About to featurize clearance dataset.")
@@ -18,6 +18,8 @@ def load_clearance(featurizer='ECFP', split='random'):
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "clearance/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "clearance.csv")
   if not os.path.exists(dataset_file):
@@ -27,10 +29,19 @@ def load_clearance(featurizer='ECFP', split='random'):
     )
 
   clearance_tasks = ['exp']
+
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return clearance_tasks, all_dataset, transformers
+
   if featurizer == 'ECFP':
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
@@ -55,4 +66,8 @@ def load_clearance(featurizer='ECFP', split='random'):
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
+
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return clearance_tasks, (train, valid, test), transformers

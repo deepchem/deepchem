@@ -220,6 +220,7 @@ Index splitting
 |           |MT-NN classification|0.934              |0.830              |
 |           |Robust MT-NN        |0.949              |0.827              |
 |           |Graph convolution   |0.946              |0.860              |
+|           |Weave               |0.942              |0.917              |
 |hiv        |Logistic regression |0.864              |0.739              |
 |           |Random forest       |0.999              |0.720              |
 |           |XGBoost             |0.917              |0.745              |
@@ -227,11 +228,13 @@ Index splitting
 |           |NN classification   |0.761              |0.652              |
 |           |Robust NN           |0.780              |0.708              |
 |           |Graph convolution   |0.876              |0.779              |
+|           |Weave               |0.907              |0.753              |
 |muv        |Logistic regression |0.963              |0.766              |
 |           |XGBoost             |0.895              |0.714              |
 |           |MT-NN classification|0.904              |0.764              |
 |           |Robust MT-NN        |0.934              |0.781              |
 |           |Graph convolution   |0.840              |0.823              |
+|           |Weave               |0.762              |0.761              |
 |pcba       |Logistic regression |0.809              |0.776              |
 |           |XGBoost             |0.931              |0.847              |
 |           |MT-NN classification|0.826              |0.802              |
@@ -244,6 +247,7 @@ Index splitting
 |           |MT-NN classification|0.775              |0.634              |
 |           |Robust MT-NN        |0.803              |0.632              |
 |           |Graph convolution   |0.708              |0.594              |
+|           |Weave               |0.591              |0.580              |
 |tox21      |Logistic regression |0.903              |0.705              |
 |           |Random forest       |0.999              |0.733              |
 |           |XGBoost             |0.891              |0.753              |
@@ -251,11 +255,13 @@ Index splitting
 |           |MT-NN classification|0.856              |0.763              |
 |           |Robust MT-NN        |0.857              |0.767              |
 |           |Graph convolution   |0.872              |0.798              |
+|           |Weave               |0.810              |0.778              |
 |toxcast    |Logistic regression |0.721              |0.575              |
 |           |XGBoost             |0.738              |0.621              |
 |           |MT-NN classification|0.830              |0.678              |
 |           |Robust MT-NN        |0.825              |0.680              |
 |           |Graph convolution   |0.821              |0.720              |
+|           |Weave               |0.766              |0.715              |
 
 Random splitting
 
@@ -267,12 +273,14 @@ Random splitting
 |           |NN classification   |0.877              |0.790              |
 |           |Robust NN           |0.887              |0.864              |
 |           |Graph convolution   |0.906              |0.861              |
+|           |Weave               |0.807              |0.780              |
 |bbbp       |Logistic regression |0.980              |0.876              |
 |           |Random forest       |0.999              |0.918              |
 |           |IRV                 |0.904              |0.917              |
 |           |NN classification   |0.882              |0.915              |
 |           |Robust NN           |0.878              |0.878              |
 |           |Graph convolution   |0.962              |0.897              |
+|           |Weave               |0.929              |0.934              |
 |clintox    |Logistic regression |0.972              |0.725              |
 |           |Random forest       |0.997              |0.670              |
 |           |XGBoost             |0.886              |0.731              |
@@ -280,6 +288,7 @@ Random splitting
 |           |MT-NN classification|0.951              |0.834              |
 |           |Robust MT-NN        |0.959              |0.830              |
 |           |Graph convolution   |0.975              |0.876              |
+|           |Weave               |0.945              |0.818              |
 |hiv        |Logistic regression |0.860              |0.806              |
 |           |Random forest       |0.999              |0.850              |
 |           |XGBoost             |0.933              |0.841              |
@@ -287,11 +296,13 @@ Random splitting
 |           |NN classification   |0.742              |0.715              |
 |           |Robust NN           |0.753              |0.727              |
 |           |Graph convolution   |0.847              |0.803              |
+|           |Weave               |0.902              |0.825              |
 |muv        |Logistic regression |0.957              |0.719              |
 |           |XGBoost             |0.874              |0.696              |
 |           |MT-NN classification|0.902              |0.734              |
 |           |Robust MT-NN        |0.933              |0.732              |
 |           |Graph convolution   |0.860              |0.730              |
+|           |Weave               |0.763              |0.763              |
 |pcba       |Logistic regression |0.808        	     |0.776              |
 |           |MT-NN classification|0.811        	     |0.778              |
 |           |Robust MT-NN        |0.811              |0.771              |
@@ -303,6 +314,7 @@ Random splitting
 |           |MT-NN classification|0.777        	     |0.655              |
 |           |Robust MT-NN        |0.804              |0.630              |
 |           |Graph convolution   |0.705        	     |0.618              |
+|           |Weave               |0.616              |0.645              |
 |tox21      |Logistic regression |0.902              |0.715              |
 |           |Random forest       |0.999              |0.764              |
 |           |XGBoost             |0.874              |0.773              |
@@ -310,11 +322,13 @@ Random splitting
 |           |MT-NN classification|0.844              |0.795              |
 |           |Robust MT-NN        |0.855              |0.773              |
 |           |Graph convolution   |0.865              |0.827              |
+|           |Weave               |0.837              |0.830              |
 |toxcast    |Logistic regression |0.725        	     |0.586              |
 |           |XGBoost             |0.738              |0.633              |
 |           |MT-NN classification|0.836        	     |0.684              |
 |           |Robust MT-NN        |0.822              |0.681              |
 |           |Graph convolution   |0.820        	     |0.717              |
+|           |Weave               |0.757              |0.729              |
 
 Scaffold splitting
 
@@ -326,12 +340,14 @@ Scaffold splitting
 |           |NN classification   |0.897              |0.743              |
 |           |Robust NN           |0.910              |0.747              |
 |           |Graph convolution   |0.920              |0.682              |
+|           |Weave               |0.860              |0.629              |
 |bbbp       |Logistic regression |0.980              |0.959              |
 |           |Random forest       |0.999              |0.953              |
 |           |IRV                 |0.914              |0.961              |
 |           |NN classification   |0.899              |0.961              |
 |           |Robust NN           |0.908              |0.956              |
 |           |Graph convolution   |0.968              |0.950              |
+|           |Weave               |0.925              |0.968              |
 |clintox    |Logistic regression |0.965              |0.688              |
 |           |Random forest       |0.993              |0.735              |
 |           |XGBoost             |0.873              |0.850              |
@@ -339,6 +355,7 @@ Scaffold splitting
 |           |MT-NN classification|0.937              |0.828              |
 |           |Robust MT-NN        |0.956              |0.821              |
 |           |Graph convolution   |0.965              |0.900              |
+|           |Weave               |0.950              |0.947              |
 |hiv        |Logistic regression |0.858              |0.798              |
 |           |Random forest       |0.946              |0.562              |
 |           |XGBoost             |0.927              |0.830              |
@@ -346,11 +363,13 @@ Scaffold splitting
 |           |NN classification   |0.775              |0.765              |
 |           |Robust NN           |0.785              |0.748              |
 |           |Graph convolution   |0.867              |0.769              |
+|           |Weave               |0.875              |0.816              |
 |muv        |Logistic regression |0.947              |0.767              |
 |           |XGBoost             |0.875              |0.705              |
 |           |MT-NN classification|0.899              |0.762              |
 |           |Robust MT-NN        |0.944              |0.726              |
 |           |Graph convolution   |0.872              |0.795              |
+|           |Weave               |0.780              |0.773              |
 |pcba       |Logistic regression |0.810              |0.742              |
 |           |MT-NN classification|0.814              |0.760              |
 |           |Robust MT-NN        |0.812              |0.756              |
@@ -362,6 +381,7 @@ Scaffold splitting
 |           |MT-NN classification|0.776              |0.557              |
 |           |Robust MT-NN        |0.797              |0.560              |
 |           |Graph convolution   |0.722              |0.583              |
+|           |Weave               |0.600              |0.529              |
 |tox21      |Logistic regression |0.900              |0.650              |
 |           |Random forest       |0.999              |0.629              |
 |           |XGBoost             |0.881              |0.703              |
@@ -369,11 +389,13 @@ Scaffold splitting
 |           |MT-NN classification|0.863              |0.703              |
 |           |Robust MT-NN        |0.861              |0.710              |
 |           |Graph convolution   |0.885              |0.732              |
+|           |Weave               |0.866              |0.773              |
 |toxcast    |Logistic regression |0.716              |0.492              |
 |           |XGBoost             |0.741              |0.587              |
 |           |MT-NN classification|0.828              |0.617              |
 |           |Robust MT-NN        |0.830              |0.614              |
 |           |Graph convolution   |0.832              |0.638              |
+|           |Weave               |0.766              |0.637              |
 
 
 * Regression
@@ -383,9 +405,11 @@ Scaffold splitting
 |bace_r          |Random forest       |Random      |0.958         |0.646         |
 |                |NN regression       |Random      |0.898         |0.680         |
 |                |Graphconv regression|Random      |0.760         |0.676         |
+|                |Weave regression    |Random      |0.523         |0.577         |
 |                |Random forest       |Scaffold    |0.956         |0.201         |
 |                |NN regression       |Scaffold    |0.897         |0.208         |
 |                |Graphconv regression|Scaffold    |0.783         |0.068         |
+|                |Weave regression    |Scaffold    |0.602         |0.018         |
 |chembl          |MT-NN regression    |Index       |0.828         |0.565         |
 |                |Graphconv regression|Index       |0.192         |0.293         |
 |                |MT-NN regression    |Random      |0.829         |0.562         |
@@ -395,43 +419,55 @@ Scaffold splitting
 |clearance       |Random forest       |Index       |0.953         |0.244         |
 |                |NN regression       |Index       |0.884         |0.211         |
 |                |Graphconv regression|Index       |0.696         |0.230         |
+|                |Weave regression    |Index       |0.261         |0.107         |
 |                |Random forest       |Random      |0.952         |0.547         |
 |                |NN regression       |Random      |0.880         |0.273         |
 |                |Graphconv regression|Random      |0.685         |0.302         |
+|                |Weave regression    |Random      |0.229         |0.129         |
 |                |Random forest       |Scaffold    |0.952         |0.266         |
 |                |NN regression       |Scaffold    |0.871         |0.154         |
 |                |Graphconv regression|Scaffold    |0.628         |0.277         |
+|                |Weave regression    |Scaffold    |0.228         |0.226         |
 |delaney         |Random forest       |Index       |0.953         |0.626         |
 |                |XGBoost             |Index       |0.898         |0.664         |
 |                |NN regression       |Index       |0.868         |0.578         |
 |                |Graphconv regression|Index       |0.967         |0.790         |
+|                |Weave regression    |Index       |0.965         |0.888         |
 |                |Random forest       |Random      |0.951         |0.684         |
 |                |XGBoost             |Random      |0.927         |0.727         |
 |                |NN regression       |Random      |0.865         |0.574         |
 |                |Graphconv regression|Random      |0.964         |0.782         |
+|                |Weave regression    |Random      |0.954         |0.917         |
 |                |Random forest       |Scaffold    |0.953         |0.284         |
 |                |XGBoost             |Scaffold    |0.890         |0.316         |
 |                |NN regression       |Scaffold    |0.866         |0.342         |
 |                |Graphconv regression|Scaffold    |0.967         |0.606         |
+|                |Weave regression    |Scaffold    |0.976         |0.797         |
 |hopv            |Random forest       |Index       |0.943         |0.338         |
 |                |MT-NN regression    |Index       |0.725         |0.293         |
 |                |Graphconv regression|Index       |0.307         |0.284         |
+|                |Weave regression    |Index       |0.046         |0.026         |
 |                |Random forest       |Random      |0.943         |0.513         |
 |                |MT-NN regression    |Random      |0.716         |0.289         |
 |                |Graphconv regression|Random      |0.329         |0.239         |
+|                |Weave regression    |Random      |0.080         |0.084         |
 |                |Random forest       |Scaffold    |0.946         |0.470         |
 |                |MT-NN regression    |Scaffold    |0.719         |0.429         |
 |                |Graphconv regression|Scaffold    |0.286         |0.155         |
+|                |Weave regression    |Scaffold    |0.097         |0.082         |
 |kaggle          |MT-NN regression    |User-defined|0.748         |0.452         |
 |lipo            |Random forest       |Index       |0.960         |0.483         |
 |                |NN regression       |Index       |0.825         |0.513         |
 |                |Graphconv regression|Index       |0.865         |0.704         |
+|                |Weave regression    |Index       |0.507         |0.492         |
 |                |Random forest       |Random      |0.958         |0.518         |
 |                |NN regression       |Random      |0.818         |0.445         |
 |                |Graphconv regression|Random      |0.867         |0.722         |
+|                |Weave regression    |Random      |0.551         |0.528         |
 |                |Random forest       |Scaffold    |0.958         |0.329         |
 |                |NN regression       |Scaffold    |0.831         |0.302         |
 |                |Graphconv regression|Scaffold    |0.882         |0.593         |
+|                |Weave regression    |Scaffold    |0.566         |0.448         |
 |nci             |XGBoost             |Index       |0.441         |0.066         |
 |                |MT-NN regression    |Index       |0.690         |0.062         |
 |                |Graphconv regression|Index       |0.123         |0.053         |
@@ -450,21 +486,33 @@ Scaffold splitting
 |ppb             |Random forest       |Index       |0.951         |0.235         |
 |                |NN regression       |Index       |0.902         |0.333         |
 |                |Graphconv regression|Index       |0.673         |0.442         |
+|                |Weave regression    |Index       |0.418         |0.301         |
 |                |Random forest       |Random      |0.950         |0.220         |
 |                |NN regression       |Random      |0.903         |0.244         |
 |                |Graphconv regression|Random      |0.646         |0.429         |
+|                |Weave regression    |Random      |0.408         |0.284         |
 |                |Random forest       |Scaffold    |0.943         |0.176         |
 |                |NN regression       |Scaffold    |0.902         |0.144         |
 |                |Graphconv regression|Scaffold    |0.695         |0.391         |
+|                |Weave regression    |Scaffold    |0.401         |0.373         |
 |qm7             |NN regression       |Index       |0.997         |0.992         |
+|                |DTNN                |Index       |0.998         |0.996         |
 |                |NN regression       |Random      |0.998         |0.997         |
+|                |DTNN                |Random      |0.998         |0.998         |
 |                |NN regression       |Stratified  |0.998         |0.997         | 
+|                |DTNN                |Stratified  |0.998         |0.998         | 
 |qm7b            |MT-NN regression    |Index       |0.903         |0.789         |
+|                |DTNN                |Index       |0.872         |0.821         |
 |                |MT-NN regression    |Random      |0.893         |0.839         |
+|                |DTNN                |Random      |0.865         |0.849         |
 |                |MT-NN regression    |Stratified  |0.891         |0.859         | 
+|                |DTNN                |Stratified  |0.853         |0.839         | 
 |qm8             |MT-NN regression    |Index       |0.783         |0.656         |
+|                |DTNN                |Index       |0.737         |0.639         |
 |                |MT-NN regression    |Random      |0.747         |0.660         |
-|                |MT-NN regression    |Stratified  |0.756         |0.681         | 
+|                |DTNN                |Random      |0.731         |0.711         |
+|                |MT-NN regression    |Stratified  |0.756         |0.681         |
+|                |DTNN                |Stratified  |0.714         |0.683         | 
 |qm9             |MT-NN regression    |Index       |0.733         |0.766         |
 |                |MT-NN regression    |Random      |0.852         |0.833         |
 |                |MT-NN regression    |Stratified  |0.764         |0.792         | 
@@ -472,14 +520,17 @@ Scaffold splitting
 |                |XGBoost             |Index       |0.884         |0.784         |
 |                |NN regression       |Index       |0.917         |0.764         |
 |                |Graphconv regression|Index       |0.982         |0.903         |
+|                |Weave regression    |Index       |0.993         |0.948         | 
 |                |Random forest       |Random      |0.967         |0.752         |
 |                |XGBoost             |Random      |0.906         |0.745         |
 |                |NN regression       |Random      |0.908         |0.711         |
 |                |Graphconv regression|Random      |0.987         |0.868         |
+|                |Weave regression    |Random      |0.992         |0.888         |
 |                |Random forest       |Scaffold    |0.966         |0.477         |
 |                |XGBoost             |Scaffold    |0.918         |0.439         |
 |                |NN regression       |Scaffold    |0.891         |0.217         |
 |                |Graphconv regression|Scaffold    |0.985         |0.666         |
+|                |Weave regression    |Scaffold    |0.988         |0.876         |
 
 |Dataset         |Model            |Splitting   |Train score/MAE(kcal/mol)|Valid score/MAE(kcal/mol)|
 |----------------|-----------------|------------|-------------------------|-------------------------|
@@ -532,12 +583,14 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |10              |80             |
 |                |IRV                 |10              |10             |
 |                |Graph convolution   |15              |70             |
+|                |Weave               |15              |120            |
 |bbbp            |Logistic regression |20              |10             |
 |                |NN classification   |20              |20             |
 |                |Robust NN           |20              |20             |
 |                |Random forest       |20              |120            |
 |                |IRV                 |20              |10             |
 |                |Graph convolution   |20              |150            |
+|                |Weave               |20              |100            |
 |clintox         |Logistic regression |15              |10             |
 |                |XGBoost             |15              |33             |
 |                |MT-NN classification|15              |20             |
@@ -545,6 +598,7 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |15              |200            |
 |                |IRV                 |15              |10             |
 |                |Graph convolution   |20              |130            |
+|                |Weave               |20              |90             |
 |hiv             |Logistic regression |180             |40             |
 |                |XGBoost             |180             |1000           |
 |                |NN classification   |180             |350            |
@@ -552,11 +606,13 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |180             |2800           |
 |                |IRV                 |180             |200            |
 |                |Graph convolution   |180             |1300           |
+|                |Weave               |180             |2000           |
 |muv             |Logistic regression |600             |450            |
 |                |XGBoost             |600             |3500           |
 |                |MT-NN classification|600             |400            |
 |                |Robust MT-NN        |600             |550            |
 |                |Graph convolution   |800             |1800           |
+|                |Weave               |800             |4400           |
 |pcba            |Logistic regression |1800            |10000          |
 |                |XGBoost             |1800            |470000         |
 |                |MT-NN classification|1800            |9000           |
@@ -569,6 +625,7 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |15              |2200           |
 |                |IRV                 |15              |150            |
 |                |Graph convolution   |20              |50             |
+|                |Weave               |20              |200            |
 |tox21           |Logistic regression |30              |60             |
 |                |XGBoost             |30              |1500           |
 |                |MT-NN classification|30              |60             |
@@ -576,30 +633,37 @@ Time needed for benchmark test(~20h in total)
 |                |Random forest       |30              |6000           |
 |                |IRV                 |30              |650            |
 |                |Graph convolution   |30              |160            |
+|                |Weave               |30              |300            |
 |toxcast         |Logistic regression |80              |2600           |
 |                |XGBoost             |80              |30000          |
 |                |MT-NN classification|80              |2300           |
 |                |Robust MT-NN        |80              |4000           |
 |                |Graph convolution   |80              |900            |
+|                |Weave               |80              |2000           |
 |bace_r          |NN regression       |10              |30             |
-|                |Graphconv regression|10              |110            |
 |                |Random forest       |10              |50             |
+|                |Graphconv regression|10              |110            |
+|                |Weave regression    |10              |150            |
 |chembl          |MT-NN regression    |200             |9000           |
 |                |Graphconv regression|250             |1800           |
 |clearance       |NN regression       |10              |20             |
-|                |Graphconv regression|10              |60             |
 |                |Random forest       |10              |10             |
+|                |Graphconv regression|10              |60             |
+|                |Weave regression    |10              |70             |
 |delaney         |NN regression       |10              |40             |
 |                |XGBoost             |10              |50             |
-|                |graphconv regression|10              |40             |
 |                |Random forest       |10              |30             |
+|                |graphconv regression|10              |40             |
+|                |Weave regression    |10              |40             |
 |hopv            |MT-NN regression    |10              |20             |
-|                |Graphconv regression|10              |50             |
 |                |Random forest       |10              |50             |
+|                |Graphconv regression|10              |50             |
+|                |Weave regression    |10              |60             |
 |kaggle          |MT-NN regression    |2200            |3200           |
 |lipo            |NN regression       |30              |60             |
-|                |Graphconv regression|30              |240            |
 |                |Random forest       |30              |60             |
+|                |Graphconv regression|30              |240            |
+|                |Weave regression    |30              |280            |
 |nci             |MT-NN regression    |400             |1200           |
 |                |XGBoost             |400             |28000          |
 |                |graphconv regression|400             |2500           |
@@ -607,16 +671,19 @@ Time needed for benchmark test(~20h in total)
 |pdbbind(refined)|NN regression       |0(featurized)   |40             |
 |pdbbind(full)   |NN regression       |0(featurized)   |60             |
 |ppb             |NN regression       |20              |30             |
-|                |Graphconv regression|20              |100            |
 |                |Random forest       |20              |30             |
+|                |Graphconv regression|20              |100            |
+|                |Weave regression    |20              |120            |
 |qm7             |MT-NN regression    |10              |400            |
 |qm7b            |MT-NN regression    |10              |600            |
 |qm8             |MT-NN regression    |60              |1000           |
 |qm9             |MT-NN regression    |220             |10000          |
 |sampl           |NN regression       |10              |30             |
 |                |XGBoost             |10              |20             |
-|                |graphconv regression|10              |40             |
 |                |Random forest       |10              |20             |
+|                |graphconv regression|10              |40             |
+|                |Weave regression    |10              |20             |
+
 
 
 ### Gitter

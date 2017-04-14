@@ -58,7 +58,40 @@ hps['graphconv'] = {
     'n_fully_connected_nodes': 128,
     'seed': 123
 }
+hps['dag'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'n_graph_feat': 30,
+    'seed': 123
+}
+hps['weave'] = {
+    'batch_size': 64,
+    'nb_epoch': 40,
+    'learning_rate': 0.001,
+    'n_graph_feat': 128,
+    'n_pair_feat': 14,
+    'seed': 123
+}
 hps['rf'] = {'n_estimators': 500}
+hps['xgb'] = {
+    'max_depth': 5,
+    'learning_rate': 0.05,
+    'n_estimators': 3000,
+    'gamma': 0,
+    'min_child_weight': 5,
+    'max_delta_step': 1,
+    'subsample': 0.53,
+    'colsample_bytree': 0.66,
+    'colsample_bylevel': 1,
+    'reg_alpha': 0,
+    'reg_lambda': 1,
+    'scale_pos_weight': 1,
+    'base_score': 0.5,
+    'seed': 2016,
+    'early_stopping_rounds': 100
+}
+
 hps['tf_regression'] = {
     'layer_sizes': [1000, 1000],
     'weight_init_stddevs': [0.02, 0.02],
@@ -91,6 +124,47 @@ hps['graphconvreg'] = {
     'n_fully_connected_nodes': 256,
     'seed': 123
 }
+hps['dtnn'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.0005,
+    'n_embedding': 20,
+    'n_distance': 100,
+    'seed': 123
+}
+hps['dag_regression'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'n_graph_feat': 30,
+    'seed': 123
+}
+hps['weave_regression'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'n_graph_feat': 128,
+    'n_pair_feat': 14,
+    'seed': 123
+}
+hps['xgb_regression'] = {
+    'max_depth': 5,
+    'learning_rate': 0.05,
+    'n_estimators': 3000,
+    'gamma': 0,
+    'min_child_weight': 5,
+    'max_delta_step': 1,
+    'subsample': 0.53,
+    'colsample_bytree': 0.66,
+    'colsample_bylevel': 1,
+    'reg_alpha': 0,
+    'reg_lambda': 1,
+    'scale_pos_weight': 1,
+    'base_score': 0.5,
+    'seed': 2016,
+    'early_stopping_rounds': 100
+}
+
 hps['siamese'] = {
     'n_pos': 1,
     'n_neg': 1,
