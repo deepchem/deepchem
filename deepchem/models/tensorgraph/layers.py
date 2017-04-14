@@ -245,7 +245,7 @@ class Weights(Input):
 class L2LossLayer(Layer):
 
   def __init__(self, **kwargs):
-    super(LossLayer, self).__init__(**kwargs)
+    super(L2LossLayer, self).__init__(**kwargs)
 
   def _create_tensor(self):
     guess, label = self.in_layers[0], self.in_layers[1]
