@@ -30,7 +30,7 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     dc.molnet.run_benchmark(
-        datasets, str(model), split=split, out_path=out_path)
+        datasets, str(model), split=split, out_path=out_path, reload=False)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
@@ -47,7 +47,7 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     dc.molnet.run_benchmark(
-        datasets, str(model), split=split, out_path=out_path)
+        datasets, str(model), split=split, out_path=out_path, reload=False)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
@@ -64,7 +64,12 @@ class TestMolnet(unittest.TestCase):
     split = 'random'
     out_path = tempfile.mkdtemp()
     dc.molnet.run_benchmark(
-        datasets, str(model), split=split, out_path=out_path, test=True)
+        datasets,
+        str(model),
+        split=split,
+        out_path=out_path,
+        test=True,
+        reload=False)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:

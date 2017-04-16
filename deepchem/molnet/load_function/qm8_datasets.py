@@ -9,11 +9,13 @@ import os
 import deepchem
 
 
-def load_qm8(featurizer=None, split='random'):
+def load_qm8(featurizer=None, split='random', reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "qm8.sdf")
 
@@ -30,6 +32,13 @@ def load_qm8(featurizer=None, split='random'):
       "f2-PBE0", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM",
       "f1-CAM", "f2-CAM"
   ]
+
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return qm8_tasks, all_dataset, transformers
+
   if featurizer is None:
     featurizer = deepchem.feat.CoulombMatrix(26)
   loader = deepchem.data.SDFLoader(
@@ -54,4 +63,7 @@ def load_qm8(featurizer=None, split='random'):
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(
+        save_dir, train_dataset, valid_dataset, test_dataset, transformers)
   return qm8_tasks, (train_dataset, valid_dataset, test_dataset), transformers

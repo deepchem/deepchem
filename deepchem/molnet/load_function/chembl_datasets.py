@@ -7,19 +7,21 @@ from __future__ import unicode_literals
 
 import os
 import deepchem
-
 from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
 
 def load_chembl(shard_size=2000,
                 featurizer="ECFP",
                 set="5thresh",
-                split="random"):
+                split="random",
+                reload=True):
 
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "chembl/" + featurizer + "/" + split)
 
   dataset_path = os.path.join(data_dir, "chembl_%s.csv.gz" % set)
   if not os.path.exists(dataset_path):
@@ -57,6 +59,12 @@ def load_chembl(shard_size=2000,
     )
 
   print("About to load ChEMBL dataset.")
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return chembl_tasks, all_dataset, transformers
+
   if split == "year":
     train_files = os.path.join(
         data_dir, "./chembl_year_sets/chembl_%s_ts_train.csv.gz" % set)
@@ -71,6 +79,8 @@ def load_chembl(shard_size=2000,
     featurizer = deepchem.feat.CircularFingerprint(size=1024)
   elif featurizer == 'GraphConv':
     featurizer = deepchem.feat.ConvMolFeaturizer()
+  elif featurizer == 'Weave':
+    featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
@@ -116,4 +126,7 @@ def load_chembl(shard_size=2000,
     print("Performing new split.")
     train, valid, test = splitter.train_valid_test_split(dataset)
 
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
+                                             transformers)
   return chembl_tasks, (train, valid, test), transformers

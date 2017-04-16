@@ -8,6 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 import random
+import six
 from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
@@ -160,6 +161,16 @@ class Dataset(object):
                   epoch=0,
                   deterministic=False,
                   pad_batches=False):
+    """
+    
+    Parameters
+    ----------
+   
+
+    Returns
+    -------
+
+    """
     """Get an object that iterates over minibatches from the dataset.
 
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
@@ -500,9 +511,9 @@ class DiskDataset(Dataset):
     Gets learning tasks associated with this dataset.
     """
     return self.tasks
-    #if not len(self.metadata_df):
+    # if not len(self.metadata_df):
     #  raise ValueError("No data in dataset.")
-    #return next(self.metadata_df.iterrows())[1]['task_names']
+    # return next(self.metadata_df.iterrows())[1]['task_names']
 
   def reshard(self, shard_size):
     """Reshards data to have specified shard size."""
@@ -734,7 +745,7 @@ class DiskDataset(Dataset):
                  data_dir=None,
                  verbose=True):
     """Creates a DiskDataset object from specified Numpy arrays."""
-    #if data_dir is None:
+    # if data_dir is None:
     #  data_dir = tempfile.mkdtemp()
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
@@ -749,7 +760,7 @@ class DiskDataset(Dataset):
       w = np.ones_like(y)
     if tasks is None:
       tasks = np.arange(n_tasks)
-    #raw_data = (X, y, w, ids)
+    # raw_data = (X, y, w, ids)
     return DiskDataset.create_dataset(
         [(X, y, w, ids)], data_dir=data_dir, tasks=tasks, verbose=verbose)
 
@@ -1031,3 +1042,45 @@ class DiskDataset(Dataset):
   def get_label_stds(self):
     """Return pandas series of label stds."""
     return self.metadata_df["y_stds"]
+
+
+class Databag(object):
+  """
+  A utility class to iterate through multiple datasets together.
+  """
+
+  def __init__(self):
+    self.datasets = dict()
+
+  def add_dataset(self, key, dataset):
+    self.datasets[key] = dataset
+
+  def iterbatches(self, **kwargs):
+    """
+    Loop through all internal datasets in the same order
+    Parameters
+    ----------
+    batch_size: int
+      Number of samples from each dataset to return
+    epoch: int
+      Number of times to loop through the datasets
+    pad_batches: boolean
+      Should all batches==batch_size
+
+    Returns
+    -------
+    Generator which yields a dictionary {key: dataset.X[batch]}
+
+    """
+    key_order = [x for x in self.datasets.keys()]
+    if "epochs" in kwargs:
+      epochs = kwargs['epochs']
+      del kwargs['epochs']
+    else:
+      epochs = 1
+    kwargs['deterministic'] = True
+    for epoch in range(epochs):
+      iterators = [self.datasets[x].iterbatches(**kwargs) for x in key_order]
+      for tup in zip(*iterators):
+        m_d = {key_order[i]: tup[i][0] for i in range(len(key_order))}
+        yield m_d

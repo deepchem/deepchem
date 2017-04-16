@@ -38,6 +38,7 @@ class WeaveLayer(Layer):
                n_hidden_PA=50,
                n_hidden_AP=50,
                n_hidden_PP=50,
+               update_pair=True,
                init='glorot_uniform',
                activation='relu',
                dropout=None,
@@ -67,6 +68,7 @@ class WeaveLayer(Layer):
     self.max_atoms = max_atoms
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
+    self.update_pair = update_pair  # last weave layer does not need to update
     self.n_hidden_AA = n_hidden_AA
     self.n_hidden_PA = n_hidden_PA
     self.n_hidden_AP = n_hidden_AP
@@ -98,25 +100,27 @@ class WeaveLayer(Layer):
         self.n_atom_output_feat,
     ])
 
-    self.W_AP = self.init([self.n_atom_input_feat * 2, self.n_hidden_AP])
-    self.b_AP = model_ops.zeros(shape=[
-        self.n_hidden_AP,
-    ])
-
-    self.W_PP = self.init([self.n_pair_input_feat, self.n_hidden_PP])
-    self.b_PP = model_ops.zeros(shape=[
-        self.n_hidden_PP,
-    ])
-
-    self.W_P = self.init([self.n_hidden_P, self.n_pair_output_feat])
-    self.b_P = model_ops.zeros(shape=[
-        self.n_pair_output_feat,
-    ])
-
     self.trainable_weights = [
-        self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A,
-        self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P
+        self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A
     ]
+    if self.update_pair:
+      self.W_AP = self.init([self.n_atom_input_feat * 2, self.n_hidden_AP])
+      self.b_AP = model_ops.zeros(shape=[
+          self.n_hidden_AP,
+      ])
+
+      self.W_PP = self.init([self.n_pair_input_feat, self.n_hidden_PP])
+      self.b_PP = model_ops.zeros(shape=[
+          self.n_hidden_PP,
+      ])
+
+      self.W_P = self.init([self.n_hidden_P, self.n_pair_output_feat])
+      self.b_P = model_ops.zeros(shape=[
+          self.n_pair_output_feat,
+      ])
+
+      self.trainable_weights.extend(
+          [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
@@ -154,21 +158,90 @@ class WeaveLayer(Layer):
     PA = self.activation(PA)
     A = tf.tensordot(tf.concat([AA, PA], 2), self.W_A, [[2], [0]]) + self.b_A
     A = self.activation(A)
-
-    AP_combine = tf.concat([
-        tf.stack([atom_features] * max_atoms, axis=2),
-        tf.stack([atom_features] * max_atoms, axis=1)
-    ], 3)
-    AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
-    AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
-                      [[3], [0]]) + self.b_AP
-    AP = self.activation(AP)
-    PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
-    PP = self.activation(PP)
-    P = tf.tensordot(tf.concat([AP, PP], 3), self.W_P, [[3], [0]]) + self.b_P
-    P = self.activation(P)
     A = tf.multiply(A, tf.expand_dims(atom_mask, axis=2))
-    P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
+
+    if self.update_pair:
+      AP_combine = tf.concat([
+          tf.stack([atom_features] * max_atoms, axis=2),
+          tf.stack([atom_features] * max_atoms, axis=1)
+      ], 3)
+      AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
+      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
+                        [[3], [0]]) + self.b_AP
+      AP = self.activation(AP)
+      PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
+      PP = self.activation(PP)
+      P = tf.tensordot(tf.concat([AP, PP], 3), self.W_P, [[3], [0]]) + self.b_P
+      P = self.activation(P)
+      P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
+    else:
+      P = pair_features
+
+    return A, P
+
+
+class AlternateWeaveLayer(WeaveLayer):
+  """ Alternate implementation of weave module
+      same variables, different graph structures
+  """
+
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
+    
+    Parameters
+    ----------
+    x: list
+      list of Tensors of form described above.
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    A: Tensor
+      Tensor of atom_features
+    P: Tensor
+      Tensor of pair_features
+    """
+    # Add trainable weights
+    self.build()
+
+    atom_features = x[0]
+    pair_features = x[1]
+
+    pair_split = x[2]
+    atom_split = x[3]
+    atom_to_pair = x[4]
+
+    AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
+    AA = self.activation(AA)
+    PA = tf.matmul(pair_features, self.W_PA) + self.b_PA
+    PA = self.activation(PA)
+    PA = tf.segment_sum(PA, pair_split)
+
+    A = tf.matmul(tf.concat([AA, PA], 1), self.W_A) + self.b_A
+    A = self.activation(A)
+
+    if self.update_pair:
+      AP_ij = tf.matmul(
+          tf.reshape(
+              tf.gather(atom_features, atom_to_pair),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ij = self.activation(AP_ij)
+      AP_ji = tf.matmul(
+          tf.reshape(
+              tf.gather(atom_features, tf.reverse(atom_to_pair, [1])),
+              [-1, 2 * self.n_atom_input_feat]), self.W_AP) + self.b_AP
+      AP_ji = self.activation(AP_ji)
+
+      PP = tf.matmul(pair_features, self.W_PP) + self.b_PP
+      PP = self.activation(PP)
+      P = tf.matmul(tf.concat([AP_ij + AP_ji, PP], 1), self.W_P) + self.b_P
+      P = self.activation(P)
+    else:
+      P = pair_features
+
     return A, P
 
 
@@ -339,3 +412,44 @@ class WeaveGather(Layer):
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
     return outputs
+
+
+class AlternateWeaveGather(WeaveGather):
+  """Alternate implementation of weave gather layer
+     corresponding to AlternateWeaveLayer
+  """
+
+  def call(self, x, mask=None):
+    """Execute this layer on input tensors.
+
+    x = [atom_features, atom_split]
+    
+    Parameters
+    ----------
+    x: list
+      Tensors as listed above
+    mask: bool, optional
+      Ignored. Present only to shadow superclass call() method.
+
+    Returns
+    -------
+    outputs: Tensor
+      Tensor of molecular features
+    """
+    # Add trainable weights
+    self.build()
+    outputs = x[0]
+    atom_split = x[1]
+
+    if self.gaussian_expand:
+      outputs = self.gaussian_histogram(outputs)
+
+    outputs = tf.split(outputs, atom_split, axis=0)
+
+    output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
+
+    output_molecules = tf.stack(output_molecules)
+    if self.gaussian_expand:
+      output_molecules = tf.matmul(output_molecules, self.W) + self.b
+      output_molecules = self.activation(output_molecules)
+    return output_molecules

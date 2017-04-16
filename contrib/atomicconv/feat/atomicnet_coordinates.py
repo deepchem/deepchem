@@ -13,7 +13,7 @@ import numpy as np
 from rdkit import Chem
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import pad_array
+from deepchem.utils import pad_array, rdkit_util
 
 
 def get_cells(coords, neighbor_cutoff):
@@ -153,9 +153,8 @@ def compute_neighbor_cell_map(N_x, N_y, N_z):
         for x_offset in offsets:
           for y_offset in offsets:
             for z_offset in offsets:
-              neighbors.append(
-                  ((x_ind + x_offset) % N_x, (y_ind + y_offset) % N_y,
-                   (z_ind + z_offset) % N_z))
+              neighbors.append(((x_ind + x_offset) % N_x, (y_ind + y_offset) %
+                                N_y, (z_ind + z_offset) % N_z))
         neighbor_cell_map[(x_ind, y_ind, z_ind)] = neighbors
   return neighbor_cell_map
 
@@ -245,6 +244,7 @@ class NeighborListAtomicCoordinates(Featurizer):
       Molecule
 
     """
+    print(mol)
     N = mol.GetNumAtoms()
     coords = get_coords(mol)
 
@@ -394,10 +394,10 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
     """
 
     try:
-      frag1_mol = Chem.MolFromPDBFile(
-          frag1_pdb_file, sanitize=False, removeHs=False)
-      frag2_mol = Chem.MolFromPDBFile(
-          frag2_pdb_file, sanitize=False, removeHs=False)
+      frag1_mol = rdkit_util.load_molecule(
+          frag1_pdb_file, add_hydrogens=False, calc_charges=False)[1]
+      frag2_mol = rdkit_util.load_molecule(
+          frag2_pdb_file, add_hydrogens=False, calc_charges=False)[1]
     except:
       frag1_mol = None
       frag2_mol = None
