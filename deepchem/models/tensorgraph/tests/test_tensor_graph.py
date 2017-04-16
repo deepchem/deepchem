@@ -10,6 +10,7 @@ from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.layers import NeighborList
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
@@ -209,7 +210,7 @@ class TestTensorGraph(unittest.TestCase):
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   def test_neighbor_list(self):
-    N = 10
+    N_atoms = 10
     start = 0
     stop = 12
     nbr_cutoff = 3
@@ -219,12 +220,19 @@ class TestTensorGraph(unittest.TestCase):
     # The number of cells which we should theoretically have
     n_cells = int(((stop - start) / nbr_cutoff)**ndim)
 
-    nbr_list = NeighborList(N, M, ndim, n_cells, k, nbr_cutoff)
+    X = np.random.rand(N_atoms, ndim)
+    y = np.random.rand(N_atoms, 1)
+    dataset = NumpyDataset(X, y)
 
-    #with self.test_session() as sess:
-    #  coords = start + np.random.rand(N, ndim) * (stop - start)
-    #  coords = tf.stack(coords)
-    #  nbr_list = compute_neighbor_list(
-    #      coords, nbr_cutoff, N, M, n_cells, ndim=ndim, k=k)
-    #  nbr_list = nbr_list.eval()
-    #  assert nbr_list.shape == (N, M)
+    features = Feature(shape=(N_atoms, ndim))
+    labels = Label(shape=(N_atoms,))
+    nbr_list = NeighborList(N_atoms, M, ndim, n_cells, k, nbr_cutoff,
+                            in_layers=[features])
+    # This isn't a meaningful loss, but just for test
+    loss = ReduceMean(in_layers=[nbr_list])
+    tg = dc.models.TensorGraph(use_queue=False)
+    tg.add_output(nbr_list)
+    tg.set_loss(loss)
+
+    tg.fit(dataset, nb_epoch=1)
+
