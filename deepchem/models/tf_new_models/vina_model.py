@@ -437,7 +437,10 @@ class VinaModel(Model):
   def __init__(self, max_local_steps=10, max_mutations=10):
     self.max_local_steps = max_local_steps
     self.max_mutations = max_mutations
-    self.graph, self.input_placeholders, self.output_placeholder = self.construct_graph()
+    self.graph, input_placeholders, self.label_placeholder, self.loss_op, self.train_op = (
+        self.construct_graph())
+    (self.protein_coords_placeholder, self.protein_Z_placeholder,
+     self.ligand_coords_placeholder, self.ligand_Z_placeholder) = input_placeholders
     self.sess = tf.Session(graph=self.graph)
 
   def construct_graph(self, N_protein=1000, N_ligand=100, M=50, ndim=3, k=5, nbr_cutoff=6):
@@ -503,14 +506,30 @@ class VinaModel(Model):
       energy = tf.reduce_sum(atom_interactions)
 
       loss = 0.5 * (energy - label_placeholder)**2
-        
-    return (graph, (protein_coords_placeholder, protein_Z_placeholder,
-                    ligand_coords_placeholder, ligand_Z_placeholder), label_placeholder)
 
-  def fit(self, dataset):
+      train = self.optimizer.minimize(loss)
+        
+    return (graph,
+            (protein_coords_placeholder, protein_Z_placeholder,
+             ligand_coords_placeholder, ligand_Z_placeholder),
+            label_placeholder,
+            loss,
+            train)
+
+  def construct_feed_dict(self, X_protein, Z_protein, X_ligand, Z_ligand, y):
+    """Create the feed dictionary for the fit() method."""
+    feed_dict = {self.protein_coords_placeholder: X_protein,
+                 self.protein_Z_placeholder: Z_protein,
+                 self.ligand_coords_placeholder: X_ligand,
+                 self.ligand_Z_placeholder: Z_ligand,
+                 self.label_placeholder: y}
+    return feed_dict
+    
+
+  def fit(self, X_protein, Z_protein, X_ligand, Z_ligand, y):
     """Fit to actual data."""
-    # TODO(rbharath): Add an actual fit method.
-    return
+    feed_dict = self.construct_feed_dict(X_protein, Z_protein, X_ligand, Z_ligand, y)
+    self.sess.run(self.train_op, feed_dict=feed_dict)
 
   def mutate_conformer(protein, ligand):
     """Performs a mutation on the ligand position."""
