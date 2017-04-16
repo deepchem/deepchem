@@ -609,3 +609,205 @@ class WeightedError(Layer):
     entropy, weights = self.in_layers[0], self.in_layers[1]
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
     return self.out_tensor
+
+class NeighborList(Layer):
+  """Computes a neighbor-list on the GPU.
+
+  Neighbor-lists (also called Verlet Lists) are a tool for grouping atoms which
+  are close to each other spatially
+  """
+
+  def __init__(self, max_num_atoms, max_num_nbrs, ndim, n_cells, k, nbr_cutoff, **kwargs):
+    """
+    Parameters
+    ----------
+    max_num_atoms: int
+      Maximum number of atoms this layer will neighbor-list.
+    max_num_nbrs: int
+      Maximum number of spatial neighbors possible for atom.
+    ndim: int
+      Dimensionality of space atoms live in. (Typically 3D, but sometimes will
+      want to use higher dimensional descriptors for atoms).
+    n_cells: int
+      Number of grid cells in the simulation box.
+    k: int
+      Number of nearest neighbors to pull in using tf.nn.top_k.
+      TODO(rbharath): Are both k and max_num_nbrs needed?
+    nbr_cutoff: float
+      Length in Angstroms (?) at which atom boxes are gridded.
+    """
+    self.N = max_num_atoms
+    self.M = max_num_nbrs
+    self.ndim = ndim
+    self.n_cells = n_cells
+    self.k = k
+    super(NeighborList, self).__init__(**kwargs)
+
+  def _create_tensor(self):
+    """Creates tensors associated with neighbor-listing."""
+    if len(self.in_layers) != 1:
+      raise ValueError("Only One Parent to NeighborList over %s" % self.in_layers)
+    parent = self.in_layers[0]
+    if len(parent.out_tensor.get_shape()) != 2:
+      # TODO(rbharath): Support batching
+      raise ValueError("Parent tensor must be (num_atoms, ndum)")
+    coords = parent.out_tensor
+    return self._compute_nbr_list(coords)
+  
+
+  def _compute_nbr_list(self, coords):
+    """Computes a neighbor list from atom coordinates.
+
+    Parameters
+    ----------
+    coords: tf.Tensor
+      Shape (N, ndim)
+
+    Returns
+    -------
+    nbr_list: tf.Tensor
+      Shape (N, M) of atom indices
+    """
+    N, M, n_cells, ndim, k = self.N, self.M, self.n_cells, self.ndim, self.k
+    nbr_cutoff = self.nbr_cutoff
+    start = tf.to_int32(tf.reduce_min(coords))
+    stop = tf.to_int32(tf.reduce_max(coords))
+    cells = self._get_cells(start, stop, nbr_cutoff, ndim=ndim)
+    # Associate each atom with cell it belongs to. O(N*n_cells)
+    # Shape (n_cells, k)
+    atoms_in_cells, _ = put_atoms_in_cells(coords, cells, N, n_cells, ndim, k)
+    # Shape (N, 1)
+    cells_for_atoms = get_cells_for_atoms(coords, cells, N, n_cells, ndim)
+
+    # Associate each cell with its neighbor cells. Assumes periodic boundary   
+    # conditions, so does wrapround. O(constant)    
+    # Shape (n_cells, 26)
+    neighbor_cells = compute_neighbor_cells(cells, ndim, n_cells)
+
+    # Shape (N, 26)
+    neighbor_cells = tf.squeeze(tf.gather(neighbor_cells, cells_for_atoms))
+
+    # coords of shape (N, ndim)
+    # Shape (N, 26, k, ndim)
+    tiled_coords = tf.tile(tf.reshape(coords, (N, 1, 1, ndim)), (1, 26, k, 1))
+
+    # Shape (N, 26, k)
+    nbr_inds = tf.gather(atoms_in_cells, neighbor_cells)
+
+    # Shape (N, 26, k)
+    atoms_in_nbr_cells = tf.gather(atoms_in_cells, neighbor_cells)
+
+    # Shape (N, 26, k, ndim)
+    nbr_coords = tf.gather(coords, atoms_in_nbr_cells)
+
+    # For smaller systems especially, the periodic boundary conditions can
+    # result in neighboring cells being seen multiple times. Maybe use tf.unique to
+    # make sure duplicate neighbors are ignored?
+
+    # TODO(rbharath): How does distance need to be modified here to   
+    # account for periodic boundary conditions?   
+    # Shape (N, 26, k)
+    dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=3)
+
+    # Shape (N, 26*k)
+    dists = tf.reshape(dists, [N, -1])
+
+    # TODO(rbharath): This will cause an issue with duplicates!
+    # Shape (N, M)
+    closest_nbr_locs = tf.nn.top_k(dists, k=M)[1]
+
+    # N elts of size (M,) each
+    split_closest_nbr_locs = [
+        tf.squeeze(locs) for locs in tf.split(closest_nbr_locs, N)
+    ]
+
+    # Shape (N, 26*k)
+    nbr_inds = tf.reshape(nbr_inds, [N, -1])
+
+    # N elts of size (26*k,) each
+    split_nbr_inds = [tf.squeeze(split) for split in tf.split(nbr_inds, N)]
+
+    # N elts of size (M,) each 
+    neighbor_list = [
+        tf.gather(nbr_inds, closest_nbr_locs)
+        for (nbr_inds, closest_nbr_locs
+            ) in zip(split_nbr_inds, split_closest_nbr_locs)
+    ]
+
+    # Shape (N, M)
+    neighbor_list = tf.stack(neighbor_list)
+
+    return neighbor_list
+
+  def _put_atoms_in_cells(self, coords, cells):
+    """Place each atom into cells. O(N) runtime.    
+    
+    Let N be the number of atoms.
+        
+    Parameters    
+    ----------    
+    coords: tf.Tensor 
+      (N, 3) shape.
+    cells: tf.Tensor
+      (n_cells, ndim) shape.
+    N: int
+      Number atoms
+    ndim: int
+      Dimensionality of input space
+    k: int
+      Number of nearest neighbors.
+
+    Returns
+    -------
+    closest_atoms: tf.Tensor 
+      Of shape (n_cells, k, ndim)
+    """
+    N, n_cells, ndim, k = self.N, self.n_cells, self.ndim, self.k
+    # Tile both cells and coords to form arrays of size (n_cells*N, ndim)
+    tiled_cells = tf.reshape(tf.tile(cells, (1, N)), (n_cells * N, ndim))
+    # TODO(rbharath): Change this for tf 1.0
+    # n_cells tensors of shape (N, 1)
+    tiled_cells = tf.split(tiled_cells, n_cells)
+
+    # Shape (N*n_cells, 1) after tile
+    tiled_coords = tf.tile(coords, (n_cells, 1))
+    # List of n_cells tensors of shape (N, 1)
+    tiled_coords = tf.split(tiled_coords, n_cells)
+
+    # Lists of length n_cells
+    coords_rel = [
+        tf.to_float(coords) - tf.to_float(cells)
+        for (coords, cells) in zip(tiled_coords, tiled_cells)
+    ]
+    coords_norm = [tf.reduce_sum(rel**2, axis=1) for rel in coords_rel]
+
+    # Lists of length n_cells
+    # Get indices of k atoms closest to each cell point
+    closest_inds = [tf.nn.top_k(norm, k=k)[1] for norm in coords_norm]
+    # n_cells tensors of shape (k, ndim)
+    closest_atoms = tf.stack([tf.gather(coords, inds) for inds in closest_inds])
+    # Tensor of shape (n_cells, k)
+    closest_inds = tf.stack(closest_inds)
+
+    return closest_inds, closest_atoms
+
+  def _get_cells(self, start, stop):
+    """Returns the locations of all grid points in box.
+
+    Suppose start is -10 Angstrom, stop is 10 Angstrom, nbr_cutoff is 1.
+    Then would return a list of length 20^3 whose entries would be
+    [(-10, -10, -10), (-10, -10, -9), ..., (9, 9, 9)]
+
+    Returns
+    -------
+    cells: tf.Tensor
+      (box_size**ndim, ndim) shape.
+    """
+    return tf.reshape(
+        tf.transpose(
+            tf.stack(
+                tf.meshgrid(
+                    * [tf.range(start, stop, self.nbr_cutoff) for _ in range(self.ndim)]))),
+        (-1, ndim))
+
+  

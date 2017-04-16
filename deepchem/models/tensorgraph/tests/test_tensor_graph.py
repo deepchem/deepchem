@@ -207,3 +207,24 @@ class TestTensorGraph(unittest.TestCase):
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
     prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
+
+  def test_neighbor_list(self):
+    N = 10
+    start = 0
+    stop = 12
+    nbr_cutoff = 3
+    ndim = 3
+    M = 6
+    k = 5
+    # The number of cells which we should theoretically have
+    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
+
+    nbr_list = NeighborList(N, M, ndim, n_cells, k, nbr_cutoff)
+
+    #with self.test_session() as sess:
+    #  coords = start + np.random.rand(N, ndim) * (stop - start)
+    #  coords = tf.stack(coords)
+    #  nbr_list = compute_neighbor_list(
+    #      coords, nbr_cutoff, N, M, n_cells, ndim=ndim, k=k)
+    #  nbr_list = nbr_list.eval()
+    #  assert nbr_list.shape == (N, M)
