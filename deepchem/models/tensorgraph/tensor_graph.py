@@ -12,7 +12,7 @@ from tensorflow.python.framework.errors_impl import OutOfRangeError
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
-from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -88,11 +88,11 @@ class TensorGraph(Model):
   def _add_layer(self, layer):
     if layer.name in self.layers:
       return
-    if layer.__class__.__name__ == "Feature":
+    if isinstance(layer, Feature):
       self.features.append(layer)
-    if layer.__class__.__name__ == "Label":
+    if isinstance(layer, Label):
       self.labels.append(layer)
-    if layer.__class__.__name__ == "Weight":
+    if isinstance(layer, Weights):
       self.task_weights.append(layer)
     self.nxgraph.add_node(layer.name)
     self.layers[layer.name] = layer
