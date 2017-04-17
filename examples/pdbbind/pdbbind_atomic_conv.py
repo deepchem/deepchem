@@ -13,9 +13,6 @@ import tensorflow as tf
 import itertools
 import time
 
-# For stable runs
-from nn import model_ops
-
 np.random.seed(123)
 tf.set_random_seed(123)
 
@@ -634,7 +631,7 @@ tg.add_output(conv_layer)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=1))
 
 metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
