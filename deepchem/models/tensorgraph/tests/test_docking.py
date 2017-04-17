@@ -167,7 +167,7 @@ class TestDocking(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
       coords = tf.stack(coords)
-      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff)(
+      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff, start, stop)(
           coords)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N_atoms, M_nbrs)
