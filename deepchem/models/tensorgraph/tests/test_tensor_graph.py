@@ -208,31 +208,3 @@ class TestTensorGraph(unittest.TestCase):
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
     prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
-
-  def test_neighbor_list(self):
-    N_atoms = 10
-    start = 0
-    stop = 12
-    nbr_cutoff = 3
-    ndim = 3
-    M = 6
-    k = 5
-    # The number of cells which we should theoretically have
-    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
-
-    X = np.random.rand(N_atoms, ndim)
-    y = np.random.rand(N_atoms, 1)
-    dataset = NumpyDataset(X, y)
-
-    features = Feature(shape=(N_atoms, ndim))
-    labels = Label(shape=(N_atoms,))
-    nbr_list = NeighborList(N_atoms, M, ndim, n_cells, k, nbr_cutoff,
-                            in_layers=[features])
-    # This isn't a meaningful loss, but just for test
-    loss = ReduceMean(in_layers=[nbr_list])
-    tg = dc.models.TensorGraph(use_queue=False)
-    tg.add_output(nbr_list)
-    tg.set_loss(loss)
-
-    tg.fit(dataset, nb_epoch=1)
-

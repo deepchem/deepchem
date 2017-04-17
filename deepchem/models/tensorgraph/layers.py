@@ -49,6 +49,25 @@ class Layer(object):
   def __hash__(self):
     return hash(self.__key())
 
+  def __call__(self, *in_layers):
+    if len(in_layers) > 0:
+      layers = []
+      for in_layer in in_layers:
+        if isinstance(in_layer, Layer):
+          layers.append(layer)
+        elif isinstance(in_layer, tf.Tensor):
+          layers.append(TensorWrapper(in_layer))
+        else:
+          raise ValueError("Layer must be invoked on layers or tensors")
+      self.in_layers = layers
+    self._create_tensor()
+  
+
+class TensorWrapper(Layer):
+  """Used to wrap a tensorflow tensor."""
+  def __init__(self, out_tensor):
+    self.out_tensor = out_tensor
+
 
 class Conv1DLayer(Layer):
 
@@ -269,7 +288,8 @@ class SoftMax(Layer):
 
 class Concat(Layer):
 
-  def __init__(self, **kwargs):
+  def __init__(self, axis=1, **kwargs):
+    self.axis = axis
     super(Concat, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -278,8 +298,28 @@ class Concat(Layer):
       return self.out_tensor
     out_tensors = [x.out_tensor for x in self.in_layers]
 
-    self.out_tensor = tf.concat(out_tensors, 1)
+    self.out_tensor = tf.concat(out_tensors, axis=self.axis)
     return self.out_tensor
+
+
+class InteratomicL2Distances(Layer):
+  """Compute (squared) L2 Distances between atoms given neighbors."""
+
+  def _create_tensor(self):
+    if len(self.in_layers) != 2:
+      raise ValueError("InteratomicDistances requires coords,nbr_list")
+    coords, nbr_list = (self.in_layers[0].out_tensor,
+                        self.in_layers[1].out_tensor)
+    N_atoms, ndim = coords.get_shape()
+    _, M = nbr_list.get_shape()
+    # Shape (N_atoms, M, ndim)
+    nbr_coords = tf.gather(coords, nbr_list)
+    # Shape (N_atoms, M, ndim)
+    tiled_atom_coords = tf.tile(
+        tf.reshape(atom_coords, (N_atoms, 1, ndim)), (1, M, 1))
+    # Shape (N_atoms, M)
+    dists = tf.reduce_sum((tiled_atom_coords - nbr_coords)**2, axis=2)
+
 
 
 class SoftMaxCrossEntropy(Layer):
@@ -299,6 +339,10 @@ class SoftMaxCrossEntropy(Layer):
 
 class ReduceMean(Layer):
 
+  def __init__(self, axis=None, **kwargs):
+    self.axis=axis
+    super(ReduceMean, self).__init__(**kwargs)
+
   def _create_tensor(self):
     if len(self.in_layers) > 1:
       out_tensors = [x.out_tensor for x in self.in_layers]
@@ -309,16 +353,41 @@ class ReduceMean(Layer):
     self.out_tensor = tf.reduce_mean(self.out_tensor)
     return self.out_tensor
 
+class ToFloat(Layer):
+  def _create_tensor(self):
+    if len(self.in_layers) > 1:
+      raise ValueError("Only one layer supported.")
+    self.out_tensor = tf.to_float(self.in_layers[0].out_tensor)
+    return self.out_tensor
+
+class ReduceSum(Layer):
+
+  def __init__(self, axis=None, **kwargs):
+    self.axis=axis
+    super(ReduceSum, self).__init__(**kwargs)
+
+  def _create_tensor(self):
+    if len(self.in_layers) > 1:
+      out_tensors = [x.out_tensor for x in self.in_layers]
+      self.out_tensor = tf.stack(out_tensors)
+    else:
+      self.out_tensor = self.in_layers[0].out_tensor
+
+    self.out_tensor = tf.reduce_sum(self.out_tensor, axis=self.axis)
+    return self.out_tensor
+
 
 class ReduceSquareDifference(Layer):
 
-  def __init__(self, **kwargs):
+  def __init__(self, axis=None, **kwargs):
+    self.axis=axis
     super(ReduceSquareDifference, self).__init__(**kwargs)
 
   def _create_tensor(self):
     a = self.in_layers[0].out_tensor
     b = self.in_layers[1].out_tensor
-    self.out_tensor = tf.reduce_mean(tf.squared_difference(a, b))
+    self.out_tensor = tf.reduce_mean(tf.squared_difference(a, b),
+                                     axis=self.axis)
     return self.out_tensor
 
 
@@ -651,11 +720,45 @@ class VinaHydrogenBond(Layer):
                                tf.where(d < 0,
                                         (1.0 / 0.7) * (0 - d),
                                         tf.zeros_like(d)))
+    return self.out_tensor
 
-def VinaGaussianFirst(Layer):
+class VinaGaussianFirst(Layer):
   """Computes Autodock Vina's first Gaussian interaction term."""
-  pass
+  
+  def _create_tensor(self):
+    d = self.in_layers[0].out_tensor
+    self.out_tensor = tf.exp(-(d / 0.5)**2)
+    return self.out_tensor
 
+class VinaGaussianSecond(Layer):
+  """Computes Autodock Vina's second Gaussian interaction term."""
+
+  def _create_tensor(self):
+    d = self.in_layers[0].out_tensor
+    self.out_tensor = tf.exp(-((d - 3) / 2)**2)
+    return self.out_tensor
+
+
+class WeightedLinearCombo(Layer):
+  """Computes a weighted linear combination of input layers.""" 
+
+  def __init__(self, std=.3, **kwargs):
+    self.std = std
+    super(WeightedLinearCombo, self).__init__(**kwargs)
+
+  def _create_tensor(self):
+    weights = []
+    out_tensor = None
+    for in_layer in self.in_layers:
+      w = tf.Variable(tf.random_normal([1,], stddev=self.std))
+      if out_tensor is None:
+        out_tensor = w * in_layer.out_tensor
+      else:
+        out_tensor += w * in_layer.out_tensor
+    self.out_tensor = out_tensor
+    return self.out_tensor
+
+    
 class NeighborList(Layer):
   """Computes a neighbor-list on the GPU.
 
