@@ -118,8 +118,6 @@ class Dense(Layer):
     if len(self.in_layers) != 1:
       raise ValueError("Only One Parent to Dense over %s" % self.in_layers)
     parent = self.in_layers[0]
-    if len(parent.out_tensor.get_shape()) != 2:
-      raise ValueError("Parent tensor must be (batch, width)")
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
         parent.out_tensor,
