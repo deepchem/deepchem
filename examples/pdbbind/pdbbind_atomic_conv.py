@@ -21,11 +21,13 @@ from pdbbind_datasets import load_pdbbind_grid
 
 split = "random"
 subset = "core"
-tasks, datasets, _ = load_pdbbind_grid(split, featurizer="atomic_conv", subset=subset)
+tasks, datasets, _ = load_pdbbind_grid(
+    split, featurizer="atomic_conv", subset=subset)
 train_dataset, valid_dataset, test_dataset = datasets
 
 
 class AtomicConvScore(Layer):
+
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -43,7 +45,7 @@ class AtomicConvScore(Layer):
 
 
 transformers = [
-  dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
+    dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
 ]
 
 for transformer in transformers:
@@ -74,23 +76,37 @@ frag2_nbrs_z = Feature(shape=(batch_size, frag2_num_atoms, max_num_neighbors))
 
 complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
 complex_nbrs = Feature(shape=(batch_size, complex_num_atoms, max_num_neighbors))
-complex_nbrs_z = Feature(shape=(batch_size, complex_num_atoms, max_num_neighbors))
+complex_nbrs_z = Feature(shape=(batch_size, complex_num_atoms,
+                                max_num_neighbors))
 
-frag1_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
-                               in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
+frag1_conv = AtomicConvolution(
+    atom_types=at,
+    radial_params=rp,
+    boxsize=None,
+    in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
 
-frag2_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
-                               in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
+frag2_conv = AtomicConvolution(
+    atom_types=at,
+    radial_params=rp,
+    boxsize=None,
+    in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
 
-complex_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
-                                 in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
+complex_conv = AtomicConvolution(
+    atom_types=at,
+    radial_params=rp,
+    boxsize=None,
+    in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
 
 frag1_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag1_conv])
 frag2_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag2_conv])
 complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
 
 for layer_size in layer_sizes:
-  frag1_conv = Dense(out_channels=layer_size, activation_fn=tf.nn.relu, time_series=True, in_layers=[frag1_conv])
+  frag1_conv = Dense(
+      out_channels=layer_size,
+      activation_fn=tf.nn.relu,
+      time_series=True,
+      in_layers=[frag1_conv])
   frag2_conv = frag1_conv.shared(in_layers=[frag2_conv])
   complex_conv = frag1_conv.shared(in_layers=[complex_conv])
 
@@ -103,8 +119,8 @@ loss = L2LossLayer(in_layers=[score, label])
 def feed_dict_generator(dataset, batch_size, epochs=1):
   total_time = 0
   for epoch in range(epochs):
-    for ind, (F_b, y_b, w_b, ids_b) in enumerate(
-      dataset.iterbatches(batch_size, pad_batches=True)):
+    for ind, (F_b, y_b, w_b, ids_b
+             ) in enumerate(dataset.iterbatches(batch_size, pad_batches=True)):
       time1 = time.time()
       N = complex_num_atoms
       N_1 = frag1_num_atoms
@@ -180,9 +196,10 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
       yield orig_dict
 
 
-tg = TensorGraph(batch_size=batch_size,
-                 mode=str("regression"),
-                 model_dir=str("/tmp/atom_conv"))
+tg = TensorGraph(
+    batch_size=batch_size,
+    mode=str("regression"),
+    model_dir=str("/tmp/atom_conv"))
 tg.add_output(score)
 tg.set_loss(loss)
 
@@ -190,16 +207,16 @@ print("Fitting")
 tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
 
 metric = [
-  dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
-  dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+    dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
+    dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
-train_evaluator = dc.utils.evaluate.GeneratorEvaluator(tg, feed_dict_generator(train_dataset, batch_size),
-                                                       transformers, [label])
+train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+    tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
 train_scores = train_evaluator.compute_model_performance(metric)
 print("Train scores")
 print(train_scores)
-test_evaluator = dc.utils.evaluate.GeneratorEvaluator(tg, feed_dict_generator(test_dataset, batch_size),
-                                                      transformers, [label])
+test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+    tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
 test_scores = test_evaluator.compute_model_performance(metric)
 print("Test scores")
 print(test_scores)

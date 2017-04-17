@@ -120,6 +120,7 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
   return dataset, tasks
 
+
 def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
   frag1_num_atoms = 140
   frag2_num_atoms = 821
@@ -127,8 +128,8 @@ def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
   max_num_neighbors = 8
   neighbor_cutoff = 12.0
   featurizer = ComplexNeighborListFragmentAtomicCoordinates(
-    frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
-    neighbor_cutoff)
+      frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
+      neighbor_cutoff)
 
   w = np.ones_like(y)
 
@@ -141,7 +142,7 @@ def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
       protein_file = os.path.join(pdb_subdir, "%s_pocket.pdb" % pdb_code)
       ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
       computed_feature = featurizer._featurize_complex(
-        str(ligand_file), str(protein_file))
+          str(ligand_file), str(protein_file))
       if computed_feature[0] is None:
         print("Bad featurization")
         continue
@@ -154,7 +155,7 @@ def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
         yield (X_b, y_b, w_b, [pdb_code])
 
   dataset = dc.data.DiskDataset.create_dataset(
-    shard_generator(), data_dir=data_dir, tasks=tasks)
+      shard_generator(), data_dir=data_dir, tasks=tasks)
 
   return dataset
 
