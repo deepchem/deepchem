@@ -838,11 +838,6 @@ class NeighborList(Layer):
       # TODO(rbharath): Support batching
       raise ValueError("Parent tensor must be (num_atoms, ndum)")
     coords = parent.out_tensor
-    ################################################################ DEBUG
-    print("NeighborList._create_tensor")
-    print("coords")
-    print(coords)
-    ################################################################ DEBUG
     nbr_list = self._compute_nbr_list(coords)
     self.out_tensor = nbr_list
     return nbr_list
@@ -1051,13 +1046,6 @@ class NeighborList(Layer):
     # Tile cells to form arrays of size (n_cells*n_cells, ndim)
     # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
     # Tile (a, a, a, b, b, b, etc.)
-    ################################################################# DEBUG
-    print("_compute_neighbor_cells")
-    print("cells")
-    print(cells)
-    print("n_cells")
-    print(n_cells)
-    ################################################################# DEBUG
     tiled_centers = tf.reshape(
         tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
     # Tile (a, b, c, a, b, c, ...)

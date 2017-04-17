@@ -208,7 +208,7 @@ def get_cells(start, stop, nbr_cutoff, ndim=3):
       tf.transpose(
           tf.stack(
               tf.meshgrid(
-                  * [tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
+                  *[tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
       (-1, ndim))
 
 
@@ -565,8 +565,7 @@ class VinaModel(Model):
 
   def fit(self, X_protein, Z_protein, X_ligand, Z_ligand, y):
     """Fit to actual data."""
-    feed_dict = self.construct_feed_dict(X_protein, Z_protein, X_ligand, Z_ligand, y)
-    self.sess.run(self.train_op, feed_dict=feed_dict)
+    return
 
   def mutate_conformer(protein, ligand):
     """Performs a mutation on the ligand position."""
