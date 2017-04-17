@@ -142,7 +142,7 @@ class Dense(Layer):
                                                            scope=self.scope_name,
                                                            reuse=self.reuse,
                                                            trainable=True)
-    self.out_tensor = tf.map_fn(dense_fn, parent.out_tensor)
+    self.out_tensor = tf.map_fn(dense_fn, parent.out_tensor, back_prop=True)
 
   def shared(self, in_layers):
     self.reuse = True
