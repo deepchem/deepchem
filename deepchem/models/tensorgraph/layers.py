@@ -71,6 +71,7 @@ class Layer(object):
 
 
 class Conv1DLayer(Layer):
+
   def __init__(self, width, out_channels, **kwargs):
     self.width = width
     self.out_channels = out_channels
@@ -86,7 +87,7 @@ class Conv1DLayer(Layer):
     parent_shape = parent.out_tensor.get_shape()
     parent_channel_size = parent_shape[2].value
     f = tf.Variable(
-      tf.random_normal([self.width, parent_channel_size, self.out_channels]))
+        tf.random_normal([self.width, parent_channel_size, self.out_channels]))
     b = tf.Variable(tf.random_normal([self.out_channels]))
     t = tf.nn.conv1d(parent.out_tensor, f, stride=1, padding="SAME")
     t = tf.nn.bias_add(t, b)
@@ -95,13 +96,17 @@ class Conv1DLayer(Layer):
 
 
 class Dense(Layer):
-  def __init__(self, out_channels, activation_fn=None,
-               biases_initializer=tf.zeros_initializer,
-               weights_initializer=tf.contrib.layers.variance_scaling_initializer,
-               time_series=False,
-               scope_name=None,
-               reuse=False,
-               **kwargs):
+
+  def __init__(
+      self,
+      out_channels,
+      activation_fn=None,
+      biases_initializer=tf.zeros_initializer,
+      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
+      time_series=False,
+      scope_name=None,
+      reuse=False,
+      **kwargs):
     super(Dense, self).__init__(**kwargs)
     self.out_channels = out_channels
     self.out_tensor = None
@@ -120,14 +125,14 @@ class Dense(Layer):
     parent = self.in_layers[0]
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
-        parent.out_tensor,
-        num_outputs=self.out_channels,
-        activation_fn=self.activation_fn,
-        biases_initializer=self.biases_initializer(),
-        weights_initializer=self.weights_initializer(),
-        scope=self.scope_name,
-        reuse=self.reuse,
-        trainable=True)
+          parent.out_tensor,
+          num_outputs=self.out_channels,
+          activation_fn=self.activation_fn,
+          biases_initializer=self.biases_initializer(),
+          weights_initializer=self.weights_initializer(),
+          scope=self.scope_name,
+          reuse=self.reuse,
+          trainable=True)
       return self.out_tensor
     dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
                                                            num_outputs=self.out_channels,
@@ -141,12 +146,19 @@ class Dense(Layer):
 
   def shared(self, in_layers):
     self.reuse = True
-    return Dense(self.out_channels, self.activation_fn, self.biases_initializer,
-                 self.weights_initializer, time_series=self.time_series,
-                 reuse=self.reuse, scope_name=self.scope_name, in_layers=in_layers)
+    return Dense(
+        self.out_channels,
+        self.activation_fn,
+        self.biases_initializer,
+        self.weights_initializer,
+        time_series=self.time_series,
+        reuse=self.reuse,
+        scope_name=self.scope_name,
+        in_layers=in_layers)
 
 
 class Flatten(Layer):
+
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
 
@@ -164,6 +176,7 @@ class Flatten(Layer):
 
 
 class Reshape(Layer):
+
   def __init__(self, shape, **kwargs):
     self.shape = shape
     super(Reshape, self).__init__(**kwargs)
@@ -172,7 +185,9 @@ class Reshape(Layer):
     parent_tensor = self.in_layers[0].out_tensor
     self.out_tensor = tf.reshape(parent_tensor, self.shape)
 
+
 class Transpose(Layer):
+
   def __init__(self, out_shape, **kwargs):
     super(Transpose, self).__init__(**kwargs)
     self.out_shape = out_shape
@@ -185,6 +200,7 @@ class Transpose(Layer):
 
 
 class CombineMeanStd(Layer):
+
   def __init__(self, **kwargs):
     super(CombineMeanStd, self).__init__(**kwargs)
 
@@ -194,11 +210,12 @@ class CombineMeanStd(Layer):
     mean_parent, std_parent = self.in_layers[0], self.in_layers[1]
     mean_parent_tensor, std_parent_tensor = mean_parent.out_tensor, std_parent.out_tensor
     sample_noise = tf.random_normal(
-      mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
+        mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
     self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
 
 
 class Repeat(Layer):
+
   def __init__(self, n_times, **kwargs):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
@@ -213,6 +230,7 @@ class Repeat(Layer):
 
 
 class GRU(Layer):
+
   def __init__(self, n_hidden, out_channels, batch_size, **kwargs):
     self.n_hidden = n_hidden
     self.out_channels = out_channels
@@ -226,15 +244,16 @@ class GRU(Layer):
     gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
     initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
     rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
-      gru_cell,
-      parent_tensor,
-      initial_state=initial_gru_state,
-      scope=self.name)
+        gru_cell,
+        parent_tensor,
+        initial_state=initial_gru_state,
+        scope=self.name)
     projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
     self.out_tensor = tf.map_fn(projection, rnn_outputs)
 
 
 class TimeSeriesDense(Layer):
+
   def __init__(self, out_channels, **kwargs):
     super(TimeSeriesDense, self).__init__(**kwargs)
 
@@ -248,6 +267,7 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
+
   def __init__(self, shape, dtype=tf.float32, **kwargs):
     self.shape = shape
     self.dtype = dtype
@@ -272,32 +292,37 @@ class Input(Layer):
 
 
 class Feature(Input):
+
   def __init__(self, **kwargs):
     super(Feature, self).__init__(**kwargs)
 
 
 class Label(Input):
+
   def __init__(self, **kwargs):
     super(Label, self).__init__(**kwargs)
 
 
 class Weights(Input):
+
   def __init__(self, **kwargs):
     super(Weights, self).__init__(**kwargs)
 
 
 class L2LossLayer(Layer):
+
   def __init__(self, **kwargs):
     super(L2LossLayer, self).__init__(**kwargs)
 
   def _create_tensor(self):
     guess, label = self.in_layers[0], self.in_layers[1]
     self.out_tensor = tf.reduce_mean(
-      tf.square(guess.out_tensor - label.out_tensor))
+        tf.square(guess.out_tensor - label.out_tensor))
     return self.out_tensor
 
 
 class SoftMax(Layer):
+
   def __init__(self, **kwargs):
     super(SoftMax, self).__init__(**kwargs)
 
@@ -310,6 +335,7 @@ class SoftMax(Layer):
 
 
 class Concat(Layer):
+
   def __init__(self, **kwargs):
     super(Concat, self).__init__(**kwargs)
 
@@ -324,6 +350,7 @@ class Concat(Layer):
 
 
 class SoftMaxCrossEntropy(Layer):
+
   def __init__(self, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(**kwargs)
 
@@ -332,12 +359,13 @@ class SoftMaxCrossEntropy(Layer):
       raise ValueError()
     labels, logits = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
     self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
-      logits=logits, labels=labels)
+        logits=logits, labels=labels)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     return self.out_tensor
 
 
 class ReduceMean(Layer):
+
   def _create_tensor(self):
     if len(self.in_layers) > 1:
       out_tensors = [x.out_tensor for x in self.in_layers]
@@ -350,6 +378,7 @@ class ReduceMean(Layer):
 
 
 class ReduceSquareDifference(Layer):
+
   def __init__(self, **kwargs):
     super(ReduceSquareDifference, self).__init__(**kwargs)
 
@@ -361,6 +390,7 @@ class ReduceSquareDifference(Layer):
 
 
 class Conv2d(Layer):
+
   def __init__(self, num_outputs, kernel_size=5, **kwargs):
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -369,16 +399,17 @@ class Conv2d(Layer):
   def _create_tensor(self):
     parent_tensor = self.in_layers[0].out_tensor
     out_tensor = tf.contrib.layers.conv2d(
-      parent_tensor,
-      num_outputs=self.num_outputs,
-      kernel_size=self.kernel_size,
-      padding="SAME",
-      activation_fn=tf.nn.relu,
-      normalizer_fn=tf.contrib.layers.batch_norm)
+        parent_tensor,
+        num_outputs=self.num_outputs,
+        kernel_size=self.kernel_size,
+        padding="SAME",
+        activation_fn=tf.nn.relu,
+        normalizer_fn=tf.contrib.layers.batch_norm)
     self.out_tensor = out_tensor
 
 
 class MaxPool(Layer):
+
   def __init__(self,
                ksize=[1, 2, 2, 1],
                strides=[1, 2, 2, 1],
@@ -392,7 +423,7 @@ class MaxPool(Layer):
   def _create_tensor(self):
     in_tensor = self.in_layers[0].out_tensor
     self.out_tensor = tf.nn.max_pool(
-      in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     return self.out_tensor
 
 
@@ -414,7 +445,7 @@ class InputFifoQueue(Layer):
     if self.dtypes is None:
       self.dtypes = [tf.float32] * len(self.shapes)
     self.queue = tf.FIFOQueue(
-      self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in self.in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
@@ -433,6 +464,7 @@ class InputFifoQueue(Layer):
 
 
 class GraphConvLayer(Layer):
+
   def __init__(self,
                out_channel,
                min_deg=0,
@@ -452,13 +484,13 @@ class GraphConvLayer(Layer):
 
     # Generate the nb_affine weights and biases
     self.W_list = [
-      initializations.glorot_uniform([in_channels, self.out_channel])
-      for k in range(self.num_deg)
+        initializations.glorot_uniform([in_channels, self.out_channel])
+        for k in range(self.num_deg)
     ]
     self.b_list = [
-      model_ops.zeros(shape=[
-        self.out_channel,
-      ]) for k in range(self.num_deg)
+        model_ops.zeros(shape=[
+            self.out_channel,
+        ]) for k in range(self.num_deg)
     ]
 
     # Extract atom_features
@@ -543,6 +575,7 @@ class GraphConvLayer(Layer):
 
 
 class GraphPoolLayer(Layer):
+
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     self.min_degree = min_degree
     self.max_degree = max_degree
@@ -588,6 +621,7 @@ class GraphPoolLayer(Layer):
 
 
 class GraphGather(Layer):
+
   def __init__(self, batch_size, activation_fn=None, **kwargs):
     self.batch_size = batch_size
     self.activation_fn = activation_fn
@@ -610,12 +644,12 @@ class GraphGather(Layer):
 
     # Sum over atoms for each molecule
     sparse_reps = [
-      tf.reduce_mean(activated, 0, keep_dims=True)
-      for activated in activated_par
+        tf.reduce_mean(activated, 0, keep_dims=True)
+        for activated in activated_par
     ]
     max_reps = [
-      tf.reduce_max(activated, 0, keep_dims=True)
-      for activated in activated_par
+        tf.reduce_max(activated, 0, keep_dims=True)
+        for activated in activated_par
     ]
 
     # Get the final sparse representations
@@ -630,6 +664,7 @@ class GraphGather(Layer):
 
 
 class BatchNormLayer(Layer):
+
   def _create_tensor(self):
     parent_tensor = self.in_layers[0].out_tensor
     self.out_tensor = tf.layers.batch_normalization(parent_tensor)
@@ -637,6 +672,7 @@ class BatchNormLayer(Layer):
 
 
 class WeightedError(Layer):
+
   def _create_tensor(self):
     entropy, weights = self.in_layers[0], self.in_layers[1]
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
@@ -644,7 +680,12 @@ class WeightedError(Layer):
 
 
 class AtomicConvolution(Layer):
-  def __init__(self, atom_types=None, radial_params=list(), boxsize=None, **kwargs):
+
+  def __init__(self,
+               atom_types=None,
+               radial_params=list(),
+               boxsize=None,
+               **kwargs):
     """Atomic convoluation layer
 
     N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
@@ -801,7 +842,7 @@ class AtomicConvolution(Layer):
 
     """
 
-    return tf.exp(-e * (R - rs) ** 2)
+    return tf.exp(-e * (R - rs)**2)
 
   def distanceTensor(self, X, Nbrs, boxsize, B, N, M, d):
     """Calculates distance tensor for batch of molecules.
