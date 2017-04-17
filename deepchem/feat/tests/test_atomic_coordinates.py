@@ -26,7 +26,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)
     assert self.mol.GetNumConformers() > 0
-    self.atomic_coords_featurizer = NeighborListAtomicCoordinates(max_num_atoms=1000, max_num_neighbors=10,
+    self.atomic_coords_featurizer = NeighborListAtomicCoordinates(max_num_atoms=100, max_num_neighbors=100,
                                                          neighbor_cutoff=12.0)
 
   def test_atomic_coordinates(self):
@@ -122,16 +122,14 @@ class TestAtomicCoordinates(unittest.TestCase):
     """Test Neighbor List computation on protein-ligand complex."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
-    protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
     max_num_neighbors = 4
-    complex_featurizer = ComplexNeighborListFragmentAtomicCoordinates(50, 3000, 3500, 10)
+    complex_featurizer = ComplexNeighborListFragmentAtomicCoordinates(50, 50, 100, max_num_neighbors)
 
-    m1 = rdkit_util.load_molecule(ligand_file, add_hydrogens=False, calc_charges=False)
-    m2 = rdkit_util.load_molecule(ligand_file, add_hydrogens=False, calc_charges=False)
+    m1 = rdkit_util.load_molecule(ligand_file, add_hydrogens=False, calc_charges=False)[1]
     _, _, _, _, _, _, system_coords, system_neighbor_list, _ = complex_featurizer._featurize_complex(
-      ligand_file, protein_file)
+      ligand_file, ligand_file)
 
-    N = system_coords.shape[0]
-    assert len(system_neighbor_list.keys()) == complex_featurizer.complex_num_atoms
+    N = m1.GetNumAtoms() * 2
+    assert len(system_neighbor_list.keys()) == N
     for atom in range(N):
       assert len(system_neighbor_list[atom]) <= max_num_neighbors
