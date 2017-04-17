@@ -61,10 +61,11 @@ class Layer(object):
           raise ValueError("Layer must be invoked on layers or tensors")
       self.in_layers = layers
     return self._create_tensor()
-  
+
 
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
+
   def __init__(self, out_tensor):
     self.out_tensor = out_tensor
 
@@ -316,7 +317,7 @@ class InteratomicL2Distances(Layer):
       raise ValueError("InteratomicDistances requires coords,nbr_list")
     coords, nbr_list = (self.in_layers[0].out_tensor,
                         self.in_layers[1].out_tensor)
-    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim 
+    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
     # Shape (N_atoms, M_nbrs, ndim)
     nbr_coords = tf.gather(coords, nbr_list)
     # Shape (N_atoms, M_nbrs, ndim)
@@ -326,7 +327,6 @@ class InteratomicL2Distances(Layer):
     dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
     self.out_tensor = dists
     return self.out_tensor
-
 
 
 class SoftMaxCrossEntropy(Layer):
@@ -347,7 +347,7 @@ class SoftMaxCrossEntropy(Layer):
 class ReduceMean(Layer):
 
   def __init__(self, axis=None, **kwargs):
-    self.axis=axis
+    self.axis = axis
     super(ReduceMean, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -360,17 +360,20 @@ class ReduceMean(Layer):
     self.out_tensor = tf.reduce_mean(self.out_tensor)
     return self.out_tensor
 
+
 class ToFloat(Layer):
+
   def _create_tensor(self):
     if len(self.in_layers) > 1:
       raise ValueError("Only one layer supported.")
     self.out_tensor = tf.to_float(self.in_layers[0].out_tensor)
     return self.out_tensor
 
+
 class ReduceSum(Layer):
 
   def __init__(self, axis=None, **kwargs):
-    self.axis=axis
+    self.axis = axis
     super(ReduceSum, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -387,14 +390,14 @@ class ReduceSum(Layer):
 class ReduceSquareDifference(Layer):
 
   def __init__(self, axis=None, **kwargs):
-    self.axis=axis
+    self.axis = axis
     super(ReduceSquareDifference, self).__init__(**kwargs)
 
   def _create_tensor(self):
     a = self.in_layers[0].out_tensor
     b = self.in_layers[1].out_tensor
-    self.out_tensor = tf.reduce_mean(tf.squared_difference(a, b),
-                                     axis=self.axis)
+    self.out_tensor = tf.reduce_mean(
+        tf.squared_difference(a, b), axis=self.axis)
     return self.out_tensor
 
 
@@ -678,6 +681,7 @@ class BatchNormLayer(Layer):
     self.out_tensor = tf.layers.batch_normalization(parent_tensor)
     return self.out_tensor
 
+
 class WeightedError(Layer):
 
   def _create_tensor(self):
@@ -685,15 +689,17 @@ class WeightedError(Layer):
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
     return self.out_tensor
 
+
 class Cutoff(Layer):
   """Truncates interactions that are too far away."""
-  
+
   def _create_tensor(self):
     if len(self.in_layers) != 2:
       raise ValueError("Cutoff must be given distances and energies.")
     d, x = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
     self.out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
     return self.out_tensor
+
 
 class VinaNonlinearity(Layer):
   """Computes non-linearity used in Vina."""
@@ -712,13 +718,15 @@ class VinaNonlinearity(Layer):
     self.out_tensor = c / (1 + w * self.Nrot)
     return self.out_tensor
 
+
 class VinaRepulsion(Layer):
   """Computes Autodock Vina's repulsion interaction term."""
-  
+
   def _create_tensor(self):
     d = self.in_layers[0].out_tensor
     self.out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
     return self.out_tensor
+
 
 class VinaHydrophobic(Layer):
   """Computes Autodock Vina's hydrophobic interaction term."""
@@ -730,6 +738,7 @@ class VinaHydrophobic(Layer):
                                tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
     return self.out_tensor
 
+
 class VinaHydrogenBond(Layer):
   """Computes Autodock Vina's hydrogen bond interaction term."""
 
@@ -737,18 +746,19 @@ class VinaHydrogenBond(Layer):
     d = self.in_layers[0].out_tensor
     self.out_tensor = tf.where(d < -0.7,
                                tf.ones_like(d),
-                               tf.where(d < 0,
-                                        (1.0 / 0.7) * (0 - d),
+                               tf.where(d < 0, (1.0 / 0.7) * (0 - d),
                                         tf.zeros_like(d)))
     return self.out_tensor
 
+
 class VinaGaussianFirst(Layer):
   """Computes Autodock Vina's first Gaussian interaction term."""
-  
+
   def _create_tensor(self):
     d = self.in_layers[0].out_tensor
     self.out_tensor = tf.exp(-(d / 0.5)**2)
     return self.out_tensor
+
 
 class VinaGaussianSecond(Layer):
   """Computes Autodock Vina's second Gaussian interaction term."""
@@ -760,7 +770,7 @@ class VinaGaussianSecond(Layer):
 
 
 class WeightedLinearCombo(Layer):
-  """Computes a weighted linear combination of input layers.""" 
+  """Computes a weighted linear combination of input layers."""
 
   def __init__(self, std=.3, **kwargs):
     self.std = std
@@ -770,7 +780,9 @@ class WeightedLinearCombo(Layer):
     weights = []
     out_tensor = None
     for in_layer in self.in_layers:
-      w = tf.Variable(tf.random_normal([1,], stddev=self.std))
+      w = tf.Variable(tf.random_normal([
+          1,
+      ], stddev=self.std))
       if out_tensor is None:
         out_tensor = w * in_layer.out_tensor
       else:
@@ -778,7 +790,7 @@ class WeightedLinearCombo(Layer):
     self.out_tensor = out_tensor
     return self.out_tensor
 
-    
+
 class NeighborList(Layer):
   """Computes a neighbor-list on the GPU.
 
@@ -786,8 +798,8 @@ class NeighborList(Layer):
   are close to each other spatially
   """
 
-  def __init__(self, N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff, start,
-               stop, **kwargs):
+  def __init__(self, N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff, start, stop,
+               **kwargs):
     """
     Parameters
     ----------
@@ -806,8 +818,8 @@ class NeighborList(Layer):
     nbr_cutoff: float
       Length in Angstroms (?) at which atom boxes are gridded.
     """
-    self.N = N_atoms 
-    self.M = M_nbrs 
+    self.N = N_atoms
+    self.M = M_nbrs
     self.ndim = ndim
     self.n_cells = n_cells
     self.k = k
@@ -819,7 +831,8 @@ class NeighborList(Layer):
   def _create_tensor(self):
     """Creates tensors associated with neighbor-listing."""
     if len(self.in_layers) != 1:
-      raise ValueError("Only One Parent to NeighborList over %s" % self.in_layers)
+      raise ValueError("Only One Parent to NeighborList over %s" %
+                       self.in_layers)
     parent = self.in_layers[0]
     if len(parent.out_tensor.get_shape()) != 2:
       # TODO(rbharath): Support batching
@@ -833,7 +846,6 @@ class NeighborList(Layer):
     nbr_list = self._compute_nbr_list(coords)
     self.out_tensor = nbr_list
     return nbr_list
-  
 
   def _compute_nbr_list(self, coords):
     """Computes a neighbor list from atom coordinates.
@@ -991,7 +1003,8 @@ class NeighborList(Layer):
     tiled_cells = tf.split(tiled_cells, N)
 
     # Shape (N*n_cells, 1) after tile
-    tiled_coords = tf.reshape(tf.tile(coords, (1, n_cells)), (n_cells * N, ndim))
+    tiled_coords = tf.reshape(
+        tf.tile(coords, (1, n_cells)), (n_cells * N, ndim))
     # List of N tensors of shape (n_cells, 1)
     tiled_coords = tf.split(tiled_coords, N)
 
@@ -1082,5 +1095,6 @@ class NeighborList(Layer):
     """
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
-    return tf.reshape(tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+    return tf.reshape(
+        tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
         (self.n_cells, self.ndim))

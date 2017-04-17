@@ -9,7 +9,7 @@ from tensorflow.python.framework import test_util
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import ReduceSum 
+from deepchem.models.tensorgraph.layers import ReduceSum
 from deepchem.models.tensorgraph.layers import Flatten
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import Dense
@@ -53,8 +53,8 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     features = Feature(shape=(N_atoms, ndim))
     labels = Label(shape=(N_atoms,))
-    nbr_list = NeighborList(N_atoms, M, ndim, n_cells, k, nbr_cutoff,
-                            in_layers=[features])
+    nbr_list = NeighborList(
+        N_atoms, M, ndim, n_cells, k, nbr_cutoff, in_layers=[features])
     nbr_list = ToFloat(in_layers=[nbr_list])
     # This isn't a meaningful loss, but just for test
     loss = ReduceSum(in_layers=[nbr_list])
@@ -154,7 +154,7 @@ class TestDocking(test_util.TensorFlowTestCase):
 
   def test_neighbor_list(self):
     """Test that NeighborList works."""
-    N_atoms = 5 
+    N_atoms = 5
     start = 0
     stop = 12
     nbr_cutoff = 3
@@ -167,8 +167,8 @@ class TestDocking(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
       coords = tf.stack(coords)
-      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff, start, stop)(
-          coords)
+      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff,
+                              start, stop)(coords)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N_atoms, M_nbrs)
 
@@ -189,14 +189,21 @@ class TestDocking(test_util.TensorFlowTestCase):
     coords = Feature(shape=(N_atoms, ndim))
 
     # Now an (N, M) shape
-    nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k,
-                            nbr_cutoff, start, stop, in_layers=[coords])
+    nbr_list = NeighborList(
+        N_atoms,
+        M_nbrs,
+        ndim,
+        n_cells,
+        k,
+        nbr_cutoff,
+        start,
+        stop,
+        in_layers=[coords])
 
     nbr_list = ToFloat(in_layers=[nbr_list])
     flattened = Flatten(in_layers=[nbr_list])
     dense = Dense(out_channels=1, in_layers=[flattened])
     output = ReduceSum(in_layers=[dense])
-    
 
     tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.set_loss(output)
@@ -218,9 +225,12 @@ class TestDocking(test_util.TensorFlowTestCase):
     # The number of cells which we should theoretically have
     n_cells = ((stop - start) / nbr_cutoff)**ndim
 
-    X_prot = NumpyDataset(start + np.random.rand(N_protein, ndim) * (stop - start))
-    X_ligand = NumpyDataset(start + np.random.rand(N_ligand, ndim) * (stop - start))
-    y = NumpyDataset(np.random.rand(1,))
+    X_prot = NumpyDataset(start + np.random.rand(N_protein, ndim) * (stop -
+                                                                     start))
+    X_ligand = NumpyDataset(start + np.random.rand(N_ligand, ndim) * (stop -
+                                                                      start))
+    y = NumpyDataset(np.random.rand(
+        1,))
 
     # TODO(rbharath): Mysteriously, the actual atom types aren't
     # used in the current implementation. This is obviously wrong, but need
@@ -236,40 +246,45 @@ class TestDocking(test_util.TensorFlowTestCase):
     #Z = Concat(in_layers=[prot_Z, ligand_Z], axis=0)
 
     # Now an (N, M) shape
-    nbr_list = NeighborList(N_protein+N_ligand, M_nbrs, ndim, n_cells, k,
-                            nbr_cutoff, start, stop, in_layers=[coords])
+    nbr_list = NeighborList(
+        N_protein + N_ligand,
+        M_nbrs,
+        ndim,
+        n_cells,
+        k,
+        nbr_cutoff,
+        start,
+        stop,
+        in_layers=[coords])
 
     # Shape (N, M)
-    dists = InteratomicL2Distances(N_protein+N_ligand, M_nbrs, ndim,
-                                   in_layers=[coords, nbr_list])
+    dists = InteratomicL2Distances(
+        N_protein + N_ligand, M_nbrs, ndim, in_layers=[coords, nbr_list])
 
     repulsion = VinaRepulsion(in_layers=[dists])
     hydrophobic = VinaHydrophobic(in_layers=[dists])
     hbond = VinaHydrogenBond(in_layers=[dists])
-    gauss_1 = VinaGaussianFirst(in_layers=[dists]) 
-    gauss_2 = VinaGaussianSecond(in_layers=[dists]) 
+    gauss_1 = VinaGaussianFirst(in_layers=[dists])
+    gauss_2 = VinaGaussianSecond(in_layers=[dists])
 
     # Shape (N, M)
     interactions = WeightedLinearCombo(
         in_layers=[repulsion, hydrophobic, hbond, gauss_1, gauss_2])
-    
+
     # Shape (N, M)
     thresholded = Cutoff(in_layers=[dists, interactions])
 
     # Shape (N, M)
     free_energies = VinaNonlinearity(in_layers=[thresholded])
     free_energy = ReduceSum(in_layers=[free_energies])
-    
+
     loss = L2LossLayer(in_layers=[free_energy, labels])
-    
-    databag = Databag({prot_coords: X_prot, ligand_coords: X_ligand,
-                       labels: y})
+
+    databag = Databag({prot_coords: X_prot, ligand_coords: X_ligand, labels: y})
 
     tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
-    
-    
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
