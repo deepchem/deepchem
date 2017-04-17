@@ -73,7 +73,7 @@ class TestTensorGraph(unittest.TestCase):
 
     tg.fit_generator(
       databag.iterbatches(
-        epochs=100, batch_size=tg.batch_size, pad_batches=True))
+        epochs=5000, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X

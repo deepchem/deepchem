@@ -11,6 +11,7 @@ from deepchem.models import TensorGraph
 import numpy as np
 import tensorflow as tf
 import itertools
+import time
 
 # For stable runs
 from nn import model_ops
@@ -492,7 +493,8 @@ class AtomicConv(Layer):
     frag2_energy = tf.reduce_sum(frag2_outputs, 0)
     complex_energy = tf.reduce_sum(complex_outputs, 0)
     binding_energy = complex_energy - frag1_energy - frag2_energy
-    self.out_tensor = binding_energy
+    self.out_tensor = tf.expand_dims(binding_energy, axis=1)
+    return self.out_tensor
 
 
 transformers = [
@@ -508,7 +510,7 @@ frag2_num_atoms = 821
 complex_num_atoms = 908
 max_num_neighbors = 12
 neighbor_cutoff = 12.0
-batch_size = 24
+batch_size = 80
 
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
@@ -546,9 +548,11 @@ loss = L2LossLayer(in_layers=[conv_layer, label])
 
 
 def feed_dict_generator(dataset, batch_size, epochs=1):
+  total_time = 0
   for epoch in range(epochs):
     for ind, (F_b, y_b, w_b, ids_b) in enumerate(
       dataset.iterbatches(batch_size, pad_batches=True)):
+      time1 = time.time()
       N = complex_num_atoms
       N_1 = frag1_num_atoms
       N_2 = frag2_num_atoms
@@ -616,7 +620,10 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
 
       orig_dict[complex_nbrs] = complex_Nbrs
       orig_dict[complex_nbrs_z] = complex_Nbrs_Z
-      orig_dict[label] = y_b
+      orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
+      time2 = time.time()
+      total_time += time1 - time2
+      # print("total time: %s" % total_time)
       yield orig_dict
 
 
@@ -627,7 +634,7 @@ tg.add_output(conv_layer)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=1))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
 
 metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),

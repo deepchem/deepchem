@@ -20,6 +20,7 @@ class Layer(object):
     if in_layers is None:
       in_layers = list()
     self.in_layers = in_layers
+    self.op_type = "gpu"
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -209,6 +210,7 @@ class Input(Layer):
     self.shape = shape
     self.dtype = dtype
     super(Input, self).__init__(**kwargs)
+    self.op_type="cpu"
 
   def _create_tensor(self):
     if len(self.in_layers) > 0:
@@ -375,6 +377,7 @@ class InputFifoQueue(Layer):
     self.capacity = capacity
     self.dtypes = dtypes
     super(InputFifoQueue, self).__init__(**kwargs)
+    self.op_type = "cpu"
 
   def _create_tensor(self):
     if self.dtypes is None:
