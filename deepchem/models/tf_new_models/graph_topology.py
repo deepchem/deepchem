@@ -169,6 +169,10 @@ class DTNNGraphTopology(GraphTopology):
     self.n_distance = n_distance
     self.distance_min = distance_min
     self.distance_max = distance_max
+    self.step_size = (distance_max - distance_min) / n_distance
+    self.steps = np.array(
+        [distance_min + i * self.step_size for i in range(n_distance)])
+    self.steps = np.expand_dims(self.steps, 0)
 
     self.atom_number_placeholder = tf.placeholder(
         dtype='int32', shape=(None,), name=self.name + '_atom_number')
@@ -179,9 +183,9 @@ class DTNNGraphTopology(GraphTopology):
     self.atom_membership_placeholder = tf.placeholder(
         dtype='int32', shape=(None,), name=self.name + '_atom_membership')
     self.distance_membership_i_placeholder = tf.placeholder(
-        dtype='int32', shape=(None,), name=self.name + '_distance_membership')
+        dtype='int32', shape=(None,), name=self.name + '_distance_membership_i')
     self.distance_membership_j_placeholder = tf.placeholder(
-        dtype='int32', shape=(None,), name=self.name + '_distance_membership')
+        dtype='int32', shape=(None,), name=self.name + '_distance_membership_j')
 
     # Define the list of tensors to be used as topology
     self.topology = [
@@ -222,19 +226,17 @@ class DTNNGraphTopology(GraphTopology):
             np.power(2 * np.diag(batch[i, :num_atoms[i], :num_atoms[i]]), 1 /
                      2.4)).astype(int) for i in range(len(num_atoms))
     ]
+
     distance = []
     atom_membership = []
     distance_membership_i = []
     distance_membership_j = []
     start = 0
     for im, molecule in enumerate(atom_number):
-      distance_matrix = batch[im, :num_atoms[im], :num_atoms[im]] / np.outer(
-          molecule, molecule)
-      np.fill_diagonal(distance_matrix, 0)
-      distance_matrix = np.expand_dims(distance_matrix.flatten(), 1)
-      distance_matrix = self.gauss_expand(distance_matrix, self.n_distance,
-                                          self.distance_min, self.distance_max)
-      distance.append(distance_matrix)
+      distance_matrix = np.outer(
+          molecule, molecule) / batch[im, :num_atoms[im], :num_atoms[im]]
+      np.fill_diagonal(distance_matrix, -100)
+      distance.append(np.expand_dims(distance_matrix.flatten(), 1))
       atom_membership.append([im] * num_atoms[im])
       membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
       membership_i = membership.flatten(order='F')
@@ -243,7 +245,9 @@ class DTNNGraphTopology(GraphTopology):
       distance_membership_j.append(membership_j + start)
       start = start + num_atoms[im]
     atom_number = np.concatenate(atom_number)
-    distance = np.concatenate(distance)
+    distance = np.concatenate(distance, 0)
+    distance = np.exp(-np.square(distance - self.steps) /
+                      (2 * self.step_size**2))
     distance_membership_i = np.concatenate(distance_membership_i)
     distance_membership_j = np.concatenate(distance_membership_j)
     atom_membership = np.concatenate(atom_membership)
@@ -256,14 +260,6 @@ class DTNNGraphTopology(GraphTopology):
         self.distance_membership_j_placeholder: distance_membership_j
     }
     return dict_DTNN
-
-  @staticmethod
-  def gauss_expand(distance, n_distance, distance_min, distance_max):
-    step_size = (distance_max - distance_min) / n_distance
-    steps = np.array([distance_min + i * step_size for i in range(n_distance)])
-    steps = np.expand_dims(steps, 0)
-    distance_vector = np.exp(-np.square(distance - steps) / (2 * step_size**2))
-    return distance_vector
 
 
 class DAGGraphTopology(GraphTopology):

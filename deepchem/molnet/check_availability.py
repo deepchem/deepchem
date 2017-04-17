@@ -142,14 +142,14 @@ CheckFeaturizer = {
     ('kaggle', 'rf_regression'): [None, 14293],
     ('pdbbind', 'tf_regression'): ['grid', 2052],
     ('pdbbind', 'rf_regression'): ['grid', 2052],
-    ('qm7', 'tf_regression_ft'): [None, [23, 23]],
-    ('qm7', 'dtnn'): [None, [23, 23]],
-    ('qm7b', 'tf_regression_ft'): [None, [23, 23]],
-    ('qm7b', 'dtnn'): [None, [23, 23]],
-    ('qm8', 'tf_regression_ft'): [None, [26, 26]],
-    ('qm8', 'dtnn'): [None, [26, 26]],
-    ('qm9', 'tf_regression_ft'): [None, [29, 29]],
-    ('qm9', 'dtnn'): [None, [29, 29]]
+    ('qm7', 'tf_regression_ft'): ['CoulombMatrix', [23, 23]],
+    ('qm7', 'dtnn'): ['CoulombMatrix', [23, 23]],
+    ('qm7b', 'tf_regression_ft'): ['CoulombMatrix', [23, 23]],
+    ('qm7b', 'dtnn'): ['CoulombMatrix', [23, 23]],
+    ('qm8', 'tf_regression_ft'): ['CoulombMatrix', [26, 26]],
+    ('qm8', 'dtnn'): ['CoulombMatrix', [26, 26]],
+    ('qm9', 'tf_regression_ft'): ['CoulombMatrix', [29, 29]],
+    ('qm9', 'dtnn'): ['CoulombMatrix', [29, 29]]
 }
 
 CheckSplit = {

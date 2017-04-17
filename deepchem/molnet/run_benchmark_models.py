@@ -533,15 +533,14 @@ def benchmark_regression(train_dataset,
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
     tf.set_random_seed(seed)
-    graph_model = deepchem.nn.SequentialDTNNGraph(
-        max_n_atoms=n_features[0], n_distance=n_distance)
+    graph_model = deepchem.nn.SequentialDTNNGraph(n_distance=n_distance)
     graph_model.add(deepchem.nn.DTNNEmbedding(n_embedding=n_embedding))
     graph_model.add(
         deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
     graph_model.add(
         deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
     graph_model.add(deepchem.nn.DTNNGather(n_embedding=n_embedding))
-    model = deepchem.models.DTNNGraphRegressor(
+    model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
         len(tasks),
         n_embedding,

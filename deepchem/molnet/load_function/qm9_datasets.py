@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_qm9(featurizer=None, split='random', reload=True):
+def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   """Load qm9 datasets."""
   # Featurize qm9 dataset
   print("About to featurize qm9 dataset.")
@@ -41,7 +41,7 @@ def load_qm9(featurizer=None, split='random', reload=True):
     if loaded:
       return qm9_tasks, all_dataset, transformers
 
-  if featurizer is None:
+  if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrix(29)
   loader = deepchem.data.SDFLoader(
       tasks=qm9_tasks,
