@@ -13,6 +13,7 @@ from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights
+from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -214,7 +215,7 @@ class TensorGraph(Model):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  def predict_on_generator(self, generator):
+  def predict_on_generator(self, generator, transformers=[]):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
@@ -226,12 +227,12 @@ class TensorGraph(Model):
     # Returns
         A Numpy array of predictions.
     """
-    retval = self.predict_proba_on_generator(generator)
+    retval = self.predict_proba_on_generator(generator, transformers)
     if self.mode == 'classification':
       retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
     return retval
 
-  def predict_proba_on_generator(self, generator):
+  def predict_proba_on_generator(self, generator, transformers=[]):
     """
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
@@ -252,10 +253,12 @@ class TensorGraph(Model):
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
+          result = result.squeeze(axis=0)
+          result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
 
-  def predict_on_batch(self, X, sess=None):
+  def predict_on_batch(self, X, sess=None, transformers=[]):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
@@ -269,12 +272,12 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
-  def predict_proba_on_batch(self, X, sess=None):
+  def predict_proba_on_batch(self, X, sess=None, transformers=[]):
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def predict(self, dataset, transformers=[], batch_size=None):
     """
@@ -283,10 +286,8 @@ class TensorGraph(Model):
     Returns:
       y_pred: numpy ndarray of shape (n_samples,)
     """
-    if len(transformers) > 0:
-      raise ValueError("Tensorgraph does not support transformers")
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
     """
@@ -295,10 +296,8 @@ class TensorGraph(Model):
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
-    if len(transformers) > 0:
-      raise ValueError("Tensorgraph does not support transformers")
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def topsort(self):
     return nx.topological_sort(self.nxgraph)
@@ -506,25 +505,3 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     sess.run(tg.input_queue.close_op)
     coord.num_samples = num_samples
     coord.request_stop()
-
-
-class MultiTaskTensorGraph(TensorGraph):
-  """
-  Class created for legacy sake
-  Assumes y is a vector of booleans representing
-  classification metrics
-  """
-
-  def __init__(self, **kwargs):
-    super(MultiTaskTensorGraph, self).__init__(**kwargs)
-
-  def _construct_feed_dict(self, X_b, y_b, w_b, ids_b):
-    feed_dict = dict()
-    if y_b is not None:
-      for index, label in enumerate(self.labels):
-        feed_dict[label.out_tensor] = to_one_hot(y_b[:, index])
-    if self.task_weights is not None and w_b is not None:
-      feed_dict[self.task_weights.out_tensor] = w_b
-    if self.features is not None:
-      feed_dict[self.features[0].out_tensor] = X_b
-    return feed_dict

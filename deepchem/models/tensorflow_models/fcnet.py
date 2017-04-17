@@ -19,6 +19,119 @@ from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Reshape, SoftMaxCrossEntropy, L2LossLayer
+
+class TensorflowMultiTaskClassifier2(TensorGraph):
+  def __init__(self,
+               n_tasks,
+               n_features,
+               layer_sizes=[1000],
+               n_classes=2,
+               **kwargs):
+    super().__init__(mode='classification', **kwargs)
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+    self.n_classes = n_classes
+
+    # Add the input features.
+
+    mol_features = Feature(shape=(None, n_features))
+    prev_layer = mol_features
+
+    # Add the dense layers
+
+    for size in layer_sizes:
+      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu)
+      prev_layer = layer
+
+    # Compute the loss function for each label.
+
+    output = Reshape(shape=(-1, n_tasks, n_classes), in_layers=[Dense(in_layers=[prev_layer], out_channels=n_tasks*n_classes)])
+    self.add_output(output)
+    labels = Label(shape=(None, n_tasks, n_classes))
+    weights = Weights(shape=(None, n_tasks))
+    loss = Reshape(shape=(-1, n_tasks), in_layers=[SoftMaxCrossEntropy(in_layers=[labels, output])])
+    weighted_loss = WeightedError(in_layers=[loss, weights])
+    self.set_loss(weighted_loss)
+
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
+        feed_dict = dict()
+        if y_b is not None and not predict:
+          feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(), self.n_classes).reshape(-1, self.n_tasks, self.n_classes)
+        if X_b is not None:
+          feed_dict[self.features[0]] = X_b
+        if w_b is not None and not predict:
+          feed_dict[self.task_weights[0]] = w_b
+        yield feed_dict
+
+
+
+
+class TensorflowMultiTaskRegressor2(TensorGraph):
+  def __init__(self,
+               n_tasks,
+               n_features,
+               layer_sizes=[1000],
+               **kwargs):
+    super().__init__(mode='regression', **kwargs)
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+
+    # Add the input features.
+
+    mol_features = Feature(shape=(None, n_features))
+    prev_layer = mol_features
+
+    # Add the dense layers
+
+    for size in layer_sizes:
+      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu)
+      prev_layer = layer
+
+    # Compute the loss function for each label.
+
+    output = Reshape(shape=(-1, n_tasks, 1), in_layers=[Dense(in_layers=[prev_layer], out_channels=n_tasks)])
+    self.add_output(output)
+    labels = Label(shape=(None, n_tasks, 1))
+    weights = Weights(shape=(None, n_tasks))
+    loss = Reshape(shape=(-1, n_tasks), in_layers=[L2LossLayer(in_layers=[labels, output])])
+    weighted_loss = WeightedError(in_layers=[loss, weights])
+    self.set_loss(weighted_loss)
+
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
+        feed_dict = dict()
+        if y_b is not None and not predict:
+          feed_dict[self.labels[0]] = y_b.reshape(-1, self.n_tasks, 1)
+        if X_b is not None:
+          feed_dict[self.features[0]] = X_b
+        if w_b is not None and not predict:
+          feed_dict[self.task_weights[0]] = w_b
+        yield feed_dict
+
+
+
+
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
   """Implements an icml model as configured in a model_config.proto."""
 
