@@ -55,7 +55,7 @@ frag2_num_atoms = 821
 complex_num_atoms = 908
 max_num_neighbors = 12
 neighbor_cutoff = 12.0
-batch_size = 160
+batch_size = 300
 
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
