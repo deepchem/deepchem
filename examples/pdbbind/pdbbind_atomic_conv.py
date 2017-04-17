@@ -25,12 +25,12 @@ tasks, datasets, _ = load_pdbbind_grid(split, featurizer="atomic_conv", subset=s
 train_dataset, valid_dataset, test_dataset = datasets
 
 
-class AtomiConvScore(Layer):
+class AtomicConvScore(Layer):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
   def _create_tensor(self):
-    frag1_outputs, = self.in_layers[0].out_tensor
+    frag1_outputs = self.in_layers[0].out_tensor
     frag2_outputs = self.in_layers[1].out_tensor
     complex_outputs = self.in_layers[2].out_tensor
 
@@ -61,13 +61,7 @@ at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
 rp = [x for x in itertools.product(*radial)]
 layer_sizes = [32, 32, 16, 1]
-weight_init_stddevs = [
-  1 / np.sqrt(layer_sizes[0]), 1 / np.sqrt(layer_sizes[1]),
-  1 / np.sqrt(layer_sizes[2])
-]
-bias_init_consts = [0., 0., 0.]
 dropouts = [0., 0., 0.]
-penalty_type = "l2"
 penalty = 0.
 
 frag1_X = Feature(shape=(batch_size, frag1_num_atoms, 3))
@@ -97,10 +91,10 @@ complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
 
 for layer_size in layer_sizes:
   frag1_conv = Dense(out_channels=layer_size, activation_fn=tf.nn.relu, time_series=True, in_layers=[frag1_conv])
-  frag2_conv = frag1_conv.shared(in_layers=[frag1_conv])
-  complex_conv = frag2_conv.shared(in_layers=[complex_conv])
+  frag2_conv = frag1_conv.shared(in_layers=[frag2_conv])
+  complex_conv = frag1_conv.shared(in_layers=[complex_conv])
 
-score = AtomiConvScore(in_layers=[frag1_conv, frag2_conv, complex_conv])
+score = AtomicConvScore(in_layers=[frag1_conv, frag2_conv, complex_conv])
 
 label = Label(shape=(None, 1))
 loss = L2LossLayer(in_layers=[score, label])
