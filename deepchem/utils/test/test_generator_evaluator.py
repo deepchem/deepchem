@@ -114,8 +114,10 @@ class TestGeneratorEvaluator(TestCase):
     assert_true(np.isclose(scores, [1.0], atol=0.05))
 
   def test_compute_model_performance_multitask_regressor(self):
+    random_seed = 42
     n_data_points = 20
     n_features = 2
+    np.random.seed(seed=random_seed)
 
     X = np.random.rand(n_data_points, n_features)
     y1 = np.expand_dims(np.array([0.5 for x in range(n_data_points)]), axis=-1)
@@ -143,7 +145,11 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=losses)
 
-    tg = dc.models.TensorGraph(mode="regression", learning_rate=0.1)
+    tg = dc.models.TensorGraph(
+        mode="regression",
+        batch_size=20,
+        random_seed=random_seed,
+        learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -158,7 +164,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = tg.evaluate_generator(
         databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=0.5)))
+    assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
 
   def test_compute_model_performance_singletask_regressor(self):
     n_data_points = 20

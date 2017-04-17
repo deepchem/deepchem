@@ -23,6 +23,7 @@ class TensorGraph(Model):
                tensorboard_log_frequency=100,
                learning_rate=0.001,
                batch_size=100,
+               random_seed=None,
                use_queue=True,
                mode="regression",
                **kwargs):
@@ -81,6 +82,7 @@ class TensorGraph(Model):
 
     self.learning_rate = learning_rate
     self.batch_size = batch_size
+    self.random_seed = random_seed
     super(TensorGraph, self).__init__(**kwargs)
     self.save_file = "%s/%s" % (self.model_dir, "model")
     self.model_class = None
@@ -307,6 +309,8 @@ class TensorGraph(Model):
     if self.built:
       return
     with self._get_tf("Graph").as_default():
+      if self.random_seed is not None:
+        tf.set_random_seed(self.random_seed)
       self._install_queue()
       order = self.topsort()
       print(order)
