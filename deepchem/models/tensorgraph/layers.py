@@ -55,6 +55,20 @@ class Layer(object):
   def __hash__(self):
     return hash(self.__key())
 
+  def shared(self, in_layers):
+    """
+    Share weights with different in tensors and a new out tensor
+    Parameters
+    ----------
+    in_layers: list tensor
+    List in tensors for the shared layer
+
+    Returns
+    -------
+    Layer
+    """
+    raise ValueError("Each Layer must implement shared for itself")
+
 
 class Conv1DLayer(Layer):
   def __init__(self, width, out_channels, **kwargs):
@@ -82,15 +96,23 @@ class Conv1DLayer(Layer):
 
 class Dense(Layer):
   def __init__(self, out_channels, activation_fn=None,
-               biases_initializer=tf.zeros_initializer(),
-               weights_initializer=tf.contrib.layers.variance_scaling_initializer(),
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.variance_scaling_initializer,
+               time_series=False,
+               scope_name=None,
+               reuse=False,
                **kwargs):
+    super(Dense, self).__init__(**kwargs)
     self.out_channels = out_channels
     self.out_tensor = None
     self.activation_fn = activation_fn
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
-    super(Dense, self).__init__(**kwargs)
+    self.time_series = time_series
+    self.reuse = reuse
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
 
   def _create_tensor(self):
     if len(self.in_layers) != 1:
@@ -98,15 +120,32 @@ class Dense(Layer):
     parent = self.in_layers[0]
     if len(parent.out_tensor.get_shape()) != 2:
       raise ValueError("Parent tensor must be (batch, width)")
-    self.out_tensor = tf.contrib.layers.fully_connected(
-      parent.out_tensor,
-      num_outputs=self.out_channels,
-      activation_fn=self.activation_fn,
-      biases_initializer=self.biases_initializer,
-      weights_initializer=self.weights_initializer,
-      scope=self.name,
-      trainable=True)
-    return self.out_tensor
+    if not self.time_series:
+      self.out_tensor = tf.contrib.layers.fully_connected(
+        parent.out_tensor,
+        num_outputs=self.out_channels,
+        activation_fn=self.activation_fn,
+        biases_initializer=self.biases_initializer(),
+        weights_initializer=self.weights_initializer(),
+        scope=self.scope_name,
+        reuse=self.reuse,
+        trainable=True)
+      return self.out_tensor
+    dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+                                                           num_outputs=self.out_channels,
+                                                           activation_fn=self.activation_fn,
+                                                           biases_initializer=self.biases_initializer(),
+                                                           weights_initializer=self.weights_initializer(),
+                                                           scope=self.scope_name,
+                                                           reuse=self.reuse,
+                                                           trainable=True)
+    self.out_tensor = tf.map_fn(dense_fn, parent.out_tensor)
+
+  def shared(self, in_layers):
+    self.reuse = True
+    return Dense(self.out_channels, self.activation_fn, self.biases_initializer,
+                 self.weights_initializer, time_series=self.time_series,
+                 reuse=self.reuse, scope_name=self.scope_name, in_layers=in_layers)
 
 
 class Flatten(Layer):
@@ -134,6 +173,17 @@ class Reshape(Layer):
   def _create_tensor(self):
     parent_tensor = self.in_layers[0].out_tensor
     self.out_tensor = tf.reshape(parent_tensor, self.shape)
+
+class Transpose(Layer):
+  def __init__(self, out_shape, **kwargs):
+    super(Transpose, self).__init__(**kwargs)
+    self.out_shape = out_shape
+
+  def _create_tensor(self):
+    if len(self.in_layers) != 1:
+      raise ValueError("Only One Parent to Transpose over")
+    self.out_tensor = tf.transpose(self.in_layers[0].out_tensor, self.out_shape)
+    return self.out_tensor
 
 
 class CombineMeanStd(Layer):
@@ -188,7 +238,6 @@ class GRU(Layer):
 
 class TimeSeriesDense(Layer):
   def __init__(self, out_channels, **kwargs):
-    self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -673,6 +722,7 @@ class AtomicConvolution(Layer):
     # Transpose to (B, N, l) for conv layer stacking
     # done inside conv_layer loops to reduce transpose ops
     # Final layer should be shape (N, B, l) to pass into tf.map_fn
+    # TODO (LESWING) batch norm
     self.out_tensor = tf.stack(sym)
     return self.out_tensor
 

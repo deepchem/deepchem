@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer, AtomicConvolution
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer, AtomicConvolution, Transpose, Dense
 from deepchem.models import TensorGraph
 
 import numpy as np
@@ -413,9 +413,26 @@ class AtomicConv(Layer):
 
     print("Per Atom Dense Built")
 
-    frag1_outputs = tf.map_fn(lambda x: atomnet(x), frag1_layer)
-    frag2_outputs = tf.map_fn(lambda x: atomnet(x), frag2_layer)
-    complex_outputs = tf.map_fn(lambda x: atomnet(x), complex_layer)
+    frag1_outputs = tf.map_fn(lambda x: atomnet(x), frag1_layer, back_prop=True)
+    frag2_outputs = tf.map_fn(lambda x: atomnet(x), frag2_layer, back_prop=True)
+    complex_outputs = tf.map_fn(lambda x: atomnet(x), complex_layer, back_prop=True)
+    frag1_energy = tf.reduce_sum(frag1_outputs, 0)
+    frag2_energy = tf.reduce_sum(frag2_outputs, 0)
+    complex_energy = tf.reduce_sum(complex_outputs, 0)
+    binding_energy = complex_energy - frag1_energy - frag2_energy
+    self.out_tensor = tf.expand_dims(binding_energy, axis=1)
+    return self.out_tensor
+
+
+class AtomiConvScore(Layer):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+  def _create_tensor(self):
+    frag1_outputs, = self.in_layers[0].out_tensor
+    frag2_outputs = self.in_layers[1].out_tensor
+    complex_outputs = self.in_layers[2].out_tensor
+
     frag1_energy = tf.reduce_sum(frag1_outputs, 0)
     frag2_energy = tf.reduce_sum(frag2_outputs, 0)
     complex_energy = tf.reduce_sum(complex_outputs, 0)
@@ -442,7 +459,7 @@ batch_size = 160
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
 rp = [x for x in itertools.product(*radial)]
-layer_sizes = [32, 32, 16]
+layer_sizes = [32, 32, 16, 1]
 weight_init_stddevs = [
   1 / np.sqrt(layer_sizes[0]), 1 / np.sqrt(layer_sizes[1]),
   1 / np.sqrt(layer_sizes[2])
@@ -473,11 +490,19 @@ frag2_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
 complex_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
                                  in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
 
-conv_layer = AtomicConv(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-                        in_layers=[frag1_conv, frag2_conv, complex_conv])
+frag1_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag1_conv])
+frag2_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag2_conv])
+complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
+
+for layer_size in layer_sizes:
+  frag1_conv = Dense(out_channels=layer_size, activation_fn=tf.nn.relu, time_series=True, in_layers=[frag1_conv])
+  frag2_conv = frag1_conv.shared(in_layers=[frag1_conv])
+  complex_conv = frag2_conv.shared(in_layers=[complex_conv])
+
+score = AtomiConvScore(in_layers=[frag1_conv, frag2_conv, complex_conv])
 
 label = Label(shape=(None, 1))
-loss = L2LossLayer(in_layers=[conv_layer, label])
+loss = L2LossLayer(in_layers=[score, label])
 
 
 def feed_dict_generator(dataset, batch_size, epochs=1):
@@ -563,7 +588,7 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
 tg = TensorGraph(batch_size=batch_size,
                  mode=str("regression"),
                  model_dir=str("/tmp/atom_conv"))
-tg.add_output(conv_layer)
+tg.add_output(score)
 tg.set_loss(loss)
 
 print("Fitting")
