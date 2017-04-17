@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer, AtomicConvolution
 from deepchem.models import TensorGraph
 
 import numpy as np
@@ -481,6 +481,7 @@ class AtomicConv(Layer):
           weights=output_weights[0],
           biases=output_biases[0]))
       return output_layer
+
     print("Per Atom Dense Built")
 
     frag1_outputs = tf.map_fn(lambda x: atomnet(x), frag1_layer)
@@ -539,6 +540,15 @@ conv_layer = AtomicConv(layer_sizes, weight_init_stddevs, bias_init_consts, drop
                         in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z, frag2_X,
                                    frag2_nbrs, frag2_nbrs_z, complex_X,
                                    complex_nbrs, complex_nbrs_z])
+
+frag1_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
+                               in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
+
+frag2_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
+                               in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
+
+complex_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
+                                 in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
 
 label = Label(shape=(None, 1))
 loss = L2LossLayer(in_layers=[conv_layer, label])
