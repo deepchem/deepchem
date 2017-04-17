@@ -6,13 +6,10 @@ source activate $envname
 python setup.py install
 
 rm examples/results.csv || true
-cd examples
-python benchmark.py -d tox21
-export retval1=$?
+cd examples/pdbbind
+bash get_pdbbind.sh
+python pdbbind_atomic_conv.py
 
-cd ..
-nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
-export retval2=$?
 
 source deactivate
 conda remove --name $envname --all
