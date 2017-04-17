@@ -353,94 +353,23 @@ def AtomicConvolutionLayer(X, Nbrs, Nbrs_Z, atom_types, radial_params, boxsize,
 
 class AtomicConv(Layer):
   def __init__(self, layer_sizes, weight_init_stddevs, bias_init_const,
-               dropouts, boxsize, conv_layers, radial_params, atom_types
-               , **kwargs):
+               dropouts, **kwargs):
     self.layer_sizes = layer_sizes
     self.weight_init_stddevs = weight_init_stddevs
     self.bias_init_consts = bias_init_const
     self.dropouts = dropouts
-    self.boxsize = boxsize
-    self.conv_layers = conv_layers
-    self.radial_params = radial_params
-    self.atom_types = atom_types
     super(AtomicConv, self).__init__(**kwargs)
 
   def _create_tensor(self):
-    frag1_X_placeholder = self.in_layers[0].out_tensor
-    frag1_Nbrs_placeholder = tf.to_int32(self.in_layers[1].out_tensor)
-    frag1_Nbrs_Z_placeholder = self.in_layers[2].out_tensor
-    frag2_X_placeholder = self.in_layers[3].out_tensor
-    frag2_Nbrs_placeholder = tf.to_int32(self.in_layers[4].out_tensor)
-    frag2_Nbrs_Z_placeholder = self.in_layers[5].out_tensor
-    complex_X_placeholder = self.in_layers[6].out_tensor
-    complex_Nbrs_placeholder = tf.to_int32(self.in_layers[7].out_tensor)
-    complex_Nbrs_Z_placeholder = self.in_layers[8].out_tensor
-
-    N = complex_X_placeholder.get_shape()[1].value
-    N_1 = frag1_X_placeholder.get_shape()[1].value
-    N_2 = frag2_X_placeholder.get_shape()[1].value
-    M = frag1_Nbrs_placeholder.get_shape()[-1].value
-    B = frag1_X_placeholder.get_shape()[0].value
-
-    layer_sizes = self.layer_sizes
-    weight_init_stddevs = self.weight_init_stddevs
-    bias_init_consts = self.bias_init_consts
-    dropouts = self.dropouts
-    boxsize = self.boxsize
-    conv_layers = self.conv_layers
-    lengths_set = {
-      len(layer_sizes),
-      len(weight_init_stddevs),
-      len(bias_init_consts),
-      len(dropouts),
-    }
-    assert len(lengths_set) == 1, 'All layer params must have same length.'
-    num_layers = lengths_set.pop()
-    assert num_layers > 0, 'Must have some layers defined.'
-    radial_params = self.radial_params
-    atom_types = self.atom_types
-
-    frag1_layer = AtomicConvolutionLayer(
-      frag1_X_placeholder, frag1_Nbrs_placeholder,
-      frag1_Nbrs_Z_placeholder, atom_types, radial_params, boxsize, B,
-      N_1, M, 3)
-    for x in range(conv_layers - 1):
-      frag1_layer = tf.transpose(frag1_layer, [1, 2, 0])
-      l = int(frag1_layer.get_shape()[-1])
-      frag1_layer = AtomicConvolutionLayer(
-        frag1_layer, frag1_Nbrs_placeholder,
-        frag1_Nbrs_Z_placeholder, atom_types, radial_params, boxsize,
-        B, N_1, M, l)
-
-    frag2_layer = AtomicConvolutionLayer(
-      frag2_X_placeholder, frag2_Nbrs_placeholder,
-      frag2_Nbrs_Z_placeholder, atom_types, radial_params, boxsize, B,
-      N_2, M, 3)
-    for x in range(conv_layers - 1):
-      frag2_layer = tf.transpose(frag2_layer, [1, 2, 0])
-      l = int(frag2_layer.get_shape()[-1])
-      frag2_layer = AtomicConvolutionLayer(
-        frag2_layer, frag2_Nbrs_placeholder,
-        frag2_Nbrs_Z_placeholder, atom_types, radial_params, boxsize,
-        B, N_2, M, l)
-
-    complex_layer = AtomicConvolutionLayer(
-      complex_X_placeholder, complex_Nbrs_placeholder,
-      complex_Nbrs_Z_placeholder, atom_types, radial_params, boxsize,
-      B, N, M, 3)
-    for x in range(conv_layers - 1):
-      complex_layer = tf.transpose(complex_layer, [1, 2, 0])
-      l = int(complex_layer.get_shape()[-1])
-      complex_layer = AtomicConvolutionLayer(
-        complex_layer, complex_Nbrs_placeholder,
-        complex_Nbrs_Z_placeholder, atom_types, radial_params, boxsize,
-        B, N, M, l)
+    num_layers = len(self.layer_sizes)
+    frag1_layer = self.in_layers[0].out_tensor
+    frag2_layer = self.in_layers[1].out_tensor
+    complex_layer = self.in_layers[2].out_tensor
 
     weights = []
     biases = []
     output_weights = []
     output_biases = []
-
     print("Atomic Conv Layer Built")
     frag1_layer = tf.transpose(frag1_layer, [2, 1, 0])
     frag2_layer = tf.transpose(frag2_layer, [2, 1, 0])
@@ -508,7 +437,7 @@ frag2_num_atoms = 821
 complex_num_atoms = 908
 max_num_neighbors = 12
 neighbor_cutoff = 12.0
-batch_size = 80
+batch_size = 160
 
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
@@ -535,12 +464,6 @@ complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
 complex_nbrs = Feature(shape=(batch_size, complex_num_atoms, max_num_neighbors))
 complex_nbrs_z = Feature(shape=(batch_size, complex_num_atoms, max_num_neighbors))
 
-conv_layer = AtomicConv(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
-                        boxsize=None, conv_layers=1, radial_params=rp, atom_types=at,
-                        in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z, frag2_X,
-                                   frag2_nbrs, frag2_nbrs_z, complex_X,
-                                   complex_nbrs, complex_nbrs_z])
-
 frag1_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
                                in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
 
@@ -549,6 +472,9 @@ frag2_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
 
 complex_conv = AtomicConvolution(atom_types=at, radial_params=rp, boxsize=None,
                                  in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
+
+conv_layer = AtomicConv(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
+                        in_layers=[frag1_conv, frag2_conv, complex_conv])
 
 label = Label(shape=(None, 1))
 loss = L2LossLayer(in_layers=[conv_layer, label])
@@ -641,7 +567,7 @@ tg.add_output(conv_layer)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=1))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
 
 metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),

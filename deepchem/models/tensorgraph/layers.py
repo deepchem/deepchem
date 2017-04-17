@@ -2,6 +2,7 @@ import random
 import string
 
 import tensorflow as tf
+import numpy as np
 
 from deepchem.nn import model_ops, initializations
 
@@ -636,7 +637,7 @@ class AtomicConvolution(Layer):
     """
 
     X = self.in_layers[0].out_tensor
-    Nbrs = self.in_layers[1].out_tensor
+    Nbrs = tf.to_int32(self.in_layers[1].out_tensor)
     Nbrs_Z = self.in_layers[2].out_tensor
 
     # N: Maximum number of atoms
@@ -670,8 +671,8 @@ class AtomicConvolution(Layer):
     # Transpose to (B, N, l) for conv layer stacking
     # done inside conv_layer loops to reduce transpose ops
     # Final layer should be shape (N, B, l) to pass into tf.map_fn
-    layer = tf.stack(sym)
-    return layer
+    self.out_tensor = tf.stack(sym)
+    return self.out_tensor
 
   def radialSymmetryFunction(self, R, rc, rs, e):
     """Calculates radial symmetry function.
@@ -704,7 +705,7 @@ class AtomicConvolution(Layer):
       FC = self.radialCutoff(R, rc)
     return tf.multiply(K, FC)
 
-  def radialCutoff(R, rc):
+  def radialCutoff(self, R, rc):
     """Calculates radial cutoff matrix.
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
@@ -729,7 +730,7 @@ class AtomicConvolution(Layer):
     FC = tf.where(cond, T, E)
     return FC
 
-  def gaussianDistanceMatrix(R, rs, e):
+  def gaussianDistanceMatrix(self, R, rs, e):
     """Calculates gaussian distance matrix.
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
