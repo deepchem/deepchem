@@ -40,7 +40,7 @@ class Layer(object):
     self.out_tensor = tensor
 
   def _create_tensor(self):
-    raise ValueError("Subclasses must implement for themselves")
+    raise NotImplementedError("Subclasses must implement for themselves")
 
   def __key(self):
     return self.name
@@ -739,15 +739,15 @@ class AtomicConvolution(Layer):
     M = Nbrs.get_shape()[-1].value
     B = X.get_shape()[0].value
 
-    D = self.distanceTensor(X, Nbrs, self.boxsize, B, N, M, d)
-    R = self.distanceMatrix(D)
+    D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
+    R = self.distance_matrix(D)
     sym = []
     rsf_zeros = tf.zeros((B, N, M))
     for param in self.radial_params:
 
       # We apply the radial pooling filter before atom type conv
       # to reduce computation
-      rsf = self.radialSymmetryFunction(R, *param)
+      rsf = self.radial_symmetry_function(R, *param)
 
       if not self.atom_types:
         cond = tf.not_equal(Nbrs_Z, 0.0)
@@ -765,7 +765,7 @@ class AtomicConvolution(Layer):
     self.out_tensor = tf.stack(sym)
     return self.out_tensor
 
-  def radialSymmetryFunction(self, R, rc, rs, e):
+  def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.
   
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_filters
@@ -792,11 +792,11 @@ class AtomicConvolution(Layer):
       rc = tf.Variable(rc)
       rs = tf.Variable(rs)
       e = tf.Variable(e)
-      K = self.gaussianDistanceMatrix(R, rs, e)
-      FC = self.radialCutoff(R, rc)
+      K = self.gaussian_distance_matrix(R, rs, e)
+      FC = self.radial_cutoff(R, rc)
     return tf.multiply(K, FC)
 
-  def radialCutoff(self, R, rc):
+  def radial_cutoff(self, R, rc):
     """Calculates radial cutoff matrix.
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
@@ -821,7 +821,7 @@ class AtomicConvolution(Layer):
     FC = tf.where(cond, T, E)
     return FC
 
-  def gaussianDistanceMatrix(self, R, rs, e):
+  def gaussian_distance_matrix(self, R, rs, e):
     """Calculates gaussian distance matrix.
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors
@@ -844,7 +844,7 @@ class AtomicConvolution(Layer):
 
     return tf.exp(-e * (R - rs)**2)
 
-  def distanceTensor(self, X, Nbrs, boxsize, B, N, M, d):
+  def distance_tensor(self, X, Nbrs, boxsize, B, N, M, d):
     """Calculates distance tensor for batch of molecules.
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
@@ -916,7 +916,7 @@ class AtomicConvolution(Layer):
     neighbors = tf.stack(all_nbr_coords)
     return neighbors
 
-  def distanceMatrix(self, D):
+  def distance_matrix(self, D):
     """Calcuates the distance matrix from the distance tensor
 
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
