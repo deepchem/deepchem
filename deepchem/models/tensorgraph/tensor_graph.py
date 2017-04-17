@@ -17,6 +17,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 
 class TensorGraph(Model):
+
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
@@ -65,10 +66,10 @@ class TensorGraph(Model):
     # These have to be reconstructed on restoring from pickle
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
-      "FileWriter": None,
-      "Graph": tf.Graph(),
-      "train_op": None,
-      "summary_op": None,
+        "FileWriter": None,
+        "Graph": tf.Graph(),
+        "train_op": None,
+        "summary_op": None,
     }
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
@@ -105,8 +106,8 @@ class TensorGraph(Model):
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000):
     return self.fit_generator(
-      self.default_generator(dataset, epochs=nb_epoch),
-      max_checkpoints_to_keep, checkpoint_interval)
+        self.default_generator(dataset, epochs=nb_epoch),
+        max_checkpoints_to_keep, checkpoint_interval)
 
   def fit_generator(self,
                     feed_dict_generator,
@@ -124,31 +125,24 @@ class TensorGraph(Model):
       self.build()
     with self._get_tf("Graph").as_default():
       time1 = time.time()
-      print("Creating Training Op")
       train_op = self._get_tf('train_op')
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
       with tf.Session() as sess:
-      # with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
-        print("Initializing Weights")
         self._initialize_weights(sess, saver)
-        print("Starting To Fit")
         avg_loss, n_batches = 0.0, 0.0
         coord = tf.train.Coordinator()
         n_samples = 0
         if self.use_queue:
           enqueue_thread = threading.Thread(
-            target=_enqueue_batch,
-            args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
-                  coord))
+              target=_enqueue_batch,
+              args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
+                    coord))
           enqueue_thread.start()
         output_tensors = [x.out_tensor for x in self.outputs]
         fetches = output_tensors + [train_op, self.loss.out_tensor]
         for feed_dict in create_feed_dict():
           try:
-            time_start = time.time()
             fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            time_end = time.time()
-            # print("Time running: %s" % (time_end - time_start))
             loss = fetched_values[-1]
             avg_loss += loss
             n_batches += 1
@@ -156,7 +150,7 @@ class TensorGraph(Model):
             n_samples += 1
             if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
               summary = sess.run(
-                self._get_tf("summary_op"), feed_dict=feed_dict)
+                  self._get_tf("summary_op"), feed_dict=feed_dict)
               self._log_tensorboard(summary)
           except OutOfRangeError:
             break
@@ -208,9 +202,9 @@ class TensorGraph(Model):
       raise ValueError("More than one Weights, must use generator")
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-        batch_size=self.batch_size,
-        deterministic=True,
-        pad_batches=pad_batches):
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
         feed_dict = dict()
         if len(self.labels) == 1 and y_b is not None and not predict:
           feed_dict[self.labels[0]] = y_b
@@ -252,8 +246,8 @@ class TensorGraph(Model):
         results = []
         for feed_dict in generator:
           feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
+              self.layers[k.name].out_tensor: v
+              for k, v in six.iteritems(feed_dict)
           }
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
@@ -317,7 +311,6 @@ class TensorGraph(Model):
       order = self.topsort()
       print(order)
       for node in order:
-        print("Building %s" % node)
         with tf.name_scope(node):
           node_layer = self.layers[node]
           node_layer._create_tensor()
@@ -405,18 +398,18 @@ class TensorGraph(Model):
     if labels is None:
       raise ValueError
     evaluator = GeneratorEvaluator(
-      self,
-      feed_dict_generator,
-      transformers,
-      labels=labels,
-      outputs=outputs,
-      weights=weights)
+        self,
+        feed_dict_generator,
+        transformers,
+        labels=labels,
+        outputs=outputs,
+        weights=weights)
     if not per_task_metrics:
       scores = evaluator.compute_model_performance(metrics)
       return scores
     else:
       scores, per_task_scores = evaluator.compute_model_performance(
-        metrics, per_task_metrics=per_task_metrics)
+          metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
 
   def _get_tf(self, obj):
@@ -440,11 +433,11 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-        self.learning_rate, beta1=.9,
-        beta2=.999).minimize(self.loss.out_tensor)
+          self.learning_rate, beta1=.9,
+          beta2=.999).minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
-        key=tf.GraphKeys.SUMMARIES)
+          key=tf.GraphKeys.SUMMARIES)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):
@@ -503,11 +496,7 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     for feed_dict in generator:
       enq = {}
       for layer in tg.features + tg.labels + tg.task_weights:
-        try:
-          enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
-        except KeyError as e:
-          print(layer)
-          print(tg.layers)
+        enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       num_samples += 1
       if tg.tensorboard and num_samples % tg.tensorboard_log_frequency == 0:
