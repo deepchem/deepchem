@@ -81,10 +81,15 @@ class Conv1DLayer(Layer):
 
 
 class Dense(Layer):
-  def __init__(self, out_channels, activation_fn=None, **kwargs):
+  def __init__(self, out_channels, activation_fn=None,
+               biases_initializer=tf.zeros_initializer(),
+               weights_initializer=tf.contrib.layers.variance_scaling_initializer(),
+               **kwargs):
     self.out_channels = out_channels
     self.out_tensor = None
     self.activation_fn = activation_fn
+    self.biases_initializer = biases_initializer
+    self.weights_initializer = weights_initializer
     super(Dense, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -93,15 +98,12 @@ class Dense(Layer):
     parent = self.in_layers[0]
     if len(parent.out_tensor.get_shape()) != 2:
       raise ValueError("Parent tensor must be (batch, width)")
-    in_channels = parent.out_tensor.get_shape()[-1].value
-    # w = initializations.glorot_uniform([in_channels, self.out_channels])
-    # w = model_ops.zeros(shape=[in_channels, self.out_channels])
-    # b = tf.Variable([0.0, 0.0])
-    # self.out_tensor = tf.matmul(parent.out_tensor, w) + b
     self.out_tensor = tf.contrib.layers.fully_connected(
       parent.out_tensor,
       num_outputs=self.out_channels,
       activation_fn=self.activation_fn,
+      biases_initializer=self.biases_initializer,
+      weights_initializer=self.weights_initializer,
       scope=self.name,
       trainable=True)
     return self.out_tensor
