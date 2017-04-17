@@ -60,7 +60,7 @@ class Layer(object):
         else:
           raise ValueError("Layer must be invoked on layers or tensors")
       self.in_layers = layers
-    self._create_tensor()
+    return self._create_tensor()
   
 
 class TensorWrapper(Layer):
@@ -305,20 +305,27 @@ class Concat(Layer):
 class InteratomicL2Distances(Layer):
   """Compute (squared) L2 Distances between atoms given neighbors."""
 
+  def __init__(self, N_atoms, M_nbrs, ndim, **kwargs):
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+    super(InteratomicL2Distances, self).__init__(**kwargs)
+
   def _create_tensor(self):
     if len(self.in_layers) != 2:
       raise ValueError("InteratomicDistances requires coords,nbr_list")
     coords, nbr_list = (self.in_layers[0].out_tensor,
                         self.in_layers[1].out_tensor)
-    N_atoms, ndim = coords.get_shape()
-    _, M = nbr_list.get_shape()
-    # Shape (N_atoms, M, ndim)
+    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim 
+    # Shape (N_atoms, M_nbrs, ndim)
     nbr_coords = tf.gather(coords, nbr_list)
-    # Shape (N_atoms, M, ndim)
-    tiled_atom_coords = tf.tile(
-        tf.reshape(atom_coords, (N_atoms, 1, ndim)), (1, M, 1))
-    # Shape (N_atoms, M)
-    dists = tf.reduce_sum((tiled_atom_coords - nbr_coords)**2, axis=2)
+    # Shape (N_atoms, M_nbrs, ndim)
+    tiled_coords = tf.tile(
+        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
+    # Shape (N_atoms, M_nbrs)
+    dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
+    self.out_tensor = dists
+    return self.out_tensor
 
 
 
@@ -681,15 +688,29 @@ class WeightedError(Layer):
 
 class Cutoff(Layer):
   """Truncates interactions that are too far away."""
-  def __init__(dist, **kwargs):
-    self.d = dist
-    super(Cutoff, self).__init__(**kwargs)
-  
   
   def _create_tensor(self):
-    d = self.d
-    x = self.in_layers[0].out_tensor
+    if len(self.in_layers) != 2:
+      raise ValueError("Cutoff must be given distances and energies.")
+    d, x = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
     self.out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
+    return self.out_tensor
+
+class VinaNonlinearity(Layer):
+  """Computes non-linearity used in Vina."""
+
+  def __init__(self, stddev=.3, Nrot=1, **kwargs):
+    self.stddev = stddev
+    # Number of rotatable bonds
+    # TODO(rbharath): Vina actually sets this per-molecule. See if makes
+    # a difference.
+    self.Nrot = Nrot
+    super(VinaNonlinearity, self).__init__(**kwargs)
+
+  def _create_tensor(self):
+    c = self.in_layers[0].out_tensor
+    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
+    self.out_tensor = c / (1 + w * self.Nrot)
     return self.out_tensor
 
 class VinaRepulsion(Layer):
@@ -700,7 +721,7 @@ class VinaRepulsion(Layer):
     self.out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
     return self.out_tensor
 
-def VinaHydrophobic(Layer):
+class VinaHydrophobic(Layer):
   """Computes Autodock Vina's hydrophobic interaction term."""
 
   def _create_tensor(self):

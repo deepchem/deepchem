@@ -2,7 +2,9 @@ import unittest
 
 import numpy as np
 import os
+import tensorflow as tf
 from nose.tools import assert_true
+from tensorflow.python.framework import test_util
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -10,14 +12,23 @@ from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import ReduceSum 
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ToFloat
+from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import NeighborList
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
+from deepchem.models.tensorgraph.layers import Cutoff
+from deepchem.models.tensorgraph.layers import VinaRepulsion
+from deepchem.models.tensorgraph.layers import VinaNonlinearity
+from deepchem.models.tensorgraph.layers import VinaHydrophobic
+from deepchem.models.tensorgraph.layers import VinaHydrogenBond
+from deepchem.models.tensorgraph.layers import VinaGaussianFirst
+from deepchem.models.tensorgraph.layers import VinaGaussianSecond
+from deepchem.models.tensorgraph.layers import L2LossLayer
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
-class TestDocking(unittest.TestCase):
+class TestDocking(test_util.TensorFlowTestCase):
   """
   Test that tensorgraph docking-style models work. 
   """
@@ -76,31 +87,86 @@ class TestDocking(unittest.TestCase):
 
   def test_vina(self):
     """Test that vina graph can be constructed in TensorGraph."""
+    N_protein = 4
+    N_ligand = 1
+    N_atoms = 5
+    M_nbrs = 2
+    ndim = 3
+    k = 5
+    start = 0
+    stop = 4
+    nbr_cutoff = 1
+    # The number of cells which we should theoretically have
+    n_cells = ((stop - start) / nbr_cutoff)**ndim
 
-    prot_coords = Features(shape=(N_protein, 3))
-    prot_Z = Features(shape=(N_protein,), dtype=tf.int32)
-    ligand_coords = Features(shape=(N_ligand, 3))
-    ligand_Z = Features(shape=(N_ligand,), dtype=tf.int32)
+    X_prot = NumpyDataset(np.random.rand(N_protein, ndim))
+    X_ligand = NumpyDataset(np.random.rand(N_ligand, ndim))
+    y = NumpyDataset(np.random.rand(1,))
+
+    # TODO(rbharath): Mysteriously, the actual atom types aren't
+    # used in the current implementation. This is obviously wrong, but need
+    # to dig out why this is happening.
+    prot_coords = Feature(shape=(N_protein, ndim))
+    ligand_coords = Feature(shape=(N_ligand, ndim))
     labels = Label(shape=(1,))
 
     coords = Concat(in_layers=[prot_coords, ligand_coords], axis=0)
-    Z = Concat(in_layers=[prot_Z, ligand_Z], axis=0)
+
+    #prot_Z = Feature(shape=(N_protein,), dtype=tf.int32)
+    #ligand_Z = Feature(shape=(N_ligand,), dtype=tf.int32)
+    #Z = Concat(in_layers=[prot_Z, ligand_Z], axis=0)
 
     # Now an (N, M) shape
-    nbr_list = NeighborList(N_protein+N_ligand, M, ndim, n_cells, k,
+    nbr_list = NeighborList(N_protein+N_ligand, M_nbrs, ndim, n_cells, k,
                             nbr_cutoff, in_layers=[coords])
+
+    # Shape (N, M)
+    dists = InteratomicL2Distances(N_protein+N_ligand, M_nbrs, ndim,
+                                   in_layers=[coords, nbr_list])
+
+    repulsion = VinaRepulsion(in_layers=[dists])
+    hydrophobic = VinaHydrophobic(in_layers=[dists])
+    hbond = VinaHydrogenBond(in_layers=[dists])
+    gauss_1 = VinaGaussianFirst(in_layers=[dists]) 
+    gauss_2 = VinaGaussianSecond(in_layers=[dists]) 
+
+    # Shape (N, M)
+    interactions = WeightedLinearCombo(
+        in_layers=[repulsion, hydrophobic, hbond, gauss_1, gauss_2])
+    
+    # Shape (N, M)
+    thresholded = Cutoff(in_layers=[dists, interactions])
+
+    # Shape (N, M)
+    free_energies = VinaNonlinearity(in_layers=[thresholded])
+    free_energy = ReduceSum(in_layers=[free_energies])
+    
+    loss = L2LossLayer(in_layers=[free_energy, labels])
+    
+    databag = Databag({prot_coords: X_prot, ligand_coords: X_ligand,
+                       labels: y})
+
+    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg.set_loss(loss)
+    tg.fit_generator(databag.iterbatches(epochs=1))
+    
+    
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
     N_atoms = 5
-    M = 2
+    M_nbrs = 2
     ndim = 3
 
-    coords = np.random.rand(N_atoms, ndim)
-    nbr_list = np.random.randint(0, N_atoms, size=(N_atoms, M))
+    with self.test_session() as sess:
+      coords = np.random.rand(N_atoms, ndim)
+      nbr_list = np.random.randint(0, N_atoms, size=(N_atoms, M_nbrs))
 
-    coords_tensor = tf.convert_to_tensor(coords)
-    nbr_list_tensor = tf.convert_to_tensor(nbr_list)
+      coords_tensor = tf.convert_to_tensor(coords)
+      nbr_list_tensor = tf.convert_to_tensor(nbr_list)
 
-    dist_tensor = 
+      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs, ndim)(
+          coords_tensor, nbr_list_tensor)
 
+      dists = dist_tensor.eval()
+      assert dists.shape == (N_atoms, M_nbrs)
