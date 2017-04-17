@@ -10,7 +10,9 @@ import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import ReduceSum 
+from deepchem.models.tensorgraph.layers import Flatten
 from deepchem.models.tensorgraph.layers import Feature, Label
+from deepchem.models.tensorgraph.layers import Dense
 from deepchem.models.tensorgraph.layers import ToFloat
 from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import NeighborList
@@ -85,6 +87,123 @@ class TestDocking(test_util.TensorFlowTestCase):
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
 
+  def test_vina_repulsion(self):
+    """Test that VinaRepulsion works."""
+    N_atoms = 10
+    M_nbrs = 5
+    X = np.random.rand(N_atoms, M_nbrs)
+    X_tensor = tf.convert_to_tensor(X)
+
+    repulsions = VinaRepulsion()(X_tensor)
+
+    with self.test_session() as sess:
+      repulsions_np = repulsions.eval()
+      assert repulsions_np.shape == (N_atoms, M_nbrs)
+
+  def test_vina_hydrophobic(self):
+    """Test that VinaHydrophobic works."""
+    N_atoms = 10
+    M_nbrs = 5
+    X = np.random.rand(N_atoms, M_nbrs)
+    X_tensor = tf.convert_to_tensor(X)
+
+    hydrophobic = VinaHydrophobic()(X_tensor)
+
+    with self.test_session() as sess:
+      hydrophobic_np = hydrophobic.eval()
+      assert hydrophobic_np.shape == (N_atoms, M_nbrs)
+
+  def test_vina_hbond(self):
+    """Test that VinaHydrophobic works."""
+    N_atoms = 10
+    M_nbrs = 5
+    X = np.random.rand(N_atoms, M_nbrs)
+    X_tensor = tf.convert_to_tensor(X)
+
+    hbond = VinaHydrogenBond()(X_tensor)
+
+    with self.test_session() as sess:
+      hbond_np = hbond.eval()
+      assert hbond_np.shape == (N_atoms, M_nbrs)
+
+  def test_vina_gaussian_first(self):
+    """Test that VinaGaussianFirst works."""
+    N_atoms = 10
+    M_nbrs = 5
+    X = np.random.rand(N_atoms, M_nbrs)
+    X_tensor = tf.convert_to_tensor(X)
+
+    gauss_1 = VinaGaussianFirst()(X_tensor)
+
+    with self.test_session() as sess:
+      gauss_1_np = gauss_1.eval()
+      assert gauss_1_np.shape == (N_atoms, M_nbrs)
+
+  def test_vina_gaussian_second(self):
+    """Test that VinaGaussianSecond works."""
+    N_atoms = 10
+    M_nbrs = 5
+    X = np.random.rand(N_atoms, M_nbrs)
+    X_tensor = tf.convert_to_tensor(X)
+
+    gauss_2 = VinaGaussianSecond()(X_tensor)
+
+    with self.test_session() as sess:
+      gauss_2_np = gauss_2.eval()
+      assert gauss_2_np.shape == (N_atoms, M_nbrs)
+
+  def test_neighbor_list(self):
+    """Test that NeighborList works."""
+    N_atoms = 5 
+    start = 0
+    stop = 12
+    nbr_cutoff = 3
+    ndim = 3
+    M_nbrs = 2
+    k = 5
+    # The number of cells which we should theoretically have
+    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
+
+    with self.test_session() as sess:
+      coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
+      coords = tf.stack(coords)
+      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff)(
+          coords)
+      nbr_list = nbr_list.eval()
+      assert nbr_list.shape == (N_atoms, M_nbrs)
+
+  def test_neighbor_list_vina(self):
+    """Test under conditions closer to Vina usage."""
+    N_atoms = 5
+    M_nbrs = 2
+    ndim = 3
+    k = 5
+    start = 0
+    stop = 4
+    nbr_cutoff = 1
+    # The number of cells which we should theoretically have
+    n_cells = ((stop - start) / nbr_cutoff)**ndim
+
+    X = NumpyDataset(start + np.random.rand(N_atoms, ndim) * (stop - start))
+
+    coords = Feature(shape=(N_atoms, ndim))
+
+    # Now an (N, M) shape
+    nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k,
+                            nbr_cutoff, start, stop, in_layers=[coords])
+
+    nbr_list = ToFloat(in_layers=[nbr_list])
+    flattened = Flatten(in_layers=[nbr_list])
+    dense = Dense(out_channels=1, in_layers=[flattened])
+    output = ReduceSum(in_layers=[dense])
+    
+
+    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg.set_loss(output)
+
+    databag = Databag({coords: X})
+    tg.fit_generator(databag.iterbatches(epochs=1))
+
   def test_vina(self):
     """Test that vina graph can be constructed in TensorGraph."""
     N_protein = 4
@@ -99,8 +218,8 @@ class TestDocking(test_util.TensorFlowTestCase):
     # The number of cells which we should theoretically have
     n_cells = ((stop - start) / nbr_cutoff)**ndim
 
-    X_prot = NumpyDataset(np.random.rand(N_protein, ndim))
-    X_ligand = NumpyDataset(np.random.rand(N_ligand, ndim))
+    X_prot = NumpyDataset(start + np.random.rand(N_protein, ndim) * (stop - start))
+    X_ligand = NumpyDataset(start + np.random.rand(N_ligand, ndim) * (stop - start))
     y = NumpyDataset(np.random.rand(1,))
 
     # TODO(rbharath): Mysteriously, the actual atom types aren't
@@ -118,7 +237,7 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     # Now an (N, M) shape
     nbr_list = NeighborList(N_protein+N_ligand, M_nbrs, ndim, n_cells, k,
-                            nbr_cutoff, in_layers=[coords])
+                            nbr_cutoff, start, stop, in_layers=[coords])
 
     # Shape (N, M)
     dists = InteratomicL2Distances(N_protein+N_ligand, M_nbrs, ndim,

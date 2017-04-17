@@ -678,7 +678,6 @@ class BatchNormLayer(Layer):
     self.out_tensor = tf.layers.batch_normalization(parent_tensor)
     return self.out_tensor
 
-
 class WeightedError(Layer):
 
   def _create_tensor(self):
@@ -787,13 +786,14 @@ class NeighborList(Layer):
   are close to each other spatially
   """
 
-  def __init__(self, max_num_atoms, max_num_nbrs, ndim, n_cells, k, nbr_cutoff, **kwargs):
+  def __init__(self, N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff, start,
+               stop, **kwargs):
     """
     Parameters
     ----------
-    max_num_atoms: int
+    N_atoms: int
       Maximum number of atoms this layer will neighbor-list.
-    max_num_nbrs: int
+    M_nbrs: int
       Maximum number of spatial neighbors possible for atom.
     ndim: int
       Dimensionality of space atoms live in. (Typically 3D, but sometimes will
@@ -802,16 +802,18 @@ class NeighborList(Layer):
       Number of grid cells in the simulation box.
     k: int
       Number of nearest neighbors to pull in using tf.nn.top_k.
-      TODO(rbharath): Are both k and max_num_nbrs needed?
+      TODO(rbharath): Are both k and M_nbrs needed?
     nbr_cutoff: float
       Length in Angstroms (?) at which atom boxes are gridded.
     """
-    self.N = max_num_atoms
-    self.M = max_num_nbrs
+    self.N = N_atoms 
+    self.M = M_nbrs 
     self.ndim = ndim
     self.n_cells = n_cells
     self.k = k
     self.nbr_cutoff = nbr_cutoff
+    self.start = start
+    self.stop = stop
     super(NeighborList, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -823,6 +825,11 @@ class NeighborList(Layer):
       # TODO(rbharath): Support batching
       raise ValueError("Parent tensor must be (num_atoms, ndum)")
     coords = parent.out_tensor
+    ################################################################ DEBUG
+    print("NeighborList._create_tensor")
+    print("coords")
+    print(coords)
+    ################################################################ DEBUG
     nbr_list = self._compute_nbr_list(coords)
     self.out_tensor = nbr_list
     return nbr_list
@@ -843,9 +850,7 @@ class NeighborList(Layer):
     """
     N, M, n_cells, ndim, k = self.N, self.M, self.n_cells, self.ndim, self.k
     nbr_cutoff = self.nbr_cutoff
-    start = tf.to_int32(tf.reduce_min(coords))
-    stop = tf.to_int32(tf.reduce_max(coords))
-    cells = self._get_cells(start, stop)
+    cells = self._get_cells()
     # Associate each atom with cell it belongs to. O(N*n_cells)
     # Shape (n_cells, k)
     atoms_in_cells, _ = self._put_atoms_in_cells(coords, cells)
@@ -1033,6 +1038,13 @@ class NeighborList(Layer):
     # Tile cells to form arrays of size (n_cells*n_cells, ndim)
     # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
     # Tile (a, a, a, b, b, b, etc.)
+    ################################################################# DEBUG
+    print("_compute_neighbor_cells")
+    print("cells")
+    print(cells)
+    print("n_cells")
+    print(n_cells)
+    ################################################################# DEBUG
     tiled_centers = tf.reshape(
         tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
     # Tile (a, b, c, a, b, c, ...)
@@ -1056,7 +1068,7 @@ class NeighborList(Layer):
 
     return closest_inds
 
-  def _get_cells(self, start, stop):
+  def _get_cells(self):
     """Returns the locations of all grid points in box.
 
     Suppose start is -10 Angstrom, stop is 10 Angstrom, nbr_cutoff is 1.
@@ -1066,13 +1078,9 @@ class NeighborList(Layer):
     Returns
     -------
     cells: tf.Tensor
-      (box_size**ndim, ndim) shape.
+      (n_cells, ndim) shape.
     """
-    return tf.reshape(
-        tf.transpose(
-            tf.stack(
-                tf.meshgrid(
-                    * [tf.range(start, stop, self.nbr_cutoff) for _ in range(self.ndim)]))),
-        (-1, self.ndim))
-
-  
+    start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
+    mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
+    return tf.reshape(tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
+        (self.n_cells, self.ndim))
