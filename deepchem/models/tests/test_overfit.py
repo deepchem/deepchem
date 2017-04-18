@@ -738,7 +738,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_tasks,
         n_feat,
         batch_size=batch_size,
-        learning_rate=0.005,
+        learning_rate=0.01,
         learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
