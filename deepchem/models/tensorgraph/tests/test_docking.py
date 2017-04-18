@@ -44,9 +44,6 @@ class TestDocking(test_util.TensorFlowTestCase):
     ndim = 3
     M = 6
     k = 5
-    # The number of cells which we should theoretically have
-    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
-
     X = np.random.rand(N_atoms, ndim)
     y = np.random.rand(N_atoms, 1)
     dataset = NumpyDataset(X, y)
@@ -54,7 +51,7 @@ class TestDocking(test_util.TensorFlowTestCase):
     features = Feature(shape=(N_atoms, ndim))
     labels = Label(shape=(N_atoms,))
     nbr_list = NeighborList(
-        N_atoms, M, ndim, n_cells, k, nbr_cutoff, in_layers=[features])
+        N_atoms, M, ndim, k, nbr_cutoff, in_layers=[features])
     nbr_list = ToFloat(in_layers=[nbr_list])
     # This isn't a meaningful loss, but just for test
     loss = ReduceSum(in_layers=[nbr_list])
@@ -161,16 +158,108 @@ class TestDocking(test_util.TensorFlowTestCase):
     ndim = 3
     M_nbrs = 2
     k = 5
-    # The number of cells which we should theoretically have
-    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
 
     with self.test_session() as sess:
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
       coords = tf.stack(coords)
-      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, n_cells, k, nbr_cutoff,
+      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff,
                               start, stop)(coords)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N_atoms, M_nbrs)
+
+  def test_get_cells_1D(self):
+    """Test neighbor-list method get_cells() in 1D"""
+    N_atoms = 4
+    start = 0
+    stop = 10
+    nbr_cutoff = 1
+    ndim = 1
+    M_nbrs = 1
+    k = 1
+    # 1 and 2 are nbrs. 8 and 9 are nbrs
+    coords = np.array([1.0, 2.0, 8.0, 9.0])
+    coords = np.reshape(coords, (N_atoms, M_nbrs))
+
+    with self.test_session() as sess:
+      coords = tf.convert_to_tensor(coords)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff, start, stop)
+      cells = nbr_list_layer.get_cells()
+      cells_eval = cells.eval()
+      true_cells = np.reshape(np.arange(10), (10, 1))
+      np.testing.assert_array_almost_equal(cells_eval, true_cells) 
+
+  def test_get_closest_atoms_1D(self):
+    """Test get_closest_atoms works correctly in 1D"""
+    N_atoms = 4
+    start = 0
+    stop = 10
+    n_cells = 10
+    nbr_cutoff = 1
+    ndim = 1
+    M_nbrs = 1
+    k = 1
+    # 1 and 2 are nbrs. 8 and 9 are nbrs
+    coords = np.array([1.0, 2.0, 8.0, 9.0])
+    coords = np.reshape(coords, (N_atoms, M_nbrs))
+    with self.test_session() as sess:
+      coords = tf.convert_to_tensor(coords, dtype=tf.float32)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff, start, stop)
+      cells = nbr_list_layer.get_cells()
+      atoms_in_cells = nbr_list_layer.get_closest_atoms(coords, cells)
+      atoms_in_cells_eval = atoms_in_cells.eval() 
+      true_atoms_in_cells = np.reshape(np.array([0, 0, 1, 1, 1, 1, 2, 2, 2, 3]), (n_cells, k))
+      np.testing.assert_array_almost_equal(atoms_in_cells_eval, true_atoms_in_cells)
+
+  def test_compute_neighbor_cells_1D(self):
+    """Test that computation of get_neighbor_cells works in 1D"""
+    N_atoms = 4
+    start = 0
+    stop = 10
+    nbr_cutoff = 1
+    ndim = 1
+    M_nbrs = 1
+    k = 1
+    # 1 and 2 are nbrs. 8 and 9 are nbrs
+    coords = np.array([1.0, 2.0, 8.0, 9.0])
+    coords = np.reshape(coords, (N_atoms, M_nbrs))
+
+    with self.test_session() as sess:
+      coords = tf.convert_to_tensor(coords)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff, start, stop)
+      cells = nbr_list_layer.get_cells()
+      
+
+
+  def test_neighbor_list_1D(self):
+    """Test neighbor list on 1D example."""
+    N_atoms = 4
+    start = 0
+    stop = 10
+    nbr_cutoff = 1
+    ndim = 1
+    M_nbrs = 1
+    k = 1
+    # 1 and 2 are nbrs. 8 and 9 are nbrs
+    coords = np.array([1.0, 2.0, 8.0, 9.0])
+    coords = np.reshape(coords, (N_atoms, M_nbrs))
+
+    with self.test_session() as sess:
+      coords = tf.convert_to_tensor(coords)
+      ###################################################################### DEBUG
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff, start, stop)
+      cells = nbr_list_layer.get_cells()
+      atoms_in_cells, _ = nbr_list_layer._put_atoms_in_cells(coords, cells)
+      atoms_in_cells_eval = atoms_in_cells.eval() 
+      print("atoms_in_cells_eval")
+      print(atoms_in_cells_eval)
+      nbr_list = nbr_list_layer(coords)
+      nbr_list = nbr_list.eval()
+      print("nbr_list")
+      print(nbr_list)
+      print("nbr_list.shape")
+      print(nbr_list.shape)
+      ###################################################################### DEBUG
+      np.testing.assert_array_almost_equal(nbr_list, np.array([1, 0, 3, 2]))
 
   def test_neighbor_list_vina(self):
     """Test under conditions closer to Vina usage."""
@@ -181,24 +270,14 @@ class TestDocking(test_util.TensorFlowTestCase):
     start = 0
     stop = 4
     nbr_cutoff = 1
-    # The number of cells which we should theoretically have
-    n_cells = ((stop - start) / nbr_cutoff)**ndim
 
     X = NumpyDataset(start + np.random.rand(N_atoms, ndim) * (stop - start))
 
     coords = Feature(shape=(N_atoms, ndim))
 
     # Now an (N, M) shape
-    nbr_list = NeighborList(
-        N_atoms,
-        M_nbrs,
-        ndim,
-        n_cells,
-        k,
-        nbr_cutoff,
-        start,
-        stop,
-        in_layers=[coords])
+    nbr_list = NeighborList(N_atoms, M_nbrs, ndim, k, nbr_cutoff, start,
+                            stop, in_layers=[coords])
 
     nbr_list = ToFloat(in_layers=[nbr_list])
     flattened = Flatten(in_layers=[nbr_list])
@@ -222,8 +301,6 @@ class TestDocking(test_util.TensorFlowTestCase):
     start = 0
     stop = 4
     nbr_cutoff = 1
-    # The number of cells which we should theoretically have
-    n_cells = ((stop - start) / nbr_cutoff)**ndim
 
     X_prot = NumpyDataset(start + np.random.rand(N_protein, ndim) * (stop -
                                                                      start))
@@ -250,7 +327,6 @@ class TestDocking(test_util.TensorFlowTestCase):
         N_protein + N_ligand,
         M_nbrs,
         ndim,
-        n_cells,
         k,
         nbr_cutoff,
         start,
