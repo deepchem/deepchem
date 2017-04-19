@@ -127,10 +127,6 @@ complex_conv = AtomicConvolution(
   boxsize=None,
   in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
 
-# frag1_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag1_conv])
-# frag2_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag2_conv])
-# complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
-
 score_in_layers = []
 for atom_type in at:
   at_frag1_conv = frag1_conv
@@ -236,7 +232,6 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
       orig_dict[complex_z] = complex_Z_b
       orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
       yield orig_dict
-      break
 
 
 tg = TensorGraph(
