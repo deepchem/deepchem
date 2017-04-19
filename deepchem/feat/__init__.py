@@ -23,3 +23,5 @@ from deepchem.feat.nnscore_utils import hydrogenate_and_compute_partial_charges
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 from deepchem.feat.one_hot import OneHotFeaturizer
 from deepchem.feat.raw_featurizer import RawFeaturizer
+from deepchem.feat.atomic_coordinates import AtomicCoordinates
+from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates

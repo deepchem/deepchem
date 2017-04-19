@@ -7,9 +7,9 @@ import unittest
 from rdkit import Chem
 from deepchem.utils import conformers
 from deepchem.feat.atomic_coordinates import get_coords
+from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
-from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
-from deepchem.utils import rdkit_util
+from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
 
 
 class TestAtomicCoordinates(unittest.TestCase):
@@ -26,27 +26,29 @@ class TestAtomicCoordinates(unittest.TestCase):
     engine = conformers.ConformerGenerator(max_conformers=1)
     self.mol = engine.generate_conformers(mol)
     assert self.mol.GetNumConformers() > 0
-    self.atomic_coords_featurizer = NeighborListAtomicCoordinates(max_num_atoms=100, max_num_neighbors=100,
-                                                         neighbor_cutoff=12.0)
 
   def test_atomic_coordinates(self):
     """
     Simple test that atomic coordinates returns ndarray of right shape.
     """
-    N = 1000
+    N = self.mol.GetNumAtoms()
+    atomic_coords_featurizer = AtomicCoordinates()
     # TODO(rbharath, joegomes): Why does AtomicCoordinates return a list? Is
     # this expected behavior? Need to think about API.
-    coords = self.atomic_coords_featurizer._featurize(self.mol)[0]
+    coords = atomic_coords_featurizer._featurize(self.mol)[0]
     assert isinstance(coords, np.ndarray)
-    assert coords.shape == (self.atomic_coords_featurizer.max_num_atoms, 3)
+    assert coords.shape == (N, 3)
 
   def test_neighbor_list_shape(self):
     """
     Simple test that Neighbor Lists have right shape.
     """
+    nblist_featurizer = NeighborListAtomicCoordinates()
     N = self.mol.GetNumAtoms()
     coords = get_coords(self.mol)
-    nblist = self.atomic_coords_featurizer._featurize(self.mol)[1]
+
+    nblist_featurizer = NeighborListAtomicCoordinates()
+    nblist = nblist_featurizer._featurize(self.mol)[1]
     assert isinstance(nblist, dict)
     assert len(nblist.keys()) == N
     for (atom, neighbors) in nblist.items():
@@ -54,12 +56,12 @@ class TestAtomicCoordinates(unittest.TestCase):
       assert isinstance(neighbors, list)
       assert len(neighbors) <= N
 
-    # Do a manual distance computation and make 
+    # Do a manual distance computation and make
     for i in range(N):
       for j in range(N):
         dist = np.linalg.norm(coords[i] - coords[j])
         print("Distance(%d, %d) = %f" % (i, j, dist))
-        if dist < self.atomic_coords_featurizer.neighbor_cutoff and i != j:
+        if dist < nblist_featurizer.neighbor_cutoff and i != j:
           assert j in nblist[i]
         else:
           assert j not in nblist[i]
@@ -71,13 +73,13 @@ class TestAtomicCoordinates(unittest.TestCase):
     N = self.mol.GetNumAtoms()
 
     # Test with cutoff 0 angstroms. There should be no neighbors in this case.
-    nblist_featurizer = NeighborListAtomicCoordinates(max_num_atoms=1000, max_num_neighbors=10, neighbor_cutoff=.1)
+    nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=.1)
     nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
       assert len(nblist[atom]) == 0
 
     # Test with cutoff 100 angstroms. Everything should be neighbors now.
-    nblist_featurizer = NeighborListAtomicCoordinates(max_num_atoms=1000, max_num_neighbors=1000, neighbor_cutoff=100)
+    nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=100)
     nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
       assert len(nblist[atom]) == N - 1
@@ -89,9 +91,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     N = self.mol.GetNumAtoms()
 
     max_num_neighbors = 1
-    nblist_featurizer = NeighborListAtomicCoordinates(max_num_atoms=1000,
-                                                      max_num_neighbors=max_num_neighbors,
-                                                      neighbor_cutoff=100)
+    nblist_featurizer = NeighborListAtomicCoordinates(max_num_neighbors)
     nblist = nblist_featurizer._featurize(self.mol)[1]
 
     for atom in range(N):
@@ -118,18 +118,38 @@ class TestAtomicCoordinates(unittest.TestCase):
       else:
         assert nblist[i] == []
 
+  def test_neighbor_list_periodic(self):
+    """Test building a neighbor list with periodic boundary conditions."""
+    cutoff = 4.0
+    box_size = np.array([10.0, 8.0, 9.0])
+    N = self.mol.GetNumAtoms()
+    coords = get_coords(self.mol)
+    featurizer = NeighborListAtomicCoordinates(
+        neighbor_cutoff=cutoff, periodic_box_size=box_size)
+    neighborlist = featurizer._featurize(self.mol)[1]
+    expected_neighbors = [set() for i in range(N)]
+    for i in range(N):
+      for j in range(i):
+        delta = coords[i] - coords[j]
+        delta -= np.round(delta / box_size) * box_size
+        if np.linalg.norm(delta) < cutoff:
+          expected_neighbors[i].add(j)
+          expected_neighbors[j].add(i)
+    for i in range(N):
+      assert (set(neighborlist[i]) == expected_neighbors[i])
+
   def test_complex_featurization_simple(self):
     """Test Neighbor List computation on protein-ligand complex."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(dir_path, "data/3zso_ligand_hyd.pdb")
+    protein_file = os.path.join(dir_path, "data/3zso_protein.pdb")
     max_num_neighbors = 4
-    complex_featurizer = ComplexNeighborListFragmentAtomicCoordinates(50, 50, 100, max_num_neighbors)
+    complex_featurizer = NeighborListComplexAtomicCoordinates(max_num_neighbors)
 
-    m1 = rdkit_util.load_molecule(ligand_file, add_hydrogens=False, calc_charges=False)[1]
-    _, _, _, _, _, _, system_coords, system_neighbor_list, _ = complex_featurizer._featurize_complex(
-      ligand_file, ligand_file)
+    system_coords, system_neighbor_list = complex_featurizer._featurize_complex(
+        ligand_file, protein_file)
 
-    N = m1.GetNumAtoms() * 2
+    N = system_coords.shape[0]
     assert len(system_neighbor_list.keys()) == N
     for atom in range(N):
       assert len(system_neighbor_list[atom]) <= max_num_neighbors
