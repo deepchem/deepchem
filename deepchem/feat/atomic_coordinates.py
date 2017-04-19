@@ -223,7 +223,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
   def featurize_mol(self, coords, mol, max_num_atoms):
     neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
                                           self.max_num_neighbors, None)
-    z = self.get_Z_matrix(mol, self.frag1_num_atoms)
+    z = self.get_Z_matrix(mol, max_num_atoms)
     z = pad_array(z, max_num_atoms)
     coords = pad_array(coords, (max_num_atoms, 3))
     return coords, neighbor_list, z
