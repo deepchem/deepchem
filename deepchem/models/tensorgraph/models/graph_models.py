@@ -7,7 +7,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.models.tensorgraph.layers import Input, BatchNormLayer, Dense, \
     SoftMax, SoftMaxCrossEntropy, L2LossLayer, Concat, WeightedError, Label, Weights, Feature
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather
+    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.trans import undo_transforms
 
@@ -287,6 +287,174 @@ class DTNNTensorGraph(TensorGraph):
 
         yield feed_dict
 
+
+  def predict(self, dataset, transformers=[], batch_size=None):
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_on_generator(generator)
+
+  def predict_proba(self, dataset, transformers=[], batch_size=None):
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_proba_on_generator(generator)
+
+  def predict_on_generator(self, generator, transformers=[]):
+    retval = self.predict_proba_on_generator(generator, transformers)
+    if self.mode == 'classification':
+      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
+    return retval
+
+  def predict_proba_on_generator(self, generator, transformers=[]):
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      with tf.Session() as sess:
+        saver = tf.train.Saver()
+        saver.restore(sess, self.last_checkpoint)
+        out_tensors = [x.out_tensor for x in self.outputs]
+        results = []
+        for feed_dict in generator:
+          feed_dict = {
+              self.layers[k.name].out_tensor: v
+              for k, v in six.iteritems(feed_dict)
+          }
+          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
+          if len(result.shape) == 3:
+            result = np.transpose(result, axes=[1, 0, 2])
+          if len(transformers) > 0:
+            result = undo_transforms(result, transformers)
+          results.append(result)
+        return np.concatenate(results, axis=0)
+        
+class DAGTensorGraph(TensorGraph):
+
+  def __init__(self,
+               n_tasks,
+               max_atoms=50,
+               n_atom_feat=75,
+               n_graph_feat=30,
+               n_outputs=30,
+               **kwargs):
+    self.n_tasks = n_tasks
+    self.max_atoms = max_atoms
+    self.n_atom_feat = n_atom_feat
+    self.n_graph_feat = n_graph_feat
+    self.n_outputs = n_outputs
+    super(DAGTensorGraph, self).__init__(**kwargs)
+    self.build_graph()
+
+  def build_graph(self):
+    self.atom_features = Feature(shape=(self.batch_size*self.max_atoms, self.n_atom_feat))
+    self.parents = Feature(shape=(self.batch_size*self.max_atoms, self.max_atoms, self.max_atoms), dtype=tf.int32)
+    self.calculation_orders = Feature(shape=(self.batch_size*self.max_atoms, self.max_atoms), dtype=tf.int32)
+    self.membership = Feature(shape=(self.batch_size*self.max_atoms), dtype=tf.int32)
+    dag_layer1 = DAGLayer(
+        n_graph_feat=self.n_graph_feat,
+        n_atom_feat=self.n_atom_feat,
+        max_atoms=self.max_atoms,
+        in_layers=[self.atom_features, self.parents, self.calculation_orders, self.membership])
+    dag_gather = DAGGather(
+        n_graph_feat=self.n_graph_feat,
+        n_outputs=self.n_outputs,
+        max_atoms=self.max_atoms,
+        in_layers=[dag_layer1])
+
+    costs = []
+    self.labels_fd = []
+    for task in range(self.n_tasks):
+      if self.mode == "classification":
+        classification = Dense(out_channels=2, activation_fn=None, in_layers=[dag_gather])
+        softmax = SoftMax(in_layers=[classification])
+        self.add_output(softmax)
+      
+        label = Label(shape=(None, 2))
+        self.labels_fd.append(label)
+        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
+        costs.append(cost)
+      if self.mode == "regression":
+        regression = Dense(out_channels=1, activation_fn=None, in_layers=[dag_gather])
+        self.add_output(regression)
+        
+        label = Label(shape=(None, 1))
+        self.labels_fd.append(label)
+        cost = L2LossLayer(in_layers=[label, regression])
+        costs.append(cost)
+        
+    all_cost = Concat(in_layers=costs)
+    self.weights = Weights(shape=(None, self.n_tasks))
+    loss = WeightedError(in_layers=[all_cost, self.weights])
+    self.set_loss(loss)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
+          
+        feed_dict = dict()
+        if y_b is not None and not predict:
+          for index, label in enumerate(self.labels_fd):
+            if self.mode == "classification":
+              feed_dict[label] = to_one_hot(y_b[:, index])
+            if self.mode == "regression":
+              feed_dict[label] = y_b[:, index:index+1]
+        if w_b is not None and not predict:
+          feed_dict[self.weights] = w_b
+        
+        atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
+        n_atom_features = X_b[0].get_atom_features().shape[1]
+        membership = np.concatenate(
+            [
+                np.array([1] * n_atoms + [0] * (self.max_atoms - n_atoms))
+                for n_atoms in atoms_per_mol
+            ],
+            axis=0)
+
+        atoms_all = []
+        parents_all = []
+        calculation_orders = []
+        for idm, mol in enumerate(X_b):
+          atom_features_padded = np.concatenate(
+              [
+                  mol.get_atom_features(), np.zeros(
+                      (self.max_atoms - atoms_per_mol[idm], n_atom_features))
+              ],
+              axis=0)
+          atoms_all.append(atom_features_padded)
+    
+          parents = mol.parents
+          assert len(parents) == atoms_per_mol[idm]
+          parents_all.extend(parents[:])
+          parents_all.extend([
+              self.max_atoms * np.ones((self.max_atoms, self.max_atoms), dtype=int)
+              for i in range(self.max_atoms - atoms_per_mol[idm])
+          ])
+          for parent in parents:
+            calculation_orders.append(self.index_changing(parent[:, 0], idm))
+    
+          calculation_orders.extend([
+              self.batch_size * self.max_atoms * np.ones(
+                  (self.max_atoms,), dtype=int)
+              for i in range(self.max_atoms - atoms_per_mol[idm])
+          ])
+
+        feed_dict[self.atom_features] = np.concatenate(atoms_all, axis=0)
+        feed_dict[self.parents] = np.stack(parents_all, axis=0)
+        feed_dict[self.calculation_orders] = np.stack(calculation_orders, axis=0)
+        feed_dict[self.membership] = membership
+        yield feed_dict
+
+  def index_changing(self, index, n_mol):
+    output = np.zeros_like(index)
+    for ide, element in enumerate(index):
+      if element < self.max_atoms:
+        output[ide] = element + n_mol * self.max_atoms
+      else:
+        output[ide] = self.batch_size * self.max_atoms
+    return output
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)

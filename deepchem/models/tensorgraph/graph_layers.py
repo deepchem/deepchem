@@ -35,12 +35,8 @@ class Separate_AP(Layer):
     self.out_tensor = self.in_layers[0].out_tensor[0]
     
 class WeaveLayer(Layer):
-  """" Main layer of Weave model
-  For each molecule, atom features and pair features are recombined to 
-  generate new atom(pair) features
-  
-  Detailed structure and explanations:
-  https://arxiv.org/abs/1603.00856
+  """ TensorGraph style implementation
+  The same as deepchem.nn.WeaveLayer
   
   """
 
@@ -96,7 +92,7 @@ class WeaveLayer(Layer):
     super(WeaveLayer, self).__init__(**kwargs)
 
   def build(self):
-    """"Construct internal trainable weights.
+    """ Construct internal trainable weights.
     """
 
     self.W_AA = self.init([self.n_atom_input_feat, self.n_hidden_AA])
@@ -137,6 +133,9 @@ class WeaveLayer(Layer):
           [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
   def _create_tensor(self):
+    """ description and explanation refer to deepchem.nn.WeaveLayer
+    parent layers: [atom_features, pair_features], pair_split, atom_to_pair
+    """
     self.build()
 
     atom_features = self.in_layers[0].out_tensor[0]
@@ -175,9 +174,8 @@ class WeaveLayer(Layer):
     self.out_tensor = [A, P]
 
 class WeaveGather(Layer):
-  """" Gather layer of Weave model
-  a batch of normalized atom features go through a hidden layer, 
-  then summed to form molecular features
+  """ TensorGraph style implementation
+  The same as deepchem.nn.WeaveGather
   """
 
   def __init__(self,
@@ -218,7 +216,9 @@ class WeaveGather(Layer):
       self.trainable_weights = None
 
   def  _create_tensor(self):
-    # Add trainable weights
+    """ description and explanation refer to deepchem.nn.WeaveGather
+    parent layers: atom_features, atom_split
+    """
     self.build()
     outputs = self.in_layers[0].out_tensor
     atom_split = self.in_layers[1].out_tensor
@@ -252,7 +252,8 @@ class WeaveGather(Layer):
 
 
 class DTNNEmbedding(Layer):
-  """Generate embeddings for all atoms in the batch
+  """ TensorGraph style implementation
+  The same as deepchem.nn.DTNNEmbedding
   """
 
   def __init__(self,
@@ -273,17 +274,8 @@ class DTNNEmbedding(Layer):
     self.trainable_weights = [self.embedding_list]
 
   def _create_tensor(self):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    x: Tensor 
-      1D tensor of length n_atoms (atomic number)
-
-    Returns
-    -------
-    tf.Tensor
-      Of shape (n_atoms, n_embedding), where n_embedding is number of atom features
+    """description and explanation refer to deepchem.nn.DTNNEmbedding
+    parent layers: atom_number
     """
     self.build()
     atom_number = self.in_layers[0].out_tensor
@@ -292,10 +284,8 @@ class DTNNEmbedding(Layer):
 
 
 class DTNNStep(Layer):
-  """A convolution step that merge in distance and atom info of 
-     all other atoms into current atom.
-   
-     model based on https://arxiv.org/abs/1609.08259
+  """ TensorGraph style implementation
+  The same as deepchem.nn.DTNNStep
   """
 
   def __init__(self,
@@ -323,29 +313,14 @@ class DTNNStep(Layer):
     self.b_df = model_ops.zeros(shape=[
         self.n_hidden,
     ])
-    #self.b_fc = model_ops.zeros(shape=[self.n_embedding,])
 
     self.trainable_weights = [
         self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
     ]
 
   def _create_tensor(self):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    x: list of Tensor 
-      should be [atom_features: n_atoms*n_embedding, 
-                 distance_matrix: n_pairs*n_distance,
-                 atom_membership: n_atoms
-                 distance_membership_i: n_pairs,
-                 distance_membership_j: n_pairs,
-                 ]
-
-    Returns
-    -------
-    tf.Tensor
-      new embeddings for atoms, same shape as x[0]
+    """description and explanation refer to deepchem.nn.DTNNStep
+    parent layers: atom_features, distance, distance_membership_i, distance_membership_j
     """
     self.build()
     atom_features = self.in_layers[0].out_tensor
@@ -353,9 +328,7 @@ class DTNNStep(Layer):
     distance_membership_i = self.in_layers[2].out_tensor
     distance_membership_j = self.in_layers[3].out_tensor
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
-    #distance_hidden = self.activation(distance_hidden)
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
-    #atom_features_hidden = self.activation(atom_features_hidden)
     outputs = tf.multiply(distance_hidden,
                           tf.gather(atom_features_hidden,
                                     distance_membership_j))
@@ -376,9 +349,9 @@ class DTNNStep(Layer):
 
 
 class DTNNGather(Layer):
-  """Map the atomic features into molecular properties and sum
+  """ TensorGraph style implementation
+  The same as deepchem.nn.DTNNGather
   """
-
   def __init__(self,
                n_embedding=30,
                n_outputs=100,
@@ -413,18 +386,8 @@ class DTNNGather(Layer):
     self.trainable_weights = self.W_list + self.b_list
 
   def _create_tensor(self):
-    """Execute this layer on input tensors.
-
-    Parameters
-    ----------
-    x: list of Tensor 
-      should be [embedding tensor of molecules, of shape (batch_size*max_n_atoms*n_embedding),
-                 mask tensor of molecules, of shape (batch_size*max_n_atoms)]
-
-    Returns
-    -------
-    list of tf.Tensor
-      Of shape (batch_size)
+    """description and explanation refer to deepchem.nn.DTNNGather
+    parent layers: atom_features, atom_membership
     """
     self.build()
     output = self.in_layers[0].out_tensor
@@ -434,3 +397,221 @@ class DTNNGather(Layer):
       output = self.activation(output)
     output = tf.segment_sum(output, atom_membership)
     self.out_tensor = output
+    
+class DAGLayer(Layer):
+  """ TensorGraph style implementation
+  The same as deepchem.nn.DAGLayer
+  """
+  def __init__(self,
+               n_graph_feat=30,
+               n_atom_feat=75,
+               layer_sizes=[100],
+               init='glorot_uniform',
+               activation='relu',
+               dropout=None,
+               max_atoms=50,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    n_graph_feat: int
+      Number of features for each node(and the whole grah).
+    n_atom_feat: int
+      Number of features listed per atom.
+    layer_sizes: list of int, optional(default=[1000])
+      Structure of hidden layer(s)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    dropout: float, optional
+      Dropout probability, not supported here
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
+    """
+    super(DAGLayer, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.layer_sizes = layer_sizes
+    self.dropout = dropout
+    self.max_atoms = max_atoms
+    self.n_inputs = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
+    # number of inputs each step
+    self.n_graph_feat = n_graph_feat
+    self.n_outputs = n_graph_feat
+    self.n_atom_feat = n_atom_feat
+
+  def build(self):
+    """"Construct internal trainable weights.
+    """
+
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_inputs
+    for layer_size in self.layer_sizes:
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
+      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_outputs,
+    ]))
+
+    self.trainable_weights = self.W_list + self.b_list
+
+  def _create_tensor(self):
+    """description and explanation refer to deepchem.nn.DAGLayer
+    parent layers: atom_features, parents, calculation_orders, membership
+    """
+    # Add trainable weights
+    self.build()
+
+    atom_features = self.in_layers[0].out_tensor
+    # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
+    # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+    parents = self.in_layers[1].out_tensor
+    # target atoms for each step: (batch_size*max_atoms) * max_atoms
+    calculation_orders = self.in_layers[2].out_tensor
+    membership = self.in_layers[3].out_tensor
+
+    n_atoms = atom_features.get_shape()[0]
+    # initialize graph features for each graph
+    graph_features = tf.Variable(
+        tf.constant(0., shape=(n_atoms, self.max_atoms + 1, self.n_graph_feat)),
+        trainable=False)
+
+    # add dummy
+    atom_features = tf.concat(
+        axis=0,
+        values=[
+            atom_features, tf.constant(0., shape=(1, self.n_atom_feat))
+        ])
+    for count in range(self.max_atoms):
+      batch_atom_features = tf.gather(atom_features,
+                                      calculation_orders[:, count])
+      index = tf.stack(
+          [
+              tf.reshape(
+                  tf.stack([tf.range(n_atoms)] * (self.max_atoms - 1), axis=1),
+                  [-1]), tf.reshape(parents[:, count, 1:], [-1])
+          ],
+          axis=1)
+      batch_graph_features = tf.reshape(
+          tf.gather_nd(graph_features, index),
+          [-1, (self.max_atoms - 1) * self.n_graph_feat])
+      batch_inputs = tf.concat(
+          axis=1, values=[batch_atom_features, batch_graph_features])
+      batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
+
+      target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
+      # index for dummies
+      target_index2 = tf.stack(
+          [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
+          axis=1)
+      # update the graph features for target atoms
+      graph_features = tf.scatter_nd_update(graph_features, target_index,
+                                            batch_outputs)
+      # recover dummies to zeros if being updated
+      graph_features = tf.scatter_nd_update(graph_features, target_index2,
+                                            tf.zeros(
+                                                (n_atoms, self.n_graph_feat)))
+
+    # last step generates graph features for all target atoms
+    # masking the outputs
+    outputs = tf.multiply(batch_outputs,
+                          tf.expand_dims(tf.to_float(membership), axis=1))
+    self.out_tensor = outputs
+
+  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+    outputs = batch_inputs
+    for idw, W in enumerate(W_list):
+      outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
+      outputs = self.activation(outputs)
+    return outputs
+
+
+class DAGGather(Layer):
+  """ TensorGraph style implementation
+  The same as deepchem.nn.DAGGather
+  """
+  def __init__(self,
+               n_graph_feat=30,
+               n_outputs=30,
+               layer_sizes=[1000],
+               init='glorot_uniform',
+               activation='relu',
+               dropout=None,
+               max_atoms=50,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    n_graph_feat: int
+      Number of features for each atom
+    n_outputs: int
+      Number of features for each molecule.
+    layer_sizes: list of int, optional(default=[1000])
+      Structure of hidden layer(s)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    dropout: float, optional
+      Dropout probability, not supported
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
+    """
+    super(DAGGather, self).__init__(**kwargs)
+
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.layer_sizes = layer_sizes
+    self.dropout = dropout
+    self.max_atoms = max_atoms
+    self.n_graph_feat = n_graph_feat
+    self.n_outputs = n_outputs
+
+  def build(self):
+    """"Construct internal trainable weights.
+    """
+
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_graph_feat
+    for layer_size in self.layer_sizes:
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
+      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_outputs,
+    ]))
+
+    self.trainable_weights = self.W_list + self.b_list
+
+  def _create_tensor(self):
+    """description and explanation refer to deepchem.nn.DAGGather
+    parent layers: atom_features
+    """
+    # Add trainable weights
+    self.build()
+
+    # Extract atom_features
+    atom_features = self.in_layers[0].out_tensor
+    graph_features = tf.reshape(atom_features, [-1, self.max_atoms, self.n_graph_feat])
+    graph_features = tf.reduce_sum(graph_features, axis=1)
+    # sum all graph outputs
+    outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
+    self.out_tensor = outputs
+
+  def DAGgraph_step(self, batch_inputs, W_list, b_list):
+    outputs = batch_inputs
+    for idw, W in enumerate(W_list):
+      outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
+      outputs = self.activation(outputs)
+    return outputs
