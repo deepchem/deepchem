@@ -208,7 +208,7 @@ def get_cells(start, stop, nbr_cutoff, ndim=3):
       tf.transpose(
           tf.stack(
               tf.meshgrid(
-                  *[tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
+                  * [tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
       (-1, ndim))
 
 
