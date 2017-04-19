@@ -534,7 +534,7 @@ class AlternateWeaveGraphTopology(GraphTopology):
     self.pair_split_placeholder = tf.placeholder(
         dtype='int32', shape=(None,), name=self.name + '_pair_split')
     self.atom_split_placeholder = tf.placeholder(
-        dtype='int32', shape=(self.batch_size,), name=self.name + '_atom_split')
+        dtype='int32', shape=(None,), name=self.name + '_atom_split')
     self.atom_to_pair_placeholder = tf.placeholder(
         dtype='int32', shape=(None, 2), name=self.name + '_atom_to_pair')
 
@@ -576,7 +576,7 @@ class AlternateWeaveGraphTopology(GraphTopology):
     for im, mol in enumerate(batch):
       n_atoms = mol.get_num_atoms()
       # number of atoms in each molecule
-      atom_split.append(n_atoms)
+      atom_split.extend([im]*n_atoms)
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
       atom_to_pair.append(

@@ -15,9 +15,25 @@ import tensorflow as tf
 from deepchem.nn import activations
 from deepchem.nn import initializations
 from deepchem.nn import model_ops
-from deepchem.nn.copy import Layer
 
+from deepchem.models.tensorgraph.layers import Layer
 
+class Combine_AP(Layer):
+  def __init__(self, **kwargs):
+    super(Combine_AP, self).__init__(**kwargs)
+  
+  def _create_tensor(self):
+    A = self.in_layers[0].out_tensor
+    P = self.in_layers[1].out_tensor
+    self.out_tensor = [A, P]
+
+class Separate_AP(Layer):
+  def __init__(self, **kwargs):
+    super(Separate_AP, self).__init__(**kwargs)
+  
+  def _create_tensor(self):
+    self.out_tensor = self.in_layers[0].out_tensor[0]
+    
 class WeaveLayer(Layer):
   """" Main layer of Weave model
   For each molecule, atom features and pair features are recombined to 
@@ -29,7 +45,6 @@ class WeaveLayer(Layer):
   """
 
   def __init__(self,
-               max_atoms,
                n_atom_input_feat=75,
                n_pair_input_feat=14,
                n_atom_output_feat=50,
@@ -64,8 +79,6 @@ class WeaveLayer(Layer):
       Dropout probability, not supported here
 
     """
-    super(WeaveLayer, self).__init__(**kwargs)
-    self.max_atoms = max_atoms
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
     self.update_pair = update_pair  # last weave layer does not need to update
@@ -80,6 +93,7 @@ class WeaveLayer(Layer):
     self.n_pair_input_feat = n_pair_input_feat
     self.n_atom_output_feat = n_atom_output_feat
     self.n_pair_output_feat = n_pair_output_feat
+    super(WeaveLayer, self).__init__(**kwargs)
 
   def build(self):
     """"Construct internal trainable weights.
@@ -122,97 +136,14 @@ class WeaveLayer(Layer):
       self.trainable_weights.extend(
           [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
-  def call(self, x, mask=None):
-    """Execute this layer on input tensors.
-
-    x = [atom_features, pair_features, atom_mask, pair_mask]
-    
-    Parameters
-    ----------
-    x: list
-      list of Tensors of form described above.
-    mask: bool, optional
-      Ignored. Present only to shadow superclass call() method.
-
-    Returns
-    -------
-    A: Tensor
-      Tensor of atom_features
-    P: Tensor
-      Tensor of pair_features
-    """
-    # Add trainable weights
+  def _create_tensor(self):
     self.build()
 
-    atom_features = x[0]
-    pair_features = x[1]
+    atom_features = self.in_layers[0].out_tensor[0]
+    pair_features = self.in_layers[0].out_tensor[1]
 
-    atom_mask = x[2]
-    pair_mask = x[3]
-    max_atoms = self.max_atoms
-
-    AA = tf.tensordot(atom_features, self.W_AA, [[2], [0]]) + self.b_AA
-    AA = self.activation(AA)
-    PA = tf.reduce_sum(
-        tf.tensordot(pair_features, self.W_PA, [[3], [0]]) + self.b_PA, axis=2)
-    PA = self.activation(PA)
-    A = tf.tensordot(tf.concat([AA, PA], 2), self.W_A, [[2], [0]]) + self.b_A
-    A = self.activation(A)
-    A = tf.multiply(A, tf.expand_dims(atom_mask, axis=2))
-
-    if self.update_pair:
-      AP_combine = tf.concat([
-          tf.stack([atom_features] * max_atoms, axis=2),
-          tf.stack([atom_features] * max_atoms, axis=1)
-      ], 3)
-      AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
-      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
-                        [[3], [0]]) + self.b_AP
-      AP = self.activation(AP)
-      PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
-      PP = self.activation(PP)
-      P = tf.tensordot(tf.concat([AP, PP], 3), self.W_P, [[3], [0]]) + self.b_P
-      P = self.activation(P)
-      P = tf.multiply(P, tf.expand_dims(pair_mask, axis=3))
-    else:
-      P = pair_features
-
-    return A, P
-
-
-class AlternateWeaveLayer(WeaveLayer):
-  """ Alternate implementation of weave module
-      same variables, different graph structures
-  """
-
-  def call(self, x, mask=None):
-    """Execute this layer on input tensors.
-
-    x = [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
-    
-    Parameters
-    ----------
-    x: list
-      list of Tensors of form described above.
-    mask: bool, optional
-      Ignored. Present only to shadow superclass call() method.
-
-    Returns
-    -------
-    A: Tensor
-      Tensor of atom_features
-    P: Tensor
-      Tensor of pair_features
-    """
-    # Add trainable weights
-    self.build()
-
-    atom_features = x[0]
-    pair_features = x[1]
-
-    pair_split = x[2]
-    atom_split = x[3]
-    atom_to_pair = x[4]
+    pair_split = self.in_layers[1].out_tensor
+    atom_to_pair = self.in_layers[2].out_tensor
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
     AA = self.activation(AA)
@@ -241,83 +172,7 @@ class AlternateWeaveLayer(WeaveLayer):
       P = self.activation(P)
     else:
       P = pair_features
-
-    return A, P
-
-
-class WeaveConcat(Layer):
-  """" Concat a batch of molecules into a batch of atoms
-  """
-
-  def __init__(self,
-               batch_size,
-               n_atom_input_feat=50,
-               n_output=128,
-               init='glorot_uniform',
-               activation='tanh',
-               **kwargs):
-    """
-    Parameters
-    ----------
-    batch_size: int
-      number of molecules in a batch
-    n_atom_input_feat: int, optional
-      Number of features for each atom in input.
-    n_output: int, optional
-      Number of output features for each atom(concatenated)
-    init: str, optional
-      Weight initialization for filters.
-    activation: str, optional
-      Activation function applied
-
-    """
-    self.batch_size = batch_size
-    self.n_atom_input_feat = n_atom_input_feat
-    self.n_output = n_output
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
-    super(WeaveConcat, self).__init__(**kwargs)
-
-  def build(self):
-    """"Construct internal trainable weights.
-    """
-
-    self.W = self.init([self.n_atom_input_feat, self.n_output])
-    self.b = model_ops.zeros(shape=[
-        self.n_output,
-    ])
-
-    self.trainable_weights = self.W + self.b
-
-  def call(self, x, mask=None):
-    """Execute this layer on input tensors.
-    
-    x = [atom_features, atom_mask]
-    
-    Parameters
-    ----------
-    x: list
-      Tensors as listed above
-    mask: bool, optional
-      Ignored. Present only to shadow superclass call() method.
-
-    Returns
-    -------
-    outputs: Tensor
-      Tensor of concatenated atom features
-    """
-    self.build()
-    atom_features = x[0]
-    atom_masks = x[1]
-    A = tf.split(atom_features, self.batch_size, axis=0)
-    A_mask = tf.split(
-        tf.cast(atom_masks, dtype=tf.bool), self.batch_size, axis=0)
-    outputs = tf.concat(
-        [tf.boolean_mask(A[i], A_mask[i]) for i in range(len(A))], axis=0)
-    outputs = tf.matmul(outputs, self.W) + self.b
-    outputs = self.activation(outputs)
-    return outputs
-
+    self.out_tensor = [A, P]
 
 class WeaveGather(Layer):
   """" Gather layer of Weave model
@@ -362,40 +217,22 @@ class WeaveGather(Layer):
     else:
       self.trainable_weights = None
 
-  def call(self, x, mask=None):
-    """Execute this layer on input tensors.
-
-    x = [atom_features, membership]
-    
-    Parameters
-    ----------
-    x: list
-      Tensors as listed above
-    mask: bool, optional
-      Ignored. Present only to shadow superclass call() method.
-
-    Returns
-    -------
-    outputs: Tensor
-      Tensor of molecular features
-    """
+  def  _create_tensor(self):
     # Add trainable weights
     self.build()
-    outputs = x[0]
-    membership = x[1]
+    outputs = self.in_layers[0].out_tensor
+    atom_split = self.in_layers[1].out_tensor
 
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
 
-    outputs = tf.dynamic_partition(outputs, membership, self.batch_size)
-
-    output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
-
-    output_molecules = tf.stack(output_molecules)
+    output_molecules = tf.segment_sum(outputs, atom_split)
+    
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
-    return output_molecules
+    self.out_tensor = output_molecules
+
 
   def gaussian_histogram(self, x):
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
@@ -414,39 +251,186 @@ class WeaveGather(Layer):
     return outputs
 
 
-class AlternateWeaveGather(WeaveGather):
-  """Alternate implementation of weave gather layer
-     corresponding to AlternateWeaveLayer
+class DTNNEmbedding(Layer):
+  """Generate embeddings for all atoms in the batch
   """
 
-  def call(self, x, mask=None):
+  def __init__(self,
+               n_embedding=30,
+               periodic_table_length=83,
+               init='glorot_uniform',
+               **kwargs):
+    self.n_embedding = n_embedding
+    self.periodic_table_length = periodic_table_length
+    self.init = initializations.get(init)  # Set weight initialization
+
+    super(DTNNEmbedding, self).__init__(**kwargs)
+
+  def build(self):
+
+    self.embedding_list = self.init(
+        [self.periodic_table_length, self.n_embedding])
+    self.trainable_weights = [self.embedding_list]
+
+  def _create_tensor(self):
     """Execute this layer on input tensors.
 
-    x = [atom_features, atom_split]
-    
     Parameters
     ----------
-    x: list
-      Tensors as listed above
-    mask: bool, optional
-      Ignored. Present only to shadow superclass call() method.
+    x: Tensor 
+      1D tensor of length n_atoms (atomic number)
 
     Returns
     -------
-    outputs: Tensor
-      Tensor of molecular features
+    tf.Tensor
+      Of shape (n_atoms, n_embedding), where n_embedding is number of atom features
     """
-    # Add trainable weights
     self.build()
-    outputs = x[0]
-    atom_split = x[1]
+    atom_number = self.in_layers[0].out_tensor
+    atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
+    self.out_tensor = atom_features
 
-    if self.gaussian_expand:
-      outputs = self.gaussian_histogram(outputs)
 
-    output_molecules = tf.segment_sum(outputs, atom_split)
-    
-    if self.gaussian_expand:
-      output_molecules = tf.matmul(output_molecules, self.W) + self.b
-      output_molecules = self.activation(output_molecules)
-    return output_molecules
+class DTNNStep(Layer):
+  """A convolution step that merge in distance and atom info of 
+     all other atoms into current atom.
+   
+     model based on https://arxiv.org/abs/1609.08259
+  """
+
+  def __init__(self,
+               n_embedding=30,
+               n_distance=100,
+               n_hidden=60,
+               init='glorot_uniform',
+               activation='tanh',
+               **kwargs):
+    self.n_embedding = n_embedding
+    self.n_distance = n_distance
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+
+    super(DTNNStep, self).__init__(**kwargs)
+
+  def build(self):
+    self.W_cf = self.init([self.n_embedding, self.n_hidden])
+    self.W_df = self.init([self.n_distance, self.n_hidden])
+    self.W_fc = self.init([self.n_hidden, self.n_embedding])
+    self.b_cf = model_ops.zeros(shape=[
+        self.n_hidden,
+    ])
+    self.b_df = model_ops.zeros(shape=[
+        self.n_hidden,
+    ])
+    #self.b_fc = model_ops.zeros(shape=[self.n_embedding,])
+
+    self.trainable_weights = [
+        self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
+    ]
+
+  def _create_tensor(self):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: list of Tensor 
+      should be [atom_features: n_atoms*n_embedding, 
+                 distance_matrix: n_pairs*n_distance,
+                 atom_membership: n_atoms
+                 distance_membership_i: n_pairs,
+                 distance_membership_j: n_pairs,
+                 ]
+
+    Returns
+    -------
+    tf.Tensor
+      new embeddings for atoms, same shape as x[0]
+    """
+    self.build()
+    atom_features = self.in_layers[0].out_tensor
+    distance = self.in_layers[1].out_tensor
+    distance_membership_i = self.in_layers[2].out_tensor
+    distance_membership_j = self.in_layers[3].out_tensor
+    distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
+    #distance_hidden = self.activation(distance_hidden)
+    atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
+    #atom_features_hidden = self.activation(atom_features_hidden)
+    outputs = tf.multiply(distance_hidden,
+                          tf.gather(atom_features_hidden,
+                                    distance_membership_j))
+
+    # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
+    # and embeddings of atom j(both gone through a hidden layer)
+    outputs = tf.matmul(outputs, self.W_fc)
+    outputs = self.activation(outputs)
+
+    output_ii = tf.multiply(self.b_df, atom_features_hidden)
+    output_ii = tf.matmul(output_ii, self.W_fc)
+    output_ii = self.activation(output_ii)
+
+    # for atom i, sum the influence from all other atom j in the molecule
+    outputs = tf.segment_sum(outputs,
+                             distance_membership_i) - output_ii + atom_features
+    self.out_tensor = outputs
+
+
+class DTNNGather(Layer):
+  """Map the atomic features into molecular properties and sum
+  """
+
+  def __init__(self,
+               n_embedding=30,
+               n_outputs=100,
+               layer_sizes=[100],
+               init='glorot_uniform',
+               activation='tanh',
+               **kwargs):
+    self.n_embedding = n_embedding
+    self.n_outputs = n_outputs
+    self.layer_sizes = layer_sizes
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+
+    super(DTNNGather, self).__init__(**kwargs)
+
+  def build(self):
+    self.W_list = []
+    self.b_list = []
+    prev_layer_size = self.n_embedding
+    for i, layer_size in enumerate(self.layer_sizes):
+      self.W_list.append(self.init([prev_layer_size, layer_size]))
+      self.b_list.append(model_ops.zeros(shape=[
+          layer_size,
+      ]))
+      prev_layer_size = layer_size
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
+    self.b_list.append(model_ops.zeros(shape=[
+        self.n_outputs,
+    ]))
+    prev_layer_size = self.n_outputs
+
+    self.trainable_weights = self.W_list + self.b_list
+
+  def _create_tensor(self):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    x: list of Tensor 
+      should be [embedding tensor of molecules, of shape (batch_size*max_n_atoms*n_embedding),
+                 mask tensor of molecules, of shape (batch_size*max_n_atoms)]
+
+    Returns
+    -------
+    list of tf.Tensor
+      Of shape (batch_size)
+    """
+    self.build()
+    output = self.in_layers[0].out_tensor
+    atom_membership = self.in_layers[1].out_tensor
+    for i, W in enumerate(self.W_list):
+      output = tf.matmul(output, W) + self.b_list[i]
+      output = self.activation(output)
+    output = tf.segment_sum(output, atom_membership)
+    self.out_tensor = output

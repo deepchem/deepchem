@@ -921,7 +921,7 @@ class DTNNStep(Layer):
     distance = x[1]
     atom_membership = x[2]
     distance_membership_i = x[3]
-    distance_membership_j = x[3]
+    distance_membership_j = x[4]
     distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
     #distance_hidden = self.activation(distance_hidden)
     atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
