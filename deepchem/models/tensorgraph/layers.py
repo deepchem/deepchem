@@ -121,6 +121,7 @@ class Dense(Layer):
     if len(self.in_layers) != 1:
       raise ValueError("Only One Parent to Dense over %s" % self.in_layers)
     parent = self.in_layers[0]
+    print(parent.out_tensor)
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
         parent.out_tensor,
@@ -280,7 +281,6 @@ class Input(Layer):
   def get_pre_q_name(self):
     return "%s_pre_q" % self.name
 
-
 class Feature(Input):
   def __init__(self, **kwargs):
     super(Feature, self).__init__(**kwargs)
@@ -412,16 +412,14 @@ class InputFifoQueue(Layer):
   During the fitting process
   """
 
-  def __init__(self, shapes, names, dtypes=None, capacity=5, **kwargs):
+  def __init__(self, shapes, names, capacity=5, **kwargs):
     self.shapes = shapes
     self.names = names
     self.capacity = capacity
-    self.dtypes = dtypes
     super(InputFifoQueue, self).__init__(**kwargs)
 
   def _create_tensor(self):
-    if self.dtypes is None:
-      self.dtypes = [tf.float32] * len(self.shapes)
+    self.dtypes = [x.dtype for x in self.in_layers]
     self.queue = tf.FIFOQueue(
       self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in self.in_layers}

@@ -35,5 +35,6 @@ yes | pip install --upgrade $protobuf_url
 yes | pip install --upgrade $protobuf_url
 conda install -y -c anaconda networkx=1.11
 conda install -y -c bioconda xgboost=0.6a2
+conda install -y -c pillow
 yes | pip install $tensorflow==1.0.1
 yes | pip install nose

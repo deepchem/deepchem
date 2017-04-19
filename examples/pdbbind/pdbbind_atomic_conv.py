@@ -232,6 +232,7 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
       orig_dict[complex_z] = complex_Z_b
       orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
       yield orig_dict
+      break
 
 
 tg = TensorGraph(
@@ -242,7 +243,7 @@ tg.add_output(score)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=10))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=1))
 
 metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),

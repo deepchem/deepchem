@@ -243,7 +243,7 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
+        self._initialize_weights(sess, saver)
         out_tensors = [x.out_tensor for x in self.outputs]
         results = []
         for feed_dict in generator:
