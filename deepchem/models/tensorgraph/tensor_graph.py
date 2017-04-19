@@ -316,6 +316,7 @@ class TensorGraph(Model):
       print(order)
       for node in order:
         with tf.name_scope(node):
+          print(node)
           node_layer = self.layers[node]
           node_layer._create_tensor()
       self.built = True

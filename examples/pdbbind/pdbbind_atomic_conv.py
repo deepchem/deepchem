@@ -22,30 +22,57 @@ from pdbbind_datasets import load_pdbbind_grid
 split = "random"
 subset = "core"
 tasks, datasets, _ = load_pdbbind_grid(
-    split, featurizer="atomic_conv", subset=subset)
+  split, featurizer="atomic_conv", subset=subset)
 train_dataset, valid_dataset, test_dataset = datasets
 
 
 class AtomicConvScore(Layer):
-
-  def __init__(self, **kwargs):
+  def __init__(self, atom_types, **kwargs):
+    self.atom_types = atom_types
     super().__init__(**kwargs)
 
   def _create_tensor(self):
-    frag1_outputs = self.in_layers[0].out_tensor
-    frag2_outputs = self.in_layers[1].out_tensor
-    complex_outputs = self.in_layers[2].out_tensor
+    frag1_z = self.in_layers[-3].out_tensor
+    frag2_z = self.in_layers[-2].out_tensor
+    complex_z = self.in_layers[-1].out_tensor
 
-    frag1_energy = tf.reduce_sum(frag1_outputs, 0)
-    frag2_energy = tf.reduce_sum(frag2_outputs, 0)
-    complex_energy = tf.reduce_sum(complex_outputs, 0)
-    binding_energy = complex_energy - frag1_energy - frag2_energy
+    B = frag1_z.get_shape()[0].value
+    N_1 = frag1_z.get_shape()[1].value
+    N_2 = frag2_z.get_shape()[1].value
+    N = complex_z.get_shape()[1].value
+
+    frag1_zeros = tf.zeros((B, N_1))
+    frag2_zeros = tf.zeros((B, N_2))
+    complex_zeros = tf.zeros((B, N))
+    frag1_atomtype_energy = []
+    frag2_atomtype_energy = []
+    complex_atomtype_energy = []
+    for index, atomtype in enumerate(self.atom_types):
+      frag1_outputs = tf.squeeze(self.in_layers[index * 3].out_tensor)
+      frag2_outputs = tf.squeeze(self.in_layers[index * 3 + 1].out_tensor)
+      complex_outputs = tf.squeeze(self.in_layers[index * 3 + 2].out_tensor)
+
+      cond = tf.equal(frag1_z, atomtype)
+      frag1_atomtype_energy.append(tf.where(cond, frag1_outputs, frag1_zeros))
+      cond = tf.equal(frag2_z, atomtype)
+      frag2_atomtype_energy.append(tf.where(cond, frag2_outputs, frag2_zeros))
+      cond = tf.equal(complex_z, atomtype)
+      complex_atomtype_energy.append(tf.where(cond, complex_outputs, complex_zeros))
+
+    frag1_outputs = tf.add_n(frag1_atomtype_energy)
+    frag2_outputs = tf.add_n(frag2_atomtype_energy)
+    complex_outputs = tf.add_n(complex_atomtype_energy)
+
+    frag1_energy = tf.reduce_sum(frag1_outputs, 1)
+    frag2_energy = tf.reduce_sum(frag2_outputs, 1)
+    complex_energy = tf.reduce_sum(complex_outputs, 1)
+    binding_energy = complex_energy - (frag1_energy + frag2_energy)
     self.out_tensor = tf.expand_dims(binding_energy, axis=1)
     return self.out_tensor
 
 
 transformers = [
-    dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
+  dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
 ]
 
 for transformer in transformers:
@@ -62,66 +89,83 @@ batch_size = 300
 at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
 radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
 rp = [x for x in itertools.product(*radial)]
-layer_sizes = [32, 32, 16, 1]
+layer_sizes = [32, 32, 16]
 dropouts = [0., 0., 0.]
 penalty = 0.
 
 frag1_X = Feature(shape=(batch_size, frag1_num_atoms, 3))
 frag1_nbrs = Feature(shape=(batch_size, frag1_num_atoms, max_num_neighbors))
 frag1_nbrs_z = Feature(shape=(batch_size, frag1_num_atoms, max_num_neighbors))
+frag1_z = Feature(shape=(batch_size, frag1_num_atoms))
 
 frag2_X = Feature(shape=(batch_size, frag2_num_atoms, 3))
 frag2_nbrs = Feature(shape=(batch_size, frag2_num_atoms, max_num_neighbors))
 frag2_nbrs_z = Feature(shape=(batch_size, frag2_num_atoms, max_num_neighbors))
+frag2_z = Feature(shape=(batch_size, frag2_num_atoms))
 
 complex_X = Feature(shape=(batch_size, complex_num_atoms, 3))
 complex_nbrs = Feature(shape=(batch_size, complex_num_atoms, max_num_neighbors))
 complex_nbrs_z = Feature(shape=(batch_size, complex_num_atoms,
                                 max_num_neighbors))
+complex_z = Feature(shape=(batch_size, complex_num_atoms))
 
 frag1_conv = AtomicConvolution(
-    atom_types=at,
-    radial_params=rp,
-    boxsize=None,
-    in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
+  atom_types=at,
+  radial_params=rp,
+  boxsize=None,
+  in_layers=[frag1_X, frag1_nbrs, frag1_nbrs_z])
 
 frag2_conv = AtomicConvolution(
-    atom_types=at,
-    radial_params=rp,
-    boxsize=None,
-    in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
+  atom_types=at,
+  radial_params=rp,
+  boxsize=None,
+  in_layers=[frag2_X, frag2_nbrs, frag2_nbrs_z])
 
 complex_conv = AtomicConvolution(
-    atom_types=at,
-    radial_params=rp,
-    boxsize=None,
-    in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
+  atom_types=at,
+  radial_params=rp,
+  boxsize=None,
+  in_layers=[complex_X, complex_nbrs, complex_nbrs_z])
 
-frag1_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag1_conv])
-frag2_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag2_conv])
-complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
+# frag1_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag1_conv])
+# frag2_conv = Transpose(out_shape=[2, 1, 0], in_layers=[frag2_conv])
+# complex_conv = Transpose(out_shape=[2, 1, 0], in_layers=[complex_conv])
 
-for layer_size in layer_sizes:
-  frag1_conv = Dense(
+score_in_layers = []
+for atom_type in at:
+  at_frag1_conv = frag1_conv
+  at_frag2_conv = frag2_conv
+  at_complex_conv = complex_conv
+  for layer_size in layer_sizes:
+    at_frag1_conv = Dense(
       out_channels=layer_size,
       activation_fn=tf.nn.relu,
       time_series=True,
-      in_layers=[frag1_conv])
-  frag2_conv = frag1_conv.shared(in_layers=[frag2_conv])
-  complex_conv = frag1_conv.shared(in_layers=[complex_conv])
+      in_layers=[at_frag1_conv])
+    at_frag2_conv = at_frag1_conv.shared(in_layers=[at_frag2_conv])
+    at_complex_conv = at_frag1_conv.shared(in_layers=[at_complex_conv])
+  at_frag1_conv = Dense(
+    out_channels=1,
+    activation_fn=None,
+    time_series=True,
+    in_layers=[at_frag1_conv])
+  at_frag2_conv = at_frag1_conv.shared(in_layers=[at_frag2_conv])
+  at_complex_conv = at_frag1_conv.shared(in_layers=[at_complex_conv])
+  score_in_layers.append(at_frag1_conv)
+  score_in_layers.append(at_frag2_conv)
+  score_in_layers.append(at_complex_conv)
 
-score = AtomicConvScore(in_layers=[frag1_conv, frag2_conv, complex_conv])
+score_in_layers.extend([frag1_z, frag2_z, complex_z])
+score = AtomicConvScore(atom_types=at, in_layers=score_in_layers)
 
 label = Label(shape=(None, 1))
 loss = L2LossLayer(in_layers=[score, label])
 
 
 def feed_dict_generator(dataset, batch_size, epochs=1):
-  total_time = 0
   for epoch in range(epochs):
     for ind, (F_b, y_b, w_b, ids_b
-             ) in enumerate(dataset.iterbatches(batch_size, pad_batches=True)):
-      time1 = time.time()
+              ) in enumerate(dataset.iterbatches(batch_size, pad_batches=True)):
       N = complex_num_atoms
       N_1 = frag1_num_atoms
       N_2 = frag2_num_atoms
@@ -156,9 +200,9 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
           frag1_Nbrs[i, atom, :len(atom_nbrs)] = np.array(atom_nbrs)
           for j, atom_j in enumerate(atom_nbrs):
             frag1_Nbrs_Z[i, atom, j] = frag1_Z_b[i, atom_j]
-
       orig_dict[frag1_nbrs] = frag1_Nbrs
       orig_dict[frag1_nbrs_z] = frag1_Nbrs_Z
+      orig_dict[frag1_z] = frag1_Z_b
 
       frag2_Nbrs = np.zeros((batch_size, N_2, M))
       frag2_Z_b = np.zeros((batch_size, N_2))
@@ -171,9 +215,9 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
           frag2_Nbrs[i, atom, :len(atom_nbrs)] = np.array(atom_nbrs)
           for j, atom_j in enumerate(atom_nbrs):
             frag2_Nbrs_Z[i, atom, j] = frag2_Z_b[i, atom_j]
-
       orig_dict[frag2_nbrs] = frag2_Nbrs
       orig_dict[frag2_nbrs_z] = frag2_Nbrs_Z
+      orig_dict[frag2_z] = frag2_Z_b
 
       complex_Nbrs = np.zeros((batch_size, N, M))
       complex_Z_b = np.zeros((batch_size, N))
@@ -189,34 +233,33 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
 
       orig_dict[complex_nbrs] = complex_Nbrs
       orig_dict[complex_nbrs_z] = complex_Nbrs_Z
+      orig_dict[complex_z] = complex_Z_b
       orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
-      time2 = time.time()
-      total_time += time1 - time2
-      # print("total time: %s" % total_time)
       yield orig_dict
+      break
 
 
 tg = TensorGraph(
-    batch_size=batch_size,
-    mode=str("regression"),
-    model_dir=str("/tmp/atom_conv"))
+  batch_size=batch_size,
+  mode=str("regression"),
+  model_dir=str("/tmp/atom_conv"))
 tg.add_output(score)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=100))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=10))
 
 metric = [
-    dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
-    dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+  dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
+  dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
 train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-    tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
+  tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
 train_scores = train_evaluator.compute_model_performance(metric)
 print("Train scores")
 print(train_scores)
 test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-    tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
+  tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
 test_scores = test_evaluator.compute_model_performance(metric)
 print("Test scores")
 print(test_scores)
