@@ -12,7 +12,7 @@ from tensorflow.python.framework.errors_impl import OutOfRangeError
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
-from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -23,6 +23,7 @@ class TensorGraph(Model):
                tensorboard_log_frequency=100,
                learning_rate=0.001,
                batch_size=100,
+               random_seed=None,
                use_queue=True,
                mode="regression",
                **kwargs):
@@ -81,6 +82,7 @@ class TensorGraph(Model):
 
     self.learning_rate = learning_rate
     self.batch_size = batch_size
+    self.random_seed = random_seed
     super(TensorGraph, self).__init__(**kwargs)
     self.save_file = "%s/%s" % (self.model_dir, "model")
     self.model_class = None
@@ -88,11 +90,11 @@ class TensorGraph(Model):
   def _add_layer(self, layer):
     if layer.name in self.layers:
       return
-    if layer.__class__.__name__ == "Feature":
+    if isinstance(layer, Feature):
       self.features.append(layer)
-    if layer.__class__.__name__ == "Label":
+    if isinstance(layer, Label):
       self.labels.append(layer)
-    if layer.__class__.__name__ == "Weight":
+    if isinstance(layer, Weights):
       self.task_weights.append(layer)
     self.nxgraph.add_node(layer.name)
     self.layers[layer.name] = layer
@@ -307,6 +309,8 @@ class TensorGraph(Model):
     if self.built:
       return
     with self._get_tf("Graph").as_default():
+      if self.random_seed is not None:
+        tf.set_random_seed(self.random_seed)
       self._install_queue()
       order = self.topsort()
       print(order)
@@ -387,7 +391,7 @@ class TensorGraph(Model):
     self.tensor_objects = tensor_objects
 
   def evaluate_generator(self,
-                         dataset,
+                         feed_dict_generator,
                          metrics,
                          transformers=[],
                          labels=None,
@@ -399,7 +403,7 @@ class TensorGraph(Model):
       raise ValueError
     evaluator = GeneratorEvaluator(
         self,
-        dataset,
+        feed_dict_generator,
         transformers,
         labels=labels,
         outputs=outputs,

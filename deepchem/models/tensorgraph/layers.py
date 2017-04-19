@@ -2,15 +2,17 @@ import random
 import string
 
 import tensorflow as tf
+import numpy as np
 
 from deepchem.nn import model_ops, initializations
 
 
 class Layer(object):
+  layer_number_dict = {}
 
   def __init__(self, in_layers=None, **kwargs):
     if "name" not in kwargs:
-      self.name = "%s%s" % (self.__class__.__name__, self._random_name())
+      self.name = "%s_%s" % (self.__class__.__name__, self._get_layer_number())
     else:
       self.name = kwargs['name']
     if "tensorboard" not in kwargs:
@@ -20,10 +22,14 @@ class Layer(object):
     if in_layers is None:
       in_layers = list()
     self.in_layers = in_layers
+    self.op_type = "gpu"
 
-  def _random_name(self):
-    return ''.join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(4))
+  def _get_layer_number(self):
+    class_name = self.__class__.__name__
+    if class_name not in Layer.layer_number_dict:
+      Layer.layer_number_dict[class_name] = 0
+    Layer.layer_number_dict[class_name] += 1
+    return "%s" % Layer.layer_number_dict[class_name]
 
   def none_tensors(self):
     out_tensor = self.out_tensor
@@ -34,7 +40,7 @@ class Layer(object):
     self.out_tensor = tensor
 
   def _create_tensor(self):
-    raise ValueError("Subclasses must implement for themselves")
+    raise NotImplementedError("Subclasses must implement for themselves")
 
   def __key(self):
     return self.name
@@ -48,6 +54,20 @@ class Layer(object):
 
   def __hash__(self):
     return hash(self.__key())
+
+  def shared(self, in_layers):
+    """
+    Share weights with different in tensors and a new out tensor
+    Parameters
+    ----------
+    in_layers: list tensor
+    List in tensors for the shared layer
+
+    Returns
+    -------
+    Layer
+    """
+    raise ValueError("Each Layer must implement shared for itself")
 
   def __call__(self, *in_layers):
     if len(in_layers) > 0:
@@ -97,30 +117,64 @@ class Conv1DLayer(Layer):
 
 class Dense(Layer):
 
-  def __init__(self, out_channels, activation_fn=None, **kwargs):
+  def __init__(
+      self,
+      out_channels,
+      activation_fn=None,
+      biases_initializer=tf.zeros_initializer,
+      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
+      time_series=False,
+      scope_name=None,
+      reuse=False,
+      **kwargs):
+    super(Dense, self).__init__(**kwargs)
     self.out_channels = out_channels
     self.out_tensor = None
     self.activation_fn = activation_fn
-    super(Dense, self).__init__(**kwargs)
+    self.biases_initializer = biases_initializer
+    self.weights_initializer = weights_initializer
+    self.time_series = time_series
+    self.reuse = reuse
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
 
   def _create_tensor(self):
     if len(self.in_layers) != 1:
       raise ValueError("Only One Parent to Dense over %s" % self.in_layers)
     parent = self.in_layers[0]
-    if len(parent.out_tensor.get_shape()) != 2:
-      raise ValueError("Parent tensor must be (batch, width)")
-    in_channels = parent.out_tensor.get_shape()[-1].value
-    # w = initializations.glorot_uniform([in_channels, self.out_channels])
-    # w = model_ops.zeros(shape=[in_channels, self.out_channels])
-    # b = tf.Variable([0.0, 0.0])
-    # self.out_tensor = tf.matmul(parent.out_tensor, w) + b
-    self.out_tensor = tf.contrib.layers.fully_connected(
-        parent.out_tensor,
-        num_outputs=self.out_channels,
-        activation_fn=self.activation_fn,
-        scope=self.name,
-        trainable=True)
-    return self.out_tensor
+    if not self.time_series:
+      self.out_tensor = tf.contrib.layers.fully_connected(
+          parent.out_tensor,
+          num_outputs=self.out_channels,
+          activation_fn=self.activation_fn,
+          biases_initializer=self.biases_initializer(),
+          weights_initializer=self.weights_initializer(),
+          scope=self.scope_name,
+          reuse=self.reuse,
+          trainable=True)
+      return self.out_tensor
+    dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+                                                           num_outputs=self.out_channels,
+                                                           activation_fn=self.activation_fn,
+                                                           biases_initializer=self.biases_initializer(),
+                                                           weights_initializer=self.weights_initializer(),
+                                                           scope=self.scope_name,
+                                                           reuse=self.reuse,
+                                                           trainable=True)
+    self.out_tensor = tf.map_fn(dense_fn, parent.out_tensor)
+
+  def shared(self, in_layers):
+    self.reuse = True
+    return Dense(
+        self.out_channels,
+        self.activation_fn,
+        self.biases_initializer,
+        self.weights_initializer,
+        time_series=self.time_series,
+        reuse=self.reuse,
+        scope_name=self.scope_name,
+        in_layers=in_layers)
 
 
 class Flatten(Layer):
@@ -150,6 +204,19 @@ class Reshape(Layer):
   def _create_tensor(self):
     parent_tensor = self.in_layers[0].out_tensor
     self.out_tensor = tf.reshape(parent_tensor, self.shape)
+
+
+class Transpose(Layer):
+
+  def __init__(self, out_shape, **kwargs):
+    super(Transpose, self).__init__(**kwargs)
+    self.out_shape = out_shape
+
+  def _create_tensor(self):
+    if len(self.in_layers) != 1:
+      raise ValueError("Only One Parent to Transpose over")
+    self.out_tensor = tf.transpose(self.in_layers[0].out_tensor, self.out_shape)
+    return self.out_tensor
 
 
 class CombineMeanStd(Layer):
@@ -208,7 +275,6 @@ class GRU(Layer):
 class TimeSeriesDense(Layer):
 
   def __init__(self, out_channels, **kwargs):
-    self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
 
   def _create_tensor(self):
@@ -226,6 +292,7 @@ class Input(Layer):
     self.shape = shape
     self.dtype = dtype
     super(Input, self).__init__(**kwargs)
+    self.op_type = "cpu"
 
   def _create_tensor(self):
     if len(self.in_layers) > 0:
@@ -451,6 +518,7 @@ class InputFifoQueue(Layer):
     self.capacity = capacity
     self.dtypes = dtypes
     super(InputFifoQueue, self).__init__(**kwargs)
+    self.op_type = "cpu"
 
   def _create_tensor(self):
     if self.dtypes is None:
@@ -1060,3 +1128,261 @@ class NeighborList(Layer):
     return tf.to_float(tf.reshape(
         tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
         (self.n_cells, self.ndim)))
+
+class AtomicConvolution(Layer):
+
+  def __init__(self,
+               atom_types=None,
+               radial_params=list(),
+               boxsize=None,
+               **kwargs):
+    """Atomic convoluation layer
+
+    N = max_num_atoms, M = max_num_neighbors, B = batch_size, d = num_features
+    l = num_radial_filters * num_atom_types
+
+    Parameters
+    ----------
+    
+    atom_types: list or None
+      Of length a, where a is number of atom types for filtering.
+    radial_params: list
+      Of length l, where l is number of radial filters learned.
+    boxsize: float or None
+      Simulation box length [Angstrom].
+    
+    """
+    self.boxsize = boxsize
+    self.radial_params = radial_params
+    self.atom_types = atom_types
+    super(AtomicConvolution, self).__init__(**kwargs)
+
+  def _create_tensor(self):
+    """
+    Parameters
+    ----------
+    X: tf.Tensor of shape (B, N, d)
+      Coordinates/features.
+    Nbrs: tf.Tensor of shape (B, N, M)
+      Neighbor list.
+    Nbrs_Z: tf.Tensor of shape (B, N, M)
+      Atomic numbers of neighbor atoms.
+      
+    
+    
+    Returns
+    -------
+    layer: tf.Tensor of shape (l, B, N)
+      A new tensor representing the output of the atomic conv layer 
+    """
+
+    X = self.in_layers[0].out_tensor
+    Nbrs = tf.to_int32(self.in_layers[1].out_tensor)
+    Nbrs_Z = self.in_layers[2].out_tensor
+
+    # N: Maximum number of atoms
+    # M: Maximum number of neighbors
+    # d: Number of coordinates/features/filters
+    # B: Batch Size
+    N = X.get_shape()[-2].value
+    d = X.get_shape()[-1].value
+    M = Nbrs.get_shape()[-1].value
+    B = X.get_shape()[0].value
+
+    D = self.distance_tensor(X, Nbrs, self.boxsize, B, N, M, d)
+    R = self.distance_matrix(D)
+    sym = []
+    rsf_zeros = tf.zeros((B, N, M))
+    for param in self.radial_params:
+
+      # We apply the radial pooling filter before atom type conv
+      # to reduce computation
+      rsf = self.radial_symmetry_function(R, *param)
+
+      if not self.atom_types:
+        cond = tf.not_equal(Nbrs_Z, 0.0)
+        sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
+      else:
+        for j in range(len(self.atom_types)):
+          cond = tf.equal(Nbrs_Z, self.atom_types[j])
+          sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
+
+    # Pack l (B, N) tensors into one (l, B, N) tensor
+    # Transpose to (B, N, l) for conv layer stacking
+    # done inside conv_layer loops to reduce transpose ops
+    # Final layer should be shape (N, B, l) to pass into tf.map_fn
+    # TODO (LESWING) batch norm
+    self.out_tensor = tf.stack(sym)
+    return self.out_tensor
+
+  def radial_symmetry_function(self, R, rc, rs, e):
+    """Calculates radial symmetry function.
+  
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_filters
+  
+    Parameters
+    ----------
+    R: tf.Tensor of shape (B, N, M)
+      Distance matrix.
+    rc: float
+      Interaction cutoff [Angstrom].
+    rs: float
+      Gaussian distance matrix mean.
+    e: float
+      Gaussian distance matrix width.
+  
+    Returns
+    -------
+    retval: tf.Tensor of shape (B, N, M)
+      Radial symmetry function (before summation)
+  
+    """
+
+    with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
+      rc = tf.Variable(rc)
+      rs = tf.Variable(rs)
+      e = tf.Variable(e)
+      K = self.gaussian_distance_matrix(R, rs, e)
+      FC = self.radial_cutoff(R, rc)
+    return tf.multiply(K, FC)
+
+  def radial_cutoff(self, R, rc):
+    """Calculates radial cutoff matrix.
+
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors
+
+    Parameters
+    ----------
+      R [B, N, M]: tf.Tensor
+        Distance matrix.
+      rc: tf.Variable
+        Interaction cutoff [Angstrom].
+
+    Returns
+    -------
+      FC [B, N, M]: tf.Tensor
+        Radial cutoff matrix.
+
+    """
+
+    T = 0.5 * (tf.cos(np.pi * R / (rc)) + 1)
+    E = tf.zeros_like(T)
+    cond = tf.less_equal(R, rc)
+    FC = tf.where(cond, T, E)
+    return FC
+
+  def gaussian_distance_matrix(self, R, rs, e):
+    """Calculates gaussian distance matrix.
+
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors
+
+    Parameters
+    ----------
+      R [B, N, M]: tf.Tensor
+        Distance matrix.
+      rs: tf.Variable
+        Gaussian distance matrix mean.
+      e: tf.Variable
+        Gaussian distance matrix width (e = .5/std**2).
+
+    Returns
+    -------
+      retval [B, N, M]: tf.Tensor
+        Gaussian distance matrix.
+
+    """
+
+    return tf.exp(-e * (R - rs)**2)
+
+  def distance_tensor(self, X, Nbrs, boxsize, B, N, M, d):
+    """Calculates distance tensor for batch of molecules.
+
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
+
+    Parameters
+    ----------
+    X: tf.Tensor of shape (B, N, d)
+      Coordinates/features tensor.
+    Nbrs: tf.Tensor of shape (B, N, M)
+      Neighbor list tensor.
+    boxsize: float or None
+      Simulation box length [Angstrom].
+
+    Returns
+    -------
+    D: tf.Tensor of shape (B, N, M, d)
+      Coordinates/features distance tensor.
+
+    """
+    atom_tensors = tf.unstack(X, axis=1)
+    nbr_tensors = tf.unstack(Nbrs, axis=1)
+    D = []
+    if boxsize is not None:
+      for atom, atom_tensor in enumerate(atom_tensors):
+        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
+        nbrs_tensors = tf.unstack(nbrs, axis=1)
+        for nbr, nbr_tensor in enumerate(nbrs_tensors):
+          _D = tf.subtract(nbr_tensor, atom_tensor)
+          _D = tf.subtract(_D, boxsize * tf.round(tf.div(_D, boxsize)))
+          D.append(_D)
+    else:
+      for atom, atom_tensor in enumerate(atom_tensors):
+        nbrs = self.gather_neighbors(X, nbr_tensors[atom], B, N, M, d)
+        nbrs_tensors = tf.unstack(nbrs, axis=1)
+        for nbr, nbr_tensor in enumerate(nbrs_tensors):
+          _D = tf.subtract(nbr_tensor, atom_tensor)
+          D.append(_D)
+    D = tf.stack(D)
+    D = tf.transpose(D, perm=[1, 0, 2])
+    D = tf.reshape(D, [B, N, M, d])
+    return D
+
+  def gather_neighbors(self, X, nbr_indices, B, N, M, d):
+    """Gathers the neighbor subsets of the atoms in X.
+  
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
+  
+    Parameters
+    ----------
+    X: tf.Tensor of shape (B, N, d)
+      Coordinates/features tensor.
+    atom_indices: tf.Tensor of shape (B, M)
+      Neighbor list for single atom.
+  
+    Returns
+    -------
+    neighbors: tf.Tensor of shape (B, M, d)
+      Neighbor coordinates/features tensor for single atom.
+  
+    """
+
+    example_tensors = tf.unstack(X, axis=0)
+    example_nbrs = tf.unstack(nbr_indices, axis=0)
+    all_nbr_coords = []
+    for example, (example_tensor,
+                  example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
+      nbr_coords = tf.gather(example_tensor, example_nbr)
+      all_nbr_coords.append(nbr_coords)
+    neighbors = tf.stack(all_nbr_coords)
+    return neighbors
+
+  def distance_matrix(self, D):
+    """Calcuates the distance matrix from the distance tensor
+
+    B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
+
+    Parameters
+    ----------
+    D: tf.Tensor of shape (B, N, M, d)
+      Distance tensor.
+
+    Returns
+    -------
+    R: tf.Tensor of shape (B, N, M)
+       Distance matrix.
+
+    """
+
+    R = tf.reduce_sum(tf.multiply(D, D), 3)
+    R = tf.sqrt(R)
+    return R

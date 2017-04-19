@@ -74,7 +74,7 @@ class TestTensorGraph(unittest.TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=100, batch_size=tg.batch_size, pad_batches=True))
+            epochs=5000, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -208,3 +208,44 @@ class TestTensorGraph(unittest.TestCase):
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
     prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
+
+  def test_shared_layer(self):
+    n_data_points = 20
+    n_features = 2
+
+    X = np.random.rand(n_data_points, n_features)
+    y1 = np.array([[0, 1] for x in range(n_data_points)])
+    X = NumpyDataset(X)
+    ys = [NumpyDataset(y1)]
+
+    databag = Databag()
+
+    features = Feature(shape=(None, n_features))
+    databag.add_dataset(features, X)
+
+    outputs = []
+
+    label = Label(shape=(None, 2))
+    dense1 = Dense(out_channels=2, in_layers=[features])
+    dense2 = dense1.shared(in_layers=[features])
+    output1 = SoftMax(in_layers=[dense1])
+    output2 = SoftMax(in_layers=[dense2])
+    smce = SoftMaxCrossEntropy(in_layers=[label, dense1])
+
+    outputs.append(output1)
+    outputs.append(output2)
+    databag.add_dataset(label, ys[0])
+
+    total_loss = ReduceMean(in_layers=[smce])
+
+    tg = dc.models.TensorGraph(learning_rate=0.1)
+    for output in outputs:
+      tg.add_output(output)
+    tg.set_loss(total_loss)
+
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=1, batch_size=tg.batch_size, pad_batches=True))
+    prediction = tg.predict_proba_on_generator(databag.iterbatches())
+    assert_true(
+        np.all(np.isclose(prediction[:, 0], prediction[:, 1], atol=0.01)))
