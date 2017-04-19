@@ -866,8 +866,7 @@ class NeighborList(Layer):
   are close to each other spatially
   """
 
-  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop,
-               **kwargs):
+  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, **kwargs):
     """
     Parameters
     ----------
@@ -919,8 +918,8 @@ class NeighborList(Layer):
     nbr_list: tf.Tensor
       Shape (N_atoms, M_nbrs) of atom indices
     """
-    N_atoms, M_nbrs, n_cells, ndim = (
-        self.N_atoms, self.M_nbrs, self.n_cells, self.ndim)
+    N_atoms, M_nbrs, n_cells, ndim = (self.N_atoms, self.M_nbrs, self.n_cells,
+                                      self.ndim)
     nbr_cutoff = self.nbr_cutoff
     coords = tf.to_float(coords)
     # Shape (n_cells, ndim)
@@ -939,9 +938,11 @@ class NeighborList(Layer):
     # TODO(rbharath): How does distance need to be modified here to   
     # account for periodic boundary conditions?   
     # Shape (N_atoms, n_nbr_cells, M_nbrs)
-    dists = [tf.reduce_sum((atom_coord - nbr_coord)**2, axis=1)
-             for (atom_coord, nbr_coord) in zip(atom_coords, nbr_coords)]
-  
+    dists = [
+        tf.reduce_sum((atom_coord - nbr_coord)**2, axis=1)
+        for (atom_coord, nbr_coord) in zip(atom_coords, nbr_coords)
+    ]
+
     # TODO(rbharath): What if uniques_i < M_nbrs? Will crash
     # List of length N_atoms each of size M_nbrs
     closest_nbr_inds = [tf.nn.top_k(-dist, k=M_nbrs)[1] for dist in dists]
@@ -949,8 +950,7 @@ class NeighborList(Layer):
     # N_atoms elts of size (M_nbrs,) each 
     neighbor_list = [
         tf.gather(atom_nbrs, closest_nbr_ind)
-        for (atom_nbrs, closest_nbr_ind)
-        in zip(nbrs, closest_nbr_inds)
+        for (atom_nbrs, closest_nbr_ind) in zip(nbrs, closest_nbr_inds)
     ]
 
     # Shape (N_atoms, M_nbrs)
@@ -988,13 +988,15 @@ class NeighborList(Layer):
 
     # List of length N_atoms, each element length uniques_i
     nbrs_per_atom = tf.split(atoms_in_nbrs, self.N_atoms)
-    uniques = [tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom]
+    uniques = [
+        tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom
+    ]
 
     # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
     # element removed to remove self from list of neighbors. Need to verify
     # this holds more broadly or come up with robust alternative.
     uniques = [unique[1:] for unique in uniques]
-    
+
     return uniques
 
   def get_closest_atoms(self, coords, cells):
@@ -1014,11 +1016,11 @@ class NeighborList(Layer):
     closest_inds: tf.Tensor 
       Of shape (n_cells, M_nbrs)
     """
-    N_atoms, n_cells, ndim, M_nbrs = (
-        self.N_atoms, self.n_cells, self.ndim, self.M_nbrs)
+    N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
+                                      self.M_nbrs)
     # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-    tiled_cells = tf.reshape(tf.tile(cells, (1, N_atoms)),
-                             (N_atoms * n_cells, ndim))
+    tiled_cells = tf.reshape(
+        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
 
     # Shape (N_atoms*n_cells, ndim) after tile
     tiled_coords = tf.tile(coords, (n_cells, 1))
@@ -1031,7 +1033,7 @@ class NeighborList(Layer):
     # Find k atoms closest to this cell. Notice negative sign since
     # tf.nn.top_k returns *largest* not smallest.
     # Tensor of shape (n_cells, M_nbrs)
-    closest_inds = tf.nn.top_k(-coords_norm,k=M_nbrs)[1]
+    closest_inds = tf.nn.top_k(-coords_norm, k=M_nbrs)[1]
 
     return closest_inds
 
@@ -1057,10 +1059,10 @@ class NeighborList(Layer):
     # Shape (N_atoms*n_cells, 1) after tile
     tiled_coords = tf.reshape(
         tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
-    coords_vec = tf.reduce_sum((tiled_coords-tiled_cells)**2, axis=1)
+    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
     coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
 
-    closest_inds = tf.nn.top_k(-coords_norm,k=1)[1]
+    closest_inds = tf.nn.top_k(-coords_norm, k=1)[1]
     return closest_inds
 
   def _get_num_nbrs(self):
@@ -1125,9 +1127,11 @@ class NeighborList(Layer):
     """
     start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
     mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
-    return tf.to_float(tf.reshape(
-        tf.transpose(tf.stack(tf.meshgrid(*mesh_args))),
-        (self.n_cells, self.ndim)))
+    return tf.to_float(
+        tf.reshape(
+            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))), (self.n_cells,
+                                                              self.ndim)))
+
 
 class AtomicConvolution(Layer):
 

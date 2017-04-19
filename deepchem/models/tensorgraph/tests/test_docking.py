@@ -49,8 +49,7 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     features = Feature(shape=(N_atoms, ndim))
     labels = Label(shape=(N_atoms,))
-    nbr_list = NeighborList(
-        N_atoms, M, ndim, nbr_cutoff, in_layers=[features])
+    nbr_list = NeighborList(N_atoms, M, ndim, nbr_cutoff, in_layers=[features])
     nbr_list = ToFloat(in_layers=[nbr_list])
     # This isn't a meaningful loss, but just for test
     loss = ReduceSum(in_layers=[nbr_list])
@@ -160,8 +159,8 @@ class TestDocking(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
       coords = tf.stack(coords)
-      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff,
-                              start, stop)(coords)
+      nbr_list = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                              stop)(coords)
       nbr_list = nbr_list.eval()
       assert nbr_list.shape == (N_atoms, M_nbrs)
 
@@ -179,11 +178,12 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       cells = nbr_list_layer.get_cells()
       cells_eval = cells.eval()
       true_cells = np.reshape(np.arange(10), (10, 1))
-      np.testing.assert_array_almost_equal(cells_eval, true_cells) 
+      np.testing.assert_array_almost_equal(cells_eval, true_cells)
 
   def test_get_closest_atoms_1D(self):
     """Test get_closest_atoms works correctly in 1D"""
@@ -199,14 +199,15 @@ class TestDocking(test_util.TensorFlowTestCase):
     coords = np.reshape(coords, (N_atoms, M_nbrs))
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       cells = nbr_list_layer.get_cells()
       closest_atoms = nbr_list_layer.get_closest_atoms(coords, cells)
-      atoms_in_cells_eval = closest_atoms.eval() 
+      atoms_in_cells_eval = closest_atoms.eval()
       true_atoms_in_cells = np.reshape(
           np.array([0, 0, 1, 1, 1, 1, 2, 2, 2, 3]), (n_cells, M_nbrs))
-      np.testing.assert_array_almost_equal(
-          atoms_in_cells_eval, true_atoms_in_cells)
+      np.testing.assert_array_almost_equal(atoms_in_cells_eval,
+                                           true_atoms_in_cells)
 
   def test_get_neighbor_cells_1D(self):
     """Test that get_neighbor_cells works in 1D"""
@@ -222,21 +223,14 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       cells = nbr_list_layer.get_cells()
       nbr_cells = nbr_list_layer.get_neighbor_cells(cells)
       nbr_cells_eval = nbr_cells.eval()
-      true_nbr_cells = np.array(
-          [[0, 1, 2],
-           [1, 0, 2],
-           [2, 1, 3],
-           [3, 2, 4],
-           [4, 3, 5],
-           [5, 4, 6],
-           [6, 5, 7],
-           [7, 6, 8],
-           [8, 7, 9],
-           [9, 8, 7]])
+      true_nbr_cells = np.array([[0, 1, 2], [1, 0, 2], [2, 1, 3], [3, 2, 4],
+                                 [4, 3, 5], [5, 4, 6], [6, 5, 7], [7, 6, 8],
+                                 [8, 7, 9], [9, 8, 7]])
       np.testing.assert_array_almost_equal(nbr_cells_eval, true_nbr_cells)
 
   def test_get_cells_for_atoms_1D(self):
@@ -253,17 +247,14 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       cells = nbr_list_layer.get_cells()
       cells_for_atoms = nbr_list_layer.get_cells_for_atoms(coords, cells)
       cells_for_atoms_eval = cells_for_atoms.eval()
-      true_cells_for_atoms = np.array(
-          [[1],
-           [2],
-           [8],
-           [9]])
-      np.testing.assert_array_almost_equal(cells_for_atoms_eval, true_cells_for_atoms)
-
+      true_cells_for_atoms = np.array([[1], [2], [8], [9]])
+      np.testing.assert_array_almost_equal(cells_for_atoms_eval,
+                                           true_cells_for_atoms)
 
   def test_get_atoms_in_nbrs_1D(self):
     """Test get_atoms_in_brs in 1D"""
@@ -279,20 +270,16 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       cells = nbr_list_layer.get_cells()
       uniques = nbr_list_layer.get_atoms_in_nbrs(coords, cells)
 
       uniques_eval = [unique.eval() for unique in uniques]
       uniques_eval = np.array(uniques_eval)
 
-      true_uniques = np.array(
-        [[1],
-         [0],
-         [3],
-         [2]])
+      true_uniques = np.array([[1], [0], [3], [2]])
       np.testing.assert_array_almost_equal(uniques_eval, true_uniques)
-
 
   def test_neighbor_list_1D(self):
     """Test neighbor list on 1D example."""
@@ -308,7 +295,8 @@ class TestDocking(test_util.TensorFlowTestCase):
 
     with self.test_session() as sess:
       coords = tf.convert_to_tensor(coords, dtype=tf.float32)
-      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+      nbr_list_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
       nbr_list = nbr_list_layer.compute_nbr_list(coords)
       nbr_list = np.squeeze(nbr_list.eval())
       np.testing.assert_array_almost_equal(nbr_list, np.array([1, 0, 3, 2]))
@@ -327,8 +315,8 @@ class TestDocking(test_util.TensorFlowTestCase):
     coords = Feature(shape=(N_atoms, ndim))
 
     # Now an (N, M) shape
-    nbr_list = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
-                            stop, in_layers=[coords])
+    nbr_list = NeighborList(
+        N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, in_layers=[coords])
 
     nbr_list = ToFloat(in_layers=[nbr_list])
     flattened = Flatten(in_layers=[nbr_list])

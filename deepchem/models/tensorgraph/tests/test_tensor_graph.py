@@ -10,7 +10,6 @@ from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
-from deepchem.models.tensorgraph.layers import NeighborList
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
