@@ -854,6 +854,7 @@ class NeighborList(Layer):
     N_atoms, M_nbrs, n_cells, ndim = (
         self.N_atoms, self.M_nbrs, self.n_cells, self.ndim)
     nbr_cutoff = self.nbr_cutoff
+    coords = tf.to_float(coords)
     # Shape (n_cells, ndim)
     cells = self.get_cells()
 
@@ -887,7 +888,7 @@ class NeighborList(Layer):
     # Shape (N_atoms, M_nbrs)
     nbr_list = tf.stack(neighbor_list)
 
-    return nbrs, nbr_coords, atom_coords, dists, closest_nbr_inds, neighbor_list, nbr_list
+    return nbr_list
 
   def get_atoms_in_nbrs(self, coords, cells):
     """Get the atoms in neighboring cells for each cells.
@@ -920,6 +921,11 @@ class NeighborList(Layer):
     # List of length N_atoms, each element length uniques_i
     nbrs_per_atom = tf.split(atoms_in_nbrs, self.N_atoms)
     uniques = [tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom]
+
+    # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
+    # element removed to remove self from list of neighbors. Need to verify
+    # this holds more broadly or come up with robust alternative.
+    uniques = [unique[1:] for unique in uniques]
     
     return uniques
 
