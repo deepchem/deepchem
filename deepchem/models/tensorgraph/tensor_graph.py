@@ -161,6 +161,7 @@ class TensorGraph(Model):
             avg_loss = float(avg_loss) / n_batches
             print('Ending global_step %d: Average loss %g' %
                   (self.global_step, avg_loss))
+            avg_loss, n_batches = 0.0, 0.0
         avg_loss = float(avg_loss) / n_batches
         print('Ending global_step %d: Average loss %g' %
               (self.global_step, avg_loss))

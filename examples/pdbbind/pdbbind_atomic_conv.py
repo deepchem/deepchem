@@ -161,7 +161,7 @@ loss = L2LossLayer(in_layers=[score, label])
 def feed_dict_generator(dataset, batch_size, epochs=1):
   for epoch in range(epochs):
     for ind, (F_b, y_b, w_b, ids_b
-              ) in enumerate(dataset.iterbatches(batch_size, pad_batches=True)):
+              ) in enumerate(dataset.iterbatches(batch_size, deterministic=True, pad_batches=True)):
       N = complex_num_atoms
       N_1 = frag1_num_atoms
       N_2 = frag2_num_atoms
@@ -242,13 +242,13 @@ tg.add_output(score)
 tg.set_loss(loss)
 
 print("Fitting")
-for i in range(4):
-  tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=10))
-
-  metric = [
+metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
   dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
-  ]
+]
+for i in range(5):
+  tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=2))
+
   train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
     tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
   train_scores = train_evaluator.compute_model_performance(metric)

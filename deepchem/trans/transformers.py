@@ -910,7 +910,7 @@ class ImageTransformer(Transformer):
     """Initializes transformation based on dataset statistics."""
     self.size = size
     self.transform_X=True
-    self.transofrm_y=False
+    self.transform_y=False
     self.transform_w=False
 
   def transform_array(self, X, y, w):
@@ -918,4 +918,3 @@ class ImageTransformer(Transformer):
     images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
     images = [scipy.misc.imresize(x, size=self.size) for x in images]
     return np.array(images), y, w
-    w
