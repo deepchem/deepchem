@@ -242,19 +242,20 @@ tg.add_output(score)
 tg.set_loss(loss)
 
 print("Fitting")
-tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=40))
+for i in range(4):
+  tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=10))
 
-metric = [
+  metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
   dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
-]
-train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-  tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
-train_scores = train_evaluator.compute_model_performance(metric)
-print("Train scores")
-print(train_scores)
-test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-  tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
-test_scores = test_evaluator.compute_model_performance(metric)
-print("Test scores")
-print(test_scores)
+  ]
+  train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+    tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
+  train_scores = train_evaluator.compute_model_performance(metric)
+  print("Train scores")
+  print(train_scores)
+  test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+    tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
+  test_scores = test_evaluator.compute_model_performance(metric)
+  print("Test scores")
+  print(test_scores)
