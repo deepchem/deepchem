@@ -224,6 +224,7 @@ class GeneratorEvaluator(object):
     all_task_scores = {}
 
     y = undo_transforms(y, self.output_transformers)
+    y_pred = undo_transforms(y_pred, self.output_transformers)
 
     # Compute multitask metrics
     for metric in metrics:
