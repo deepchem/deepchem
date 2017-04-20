@@ -86,8 +86,14 @@ max_num_neighbors = 12
 neighbor_cutoff = 12.0
 batch_size = 100
 
-at = [1., 6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.]
-radial = [[12.0], [0.0, 4.0, 8.0], [4.0]]
+at = [
+    1., 6., 7., 8., 9., 11., 12., 15., 16., 17., 19., 20., 25., 26., 27., 28.,
+    29., 30., 34., 35., 38., 48., 53., 55., 80.
+]
+radial = [[
+    1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+    9.0, 10.0, 11.0, 12.0
+], [0.0], [0.4]]
 rp = [x for x in itertools.product(*radial)]
 layer_sizes = [32, 32, 16]
 dropouts = [0., 0., 0.]
@@ -237,6 +243,7 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
 tg = TensorGraph(
   batch_size=batch_size,
   mode=str("regression"),
+  learning_rate=0.002,
   model_dir=str("/tmp/atom_conv"))
 tg.add_output(score)
 tg.set_loss(loss)
@@ -246,16 +253,15 @@ metric = [
   dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
   dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
-for i in range(5):
-  tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=2))
+tg.fit_generator(feed_dict_generator(train_dataset, batch_size, epochs=10))
 
-  train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-    tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
-  train_scores = train_evaluator.compute_model_performance(metric)
-  print("Train scores")
-  print(train_scores)
-  test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
-    tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
-  test_scores = test_evaluator.compute_model_performance(metric)
-  print("Test scores")
-  print(test_scores)
+train_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+  tg, feed_dict_generator(train_dataset, batch_size), transformers, [label])
+train_scores = train_evaluator.compute_model_performance(metric)
+print("Train scores")
+print(train_scores)
+test_evaluator = dc.utils.evaluate.GeneratorEvaluator(
+  tg, feed_dict_generator(test_dataset, batch_size), transformers, [label])
+test_scores = test_evaluator.compute_model_performance(metric)
+print("Test scores")
+print(test_scores)

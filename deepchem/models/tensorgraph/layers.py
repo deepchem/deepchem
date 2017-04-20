@@ -281,6 +281,7 @@ class Input(Layer):
   def get_pre_q_name(self):
     return "%s_pre_q" % self.name
 
+
 class Feature(Input):
   def __init__(self, **kwargs):
     super(Feature, self).__init__(**kwargs)
@@ -728,7 +729,7 @@ class AtomicConvolution(Layer):
           sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
 
     layer = tf.stack(sym)
-    layer = tf.transpose(layer, [1, 2, 0])
+    layer = tf.transpose(layer, [1, 2, 0])  # (l, B, N) -> (B, N, l)
     m, v = tf.nn.moments(layer, axes=[0])
     self.out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
     return self.out_tensor
