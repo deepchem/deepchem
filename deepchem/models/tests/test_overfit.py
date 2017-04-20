@@ -685,7 +685,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     graph_model.add(dc.nn.DTNNStep(n_embedding=20))
     graph_model.add(dc.nn.DTNNGather(n_embedding=20))
     n_feat = 20
-    model = dc.models.DTNNGraphRegressor(
+    model = dc.models.MultitaskGraphRegressor(
         graph_model,
         n_tasks,
         n_feat,
@@ -736,7 +736,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         n_tasks,
         n_feat,
         batch_size=batch_size,
-        learning_rate=0.01,
+        learning_rate=0.001,
         learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
