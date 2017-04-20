@@ -220,6 +220,8 @@ class GeneratorEvaluator(object):
       y_pred = np.squeeze(y_pred, axis=-1)
     if len(w) != 0:
       w = np.reshape(w, newshape=y.shape)
+    print(y[-5:])
+    print(y_pred[-5:])
     multitask_scores = {}
     all_task_scores = {}
 
