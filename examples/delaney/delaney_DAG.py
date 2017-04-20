@@ -37,7 +37,12 @@ n_feat = 75
 # Batch size of models
 batch_size = 64
 graph = dc.nn.SequentialDAGGraph(n_atom_feat=n_feat, max_atoms=max_atoms)
-graph.add(dc.nn.DAGLayer(n_graph_feat=30, n_atom_feat=n_feat, max_atoms=max_atoms, batch_size=batch_size))
+graph.add(
+    dc.nn.DAGLayer(
+        n_graph_feat=30,
+        n_atom_feat=n_feat,
+        max_atoms=max_atoms,
+        batch_size=batch_size))
 graph.add(dc.nn.DAGGather(max_atoms=max_atoms))
 
 model = dc.models.MultitaskGraphRegressor(

@@ -24,7 +24,7 @@ metric = [
 # Batch size of models
 batch_size = 64
 n_embedding = 30
-n_distance=100
+n_distance = 100
 
 model = dc.models.DTNNTensorGraph(
     len(tasks),

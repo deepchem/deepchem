@@ -18,22 +18,27 @@ from deepchem.nn import model_ops
 
 from deepchem.models.tensorgraph.layers import Layer
 
+
 class Combine_AP(Layer):
+
   def __init__(self, **kwargs):
     super(Combine_AP, self).__init__(**kwargs)
-  
+
   def _create_tensor(self):
     A = self.in_layers[0].out_tensor
     P = self.in_layers[1].out_tensor
     self.out_tensor = [A, P]
 
+
 class Separate_AP(Layer):
+
   def __init__(self, **kwargs):
     super(Separate_AP, self).__init__(**kwargs)
-  
+
   def _create_tensor(self):
     self.out_tensor = self.in_layers[0].out_tensor[0]
-    
+
+
 class WeaveLayer(Layer):
   """ TensorGraph style implementation
   The same as deepchem.nn.WeaveLayer
@@ -173,6 +178,7 @@ class WeaveLayer(Layer):
       P = pair_features
     self.out_tensor = [A, P]
 
+
 class WeaveGather(Layer):
   """ TensorGraph style implementation
   The same as deepchem.nn.WeaveGather
@@ -215,7 +221,7 @@ class WeaveGather(Layer):
     else:
       self.trainable_weights = None
 
-  def  _create_tensor(self):
+  def _create_tensor(self):
     """ description and explanation refer to deepchem.nn.WeaveGather
     parent layers: atom_features, atom_split
     """
@@ -227,12 +233,11 @@ class WeaveGather(Layer):
       outputs = self.gaussian_histogram(outputs)
 
     output_molecules = tf.segment_sum(outputs, atom_split)
-    
+
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
     self.out_tensor = output_molecules
-
 
   def gaussian_histogram(self, x):
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
@@ -352,6 +357,7 @@ class DTNNGather(Layer):
   """ TensorGraph style implementation
   The same as deepchem.nn.DTNNGather
   """
+
   def __init__(self,
                n_embedding=30,
                n_outputs=100,
@@ -397,11 +403,13 @@ class DTNNGather(Layer):
       output = self.activation(output)
     output = tf.segment_sum(output, atom_membership)
     self.out_tensor = output
-    
+
+
 class DAGLayer(Layer):
   """ TensorGraph style implementation
   The same as deepchem.nn.DAGLayer
   """
+
   def __init__(self,
                n_graph_feat=30,
                n_atom_feat=75,
@@ -463,7 +471,7 @@ class DAGLayer(Layer):
     ]))
 
     self.trainable_weights = self.W_list + self.b_list
-    
+
   def _create_tensor(self):
     """description and explanation refer to deepchem.nn.DAGLayer
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
@@ -481,27 +489,28 @@ class DAGLayer(Layer):
 
     n_atoms = self.in_layers[4].out_tensor
     # initialize graph features for each graph
-    graph_features_initial = tf.zeros((self.max_atoms*self.batch_size, self.max_atoms+1, self.n_graph_feat))
+    graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+                                       self.max_atoms + 1, self.n_graph_feat))
     # initialize graph features for each graph
     # another row of zeros is generated for padded dummy atoms
-    graph_features = tf.Variable(
-        graph_features_initial,
-        trainable=False)
-    
+    graph_features = tf.Variable(graph_features_initial, trainable=False)
+
     for count in range(self.max_atoms):
       # `count`-th step
       # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
       mask = calculation_masks[:, count]
       current_round = tf.boolean_mask(calculation_orders[:, count], mask)
-      batch_atom_features = tf.gather(atom_features,
-                                      current_round)
+      batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
       index = tf.stack(
           [
               tf.reshape(
-                  tf.stack([tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1), axis=1),
-                  [-1]), tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+                  tf.stack(
+                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
+                      (self.max_atoms - 1),
+                      axis=1), [-1]),
+              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
           ],
           axis=1)
       # extracting graph features for parents of the target atoms, then flatten
@@ -539,6 +548,7 @@ class DAGGather(Layer):
   """ TensorGraph style implementation
   The same as deepchem.nn.DAGGather
   """
+
   def __init__(self,
                n_graph_feat=30,
                n_outputs=30,

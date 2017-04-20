@@ -11,6 +11,7 @@ from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.trans import undo_transforms
 
+
 class WeaveTensorGraph(TensorGraph):
 
   def __init__(self,
@@ -36,22 +37,23 @@ class WeaveTensorGraph(TensorGraph):
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
     weave_layer1 = WeaveLayer(
-      n_atom_input_feat=self.n_atom_feat,
-      n_pair_input_feat=self.n_pair_feat,
-      n_atom_output_feat=self.n_hidden,
-      n_pair_output_feat=self.n_hidden,
-      in_layers=[combined, self.pair_split, self.atom_to_pair])
+        n_atom_input_feat=self.n_atom_feat,
+        n_pair_input_feat=self.n_pair_feat,
+        n_atom_output_feat=self.n_hidden,
+        n_pair_output_feat=self.n_hidden,
+        in_layers=[combined, self.pair_split, self.atom_to_pair])
     weave_layer2 = WeaveLayer(
-      n_atom_input_feat=self.n_hidden,
-      n_pair_input_feat=self.n_hidden,
-      n_atom_output_feat=self.n_hidden,
-      n_pair_output_feat=self.n_hidden,
-      update_pair=False,
-      in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
+        n_atom_input_feat=self.n_hidden,
+        n_pair_input_feat=self.n_hidden,
+        n_atom_output_feat=self.n_hidden,
+        n_pair_output_feat=self.n_hidden,
+        update_pair=False,
+        in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
     separated = Separate_AP(in_layers=[weave_layer2])
-    dense1 = Dense(out_channels=self.n_graph_feat, 
-                   activation_fn=tf.nn.relu,
-                   in_layers=[separated])
+    dense1 = Dense(
+        out_channels=self.n_graph_feat,
+        activation_fn=tf.nn.relu,
+        in_layers=[separated])
     batch_norm1 = BatchNormLayer(in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
@@ -63,23 +65,25 @@ class WeaveTensorGraph(TensorGraph):
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
-        classification = Dense(out_channels=2, activation_fn=None, in_layers=[weave_gather])
+        classification = Dense(
+            out_channels=2, activation_fn=None, in_layers=[weave_gather])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
-      
+
         label = Label(shape=(None, 2))
         self.labels_fd.append(label)
         cost = SoftMaxCrossEntropy(in_layers=[label, classification])
         costs.append(cost)
       if self.mode == "regression":
-        regression = Dense(out_channels=1, activation_fn=None, in_layers=[weave_gather])
+        regression = Dense(
+            out_channels=1, activation_fn=None, in_layers=[weave_gather])
         self.add_output(regression)
-        
+
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
         cost = L2LossLayer(in_layers=[label, regression])
         costs.append(cost)
-        
+
     all_cost = Concat(in_layers=costs)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
@@ -95,17 +99,17 @@ class WeaveTensorGraph(TensorGraph):
           batch_size=self.batch_size,
           deterministic=True,
           pad_batches=pad_batches):
-          
+
         feed_dict = dict()
         if y_b is not None and not predict:
           for index, label in enumerate(self.labels_fd):
             if self.mode == "classification":
               feed_dict[label] = to_one_hot(y_b[:, index])
             if self.mode == "regression":
-              feed_dict[label] = y_b[:, index:index+1]
+              feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None and not predict:
           feed_dict[self.weights] = w_b
-        
+
         atom_feat = []
         pair_feat = []
         atom_split = []
@@ -115,21 +119,22 @@ class WeaveTensorGraph(TensorGraph):
         for im, mol in enumerate(X_b):
           n_atoms = mol.get_num_atoms()
           # number of atoms in each molecule
-          atom_split.extend([im]*n_atoms)
+          atom_split.extend([im] * n_atoms)
           # index of pair features
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
-              np.transpose(np.array([C1.flatten() + start, C0.flatten() + start])))
+              np.transpose(
+                  np.array([C1.flatten() + start, C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
-    
+
           # atom features
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
               np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                               self.n_pair_feat)))
+                                                   self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -137,7 +142,6 @@ class WeaveTensorGraph(TensorGraph):
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
-
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
@@ -174,7 +178,8 @@ class WeaveTensorGraph(TensorGraph):
             result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
-    
+
+
 class DTNNTensorGraph(TensorGraph):
 
   def __init__(self,
@@ -205,16 +210,23 @@ class DTNNTensorGraph(TensorGraph):
     self.atom_membership = Feature(shape=(None,), dtype=tf.int32)
     self.distance_membership_i = Feature(shape=(None,), dtype=tf.int32)
     self.distance_membership_j = Feature(shape=(None,), dtype=tf.int32)
-    
-    dtnn_embedding = DTNNEmbedding(n_embedding=self.n_embedding, in_layers=[self.atom_number])
+
+    dtnn_embedding = DTNNEmbedding(
+        n_embedding=self.n_embedding, in_layers=[self.atom_number])
     dtnn_layer1 = DTNNStep(
-      n_embedding=self.n_embedding,
-      n_distance=self.n_distance,
-      in_layers=[dtnn_embedding, self.distance, self.distance_membership_i, self.distance_membership_j])
+        n_embedding=self.n_embedding,
+        n_distance=self.n_distance,
+        in_layers=[
+            dtnn_embedding, self.distance, self.distance_membership_i,
+            self.distance_membership_j
+        ])
     dtnn_layer2 = DTNNStep(
-      n_embedding=self.n_embedding,
-      n_distance=self.n_distance,
-      in_layers=[dtnn_layer1, self.distance, self.distance_membership_i, self.distance_membership_j])
+        n_embedding=self.n_embedding,
+        n_distance=self.n_distance,
+        in_layers=[
+            dtnn_layer1, self.distance, self.distance_membership_i,
+            self.distance_membership_j
+        ])
     dtnn_gather = DTNNGather(
         n_embedding=self.n_embedding,
         n_outputs=self.n_hidden,
@@ -223,14 +235,15 @@ class DTNNTensorGraph(TensorGraph):
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
-      regression = Dense(out_channels=1, activation_fn=None, in_layers=[dtnn_gather])
+      regression = Dense(
+          out_channels=1, activation_fn=None, in_layers=[dtnn_gather])
       self.add_output(regression)
-        
+
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
       cost = L2LossLayer(in_layers=[label, regression])
       costs.append(cost)
-        
+
     all_cost = Concat(in_layers=costs)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
@@ -246,14 +259,14 @@ class DTNNTensorGraph(TensorGraph):
           batch_size=self.batch_size,
           deterministic=True,
           pad_batches=pad_batches):
-          
+
         feed_dict = dict()
         if y_b is not None and not predict:
           for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index+1]
+            feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None and not predict:
           feed_dict[self.weights] = w_b
-        
+
         distance = []
         atom_membership = []
         distance_membership_i = []
@@ -280,13 +293,14 @@ class DTNNTensorGraph(TensorGraph):
         feed_dict[self.atom_number] = np.concatenate(atom_number)
         distance = np.concatenate(distance, 0)
         feed_dict[self.distance] = np.exp(-np.square(distance - self.steps) /
-            (2 * self.step_size**2))
-        feed_dict[self.distance_membership_i] = np.concatenate(distance_membership_i)
-        feed_dict[self.distance_membership_j] = np.concatenate(distance_membership_j)
+                                          (2 * self.step_size**2))
+        feed_dict[self.distance_membership_i] = np.concatenate(
+            distance_membership_i)
+        feed_dict[self.distance_membership_j] = np.concatenate(
+            distance_membership_j)
         feed_dict[self.atom_membership] = np.concatenate(atom_membership)
 
         yield feed_dict
-
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
@@ -323,7 +337,8 @@ class DTNNTensorGraph(TensorGraph):
             result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
-        
+
+
 class DAGTensorGraph(TensorGraph):
 
   def __init__(self,
@@ -343,9 +358,12 @@ class DAGTensorGraph(TensorGraph):
 
   def build_graph(self):
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
-    self.parents = Feature(shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
-    self.calculation_orders = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
-    self.calculation_masks = Feature(shape=(None, self.max_atoms), dtype=tf.bool)
+    self.parents = Feature(
+        shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
+    self.calculation_orders = Feature(
+        shape=(None, self.max_atoms), dtype=tf.int32)
+    self.calculation_masks = Feature(
+        shape=(None, self.max_atoms), dtype=tf.bool)
     self.membership = Feature(shape=(None,), dtype=tf.int32)
     self.n_atoms = Feature(shape=(), dtype=tf.int32)
     dag_layer1 = DAGLayer(
@@ -353,7 +371,10 @@ class DAGTensorGraph(TensorGraph):
         n_atom_feat=self.n_atom_feat,
         max_atoms=self.max_atoms,
         batch_size=self.batch_size,
-        in_layers=[self.atom_features, self.parents, self.calculation_orders, self.calculation_masks, self.n_atoms])
+        in_layers=[
+            self.atom_features, self.parents, self.calculation_orders,
+            self.calculation_masks, self.n_atoms
+        ])
     dag_gather = DAGGather(
         n_graph_feat=self.n_graph_feat,
         n_outputs=self.n_outputs,
@@ -364,23 +385,25 @@ class DAGTensorGraph(TensorGraph):
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
-        classification = Dense(out_channels=2, activation_fn=None, in_layers=[dag_gather])
+        classification = Dense(
+            out_channels=2, activation_fn=None, in_layers=[dag_gather])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
-      
+
         label = Label(shape=(None, 2))
         self.labels_fd.append(label)
         cost = SoftMaxCrossEntropy(in_layers=[label, classification])
         costs.append(cost)
       if self.mode == "regression":
-        regression = Dense(out_channels=1, activation_fn=None, in_layers=[dag_gather])
+        regression = Dense(
+            out_channels=1, activation_fn=None, in_layers=[dag_gather])
         self.add_output(regression)
-        
+
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
         cost = L2LossLayer(in_layers=[label, regression])
         costs.append(cost)
-        
+
     all_cost = Concat(in_layers=costs)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
@@ -396,17 +419,17 @@ class DAGTensorGraph(TensorGraph):
           batch_size=self.batch_size,
           deterministic=True,
           pad_batches=pad_batches):
-          
+
         feed_dict = dict()
         if y_b is not None and not predict:
           for index, label in enumerate(self.labels_fd):
             if self.mode == "classification":
               feed_dict[label] = to_one_hot(y_b[:, index])
             if self.mode == "regression":
-              feed_dict[label] = y_b[:, index:index+1]
+              feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None and not predict:
           feed_dict[self.weights] = w_b
-        
+
         atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
         n_atoms = sum(atoms_per_mol)
         start_index = [0] + list(np.cumsum(atoms_per_mol)[:-1])
@@ -423,15 +446,17 @@ class DAGTensorGraph(TensorGraph):
           parents = mol.parents
           parents_all.extend(parents)
           calculation_index = np.array(parents)[:, :, 0]
-          mask = np.array(calculation_index-self.max_atoms, dtype=bool)
+          mask = np.array(calculation_index - self.max_atoms, dtype=bool)
           calculation_orders.append(calculation_index + start_index[idm])
           calculation_masks.append(mask)
-          membership.extend([idm]*atoms_per_mol[idm])
-    
+          membership.extend([idm] * atoms_per_mol[idm])
+
         feed_dict[self.atom_features] = np.concatenate(atoms_all, axis=0)
         feed_dict[self.parents] = np.stack(parents_all, axis=0)
-        feed_dict[self.calculation_orders] = np.concatenate(calculation_orders, axis=0)
-        feed_dict[self.calculation_masks] = np.concatenate(calculation_masks, axis=0)
+        feed_dict[self.calculation_orders] = np.concatenate(
+            calculation_orders, axis=0)
+        feed_dict[self.calculation_masks] = np.concatenate(
+            calculation_masks, axis=0)
         feed_dict[self.membership] = np.array(membership)
         feed_dict[self.n_atoms] = n_atoms
         yield feed_dict

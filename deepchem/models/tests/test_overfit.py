@@ -677,10 +677,9 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.pearson_r2_score, task_averager=np.mean)
     n_tasks = y.shape[1]
-    max_n_atoms = list(dataset.get_data_shape())[0]
     batch_size = 10
 
-    graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=max_n_atoms)
+    graph_model = dc.nn.SequentialDTNNGraph()
     graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
     graph_model.add(dc.nn.DTNNStep(n_embedding=20))
     graph_model.add(dc.nn.DTNNStep(n_embedding=20))
@@ -728,9 +727,8 @@ class TestOverfit(test_util.TensorFlowTestCase):
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
 
-    graph = dc.nn.SequentialDAGGraph(
-        n_feat, batch_size=batch_size, max_atoms=50)
-    graph.add(dc.nn.DAGLayer(30, n_feat, max_atoms=50))
+    graph = dc.nn.SequentialDAGGraph(n_atom_feat=n_feat, max_atoms=50)
+    graph.add(dc.nn.DAGLayer(30, n_feat, max_atoms=50, batch_size=batch_size))
     graph.add(dc.nn.DAGGather(max_atoms=50))
 
     model = dc.models.MultitaskGraphRegressor(

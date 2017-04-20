@@ -33,7 +33,7 @@ train_dataset.reshard(reshard_size)
 train_dataset = transformer.transform(train_dataset)
 valid_dataset.reshard(reshard_size)
 valid_dataset = transformer.transform(valid_dataset)
-      
+
 model = dc.models.DAGTensorGraph(
     len(delaney_tasks),
     max_atoms=max_atoms,

@@ -149,7 +149,8 @@ class SequentialDAGGraph(SequentialGraph):
         self.output = layer([self.output] +
                             self.graph_topology.get_topology_placeholders())
       elif type(layer).__name__ in ['DAGGather']:
-        self.output = layer([self.output, self.graph_topology.membership_placeholder])
+        self.output = layer(
+            [self.output, self.graph_topology.membership_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)

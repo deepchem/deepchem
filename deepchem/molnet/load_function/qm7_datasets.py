@@ -11,7 +11,9 @@ import deepchem
 import scipy.io
 
 
-def load_qm7_from_mat(featurizer='CoulombMatrix', split='stratified', reload=True):
+def load_qm7_from_mat(featurizer='CoulombMatrix',
+                      split='stratified',
+                      reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
@@ -57,7 +59,9 @@ def load_qm7_from_mat(featurizer='CoulombMatrix', split='stratified', reload=Tru
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
-def load_qm7b_from_mat(featurizer='CoulombMatrix', split='stratified', reload=True):
+def load_qm7b_from_mat(featurizer='CoulombMatrix',
+                       split='stratified',
+                       reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:

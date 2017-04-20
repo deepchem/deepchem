@@ -278,8 +278,7 @@ class DAGGraphTopology(GraphTopology):
 
     self.parents_placeholder = tf.placeholder(
         dtype='int32',
-        shape=(None, self.max_atoms,
-               self.max_atoms),
+        shape=(None, self.max_atoms, self.max_atoms),
         # molecule * atom(graph) => step => features
         name=self.name + '_parents')
 
@@ -294,17 +293,13 @@ class DAGGraphTopology(GraphTopology):
         shape=(None, self.max_atoms),
         # molecule * atom(graph) => step
         name=self.name + '_masks')
-    
+
     self.membership_placeholder = tf.placeholder(
-        dtype='int32',
-        shape=(None,),
-        name=self.name + '_membership')
-    
+        dtype='int32', shape=(None,), name=self.name + '_membership')
+
     self.n_atoms_placeholder = tf.placeholder(
-        dtype='int32',
-        shape=(),
-        name=self.name + '_n_atoms')
-    
+        dtype='int32', shape=(), name=self.name + '_n_atoms')
+
     # Define the list of tensors to be used as topology
     self.topology = [
         self.parents_placeholder, self.calculation_orders_placeholder,
@@ -354,17 +349,17 @@ class DAGGraphTopology(GraphTopology):
       parents = mol.parents
       parents_all.extend(parents)
       calculation_index = np.array(parents)[:, :, 0]
-      mask = np.array(calculation_index-self.max_atoms, dtype=bool)
+      mask = np.array(calculation_index - self.max_atoms, dtype=bool)
       calculation_orders.append(calculation_index + start_index[idm])
       calculation_masks.append(mask)
-      membership.extend([idm]*atoms_per_mol[idm])
+      membership.extend([idm] * atoms_per_mol[idm])
 
     atoms_all = np.concatenate(atoms_all, axis=0)
     parents_all = np.stack(parents_all, axis=0)
     calculation_orders = np.concatenate(calculation_orders, axis=0)
     calculation_masks = np.concatenate(calculation_masks, axis=0)
     membership = np.array(membership)
-    
+
     atoms_dict = {
         self.atom_features_placeholder: atoms_all,
         self.parents_placeholder: parents_all,
@@ -557,7 +552,7 @@ class AlternateWeaveGraphTopology(GraphTopology):
     for im, mol in enumerate(batch):
       n_atoms = mol.get_num_atoms()
       # number of atoms in each molecule
-      atom_split.extend([im]*n_atoms)
+      atom_split.extend([im] * n_atoms)
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
       atom_to_pair.append(

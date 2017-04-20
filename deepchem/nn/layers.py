@@ -1109,28 +1109,29 @@ class DAGLayer(Layer):
     calculation_masks = x[3]
     # number of atoms in total, should equal `batch_size*max_atoms`
     n_atoms = x[5]
-    
-    graph_features_initial = tf.zeros((self.max_atoms*self.batch_size, self.max_atoms+1, self.n_graph_feat))
+
+    graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+                                       self.max_atoms + 1, self.n_graph_feat))
     # initialize graph features for each graph
     # another row of zeros is generated for padded dummy atoms
-    graph_features = tf.Variable(
-        graph_features_initial,
-        trainable=False)
-    
+    graph_features = tf.Variable(graph_features_initial, trainable=False)
+
     for count in range(self.max_atoms):
       # `count`-th step
       # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
       mask = calculation_masks[:, count]
       current_round = tf.boolean_mask(calculation_orders[:, count], mask)
-      batch_atom_features = tf.gather(atom_features,
-                                      current_round)
+      batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
       index = tf.stack(
           [
               tf.reshape(
-                  tf.stack([tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1), axis=1),
-                  [-1]), tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
+                  tf.stack(
+                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
+                      (self.max_atoms - 1),
+                      axis=1), [-1]),
+              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
           ],
           axis=1)
       # extracting graph features for parents of the target atoms, then flatten
