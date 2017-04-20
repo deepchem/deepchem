@@ -13,7 +13,7 @@ import deepchem as dc
 
 # Load tox21 dataset
 tox21_tasks, tox21_datasets, transformers = dc.molnet.load_tox21(
-    featurizer='Weave', split='index')
+    featurizer='GraphConv', split='index')
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 
 # Fit models
