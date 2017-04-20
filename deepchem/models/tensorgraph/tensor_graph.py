@@ -144,6 +144,7 @@ class TensorGraph(Model):
         fetches = output_tensors + [train_op, self.loss.out_tensor]
         for feed_dict in create_feed_dict():
           try:
+            print(self.global_step)
             fetched_values = sess.run(fetches, feed_dict=feed_dict)
             loss = fetched_values[-1]
             avg_loss += loss

@@ -80,7 +80,7 @@ frag2_num_atoms = 634
 complex_num_atoms = 701
 max_num_neighbors = 12
 neighbor_cutoff = 12.0
-batch_size=100
+batch_size=24
 
 train_dataset = dc.data.DiskDataset(train_dir)
 test_dataset = dc.data.DiskDataset(test_dir)
