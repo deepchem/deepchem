@@ -4,7 +4,7 @@
 # Change commented out line For gpu tensorflow
 #export tensorflow=tensorflow-gpu
 export tensorflow=tensorflow
-export python_version=3.5
+export python_version=2.7
 
 
 if [ -z "$1" ]

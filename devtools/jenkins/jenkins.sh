@@ -6,9 +6,8 @@ source activate $envname
 python setup.py install
 
 rm examples/results.csv || true
-cd examples/pdbbind
-bash get_pdbbind.sh
-python pdbbind_atomic_conv.py
+cd contrib/atomicconv/core
+python opt_random_tensorgraph.py
 
 
 source deactivate
