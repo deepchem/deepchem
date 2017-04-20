@@ -126,21 +126,19 @@ class SequentialDAGGraph(SequentialGraph):
   """SequentialGraph for DAG models
   """
 
-  def __init__(self, n_feat, batch_size=50, max_atoms=50):
+  def __init__(self, n_atom_feat=75, max_atoms=50):
     """
     Parameters
     ----------
-    n_feat: int
+    n_atom_feat: int
       Number of features per atom.
-    batch_size: int, optional(default=50)
-      Number of molecules in a batch
     max_atoms: int, optional(default=50)
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DAGGraphTopology(
-          n_feat, batch_size, max_atoms=max_atoms)
+          n_atom_feat=n_atom_feat, max_atoms=max_atoms)
       self.output = self.graph_topology.get_atom_features_placeholder()
     self.layers = []
 
@@ -150,6 +148,8 @@ class SequentialDAGGraph(SequentialGraph):
       if type(layer).__name__ in ['DAGLayer']:
         self.output = layer([self.output] +
                             self.graph_topology.get_topology_placeholders())
+      elif type(layer).__name__ in ['DAGGather']:
+        self.output = layer([self.output, self.graph_topology.membership_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)

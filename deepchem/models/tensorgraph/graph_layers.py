@@ -410,6 +410,7 @@ class DAGLayer(Layer):
                activation='relu',
                dropout=None,
                max_atoms=50,
+               batch_size=64,
                **kwargs):
     """
     Parameters
@@ -436,6 +437,7 @@ class DAGLayer(Layer):
     self.layer_sizes = layer_sizes
     self.dropout = dropout
     self.max_atoms = max_atoms
+    self.batch_size = batch_size
     self.n_inputs = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
     # number of inputs each step
     self.n_graph_feat = n_graph_feat
@@ -461,10 +463,10 @@ class DAGLayer(Layer):
     ]))
 
     self.trainable_weights = self.W_list + self.b_list
-
+    
   def _create_tensor(self):
     """description and explanation refer to deepchem.nn.DAGLayer
-    parent layers: atom_features, parents, calculation_orders, membership
+    parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
     # Add trainable weights
     self.build()
@@ -475,55 +477,55 @@ class DAGLayer(Layer):
     parents = self.in_layers[1].out_tensor
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
     calculation_orders = self.in_layers[2].out_tensor
-    membership = self.in_layers[3].out_tensor
+    calculation_masks = self.in_layers[3].out_tensor
 
-    n_atoms = atom_features.get_shape()[0]
+    n_atoms = self.in_layers[4].out_tensor
     # initialize graph features for each graph
+    graph_features_initial = tf.zeros((self.max_atoms*self.batch_size, self.max_atoms+1, self.n_graph_feat))
+    # initialize graph features for each graph
+    # another row of zeros is generated for padded dummy atoms
     graph_features = tf.Variable(
-        tf.constant(0., shape=(n_atoms, self.max_atoms + 1, self.n_graph_feat)),
+        graph_features_initial,
         trainable=False)
-
-    # add dummy
-    atom_features = tf.concat(
-        axis=0,
-        values=[
-            atom_features, tf.constant(0., shape=(1, self.n_atom_feat))
-        ])
+    
     for count in range(self.max_atoms):
+      # `count`-th step
+      # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
+      mask = calculation_masks[:, count]
+      current_round = tf.boolean_mask(calculation_orders[:, count], mask)
       batch_atom_features = tf.gather(atom_features,
-                                      calculation_orders[:, count])
+                                      current_round)
+
+      # generating index for graph features used in the inputs
       index = tf.stack(
           [
               tf.reshape(
-                  tf.stack([tf.range(n_atoms)] * (self.max_atoms - 1), axis=1),
-                  [-1]), tf.reshape(parents[:, count, 1:], [-1])
+                  tf.stack([tf.boolean_mask(tf.range(n_atoms), mask)] * (self.max_atoms - 1), axis=1),
+                  [-1]), tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
           ],
           axis=1)
+      # extracting graph features for parents of the target atoms, then flatten
+      # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
       batch_graph_features = tf.reshape(
           tf.gather_nd(graph_features, index),
           [-1, (self.max_atoms - 1) * self.n_graph_feat])
+
+      # concat into the input tensor: (batch_size*max_atoms) * n_inputs
       batch_inputs = tf.concat(
           axis=1, values=[batch_atom_features, batch_graph_features])
+      # DAGgraph_step maps from batch_inputs to a batch of graph_features
+      # of shape: (batch_size*max_atoms) * n_graph_features
+      # representing the graph features of target atoms in each graph
       batch_outputs = self.DAGgraph_step(batch_inputs, self.W_list, self.b_list)
 
+      # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
-      # index for dummies
-      target_index2 = tf.stack(
-          [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
-          axis=1)
+      target_index = tf.boolean_mask(target_index, mask)
       # update the graph features for target atoms
       graph_features = tf.scatter_nd_update(graph_features, target_index,
                                             batch_outputs)
-      # recover dummies to zeros if being updated
-      graph_features = tf.scatter_nd_update(graph_features, target_index2,
-                                            tf.zeros(
-                                                (n_atoms, self.n_graph_feat)))
 
-    # last step generates graph features for all target atoms
-    # masking the outputs
-    outputs = tf.multiply(batch_outputs,
-                          tf.expand_dims(tf.to_float(membership), axis=1))
-    self.out_tensor = outputs
+    self.out_tensor = batch_outputs
 
   def DAGgraph_step(self, batch_inputs, W_list, b_list):
     outputs = batch_inputs
@@ -540,7 +542,7 @@ class DAGGather(Layer):
   def __init__(self,
                n_graph_feat=30,
                n_outputs=30,
-               layer_sizes=[1000],
+               layer_sizes=[100],
                init='glorot_uniform',
                activation='relu',
                dropout=None,
@@ -603,8 +605,9 @@ class DAGGather(Layer):
 
     # Extract atom_features
     atom_features = self.in_layers[0].out_tensor
-    graph_features = tf.reshape(atom_features, [-1, self.max_atoms, self.n_graph_feat])
-    graph_features = tf.reduce_sum(graph_features, axis=1)
+    membership = self.in_layers[1].out_tensor
+    # Extract atom_features
+    graph_features = tf.segment_sum(atom_features, membership)
     # sum all graph outputs
     outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
     self.out_tensor = outputs

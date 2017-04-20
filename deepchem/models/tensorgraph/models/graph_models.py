@@ -141,11 +141,11 @@ class WeaveTensorGraph(TensorGraph):
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def predict_on_generator(self, generator, transformers=[]):
     retval = self.predict_proba_on_generator(generator, transformers)
@@ -290,11 +290,11 @@ class DTNNTensorGraph(TensorGraph):
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def predict_on_generator(self, generator, transformers=[]):
     retval = self.predict_proba_on_generator(generator, transformers)
@@ -342,20 +342,23 @@ class DAGTensorGraph(TensorGraph):
     self.build_graph()
 
   def build_graph(self):
-    self.atom_features = Feature(shape=(self.batch_size*self.max_atoms, self.n_atom_feat))
-    self.parents = Feature(shape=(self.batch_size*self.max_atoms, self.max_atoms, self.max_atoms), dtype=tf.int32)
-    self.calculation_orders = Feature(shape=(self.batch_size*self.max_atoms, self.max_atoms), dtype=tf.int32)
-    self.membership = Feature(shape=(self.batch_size*self.max_atoms), dtype=tf.int32)
+    self.atom_features = Feature(shape=(None, self.n_atom_feat))
+    self.parents = Feature(shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
+    self.calculation_orders = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
+    self.calculation_masks = Feature(shape=(None, self.max_atoms), dtype=tf.bool)
+    self.membership = Feature(shape=(None,), dtype=tf.int32)
+    self.n_atoms = Feature(shape=(), dtype=tf.int32)
     dag_layer1 = DAGLayer(
         n_graph_feat=self.n_graph_feat,
         n_atom_feat=self.n_atom_feat,
         max_atoms=self.max_atoms,
-        in_layers=[self.atom_features, self.parents, self.calculation_orders, self.membership])
+        batch_size=self.batch_size,
+        in_layers=[self.atom_features, self.parents, self.calculation_orders, self.calculation_masks, self.n_atoms])
     dag_gather = DAGGather(
         n_graph_feat=self.n_graph_feat,
         n_outputs=self.n_outputs,
         max_atoms=self.max_atoms,
-        in_layers=[dag_layer1])
+        in_layers=[dag_layer1, self.membership])
 
     costs = []
     self.labels_fd = []
@@ -405,64 +408,41 @@ class DAGTensorGraph(TensorGraph):
           feed_dict[self.weights] = w_b
         
         atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
-        n_atom_features = X_b[0].get_atom_features().shape[1]
-        membership = np.concatenate(
-            [
-                np.array([1] * n_atoms + [0] * (self.max_atoms - n_atoms))
-                for n_atoms in atoms_per_mol
-            ],
-            axis=0)
+        n_atoms = sum(atoms_per_mol)
+        start_index = [0] + list(np.cumsum(atoms_per_mol)[:-1])
 
         atoms_all = []
+        # calculation orders for a batch of molecules
         parents_all = []
         calculation_orders = []
+        calculation_masks = []
+        membership = []
         for idm, mol in enumerate(X_b):
-          atom_features_padded = np.concatenate(
-              [
-                  mol.get_atom_features(), np.zeros(
-                      (self.max_atoms - atoms_per_mol[idm], n_atom_features))
-              ],
-              axis=0)
-          atoms_all.append(atom_features_padded)
-    
+          # padding atom features vector of each molecule with 0
+          atoms_all.append(mol.get_atom_features())
           parents = mol.parents
-          assert len(parents) == atoms_per_mol[idm]
-          parents_all.extend(parents[:])
-          parents_all.extend([
-              self.max_atoms * np.ones((self.max_atoms, self.max_atoms), dtype=int)
-              for i in range(self.max_atoms - atoms_per_mol[idm])
-          ])
-          for parent in parents:
-            calculation_orders.append(self.index_changing(parent[:, 0], idm))
+          parents_all.extend(parents)
+          calculation_index = np.array(parents)[:, :, 0]
+          mask = np.array(calculation_index-self.max_atoms, dtype=bool)
+          calculation_orders.append(calculation_index + start_index[idm])
+          calculation_masks.append(mask)
+          membership.extend([idm]*atoms_per_mol[idm])
     
-          calculation_orders.extend([
-              self.batch_size * self.max_atoms * np.ones(
-                  (self.max_atoms,), dtype=int)
-              for i in range(self.max_atoms - atoms_per_mol[idm])
-          ])
-
         feed_dict[self.atom_features] = np.concatenate(atoms_all, axis=0)
         feed_dict[self.parents] = np.stack(parents_all, axis=0)
-        feed_dict[self.calculation_orders] = np.stack(calculation_orders, axis=0)
-        feed_dict[self.membership] = membership
+        feed_dict[self.calculation_orders] = np.concatenate(calculation_orders, axis=0)
+        feed_dict[self.calculation_masks] = np.concatenate(calculation_masks, axis=0)
+        feed_dict[self.membership] = np.array(membership)
+        feed_dict[self.n_atoms] = n_atoms
         yield feed_dict
-
-  def index_changing(self, index, n_mol):
-    output = np.zeros_like(index)
-    for ide, element in enumerate(index):
-      if element < self.max_atoms:
-        output[ide] = element + n_mol * self.max_atoms
-      else:
-        output[ide] = self.batch_size * self.max_atoms
-    return output
 
   def predict(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def predict_on_generator(self, generator, transformers=[]):
     retval = self.predict_proba_on_generator(generator, transformers)

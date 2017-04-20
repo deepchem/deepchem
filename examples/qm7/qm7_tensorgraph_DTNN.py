@@ -1,5 +1,5 @@
 """
-Script that trains graph-conv models on Tox21 dataset.
+Script that trains DTNN models on qm7 dataset.
 """
 from __future__ import print_function
 from __future__ import division

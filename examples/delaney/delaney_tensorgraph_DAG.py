@@ -1,5 +1,5 @@
 """
-Script that trains weave models on delaney dataset.
+Script that trains DAG models on delaney dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -44,7 +44,7 @@ model = dc.models.DAGTensorGraph(
     mode='regression')
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=1)
+model.fit(train_dataset, nb_epoch=50)
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
 valid_scores = model.evaluate(valid_dataset, [metric], transformers)
