@@ -232,7 +232,6 @@ def feed_dict_generator(dataset, batch_size, epochs=1):
       orig_dict[complex_z] = complex_Z_b
       orig_dict[label] = np.reshape(y_b, newshape=(batch_size, 1))
       yield orig_dict
-      break
 
 
 tg = TensorGraph(
