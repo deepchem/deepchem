@@ -66,7 +66,7 @@ model = TensorflowFragmentRegressor(len(pdbbind_tasks), rp, at, frag1_num_atoms,
                             dropouts=dropouts, learning_rate=0.002, momentum=0.8,
                             optimizer="adam", batch_size=64, conv_layers=1, boxsize=None,
                             verbose=True, seed=seed)
-model.fit(train_dataset, nb_epoch=100)
+model.fit(train_dataset, nb_epoch=10)
 metric = [dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
               dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
 train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset, transformers)
