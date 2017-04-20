@@ -6,7 +6,7 @@ source activate $envname
 python setup.py install
 
 rm examples/results.csv || true
-cd contrib/atomicconv/core
+cd contrib/atomicconv/acnn/core
 python opt_random_tensorgraph.py
 
 
