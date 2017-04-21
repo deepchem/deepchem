@@ -860,7 +860,7 @@ class WeightedLinearCombo(Layer):
 
 
 class NeighborList(Layer):
-  """Computes a neighbor-list on the GPU.
+  """Computes a neighbor-list in Tensorflow.
 
   Neighbor-lists (also called Verlet Lists) are a tool for grouping atoms which
   are close to each other spatially
@@ -905,8 +905,41 @@ class NeighborList(Layer):
     self.out_tensor = nbr_list
     return nbr_list
 
+  #def compute_nbr_list(self, coords):
+  #  """Computes a neighbor list from atom coordinates.
+
+  #  Parameters
+  #  ----------
+  #  coords: tf.Tensor
+  #    Shape (N_atoms, ndim)
+
+  #  Returns
+  #  -------
+  #  nbr_list: tf.Tensor
+  #    Shape (N_atoms, M_nbrs) of atom indices
+  #  """
+  #  N_atoms, M_nbrs, n_cells, ndim = (self.N_atoms, self.M_nbrs, self.n_cells,
+  #                                    self.ndim)
+  #  nbr_cutoff = self.nbr_cutoff
+  #  coords = tf.to_float(coords)
+
+  #  nbrs, closest_nbrs = self.get_closest_nbrs(coords)
+
+  #  # N_atoms elts of size (M_nbrs,) each 
+  #  neighbor_list = [
+  #      tf.gather(atom_nbrs, closest_nbr_ind)
+  #      for (atom_nbrs, closest_nbr_ind) in zip(nbrs, closest_nbrs)
+  #  ]
+
+  #  # Shape (N_atoms, M_nbrs)
+  #  nbr_list = tf.stack(neighbor_list)
+
+  #  return nbr_list
+
   def compute_nbr_list(self, coords):
-    """Computes a neighbor list from atom coordinates.
+    """Get closest neighbors for atoms.
+
+    Needs to handle padding for atoms with no neighbors.
 
     Parameters
     ----------
@@ -918,45 +951,47 @@ class NeighborList(Layer):
     nbr_list: tf.Tensor
       Shape (N_atoms, M_nbrs) of atom indices
     """
-    N_atoms, M_nbrs, n_cells, ndim = (self.N_atoms, self.M_nbrs, self.n_cells,
-                                      self.ndim)
-    nbr_cutoff = self.nbr_cutoff
-    coords = tf.to_float(coords)
     # Shape (n_cells, ndim)
     cells = self.get_cells()
 
     # List of length N_atoms, each element of different length uniques_i
     nbrs = self.get_atoms_in_nbrs(coords, cells)
+    padding = tf.fill((self.M_nbrs,), -1)
+    padded_nbrs = [tf.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs]
 
     # List of length N_atoms, each element of different length uniques_i
     # List of length N_atoms, each a tensor of shape
     # (uniques_i, ndim)
     nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
 
+    # Add phantom atoms that exist far outside the box
+    coord_padding = tf.to_float(tf.fill((self.M_nbrs, self.ndim), 2*self.stop))
+    padded_nbr_coords = [tf.concat([nbr_coord, coord_padding], 0)
+                         for nbr_coord in nbr_coords]
+
     # List of length N_atoms, each of shape (1, ndim)
-    atom_coords = tf.split(coords, N_atoms)
+    atom_coords = tf.split(coords, self.N_atoms)
     # TODO(rbharath): How does distance need to be modified here to   
     # account for periodic boundary conditions?   
-    # Shape (N_atoms, n_nbr_cells, M_nbrs)
-    dists = [
-        tf.reduce_sum((atom_coord - nbr_coord)**2, axis=1)
-        for (atom_coord, nbr_coord) in zip(atom_coords, nbr_coords)
+    # List of length N_atoms each of shape (M_nbrs)
+    padded_dists = [
+        tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
+        for (atom_coord, padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
     ]
 
-    # TODO(rbharath): What if uniques_i < M_nbrs? Will crash
-    # List of length N_atoms each of size M_nbrs
-    closest_nbr_inds = [tf.nn.top_k(-dist, k=M_nbrs)[1] for dist in dists]
+    padded_closest_nbrs = [tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1] for
+                           padded_dist in padded_dists]
 
     # N_atoms elts of size (M_nbrs,) each 
-    neighbor_list = [
-        tf.gather(atom_nbrs, closest_nbr_ind)
-        for (atom_nbrs, closest_nbr_ind) in zip(nbrs, closest_nbr_inds)
+    padded_neighbor_list = [
+        tf.gather(padded_atom_nbrs, padded_closest_nbr)
+        for (padded_atom_nbrs, padded_closest_nbr)
+        in zip(padded_nbrs, padded_closest_nbrs)
     ]
 
-    # Shape (N_atoms, M_nbrs)
-    nbr_list = tf.stack(neighbor_list)
+    neighbor_list = tf.stack(padded_neighbor_list)
 
-    return nbr_list
+    return neighbor_list
 
   def get_atoms_in_nbrs(self, coords, cells):
     """Get the atoms in neighboring cells for each cells.
