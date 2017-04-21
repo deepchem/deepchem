@@ -72,7 +72,7 @@ def pearson_r2_score(y, y_pred):
   return pearsonr(y, y_pred)[0]**2
 
 
-def auPR_score(y, y_pred):
+def prc_auc_score(y, y_pred):
   """Compute area under precision-recall curve"""
   assert y_pred.shape == y.shape
   assert y_pred.shape[1] == 2
@@ -158,7 +158,7 @@ class Metric(object):
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "precision_score",
-          "balanced_accuracy_score", "auPR_score"
+          "balanced_accuracy_score", "prc_auc_score"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
@@ -277,7 +277,7 @@ class Metric(object):
       # TODO(rbharath): This has been a major source of bugs. Is there a more
       # robust characterization of which metrics require class-probs and which
       # don't?
-      if "roc_auc_score" in self.name or "auPR_score" in self.name:
+      if "roc_auc_score" in self.name or "prc_auc_score" in self.name:
         y_true = to_one_hot(y_true).astype(int)
         y_pred = np.reshape(y_pred, (n_samples, n_classes))
       else:

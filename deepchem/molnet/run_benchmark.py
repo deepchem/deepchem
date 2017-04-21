@@ -69,25 +69,21 @@ def run_benchmark(datasets,
     ]:
       mode = 'classification'
       if metric == None:
-        metric = str('auc')
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
+            deepchem.metrics.Metric(deepchem.metrics.prc_auc_score, np.mean)
+        ]
     elif dataset in [
         'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
         'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
     ]:
       mode = 'regression'
       if metric == None:
-        metric = str('r2')
+        metric = [
+            deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score, np.mean)
+        ]
     else:
       raise ValueError('Dataset not supported')
-
-    metric_all = {
-        'auc': deepchem.metrics.Metric(deepchem.metrics.roc_auc_score, np.mean),
-        'r2': deepchem.metrics.Metric(deepchem.metrics.pearson_r2_score,
-                                      np.mean)
-    }
-
-    if isinstance(metric, str):
-      metric = [metric_all[metric]]
 
     if featurizer == None and isinstance(model, str):
       # Assigning featurizer if not user defined
@@ -188,15 +184,14 @@ def run_benchmark(datasets,
 
     with open(os.path.join(out_path, 'results.csv'), 'a') as f:
       writer = csv.writer(f)
-      for i in train_score:
+      model_name = list(train_score.keys())[0]
+      for i in train_score[model_name]:
         output_line = [
-            dataset, str(split), mode, 'train', i,
-            train_score[i][list(train_score[i].keys())[0]], 'valid', i,
-            valid_score[i][list(valid_score[i].keys())[0]]
+            dataset, str(split), mode, model_name, i, 'train',
+            train_score[model_name][i], 'valid', valid_score[model_name][i]
         ]
         if test:
-          output_line.extend(
-              ['test', i, test_score[i][list(test_score[i].keys())[0]]])
+          output_line.extend(['test', test_score[model_name][i]])
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)
