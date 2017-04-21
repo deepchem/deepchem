@@ -39,7 +39,7 @@ class Layer(object):
   def set_tensors(self, tensor):
     self.out_tensor = tensor
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     raise NotImplementedError("Subclasses must implement for themselves")
 
   def __key(self):
@@ -70,17 +70,7 @@ class Layer(object):
     raise ValueError("Each Layer must implement shared for itself")
 
   def __call__(self, *in_layers):
-    if len(in_layers) > 0:
-      layers = []
-      for in_layer in in_layers:
-        if isinstance(in_layer, Layer):
-          layers.append(layer)
-        elif isinstance(in_layer, tf.Tensor):
-          layers.append(TensorWrapper(in_layer))
-        else:
-          raise ValueError("Layer must be invoked on layers or tensors")
-      self.in_layers = layers
-    return self._create_tensor()
+    return self.create_tensor(in_layers=in_layers)
 
 
 class TensorWrapper(Layer):
@@ -89,6 +79,22 @@ class TensorWrapper(Layer):
   def __init__(self, out_tensor):
     self.out_tensor = out_tensor
 
+  def create_tensor(self, in_layers=None):
+    """Take no actions."""
+    pass
+
+
+def convert_to_layers(in_layers):
+  """Wrap all inputs into tensors if necessary."""
+  layers = []
+  for in_layer in in_layers:
+    if isinstance(in_layer, Layer):
+      layers.append(layer)
+    elif isinstance(in_layer, tf.Tensor):
+      layers.append(TensorWrapper(in_layer))
+    else:
+      raise ValueError("convert_to_layers must be invoked on layers or tensors")
+  return layers
 
 class Conv1DLayer(Layer):
 
@@ -98,10 +104,13 @@ class Conv1DLayer(Layer):
     self.out_tensor = None
     super(Conv1DLayer, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Only One Parent to conv1D over")
-    parent = self.in_layers[0]
+    parent = in_layers[0]
     if len(parent.out_tensor.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.out_tensor.get_shape()
@@ -139,10 +148,13 @@ class Dense(Layer):
       scope_name = self.name
     self.scope_name = scope_name
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
-      raise ValueError("Only One Parent to Dense over %s" % self.in_layers)
-    parent = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
+      raise ValueError("Only One Parent to Dense over %s" % in_layers)
+    parent = in_layers[0]
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
           parent.out_tensor,
@@ -182,10 +194,13 @@ class Flatten(Layer):
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
-      raise ValueError("Only One Parent to conv1D over")
-    parent = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
+      raise ValueError("Only One Parent to Flatten")
+    parent = in_layers[0]
     parent_shape = parent.out_tensor.get_shape()
     vector_size = 1
     for i in range(1, len(parent_shape)):
@@ -769,8 +784,8 @@ class Cutoff(Layer):
     return self.out_tensor
 
 
-class VinaNonlinearity(Layer):
-  """Computes non-linearity used in Vina."""
+class VinaFreeEnergy(Layer):
+  """Computes free-energy as defined by Autodock Vina."""
 
   def __init__(self, stddev=.3, Nrot=1, **kwargs):
     self.stddev = stddev
@@ -778,62 +793,91 @@ class VinaNonlinearity(Layer):
     # TODO(rbharath): Vina actually sets this per-molecule. See if makes
     # a difference.
     self.Nrot = Nrot
-    super(VinaNonlinearity, self).__init__(**kwargs)
+    super(VinaFreeEnergy, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    c = self.in_layers[0].out_tensor
+  def nonlinearity(self, c):
+    """Computes non-linearity used in Vina."""
     w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
-    self.out_tensor = c / (1 + w * self.Nrot)
-    return self.out_tensor
+    out_tensor = c / (1 + w * self.Nrot)
+    return out_tensor
 
 
-class VinaRepulsion(Layer):
-  """Computes Autodock Vina's repulsion interaction term."""
-
-  def _create_tensor(self):
-    d = self.in_layers[0].out_tensor
-    self.out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
-    return self.out_tensor
+  def repulsion(self, d):
+    """Computes Autodock Vina's repulsion interaction term."""
+    out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
+    return out_tensor
 
 
-class VinaHydrophobic(Layer):
-  """Computes Autodock Vina's hydrophobic interaction term."""
-
-  def _create_tensor(self):
-    d = self.in_layers[0].out_tensor
-    self.out_tensor = tf.where(d < 0.5,
+  def hydrophobic(self, d):
+    """Computes Autodock Vina's hydrophobic interaction term."""
+    out_tensor = tf.where(d < 0.5,
                                tf.ones_like(d),
                                tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
-    return self.out_tensor
+    return out_tensor
 
 
-class VinaHydrogenBond(Layer):
-  """Computes Autodock Vina's hydrogen bond interaction term."""
-
-  def _create_tensor(self):
-    d = self.in_layers[0].out_tensor
-    self.out_tensor = tf.where(d < -0.7,
+  def hydrogen_bond(self, d):
+    """Computes Autodock Vina's hydrogen bond interaction term."""
+    out_tensor = tf.where(d < -0.7,
                                tf.ones_like(d),
                                tf.where(d < 0, (1.0 / 0.7) * (0 - d),
                                         tf.zeros_like(d)))
-    return self.out_tensor
+    return out_tensor
 
 
-class VinaGaussianFirst(Layer):
-  """Computes Autodock Vina's first Gaussian interaction term."""
+  def gaussian_first(self, d):
+    """Computes Autodock Vina's first Gaussian interaction term."""
+    out_tensor = tf.exp(-(d / 0.5)**2)
+    return out_tensor
+
+
+  def gaussian_second(self, d):
+    """Computes Autodock Vina's second Gaussian interaction term."""
+    out_tensor = tf.exp(-((d - 3) / 2)**2)
+    return out_tensor
 
   def _create_tensor(self):
-    d = self.in_layers[0].out_tensor
-    self.out_tensor = tf.exp(-(d / 0.5)**2)
-    return self.out_tensor
+    """
+    Parameters
+    ----------
+    X: tf.Tensor of shape (B, N, d)
+      Coordinates/features.
+    Z: tf.Tensor of shape (B, N)
+      Atomic numbers of neighbor atoms.
+      
+    Returns
+    -------
+    layer: tf.Tensor of shape (B)
+      The free energy of each complex in batch
+    """
+    X = self.in_layers[0].out_tensor
+    Z = self.in_layers[2].out_tensor
 
+    nbr_list = NeighborList(
+        self.N_atoms, self.M_nbrs, self.ndim, self.nbr_cutoff, self.start,
+        self.stop)(coords)
 
-class VinaGaussianSecond(Layer):
-  """Computes Autodock Vina's second Gaussian interaction term."""
+    # Shape (N, M)
+    dists = InteratomicL2Distances(
+        self.N_atoms, self.M_nbrs, self.ndim)(coords, nbr_list)
 
-  def _create_tensor(self):
-    d = self.in_layers[0].out_tensor
-    self.out_tensor = tf.exp(-((d - 3) / 2)**2)
+    repulsion = self.repulsion(dists)
+    hydrophobic = self.hydrophobic(dists)
+    hbond = self.hydrogen_bond(dists)
+    gauss_1 = self.gaussian_first(dists)
+    gauss_2 = self.gaussian_second(dists)
+
+    # Shape (N, M)
+    interactions = WeightedLinearCombo()(
+        repulsion, hydrophobic, hbond, gauss_1, gauss_2)
+
+    # Shape (N, M)
+    thresholded = Cutoff()(dists, interactions)
+
+    free_energies = self.nonlinearity(thresholded)
+    free_energy = ReduceSum()(free_energies)
+
+    self.output_tensor = free_energy
     return self.out_tensor
 
 
@@ -904,37 +948,6 @@ class NeighborList(Layer):
     nbr_list = self.compute_nbr_list(coords)
     self.out_tensor = nbr_list
     return nbr_list
-
-  #def compute_nbr_list(self, coords):
-  #  """Computes a neighbor list from atom coordinates.
-
-  #  Parameters
-  #  ----------
-  #  coords: tf.Tensor
-  #    Shape (N_atoms, ndim)
-
-  #  Returns
-  #  -------
-  #  nbr_list: tf.Tensor
-  #    Shape (N_atoms, M_nbrs) of atom indices
-  #  """
-  #  N_atoms, M_nbrs, n_cells, ndim = (self.N_atoms, self.M_nbrs, self.n_cells,
-  #                                    self.ndim)
-  #  nbr_cutoff = self.nbr_cutoff
-  #  coords = tf.to_float(coords)
-
-  #  nbrs, closest_nbrs = self.get_closest_nbrs(coords)
-
-  #  # N_atoms elts of size (M_nbrs,) each 
-  #  neighbor_list = [
-  #      tf.gather(atom_nbrs, closest_nbr_ind)
-  #      for (atom_nbrs, closest_nbr_ind) in zip(nbrs, closest_nbrs)
-  #  ]
-
-  #  # Shape (N_atoms, M_nbrs)
-  #  nbr_list = tf.stack(neighbor_list)
-
-  #  return nbr_list
 
   def compute_nbr_list(self, coords):
     """Get closest neighbors for atoms.
@@ -1206,8 +1219,6 @@ class AtomicConvolution(Layer):
       Neighbor list.
     Nbrs_Z: tf.Tensor of shape (B, N, M)
       Atomic numbers of neighbor atoms.
-      
-    
     
     Returns
     -------

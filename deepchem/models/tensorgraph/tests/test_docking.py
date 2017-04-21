@@ -20,12 +20,7 @@ from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import Cutoff
-from deepchem.models.tensorgraph.layers import VinaRepulsion
-from deepchem.models.tensorgraph.layers import VinaNonlinearity
-from deepchem.models.tensorgraph.layers import VinaHydrophobic
-from deepchem.models.tensorgraph.layers import VinaHydrogenBond
-from deepchem.models.tensorgraph.layers import VinaGaussianFirst
-from deepchem.models.tensorgraph.layers import VinaGaussianSecond
+from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import L2LossLayer
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
@@ -377,74 +372,6 @@ class TestDocking(test_util.TensorFlowTestCase):
       nbr_list = nbr_list_layer.compute_nbr_list(coords)
       nbr_list = np.squeeze(nbr_list.eval())
       np.testing.assert_array_almost_equal(nbr_list, np.array([-1, -1, 3, 2]))
-
-  #def test_get_closest_nbrs_3D_empty_cells(self):
-  #  """Test get_closest_nbrs in 3D with empty nbrs.
-  #  Stresses the failure mode where the neighboring cells are empty
-  #  so top_k will throw a failure.
-  #  """
-  #  N_atoms = 4
-  #  start = 0
-  #  stop = 10
-  #  nbr_cutoff = 1
-  #  ndim = 3
-  #  M_nbrs = 1
-  #  # 1 and 2 are nbrs. 8 and 9 are nbrs
-  #  coords = np.array(
-  #    [[1.0, 0.0, 1.0],
-  #     [2.0, 5.0, 2.0],
-  #     [8.0, 8.0, 8.0],
-  #     [9.0, 9.0, 9.0]])
-  #  coords = np.reshape(coords, (N_atoms, ndim))
-
-  #  with self.test_session() as sess:
-  #    coords = tf.convert_to_tensor(coords, dtype=tf.float32)
-  #    nbr_layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
-  #                                  stop)
-
-  #    neighbor_list, padded_neighbor_list, padded_closest_nbrs, padded_dists, dists, padded_nbr_coords, nbr_coords, padded_nbrs, nbrs, closest_nbrs = nbr_layer.get_closest_nbrs(coords)
-
-  #    neighbor_list_eval = neighbor_list.eval()
-  #    print("neighbor_list_eval")
-  #    print(neighbor_list_eval)
-
-  #    padded_neighbor_list_eval = [padded_nbr.eval() for padded_nbr in padded_neighbor_list]
-  #    print("padded_neighbor_list_eval")
-  #    print(padded_neighbor_list_eval)
-
-  #    padded_dists_eval = [padded_dist.eval() for padded_dist in padded_dists]
-  #    print("padded_dists_eval")
-  #    print(padded_dists_eval)
-
-  #    dists_eval = [dist.eval() for dist in dists]
-  #    print("dists_eval")
-  #    print(dists_eval)
-  #
-  #    nbr_coords_eval = [nbr_coord.eval() for nbr_coord in nbr_coords]
-  #    print("nbr_coords_eval")
-  #    print(nbr_coords_eval)
-
-  #    padded_nbr_coords_eval = [padded_nbr_coord.eval() for padded_nbr_coord in padded_nbr_coords]
-  #    print("padded_nbr_coords_eval")
-  #    print(padded_nbr_coords_eval)
-
-  #    nbrs_eval = [nbr.eval() for nbr in nbrs]
-  #    print("nbrs_eval")
-  #    print(nbrs_eval)
-  #
-  #    padded_nbrs_eval = [padded_nbr.eval() for padded_nbr in padded_nbrs]
-  #    print("padded_nbrs_eval")
-  #    print(padded_nbrs_eval)
-
-  #    padded_closest_nbrs_eval = [padded_closest_nbr.eval() for padded_closest_nbr in padded_closest_nbrs] 
-  #    print("padded_closest_nbrs_eval")
-  #    print(padded_closest_nbrs_eval)
-
-  #    #closest_nbrs_eval = [closest_nbr.eval() for closest_nbr in closest_nbrs]
-  #    #print("closest_nbrs_eval")
-  #    #print(closest_nbrs_eval)
-
-  #    assert 0 == 1
 
   def test_neighbor_list_vina(self):
     """Test under conditions closer to Vina usage."""
