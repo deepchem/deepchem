@@ -161,6 +161,7 @@ class TensorGraph(Model):
             avg_loss = float(avg_loss) / n_batches
             print('Ending global_step %d: Average loss %g' %
                   (self.global_step, avg_loss))
+            avg_loss, n_batches = 0.0, 0.0
         avg_loss = float(avg_loss) / n_batches
         print('Ending global_step %d: Average loss %g' %
               (self.global_step, avg_loss))
@@ -243,7 +244,7 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
+        self._initialize_weights(sess, saver)
         out_tensors = [x.out_tensor for x in self.outputs]
         results = []
         for feed_dict in generator:

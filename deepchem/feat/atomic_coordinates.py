@@ -13,7 +13,7 @@ import numpy as np
 import mdtraj
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
-from deepchem.utils import rdkit_util
+from deepchem.utils import rdkit_util, pad_array
 
 
 class AtomicCoordinates(Featurizer):
@@ -177,7 +177,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
     complex_pdb: list
       Should be a list of lines of the PDB file.
     """
-    mol_coords, _ = rdkit_util.load_molecule(mol_pdb_file)
+    mol_coords, ob_mol = rdkit_util.load_molecule(mol_pdb_file)
     protein_coords, protein_mol = rdkit_util.load_molecule(protein_pdb_file)
     system_coords = rdkit_util.merge_molecules_xyz(mol_coords, protein_coords)
 
@@ -185,3 +185,45 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
         system_coords, self.neighbor_cutoff, self.max_num_neighbors, None)
 
     return (system_coords, system_neighbor_list)
+
+
+class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
+
+  def __init__(self, frag1_num_atoms, frag2_num_atoms, complex_num_atoms,
+               max_num_neighbors, neighbor_cutoff):
+    self.frag1_num_atoms = frag1_num_atoms
+    self.frag2_num_atoms = frag2_num_atoms
+    self.complex_num_atoms = complex_num_atoms
+    self.max_num_neighbors = max_num_neighbors
+    self.neighbor_cutoff = neighbor_cutoff
+    self.neighborlist_featurizer = NeighborListComplexAtomicCoordinates(
+        self.max_num_neighbors, self.neighbor_cutoff)
+
+  def _featurize_complex(self, mol_pdb_file, protein_pdb_file):
+    frag1_coords, frag1_mol = rdkit_util.load_molecule(mol_pdb_file)
+    frag1_coords, frag1_neighbor_list, frag1_z = self.featurize_mol(
+        frag1_coords, frag1_mol, self.frag1_num_atoms)
+
+    frag2_coords, frag2_mol = rdkit_util.load_molecule(protein_pdb_file)
+    frag2_coords, frag2_neighbor_list, frag2_z = self.featurize_mol(
+        frag2_coords, frag2_mol, self.frag2_num_atoms)
+
+    system_mol = rdkit_util.merge_molecules(frag1_mol, frag2_mol)
+    system_coords = rdkit_util.get_xyz_from_mol(system_mol)
+    system_coords, system_neighbor_list, system_z = self.featurize_mol(
+        system_coords, system_mol, self.complex_num_atoms)
+
+    return frag1_coords, frag1_neighbor_list, frag1_z, frag2_coords, frag2_neighbor_list, frag2_z, \
+           system_coords, system_neighbor_list, system_z
+
+  def get_Z_matrix(self, mol, max_atoms):
+    return pad_array(
+        np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()]), max_atoms)
+
+  def featurize_mol(self, coords, mol, max_num_atoms):
+    neighbor_list = compute_neighbor_list(coords, self.neighbor_cutoff,
+                                          self.max_num_neighbors, None)
+    z = self.get_Z_matrix(mol, max_num_atoms)
+    z = pad_array(z, max_num_atoms)
+    coords = pad_array(coords, (max_num_atoms, 3))
+    return coords, neighbor_list, z

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 envname=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
-conda create --name $envname python=3.5
 bash scripts/install_deepchem_conda.sh $envname
 source activate $envname
 python setup.py install

@@ -330,11 +330,10 @@ def AtomicConvolutionLayer(X, Nbrs, Nbrs_Z, atom_types, radial_params, boxsize,
         cond = tf.equal(Nbrs_Z, atom_types[j])
         sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
 
-  # Pack l (B, N) tensors into one (l, B, N) tensor
-  # Transpose to (B, N, l) for conv layer stacking
-  # done inside conv_layer loops to reduce transpose ops
-  # Final layer should be shape (N, B, l) to pass into tf.map_fn
   layer = tf.stack(sym)
+  layer = tf.transpose(layer, [1, 2, 0])
+  m, v = tf.nn.moments(layer, axes=[0])
+  layer = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
   return layer
 
 
