@@ -11,7 +11,9 @@ import deepchem
 import scipy.io
 
 
-def load_qm7_from_mat(featurizer=None, split='stratified', reload=True):
+def load_qm7_from_mat(featurizer='CoulombMatrix',
+                      split='stratified',
+                      reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
@@ -57,7 +59,9 @@ def load_qm7_from_mat(featurizer=None, split='stratified', reload=True):
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
-def load_qm7b_from_mat(featurizer=None, split='stratified', reload=True):
+def load_qm7b_from_mat(featurizer='CoulombMatrix',
+                       split='stratified',
+                       reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
@@ -100,7 +104,7 @@ def load_qm7b_from_mat(featurizer=None, split='stratified', reload=True):
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
-def load_qm7(featurizer=None, split='random', reload=True):
+def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
   """Load qm7 datasets."""
   # Featurize qm7 dataset
   print("About to featurize qm7 dataset.")
@@ -120,7 +124,7 @@ def load_qm7(featurizer=None, split='random', reload=True):
               data_dir)
 
   qm7_tasks = ["u0_atom"]
-  if featurizer is None:
+  if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrixEig(23)
   loader = deepchem.data.SDFLoader(
       tasks=qm7_tasks,

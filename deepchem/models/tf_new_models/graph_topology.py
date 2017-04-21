@@ -146,7 +146,6 @@ class DTNNGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
   def __init__(self,
-               max_n_atoms,
                n_distance=100,
                distance_min=-1.,
                distance_max=18.,
@@ -167,31 +166,33 @@ class DTNNGraphTopology(GraphTopology):
 
     #self.n_atoms = n_atoms
     self.name = name
-    self.max_n_atoms = max_n_atoms
     self.n_distance = n_distance
     self.distance_min = distance_min
     self.distance_max = distance_max
+    self.step_size = (distance_max - distance_min) / n_distance
+    self.steps = np.array(
+        [distance_min + i * self.step_size for i in range(n_distance)])
+    self.steps = np.expand_dims(self.steps, 0)
 
     self.atom_number_placeholder = tf.placeholder(
-        dtype='int32',
-        shape=(None, self.max_n_atoms),
-        name=self.name + '_atom_number')
-    self.atom_mask_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name + '_atom_number')
+    self.distance_placeholder = tf.placeholder(
         dtype='float32',
-        shape=(None, self.max_n_atoms),
-        name=self.name + '_atom_mask')
-    self.distance_matrix_placeholder = tf.placeholder(
-        dtype='float32',
-        shape=(None, self.max_n_atoms, self.max_n_atoms, self.n_distance),
-        name=self.name + '_distance_matrix')
-    self.distance_matrix_mask_placeholder = tf.placeholder(
-        dtype='float32',
-        shape=(None, self.max_n_atoms, self.max_n_atoms),
-        name=self.name + '_distance_matrix_mask')
+        shape=(None, self.n_distance),
+        name=self.name + '_distance')
+    self.atom_membership_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name + '_atom_membership')
+    self.distance_membership_i_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name + '_distance_membership_i')
+    self.distance_membership_j_placeholder = tf.placeholder(
+        dtype='int32', shape=(None,), name=self.name + '_distance_membership_j')
 
     # Define the list of tensors to be used as topology
     self.topology = [
-        self.distance_matrix_placeholder, self.distance_matrix_mask_placeholder
+        self.distance_placeholder,
+        self.atom_membership_placeholder,
+        self.distance_membership_i_placeholder,
+        self.distance_membership_j_placeholder,
     ]
     self.inputs = [self.atom_number_placeholder]
     self.inputs += self.topology
@@ -199,8 +200,8 @@ class DTNNGraphTopology(GraphTopology):
   def get_atom_number_placeholder(self):
     return self.atom_number_placeholder
 
-  def get_distance_matrix_placeholder(self):
-    return self.distance_matrix_placeholder
+  def get_distance_placeholder(self):
+    return self.distance_placeholder
 
   def batch_to_feed_dict(self, batch):
     """Converts the current batch of Coulomb Matrix into tensorflow feed_dict.
@@ -219,84 +220,91 @@ class DTNNGraphTopology(GraphTopology):
       Can be merged with other feed_dicts for input into tensorflow
     """
     # Extract atom numbers
-    atom_number = np.asarray(list(map(np.diag, batch)))
-    atom_mask = np.sign(atom_number)
-    atom_number = np.asarray(
-        np.round(np.power(2 * atom_number, 1 / 2.4)), dtype=int)
-    ZiZj = []
-    for molecule in atom_number:
-      ZiZj.append(np.outer(molecule, molecule))
-    ZiZj = np.asarray(ZiZj)
-    distance_matrix = np.expand_dims(batch[:], axis=3)
-    distance_matrix = np.concatenate(
-        [distance_matrix] * self.n_distance, axis=3)
-    distance_matrix_mask = batch[:]
-    for im, molecule in enumerate(batch):
-      for ir, row in enumerate(molecule):
-        for ie, element in enumerate(row):
-          if element > 0 and ir != ie:
-            # expand a float value distance to a distance vector
-            distance_matrix[im, ir, ie, :] = self.gauss_expand(
-                ZiZj[im, ir, ie] / element, self.n_distance, self.distance_min,
-                self.distance_max)
-            distance_matrix_mask[im, ir, ie] = 1
-          else:
-            distance_matrix[im, ir, ie, :] = 0
-            distance_matrix_mask[im, ir, ie] = 0
+    num_atoms = list(map(sum, batch.astype(bool)[:, :, 0]))
+    atom_number = [
+        np.round(
+            np.power(2 * np.diag(batch[i, :num_atoms[i], :num_atoms[i]]), 1 /
+                     2.4)).astype(int) for i in range(len(num_atoms))
+    ]
+
+    distance = []
+    atom_membership = []
+    distance_membership_i = []
+    distance_membership_j = []
+    start = 0
+    for im, molecule in enumerate(atom_number):
+      distance_matrix = np.outer(
+          molecule, molecule) / batch[im, :num_atoms[im], :num_atoms[im]]
+      np.fill_diagonal(distance_matrix, -100)
+      distance.append(np.expand_dims(distance_matrix.flatten(), 1))
+      atom_membership.append([im] * num_atoms[im])
+      membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
+      membership_i = membership.flatten(order='F')
+      membership_j = membership.flatten()
+      distance_membership_i.append(membership_i + start)
+      distance_membership_j.append(membership_j + start)
+      start = start + num_atoms[im]
+    atom_number = np.concatenate(atom_number)
+    distance = np.concatenate(distance, 0)
+    distance = np.exp(-np.square(distance - self.steps) /
+                      (2 * self.step_size**2))
+    distance_membership_i = np.concatenate(distance_membership_i)
+    distance_membership_j = np.concatenate(distance_membership_j)
+    atom_membership = np.concatenate(atom_membership)
     # Generate dicts
     dict_DTNN = {
         self.atom_number_placeholder: atom_number,
-        self.atom_mask_placeholder: atom_mask,
-        self.distance_matrix_placeholder: distance_matrix,
-        self.distance_matrix_mask_placeholder: distance_matrix_mask
+        self.distance_placeholder: distance,
+        self.atom_membership_placeholder: atom_membership,
+        self.distance_membership_i_placeholder: distance_membership_i,
+        self.distance_membership_j_placeholder: distance_membership_j
     }
     return dict_DTNN
-
-  @staticmethod
-  def gauss_expand(distance, n_distance, distance_min, distance_max):
-    step_size = (distance_max - distance_min) / n_distance
-    steps = np.array([distance_min + i * step_size for i in range(n_distance)])
-    distance_vector = np.exp(-np.square(distance - steps) / (2 * step_size**2))
-    return distance_vector
 
 
 class DAGGraphTopology(GraphTopology):
   """GraphTopology for DAG models
   """
 
-  def __init__(self, n_feat, batch_size, name='topology', max_atoms=50):
+  def __init__(self, n_atom_feat=75, max_atoms=50, name='topology'):
 
-    self.n_feat = n_feat
-    self.name = name
+    self.n_atom_feat = n_atom_feat
     self.max_atoms = max_atoms
-    self.batch_size = batch_size
+    self.name = name
     self.atom_features_placeholder = tf.placeholder(
         dtype='float32',
-        shape=(self.batch_size * self.max_atoms, self.n_feat),
+        shape=(None, self.n_atom_feat),
         name=self.name + '_atom_features')
 
     self.parents_placeholder = tf.placeholder(
         dtype='int32',
-        shape=(self.batch_size * self.max_atoms, self.max_atoms,
-               self.max_atoms),
+        shape=(None, self.max_atoms, self.max_atoms),
         # molecule * atom(graph) => step => features
         name=self.name + '_parents')
 
     self.calculation_orders_placeholder = tf.placeholder(
         dtype='int32',
-        shape=(self.batch_size * self.max_atoms, self.max_atoms),
+        shape=(None, self.max_atoms),
         # molecule * atom(graph) => step
         name=self.name + '_orders')
 
+    self.calculation_masks_placeholder = tf.placeholder(
+        dtype='bool',
+        shape=(None, self.max_atoms),
+        # molecule * atom(graph) => step
+        name=self.name + '_masks')
+
     self.membership_placeholder = tf.placeholder(
-        dtype='int32',
-        shape=(self.batch_size * self.max_atoms),
-        name=self.name + '_membership')
+        dtype='int32', shape=(None,), name=self.name + '_membership')
+
+    self.n_atoms_placeholder = tf.placeholder(
+        dtype='int32', shape=(), name=self.name + '_n_atoms')
 
     # Define the list of tensors to be used as topology
     self.topology = [
         self.parents_placeholder, self.calculation_orders_placeholder,
-        self.membership_placeholder
+        self.calculation_masks_placeholder, self.membership_placeholder,
+        self.n_atoms_placeholder
     ]
 
     self.inputs = [self.atom_features_placeholder]
@@ -326,72 +334,42 @@ class DAGGraphTopology(GraphTopology):
     """
 
     atoms_per_mol = [mol.get_num_atoms() for mol in batch]
-    n_atom_features = batch[0].get_atom_features().shape[1]
-    membership = np.concatenate(
-        [
-            np.array([1] * n_atoms + [0] * (self.max_atoms - n_atoms))
-            for i, n_atoms in enumerate(atoms_per_mol)
-        ],
-        axis=0)
+    n_atoms = sum(atoms_per_mol)
+    start_index = [0] + list(np.cumsum(atoms_per_mol)[:-1])
 
     atoms_all = []
     # calculation orders for a batch of molecules
     parents_all = []
     calculation_orders = []
+    calculation_masks = []
+    membership = []
     for idm, mol in enumerate(batch):
       # padding atom features vector of each molecule with 0
-      atom_features_padded = np.concatenate(
-          [
-              mol.get_atom_features(), np.zeros(
-                  (self.max_atoms - atoms_per_mol[idm], n_atom_features))
-          ],
-          axis=0)
-      atoms_all.append(atom_features_padded)
-
-      # calculation orders for DAGs
+      atoms_all.append(mol.get_atom_features())
       parents = mol.parents
-      # number of DAGs should equal number of atoms
-      assert len(parents) == atoms_per_mol[idm]
-      parents_all.extend(parents[:])
-      # padding with `max_atoms`
-      parents_all.extend([
-          self.max_atoms * np.ones((self.max_atoms, self.max_atoms), dtype=int)
-          for i in range(self.max_atoms - atoms_per_mol[idm])
-      ])
-      for parent in parents:
-        # index for an atom in `parents_all` and `atoms_all` is different, 
-        # this function changes the index from the position in current molecule(DAGs, `parents_all`) 
-        # to position in batch of molecules(`atoms_all`)
-        # only used in tf.gather on `atom_features_placeholder`
-        calculation_orders.append(self.index_changing(parent[:, 0], idm))
-
-      # padding with `batch_size*max_atoms`
-      calculation_orders.extend([
-          self.batch_size * self.max_atoms * np.ones(
-              (self.max_atoms,), dtype=int)
-          for i in range(self.max_atoms - atoms_per_mol[idm])
-      ])
+      parents_all.extend(parents)
+      calculation_index = np.array(parents)[:, :, 0]
+      mask = np.array(calculation_index - self.max_atoms, dtype=bool)
+      calculation_orders.append(calculation_index + start_index[idm])
+      calculation_masks.append(mask)
+      membership.extend([idm] * atoms_per_mol[idm])
 
     atoms_all = np.concatenate(atoms_all, axis=0)
     parents_all = np.stack(parents_all, axis=0)
-    calculation_orders = np.stack(calculation_orders, axis=0)
+    calculation_orders = np.concatenate(calculation_orders, axis=0)
+    calculation_masks = np.concatenate(calculation_masks, axis=0)
+    membership = np.array(membership)
+
     atoms_dict = {
         self.atom_features_placeholder: atoms_all,
-        self.membership_placeholder: membership,
         self.parents_placeholder: parents_all,
-        self.calculation_orders_placeholder: calculation_orders
+        self.calculation_orders_placeholder: calculation_orders,
+        self.calculation_masks_placeholder: calculation_masks,
+        self.membership_placeholder: membership,
+        self.n_atoms_placeholder: n_atoms
     }
 
     return atoms_dict
-
-  def index_changing(self, index, n_mol):
-    output = np.zeros_like(index)
-    for ide, element in enumerate(index):
-      if element < self.max_atoms:
-        output[ide] = element + n_mol * self.max_atoms
-      else:
-        output[ide] = self.batch_size * self.max_atoms
-    return output
 
 
 class WeaveGraphTopology(GraphTopology):
@@ -532,7 +510,7 @@ class AlternateWeaveGraphTopology(GraphTopology):
     self.pair_split_placeholder = tf.placeholder(
         dtype='int32', shape=(None,), name=self.name + '_pair_split')
     self.atom_split_placeholder = tf.placeholder(
-        dtype='int32', shape=(self.batch_size,), name=self.name + '_atom_split')
+        dtype='int32', shape=(None,), name=self.name + '_atom_split')
     self.atom_to_pair_placeholder = tf.placeholder(
         dtype='int32', shape=(None, 2), name=self.name + '_atom_to_pair')
 
@@ -574,7 +552,7 @@ class AlternateWeaveGraphTopology(GraphTopology):
     for im, mol in enumerate(batch):
       n_atoms = mol.get_num_atoms()
       # number of atoms in each molecule
-      atom_split.append(n_atoms)
+      atom_split.extend([im] * n_atoms)
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
       atom_to_pair.append(
