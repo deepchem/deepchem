@@ -11,6 +11,8 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import precision_score
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import auc
 from scipy.stats import pearsonr
 
 
@@ -68,6 +70,17 @@ def balanced_accuracy_score(y, y_pred):
 def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
+
+
+def auPR_score(y, y_pred):
+  """Compute area under precision-recall curve"""
+  assert y_pred.shape == y.shape
+  n_classes = y_pred.shape[1]
+  scores = []
+  for i in range(n_classes):
+    precision, recall, _ = precision_recall_curve(y[:, i], y_pred[:, i])
+    scores.append(auc(recall, precision))
+  return np.mean(scores)
 
 
 def rms_score(y_true, y_pred):
@@ -148,7 +161,7 @@ class Metric(object):
       if self.metric.__name__ in [
           "roc_auc_score", "matthews_corrcoef", "recall_score",
           "accuracy_score", "kappa_score", "precision_score",
-          "balanced_accuracy_score"
+          "balanced_accuracy_score", "auPR_score"
       ]:
         mode = "classification"
       elif self.metric.__name__ in [
@@ -267,7 +280,7 @@ class Metric(object):
       # TODO(rbharath): This has been a major source of bugs. Is there a more
       # robust characterization of which metrics require class-probs and which
       # don't?
-      if "roc_auc_score" in self.name:
+      if "roc_auc_score" in self.name or "auPR_score" in self.name:
         y_true = to_one_hot(y_true).astype(int)
         y_pred = np.reshape(y_pred, (n_samples, n_classes))
       else:
