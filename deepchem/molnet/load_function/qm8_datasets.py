@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_qm8(featurizer=None, split='random', reload=True):
+def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
   if "DEEPCHEM_DATA_DIR" in os.environ:
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
@@ -39,7 +39,7 @@ def load_qm8(featurizer=None, split='random', reload=True):
     if loaded:
       return qm8_tasks, all_dataset, transformers
 
-  if featurizer is None:
+  if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrix(26)
   loader = deepchem.data.SDFLoader(
       tasks=qm8_tasks,

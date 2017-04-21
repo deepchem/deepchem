@@ -9,10 +9,10 @@ import numpy as np
 import six
 
 from deepchem.models.tensorgraph import TensorGraph
-from metrics import to_one_hot
+from deepchem.metrics import to_one_hot
 
-from feat.mol_graphs import ConvMol
-from models.tensorgraph.layers import Input, GraphConvLayer, BatchNormLayer, GraphPoolLayer, Dense, GraphGather, \
+from deepchem.feat.mol_graphs import ConvMol
+from deepchem.models.tensorgraph.layers import Input, GraphConvLayer, BatchNormLayer, GraphPoolLayer, Dense, GraphGather, \
   SoftMax, SoftMaxCrossEntropy, Concat, WeightedError, Label, Weights, Feature
 
 np.random.seed(123)

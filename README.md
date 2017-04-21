@@ -496,26 +496,29 @@ Scaffold splitting
 |                |Graphconv regression|Scaffold    |0.695         |0.391         |
 |                |Weave regression    |Scaffold    |0.401         |0.373         |
 |qm7             |NN regression       |Index       |0.997         |0.992         |
-|                |DTNN                |Index       |0.998         |0.996         |
+|                |DTNN                |Index       |0.997         |0.995         |
 |                |NN regression       |Random      |0.998         |0.997         |
-|                |DTNN                |Random      |0.998         |0.998         |
+|                |DTNN                |Random      |0.999         |0.998         |
 |                |NN regression       |Stratified  |0.998         |0.997         | 
 |                |DTNN                |Stratified  |0.998         |0.998         | 
 |qm7b            |MT-NN regression    |Index       |0.903         |0.789         |
-|                |DTNN                |Index       |0.872         |0.821         |
+|                |DTNN                |Index       |0.919         |0.863         |
 |                |MT-NN regression    |Random      |0.893         |0.839         |
-|                |DTNN                |Random      |0.865         |0.849         |
+|                |DTNN                |Random      |0.924         |0.898         |
 |                |MT-NN regression    |Stratified  |0.891         |0.859         | 
-|                |DTNN                |Stratified  |0.853         |0.839         | 
+|                |DTNN                |Stratified  |0.913         |0.894         | 
 |qm8             |MT-NN regression    |Index       |0.783         |0.656         |
-|                |DTNN                |Index       |0.737         |0.639         |
+|                |DTNN                |Index       |0.857         |0.691         |
 |                |MT-NN regression    |Random      |0.747         |0.660         |
-|                |DTNN                |Random      |0.731         |0.711         |
+|                |DTNN                |Random      |0.842         |0.756         |
 |                |MT-NN regression    |Stratified  |0.756         |0.681         |
-|                |DTNN                |Stratified  |0.714         |0.683         | 
+|                |DTNN                |Stratified  |0.844         |0.758         | 
 |qm9             |MT-NN regression    |Index       |0.733         |0.766         |
+|                |DTNN                |Index       |0.918         |0.831         | 
 |                |MT-NN regression    |Random      |0.852         |0.833         |
+|                |DTNN                |Random      |0.942         |0.948         | 
 |                |MT-NN regression    |Stratified  |0.764         |0.792         | 
+|                |DTNN                |Stratified  |0.941         |0.867         | 
 |sampl           |Random forest       |Index       |0.968         |0.736         |
 |                |XGBoost             |Index       |0.884         |0.784         |
 |                |NN regression       |Index       |0.917         |0.764         |
@@ -675,9 +678,13 @@ Time needed for benchmark test(~20h in total)
 |                |Graphconv regression|20              |100            |
 |                |Weave regression    |20              |120            |
 |qm7             |MT-NN regression    |10              |400            |
+|                |DTNN                |10              |600            |
 |qm7b            |MT-NN regression    |10              |600            |
+|                |DTNN                |10              |600            |
 |qm8             |MT-NN regression    |60              |1000           |
+|                |DTNN                |10              |2000           |
 |qm9             |MT-NN regression    |220             |10000          |
+|                |DTNN                |10              |14000          |
 |sampl           |NN regression       |10              |30             |
 |                |XGBoost             |10              |20             |
 |                |Random forest       |10              |20             |

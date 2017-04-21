@@ -826,7 +826,7 @@ class DTNNEmbedding(Layer):
   """
 
   def __init__(self,
-               n_embedding=20,
+               n_embedding=30,
                periodic_table_length=83,
                init='glorot_uniform',
                **kwargs):
@@ -868,9 +868,9 @@ class DTNNStep(Layer):
   """
 
   def __init__(self,
-               n_embedding=20,
+               n_embedding=30,
                n_distance=100,
-               n_hidden=20,
+               n_hidden=60,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
@@ -892,6 +892,7 @@ class DTNNStep(Layer):
     self.b_df = model_ops.zeros(shape=[
         self.n_hidden,
     ])
+    #self.b_fc = model_ops.zeros(shape=[self.n_embedding,])
 
     self.trainable_weights = [
         self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
@@ -903,9 +904,12 @@ class DTNNStep(Layer):
     Parameters
     ----------
     x: list of Tensor 
-      should be [atom_features(batch_size*max_n_atoms*n_embedding), 
-                 distance_matrix(batch_size*max_n_atoms*max_n_atoms*n_distance), 
-                 distance_matrix_mask(batch_size*max_n_atoms*max_n_atoms)]
+      should be [atom_features: n_atoms*n_embedding, 
+                 distance_matrix: n_pairs*n_distance,
+                 atom_membership: n_atoms
+                 distance_membership_i: n_pairs,
+                 distance_membership_j: n_pairs,
+                 ]
 
     Returns
     -------
@@ -914,21 +918,29 @@ class DTNNStep(Layer):
     """
     self.build()
     atom_features = x[0]
-    distance_matrix = x[1]
-    distance_matrix_mask = x[2]
-    outputs = tf.multiply(
-        (tf.tensordot(distance_matrix, self.W_df, [[3], [0]]) + self.b_df),
-        tf.expand_dims(
-            tf.tensordot(atom_features, self.W_cf, [[2], [0]]) + self.b_cf,
-            axis=1))
+    distance = x[1]
+    distance_membership_i = x[3]
+    distance_membership_j = x[4]
+    distance_hidden = tf.matmul(distance, self.W_df) + self.b_df
+    #distance_hidden = self.activation(distance_hidden)
+    atom_features_hidden = tf.matmul(atom_features, self.W_cf) + self.b_cf
+    #atom_features_hidden = self.activation(atom_features_hidden)
+    outputs = tf.multiply(distance_hidden,
+                          tf.gather(atom_features_hidden,
+                                    distance_membership_j))
+
     # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
     # and embeddings of atom j(both gone through a hidden layer)
-    outputs = tf.tensordot(outputs, self.W_fc, [[3], [0]])
-    outputs = tf.multiply(outputs, tf.expand_dims(distance_matrix_mask, axis=3))
-    # masking the outputs tensor for pair(i,i) and all paddings
+    outputs = tf.matmul(outputs, self.W_fc)
     outputs = self.activation(outputs)
-    outputs = tf.reduce_sum(outputs, axis=2) + atom_features
+
+    output_ii = tf.multiply(self.b_df, atom_features_hidden)
+    output_ii = tf.matmul(output_ii, self.W_fc)
+    output_ii = self.activation(output_ii)
+
     # for atom i, sum the influence from all other atom j in the molecule
+    outputs = tf.segment_sum(outputs,
+                             distance_membership_i) - output_ii + atom_features
 
     return outputs
 
@@ -938,12 +950,14 @@ class DTNNGather(Layer):
   """
 
   def __init__(self,
-               n_embedding=20,
+               n_embedding=30,
+               n_outputs=100,
                layer_sizes=[100],
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
     self.n_embedding = n_embedding
+    self.n_outputs = n_outputs
     self.layer_sizes = layer_sizes
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
@@ -954,16 +968,17 @@ class DTNNGather(Layer):
     self.W_list = []
     self.b_list = []
     prev_layer_size = self.n_embedding
-    for layer_size in self.layer_sizes:
+    for i, layer_size in enumerate(self.layer_sizes):
       self.W_list.append(self.init([prev_layer_size, layer_size]))
       self.b_list.append(model_ops.zeros(shape=[
           layer_size,
       ]))
       prev_layer_size = layer_size
-    self.W_list.append(self.init([prev_layer_size, self.n_embedding]))
+    self.W_list.append(self.init([prev_layer_size, self.n_outputs]))
     self.b_list.append(model_ops.zeros(shape=[
-        self.n_embedding,
+        self.n_outputs,
     ]))
+    prev_layer_size = self.n_outputs
 
     self.trainable_weights = self.W_list + self.b_list
 
@@ -983,14 +998,11 @@ class DTNNGather(Layer):
     """
     self.build()
     output = x[0]
-    atom_mask = x[1]
-    for idw, W in enumerate(self.W_list):
-      output = tf.tensordot(output, W, [[2], [0]]) + self.b_list[idw]
+    atom_membership = x[1]
+    for i, W in enumerate(self.W_list):
+      output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
-
-    output = tf.reduce_sum(
-        tf.multiply(output, tf.expand_dims(atom_mask, axis=2)), axis=1)
-
+    output = tf.segment_sum(output, atom_membership)
     return output
 
 
@@ -1003,19 +1015,20 @@ class DAGLayer(Layer):
 
   def __init__(self,
                n_graph_feat=30,
-               n_atom_features=75,
+               n_atom_feat=75,
                layer_sizes=[100],
                init='glorot_uniform',
                activation='relu',
                dropout=None,
                max_atoms=50,
+               batch_size=64,
                **kwargs):
     """
     Parameters
     ----------
     n_graph_feat: int
       Number of features for each node(and the whole grah).
-    n_atom_features: int
+    n_atom_feat: int
       Number of features listed per atom.
     layer_sizes: list of int, optional(default=[1000])
       Structure of hidden layer(s)
@@ -1035,11 +1048,12 @@ class DAGLayer(Layer):
     self.layer_sizes = layer_sizes
     self.dropout = dropout
     self.max_atoms = max_atoms
-    self.n_inputs = n_atom_features + (self.max_atoms - 1) * n_graph_feat
+    self.batch_size = batch_size
+    self.n_inputs = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
     # number of inputs each step
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_graph_feat
-    self.n_atom_features = n_atom_features
+    self.n_atom_feat = n_atom_feat
 
   def build(self):
     """"Construct internal trainable weights.
@@ -1080,51 +1094,44 @@ class DAGLayer(Layer):
     """
     # Add trainable weights
     self.build()
-
     # Extract atom_features
     # Basic features of every atom: (batch_size*max_atoms) * n_atom_features
     atom_features = x[0]
-
     # calculation orders of graph: (batch_size*max_atoms) * max_atoms * max_atoms
     # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
     # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
     # step i calculates the graph features for atoms of index `parents[:,i,0]`
     parents = x[1]
-
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
     # represent the same atoms of `parents[:, :, 0]`, 
     # different in that these index are positions in `atom_features`
-    # paded with max_atoms*batch_size
     calculation_orders = x[2]
-    # flags: (batch_size*max_atoms)
-    # 0 for paddings, 1 for real atoms
-    membership = x[3]
+    calculation_masks = x[3]
     # number of atoms in total, should equal `batch_size*max_atoms`
-    n_atoms = atom_features.get_shape()[0]
+    n_atoms = x[5]
 
+    graph_features_initial = tf.zeros((self.max_atoms * self.batch_size,
+                                       self.max_atoms + 1, self.n_graph_feat))
     # initialize graph features for each graph
     # another row of zeros is generated for padded dummy atoms
-    graph_features = tf.Variable(
-        tf.constant(0., shape=(n_atoms, self.max_atoms + 1, self.n_graph_feat)),
-        trainable=False)
-    # add dummy
-    atom_features = tf.concat(
-        axis=0,
-        values=[
-            atom_features, tf.constant(0., shape=(1, self.n_atom_features))
-        ])
+    graph_features = tf.Variable(graph_features_initial, trainable=False)
+
     for count in range(self.max_atoms):
       # `count`-th step
       # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
-      batch_atom_features = tf.gather(atom_features,
-                                      calculation_orders[:, count])
+      mask = calculation_masks[:, count]
+      current_round = tf.boolean_mask(calculation_orders[:, count], mask)
+      batch_atom_features = tf.gather(atom_features, current_round)
 
       # generating index for graph features used in the inputs
       index = tf.stack(
           [
               tf.reshape(
-                  tf.stack([tf.range(n_atoms)] * (self.max_atoms - 1), axis=1),
-                  [-1]), tf.reshape(parents[:, count, 1:], [-1])
+                  tf.stack(
+                      [tf.boolean_mask(tf.range(n_atoms), mask)] *
+                      (self.max_atoms - 1),
+                      axis=1), [-1]),
+              tf.reshape(tf.boolean_mask(parents[:, count, 1:], mask), [-1])
           ],
           axis=1)
       # extracting graph features for parents of the target atoms, then flatten
@@ -1143,23 +1150,13 @@ class DAGLayer(Layer):
 
       # index for targe atoms
       target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]], axis=1)
-      # index for dummies
-      target_index2 = tf.stack(
-          [tf.range(n_atoms), tf.constant(self.max_atoms, shape=(n_atoms,))],
-          axis=1)
+      target_index = tf.boolean_mask(target_index, mask)
       # update the graph features for target atoms
       graph_features = tf.scatter_nd_update(graph_features, target_index,
                                             batch_outputs)
-      # recover dummies to zeros if being updated
-      graph_features = tf.scatter_nd_update(graph_features, target_index2,
-                                            tf.zeros(
-                                                (n_atoms, self.n_graph_feat)))
 
-    # last step generates graph features for all target atoms
-    # masking the outputs
-    outputs = tf.multiply(batch_outputs,
-                          tf.expand_dims(tf.to_float(membership), axis=1))
-    return outputs
+    # last step generates graph features for all target atom
+    return batch_outputs
 
   def DAGgraph_step(self, batch_inputs, W_list, b_list):
     outputs = batch_inputs
@@ -1177,7 +1174,7 @@ class DAGGather(Layer):
   def __init__(self,
                n_graph_feat=30,
                n_outputs=30,
-               layer_sizes=[1000],
+               layer_sizes=[100],
                init='glorot_uniform',
                activation='relu',
                dropout=None,
@@ -1249,10 +1246,10 @@ class DAGGather(Layer):
     """
     # Add trainable weights
     self.build()
-
+    atom_features = x[0]
+    membership = x[1]
     # Extract atom_features
-    graph_features = tf.reshape(x, [-1, self.max_atoms, self.n_graph_feat])
-    graph_features = tf.reduce_sum(graph_features, axis=1)
+    graph_features = tf.segment_sum(atom_features, membership)
     # sum all graph outputs
     outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
     return outputs

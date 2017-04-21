@@ -9,38 +9,39 @@ tf.set_random_seed(123)
 import deepchem as dc
 
 # Load Tox21 dataset
-tasks, datasets, transformers = dc.molnet.load_qm7b_from_mat()
+tasks, datasets, transformers = dc.molnet.load_qm9()
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Fit models
-metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
 
 # Batch size of models
 batch_size = 50
+n_embedding = 20
 graph_model = dc.nn.SequentialDTNNGraph(n_distance=100)
-graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
-graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
-graph_model.add(dc.nn.DTNNStep(n_embedding=20, n_distance=100))
-graph_model.add(dc.nn.DTNNGather(n_embedding=20))
-n_feat = 20
+graph_model.add(dc.nn.DTNNEmbedding(n_embedding=n_embedding))
+graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
+graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
+graph_model.add(dc.nn.DTNNGather(n_embedding=n_embedding))
+n_feat = n_embedding
 
 model = dc.models.MultitaskGraphRegressor(
     graph_model,
     len(tasks),
     n_feat,
     batch_size=batch_size,
-    learning_rate=1e-3,
+    learning_rate=0.0005,
     learning_rate_decay_time=1000,
     optimizer_type="adam",
     beta1=.9,
     beta2=.999)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=20)
 
 print("Evaluating model")
-train_scores = model.evaluate(train_dataset, [metric], transformers)
-valid_scores = model.evaluate(valid_dataset, [metric], transformers)
+train_scores = model.evaluate(train_dataset, metric, transformers)
+valid_scores = model.evaluate(valid_dataset, metric, transformers)
 
 print("Train scores")
 print(train_scores)

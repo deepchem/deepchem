@@ -1,5 +1,5 @@
 """
-Script that trains graph-conv models on Tox21 dataset.
+Script that trains DTNN models on qm7 dataset.
 """
 from __future__ import print_function
 from __future__ import division
@@ -22,25 +22,18 @@ metric = [
 ]
 
 # Batch size of models
-batch_size = 50
-n_embedding = 20
-graph_model = dc.nn.SequentialDTNNGraph(n_distance=100)
-graph_model.add(dc.nn.DTNNEmbedding(n_embedding=n_embedding))
-graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
-graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=100))
-graph_model.add(dc.nn.DTNNGather(n_embedding=n_embedding))
-n_feat = n_embedding
+batch_size = 64
+n_embedding = 30
+n_distance = 100
 
-model = dc.models.MultitaskGraphRegressor(
-    graph_model,
+model = dc.models.DTNNTensorGraph(
     len(tasks),
-    n_feat,
+    n_embedding=n_embedding,
+    n_distance=n_distance,
     batch_size=batch_size,
     learning_rate=0.001,
-    learning_rate_decay_time=1000,
-    optimizer_type="adam",
-    beta1=.9,
-    beta2=.999)
+    use_queue=False,
+    mode="regression")
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=50)

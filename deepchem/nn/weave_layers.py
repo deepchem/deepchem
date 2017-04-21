@@ -444,11 +444,8 @@ class AlternateWeaveGather(WeaveGather):
     if self.gaussian_expand:
       outputs = self.gaussian_histogram(outputs)
 
-    outputs = tf.split(outputs, atom_split, axis=0)
+    output_molecules = tf.segment_sum(outputs, atom_split)
 
-    output_molecules = [tf.reduce_sum(molecule, 0) for molecule in outputs]
-
-    output_molecules = tf.stack(output_molecules)
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
