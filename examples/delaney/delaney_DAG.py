@@ -43,7 +43,7 @@ graph.add(
         n_atom_feat=n_feat,
         max_atoms=max_atoms,
         batch_size=batch_size))
-graph.add(dc.nn.DAGGather(max_atoms=max_atoms))
+graph.add(dc.nn.DAGGather(n_graph_feat=30, max_atoms=max_atoms))
 
 model = dc.models.MultitaskGraphRegressor(
     graph,

@@ -252,7 +252,7 @@ def benchmark_classification(train_dataset,
             n_features,
             max_atoms=max_atoms,
             batch_size=batch_size))
-    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+    graph_model.add(deepchem.nn.DAGGather(n_graph_feat, max_atoms=max_atoms))
 
     model = deepchem.models.MultitaskGraphClassifier(
         graph_model,
@@ -585,7 +585,7 @@ def benchmark_regression(train_dataset,
             n_features,
             max_atoms=max_atoms,
             batch_size=batch_size))
-    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+    graph_model.add(deepchem.nn.DAGGather(n_graph_feat, max_atoms=max_atoms))
 
     model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
