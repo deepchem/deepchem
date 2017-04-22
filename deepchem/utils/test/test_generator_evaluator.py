@@ -5,7 +5,7 @@ from unittest import TestCase
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2LossLayer
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
@@ -61,7 +61,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = tg.evaluate_generator(
         databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
-    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.05)))
+    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=1.0)))
 
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
@@ -208,6 +208,9 @@ class TestGeneratorEvaluator(TestCase):
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
     scores = tg.evaluate_generator(
-        databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
+        databag.iterbatches(batch_size=1),
+        metric,
+        labels=labels,
+        per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0], atol=0.5)))
