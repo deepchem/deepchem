@@ -5,7 +5,7 @@ from unittest import TestCase
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2LossLayer
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
@@ -162,7 +162,7 @@ class TestGeneratorEvaluator(TestCase):
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
     scores = tg.evaluate_generator(
-        databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
+        databag.iterbatches(batch_size=4), metric, labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
 
@@ -208,6 +208,62 @@ class TestGeneratorEvaluator(TestCase):
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
     scores = tg.evaluate_generator(
-        databag.iterbatches(), metric, labels=labels, per_task_metrics=True)
+        databag.iterbatches(batch_size=1),
+        metric,
+        labels=labels,
+        per_task_metrics=True)
+    scores = list(scores[1].values())
+    assert_true(np.all(np.isclose(scores, [0.0], atol=0.5)))
+
+
+  def test_compute_model_performance_singletask_regressor_ordering(self):
+    n_data_points = 1000
+    n_features = 1
+
+    X = np.array(range(n_data_points))
+    X = np.expand_dims(X, axis=-1)
+    y1 = X+1
+    X = NumpyDataset(X)
+    ys = [NumpyDataset(y1)]
+
+    databag = Databag()
+
+    features = Feature(shape=(None, n_features))
+    databag.add_dataset(features, X)
+
+    outputs = []
+    losses = []
+    labels = []
+    for i in range(1):
+      label = Label(shape=(None, 1))
+      dense = Dense(out_channels=1, in_layers=[features])
+      loss = ReduceSquareDifference(in_layers=[dense, label])
+
+      outputs.append(dense)
+      losses.append(loss)
+      labels.append(label)
+      databag.add_dataset(label, ys[i])
+
+    total_loss = ReduceMean(in_layers=losses)
+
+    tg = dc.models.TensorGraph(mode="regression", learning_rate=0.1)
+    for output in outputs:
+      tg.add_output(output)
+    tg.set_loss(total_loss)
+
+    tg.fit_generator(
+      databag.iterbatches(
+        epochs=1000, batch_size=tg.batch_size, pad_batches=True))
+    metric = [
+      dc.metrics.Metric(
+        dc.metrics.mean_absolute_error, np.mean, mode="regression"),
+        dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+    ]
+    scores = tg.evaluate_generator(
+      databag.iterbatches(batch_size=1),
+      metric,
+      labels=labels,
+      per_task_metrics=True)
+    print(scores)
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0], atol=0.5)))

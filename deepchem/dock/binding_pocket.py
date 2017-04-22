@@ -1,8 +1,8 @@
 """
 Computes putative binding pockets on protein.
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
@@ -12,15 +12,11 @@ __license__ = "MIT"
 import os
 import tempfile
 import numpy as np
-from rdkit import Chem
 from subprocess import call
 from scipy.spatial import ConvexHull
-from deepchem.feat import hydrogenate_and_compute_partial_charges
-from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 from deepchem.feat.fingerprints import CircularFingerprint
 from deepchem.models.sklearn_models import SklearnModel
-from deepchem.data.datasets import NumpyDataset
 from deepchem.utils import rdkit_util
 
 

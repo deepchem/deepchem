@@ -197,6 +197,10 @@ def merge_molecules_xyz(protein_xyz, ligand_xyz):
   return np.array(np.vstack(np.vstack((protein_xyz, ligand_xyz))))
 
 
+def merge_molecules(ligand, protein):
+  return Chem.rdmolops.CombineMols(ligand, protein)
+
+
 class PdbqtLigandWriter(object):
   """
   Create a torsion tree and write to pdbqt file

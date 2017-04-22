@@ -9,6 +9,8 @@ from __future__ import unicode_literals
 import os
 
 import numpy as np
+import scipy
+import scipy.ndimage
 import time
 import deepchem as dc
 import tensorflow as tf
@@ -75,12 +77,12 @@ class Transformer(object):
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
     raise NotImplementedError(
-        "Each Transformer is responsible for its own transform_array method.")
+      "Each Transformer is responsible for its own transform_array method.")
 
   def untransform(self, z):
     """Reverses stored transformation on provided data."""
     raise NotImplementedError(
-        "Each Transformer is responsible for its own untransfomr method.")
+      "Each Transformer is responsible for its own untransfomr method.")
 
   def transform(self, dataset, parallel=False):
     """
@@ -103,7 +105,6 @@ class Transformer(object):
 
 
 class NormalizationTransformer(Transformer):
-
   def __init__(self,
                transform_X=False,
                transform_y=False,
@@ -112,10 +113,10 @@ class NormalizationTransformer(Transformer):
                transform_gradients=False):
     """Initialize normalization transformation."""
     super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means
@@ -135,7 +136,7 @@ class NormalizationTransformer(Transformer):
 
   def transform(self, dataset, parallel=False):
     return super(NormalizationTransformer, self).transform(
-        dataset, parallel=parallel)
+      dataset, parallel=parallel)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -163,7 +164,7 @@ class NormalizationTransformer(Transformer):
       grad_means = self.y_means[1:]
       energy_var = self.y_stds[0]
       grad_var = 1 / energy_var * (
-          self.ydely_means - self.y_means[0] * self.y_means[1:])
+        self.ydely_means - self.y_means[0] * self.y_means[1:])
       energy = tasks[:, 0]
       transformed_grad = []
 
@@ -222,10 +223,10 @@ class ClippingTransformer(Transformer):
 
     """
     super(ClippingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     assert not transform_w
     self.x_max = x_max
     self.y_max = y_max
@@ -262,11 +263,10 @@ class ClippingTransformer(Transformer):
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with ClippingTransformer.")
+      "Cannot untransform datasets with ClippingTransformer.")
 
 
 class LogTransformer(Transformer):
-
   def __init__(self,
                transform_X=False,
                transform_y=False,
@@ -277,7 +277,7 @@ class LogTransformer(Transformer):
     self.tasks = tasks
     """Initialize log  transformation."""
     super(LogTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+      transform_X=transform_X, transform_y=transform_y, dataset=dataset)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
@@ -341,10 +341,10 @@ class BalancingTransformer(Transformer):
                dataset=None,
                seed=None):
     super(BalancingTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+      transform_X=transform_X,
+      transform_y=transform_y,
+      transform_w=transform_w,
+      dataset=dataset)
     # BalancingTransformer can only transform weights.
     assert not transform_X
     assert not transform_y
@@ -541,8 +541,8 @@ class CoulombFitTransformer():
 
     def _realize_(x):
       assert (len(x.shape) == 2)
-      inds = np.argsort(-(x**2).sum(axis=0)**.5 + np.random.normal(
-          0, self.noise, x[0].shape))
+      inds = np.argsort(-(x ** 2).sum(axis=0) ** .5 + np.random.normal(
+        0, self.noise, x[0].shape))
       x = x[inds, :][:, inds] * 1
       x = x.flatten()[self.triuind]
       return x
@@ -608,7 +608,7 @@ class CoulombFitTransformer():
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with FitTransformer.")
+      "Cannot untransform datasets with FitTransformer.")
 
 
 class IRVTransformer():
@@ -663,9 +663,9 @@ class IRVTransformer():
     with g_temp.as_default():
       labels_tf = tf.constant(y)
       similarity_placeholder = tf.placeholder(
-          dtype=tf.float64, shape=(None, reference_len))
+        dtype=tf.float64, shape=(None, reference_len))
       value, indice = tf.nn.top_k(
-          similarity_placeholder, k=self.K + 1, sorted=True)
+        similarity_placeholder, k=self.K + 1, sorted=True)
       # the tf graph here pick up the (K+1) highest similarity values 
       # and their indices
       top_label = tf.gather(labels_tf, indice)
@@ -674,7 +674,7 @@ class IRVTransformer():
       with tf.Session() as sess:
         for count in range(target_len // 100 + 1):
           feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
-              count + 1) * 100, target_len), :]
+                                                                              count + 1) * 100, target_len), :]
           # generating batch of data by slicing similarity matrix 
           # into 100*reference_dataset_length
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
@@ -686,15 +686,15 @@ class IRVTransformer():
     for count in range(values.shape[0]):
       if values[count, 0] == 1:
         features.append(
-            np.concatenate([
-                values[count, 1:(self.K + 1)], top_labels[count, 1:(self.K + 1)]
-            ]))
+          np.concatenate([
+            values[count, 1:(self.K + 1)], top_labels[count, 1:(self.K + 1)]
+          ]))
         # highest similarity is 1: target is in the reference
         # use the following K points
       else:
         features.append(
-            np.concatenate(
-                [values[count, 0:self.K], top_labels[count, 0:self.K]]))
+          np.concatenate(
+            [values[count, 0:self.K], top_labels[count, 0:self.K]]))
         # highest less than 1: target not in the reference, use top K points
     return features
 
@@ -719,8 +719,8 @@ class IRVTransformer():
     print('start similarity calculation')
     time1 = time.time()
     similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
-        n_features - IRVTransformer.matrix_mul(1 - X_target,
-                                               np.transpose(1 - self.X)))
+      n_features - IRVTransformer.matrix_mul(1 - X_target,
+                                             np.transpose(1 - self.X)))
     time2 = time.time()
     print('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
@@ -745,9 +745,9 @@ class IRVTransformer():
       result = np.zeros((1,))
       for X2_id in range(X2_iter):
         partial_result = np.matmul(X1[X1_id * shard_size:min((
-            X1_id + 1) * shard_size, X1_shape[0]), :],
+                                                               X1_id + 1) * shard_size, X1_shape[0]), :],
                                    X2[:, X2_id * shard_size:min((
-                                       X2_id + 1) * shard_size, X2_shape[1])])
+                                                                  X2_id + 1) * shard_size, X2_shape[1])])
         # calculate matrix multiplicatin on slices
         if result.size == 1:
           result = partial_result
@@ -767,14 +767,14 @@ class IRVTransformer():
     X_trans = []
     for count in range(X_length // 5000 + 1):
       X_trans.append(
-          self.X_transform(dataset.X[count * 5000:min((count + 1) * 5000,
-                                                      X_length), :]))
+        self.X_transform(dataset.X[count * 5000:min((count + 1) * 5000,
+                                                    X_length), :]))
     X_trans = np.concatenate(X_trans, axis=0)
     return NumpyDataset(X_trans, dataset.y, dataset.w, ids=None)
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with IRVTransformer.")
+      "Cannot untransform datasets with IRVTransformer.")
 
 
 class DAGTransformer(Transformer):
@@ -807,7 +807,7 @@ class DAGTransformer(Transformer):
 
   def untransform(self, z):
     raise NotImplementedError(
-        "Cannot untransform datasets with DAGTransformer.")
+      "Cannot untransform datasets with DAGTransformer.")
 
   def UG_to_DAG(self, sample):
     """This function generates the DAGs for a molecule
@@ -895,3 +895,26 @@ class DAGTransformer(Transformer):
       parents.append(np.array(parent))
 
     return parents
+
+
+class ImageTransformer(Transformer):
+  """
+  Convert an image into width, height, channel 
+  """
+
+  def __init__(self,
+               size,
+               transform_X=True,
+               transform_y=False,
+               transform_w=False):
+    """Initializes transformation based on dataset statistics."""
+    self.size = size
+    self.transform_X=True
+    self.transform_y=False
+    self.transform_w=False
+
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
+    images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
+    images = [scipy.misc.imresize(x, size=self.size) for x in images]
+    return np.array(images), y, w

@@ -11,10 +11,12 @@ from deepchem.feat.atomic_coordinates import AtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListAtomicCoordinates
 from deepchem.feat.atomic_coordinates import NeighborListComplexAtomicCoordinates
 
+
 class TestAtomicCoordinates(unittest.TestCase):
   """
   Test AtomicCoordinates.
   """
+
   def setUp(self):
     """
     Set up tests.
@@ -54,7 +56,7 @@ class TestAtomicCoordinates(unittest.TestCase):
       assert isinstance(neighbors, list)
       assert len(neighbors) <= N
 
-    # Do a manual distance computation and make 
+    # Do a manual distance computation and make
     for i in range(N):
       for j in range(N):
         dist = np.linalg.norm(coords[i] - coords[j])
@@ -80,7 +82,7 @@ class TestAtomicCoordinates(unittest.TestCase):
     nblist_featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=100)
     nblist = nblist_featurizer._featurize(self.mol)[1]
     for atom in range(N):
-      assert len(nblist[atom]) == N-1
+      assert len(nblist[atom]) == N - 1
 
   def test_neighbor_list_max_num_neighbors(self):
     """
@@ -122,18 +124,19 @@ class TestAtomicCoordinates(unittest.TestCase):
     box_size = np.array([10.0, 8.0, 9.0])
     N = self.mol.GetNumAtoms()
     coords = get_coords(self.mol)
-    featurizer = NeighborListAtomicCoordinates(neighbor_cutoff=cutoff, periodic_box_size=box_size)
+    featurizer = NeighborListAtomicCoordinates(
+        neighbor_cutoff=cutoff, periodic_box_size=box_size)
     neighborlist = featurizer._featurize(self.mol)[1]
     expected_neighbors = [set() for i in range(N)]
     for i in range(N):
-        for j in range(i):
-            delta = coords[i]-coords[j]
-            delta -= np.round(delta/box_size)*box_size
-            if np.linalg.norm(delta) < cutoff:
-                expected_neighbors[i].add(j)
-                expected_neighbors[j].add(i)
+      for j in range(i):
+        delta = coords[i] - coords[j]
+        delta -= np.round(delta / box_size) * box_size
+        if np.linalg.norm(delta) < cutoff:
+          expected_neighbors[i].add(j)
+          expected_neighbors[j].add(i)
     for i in range(N):
-        assert(set(neighborlist[i]) == expected_neighbors[i])
+      assert (set(neighborlist[i]) == expected_neighbors[i])
 
   def test_complex_featurization_simple(self):
     """Test Neighbor List computation on protein-ligand complex."""
@@ -145,7 +148,7 @@ class TestAtomicCoordinates(unittest.TestCase):
 
     system_coords, system_neighbor_list = complex_featurizer._featurize_complex(
         ligand_file, protein_file)
-  
+
     N = system_coords.shape[0]
     assert len(system_neighbor_list.keys()) == N
     for atom in range(N):
