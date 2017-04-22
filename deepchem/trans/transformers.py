@@ -355,33 +355,33 @@ class BalancingTransformer(Transformer):
     w = self.dataset.w
     # Ensure dataset is binary
     np.testing.assert_allclose(sorted(np.unique(y)), np.array([0., 1.]))
-    weights = []
-    for ind, task in enumerate(self.dataset.get_task_names()):
+    self.balance_w = self.compute_balance_weights(y, w)
+
+  @staticmethod
+  def compute_balance_weights(y, w):
+    """compute the balance weights"""
+    balance_w = np.zeros_like(w)
+    _, num_tasks = w.shape
+    for ind in range(num_tasks):
       task_w = w[:, ind]
       task_y = y[:, ind]
       # Remove labels with zero weights
-      task_y = task_y[task_w != 0]
-      num_positives = np.count_nonzero(task_y)
-      num_negatives = len(task_y) - num_positives
-      if num_positives > 0:
-        pos_weight = float(num_negatives) / num_positives
-      else:
-        pos_weight = 1
+      task_y_act_inact = task_y[task_w != 0]  # active and inactive labels
+      num_positives = np.count_nonzero(task_y_act_inact)
+      num_negatives = len(task_y_act_inact) - num_positives
+      pos_weight = float(
+          num_negatives) / num_positives if num_positives > 0 else 1
       neg_weight = 1
-      weights.append((neg_weight, pos_weight))
-    self.weights = weights
+      # Find indices of inactive and active sample for each task
+      zero_indices = np.logical_and(task_y == 0, task_w != 0)
+      one_indices = np.logical_and(task_y == 1, task_w != 0)
+      balance_w[zero_indices, ind] = neg_weight
+      balance_w[one_indices, ind] = pos_weight
+    return balance_w
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""
-    w_balanced = np.zeros_like(w)
-    for ind, task in enumerate(self.dataset.get_task_names()):
-      task_y = y[:, ind]
-      task_w = w[:, ind]
-      zero_indices = np.logical_and(task_y == 0, task_w != 0)
-      one_indices = np.logical_and(task_y == 1, task_w != 0)
-      w_balanced[zero_indices, ind] = self.weights[ind][0]
-      w_balanced[one_indices, ind] = self.weights[ind][1]
-    return (X, y, w_balanced)
+    return (X, y, self.balance_w)
 
 
 class CDFTransformer(Transformer):
