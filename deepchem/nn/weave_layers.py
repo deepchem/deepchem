@@ -46,16 +46,21 @@ class WeaveLayer(Layer):
     """
     Parameters
     ----------
-    n_atom_input_feat: int
+    max_atoms: int
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_input_feat: int, optional
       Number of features for each atom in input.
-    n_pair_input_feat: int
+    n_pair_input_feat: int, optional
       Number of features for each pair of atoms in input.
-    n_atom_output_feat: int
+    n_atom_output_feat: int, optional
       Number of features for each atom in output.
-    n_pair_output_feat: int
+    n_pair_output_feat: int, optional
       Number of features for each pair of atoms in output.
-    n_hidden_XX: int
+    n_hidden_XX: int, optional
       Number of units(convolution depths) in corresponding hidden layer
+    update_pair: bool, optional
+      Whether to calculate for pair features, 
+      could be turned off for last layer
     init: str, optional
       Weight initialization for filters.
     activation: str, optional
@@ -211,7 +216,6 @@ class AlternateWeaveLayer(WeaveLayer):
     pair_features = x[1]
 
     pair_split = x[2]
-    atom_split = x[3]
     atom_to_pair = x[4]
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
@@ -339,8 +343,14 @@ class WeaveGather(Layer):
     ----------
     batch_size: int
       number of molecules in a batch
+    n_input: int, optional
+      number of features for each input molecule
     gaussian_expand: boolean. optional
       Whether to expand each dimension of atomic features by gaussian histogram
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
 
     """
     self.n_input = n_input

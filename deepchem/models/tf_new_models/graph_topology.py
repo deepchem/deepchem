@@ -153,8 +153,6 @@ class DTNNGraphTopology(GraphTopology):
     """
     Parameters
     ----------
-    max_n_atoms: int
-      maximum number of atoms in a molecule
     n_distance: int, optional
       granularity of distance matrix
       step size will be (distance_max-distance_min)/n_distance
@@ -267,7 +265,14 @@ class DAGGraphTopology(GraphTopology):
   """
 
   def __init__(self, n_atom_feat=75, max_atoms=50, name='topology'):
-
+    """
+    Parameters
+    ----------
+    n_atom_feat: int, optional
+      Number of features per atom.
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    """
     self.n_atom_feat = n_atom_feat
     self.max_atoms = max_atoms
     self.name = name
@@ -375,16 +380,19 @@ class DAGGraphTopology(GraphTopology):
 class WeaveGraphTopology(GraphTopology):
   """Manages placeholders associated with batch of graphs and their topology"""
 
-  def __init__(self, max_atoms, n_atom_feat, n_pair_feat,
+  def __init__(self,
+               max_atoms=50,
+               n_atom_feat=75,
+               n_pair_feat=14,
                name='Weave_topology'):
     """
     Parameters
     ----------
-    max_atoms: int
+    max_atoms: int, optional
       maximum number of atoms in a molecule
-    n_atom_feat: int
+    n_atom_feat: int, optional
       number of basic features of each atom
-    n_pair_feat: int
+    n_pair_feat: int, optional
       number of basic features of each pair
     """
 
@@ -477,18 +485,20 @@ class AlternateWeaveGraphTopology(GraphTopology):
 
   def __init__(self,
                batch_size,
-               max_atoms,
-               n_atom_feat,
-               n_pair_feat,
+               max_atoms=50,
+               n_atom_feat=75,
+               n_pair_feat=14,
                name='Weave_topology'):
     """
     Parameters
     ----------
-    max_atoms: int
+    batch_size: int
+      number of molecules in a batch
+    max_atoms: int, optional
       maximum number of atoms in a molecule
-    n_atom_feat: int
+    n_atom_feat: int, optional
       number of basic features of each atom
-    n_pair_feat: int
+    n_pair_feat: int, optional
       number of basic features of each pair
     """
 

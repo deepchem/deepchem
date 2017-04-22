@@ -29,14 +29,19 @@ class TestMolnet(unittest.TestCase):
     model = 'graphconvreg'
     split = 'random'
     out_path = tempfile.mkdtemp()
+    metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
     dc.molnet.run_benchmark(
-        datasets, str(model), split=split, out_path=out_path, reload=False)
+        datasets,
+        str(model),
+        metric=metric,
+        split=split,
+        out_path=out_path,
+        reload=False)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
-      assert lastrow[-4] == model
-      assert lastrow[-5] == 'valid'
+      assert lastrow[-4] == 'valid'
       assert float(lastrow[-3]) > 0.75
     os.remove(os.path.join(out_path, 'results.csv'))
 
@@ -46,14 +51,19 @@ class TestMolnet(unittest.TestCase):
     model = 'tf_regression_ft'
     split = 'random'
     out_path = tempfile.mkdtemp()
+    metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)]
     dc.molnet.run_benchmark(
-        datasets, str(model), split=split, out_path=out_path, reload=False)
+        datasets,
+        str(model),
+        metric=metric,
+        split=split,
+        out_path=out_path,
+        reload=False)
     with open(os.path.join(out_path, 'results.csv'), 'r') as f:
       reader = csv.reader(f)
       for lastrow in reader:
         pass
-      assert lastrow[-4] == model
-      assert lastrow[-5] == 'valid'
+      assert lastrow[-4] == 'valid'
       assert float(lastrow[-3]) > 0.95
     os.remove(os.path.join(out_path, 'results.csv'))
 
@@ -63,9 +73,11 @@ class TestMolnet(unittest.TestCase):
     model = 'tf'
     split = 'random'
     out_path = tempfile.mkdtemp()
+    metric = [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)]
     dc.molnet.run_benchmark(
         datasets,
         str(model),
+        metric=metric,
         split=split,
         out_path=out_path,
         test=True,
@@ -74,7 +86,6 @@ class TestMolnet(unittest.TestCase):
       reader = csv.reader(f)
       for lastrow in reader:
         pass
-      assert lastrow[-4] == model
-      assert lastrow[-5] == 'test'
+      assert lastrow[-4] == 'test'
       assert float(lastrow[-3]) > 0.7
     os.remove(os.path.join(out_path, 'results.csv'))

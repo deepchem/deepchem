@@ -72,6 +72,9 @@ class WeaveLayer(Layer):
       Number of features for each pair of atoms in output.
     n_hidden_XX: int
       Number of units(convolution depths) in corresponding hidden layer
+    update_pair: bool, optional
+      Whether to calculate for pair features, 
+      could be turned off for last layer
     init: str, optional
       Weight initialization for filters.
     activation: str, optional
@@ -198,8 +201,14 @@ class WeaveGather(Layer):
     ----------
     batch_size: int
       number of molecules in a batch
+    n_input: int, optional
+      number of features for each input molecule
     gaussian_expand: boolean. optional
       Whether to expand each dimension of atomic features by gaussian histogram
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
 
     """
     self.n_input = n_input
@@ -266,6 +275,16 @@ class DTNNEmbedding(Layer):
                periodic_table_length=83,
                init='glorot_uniform',
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_embedding: int, optional
+      Number of features for each atom
+    periodic_table_length: int, optional
+      Length of embedding, 83=Bi
+    init: str, optional
+      Weight initialization for filters.
+    """
     self.n_embedding = n_embedding
     self.periodic_table_length = periodic_table_length
     self.init = initializations.get(init)  # Set weight initialization
@@ -300,6 +319,20 @@ class DTNNStep(Layer):
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_embedding: int, optional
+      Number of features for each atom
+    n_distance: int, optional
+      granularity of distance matrix
+    n_hidden: int, optional
+      Number of nodes in hidden layer
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    """
     self.n_embedding = n_embedding
     self.n_distance = n_distance
     self.n_hidden = n_hidden
@@ -365,6 +398,20 @@ class DTNNGather(Layer):
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_embedding: int, optional
+      Number of features for each atom
+    n_outputs: int, optional
+      Number of features for each molecule(output)
+    layer_sizes: list of int, optional(default=[1000])
+      Structure of hidden layer(s)
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    """
     self.n_embedding = n_embedding
     self.n_outputs = n_outputs
     self.layer_sizes = layer_sizes
@@ -413,20 +460,22 @@ class DAGLayer(Layer):
   def __init__(self,
                n_graph_feat=30,
                n_atom_feat=75,
+               max_atoms=50,
                layer_sizes=[100],
                init='glorot_uniform',
                activation='relu',
                dropout=None,
-               max_atoms=50,
                batch_size=64,
                **kwargs):
     """
     Parameters
     ----------
-    n_graph_feat: int
+    n_graph_feat: int, optional
       Number of features for each node(and the whole grah).
-    n_atom_feat: int
+    n_atom_feat: int, optional
       Number of features listed per atom.
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
     layer_sizes: list of int, optional(default=[1000])
       Structure of hidden layer(s)
     init: str, optional
@@ -435,8 +484,8 @@ class DAGLayer(Layer):
       Activation function applied
     dropout: float, optional
       Dropout probability, not supported here
-    max_atoms: int, optional
-      Maximum number of atoms in molecules.
+    batch_size: int, optional
+      number of molecules in a batch
     """
     super(DAGLayer, self).__init__(**kwargs)
 
@@ -552,20 +601,22 @@ class DAGGather(Layer):
   def __init__(self,
                n_graph_feat=30,
                n_outputs=30,
+               max_atoms=50,
                layer_sizes=[100],
                init='glorot_uniform',
                activation='relu',
                dropout=None,
-               max_atoms=50,
                **kwargs):
     """
     Parameters
     ----------
-    n_graph_feat: int
+    n_graph_feat: int, optional
       Number of features for each atom
-    n_outputs: int
+    n_outputs: int, optional
       Number of features for each molecule.
-    layer_sizes: list of int, optional(default=[1000])
+    max_atoms: int, optional
+      Maximum number of atoms in molecules.
+    layer_sizes: list of int, optional
       Structure of hidden layer(s)
     init: str, optional
       Weight initialization for filters.
@@ -573,8 +624,6 @@ class DAGGather(Layer):
       Activation function applied
     dropout: float, optional
       Dropout probability, not supported
-    max_atoms: int, optional
-      Maximum number of atoms in molecules.
     """
     super(DAGGather, self).__init__(**kwargs)
 
@@ -608,7 +657,7 @@ class DAGGather(Layer):
 
   def _create_tensor(self):
     """description and explanation refer to deepchem.nn.DAGGather
-    parent layers: atom_features
+    parent layers: atom_features, membership
     """
     # Add trainable weights
     self.build()
