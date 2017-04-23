@@ -21,6 +21,21 @@ class WeaveTensorGraph(TensorGraph):
                n_hidden=50,
                n_graph_feat=128,
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    n_hidden: int, optional
+      Number of units(convolution depths) in corresponding hidden layer
+    n_graph_feat: int, optional
+      Number of output features for each molecule(graph)
+
+    """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
@@ -30,6 +45,9 @@ class WeaveTensorGraph(TensorGraph):
     self.build_graph()
 
   def build_graph(self):
+    """Building graph structures:
+    Features => WeaveLayer => WeaveLayer => Dense => WeaveGather => Classification or Regression
+    """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
     combined = Combine_AP(in_layers=[self.atom_features, self.pair_features])
@@ -94,6 +112,9 @@ class WeaveTensorGraph(TensorGraph):
                         epochs=1,
                         predict=False,
                         pad_batches=True):
+    """ TensorGraph style implementation
+    similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
+    """
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -190,6 +211,24 @@ class DTNNTensorGraph(TensorGraph):
                distance_min=-1,
                distance_max=18,
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_embedding: int, optional
+      Number of features per atom.
+    n_hidden: int, optional
+      Number of features for each molecule after DTNNStep
+    n_distance: int, optional
+      granularity of distance matrix
+      step size will be (distance_max-distance_min)/n_distance
+    distance_min: float, optional
+      minimum distance of atom pairs, default = -1 Angstorm
+    distance_max: float, optional
+      maximum distance of atom pairs, default = 18 Angstorm
+
+    """
     self.n_tasks = n_tasks
     self.n_embedding = n_embedding
     self.n_hidden = n_hidden
@@ -205,6 +244,9 @@ class DTNNTensorGraph(TensorGraph):
     self.build_graph()
 
   def build_graph(self):
+    """Building graph structures:
+    Features => DTNNEmbedding => DTNNStep => DTNNStep => DTNNGather => Regression
+    """
     self.atom_number = Feature(shape=(None,), dtype=tf.int32)
     self.distance = Feature(shape=(None, self.n_distance))
     self.atom_membership = Feature(shape=(None,), dtype=tf.int32)
@@ -254,6 +296,9 @@ class DTNNTensorGraph(TensorGraph):
                         epochs=1,
                         predict=False,
                         pad_batches=True):
+    """ TensorGraph style implementation
+    similar to deepchem.models.tf_new_models.graph_topology.DTNNGraphTopology.batch_to_feed_dict
+    """
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
@@ -348,6 +393,21 @@ class DAGTensorGraph(TensorGraph):
                n_graph_feat=30,
                n_outputs=30,
                **kwargs):
+    """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_graph_feat: int, optional
+      Number of features for atom in the graph
+    n_outputs: int, optional
+      Number of features for each molecule
+
+    """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -357,6 +417,9 @@ class DAGTensorGraph(TensorGraph):
     self.build_graph()
 
   def build_graph(self):
+    """Building graph structures:
+    Features => DAGLayer => DAGGather => Classification or Regression
+    """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.parents = Feature(
         shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
@@ -414,6 +477,9 @@ class DAGTensorGraph(TensorGraph):
                         epochs=1,
                         predict=False,
                         pad_batches=True):
+    """ TensorGraph style implementation
+    similar to deepchem.models.tf_new_models.graph_topology.DAGGraphTopology.batch_to_feed_dict
+    """
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,

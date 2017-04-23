@@ -90,8 +90,6 @@ class SequentialDTNNGraph(SequentialGraph):
     """
     Parameters
     ----------
-    max_n_atoms: int
-      maximum number of atoms in a molecule
     n_distance: int, optional
       granularity of distance matrix
       step size will be (distance_max-distance_min)/n_distance
@@ -130,9 +128,9 @@ class SequentialDAGGraph(SequentialGraph):
     """
     Parameters
     ----------
-    n_atom_feat: int
+    n_atom_feat: int, optional
       Number of features per atom.
-    max_atoms: int, optional(default=50)
+    max_atoms: int, optional
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
     self.graph = tf.Graph()
@@ -161,6 +159,16 @@ class SequentialWeaveGraph(SequentialGraph):
   """
 
   def __init__(self, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    """
+    Parameters
+    ----------
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    """
     self.graph = tf.Graph()
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -195,6 +203,18 @@ class AlternateSequentialWeaveGraph(SequentialGraph):
   """
 
   def __init__(self, batch_size, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    """
+    Parameters
+    ----------
+    batch_size: int
+      number of molecules in a batch
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    """
     self.graph = tf.Graph()
     self.batch_size = batch_size
     self.max_atoms = max_atoms

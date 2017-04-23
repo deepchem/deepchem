@@ -39,7 +39,7 @@ n_feat = 75
 batch_size = 64
 graph = dc.nn.SequentialDAGGraph(n_atom_feat=n_feat, max_atoms=max_atoms)
 graph.add(dc.nn.DAGLayer(30, 75, max_atoms=max_atoms, batch_size=batch_size))
-graph.add(dc.nn.DAGGather(max_atoms=max_atoms))
+graph.add(dc.nn.DAGGather(30, max_atoms=max_atoms))
 
 model = dc.models.MultitaskGraphClassifier(
     graph,
