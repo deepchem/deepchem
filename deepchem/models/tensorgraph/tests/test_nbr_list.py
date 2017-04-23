@@ -42,8 +42,8 @@ class TestNbrList(test_util.TensorFlowTestCase):
 
     features = Feature(shape=(N_atoms, ndim))
     labels = Label(shape=(N_atoms,))
-    nbr_list = NeighborList(N_atoms, M, ndim, nbr_cutoff, start, stop,
-                            in_layers=[features])
+    nbr_list = NeighborList(
+        N_atoms, M, ndim, nbr_cutoff, start, stop, in_layers=[features])
     nbr_list = ToFloat(in_layers=[nbr_list])
     # This isn't a meaningful loss, but just for test
     loss = ReduceSum(in_layers=[nbr_list])
@@ -304,11 +304,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     ndim = 2
     M_nbrs = 1
     # 1 and 2 are nbrs. 8 and 9 are nbrs
-    coords = np.array(
-      [[1.0, 1.0],
-       [2.0, 2.0],
-       [8.0, 8.0],
-       [9.0, 9.0]])
+    coords = np.array([[1.0, 1.0], [2.0, 2.0], [8.0, 8.0], [9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
     with self.test_session() as sess:
@@ -328,11 +324,8 @@ class TestNbrList(test_util.TensorFlowTestCase):
     ndim = 3
     M_nbrs = 1
     # 1 and 2 are nbrs. 8 and 9 are nbrs
-    coords = np.array(
-      [[1.0, 0.0, 1.0],
-       [2.0, 2.0, 2.0],
-       [8.0, 8.0, 8.0],
-       [9.0, 9.0, 9.0]])
+    coords = np.array([[1.0, 0.0, 1.0], [2.0, 2.0, 2.0], [8.0, 8.0, 8.0],
+                       [9.0, 9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
     with self.test_session() as sess:
@@ -356,11 +349,8 @@ class TestNbrList(test_util.TensorFlowTestCase):
     ndim = 3
     M_nbrs = 1
     # 1 and 2 are nbrs. 8 and 9 are nbrs
-    coords = np.array(
-      [[1.0, 0.0, 1.0],
-       [2.0, 5.0, 2.0],
-       [8.0, 8.0, 8.0],
-       [9.0, 9.0, 9.0]])
+    coords = np.array([[1.0, 0.0, 1.0], [2.0, 5.0, 2.0], [8.0, 8.0, 8.0],
+                       [9.0, 9.0, 9.0]])
     coords = np.reshape(coords, (N_atoms, ndim))
 
     with self.test_session() as sess:

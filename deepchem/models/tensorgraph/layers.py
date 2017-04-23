@@ -96,6 +96,7 @@ def convert_to_layers(in_layers):
       raise ValueError("convert_to_layers must be invoked on layers or tensors")
   return layers
 
+
 class Conv1D(Layer):
 
   def __init__(self, width, out_channels, **kwargs):
@@ -230,7 +231,7 @@ class Transpose(Layer):
 
   def __init__(self, perm, **kwargs):
     super(Transpose, self).__init__(**kwargs)
-    self.perm = perm 
+    self.perm = perm
 
   def create_tensor(self, in_layers=None):
     if in_layers is None:
@@ -862,8 +863,16 @@ class VinaFreeEnergy(Layer):
   TODO(rbharath): Make this layer support batching.
   """
 
-  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, stddev=.3,
-               Nrot=1, **kwargs):
+  def __init__(self,
+               N_atoms,
+               M_nbrs,
+               ndim,
+               nbr_cutoff,
+               start,
+               stop,
+               stddev=.3,
+               Nrot=1,
+               **kwargs):
     self.stddev = stddev
     # Number of rotatable bonds
     # TODO(rbharath): Vina actually sets this per-molecule. See if makes
@@ -877,7 +886,6 @@ class VinaFreeEnergy(Layer):
     self.stop = stop
     super(VinaFreeEnergy, self).__init__(**kwargs)
 
-
   def cutoff(self, d, x):
     out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
     return out_tensor
@@ -888,35 +896,30 @@ class VinaFreeEnergy(Layer):
     out_tensor = c / (1 + w * self.Nrot)
     return out_tensor
 
-
   def repulsion(self, d):
     """Computes Autodock Vina's repulsion interaction term."""
     out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
     return out_tensor
 
-
   def hydrophobic(self, d):
     """Computes Autodock Vina's hydrophobic interaction term."""
     out_tensor = tf.where(d < 0.5,
-                               tf.ones_like(d),
-                               tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
+                          tf.ones_like(d),
+                          tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
     return out_tensor
-
 
   def hydrogen_bond(self, d):
     """Computes Autodock Vina's hydrogen bond interaction term."""
     out_tensor = tf.where(d < -0.7,
-                               tf.ones_like(d),
-                               tf.where(d < 0, (1.0 / 0.7) * (0 - d),
-                                        tf.zeros_like(d)))
+                          tf.ones_like(d),
+                          tf.where(d < 0, (1.0 / 0.7) * (0 - d),
+                                   tf.zeros_like(d)))
     return out_tensor
-
 
   def gaussian_first(self, d):
     """Computes Autodock Vina's first Gaussian interaction term."""
     out_tensor = tf.exp(-(d / 0.5)**2)
     return out_tensor
-
 
   def gaussian_second(self, d):
     """Computes Autodock Vina's second Gaussian interaction term."""
@@ -945,13 +948,12 @@ class VinaFreeEnergy(Layer):
 
     # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
     # neighbors lists an argument instead of a part of this layer.
-    nbr_list = NeighborList(
-        self.N_atoms, self.M_nbrs, self.ndim, self.nbr_cutoff, self.start,
-        self.stop)(X)
+    nbr_list = NeighborList(self.N_atoms, self.M_nbrs, self.ndim,
+                            self.nbr_cutoff, self.start, self.stop)(X)
 
     # Shape (N, M)
-    dists = InteratomicL2Distances(
-        self.N_atoms, self.M_nbrs, self.ndim)(X, nbr_list)
+    dists = InteratomicL2Distances(self.N_atoms, self.M_nbrs,
+                                   self.ndim)(X, nbr_list)
 
     repulsion = self.repulsion(dists)
     hydrophobic = self.hydrophobic(dists)
@@ -960,8 +962,8 @@ class VinaFreeEnergy(Layer):
     gauss_2 = self.gaussian_second(dists)
 
     # Shape (N, M)
-    interactions = WeightedLinearCombo()(
-        repulsion, hydrophobic, hbond, gauss_1, gauss_2)
+    interactions = WeightedLinearCombo()(repulsion, hydrophobic, hbond, gauss_1,
+                                         gauss_2)
 
     # Shape (N, M)
     thresholded = self.cutoff(dists, interactions)
@@ -1038,8 +1040,7 @@ class NeighborList(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     if len(in_layers) != 1:
-      raise ValueError("Only One Parent to NeighborList over %s" %
-                       in_layers)
+      raise ValueError("Only One Parent to NeighborList over %s" % in_layers)
     parent = in_layers[0]
     if len(parent.out_tensor.get_shape()) != 2:
       # TODO(rbharath): Support batching
@@ -1078,9 +1079,11 @@ class NeighborList(Layer):
     nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
 
     # Add phantom atoms that exist far outside the box
-    coord_padding = tf.to_float(tf.fill((self.M_nbrs, self.ndim), 2*self.stop))
-    padded_nbr_coords = [tf.concat([nbr_coord, coord_padding], 0)
-                         for nbr_coord in nbr_coords]
+    coord_padding = tf.to_float(
+        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop))
+    padded_nbr_coords = [
+        tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
+    ]
 
     # List of length N_atoms, each of shape (1, ndim)
     atom_coords = tf.split(coords, self.N_atoms)
@@ -1089,17 +1092,20 @@ class NeighborList(Layer):
     # List of length N_atoms each of shape (M_nbrs)
     padded_dists = [
         tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
-        for (atom_coord, padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
+        for (atom_coord, padded_nbr_coord
+            ) in zip(atom_coords, padded_nbr_coords)
     ]
 
-    padded_closest_nbrs = [tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1] for
-                           padded_dist in padded_dists]
+    padded_closest_nbrs = [
+        tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1]
+        for padded_dist in padded_dists
+    ]
 
     # N_atoms elts of size (M_nbrs,) each 
     padded_neighbor_list = [
         tf.gather(padded_atom_nbrs, padded_closest_nbr)
-        for (padded_atom_nbrs, padded_closest_nbr)
-        in zip(padded_nbrs, padded_closest_nbrs)
+        for (padded_atom_nbrs, padded_closest_nbr
+            ) in zip(padded_nbrs, padded_closest_nbrs)
     ]
 
     neighbor_list = tf.stack(padded_neighbor_list)

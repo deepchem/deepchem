@@ -36,9 +36,10 @@ from deepchem.models.tensorgraph.layers import GraphGather
 from deepchem.models.tensorgraph.layers import BatchNorm
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
-from deepchem.models.tensorgraph.layers import WeightedLinearCombo 
+from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 
 import deepchem as dc
+
 
 class TestLayers(test_util.TensorFlowTestCase):
   """
@@ -59,7 +60,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
 
       assert out_tensor.shape == (batch_size, width, out_channels)
-    
+
   def test_dense(self):
     """Test that Dense can be invoked."""
     in_dim = 2
@@ -116,7 +117,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     dim = 2
     batch_size = 10
     mean_tensor = np.random.rand(dim)
-    std_tensor = np.random.rand(1,)
+    std_tensor = np.random.rand(
+        1,)
     with self.test_session() as sess:
       mean_tensor = tf.convert_to_tensor(mean_tensor, dtype=tf.float32)
       std_tensor = tf.convert_to_tensor(std_tensor, dtype=tf.float32)
@@ -126,7 +128,7 @@ class TestLayers(test_util.TensorFlowTestCase):
 
   def test_repeat(self):
     """Test that Repeat can be invoked."""
-    in_dim = 4 
+    in_dim = 4
     batch_size = 10
     n_repeat = 2
     in_tensor = np.random.rand(batch_size, in_dim)
@@ -140,7 +142,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that GRU can be invoked."""
     batch_size = 10
     n_hidden = 7
-    in_channels = 4 
+    in_channels = 4
     out_channels = 5
     n_repeat = 2
     n_steps = 6
@@ -156,7 +158,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that TimeSeriesDense can be invoked."""
     batch_size = 10
     n_hidden = 7
-    in_channels = 4 
+    in_channels = 4
     out_channels = 5
     n_repeat = 2
     n_steps = 6
@@ -194,7 +196,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       in_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMax()(guess_tensor, label_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_features) 
+      assert out_tensor.shape == (batch_size, n_features)
 
   def test_concat(self):
     """Test that Concat can be invoked."""
@@ -207,7 +209,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       in_tensor_2 = tf.convert_to_tensor(in_tensor_2, dtype=tf.float32)
       out_tensor = Concat(axis=1)(in_tensor_1, in_tensor_2)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, 2*n_features) 
+      assert out_tensor.shape == (batch_size, 2 * n_features)
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
@@ -261,7 +263,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
       out_tensor = ToFloat()(in_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_features) 
+      assert out_tensor.shape == (batch_size, n_features)
 
   def test_reduce_sum(self):
     """Test that ReduceSum can be invoked."""
@@ -322,13 +324,14 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
     with self.test_session() as sess:
-      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32, name="input")
+      in_tensor = tf.convert_to_tensor(
+          in_tensor, dtype=tf.float32, name="input")
       InputFifoQueue([(batch_size, n_features)], ["input:0"])(in_tensor)
 
   def test_graph_conv(self):
     """Test that GraphConv can be invoked."""
     out_channels = 2
-    n_atoms = 4 # In CCC and C, there are 4 atoms
+    n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
@@ -351,7 +354,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (n_atoms, out_channels)
-  
+
   # TODO(rbharath): This test should pass. Fix it!
   #def test_graph_pool(self):
   #  """Test that GraphPool can be invoked."""
@@ -384,7 +387,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that GraphGather can be invoked."""
     batch_size = 2
     n_features = 75
-    n_atoms = 4 # In CCC and C, there are 4 atoms
+    n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
@@ -407,7 +410,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       # TODO(rbharath): Why is it 2*n_features instead of n_features?
-      assert out_tensor.shape == (batch_size, 2*n_features)
+      assert out_tensor.shape == (batch_size, 2 * n_features)
 
   def test_batch_norm(self):
     """Test that BatchNorm can be invoked."""
@@ -419,7 +422,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = BatchNorm()(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_features) 
+      assert out_tensor.shape == (batch_size, n_features)
 
   def test_weighted_error(self):
     """Test that WeightedError can be invoked."""
@@ -447,8 +450,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       X_tensor = tf.convert_to_tensor(X_tensor, dtype=tf.float32)
       Z_tensor = tf.convert_to_tensor(Z_tensor, dtype=tf.float32)
-      out_tensor = VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start, stop)(
-          X_tensor, Z_tensor)
+      out_tensor = VinaFreeEnergy(n_atoms, m_nbrs, ndim, nbr_cutoff, start,
+                                  stop)(X_tensor, Z_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert isinstance(out_tensor, np.float32)
