@@ -34,6 +34,7 @@ from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphPool
 from deepchem.models.tensorgraph.layers import GraphGather
 from deepchem.models.tensorgraph.layers import BatchNorm
+from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
@@ -152,7 +153,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = GRU(n_hidden, out_channels, batch_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_repeat, in_dim)
+      assert out_tensor.shape == (batch_size, n_steps, out_channels)
 
   def test_time_series_dense(self):
     """Test that TimeSeriesDense can be invoked."""
@@ -193,8 +194,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
     with self.test_session() as sess:
-      in_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
-      out_tensor = SoftMax()(guess_tensor, label_tensor)
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = SoftMax()(in_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, n_features)
 

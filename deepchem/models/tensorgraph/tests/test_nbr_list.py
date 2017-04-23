@@ -18,8 +18,6 @@ from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import NeighborList
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
-from deepchem.models.tensorgraph.layers import InteratomicL2Distances
-from deepchem.models.tensorgraph.layers import Cutoff
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
 
@@ -75,71 +73,6 @@ class TestNbrList(test_util.TensorFlowTestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
-
-  def test_vina_repulsion(self):
-    """Test that VinaRepulsion works."""
-    N_atoms = 10
-    M_nbrs = 5
-    X = np.random.rand(N_atoms, M_nbrs)
-    X_tensor = tf.convert_to_tensor(X)
-
-    repulsions = VinaRepulsion()(X_tensor)
-
-    with self.test_session() as sess:
-      repulsions_np = repulsions.eval()
-      assert repulsions_np.shape == (N_atoms, M_nbrs)
-
-  def test_vina_hydrophobic(self):
-    """Test that VinaHydrophobic works."""
-    N_atoms = 10
-    M_nbrs = 5
-    X = np.random.rand(N_atoms, M_nbrs)
-    X_tensor = tf.convert_to_tensor(X)
-
-    hydrophobic = VinaHydrophobic()(X_tensor)
-
-    with self.test_session() as sess:
-      hydrophobic_np = hydrophobic.eval()
-      assert hydrophobic_np.shape == (N_atoms, M_nbrs)
-
-  def test_vina_hbond(self):
-    """Test that VinaHydrophobic works."""
-    N_atoms = 10
-    M_nbrs = 5
-    X = np.random.rand(N_atoms, M_nbrs)
-    X_tensor = tf.convert_to_tensor(X)
-
-    hbond = VinaHydrogenBond()(X_tensor)
-
-    with self.test_session() as sess:
-      hbond_np = hbond.eval()
-      assert hbond_np.shape == (N_atoms, M_nbrs)
-
-  def test_vina_gaussian_first(self):
-    """Test that VinaGaussianFirst works."""
-    N_atoms = 10
-    M_nbrs = 5
-    X = np.random.rand(N_atoms, M_nbrs)
-    X_tensor = tf.convert_to_tensor(X)
-
-    gauss_1 = VinaGaussianFirst()(X_tensor)
-
-    with self.test_session() as sess:
-      gauss_1_np = gauss_1.eval()
-      assert gauss_1_np.shape == (N_atoms, M_nbrs)
-
-  def test_vina_gaussian_second(self):
-    """Test that VinaGaussianSecond works."""
-    N_atoms = 10
-    M_nbrs = 5
-    X = np.random.rand(N_atoms, M_nbrs)
-    X_tensor = tf.convert_to_tensor(X)
-
-    gauss_2 = VinaGaussianSecond()(X_tensor)
-
-    with self.test_session() as sess:
-      gauss_2_np = gauss_2.eval()
-      assert gauss_2_np.shape == (N_atoms, M_nbrs)
 
   def test_neighbor_list_shape(self):
     """Test that NeighborList works."""

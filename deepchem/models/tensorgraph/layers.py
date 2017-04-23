@@ -89,7 +89,7 @@ def convert_to_layers(in_layers):
   layers = []
   for in_layer in in_layers:
     if isinstance(in_layer, Layer):
-      layers.append(layer)
+      layers.append(in_layer)
     elif isinstance(in_layer, tf.Tensor):
       layers.append(TensorWrapper(in_layer))
     else:
