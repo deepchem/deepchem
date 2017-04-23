@@ -4,8 +4,8 @@ import six
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.models.tensorgraph.layers import Input, BatchNormLayer, Dense, \
-    SoftMax, SoftMaxCrossEntropy, L2LossLayer, Concat, WeightedError, Label, Weights, Feature
+from deepchem.models.tensorgraph.layers import Input, BatchNorm, Dense, \
+    SoftMax, SoftMaxCrossEntropy, L2Loss, Concat, WeightedError, Label, Weights, Feature
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather
 from deepchem.metrics import to_one_hot, from_one_hot

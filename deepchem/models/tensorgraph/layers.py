@@ -96,13 +96,13 @@ def convert_to_layers(in_layers):
       raise ValueError("convert_to_layers must be invoked on layers or tensors")
   return layers
 
-class Conv1DLayer(Layer):
+class Conv1D(Layer):
 
   def __init__(self, width, out_channels, **kwargs):
     self.width = width
     self.out_channels = out_channels
     self.out_tensor = None
-    super(Conv1DLayer, self).__init__(**kwargs)
+    super(Conv1D, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None):
     if in_layers is None:
@@ -190,6 +190,7 @@ class Dense(Layer):
 
 
 class Flatten(Layer):
+  """Flatten every dimension except the first"""
 
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
@@ -216,21 +217,28 @@ class Reshape(Layer):
     self.shape = shape
     super(Reshape, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.reshape(parent_tensor, self.shape)
+    return self.out_tensor
 
 
 class Transpose(Layer):
 
-  def __init__(self, out_shape, **kwargs):
+  def __init__(self, perm, **kwargs):
     super(Transpose, self).__init__(**kwargs)
-    self.out_shape = out_shape
+    self.perm = perm 
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Only One Parent to Transpose over")
-    self.out_tensor = tf.transpose(self.in_layers[0].out_tensor, self.out_shape)
+    self.out_tensor = tf.transpose(in_layers[0].out_tensor, self.perm)
     return self.out_tensor
 
 
@@ -239,14 +247,18 @@ class CombineMeanStd(Layer):
   def __init__(self, **kwargs):
     super(CombineMeanStd, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
-      raise ValueError("Must have two self.in_layers")
-    mean_parent, std_parent = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
+      raise ValueError("Must have two in_layers")
+    mean_parent, std_parent = in_layers[0], in_layers[1]
     mean_parent_tensor, std_parent_tensor = mean_parent.out_tensor, std_parent.out_tensor
     sample_noise = tf.random_normal(
         mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
     self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
+    return self.out_tensor
 
 
 class Repeat(Layer):
@@ -255,13 +267,17 @@ class Repeat(Layer):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
+    parent_tensor = in_layers[0].out_tensor
     t = tf.expand_dims(parent_tensor, 1)
     pattern = tf.stack([1, self.n_times, 1])
     self.out_tensor = tf.tile(t, pattern)
+    return self.out_tensor
 
 
 class GRU(Layer):
@@ -272,11 +288,14 @@ class GRU(Layer):
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
-    gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
+    parent_tensor = in_layers[0].out_tensor
+    gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
     initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
     rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
         gru_cell,
@@ -285,20 +304,27 @@ class GRU(Layer):
         scope=self.name)
     projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
     self.out_tensor = tf.map_fn(projection, rnn_outputs)
+    return self.out_tensor
 
 
 class TimeSeriesDense(Layer):
 
   def __init__(self, out_channels, **kwargs):
+    self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(x, num_outputs=self.out_channels,
-                                                           activation_fn=tf.nn.sigmoid)
+    parent_tensor = in_layers[0].out_tensor
+    dense_fn = lambda x: tf.contrib.layers.fully_connected(
+        x, num_outputs=self.out_channels,
+        activation_fn=tf.nn.sigmoid)
     self.out_tensor = tf.map_fn(dense_fn, parent_tensor)
+    return self.out_tensor
 
 
 class Input(Layer):
@@ -309,9 +335,12 @@ class Input(Layer):
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 0:
-      queue = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 0:
+      queue = in_layers[0]
       placeholder = queue.out_tensors[self.get_pre_q_name()]
       self.out_tensor = tf.placeholder_with_default(placeholder, self.shape)
       return self.out_tensor
@@ -344,13 +373,16 @@ class Weights(Input):
     super(Weights, self).__init__(**kwargs)
 
 
-class L2LossLayer(Layer):
+class L2Loss(Layer):
 
   def __init__(self, **kwargs):
-    super(L2LossLayer, self).__init__(**kwargs)
+    super(L2Loss, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    guess, label = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    guess, label = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_mean(
         tf.square(guess.out_tensor - label.out_tensor))
     return self.out_tensor
@@ -361,10 +393,13 @@ class SoftMax(Layer):
   def __init__(self, **kwargs):
     super(SoftMax, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must only Softmax single parent")
-    parent = self.in_layers[0]
+    parent = in_layers[0]
     self.out_tensor = tf.contrib.layers.softmax(parent.out_tensor)
     return self.out_tensor
 
@@ -375,11 +410,14 @@ class Concat(Layer):
     self.axis = axis
     super(Concat, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) == 1:
-      self.out_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) == 1:
+      self.out_tensor = in_layers[0].out_tensor
       return self.out_tensor
-    out_tensors = [x.out_tensor for x in self.in_layers]
+    out_tensors = [x.out_tensor for x in in_layers]
 
     self.out_tensor = tf.concat(out_tensors, axis=self.axis)
     return self.out_tensor
@@ -394,11 +432,13 @@ class InteratomicL2Distances(Layer):
     self.ndim = ndim
     super(InteratomicL2Distances, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
       raise ValueError("InteratomicDistances requires coords,nbr_list")
-    coords, nbr_list = (self.in_layers[0].out_tensor,
-                        self.in_layers[1].out_tensor)
+    coords, nbr_list = (in_layers[0].out_tensor, in_layers[1].out_tensor)
     N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
     # Shape (N_atoms, M_nbrs, ndim)
     nbr_coords = tf.gather(coords, nbr_list)
@@ -416,10 +456,13 @@ class SoftMaxCrossEntropy(Layer):
   def __init__(self, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
       raise ValueError()
-    labels, logits = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
+    labels, logits = in_layers[0].out_tensor, in_layers[1].out_tensor
     self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=labels)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
@@ -432,12 +475,15 @@ class ReduceMean(Layer):
     self.axis = axis
     super(ReduceMean, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 1:
-      out_tensors = [x.out_tensor for x in self.in_layers]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
+      out_tensors = [x.out_tensor for x in in_layers]
       self.out_tensor = tf.stack(out_tensors)
     else:
-      self.out_tensor = self.in_layers[0].out_tensor
+      self.out_tensor = in_layers[0].out_tensor
 
     self.out_tensor = tf.reduce_mean(self.out_tensor)
     return self.out_tensor
@@ -445,10 +491,13 @@ class ReduceMean(Layer):
 
 class ToFloat(Layer):
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
       raise ValueError("Only one layer supported.")
-    self.out_tensor = tf.to_float(self.in_layers[0].out_tensor)
+    self.out_tensor = tf.to_float(in_layers[0].out_tensor)
     return self.out_tensor
 
 
@@ -458,12 +507,15 @@ class ReduceSum(Layer):
     self.axis = axis
     super(ReduceSum, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 1:
-      out_tensors = [x.out_tensor for x in self.in_layers]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
+      out_tensors = [x.out_tensor for x in in_layers]
       self.out_tensor = tf.stack(out_tensors)
     else:
-      self.out_tensor = self.in_layers[0].out_tensor
+      self.out_tensor = in_layers[0].out_tensor
 
     self.out_tensor = tf.reduce_sum(self.out_tensor, axis=self.axis)
     return self.out_tensor
@@ -475,23 +527,29 @@ class ReduceSquareDifference(Layer):
     self.axis = axis
     super(ReduceSquareDifference, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    a = self.in_layers[0].out_tensor
-    b = self.in_layers[1].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    a = in_layers[0].out_tensor
+    b = in_layers[1].out_tensor
     self.out_tensor = tf.reduce_mean(
         tf.squared_difference(a, b), axis=self.axis)
     return self.out_tensor
 
 
-class Conv2d(Layer):
+class Conv2D(Layer):
 
   def __init__(self, num_outputs, kernel_size=5, **kwargs):
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
-    super(Conv2d, self).__init__(**kwargs)
+    super(Conv2D, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
     out_tensor = tf.contrib.layers.conv2d(
         parent_tensor,
         num_outputs=self.num_outputs,
@@ -500,6 +558,7 @@ class Conv2d(Layer):
         activation_fn=tf.nn.relu,
         normalizer_fn=tf.contrib.layers.batch_norm)
     self.out_tensor = out_tensor
+    return self.out_tensor
 
 
 class MaxPool(Layer):
@@ -514,8 +573,11 @@ class MaxPool(Layer):
     self.padding = padding
     super(MaxPool, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    in_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    in_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.nn.max_pool(
         in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     return self.out_tensor
@@ -535,12 +597,15 @@ class InputFifoQueue(Layer):
     super(InputFifoQueue, self).__init__(**kwargs)
     self.op_type = "cpu"
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
     if self.dtypes is None:
       self.dtypes = [tf.float32] * len(self.shapes)
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
-    feed_dict = {x.name: x.out_tensor for x in self.in_layers}
+    feed_dict = {x.out_tensor.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
     self.out_tensors = self.queue.dequeue()
@@ -557,7 +622,7 @@ class InputFifoQueue(Layer):
     self.queue.close()
 
 
-class GraphConvLayer(Layer):
+class GraphConv(Layer):
 
   def __init__(self,
                out_channel,
@@ -570,11 +635,14 @@ class GraphConvLayer(Layer):
     self.max_degree = max_deg
     self.num_deg = 2 * max_deg + (1 - min_deg)
     self.activation_fn = activation_fn
-    super(GraphConvLayer, self).__init__(**kwargs)
+    super(GraphConv, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    #   self.in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    in_channels = self.in_layers[0].out_tensor.get_shape()[-1].value
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+    in_channels = in_layers[0].out_tensor.get_shape()[-1].value
 
     # Generate the nb_affine weights and biases
     self.W_list = [
@@ -588,11 +656,11 @@ class GraphConvLayer(Layer):
     ]
 
     # Extract atom_features
-    atom_features = self.in_layers[0].out_tensor
+    atom_features = in_layers[0].out_tensor
 
     # Extract graph topology
-    deg_slice = self.in_layers[1].out_tensor
-    deg_adj_lists = [x.out_tensor for x in self.in_layers[3:]]
+    deg_slice = in_layers[1].out_tensor
+    deg_adj_lists = [x.out_tensor for x in in_layers[3:]]
 
     # Perform the mol conv
     # atom_features = graph_conv(atom_features, deg_adj_lists, deg_slice,
@@ -668,17 +736,21 @@ class GraphConvLayer(Layer):
     self.out_tensor, self.W_list, self.b_list = tensors
 
 
-class GraphPoolLayer(Layer):
+class GraphPool(Layer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     self.min_degree = min_degree
     self.max_degree = max_degree
-    super(GraphPoolLayer, self).__init__(**kwargs)
+    super(GraphPool, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    atom_features = self.in_layers[0].out_tensor
-    deg_slice = self.in_layers[1].out_tensor
-    deg_adj_lists = [x.out_tensor for x in self.in_layers[3:]]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    atom_features = in_layers[0].out_tensor
+    deg_slice = in_layers[1].out_tensor
+    deg_adj_lists = [x.out_tensor for x in in_layers[3:]]
 
     # Perform the mol gather
     # atom_features = graph_pool(atom_features, deg_adj_lists, deg_slice,
@@ -721,12 +793,16 @@ class GraphGather(Layer):
     self.activation_fn = activation_fn
     super(GraphGather, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
     # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    atom_features = self.in_layers[0].out_tensor
+    atom_features = in_layers[0].out_tensor
 
     # Extract graph topology
-    membership = self.in_layers[2].out_tensor
+    membership = in_layers[2].out_tensor
 
     # Perform the mol gather
 
@@ -757,43 +833,54 @@ class GraphGather(Layer):
     return mol_features
 
 
-class BatchNormLayer(Layer):
+class BatchNorm(Layer):
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    parent_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.layers.batch_normalization(parent_tensor)
     return self.out_tensor
 
 
 class WeightedError(Layer):
 
-  def _create_tensor(self):
-    entropy, weights = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    entropy, weights = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
     return self.out_tensor
 
 
-class Cutoff(Layer):
-  """Truncates interactions that are too far away."""
-
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
-      raise ValueError("Cutoff must be given distances and energies.")
-    d, x = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
-    self.out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
-    return self.out_tensor
-
-
 class VinaFreeEnergy(Layer):
-  """Computes free-energy as defined by Autodock Vina."""
+  """Computes free-energy as defined by Autodock Vina.
 
-  def __init__(self, stddev=.3, Nrot=1, **kwargs):
+  TODO(rbharath): Make this layer support batching.
+  """
+
+  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, stddev=.3,
+               Nrot=1, **kwargs):
     self.stddev = stddev
     # Number of rotatable bonds
     # TODO(rbharath): Vina actually sets this per-molecule. See if makes
     # a difference.
     self.Nrot = Nrot
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+    self.nbr_cutoff = nbr_cutoff
+    self.start = start
+    self.stop = stop
     super(VinaFreeEnergy, self).__init__(**kwargs)
+
+
+  def cutoff(self, d, x):
+    out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
+    return out_tensor
 
   def nonlinearity(self, c):
     """Computes non-linearity used in Vina."""
@@ -836,13 +923,13 @@ class VinaFreeEnergy(Layer):
     out_tensor = tf.exp(-((d - 3) / 2)**2)
     return out_tensor
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     """
     Parameters
     ----------
-    X: tf.Tensor of shape (B, N, d)
+    X: tf.Tensor of shape (N, d)
       Coordinates/features.
-    Z: tf.Tensor of shape (B, N)
+    Z: tf.Tensor of shape (N)
       Atomic numbers of neighbor atoms.
       
     Returns
@@ -850,16 +937,21 @@ class VinaFreeEnergy(Layer):
     layer: tf.Tensor of shape (B)
       The free energy of each complex in batch
     """
-    X = self.in_layers[0].out_tensor
-    Z = self.in_layers[2].out_tensor
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    X = in_layers[0].out_tensor
+    Z = in_layers[1].out_tensor
 
+    # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
+    # neighbors lists an argument instead of a part of this layer.
     nbr_list = NeighborList(
         self.N_atoms, self.M_nbrs, self.ndim, self.nbr_cutoff, self.start,
-        self.stop)(coords)
+        self.stop)(X)
 
     # Shape (N, M)
     dists = InteratomicL2Distances(
-        self.N_atoms, self.M_nbrs, self.ndim)(coords, nbr_list)
+        self.N_atoms, self.M_nbrs, self.ndim)(X, nbr_list)
 
     repulsion = self.repulsion(dists)
     hydrophobic = self.hydrophobic(dists)
@@ -872,12 +964,12 @@ class VinaFreeEnergy(Layer):
         repulsion, hydrophobic, hbond, gauss_1, gauss_2)
 
     # Shape (N, M)
-    thresholded = Cutoff()(dists, interactions)
+    thresholded = self.cutoff(dists, interactions)
 
     free_energies = self.nonlinearity(thresholded)
     free_energy = ReduceSum()(free_energies)
 
-    self.output_tensor = free_energy
+    self.out_tensor = free_energy
     return self.out_tensor
 
 
@@ -888,10 +980,13 @@ class WeightedLinearCombo(Layer):
     self.std = std
     super(WeightedLinearCombo, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
     weights = []
     out_tensor = None
-    for in_layer in self.in_layers:
+    for in_layer in in_layers:
       w = tf.Variable(tf.random_normal([
           1,
       ], stddev=self.std))
@@ -908,6 +1003,8 @@ class NeighborList(Layer):
 
   Neighbor-lists (also called Verlet Lists) are a tool for grouping atoms which
   are close to each other spatially
+
+  TODO(rbharath): Make this layer support batching.
   """
 
   def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, **kwargs):
@@ -935,12 +1032,15 @@ class NeighborList(Layer):
     self.stop = stop
     super(NeighborList, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     """Creates tensors associated with neighbor-listing."""
-    if len(self.in_layers) != 1:
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Only One Parent to NeighborList over %s" %
-                       self.in_layers)
-    parent = self.in_layers[0]
+                       in_layers)
+    parent = in_layers[0]
     if len(parent.out_tensor.get_shape()) != 2:
       # TODO(rbharath): Support batching
       raise ValueError("Parent tensor must be (num_atoms, ndum)")
@@ -1209,7 +1309,7 @@ class AtomicConvolution(Layer):
     self.atom_types = atom_types
     super(AtomicConvolution, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     """
     Parameters
     ----------
@@ -1225,10 +1325,13 @@ class AtomicConvolution(Layer):
     layer: tf.Tensor of shape (l, B, N)
       A new tensor representing the output of the atomic conv layer 
     """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
 
-    X = self.in_layers[0].out_tensor
-    Nbrs = tf.to_int32(self.in_layers[1].out_tensor)
-    Nbrs_Z = self.in_layers[2].out_tensor
+    X = in_layers[0].out_tensor
+    Nbrs = tf.to_int32(in_layers[1].out_tensor)
+    Nbrs_Z = in_layers[2].out_tensor
 
     # N: Maximum number of atoms
     # M: Maximum number of neighbors

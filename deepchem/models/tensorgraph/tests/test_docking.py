@@ -470,22 +470,3 @@ class TestDocking(test_util.TensorFlowTestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
-
-  def test_interatomic_distances(self):
-    """Test that the interatomic distance calculation works."""
-    N_atoms = 5
-    M_nbrs = 2
-    ndim = 3
-
-    with self.test_session() as sess:
-      coords = np.random.rand(N_atoms, ndim)
-      nbr_list = np.random.randint(0, N_atoms, size=(N_atoms, M_nbrs))
-
-      coords_tensor = tf.convert_to_tensor(coords)
-      nbr_list_tensor = tf.convert_to_tensor(nbr_list)
-
-      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs, ndim)(
-          coords_tensor, nbr_list_tensor)
-
-      dists = dist_tensor.eval()
-      assert dists.shape == (N_atoms, M_nbrs)
