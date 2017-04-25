@@ -72,7 +72,7 @@ class WeaveTensorGraph(TensorGraph):
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.relu,
         in_layers=[separated])
-    batch_norm1 = BatchNormLayer(in_layers=[dense1])
+    batch_norm1 = BatchNorm(in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
         n_input=self.n_graph_feat,
