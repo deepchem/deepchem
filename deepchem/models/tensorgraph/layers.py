@@ -76,8 +76,9 @@ class Layer(object):
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
 
-  def __init__(self, out_tensor):
+  def __init__(self, out_tensor, **kwargs):
     self.out_tensor = out_tensor
+    super(TensorWrapper, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None):
     """Take no actions."""
@@ -606,7 +607,7 @@ class InputFifoQueue(Layer):
       self.dtypes = [tf.float32] * len(self.shapes)
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
-    feed_dict = {x.out_tensor.name: x.out_tensor for x in in_layers}
+    feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
     self.out_tensors = self.queue.dequeue()

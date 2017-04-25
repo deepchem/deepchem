@@ -38,6 +38,7 @@ from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
+from deepchem.models.tensorgraph.layers import TensorWrapper
 
 import deepchem as dc
 
@@ -324,10 +325,11 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_features = 5
     in_tensor = np.random.rand(batch_size, n_features)
+    tf.reset_default_graph()
     with self.test_session() as sess:
-      in_tensor = tf.convert_to_tensor(
-          in_tensor, dtype=tf.float32, name="input")
-      InputFifoQueue([(batch_size, n_features)], ["input:0"])(in_tensor)
+      in_tensor = TensorWrapper(
+          tf.convert_to_tensor(in_tensor, dtype=tf.float32), name="input")
+      InputFifoQueue([(batch_size, n_features)], ["input"])(in_tensor)
 
   def test_graph_conv(self):
     """Test that GraphConv can be invoked."""

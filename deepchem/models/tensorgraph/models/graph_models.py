@@ -99,7 +99,7 @@ class WeaveTensorGraph(TensorGraph):
 
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
-        cost = L2LossLayer(in_layers=[label, regression])
+        cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
     all_cost = Concat(in_layers=costs)
@@ -283,7 +283,7 @@ class DTNNTensorGraph(TensorGraph):
 
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
-      cost = L2LossLayer(in_layers=[label, regression])
+      cost = L2Loss(in_layers=[label, regression])
       costs.append(cost)
 
     all_cost = Concat(in_layers=costs)
@@ -464,7 +464,7 @@ class DAGTensorGraph(TensorGraph):
 
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
-        cost = L2LossLayer(in_layers=[label, regression])
+        cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
     all_cost = Concat(in_layers=costs)

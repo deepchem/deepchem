@@ -1,7 +1,7 @@
 import tensorflow as tf
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.layers import Input, Dense, Concat, SoftMax, SoftMaxCrossEntropy, Layer, \
-  GraphConv, BatchNormLayer, GraphPoolLayer, GraphGather, WeightedError
+  GraphConv, BatchNorm, GraphPool, GraphGather, WeightedError
 from deepchem.metrics import to_one_hot
 from deepchem.feat.mol_graphs import ConvMol
 import time

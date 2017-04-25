@@ -12,9 +12,6 @@ from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 
-# TODO(rbharath): Queues were causing strange test failures.
-# Turned off all queues for now.
-
 
 class TestTensorGraph(unittest.TestCase):
   """
@@ -33,7 +30,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=10)
@@ -69,7 +66,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -93,7 +90,7 @@ class TestTensorGraph(unittest.TestCase):
     dense = Dense(out_channels=1, in_layers=[features])
     label = Label(shape=(None, 1))
     loss = ReduceSquareDifference(in_layers=[dense, label])
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(dense)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=10)
@@ -128,7 +125,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=losses)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -174,7 +171,6 @@ class TestTensorGraph(unittest.TestCase):
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
     tg = dc.models.TensorGraph(
-        use_queue=False,
         tensorboard=True,
         tensorboard_log_frequency=1,
         learning_rate=0.1,
@@ -201,7 +197,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1)
@@ -212,44 +208,43 @@ class TestTensorGraph(unittest.TestCase):
     prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
-  # TODO(rbharath): Failing with strange bugs. Turn test back on!
-  #def test_shared_layer(self):
-  #  n_data_points = 20
-  #  n_features = 2
+  def test_shared_layer(self):
+    n_data_points = 20
+    n_features = 2
 
-  #  X = np.random.rand(n_data_points, n_features)
-  #  y1 = np.array([[0, 1] for x in range(n_data_points)])
-  #  X = NumpyDataset(X)
-  #  ys = [NumpyDataset(y1)]
+    X = np.random.rand(n_data_points, n_features)
+    y1 = np.array([[0, 1] for x in range(n_data_points)])
+    X = NumpyDataset(X)
+    ys = [NumpyDataset(y1)]
 
-  #  databag = Databag()
+    databag = Databag()
 
-  #  features = Feature(shape=(None, n_features))
-  #  databag.add_dataset(features, X)
+    features = Feature(shape=(None, n_features))
+    databag.add_dataset(features, X)
 
-  #  outputs = []
+    outputs = []
 
-  #  label = Label(shape=(None, 2))
-  #  dense1 = Dense(out_channels=2, in_layers=[features])
-  #  dense2 = dense1.shared(in_layers=[features])
-  #  output1 = SoftMax(in_layers=[dense1])
-  #  output2 = SoftMax(in_layers=[dense2])
-  #  smce = SoftMaxCrossEntropy(in_layers=[label, dense1])
+    label = Label(shape=(None, 2))
+    dense1 = Dense(out_channels=2, in_layers=[features])
+    dense2 = dense1.shared(in_layers=[features])
+    output1 = SoftMax(in_layers=[dense1])
+    output2 = SoftMax(in_layers=[dense2])
+    smce = SoftMaxCrossEntropy(in_layers=[label, dense1])
 
-  #  outputs.append(output1)
-  #  outputs.append(output2)
-  #  databag.add_dataset(label, ys[0])
+    outputs.append(output1)
+    outputs.append(output2)
+    databag.add_dataset(label, ys[0])
 
-  #  total_loss = ReduceMean(in_layers=[smce])
+    total_loss = ReduceMean(in_layers=[smce])
 
-  #  tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
-  #  for output in outputs:
-  #    tg.add_output(output)
-  #  tg.set_loss(total_loss)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
+    for output in outputs:
+      tg.add_output(output)
+    tg.set_loss(total_loss)
 
-  #  tg.fit_generator(
-  #      databag.iterbatches(
-  #          epochs=1, batch_size=tg.batch_size, pad_batches=True))
-  #  prediction = tg.predict_proba_on_generator(databag.iterbatches())
-  #  assert_true(
-  #      np.all(np.isclose(prediction[:, 0], prediction[:, 1], atol=0.01)))
+    tg.fit_generator(
+        databag.iterbatches(
+            epochs=1, batch_size=tg.batch_size, pad_batches=True))
+    prediction = tg.predict_proba_on_generator(databag.iterbatches())
+    assert_true(
+        np.all(np.isclose(prediction[:, 0], prediction[:, 1], atol=0.01)))
