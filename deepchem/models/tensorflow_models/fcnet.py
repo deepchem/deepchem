@@ -20,13 +20,16 @@ from deepchem.metrics import to_one_hot
 
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Reshape, SoftMaxCrossEntropy, L2LossLayer
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, Reshape, SoftMaxCrossEntropy, L2Loss, Initializer
 
-class TensorflowMultiTaskClassifier2(TensorGraph):
+class TensorGraphMultiTaskClassifier(TensorGraph):
   def __init__(self,
                n_tasks,
                n_features,
                layer_sizes=[1000],
+               weight_init_stddevs=[0.02],
+               bias_init_consts=[1.0],
+               dropouts=[0.5],
                n_classes=2,
                **kwargs):
     super().__init__(mode='classification', **kwargs)
@@ -41,8 +44,12 @@ class TensorflowMultiTaskClassifier2(TensorGraph):
 
     # Add the dense layers
 
-    for size in layer_sizes:
-      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu)
+    for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
+      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
+                    weights_initializer=Initializer(tf.truncated_normal_initializer, stddev=weight_stddev),
+                    biases_initializer=Initializer(tf.constant_initializer, value=bias_const))
+      if dropout > 0.0:
+        layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
 
     # Compute the loss function for each label.
@@ -78,11 +85,14 @@ class TensorflowMultiTaskClassifier2(TensorGraph):
 
 
 
-class TensorflowMultiTaskRegressor2(TensorGraph):
+class TensorGraphMultiTaskRegressor(TensorGraph):
   def __init__(self,
                n_tasks,
                n_features,
                layer_sizes=[1000],
+               weight_init_stddevs=[0.02],
+               bias_init_consts=[1.0],
+               dropouts=[0.5],
                **kwargs):
     super().__init__(mode='regression', **kwargs)
     self.n_tasks = n_tasks
@@ -95,8 +105,12 @@ class TensorflowMultiTaskRegressor2(TensorGraph):
 
     # Add the dense layers
 
-    for size in layer_sizes:
-      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu)
+    for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
+      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
+                    weights_initializer=Initializer(tf.truncated_normal_initializer, stddev=weight_stddev),
+                    biases_initializer=Initializer(tf.constant_initializer, value=bias_const))
+      if dropout > 0.0:
+        layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
 
     # Compute the loss function for each label.
@@ -105,7 +119,7 @@ class TensorflowMultiTaskRegressor2(TensorGraph):
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
     weights = Weights(shape=(None, n_tasks))
-    loss = Reshape(shape=(-1, n_tasks), in_layers=[L2LossLayer(in_layers=[labels, output])])
+    loss = Reshape(shape=(-1, n_tasks), in_layers=[L2Loss(in_layers=[labels, output])])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     self.set_loss(weighted_loss)
 

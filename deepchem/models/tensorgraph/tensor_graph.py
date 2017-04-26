@@ -120,9 +120,11 @@ class TensorGraph(Model):
     def create_feed_dict():
       if self.use_queue:
         while True:
-          yield {}
+          yield {self._training_placeholder: 1.0}
       for d in feed_dict_generator:
-        yield {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict = {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict[self._training_placeholder] = 1.0
+        yield feed_dict
 
     if not self.built:
       self.build()
@@ -252,6 +254,7 @@ class TensorGraph(Model):
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
+          feed_dict[self._training_placeholder] = 0.0
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
@@ -308,6 +311,7 @@ class TensorGraph(Model):
     if self.built:
       return
     with self._get_tf("Graph").as_default():
+      self._training_placeholder = tf.placeholder(dtype=tf.float32, shape=())
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
@@ -316,7 +320,7 @@ class TensorGraph(Model):
       for node in order:
         with tf.name_scope(node):
           node_layer = self.layers[node]
-          node_layer.create_tensor()
+          node_layer.create_tensor(training=self._training_placeholder)
       self.built = True
 
     for layer in self.layers.values():
@@ -342,6 +346,7 @@ class TensorGraph(Model):
     shapes = []
     pre_q_inputs = []
     q = InputFifoQueue(shapes, names, in_layers=pre_q_inputs)
+
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
       shapes.append(pre_q_input.shape)
@@ -374,6 +379,8 @@ class TensorGraph(Model):
       for node in self.topsort():
         node_layer = self.layers[node]
         out_tensors.append(node_layer.none_tensors())
+      training_placeholder = self._training_placeholder
+      self._training_placeholder = None
       self.built = False
 
     # Pickle itself
@@ -386,6 +393,7 @@ class TensorGraph(Model):
       for index, node in enumerate(self.topsort()):
         node_layer = self.layers[node]
         node_layer.set_tensors(out_tensors[index])
+      self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
 
@@ -498,6 +506,7 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     num_samples = 0
     for feed_dict in generator:
       enq = {}
+      enq[tg._training_placeholder] = 1.0
       for layer in tg.features + tg.labels + tg.task_weights:
         enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
