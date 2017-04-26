@@ -4,8 +4,8 @@ import six
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.models.tensorgraph.layers import Input, BatchNormLayer, Dense, \
-    SoftMax, SoftMaxCrossEntropy, L2LossLayer, Concat, WeightedError, Label, Weights, Feature
+from deepchem.models.tensorgraph.layers import Input, BatchNorm, Dense, \
+    SoftMax, SoftMaxCrossEntropy, L2Loss, Concat, WeightedError, Label, Weights, Feature
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather
 from deepchem.metrics import to_one_hot, from_one_hot
@@ -72,7 +72,7 @@ class WeaveTensorGraph(TensorGraph):
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.relu,
         in_layers=[separated])
-    batch_norm1 = BatchNormLayer(in_layers=[dense1])
+    batch_norm1 = BatchNorm(in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
         n_input=self.n_graph_feat,
@@ -99,7 +99,7 @@ class WeaveTensorGraph(TensorGraph):
 
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
-        cost = L2LossLayer(in_layers=[label, regression])
+        cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
     all_cost = Concat(in_layers=costs)
@@ -283,7 +283,7 @@ class DTNNTensorGraph(TensorGraph):
 
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
-      cost = L2LossLayer(in_layers=[label, regression])
+      cost = L2Loss(in_layers=[label, regression])
       costs.append(cost)
 
     all_cost = Concat(in_layers=costs)
@@ -464,7 +464,7 @@ class DAGTensorGraph(TensorGraph):
 
         label = Label(shape=(None, 1))
         self.labels_fd.append(label)
-        cost = L2LossLayer(in_layers=[label, regression])
+        cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
     all_cost = Concat(in_layers=costs)

@@ -563,9 +563,8 @@ class VinaModel(Model):
                     ligand_coords_placeholder, ligand_Z_placeholder),
             label_placeholder)
 
-  def fit(self, dataset):
+  def fit(self, X_protein, Z_protein, X_ligand, Z_ligand, y):
     """Fit to actual data."""
-    # TODO(rbharath): Add an actual fit method.
     return
 
   def mutate_conformer(protein, ligand):

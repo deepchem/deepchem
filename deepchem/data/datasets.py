@@ -1049,8 +1049,11 @@ class Databag(object):
   A utility class to iterate through multiple datasets together.
   """
 
-  def __init__(self):
-    self.datasets = dict()
+  def __init__(self, datasets=None):
+    if datasets is None:
+      self.datasets = dict()
+    else:
+      self.datasets = datasets
 
   def add_dataset(self, key, dataset):
     self.datasets[key] = dataset
