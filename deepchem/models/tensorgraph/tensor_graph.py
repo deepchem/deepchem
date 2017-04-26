@@ -22,7 +22,6 @@ class TensorGraph(Model):
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
-               learning_rate=0.001,
                batch_size=100,
                random_seed=None,
                use_queue=True,
@@ -36,8 +35,6 @@ class TensorGraph(Model):
       Should we log to model_dir data for tensorboard?
     tensorboard_log_frequency: int
       How many training batches before logging tensorboard?
-    learning_rate: float
-      learning rate for optimizer
     batch_size: int
       default batch size for training and evaluating
     use_queue: boolean
@@ -63,6 +60,7 @@ class TensorGraph(Model):
     self.loss = None
     self.built = False
     self.queue_installed = False
+    self.optimizer = TFWrapper(tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -81,7 +79,6 @@ class TensorGraph(Model):
     self.last_checkpoint = None
     self.use_queue = use_queue
 
-    self.learning_rate = learning_rate
     self.batch_size = batch_size
     self.random_seed = random_seed
     super(TensorGraph, self).__init__(**kwargs)
@@ -368,6 +365,14 @@ class TensorGraph(Model):
     self._add_layer(layer)
     self.outputs.append(layer)
 
+  def set_optimizer(self, optimizer):
+    """Set the optimizer to use for fitting.
+
+    The argument should be a callable object (most often a TFWrapper) that constructs
+    a Tensorflow optimizer when called.
+    """
+    self.optimizer = optimizer
+
   def save(self):
     # Remove out_tensor from the object to be pickled
     must_restore = False
@@ -443,9 +448,7 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
-      self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-          self.learning_rate, beta1=.9,
-          beta2=.999).minimize(self.loss.out_tensor)
+      self.tensor_objects['train_op'] = self.optimizer().minimize(self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
@@ -518,3 +521,29 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     sess.run(tg.input_queue.close_op)
     coord.num_samples = num_samples
     coord.request_stop()
+
+
+class TFWrapper(object):
+  """This class exists as a workaround for Tensorflow objects not being picklable.
+
+  The job of a TFWrapper is to create Tensorflow objects by passing defined arguments
+  to a constructor.  There are cases where we really want to store Tensorflow objects
+  of various sorts (optimizers, initializers, etc.), but we can't because they cannot
+  be pickled.  So instead we store a TFWrapper that creates the object when needed.
+  """
+
+  def __init__(self, tf_class, **kwargs):
+    """Create a TFWrapper for constructing a Tensorflow object.
+
+    Parameters
+    ----------
+    tf_class: class
+      the type of object to create
+    kwargs:
+      any other arguments will be passed on to the object's constructor
+    """
+    self.tf_class = tf_class
+    self.kwargs = kwargs
+
+  def __call__(self):
+    return self.tf_class(**self.kwargs)

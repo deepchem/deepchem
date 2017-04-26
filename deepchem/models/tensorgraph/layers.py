@@ -98,26 +98,6 @@ def convert_to_layers(in_layers):
   return layers
 
 
-class Initializer(object):
-  """This class exists as a workaround for Tensorflow initializers not being picklable."""
-
-  def __init__(self, initializer_class, **kwargs):
-    """Create an Initializer for constructing Tensorflow initializers.
-
-    Parameters
-    ----------
-    initializer_class: class
-      the type of initializer to create
-    kwargs:
-      any other arguments will be passed on to the Tensorflow initializer's constructor
-    """
-    self.initializer_class = initializer_class
-    self.kwargs = kwargs
-
-  def __call__(self):
-    return self.initializer_class(**self.kwargs)
-
-
 class Conv1D(Layer):
 
   def __init__(self, width, out_channels, **kwargs):

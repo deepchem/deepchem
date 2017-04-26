@@ -19,8 +19,8 @@ from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, Reshape, SoftMaxCrossEntropy, L2Loss, Initializer
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, Reshape, SoftMaxCrossEntropy, L2Loss
 
 class TensorGraphMultiTaskClassifier(TensorGraph):
   def __init__(self,
@@ -46,8 +46,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
 
     for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
       layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
-                    weights_initializer=Initializer(tf.truncated_normal_initializer, stddev=weight_stddev),
-                    biases_initializer=Initializer(tf.constant_initializer, value=bias_const))
+                    weights_initializer=TFWrapper(tf.truncated_normal_initializer, stddev=weight_stddev),
+                    biases_initializer=TFWrapper(tf.constant_initializer, value=bias_const))
       if dropout > 0.0:
         layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
@@ -107,8 +107,8 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
 
     for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
       layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
-                    weights_initializer=Initializer(tf.truncated_normal_initializer, stddev=weight_stddev),
-                    biases_initializer=Initializer(tf.constant_initializer, value=bias_const))
+                    weights_initializer=TFWrapper(tf.truncated_normal_initializer, stddev=weight_stddev),
+                    biases_initializer=TFWrapper(tf.constant_initializer, value=bias_const))
       if dropout > 0.0:
         layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
