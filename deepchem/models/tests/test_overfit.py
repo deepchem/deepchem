@@ -677,16 +677,15 @@ class TestOverfit(test_util.TensorFlowTestCase):
     regression_metric = dc.metrics.Metric(
         dc.metrics.pearson_r2_score, task_averager=np.mean)
     n_tasks = y.shape[1]
-    max_n_atoms = list(dataset.get_data_shape())[0]
     batch_size = 10
 
-    graph_model = dc.nn.SequentialDTNNGraph(max_n_atoms=max_n_atoms)
+    graph_model = dc.nn.SequentialDTNNGraph()
     graph_model.add(dc.nn.DTNNEmbedding(n_embedding=20))
     graph_model.add(dc.nn.DTNNStep(n_embedding=20))
     graph_model.add(dc.nn.DTNNStep(n_embedding=20))
     graph_model.add(dc.nn.DTNNGather(n_embedding=20))
     n_feat = 20
-    model = dc.models.DTNNGraphRegressor(
+    model = dc.models.MultitaskGraphRegressor(
         graph_model,
         n_tasks,
         n_feat,
@@ -700,6 +699,40 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Fit trained model
     model.fit(dataset, nb_epoch=20)
     model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .9
+
+  def test_tensorgraph_DTNN_multitask_regression_overfit(self):
+    """Test deep tensor neural net overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+
+    # Load mini log-solubility dataset.
+    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
+    dataset = scipy.io.loadmat(input_file)
+    X = dataset['X']
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+    n_tasks = y.shape[1]
+    batch_size = 10
+
+    model = dc.models.DTNNTensorGraph(
+        n_tasks,
+        n_embedding=20,
+        n_distance=100,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=20)
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
@@ -728,17 +761,16 @@ class TestOverfit(test_util.TensorFlowTestCase):
     transformer = dc.trans.DAGTransformer(max_atoms=50)
     dataset = transformer.transform(dataset)
 
-    graph = dc.nn.SequentialDAGGraph(
-        n_feat, batch_size=batch_size, max_atoms=50)
-    graph.add(dc.nn.DAGLayer(30, n_feat, max_atoms=50))
-    graph.add(dc.nn.DAGGather(max_atoms=50))
+    graph = dc.nn.SequentialDAGGraph(n_atom_feat=n_feat, max_atoms=50)
+    graph.add(dc.nn.DAGLayer(30, n_feat, max_atoms=50, batch_size=batch_size))
+    graph.add(dc.nn.DAGGather(30, max_atoms=50))
 
     model = dc.models.MultitaskGraphRegressor(
         graph,
         n_tasks,
         n_feat,
         batch_size=batch_size,
-        learning_rate=0.01,
+        learning_rate=0.001,
         learning_rate_decay_time=1000,
         optimizer_type="adam",
         beta1=.9,
@@ -747,6 +779,44 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
     model.save()
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .8
+
+  def test_tensorgraph_DAG_singletask_regression_overfit(self):
+    """Test DAG regressor multitask overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.ConvMolFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+    n_feat = 75
+    batch_size = 10
+    transformer = dc.trans.DAGTransformer(max_atoms=50)
+    dataset = transformer.transform(dataset)
+
+    model = dc.models.DAGTensorGraph(
+        n_tasks,
+        max_atoms=50,
+        n_atom_feat=n_feat,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=50)
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])
 
@@ -774,12 +844,18 @@ class TestOverfit(test_util.TensorFlowTestCase):
     batch_size = 10
     max_atoms = 50
 
-    graph = dc.nn.SequentialWeaveGraph(
-        max_atoms=max_atoms, n_atom_feat=n_atom_feat, n_pair_feat=n_pair_feat)
-    graph.add(dc.nn.WeaveLayer(max_atoms, 75, 14))
-    graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
+    graph = dc.nn.AlternateSequentialWeaveGraph(
+        batch_size,
+        max_atoms=max_atoms,
+        n_atom_feat=n_atom_feat,
+        n_pair_feat=n_pair_feat)
+    graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 75, 14))
+    graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 50, 50, update_pair=False))
+    graph.add(dc.nn.Dense(n_feat, 50, activation='tanh'))
     graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat))
+    graph.add(
+        dc.nn.AlternateWeaveGather(
+            batch_size, n_input=n_feat, gaussian_expand=True))
 
     model = dc.models.MultitaskGraphClassifier(
         graph,
@@ -795,6 +871,45 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Fit trained model
     model.fit(dataset, nb_epoch=20)
     model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+
+    assert scores[classification_metric.name] > .65
+
+  def test_tensorgraph_weave_singletask_classification_overfit(self):
+    """Test weave model overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.WeaveFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
+    n_atom_feat = 75
+    n_pair_feat = 14
+    n_feat = 128
+    batch_size = 10
+
+    model = dc.models.WeaveTensorGraph(
+        n_tasks,
+        n_atom_feat=n_atom_feat,
+        n_pair_feat=n_pair_feat,
+        n_graph_feat=n_feat,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="classification")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=20)
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
@@ -824,12 +939,18 @@ class TestOverfit(test_util.TensorFlowTestCase):
     batch_size = 10
     max_atoms = 50
 
-    graph = dc.nn.SequentialWeaveGraph(
-        max_atoms=max_atoms, n_atom_feat=n_atom_feat, n_pair_feat=n_pair_feat)
-    graph.add(dc.nn.WeaveLayer(max_atoms, 75, 14))
-    graph.add(dc.nn.WeaveConcat(batch_size, n_output=n_feat))
+    graph = dc.nn.AlternateSequentialWeaveGraph(
+        batch_size,
+        max_atoms=max_atoms,
+        n_atom_feat=n_atom_feat,
+        n_pair_feat=n_pair_feat)
+    graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 75, 14))
+    graph.add(dc.nn.AlternateWeaveLayer(max_atoms, 50, 50, update_pair=False))
+    graph.add(dc.nn.Dense(n_feat, 50, activation='tanh'))
     graph.add(dc.nn.BatchNormalization(epsilon=1e-5, mode=1))
-    graph.add(dc.nn.WeaveGather(batch_size, n_input=n_feat))
+    graph.add(
+        dc.nn.AlternateWeaveGather(
+            batch_size, n_input=n_feat, gaussian_expand=True))
 
     model = dc.models.MultitaskGraphRegressor(
         graph,
@@ -845,6 +966,46 @@ class TestOverfit(test_util.TensorFlowTestCase):
     # Fit trained model
     model.fit(dataset, nb_epoch=40)
     model.save()
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .9
+
+  def test_tensorgraph_weave_singletask_regression_overfit(self):
+    """Test weave model overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.WeaveFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+    n_atom_feat = 75
+    n_pair_feat = 14
+    n_feat = 128
+    batch_size = 10
+
+    model = dc.models.WeaveTensorGraph(
+        n_tasks,
+        n_atom_feat=n_atom_feat,
+        n_pair_feat=n_pair_feat,
+        n_graph_feat=n_feat,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=120)
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])

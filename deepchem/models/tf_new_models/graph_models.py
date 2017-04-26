@@ -86,16 +86,10 @@ class SequentialDTNNGraph(SequentialGraph):
   automatically generates and passes topology placeholders to each layer. 
   """
 
-  def __init__(self,
-               max_n_atoms,
-               n_distance=100,
-               distance_min=-1.,
-               distance_max=18.):
+  def __init__(self, n_distance=100, distance_min=-1., distance_max=18.):
     """
     Parameters
     ----------
-    max_n_atoms: int
-      maximum number of atoms in a molecule
     n_distance: int, optional
       granularity of distance matrix
       step size will be (distance_max-distance_min)/n_distance
@@ -107,10 +101,7 @@ class SequentialDTNNGraph(SequentialGraph):
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DTNNGraphTopology(
-          max_n_atoms,
-          n_distance,
-          distance_min=distance_min,
-          distance_max=distance_max)
+          n_distance, distance_min=distance_min, distance_max=distance_max)
       self.output = self.graph_topology.get_atom_number_placeholder()
     # Keep track of the layers
     self.layers = []
@@ -123,7 +114,7 @@ class SequentialDTNNGraph(SequentialGraph):
                             self.graph_topology.get_topology_placeholders())
       elif type(layer).__name__ in ['DTNNGather']:
         self.output = layer(
-            [self.output, self.graph_topology.atom_mask_placeholder])
+            [self.output, self.graph_topology.atom_membership_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
@@ -133,21 +124,19 @@ class SequentialDAGGraph(SequentialGraph):
   """SequentialGraph for DAG models
   """
 
-  def __init__(self, n_feat, batch_size=50, max_atoms=50):
+  def __init__(self, n_atom_feat=75, max_atoms=50):
     """
     Parameters
     ----------
-    n_feat: int
+    n_atom_feat: int, optional
       Number of features per atom.
-    batch_size: int, optional(default=50)
-      Number of molecules in a batch
-    max_atoms: int, optional(default=50)
+    max_atoms: int, optional
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DAGGraphTopology(
-          n_feat, batch_size, max_atoms=max_atoms)
+          n_atom_feat=n_atom_feat, max_atoms=max_atoms)
       self.output = self.graph_topology.get_atom_features_placeholder()
     self.layers = []
 
@@ -157,6 +146,9 @@ class SequentialDAGGraph(SequentialGraph):
       if type(layer).__name__ in ['DAGLayer']:
         self.output = layer([self.output] +
                             self.graph_topology.get_topology_placeholders())
+      elif type(layer).__name__ in ['DAGGather']:
+        self.output = layer(
+            [self.output, self.graph_topology.membership_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)
@@ -167,6 +159,16 @@ class SequentialWeaveGraph(SequentialGraph):
   """
 
   def __init__(self, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    """
+    Parameters
+    ----------
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    """
     self.graph = tf.Graph()
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -201,6 +203,18 @@ class AlternateSequentialWeaveGraph(SequentialGraph):
   """
 
   def __init__(self, batch_size, max_atoms=50, n_atom_feat=75, n_pair_feat=14):
+    """
+    Parameters
+    ----------
+    batch_size: int
+      number of molecules in a batch
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    """
     self.graph = tf.Graph()
     self.batch_size = batch_size
     self.max_atoms = max_atoms

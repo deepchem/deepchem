@@ -39,7 +39,7 @@ class Layer(object):
   def set_tensors(self, tensor):
     self.out_tensor = tensor
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     raise NotImplementedError("Subclasses must implement for themselves")
 
   def __key(self):
@@ -69,19 +69,50 @@ class Layer(object):
     """
     raise ValueError("Each Layer must implement shared for itself")
 
+  def __call__(self, *in_layers):
+    return self.create_tensor(in_layers=in_layers)
 
-class Conv1DLayer(Layer):
+
+class TensorWrapper(Layer):
+  """Used to wrap a tensorflow tensor."""
+
+  def __init__(self, out_tensor, **kwargs):
+    self.out_tensor = out_tensor
+    super(TensorWrapper, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    """Take no actions."""
+    pass
+
+
+def convert_to_layers(in_layers):
+  """Wrap all inputs into tensors if necessary."""
+  layers = []
+  for in_layer in in_layers:
+    if isinstance(in_layer, Layer):
+      layers.append(in_layer)
+    elif isinstance(in_layer, tf.Tensor):
+      layers.append(TensorWrapper(in_layer))
+    else:
+      raise ValueError("convert_to_layers must be invoked on layers or tensors")
+  return layers
+
+
+class Conv1D(Layer):
 
   def __init__(self, width, out_channels, **kwargs):
     self.width = width
     self.out_channels = out_channels
     self.out_tensor = None
-    super(Conv1DLayer, self).__init__(**kwargs)
+    super(Conv1D, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Only One Parent to conv1D over")
-    parent = self.in_layers[0]
+    parent = in_layers[0]
     if len(parent.out_tensor.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.out_tensor.get_shape()
@@ -119,10 +150,13 @@ class Dense(Layer):
       scope_name = self.name
     self.scope_name = scope_name
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
-      raise ValueError("Only One Parent to Dense over %s" % self.in_layers)
-    parent = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
+      raise ValueError("Only One Parent to Dense over %s" % in_layers)
+    parent = in_layers[0]
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
           parent.out_tensor,
@@ -158,14 +192,18 @@ class Dense(Layer):
 
 
 class Flatten(Layer):
+  """Flatten every dimension except the first"""
 
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
-      raise ValueError("Only One Parent to conv1D over")
-    parent = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
+      raise ValueError("Only One Parent to Flatten")
+    parent = in_layers[0]
     parent_shape = parent.out_tensor.get_shape()
     vector_size = 1
     for i in range(1, len(parent_shape)):
@@ -181,21 +219,28 @@ class Reshape(Layer):
     self.shape = shape
     super(Reshape, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.reshape(parent_tensor, self.shape)
+    return self.out_tensor
 
 
 class Transpose(Layer):
 
-  def __init__(self, out_shape, **kwargs):
+  def __init__(self, perm, **kwargs):
     super(Transpose, self).__init__(**kwargs)
-    self.out_shape = out_shape
+    self.perm = perm
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Only One Parent to Transpose over")
-    self.out_tensor = tf.transpose(self.in_layers[0].out_tensor, self.out_shape)
+    self.out_tensor = tf.transpose(in_layers[0].out_tensor, self.perm)
     return self.out_tensor
 
 
@@ -204,14 +249,18 @@ class CombineMeanStd(Layer):
   def __init__(self, **kwargs):
     super(CombineMeanStd, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
-      raise ValueError("Must have two self.in_layers")
-    mean_parent, std_parent = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
+      raise ValueError("Must have two in_layers")
+    mean_parent, std_parent = in_layers[0], in_layers[1]
     mean_parent_tensor, std_parent_tensor = mean_parent.out_tensor, std_parent.out_tensor
     sample_noise = tf.random_normal(
         mean_parent_tensor.get_shape(), 0, 1, dtype=tf.float32)
     self.out_tensor = mean_parent_tensor + (std_parent_tensor * sample_noise)
+    return self.out_tensor
 
 
 class Repeat(Layer):
@@ -220,13 +269,17 @@ class Repeat(Layer):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
+    parent_tensor = in_layers[0].out_tensor
     t = tf.expand_dims(parent_tensor, 1)
     pattern = tf.stack([1, self.n_times, 1])
     self.out_tensor = tf.tile(t, pattern)
+    return self.out_tensor
 
 
 class GRU(Layer):
@@ -237,11 +290,14 @@ class GRU(Layer):
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
-    gru_cell = tf.nn.rnn_cell.GRUCell(self.n_hidden)
+    parent_tensor = in_layers[0].out_tensor
+    gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
     initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
     rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
         gru_cell,
@@ -250,20 +306,27 @@ class GRU(Layer):
         scope=self.name)
     projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
     self.out_tensor = tf.map_fn(projection, rnn_outputs)
+    return self.out_tensor
 
 
 class TimeSeriesDense(Layer):
 
   def __init__(self, out_channels, **kwargs):
+    self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must have one parent")
-    parent_tensor = self.in_layers[0].out_tensor
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(x, num_outputs=self.out_channels,
-                                                           activation_fn=tf.nn.sigmoid)
+    parent_tensor = in_layers[0].out_tensor
+    dense_fn = lambda x: tf.contrib.layers.fully_connected(
+        x, num_outputs=self.out_channels,
+        activation_fn=tf.nn.sigmoid)
     self.out_tensor = tf.map_fn(dense_fn, parent_tensor)
+    return self.out_tensor
 
 
 class Input(Layer):
@@ -274,9 +337,12 @@ class Input(Layer):
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 0:
-      queue = self.in_layers[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 0:
+      queue = in_layers[0]
       placeholder = queue.out_tensors[self.get_pre_q_name()]
       self.out_tensor = tf.placeholder_with_default(placeholder, self.shape)
       return self.out_tensor
@@ -309,13 +375,16 @@ class Weights(Input):
     super(Weights, self).__init__(**kwargs)
 
 
-class L2LossLayer(Layer):
+class L2Loss(Layer):
 
   def __init__(self, **kwargs):
-    super(L2LossLayer, self).__init__(**kwargs)
+    super(L2Loss, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    guess, label = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    guess, label = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_mean(
         tf.square(guess.out_tensor - label.out_tensor))
     return self.out_tensor
@@ -326,26 +395,61 @@ class SoftMax(Layer):
   def __init__(self, **kwargs):
     super(SoftMax, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 1:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
       raise ValueError("Must only Softmax single parent")
-    parent = self.in_layers[0]
+    parent = in_layers[0]
     self.out_tensor = tf.contrib.layers.softmax(parent.out_tensor)
     return self.out_tensor
 
 
 class Concat(Layer):
 
-  def __init__(self, **kwargs):
+  def __init__(self, axis=1, **kwargs):
+    self.axis = axis
     super(Concat, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) == 1:
-      self.out_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) == 1:
+      self.out_tensor = in_layers[0].out_tensor
       return self.out_tensor
-    out_tensors = [x.out_tensor for x in self.in_layers]
+    out_tensors = [x.out_tensor for x in in_layers]
 
-    self.out_tensor = tf.concat(out_tensors, 1)
+    self.out_tensor = tf.concat(out_tensors, axis=self.axis)
+    return self.out_tensor
+
+
+class InteratomicL2Distances(Layer):
+  """Compute (squared) L2 Distances between atoms given neighbors."""
+
+  def __init__(self, N_atoms, M_nbrs, ndim, **kwargs):
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+    super(InteratomicL2Distances, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
+      raise ValueError("InteratomicDistances requires coords,nbr_list")
+    coords, nbr_list = (in_layers[0].out_tensor, in_layers[1].out_tensor)
+    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
+    # Shape (N_atoms, M_nbrs, ndim)
+    nbr_coords = tf.gather(coords, nbr_list)
+    # Shape (N_atoms, M_nbrs, ndim)
+    tiled_coords = tf.tile(
+        tf.reshape(coords, (N_atoms, 1, ndim)), (1, M_nbrs, 1))
+    # Shape (N_atoms, M_nbrs)
+    dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
+    self.out_tensor = dists
     return self.out_tensor
 
 
@@ -354,10 +458,13 @@ class SoftMaxCrossEntropy(Layer):
   def __init__(self, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    if len(self.in_layers) != 2:
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 2:
       raise ValueError()
-    labels, logits = self.in_layers[0].out_tensor, self.in_layers[1].out_tensor
+    labels, logits = in_layers[0].out_tensor, in_layers[1].out_tensor
     self.out_tensor = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=labels)
     self.out_tensor = tf.reshape(self.out_tensor, [-1, 1])
@@ -366,38 +473,85 @@ class SoftMaxCrossEntropy(Layer):
 
 class ReduceMean(Layer):
 
-  def _create_tensor(self):
-    if len(self.in_layers) > 1:
-      out_tensors = [x.out_tensor for x in self.in_layers]
+  def __init__(self, axis=None, **kwargs):
+    self.axis = axis
+    super(ReduceMean, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
+      out_tensors = [x.out_tensor for x in in_layers]
       self.out_tensor = tf.stack(out_tensors)
     else:
-      self.out_tensor = self.in_layers[0].out_tensor
+      self.out_tensor = in_layers[0].out_tensor
 
     self.out_tensor = tf.reduce_mean(self.out_tensor)
     return self.out_tensor
 
 
-class ReduceSquareDifference(Layer):
+class ToFloat(Layer):
 
-  def __init__(self, **kwargs):
-    super(ReduceSquareDifference, self).__init__(**kwargs)
-
-  def _create_tensor(self):
-    a = self.in_layers[0].out_tensor
-    b = self.in_layers[1].out_tensor
-    self.out_tensor = tf.reduce_mean(tf.squared_difference(a, b))
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
+      raise ValueError("Only one layer supported.")
+    self.out_tensor = tf.to_float(in_layers[0].out_tensor)
     return self.out_tensor
 
 
-class Conv2d(Layer):
+class ReduceSum(Layer):
+
+  def __init__(self, axis=None, **kwargs):
+    self.axis = axis
+    super(ReduceSum, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) > 1:
+      out_tensors = [x.out_tensor for x in in_layers]
+      self.out_tensor = tf.stack(out_tensors)
+    else:
+      self.out_tensor = in_layers[0].out_tensor
+
+    self.out_tensor = tf.reduce_sum(self.out_tensor, axis=self.axis)
+    return self.out_tensor
+
+
+class ReduceSquareDifference(Layer):
+
+  def __init__(self, axis=None, **kwargs):
+    self.axis = axis
+    super(ReduceSquareDifference, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    a = in_layers[0].out_tensor
+    b = in_layers[1].out_tensor
+    self.out_tensor = tf.reduce_mean(
+        tf.squared_difference(a, b), axis=self.axis)
+    return self.out_tensor
+
+
+class Conv2D(Layer):
 
   def __init__(self, num_outputs, kernel_size=5, **kwargs):
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
-    super(Conv2d, self).__init__(**kwargs)
+    super(Conv2D, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
     out_tensor = tf.contrib.layers.conv2d(
         parent_tensor,
         num_outputs=self.num_outputs,
@@ -406,6 +560,7 @@ class Conv2d(Layer):
         activation_fn=tf.nn.relu,
         normalizer_fn=tf.contrib.layers.batch_norm)
     self.out_tensor = out_tensor
+    return self.out_tensor
 
 
 class MaxPool(Layer):
@@ -420,8 +575,11 @@ class MaxPool(Layer):
     self.padding = padding
     super(MaxPool, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    in_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    in_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.nn.max_pool(
         in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     return self.out_tensor
@@ -441,12 +599,15 @@ class InputFifoQueue(Layer):
     super(InputFifoQueue, self).__init__(**kwargs)
     self.op_type = "cpu"
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
     if self.dtypes is None:
       self.dtypes = [tf.float32] * len(self.shapes)
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
-    feed_dict = {x.name: x.out_tensor for x in self.in_layers}
+    feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
     self.out_tensors = self.queue.dequeue()
@@ -463,7 +624,7 @@ class InputFifoQueue(Layer):
     self.queue.close()
 
 
-class GraphConvLayer(Layer):
+class GraphConv(Layer):
 
   def __init__(self,
                out_channel,
@@ -476,11 +637,14 @@ class GraphConvLayer(Layer):
     self.max_degree = max_deg
     self.num_deg = 2 * max_deg + (1 - min_deg)
     self.activation_fn = activation_fn
-    super(GraphConvLayer, self).__init__(**kwargs)
+    super(GraphConv, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    #   self.in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    in_channels = self.in_layers[0].out_tensor.get_shape()[-1].value
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    # in_layers = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
+    in_channels = in_layers[0].out_tensor.get_shape()[-1].value
 
     # Generate the nb_affine weights and biases
     self.W_list = [
@@ -494,11 +658,11 @@ class GraphConvLayer(Layer):
     ]
 
     # Extract atom_features
-    atom_features = self.in_layers[0].out_tensor
+    atom_features = in_layers[0].out_tensor
 
     # Extract graph topology
-    deg_slice = self.in_layers[1].out_tensor
-    deg_adj_lists = [x.out_tensor for x in self.in_layers[3:]]
+    deg_slice = in_layers[1].out_tensor
+    deg_adj_lists = [x.out_tensor for x in in_layers[3:]]
 
     # Perform the mol conv
     # atom_features = graph_conv(atom_features, deg_adj_lists, deg_slice,
@@ -574,17 +738,21 @@ class GraphConvLayer(Layer):
     self.out_tensor, self.W_list, self.b_list = tensors
 
 
-class GraphPoolLayer(Layer):
+class GraphPool(Layer):
 
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     self.min_degree = min_degree
     self.max_degree = max_degree
-    super(GraphPoolLayer, self).__init__(**kwargs)
+    super(GraphPool, self).__init__(**kwargs)
 
-  def _create_tensor(self):
-    atom_features = self.in_layers[0].out_tensor
-    deg_slice = self.in_layers[1].out_tensor
-    deg_adj_lists = [x.out_tensor for x in self.in_layers[3:]]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    atom_features = in_layers[0].out_tensor
+    deg_slice = in_layers[1].out_tensor
+    deg_adj_lists = [x.out_tensor for x in in_layers[3:]]
 
     # Perform the mol gather
     # atom_features = graph_pool(atom_features, deg_adj_lists, deg_slice,
@@ -627,12 +795,16 @@ class GraphGather(Layer):
     self.activation_fn = activation_fn
     super(GraphGather, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
     # x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    atom_features = self.in_layers[0].out_tensor
+    atom_features = in_layers[0].out_tensor
 
     # Extract graph topology
-    membership = self.in_layers[2].out_tensor
+    membership = in_layers[2].out_tensor
 
     # Perform the mol gather
 
@@ -663,20 +835,457 @@ class GraphGather(Layer):
     return mol_features
 
 
-class BatchNormLayer(Layer):
+class BatchNorm(Layer):
 
-  def _create_tensor(self):
-    parent_tensor = self.in_layers[0].out_tensor
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    parent_tensor = in_layers[0].out_tensor
     self.out_tensor = tf.layers.batch_normalization(parent_tensor)
     return self.out_tensor
 
 
 class WeightedError(Layer):
 
-  def _create_tensor(self):
-    entropy, weights = self.in_layers[0], self.in_layers[1]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    entropy, weights = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_sum(entropy.out_tensor * weights.out_tensor)
     return self.out_tensor
+
+
+class VinaFreeEnergy(Layer):
+  """Computes free-energy as defined by Autodock Vina.
+
+  TODO(rbharath): Make this layer support batching.
+  """
+
+  def __init__(self,
+               N_atoms,
+               M_nbrs,
+               ndim,
+               nbr_cutoff,
+               start,
+               stop,
+               stddev=.3,
+               Nrot=1,
+               **kwargs):
+    self.stddev = stddev
+    # Number of rotatable bonds
+    # TODO(rbharath): Vina actually sets this per-molecule. See if makes
+    # a difference.
+    self.Nrot = Nrot
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+    self.nbr_cutoff = nbr_cutoff
+    self.start = start
+    self.stop = stop
+    super(VinaFreeEnergy, self).__init__(**kwargs)
+
+  def cutoff(self, d, x):
+    out_tensor = tf.where(d < 8, x, tf.zeros_like(x))
+    return out_tensor
+
+  def nonlinearity(self, c):
+    """Computes non-linearity used in Vina."""
+    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
+    out_tensor = c / (1 + w * self.Nrot)
+    return out_tensor
+
+  def repulsion(self, d):
+    """Computes Autodock Vina's repulsion interaction term."""
+    out_tensor = tf.where(d < 0, d**2, tf.zeros_like(d))
+    return out_tensor
+
+  def hydrophobic(self, d):
+    """Computes Autodock Vina's hydrophobic interaction term."""
+    out_tensor = tf.where(d < 0.5,
+                          tf.ones_like(d),
+                          tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
+    return out_tensor
+
+  def hydrogen_bond(self, d):
+    """Computes Autodock Vina's hydrogen bond interaction term."""
+    out_tensor = tf.where(d < -0.7,
+                          tf.ones_like(d),
+                          tf.where(d < 0, (1.0 / 0.7) * (0 - d),
+                                   tf.zeros_like(d)))
+    return out_tensor
+
+  def gaussian_first(self, d):
+    """Computes Autodock Vina's first Gaussian interaction term."""
+    out_tensor = tf.exp(-(d / 0.5)**2)
+    return out_tensor
+
+  def gaussian_second(self, d):
+    """Computes Autodock Vina's second Gaussian interaction term."""
+    out_tensor = tf.exp(-((d - 3) / 2)**2)
+    return out_tensor
+
+  def create_tensor(self, in_layers=None):
+    """
+    Parameters
+    ----------
+    X: tf.Tensor of shape (N, d)
+      Coordinates/features.
+    Z: tf.Tensor of shape (N)
+      Atomic numbers of neighbor atoms.
+      
+    Returns
+    -------
+    layer: tf.Tensor of shape (B)
+      The free energy of each complex in batch
+    """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    X = in_layers[0].out_tensor
+    Z = in_layers[1].out_tensor
+
+    # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
+    # neighbors lists an argument instead of a part of this layer.
+    nbr_list = NeighborList(self.N_atoms, self.M_nbrs, self.ndim,
+                            self.nbr_cutoff, self.start, self.stop)(X)
+
+    # Shape (N, M)
+    dists = InteratomicL2Distances(self.N_atoms, self.M_nbrs,
+                                   self.ndim)(X, nbr_list)
+
+    repulsion = self.repulsion(dists)
+    hydrophobic = self.hydrophobic(dists)
+    hbond = self.hydrogen_bond(dists)
+    gauss_1 = self.gaussian_first(dists)
+    gauss_2 = self.gaussian_second(dists)
+
+    # Shape (N, M)
+    interactions = WeightedLinearCombo()(repulsion, hydrophobic, hbond, gauss_1,
+                                         gauss_2)
+
+    # Shape (N, M)
+    thresholded = self.cutoff(dists, interactions)
+
+    free_energies = self.nonlinearity(thresholded)
+    free_energy = ReduceSum()(free_energies)
+
+    self.out_tensor = free_energy
+    return self.out_tensor
+
+
+class WeightedLinearCombo(Layer):
+  """Computes a weighted linear combination of input layers."""
+
+  def __init__(self, std=.3, **kwargs):
+    self.std = std
+    super(WeightedLinearCombo, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    weights = []
+    out_tensor = None
+    for in_layer in in_layers:
+      w = tf.Variable(tf.random_normal([
+          1,
+      ], stddev=self.std))
+      if out_tensor is None:
+        out_tensor = w * in_layer.out_tensor
+      else:
+        out_tensor += w * in_layer.out_tensor
+    self.out_tensor = out_tensor
+    return self.out_tensor
+
+
+class NeighborList(Layer):
+  """Computes a neighbor-list in Tensorflow.
+
+  Neighbor-lists (also called Verlet Lists) are a tool for grouping atoms which
+  are close to each other spatially
+
+  TODO(rbharath): Make this layer support batching.
+  """
+
+  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, **kwargs):
+    """
+    Parameters
+    ----------
+    N_atoms: int
+      Maximum number of atoms this layer will neighbor-list.
+    M_nbrs: int
+      Maximum number of spatial neighbors possible for atom.
+    ndim: int
+      Dimensionality of space atoms live in. (Typically 3D, but sometimes will
+      want to use higher dimensional descriptors for atoms).
+    nbr_cutoff: float
+      Length in Angstroms (?) at which atom boxes are gridded.
+    """
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+    # Number of grid cells
+    n_cells = int(((stop - start) / nbr_cutoff)**ndim)
+    self.n_cells = n_cells
+    self.nbr_cutoff = nbr_cutoff
+    self.start = start
+    self.stop = stop
+    super(NeighborList, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None):
+    """Creates tensors associated with neighbor-listing."""
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) != 1:
+      raise ValueError("Only One Parent to NeighborList over %s" % in_layers)
+    parent = in_layers[0]
+    if len(parent.out_tensor.get_shape()) != 2:
+      # TODO(rbharath): Support batching
+      raise ValueError("Parent tensor must be (num_atoms, ndum)")
+    coords = parent.out_tensor
+    nbr_list = self.compute_nbr_list(coords)
+    self.out_tensor = nbr_list
+    return nbr_list
+
+  def compute_nbr_list(self, coords):
+    """Get closest neighbors for atoms.
+
+    Needs to handle padding for atoms with no neighbors.
+
+    Parameters
+    ----------
+    coords: tf.Tensor
+      Shape (N_atoms, ndim)
+
+    Returns
+    -------
+    nbr_list: tf.Tensor
+      Shape (N_atoms, M_nbrs) of atom indices
+    """
+    # Shape (n_cells, ndim)
+    cells = self.get_cells()
+
+    # List of length N_atoms, each element of different length uniques_i
+    nbrs = self.get_atoms_in_nbrs(coords, cells)
+    padding = tf.fill((self.M_nbrs,), -1)
+    padded_nbrs = [tf.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs]
+
+    # List of length N_atoms, each element of different length uniques_i
+    # List of length N_atoms, each a tensor of shape
+    # (uniques_i, ndim)
+    nbr_coords = [tf.gather(coords, atom_nbrs) for atom_nbrs in nbrs]
+
+    # Add phantom atoms that exist far outside the box
+    coord_padding = tf.to_float(
+        tf.fill((self.M_nbrs, self.ndim), 2 * self.stop))
+    padded_nbr_coords = [
+        tf.concat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
+    ]
+
+    # List of length N_atoms, each of shape (1, ndim)
+    atom_coords = tf.split(coords, self.N_atoms)
+    # TODO(rbharath): How does distance need to be modified here to   
+    # account for periodic boundary conditions?   
+    # List of length N_atoms each of shape (M_nbrs)
+    padded_dists = [
+        tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
+        for (atom_coord, padded_nbr_coord
+            ) in zip(atom_coords, padded_nbr_coords)
+    ]
+
+    padded_closest_nbrs = [
+        tf.nn.top_k(-padded_dist, k=self.M_nbrs)[1]
+        for padded_dist in padded_dists
+    ]
+
+    # N_atoms elts of size (M_nbrs,) each 
+    padded_neighbor_list = [
+        tf.gather(padded_atom_nbrs, padded_closest_nbr)
+        for (padded_atom_nbrs, padded_closest_nbr
+            ) in zip(padded_nbrs, padded_closest_nbrs)
+    ]
+
+    neighbor_list = tf.stack(padded_neighbor_list)
+
+    return neighbor_list
+
+  def get_atoms_in_nbrs(self, coords, cells):
+    """Get the atoms in neighboring cells for each cells.
+
+    Returns
+    -------
+    atoms_in_nbrs = (N_atoms, n_nbr_cells, M_nbrs)
+    """
+    # Shape (N_atoms, 1)
+    cells_for_atoms = self.get_cells_for_atoms(coords, cells)
+
+    # Find M_nbrs atoms closest to each cell 
+    # Shape (n_cells, M_nbrs)
+    closest_atoms = self.get_closest_atoms(coords, cells)
+
+    # Associate each cell with its neighbor cells. Assumes periodic boundary   
+    # conditions, so does wrapround. O(constant)    
+    # Shape (n_cells, n_nbr_cells)
+    neighbor_cells = self.get_neighbor_cells(cells)
+
+    # Shape (N_atoms, n_nbr_cells)
+    neighbor_cells = tf.squeeze(tf.gather(neighbor_cells, cells_for_atoms))
+
+    # Shape (N_atoms, n_nbr_cells, M_nbrs)
+    atoms_in_nbrs = tf.gather(closest_atoms, neighbor_cells)
+
+    # Shape (N_atoms, n_nbr_cells*M_nbrs)
+    atoms_in_nbrs = tf.reshape(atoms_in_nbrs, [self.N_atoms, -1])
+
+    # List of length N_atoms, each element length uniques_i
+    nbrs_per_atom = tf.split(atoms_in_nbrs, self.N_atoms)
+    uniques = [
+        tf.unique(tf.squeeze(atom_nbrs))[0] for atom_nbrs in nbrs_per_atom
+    ]
+
+    # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
+    # element removed to remove self from list of neighbors. Need to verify
+    # this holds more broadly or come up with robust alternative.
+    uniques = [unique[1:] for unique in uniques]
+
+    return uniques
+
+  def get_closest_atoms(self, coords, cells):
+    """For each cell, find M_nbrs closest atoms.
+    
+    Let N_atoms be the number of atoms.
+        
+    Parameters    
+    ----------    
+    coords: tf.Tensor 
+      (N_atoms, ndim) shape.
+    cells: tf.Tensor
+      (n_cells, ndim) shape.
+
+    Returns
+    -------
+    closest_inds: tf.Tensor 
+      Of shape (n_cells, M_nbrs)
+    """
+    N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
+                                      self.M_nbrs)
+    # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
+    tiled_cells = tf.reshape(
+        tf.tile(cells, (1, N_atoms)), (N_atoms * n_cells, ndim))
+
+    # Shape (N_atoms*n_cells, ndim) after tile
+    tiled_coords = tf.tile(coords, (n_cells, 1))
+
+    # Shape (N_atoms*n_cells)
+    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
+    # Shape (n_cells, N_atoms)
+    coords_norm = tf.reshape(coords_vec, (n_cells, N_atoms))
+
+    # Find k atoms closest to this cell. Notice negative sign since
+    # tf.nn.top_k returns *largest* not smallest.
+    # Tensor of shape (n_cells, M_nbrs)
+    closest_inds = tf.nn.top_k(-coords_norm, k=M_nbrs)[1]
+
+    return closest_inds
+
+  def get_cells_for_atoms(self, coords, cells):
+    """Compute the cells each atom belongs to.
+
+    Parameters
+    ----------
+    coords: tf.Tensor
+      Shape (N_atoms, ndim)
+    cells: tf.Tensor
+      (n_cells, ndim) shape.
+    Returns
+    -------
+    cells_for_atoms: tf.Tensor
+      Shape (N_atoms, 1)
+    """
+    N_atoms, n_cells, ndim = self.N_atoms, self.n_cells, self.ndim
+    n_cells = int(n_cells)
+    # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
+    tiled_cells = tf.tile(cells, (N_atoms, 1))
+
+    # Shape (N_atoms*n_cells, 1) after tile
+    tiled_coords = tf.reshape(
+        tf.tile(coords, (1, n_cells)), (n_cells * N_atoms, ndim))
+    coords_vec = tf.reduce_sum((tiled_coords - tiled_cells)**2, axis=1)
+    coords_norm = tf.reshape(coords_vec, (N_atoms, n_cells))
+
+    closest_inds = tf.nn.top_k(-coords_norm, k=1)[1]
+    return closest_inds
+
+  def _get_num_nbrs(self):
+    """Get number of neighbors in current dimensionality space."""
+    ndim = self.ndim
+    if ndim == 1:
+      n_nbr_cells = 3
+    elif ndim == 2:
+      # 9 neighbors in 2-space
+      n_nbr_cells = 9
+    # TODO(rbharath): Shoddy handling of higher dimensions...
+    elif ndim >= 3:
+      # Number of cells for cube in 3-space is
+      n_nbr_cells = 27  # (26 faces on Rubik's cube for example)
+    return n_nbr_cells
+
+  def get_neighbor_cells(self, cells):
+    """Compute neighbors of cells in grid.    
+
+    # TODO(rbharath): Do we need to handle periodic boundary conditions
+    properly here?
+    # TODO(rbharath): This doesn't handle boundaries well. We hard-code
+    # looking for n_nbr_cells neighbors, which isn't right for boundary cells in
+    # the cube.
+        
+    Parameters    
+    ----------    
+    cells: tf.Tensor
+      (n_cells, ndim) shape.
+    Returns
+    -------
+    nbr_cells: tf.Tensor
+      (n_cells, n_nbr_cells)
+    """
+    ndim, n_cells = self.ndim, self.n_cells
+    n_nbr_cells = self._get_num_nbrs()
+    # Tile cells to form arrays of size (n_cells*n_cells, ndim)
+    # Two tilings (a, b, c, a, b, c, ...) vs. (a, a, a, b, b, b, etc.)
+    # Tile (a, a, a, b, b, b, etc.)
+    tiled_centers = tf.reshape(
+        tf.tile(cells, (1, n_cells)), (n_cells * n_cells, ndim))
+    # Tile (a, b, c, a, b, c, ...)
+    tiled_cells = tf.tile(cells, (n_cells, 1))
+
+    coords_vec = tf.reduce_sum((tiled_centers - tiled_cells)**2, axis=1)
+    coords_norm = tf.reshape(coords_vec, (n_cells, n_cells))
+    closest_inds = tf.nn.top_k(-coords_norm, k=n_nbr_cells)[1]
+
+    return closest_inds
+
+  def get_cells(self):
+    """Returns the locations of all grid points in box.
+
+    Suppose start is -10 Angstrom, stop is 10 Angstrom, nbr_cutoff is 1.
+    Then would return a list of length 20^3 whose entries would be
+    [(-10, -10, -10), (-10, -10, -9), ..., (9, 9, 9)]
+
+    Returns
+    -------
+    cells: tf.Tensor
+      (n_cells, ndim) shape.
+    """
+    start, stop, nbr_cutoff = self.start, self.stop, self.nbr_cutoff
+    mesh_args = [tf.range(start, stop, nbr_cutoff) for _ in range(self.ndim)]
+    return tf.to_float(
+        tf.reshape(
+            tf.transpose(tf.stack(tf.meshgrid(*mesh_args))), (self.n_cells,
+                                                              self.ndim)))
 
 
 class AtomicConvolution(Layer):
@@ -707,7 +1316,7 @@ class AtomicConvolution(Layer):
     self.atom_types = atom_types
     super(AtomicConvolution, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None):
     """
     Parameters
     ----------
@@ -717,18 +1326,19 @@ class AtomicConvolution(Layer):
       Neighbor list.
     Nbrs_Z: tf.Tensor of shape (B, N, M)
       Atomic numbers of neighbor atoms.
-      
-    
     
     Returns
     -------
     layer: tf.Tensor of shape (l, B, N)
       A new tensor representing the output of the atomic conv layer 
     """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
 
-    X = self.in_layers[0].out_tensor
-    Nbrs = tf.to_int32(self.in_layers[1].out_tensor)
-    Nbrs_Z = self.in_layers[2].out_tensor
+    X = in_layers[0].out_tensor
+    Nbrs = tf.to_int32(in_layers[1].out_tensor)
+    Nbrs_Z = in_layers[2].out_tensor
 
     # N: Maximum number of atoms
     # M: Maximum number of neighbors

@@ -245,10 +245,14 @@ def benchmark_classification(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = deepchem.nn.SequentialDAGGraph(
-        n_features, batch_size=batch_size, max_atoms=max_atoms)
+        n_features, max_atoms=max_atoms)
     graph_model.add(
-        deepchem.nn.DAGLayer(n_graph_feat, n_features, max_atoms=max_atoms))
-    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+        deepchem.nn.DAGLayer(
+            n_graph_feat,
+            n_features,
+            max_atoms=max_atoms,
+            batch_size=batch_size))
+    graph_model.add(deepchem.nn.DAGGather(n_graph_feat, max_atoms=max_atoms))
 
     model = deepchem.models.MultitaskGraphClassifier(
         graph_model,
@@ -533,15 +537,14 @@ def benchmark_regression(train_dataset,
     assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
 
     tf.set_random_seed(seed)
-    graph_model = deepchem.nn.SequentialDTNNGraph(
-        max_n_atoms=n_features[0], n_distance=n_distance)
+    graph_model = deepchem.nn.SequentialDTNNGraph(n_distance=n_distance)
     graph_model.add(deepchem.nn.DTNNEmbedding(n_embedding=n_embedding))
     graph_model.add(
         deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
     graph_model.add(
         deepchem.nn.DTNNStep(n_embedding=n_embedding, n_distance=n_distance))
     graph_model.add(deepchem.nn.DTNNGather(n_embedding=n_embedding))
-    model = deepchem.models.DTNNGraphRegressor(
+    model = deepchem.models.MultitaskGraphRegressor(
         graph_model,
         len(tasks),
         n_embedding,
@@ -575,10 +578,14 @@ def benchmark_regression(train_dataset,
 
     tf.set_random_seed(seed)
     graph_model = deepchem.nn.SequentialDAGGraph(
-        n_features, batch_size=batch_size, max_atoms=max_atoms)
+        n_features, max_atoms=max_atoms)
     graph_model.add(
-        deepchem.nn.DAGLayer(n_graph_feat, n_features, max_atoms=max_atoms))
-    graph_model.add(deepchem.nn.DAGGather(max_atoms=max_atoms))
+        deepchem.nn.DAGLayer(
+            n_graph_feat,
+            n_features,
+            max_atoms=max_atoms,
+            batch_size=batch_size))
+    graph_model.add(deepchem.nn.DAGGather(n_graph_feat, max_atoms=max_atoms))
 
     model = deepchem.models.MultitaskGraphRegressor(
         graph_model,

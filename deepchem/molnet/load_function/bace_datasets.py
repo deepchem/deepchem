@@ -10,7 +10,7 @@ import deepchem
 from deepchem.molnet.load_function.bace_features import bace_user_specified_features
 
 
-def load_bace_regression(featurizer=None, split='random', reload=True):
+def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
@@ -44,7 +44,7 @@ def load_bace_regression(featurizer=None, split='random', reload=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == None:
+  elif featurizer == 'UserDefined':
     featurizer = deepchem.feat.UserDefinedFeaturizer(
         bace_user_specified_features)
 
@@ -76,7 +76,7 @@ def load_bace_regression(featurizer=None, split='random', reload=True):
   return bace_tasks, (train, valid, test), transformers
 
 
-def load_bace_classification(featurizer=None, split='random', reload=True):
+def load_bace_classification(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
@@ -110,7 +110,7 @@ def load_bace_classification(featurizer=None, split='random', reload=True):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
-  elif featurizer == None:
+  elif featurizer == 'UserDefined':
     featurizer = deepchem.feat.UserDefinedFeaturizer(
         bace_user_specified_features)
 

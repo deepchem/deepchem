@@ -127,8 +127,8 @@ hps['graphconvreg'] = {
 hps['dtnn'] = {
     'batch_size': 64,
     'nb_epoch': 50,
-    'learning_rate': 0.0005,
-    'n_embedding': 20,
+    'learning_rate': 0.001,
+    'n_embedding': 30,
     'n_distance': 100,
     'seed': 123
 }
