@@ -597,7 +597,7 @@ class InputFifoQueue(Layer):
     self.capacity = capacity
     super(InputFifoQueue, self).__init__(**kwargs)
 
-  def _create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)

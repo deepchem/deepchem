@@ -1,25 +1,20 @@
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Joseph Gomes"
 __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "MIT"
 
-import os
 import sys
-import deepchem as dc
-import numpy as np
-import tensorflow as tf
 
 sys.path.append("../../models")
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer, AtomicConvolution, Transpose, Dense
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution
 from deepchem.models import TensorGraph
 
 import numpy as np
 import tensorflow as tf
 import itertools
-import time
 
 
 def InitializeWeightsBiases(prev_layer_size,
