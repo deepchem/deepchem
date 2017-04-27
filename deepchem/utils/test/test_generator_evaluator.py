@@ -5,7 +5,7 @@ from unittest import TestCase
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2LossLayer
+from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2Loss
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 

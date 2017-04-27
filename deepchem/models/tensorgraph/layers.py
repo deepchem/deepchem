@@ -601,7 +601,7 @@ class InputFifoQueue(Layer):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-    self.dtypes = [x.dtype for x in self.in_layers]
+    self.dtypes = [x.out_tensor.dtype for x in in_layers]
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
