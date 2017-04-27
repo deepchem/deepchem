@@ -35,7 +35,7 @@ class TestTensorGraph(unittest.TestCase):
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=10)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.2)))
+    assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
   def test_multi_task_classifier(self):
     n_data_points = 20
