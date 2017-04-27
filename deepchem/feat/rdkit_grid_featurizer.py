@@ -1,5 +1,5 @@
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar, Evan Feinberg, and Karl Leswing"
@@ -11,14 +11,12 @@ import shutil
 import time
 import tempfile
 import hashlib
-import logging
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import deepchem.utils.rdkit_util as rdkit_util
 
 import numpy as np
 from copy import deepcopy
-from collections import deque
 from functools import partial
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils.save import log

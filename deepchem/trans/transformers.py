@@ -9,6 +9,8 @@ from __future__ import unicode_literals
 import os
 
 import numpy as np
+import scipy
+import scipy.ndimage
 import time
 import deepchem as dc
 import tensorflow as tf
@@ -895,3 +897,26 @@ class DAGTransformer(Transformer):
       parents.append(np.array(parent))
 
     return parents
+
+
+class ImageTransformer(Transformer):
+  """
+  Convert an image into width, height, channel 
+  """
+
+  def __init__(self,
+               size,
+               transform_X=True,
+               transform_y=False,
+               transform_w=False):
+    """Initializes transformation based on dataset statistics."""
+    self.size = size
+    self.transform_X = True
+    self.transform_y = False
+    self.transform_w = False
+
+  def transform_array(self, X, y, w):
+    """Transform the data in a set of (X, y, w) arrays."""
+    images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
+    images = [scipy.misc.imresize(x, size=self.size) for x in images]
+    return np.array(images), y, w

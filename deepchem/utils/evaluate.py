@@ -201,7 +201,7 @@ class GeneratorEvaluator(object):
         for weight in self.weights:
           w.append(feed_dict[weight])
           del feed_dict[weight]
-        y.append(labels)
+        y.append(np.array(labels))
         yield feed_dict
 
     if not len(metrics):
@@ -211,14 +211,14 @@ class GeneratorEvaluator(object):
     if mode == "classification":
       y_pred = self.model.predict_proba_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      n_classes = y.shape[-1]
-      y = np.reshape(y, newshape=(-1, len(self.label_keys), n_classes))
+      y = np.reshape(
+          y, newshape=(y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
       y = from_one_hot(y, axis=-1)
     else:
-      y_pred = self.model.predict_on_generator(generator_closure())
+      y_pred = self.model.predict_proba_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.squeeze(y, axis=(0, -1))
-      y = np.reshape(y, newshape=(-1, len(self.label_keys)))
+      y = np.reshape(
+          y, newshape=(y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
       y_pred = np.squeeze(y_pred, axis=-1)
     if len(w) != 0:
       w = np.reshape(w, newshape=y.shape)
@@ -226,6 +226,7 @@ class GeneratorEvaluator(object):
     all_task_scores = {}
 
     y = undo_transforms(y, self.output_transformers)
+    y_pred = undo_transforms(y_pred, self.output_transformers)
 
     # Compute multitask metrics
     for metric in metrics:

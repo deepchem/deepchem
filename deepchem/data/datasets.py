@@ -8,8 +8,6 @@ import os
 import numpy as np
 import pandas as pd
 import random
-import six
-from functools import partial
 from deepchem.utils.save import save_to_disk
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log

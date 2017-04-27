@@ -39,12 +39,25 @@ neighbor_cutoff = 12.0
 pdbbind_tasks = ["-logKd/Ki"]
 train_dataset = dc.data.DiskDataset(train_dir)
 test_dataset = dc.data.DiskDataset(test_dir)
-transformers = [
-    dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
-]
-for transformer in transformers:
-  train_dataset = transformer.transform(train_dataset)
-  test_dataset = transformer.transform(test_dataset)
+
+transformers = []
+# convert -logKi to dG = +RTlogKi [kJ/mol]
+y_train = train_dataset.y
+y_train *= -1 * 2.479 / 4.184
+train_dataset = dc.data.DiskDataset.from_numpy(
+    train_dataset.X,
+    y_train,
+    train_dataset.w,
+    train_dataset.ids,
+    tasks=pdbbind_tasks)
+y_test = test_dataset.y
+y_test *= -1 * 2.479 / 4.184
+test_dataset = dc.data.DiskDataset.from_numpy(
+    test_dataset.X,
+    y_test,
+    test_dataset.w,
+    test_dataset.ids,
+    tasks=pdbbind_tasks)
 
 # Atomic convolution variables
 # at = atomic numbers (atom types)
@@ -53,8 +66,20 @@ at = [
     1., 6., 7., 8., 9., 11., 12., 15., 16., 17., 19., 20., 25., 26., 27., 28.,
     29., 30., 34., 35., 38., 48., 53., 55., 80.
 ]
-radial = [[12.0], [0.0, 2.0, 4.0, 6.0, 8.0], [4.0]]
+radial = [[1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+          [0.0], [0.4]]
 rp = create_symmetry_parameters(radial)
+
+# Model hyperparameters
+layer_sizes = [32, 32, 16]
+weight_init_stddevs = [1 / np.sqrt(x) for x in layer_sizes]
+bias_init_consts = [0. for x in layer_sizes]
+penalty_type = "l2"
+penalty = 0.
+dropouts = [0.25, 0.25, 0.]
+learning_rate = 0.001
+momentum = 0.8
+batch_size = 24
 
 # Initialize model
 model = TensorflowFragmentRegressor(
@@ -66,23 +91,23 @@ model = TensorflowFragmentRegressor(
     complex_num_atoms,
     max_num_neighbors,
     logdir=model_dir,
-    layer_sizes=[128, 128, 64],
-    weight_init_stddevs=[0.125, 0.125, 0.177],
-    bias_init_consts=[0., 0., 0.],
-    penalty=0.,
-    penalty_type="l2",
-    dropouts=[0.4, 0.4, 0.],
-    learning_rate=0.002,
-    momentum=0.8,
+    layer_sizes=layer_sizes,
+    weight_init_stddevs=weight_init_stddevs,
+    bias_init_consts=bias_init_consts,
+    penalty=penalty,
+    penalty_type=penalty_type,
+    dropouts=dropouts,
+    learning_rate=learning_rate,
+    momentum=momentum,
     optimizer="adam",
-    batch_size=24,
+    batch_size=batch_size,
     conv_layers=1,
     boxsize=None,
     verbose=True,
     seed=seed)
 
 # Fit model
-model.fit(train_dataset, nb_epoch=100)
+model.fit(train_dataset, nb_epoch=10)
 
 # Evaluate model
 metric = [
