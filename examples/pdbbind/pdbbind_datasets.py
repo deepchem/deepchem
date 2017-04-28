@@ -17,6 +17,7 @@ import deepchem as dc
 import numpy as np
 import pandas as pd
 from deepchem.utils.rdkit_util import MoleculeLoadException
+from deepchem.feat.atomic_coordinates import ComplexNeighborListFragmentAtomicCoordinates
 
 
 def load_pdbbind_labels(labels_file):
@@ -85,6 +86,9 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     max_num_neighbors = 10
     featurizer = dc.feat.NeighborListComplexAtomicCoordinates(max_num_neighbors,
                                                               neighbor_cutoff)
+  elif feat == 'atomic_conv':
+    dataset = compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids)
+    return dataset, tasks
   else:
     raise ValueError("feat not defined.")
 
@@ -117,6 +121,45 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   return dataset, tasks
 
 
+def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
+  frag1_num_atoms = 140
+  frag2_num_atoms = 821
+  complex_num_atoms = 908
+  max_num_neighbors = 8
+  neighbor_cutoff = 12.0
+  featurizer = ComplexNeighborListFragmentAtomicCoordinates(
+      frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbors,
+      neighbor_cutoff)
+
+  w = np.ones_like(y)
+
+  # Currently featurizes with shard_size=1
+  # Dataset can be reshard: dataset = dataset.reshard(48) for example
+  def shard_generator():
+    for ind, pdb_code in enumerate(ids):
+      print("Processing %s" % str(pdb_code))
+      pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
+      protein_file = os.path.join(pdb_subdir, "%s_pocket.pdb" % pdb_code)
+      ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
+      computed_feature = featurizer._featurize_complex(
+          str(ligand_file), str(protein_file))
+      if computed_feature[0] is None:
+        print("Bad featurization")
+        continue
+      else:
+        X_b = np.reshape(np.array(computed_feature), (1, 9))
+        y_b = y[ind]
+        w_b = w[ind]
+        y_b = np.reshape(y_b, (1, -1))
+        w_b = np.reshape(w_b, (1, -1))
+        yield (X_b, y_b, w_b, [pdb_code])
+
+  dataset = dc.data.DiskDataset.create_dataset(
+      shard_generator(), data_dir=data_dir, tasks=tasks)
+
+  return dataset
+
+
 def compute_single_pdbbind_feature(x):
   ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
   print("Processing complex %d, %s" % (ind, str(pdb_code)))
@@ -142,13 +185,17 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   return features
 
 
-def load_pdbbind_grid(split="index", featurizer="grid", subset="core"):
+def load_pdbbind_grid(split="index", featurizer="atomic_conv",
+                      subset="refined"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
+  dataset.w
 
   splitters = {
       'index': dc.splits.IndexSplitter(),
-      'random': dc.splits.RandomSplitter()
+      'random': dc.splits.RandomSplitter(),
+      'scaffold': dc.splits.ScaffoldSplitter(),
+      'stratified': dc.splits.RandomStratifiedSplitter()
   }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
