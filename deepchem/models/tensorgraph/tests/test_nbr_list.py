@@ -385,7 +385,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
   #  free_energies = VinaNonlinearity(in_layers=[thresholded])
   #  free_energy = ReduceSum(in_layers=[free_energies])
 
-  #  loss = L2LossLayer(in_layers=[free_energy, labels])
+  #  loss = L2Loss(in_layers=[free_energy, labels])
 
   #  databag = Databag({prot_coords: X_prot, ligand_coords: X_ligand, labels: y})
 
