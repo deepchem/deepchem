@@ -20,7 +20,7 @@ from deepchem.metrics import to_one_hot
 
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, Reshape, SoftMaxCrossEntropy, L2Loss
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss
 
 class TensorGraphMultiTaskClassifier(TensorGraph):
   def __init__(self,
@@ -29,6 +29,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
                layer_sizes=[1000],
                weight_init_stddevs=[0.02],
                bias_init_consts=[1.0],
+               weight_decay_penalty=0.0,
+               weight_decay_penalty_type="l2",
                dropouts=[0.5],
                n_classes=2,
                **kwargs):
@@ -60,6 +62,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     weights = Weights(shape=(None, n_tasks))
     loss = Reshape(shape=(-1, n_tasks), in_layers=[SoftMaxCrossEntropy(in_layers=[labels, output])])
     weighted_loss = WeightedError(in_layers=[loss, weights])
+    if weight_decay_penalty != 0.0:
+      weighted_loss = WeightDecay(weight_decay_penalty, weight_decay_penalty_type, in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
 
 
@@ -92,6 +96,8 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
                layer_sizes=[1000],
                weight_init_stddevs=[0.02],
                bias_init_consts=[1.0],
+               weight_decay_penalty=0.0,
+               weight_decay_penalty_type="l2",
                dropouts=[0.5],
                **kwargs):
     super().__init__(mode='regression', **kwargs)
@@ -121,6 +127,8 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
     weights = Weights(shape=(None, n_tasks))
     loss = Reshape(shape=(-1, n_tasks), in_layers=[L2Loss(in_layers=[labels, output])])
     weighted_loss = WeightedError(in_layers=[loss, weights])
+    if weight_decay_penalty != 0.0:
+      weighted_loss = WeightDecay(weight_decay_penalty, weight_decay_penalty_type, in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
 
 

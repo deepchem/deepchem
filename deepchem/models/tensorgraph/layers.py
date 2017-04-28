@@ -1303,6 +1303,37 @@ class Dropout(Layer):
     return self.out_tensor
 
 
+class WeightDecay(Layer):
+  """Apply a weight decay penalty.
+
+
+  The input should be the loss value.  This layer adds a weight decay penalty to it
+  and outputs the sum.
+  """
+
+  def __init__(self, penalty, penalty_type, **kwargs):
+    """Create a weight decay penalty layer.
+
+    Parameters
+    ----------
+    penalty: float
+      magnitude of the penalty term
+    penalty_type: str
+      type of penalty to compute, either 'l1' or 'l2'
+    """
+    self.penalty = penalty
+    self.penalty_type = penalty_type
+    super(WeightDecay, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
+    self.out_tensor = parent_tensor+model_ops.weight_decay(self.penalty_type, self.penalty)
+    return self.out_tensor
+
+
 class AtomicConvolution(Layer):
 
   def __init__(self,
