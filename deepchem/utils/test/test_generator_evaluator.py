@@ -209,7 +209,7 @@ class TestGeneratorEvaluator(TestCase):
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),
     ]
     scores = tg.evaluate_generator(
-        databag.iterbatches(batch_size=3),
+        databag.iterbatches(batch_size=tg.batch_size),
         metric,
         labels=labels,
         per_task_metrics=True)
