@@ -11,7 +11,7 @@ import tensorflow as tf
 from deepchem.models.tensorgraph.models.atomic_conv import atomic_conv_model
 
 sys.path.append("../../models")
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2LossLayer, AtomicConvolution, Transpose, Dense
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, L2Loss, AtomicConvolution, Transpose, Dense
 from deepchem.models import TensorGraph
 
 import numpy as np
