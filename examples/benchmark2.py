@@ -83,7 +83,7 @@ models = args.model_args
 datasets = args.dataset_args
 test = args.test
 if len(args.seed_args) > 0:
-  seed = args.seed_args[0]
+  seed = int(args.seed_args[0])
 else:
   seed = 123
 
