@@ -20,16 +20,25 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
-  dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
-  if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz '
-    )
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
-              data_dir)
+  if featurizer == 'CoulombMatrix':
+    dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
+    if not os.path.exists(dataset_file):
+      os.system(
+          'wget -P ' + data_dir +
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz '
+      )
+      os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
+                data_dir)
+  else:
+    dataset_file = os.path.join(data_dir, "qm9.csv")
+    if not os.path.exists(dataset_file):
+      os.system(
+          'wget -P ' + data_dir +
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm9.csv '
+      )
+      
   qm9_tasks = [
       "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
       "u0_atom", "u298_atom", "h298_atom", "g298_atom"
@@ -43,11 +52,24 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
 
   if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrix(29)
-  loader = deepchem.data.SDFLoader(
-      tasks=qm9_tasks,
-      smiles_field="smiles",
-      mol_field="mol",
-      featurizer=featurizer)
+    loader = deepchem.data.SDFLoader(
+        tasks=qm9_tasks,
+        smiles_field="smiles",
+        mol_field="mol",
+        featurizer=featurizer)
+  else:
+    if featurizer == 'ECFP':
+      featurizer = deepchem.feat.CircularFingerprint(size=1024)
+    elif featurizer == 'GraphConv':
+      featurizer = deepchem.feat.ConvMolFeaturizer()
+    elif featurizer == 'Weave':
+      featurizer = deepchem.feat.WeaveFeaturizer()
+    elif featurizer == 'Raw':
+      featurizer = deepchem.feat.RawFeaturizer()
+    loader = deepchem.data.CSVLoader(
+        tasks=qm9_tasks, smiles_field="smiles", featurizer=featurizer)
+
+
   dataset = loader.featurize(dataset_file)
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
