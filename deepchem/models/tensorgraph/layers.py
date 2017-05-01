@@ -1287,6 +1287,7 @@ class NeighborList(Layer):
             tf.transpose(tf.stack(tf.meshgrid(*mesh_args))), (self.n_cells,
                                                               self.ndim)))
 
+
 class Dropout(Layer):
 
   def __init__(self, dropout_prob, **kwargs):
@@ -1298,7 +1299,7 @@ class Dropout(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     parent_tensor = in_layers[0].out_tensor
-    keep_prob = 1.0-self.dropout_prob*kwargs['training']
+    keep_prob = 1.0 - self.dropout_prob * kwargs['training']
     self.out_tensor = tf.nn.dropout(parent_tensor, keep_prob)
     return self.out_tensor
 
@@ -1330,7 +1331,8 @@ class WeightDecay(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     parent_tensor = in_layers[0].out_tensor
-    self.out_tensor = parent_tensor+model_ops.weight_decay(self.penalty_type, self.penalty)
+    self.out_tensor = parent_tensor + model_ops.weight_decay(self.penalty_type,
+                                                             self.penalty)
     return self.out_tensor
 
 

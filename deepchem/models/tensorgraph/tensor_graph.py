@@ -60,7 +60,8 @@ class TensorGraph(Model):
     self.loss = None
     self.built = False
     self.queue_installed = False
-    self.optimizer = TFWrapper(tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+    self.optimizer = TFWrapper(
+        tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -448,7 +449,8 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
-      self.tensor_objects['train_op'] = self.optimizer().minimize(self.loss.out_tensor)
+      self.tensor_objects['train_op'] = self.optimizer().minimize(
+          self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)

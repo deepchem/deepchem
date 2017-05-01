@@ -18,11 +18,12 @@ from deepchem.models.tensorflow_models import TensorflowClassifier
 from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
-
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
 from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss
 
+
 class TensorGraphMultiTaskClassifier(TensorGraph):
+
   def __init__(self,
                n_tasks,
                n_features,
@@ -73,26 +74,40 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
 
     # Add the dense layers
 
-    for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
-      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
-                    weights_initializer=TFWrapper(tf.truncated_normal_initializer, stddev=weight_stddev),
-                    biases_initializer=TFWrapper(tf.constant_initializer, value=bias_const))
+    for size, weight_stddev, bias_const, dropout in zip(
+        layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
+      layer = Dense(
+          in_layers=[prev_layer],
+          out_channels=size,
+          activation_fn=tf.nn.relu,
+          weights_initializer=TFWrapper(
+              tf.truncated_normal_initializer, stddev=weight_stddev),
+          biases_initializer=TFWrapper(
+              tf.constant_initializer, value=bias_const))
       if dropout > 0.0:
         layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
 
     # Compute the loss function for each label.
 
-    output = Reshape(shape=(-1, n_tasks, n_classes), in_layers=[Dense(in_layers=[prev_layer], out_channels=n_tasks*n_classes)])
+    output = Reshape(
+        shape=(-1, n_tasks, n_classes),
+        in_layers=[
+            Dense(in_layers=[prev_layer], out_channels=n_tasks * n_classes)
+        ])
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, n_classes))
     weights = Weights(shape=(None, n_tasks))
-    loss = Reshape(shape=(-1, n_tasks), in_layers=[SoftMaxCrossEntropy(in_layers=[labels, output])])
+    loss = Reshape(
+        shape=(-1, n_tasks),
+        in_layers=[SoftMaxCrossEntropy(in_layers=[labels, output])])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(weight_decay_penalty, weight_decay_penalty_type, in_layers=[weighted_loss])
+      weighted_loss = WeightDecay(
+          weight_decay_penalty,
+          weight_decay_penalty_type,
+          in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
-
 
   def default_generator(self,
                         dataset,
@@ -106,7 +121,9 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
           pad_batches=pad_batches):
         feed_dict = dict()
         if y_b is not None and not predict:
-          feed_dict[self.labels[0]] = to_one_hot(y_b.flatten(), self.n_classes).reshape(-1, self.n_tasks, self.n_classes)
+          feed_dict[self.labels[0]] = to_one_hot(
+              y_b.flatten(), self.n_classes).reshape(-1, self.n_tasks,
+                                                     self.n_classes)
         if X_b is not None:
           feed_dict[self.features[0]] = X_b
         if w_b is not None and not predict:
@@ -114,9 +131,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
         yield feed_dict
 
 
-
-
 class TensorGraphMultiTaskRegressor(TensorGraph):
+
   def __init__(self,
                n_tasks,
                n_features,
@@ -164,28 +180,46 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
 
     # Add the dense layers
 
-    for size, weight_stddev, bias_const, dropout in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
-      layer = Dense(in_layers=[prev_layer], out_channels=size, activation_fn=tf.nn.relu,
-                    weights_initializer=TFWrapper(tf.truncated_normal_initializer, stddev=weight_stddev),
-                    biases_initializer=TFWrapper(tf.constant_initializer, value=bias_const))
+    for size, weight_stddev, bias_const, dropout in zip(
+        layer_sizes, weight_init_stddevs, bias_init_consts, dropouts):
+      layer = Dense(
+          in_layers=[prev_layer],
+          out_channels=size,
+          activation_fn=tf.nn.relu,
+          weights_initializer=TFWrapper(
+              tf.truncated_normal_initializer, stddev=weight_stddev),
+          biases_initializer=TFWrapper(
+              tf.constant_initializer, value=bias_const))
       if dropout > 0.0:
         layer = Dropout(dropout, in_layers=[layer])
       prev_layer = layer
 
     # Compute the loss function for each label.
 
-    output = Reshape(shape=(-1, n_tasks, 1), in_layers=[Dense(in_layers=[prev_layer], out_channels=n_tasks,
-                    weights_initializer=TFWrapper(tf.truncated_normal_initializer, stddev=weight_init_stddevs[-1]),
-                    biases_initializer=TFWrapper(tf.constant_initializer, value=bias_init_consts[-1]))])
+    output = Reshape(
+        shape=(-1, n_tasks, 1),
+        in_layers=[
+            Dense(
+                in_layers=[prev_layer],
+                out_channels=n_tasks,
+                weights_initializer=TFWrapper(
+                    tf.truncated_normal_initializer,
+                    stddev=weight_init_stddevs[-1]),
+                biases_initializer=TFWrapper(
+                    tf.constant_initializer, value=bias_init_consts[-1]))
+        ])
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
     weights = Weights(shape=(None, n_tasks))
-    loss = Reshape(shape=(-1, n_tasks), in_layers=[L2Loss(in_layers=[labels, output])])
+    loss = Reshape(
+        shape=(-1, n_tasks), in_layers=[L2Loss(in_layers=[labels, output])])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
-      weighted_loss = WeightDecay(weight_decay_penalty, weight_decay_penalty_type, in_layers=[weighted_loss])
+      weighted_loss = WeightDecay(
+          weight_decay_penalty,
+          weight_decay_penalty_type,
+          in_layers=[weighted_loss])
     self.set_loss(weighted_loss)
-
 
   def default_generator(self,
                         dataset,
@@ -205,8 +239,6 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
         if w_b is not None and not predict:
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
-
-
 
 
 class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
@@ -269,7 +301,6 @@ class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
     print("n_features after fit_transform: %d" % int(n_features))
     super().__init__(n_tasks, n_features, batch_size=batch_size, **kwargs)
 
-
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -292,8 +323,8 @@ class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-
   def predict_proba_on_generator(self, generator, transformers=[]):
+
     def transform_generator():
       for feed_dict in generator:
         X = feed_dict[self.features[0]]
@@ -303,8 +334,9 @@ class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
           X_t = transformer.X_transform(X_t)
         feed_dict[self.features[0]] = X_t
         yield feed_dict
-    return super().predict_proba_on_generator(transform_generator(), transformers)
 
+    return super().predict_proba_on_generator(transform_generator(),
+                                              transformers)
 
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
