@@ -241,7 +241,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
         yield feed_dict
 
 
-class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
+class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
   """Implements a TensorGraphMultiTaskRegressor that performs on-the-fly transformation during fit/predict.
 
   Example:
@@ -268,7 +268,7 @@ class TensorGraphMultiTaskFitRegressor(TensorGraphMultiTaskRegressor):
                n_evals=1,
                batch_size=50,
                **kwargs):
-    """Create a TensorGraphMultiTaskFitRegressor.
+    """Create a TensorGraphMultiTaskFitTransformRegressor.
 
     In addition to the following arguments, this class also accepts all the keywork arguments
     from TensorGraphMultiTaskRegressor.

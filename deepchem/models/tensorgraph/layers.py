@@ -1307,7 +1307,6 @@ class Dropout(Layer):
 class WeightDecay(Layer):
   """Apply a weight decay penalty.
 
-
   The input should be the loss value.  This layer adds a weight decay penalty to it
   and outputs the sum.
   """
