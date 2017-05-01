@@ -172,7 +172,7 @@ def load_dataset_from_disk(save_dir):
     valid = deepchem.data.DiskDataset(valid_dir)
     test = deepchem.data.DiskDataset(test_dir)
     all_dataset = (train, valid, test)
-    with open(os.path.join(save_dir, "transformers.pkl"), 'r') as f:
+    with open(os.path.join(save_dir, "transformers.pkl"), 'rb') as f:
       transformers = pickle.load(f)
   else:
     loaded = False
@@ -188,6 +188,6 @@ def save_dataset_to_disk(save_dir, train, valid, test, transformers):
   train.move(train_dir)
   valid.move(valid_dir)
   test.move(test_dir)
-  with open(os.path.join(save_dir, "transformers.pkl"), 'w') as f:
+  with open(os.path.join(save_dir, "transformers.pkl"), 'wb') as f:
     pickle.dump(transformers, f)
   return None
