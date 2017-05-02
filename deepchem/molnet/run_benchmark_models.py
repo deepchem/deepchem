@@ -12,7 +12,7 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 import deepchem
-import xgboost
+from deepchem.utils.dependencies import xgboost
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -31,7 +31,7 @@ def benchmark_classification(train_dataset,
                              seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
-  
+
   Parameters
   ----------
   train_dataset: dataset struct
@@ -55,7 +55,7 @@ def benchmark_classification(train_dataset,
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
       hyper parameters for designated model, None = use preset values
-  
+
 
   Returns
   -------
@@ -65,7 +65,7 @@ def benchmark_classification(train_dataset,
 	predicting results(AUC) on valid set
   test_scores : dict
 	predicting results(AUC) on test set
- 
+
 
   """
   train_scores = {}
@@ -81,7 +81,7 @@ def benchmark_classification(train_dataset,
   model_name = model
 
   if model_name == 'tf':
-    # Loading hyper parameters    
+    # Loading hyper parameters
     layer_sizes = hyper_parameters['layer_sizes']
     weight_init_stddevs = hyper_parameters['weight_init_stddevs']
     bias_init_consts = hyper_parameters['bias_init_consts']
@@ -387,7 +387,7 @@ def benchmark_regression(train_dataset,
                          seed=123):
   """
   Calculate performance of different models on the specific dataset & tasks
-  
+
   Parameters
   ----------
   train_dataset: dataset struct
@@ -412,7 +412,7 @@ def benchmark_regression(train_dataset,
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
       hyper parameters for designated model, None = use preset values
-  
+
 
   Returns
   -------
@@ -422,7 +422,7 @@ def benchmark_regression(train_dataset,
 	predicting results(AUC) on valid set
   test_scores : dict
 	predicting results(AUC) on test set
- 
+
   """
   train_scores = {}
   valid_scores = {}
@@ -718,7 +718,7 @@ def low_data_benchmark_classification(train_dataset,
                                       seed=123):
   """
   Calculate low data benchmark performance
-  
+
   Parameters
   ----------
   train_dataset : dataset struct

@@ -234,6 +234,7 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
         for j, atom_j in enumerate(atom_nbrs):
           frag1_Nbrs_Z[i, atom, j] = frag1_Z_b[i, atom_j]
 
+    orig_dict["frag1_Z_placeholder"] = frag1_Z_b
     orig_dict["frag1_Nbrs_placeholder"] = frag1_Nbrs
     orig_dict["frag1_Nbrs_Z_placeholder"] = frag1_Nbrs_Z
 
@@ -249,6 +250,7 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
         for j, atom_j in enumerate(atom_nbrs):
           frag2_Nbrs_Z[i, atom, j] = frag2_Z_b[i, atom_j]
 
+    orig_dict["frag2_Z_placeholder"] = frag2_Z_b
     orig_dict["frag2_Nbrs_placeholder"] = frag2_Nbrs
     orig_dict["frag2_Nbrs_Z_placeholder"] = frag2_Nbrs_Z
 
@@ -264,6 +266,7 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
         for j, atom_j in enumerate(atom_nbrs):
           complex_Nbrs_Z[i, atom, j] = complex_Z_b[i, atom_j]
 
+    orig_dict["complex_Z_placeholder"] = complex_Z_b
     orig_dict["complex_Nbrs_placeholder"] = complex_Nbrs
     orig_dict["complex_Nbrs_Z_placeholder"] = complex_Nbrs_Z
     for task in range(self.n_tasks):
@@ -284,24 +287,30 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
     N_2 = self.frag2_num_atoms
     M = self.max_num_neighbors
     B = self.batch_size
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
+                                                              name_scopes)
     with graph.as_default():
       with placeholder_scope:
         self.frag1_X_placeholder = tf.placeholder(
             tf.float32, shape=[B, N_1, 3], name='frag1_X_placeholder')
+        self.frag1_Z_placeholder = tf.placeholder(
+            tf.float32, shape=[B, N_1], name='frag1_Z_placeholder')
         self.frag1_Nbrs_placeholder = tf.placeholder(
             tf.int32, shape=[B, N_1, M], name="frag1_Nbrs_placeholder")
         self.frag1_Nbrs_Z_placeholder = tf.placeholder(
             tf.float32, shape=[B, N_1, M], name='frag1_Nbrs_Z_placeholder')
         self.frag2_X_placeholder = tf.placeholder(
             tf.float32, shape=[B, N_2, 3], name='frag2_X_placeholder')
+        self.frag2_Z_placeholder = tf.placeholder(
+            tf.float32, shape=[B, N_2], name='frag2_Z_placeholder')
         self.frag2_Nbrs_placeholder = tf.placeholder(
             tf.int32, shape=[B, N_2, M], name="frag2_Nbrs_placeholder")
         self.frag2_Nbrs_Z_placeholder = tf.placeholder(
             tf.float32, shape=[B, N_2, M], name='frag2_Nbrs_Z_placeholder')
         self.complex_X_placeholder = tf.placeholder(
             tf.float32, shape=[B, N, 3], name='complex_X_placeholder')
+        self.complex_Z_placeholder = tf.placeholder(
+            tf.float32, shape=[B, N], name='complex_Z_placeholder')
         self.complex_Nbrs_placeholder = tf.placeholder(
             tf.int32, shape=[B, N, M], name="complex_Nbrs_placeholder")
         self.complex_Nbrs_Z_placeholder = tf.placeholder(
@@ -330,7 +339,6 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
           self.frag1_Nbrs_Z_placeholder, atom_types, radial_params, boxsize, B,
           N_1, M, 3)
       for x in range(conv_layers - 1):
-        frag1_layer = tf.transpose(frag1_layer, [1, 2, 0])
         l = int(frag1_layer.get_shape()[-1])
         frag1_layer = atomicnet_ops.AtomicConvolutionLayer(
             frag1_layer, self.frag1_Nbrs_placeholder,
@@ -342,7 +350,6 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
           self.frag2_Nbrs_Z_placeholder, atom_types, radial_params, boxsize, B,
           N_2, M, 3)
       for x in range(conv_layers - 1):
-        frag2_layer = tf.transpose(frag2_layer, [1, 2, 0])
         l = int(frag2_layer.get_shape()[-1])
         frag2_layer = atomicnet_ops.AtomicConvolutionLayer(
             frag2_layer, self.frag2_Nbrs_placeholder,
@@ -354,7 +361,6 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
           self.complex_Nbrs_Z_placeholder, atom_types, radial_params, boxsize,
           B, N, M, 3)
       for x in range(conv_layers - 1):
-        complex_layer = tf.transpose(complex_layer, [1, 2, 0])
         l = int(complex_layer.get_shape()[-1])
         complex_layer = atomicnet_ops.AtomicConvolutionLayer(
             complex_layer, self.complex_Nbrs_placeholder,
@@ -367,52 +373,85 @@ class TensorflowFragmentRegressor(TensorflowMultiTaskRegressor):
       output_biases = []
       output = []
 
-      frag1_layer = tf.transpose(frag1_layer, [2, 1, 0])
-      frag2_layer = tf.transpose(frag2_layer, [2, 1, 0])
-      complex_layer = tf.transpose(complex_layer, [2, 1, 0])
-      prev_layer_size = int(tf.Tensor.get_shape(complex_layer)[2])
-      for i in range(num_layers):
-        weight, bias = atomicnet_ops.InitializeWeightsBiases(
-            prev_layer_size=prev_layer_size,
-            size=layer_sizes[i],
-            weights=tf.truncated_normal(
-                shape=[prev_layer_size, layer_sizes[i]],
-                stddev=weight_init_stddevs[i]),
-            biases=tf.constant(
-                value=bias_init_consts[i], shape=[layer_sizes[i]]))
-        weights.append(weight)
-        biases.append(bias)
-        prev_layer_size = layer_sizes[i]
-      weight, bias = atomicnet_ops.InitializeWeightsBiases(prev_layer_size, 1)
-      output_weights.append(weight)
-      output_biases.append(bias)
+      n_features = int(frag1_layer.get_shape()[-1])
 
-      def atomnet(current_input):
+      for ind, atomtype in enumerate(atom_types):
+
+        prev_layer_size = n_features
+        weights.append([])
+        biases.append([])
+        output_weights.append([])
+        output_biases.append([])
+        for i in range(num_layers):
+          weight, bias = atomicnet_ops.InitializeWeightsBiases(
+              prev_layer_size=prev_layer_size,
+              size=layer_sizes[i],
+              weights=tf.truncated_normal(
+                  shape=[prev_layer_size, layer_sizes[i]],
+                  stddev=weight_init_stddevs[i]),
+              biases=tf.constant(
+                  value=bias_init_consts[i], shape=[layer_sizes[i]]))
+          weights[ind].append(weight)
+          biases[ind].append(bias)
+          prev_layer_size = layer_sizes[i]
+        weight, bias = atomicnet_ops.InitializeWeightsBiases(prev_layer_size, 1)
+        output_weights[ind].append(weight)
+        output_biases[ind].append(bias)
+
+      def atomnet(current_input, atomtype):
+
         prev_layer = current_input
+
         for i in range(num_layers):
           layer = atomicnet_ops.AtomicNNLayer(
               tensor=prev_layer,
               size=layer_sizes[i],
-              weights=weights[i],
-              biases=biases[i])
+              weights=weights[atomtype][i],
+              biases=biases[atomtype][i])
           layer = tf.nn.relu(layer)
           layer = model_ops.dropout(layer, dropouts[i], training)
           prev_layer = layer
+          prev_layer_size = layer_sizes[i]
+
         output_layer = tf.squeeze(
             atomicnet_ops.AtomicNNLayer(
                 tensor=prev_layer,
                 size=prev_layer_size,
-                weights=output_weights[0],
-                biases=output_biases[0]))
+                weights=output_weights[atomtype][0],
+                biases=output_biases[atomtype][0]))
+
         return output_layer
 
-      frag1_outputs = tf.map_fn(lambda x: atomnet(x), frag1_layer)
-      frag2_outputs = tf.map_fn(lambda x: atomnet(x), frag2_layer)
-      complex_outputs = tf.map_fn(lambda x: atomnet(x), complex_layer)
-      frag1_energy = tf.reduce_sum(frag1_outputs, 0)
-      frag2_energy = tf.reduce_sum(frag2_outputs, 0)
-      complex_energy = tf.reduce_sum(complex_outputs, 0)
-      binding_energy = complex_energy - frag1_energy - frag2_energy
+      frag1_zeros = tf.zeros((B, N_1))
+      frag2_zeros = tf.zeros((B, N_2))
+      complex_zeros = tf.zeros((B, N))
+
+      frag1_atomtype_energy = []
+      frag2_atomtype_energy = []
+      complex_atomtype_energy = []
+
+      for ind, atomtype in enumerate(atom_types):
+
+        frag1_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag1_layer)
+        frag2_outputs = tf.map_fn(lambda x: atomnet(x, ind), frag2_layer)
+        complex_outputs = tf.map_fn(lambda x: atomnet(x, ind), complex_layer)
+
+        cond = tf.equal(self.frag1_Z_placeholder, atomtype)
+        frag1_atomtype_energy.append(tf.where(cond, frag1_outputs, frag1_zeros))
+        cond = tf.equal(self.frag2_Z_placeholder, atomtype)
+        frag2_atomtype_energy.append(tf.where(cond, frag2_outputs, frag2_zeros))
+        cond = tf.equal(self.complex_Z_placeholder, atomtype)
+        complex_atomtype_energy.append(
+            tf.where(cond, complex_outputs, complex_zeros))
+
+      frag1_outputs = tf.add_n(frag1_atomtype_energy)
+      frag2_outputs = tf.add_n(frag2_atomtype_energy)
+      complex_outputs = tf.add_n(complex_atomtype_energy)
+
+      frag1_energy = tf.reduce_sum(frag1_outputs, 1)
+      frag2_energy = tf.reduce_sum(frag2_outputs, 1)
+      complex_energy = tf.reduce_sum(complex_outputs, 1)
+      binding_energy = complex_energy - (frag1_energy + frag2_energy)
       output.append(binding_energy)
 
     return output

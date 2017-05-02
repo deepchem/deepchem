@@ -591,20 +591,17 @@ class InputFifoQueue(Layer):
   During the fitting process
   """
 
-  def __init__(self, shapes, names, dtypes=None, capacity=5, **kwargs):
+  def __init__(self, shapes, names, capacity=5, **kwargs):
     self.shapes = shapes
     self.names = names
     self.capacity = capacity
-    self.dtypes = dtypes
     super(InputFifoQueue, self).__init__(**kwargs)
-    self.op_type = "cpu"
 
   def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-    if self.dtypes is None:
-      self.dtypes = [tf.float32] * len(self.shapes)
+    self.dtypes = [x.out_tensor.dtype for x in in_layers]
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
@@ -1088,8 +1085,8 @@ class NeighborList(Layer):
 
     # List of length N_atoms, each of shape (1, ndim)
     atom_coords = tf.split(coords, self.N_atoms)
-    # TODO(rbharath): How does distance need to be modified here to   
-    # account for periodic boundary conditions?   
+    # TODO(rbharath): How does distance need to be modified here to
+    # account for periodic boundary conditions?
     # List of length N_atoms each of shape (M_nbrs)
     padded_dists = [
         tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
@@ -1102,7 +1099,7 @@ class NeighborList(Layer):
         for padded_dist in padded_dists
     ]
 
-    # N_atoms elts of size (M_nbrs,) each 
+    # N_atoms elts of size (M_nbrs,) each
     padded_neighbor_list = [
         tf.gather(padded_atom_nbrs, padded_closest_nbr)
         for (padded_atom_nbrs, padded_closest_nbr
@@ -1123,12 +1120,12 @@ class NeighborList(Layer):
     # Shape (N_atoms, 1)
     cells_for_atoms = self.get_cells_for_atoms(coords, cells)
 
-    # Find M_nbrs atoms closest to each cell 
+    # Find M_nbrs atoms closest to each cell
     # Shape (n_cells, M_nbrs)
     closest_atoms = self.get_closest_atoms(coords, cells)
 
-    # Associate each cell with its neighbor cells. Assumes periodic boundary   
-    # conditions, so does wrapround. O(constant)    
+    # Associate each cell with its neighbor cells. Assumes periodic boundary
+    # conditions, so does wrapround. O(constant)
     # Shape (n_cells, n_nbr_cells)
     neighbor_cells = self.get_neighbor_cells(cells)
 
@@ -1376,7 +1373,7 @@ class AtomicConvolution(Layer):
     
     Returns
     -------
-    layer: tf.Tensor of shape (l, B, N)
+    layer: tf.Tensor of shape (B, N, l)
       A new tensor representing the output of the atomic conv layer 
     """
     if in_layers is None:
@@ -1414,12 +1411,10 @@ class AtomicConvolution(Layer):
           cond = tf.equal(Nbrs_Z, self.atom_types[j])
           sym.append(tf.reduce_sum(tf.where(cond, rsf, rsf_zeros), 2))
 
-    # Pack l (B, N) tensors into one (l, B, N) tensor
-    # Transpose to (B, N, l) for conv layer stacking
-    # done inside conv_layer loops to reduce transpose ops
-    # Final layer should be shape (N, B, l) to pass into tf.map_fn
-    # TODO (LESWING) batch norm
-    self.out_tensor = tf.stack(sym)
+    layer = tf.stack(sym)
+    layer = tf.transpose(layer, [1, 2, 0])  # (l, B, N) -> (B, N, l)
+    m, v = tf.nn.moments(layer, axes=[0])
+    self.out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
     return self.out_tensor
 
   def radial_symmetry_function(self, R, rc, rs, e):
