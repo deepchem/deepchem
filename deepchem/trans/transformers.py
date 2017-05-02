@@ -865,14 +865,14 @@ class DAGTransformer(Transformer):
       # DAG starts from the target atom, calculation should go in reverse
       for edge in reversed(DAG):
         # `edge[1]` is the parent of `edge[0]`
-        parent[edge[0]].append(edge[1])
+        parent[edge[0]].append(edge[1]%max_atoms)
         # all the parents of `edge[1]` is also the parents of `edge[0]`
         parent[edge[0]].extend(parent[edge[1]])
       # after this loop, `parents[i]` includes all parents of atom i
 
       for ids, atom in enumerate(parent):
         # manually adding the atom index into its parents list
-        parent[ids].insert(0, ids)
+        parent[ids].insert(0, ids%max_atoms)
       # after this loop, `parents[i][0]` is i, `parents[i][1:]` are all parents of atom i
 
       # atoms with less parents(farther from the target atom) come first.
@@ -881,12 +881,17 @@ class DAGTransformer(Transformer):
       # based on previously calculated graph features.
       # target atom of this DAG will be calculated in the last step
       parent = sorted(parent, key=len)
-
+      
       for ids, atom in enumerate(parent):
         n_par = len(atom)
         # padding with `max_atoms`
-        parent[ids].extend([max_atoms for i in range(max_atoms - n_par)])
-
+        if n_par < max_atoms:
+          parent[ids].extend([max_atoms for i in range(max_atoms - n_par)])
+        if n_par > max_atoms:
+          parent[ids] = parent[ids][:max_atoms]
+      
+      if len(parent) > max_atoms:
+        parent = parent[-max_atoms:]
       while len(parent) < max_atoms:
         # padding
         parent.insert(0, [max_atoms] * max_atoms)

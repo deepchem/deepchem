@@ -63,6 +63,7 @@ hps['dag'] = {
     'nb_epoch': 50,
     'learning_rate': 0.001,
     'n_graph_feat': 30,
+    'default_max_atoms': 60,
     'seed': 123
 }
 hps['weave'] = {
@@ -137,6 +138,7 @@ hps['dag_regression'] = {
     'nb_epoch': 50,
     'learning_rate': 0.001,
     'n_graph_feat': 30,
+    'default_max_atoms': 60,
     'seed': 123
 }
 hps['weave_regression'] = {
