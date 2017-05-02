@@ -257,7 +257,6 @@ class TensorGraph(Model):
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
-          result = result.squeeze(axis=0)
           result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
