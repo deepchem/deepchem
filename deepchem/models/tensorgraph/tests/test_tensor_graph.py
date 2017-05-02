@@ -33,7 +33,7 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=10)
+    tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
@@ -73,7 +73,7 @@ class TestTensorGraph(unittest.TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=10, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -93,7 +93,7 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1)
     tg.add_output(dense)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=10)
+    tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=3.0)))
 
@@ -132,7 +132,7 @@ class TestTensorGraph(unittest.TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=200, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_proba_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
@@ -154,9 +154,9 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=1.0, use_queue=False)
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=10)
+    tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
-    assert_true(np.all(np.isclose(prediction, y, atol=0.2)))
+    assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
   def test_tensorboard(self):
     n_data_points = 20
@@ -177,7 +177,7 @@ class TestTensorGraph(unittest.TestCase):
         model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
-    tg.fit(dataset, nb_epoch=10)
+    tg.fit(dataset, nb_epoch=1000)
     files_in_dir = os.listdir(tg.model_dir)
     event_file = list(filter(lambda x: x.startswith("events"), files_in_dir))
     assert_true(len(event_file) > 0)
