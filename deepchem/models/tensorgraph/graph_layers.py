@@ -25,7 +25,7 @@ class Combine_AP(Layer):
   def __init__(self, **kwargs):
     super(Combine_AP, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -39,7 +39,7 @@ class Separate_AP(Layer):
   def __init__(self, **kwargs):
     super(Separate_AP, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -147,7 +147,7 @@ class WeaveLayer(Layer):
       self.trainable_weights.extend(
           [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """ description and explanation refer to deepchem.nn.WeaveLayer
     parent layers: [atom_features, pair_features], pair_split, atom_to_pair
     """
@@ -241,7 +241,7 @@ class WeaveGather(Layer):
     else:
       self.trainable_weights = None
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """ description and explanation refer to deepchem.nn.WeaveGather
     parent layers: atom_features, atom_split
     """
@@ -312,7 +312,7 @@ class DTNNEmbedding(Layer):
         [self.periodic_table_length, self.n_embedding])
     self.trainable_weights = [self.embedding_list]
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNEmbedding
     parent layers: atom_number
     """
@@ -375,7 +375,7 @@ class DTNNStep(Layer):
         self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
     ]
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNStep
     parent layers: atom_features, distance, distance_membership_i, distance_membership_j
     """
@@ -461,7 +461,7 @@ class DTNNGather(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNGather
     parent layers: atom_features, atom_membership
     """
@@ -548,7 +548,7 @@ class DAGLayer(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """description and explanation refer to deepchem.nn.DAGLayer
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
@@ -686,7 +686,7 @@ class DAGGather(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """description and explanation refer to deepchem.nn.DAGGather
     parent layers: atom_features, membership
     """
