@@ -18,11 +18,14 @@ from deepchem.models.sequential import Sequential
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskFitTransformRegressor
+from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskRegressor
+from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskClassifier
+from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskFitTransformRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression
 from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveMultitaskRegressor
 from deepchem.models.tensorflow_models.progressive_joint import ProgressiveJointRegressor
 from deepchem.models.tensorflow_models.IRV import TensorflowMultiTaskIRVClassifier
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph, MultiTaskTensorGraph
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph

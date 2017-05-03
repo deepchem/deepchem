@@ -16,8 +16,8 @@ class TestGeneratorEvaluator(TestCase):
     n_data_points = 20
     n_features = 2
 
-    X = np.ones(shape=(n_data_points / 2, n_features)) * -1
-    X1 = np.ones(shape=(n_data_points / 2, n_features))
+    X = np.ones(shape=(n_data_points // 2, n_features)) * -1
+    X1 = np.ones(shape=(n_data_points // 2, n_features))
     X = np.concatenate((X, X1))
     class_1 = np.array([[0.0, 1.0] for x in range(int(n_data_points / 2))])
     class_0 = np.array([[1.0, 0.0] for x in range(int(n_data_points / 2))])
@@ -54,7 +54,7 @@ class TestGeneratorEvaluator(TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=10, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, np.mean, mode="classification")
 
@@ -105,7 +105,7 @@ class TestGeneratorEvaluator(TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=10, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     metric = dc.metrics.Metric(
         dc.metrics.roc_auc_score, np.mean, mode="classification")
 
@@ -157,7 +157,7 @@ class TestGeneratorEvaluator(TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=10, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     metric = [
         dc.metrics.Metric(
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),
@@ -203,7 +203,7 @@ class TestGeneratorEvaluator(TestCase):
 
     tg.fit_generator(
         databag.iterbatches(
-            epochs=10, batch_size=tg.batch_size, pad_batches=True))
+            epochs=1000, batch_size=tg.batch_size, pad_batches=True))
     metric = [
         dc.metrics.Metric(
             dc.metrics.mean_absolute_error, np.mean, mode="regression"),

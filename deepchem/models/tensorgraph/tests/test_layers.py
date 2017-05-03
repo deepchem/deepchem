@@ -187,7 +187,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = L2Loss()(guess_tensor, label_tensor)
       out_tensor = out_tensor.eval()
-      assert isinstance(out_tensor, np.float32)
+      assert out_tensor.shape == (batch_size,)
 
   def test_softmax(self):
     """Test that Softmax can be invoked."""

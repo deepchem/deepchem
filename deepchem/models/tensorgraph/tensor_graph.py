@@ -13,6 +13,7 @@ from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
 from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights
+from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
 
@@ -21,7 +22,6 @@ class TensorGraph(Model):
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
-               learning_rate=0.001,
                batch_size=100,
                random_seed=None,
                use_queue=True,
@@ -35,8 +35,6 @@ class TensorGraph(Model):
       Should we log to model_dir data for tensorboard?
     tensorboard_log_frequency: int
       How many training batches before logging tensorboard?
-    learning_rate: float
-      learning rate for optimizer
     batch_size: int
       default batch size for training and evaluating
     use_queue: boolean
@@ -62,6 +60,8 @@ class TensorGraph(Model):
     self.loss = None
     self.built = False
     self.queue_installed = False
+    self.optimizer = TFWrapper(
+        tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -80,7 +80,6 @@ class TensorGraph(Model):
     self.last_checkpoint = None
     self.use_queue = use_queue
 
-    self.learning_rate = learning_rate
     self.batch_size = batch_size
     self.random_seed = random_seed
     super(TensorGraph, self).__init__(**kwargs)
@@ -119,9 +118,11 @@ class TensorGraph(Model):
     def create_feed_dict():
       if self.use_queue:
         while True:
-          yield {}
+          yield {self._training_placeholder: 1.0}
       for d in feed_dict_generator:
-        yield {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict = {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict[self._training_placeholder] = 1.0
+        yield feed_dict
 
     if not self.built:
       self.build()
@@ -217,7 +218,7 @@ class TensorGraph(Model):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  def predict_on_generator(self, generator):
+  def predict_on_generator(self, generator, transformers=[]):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
@@ -229,12 +230,12 @@ class TensorGraph(Model):
     # Returns
         A Numpy array of predictions.
     """
-    retval = self.predict_proba_on_generator(generator)
+    retval = self.predict_proba_on_generator(generator, transformers)
     if self.mode == 'classification':
       retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
     return retval
 
-  def predict_proba_on_generator(self, generator):
+  def predict_proba_on_generator(self, generator, transformers=[]):
     """
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
@@ -252,13 +253,15 @@ class TensorGraph(Model):
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
+          feed_dict[self._training_placeholder] = 0.0
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
+          result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
 
-  def predict_on_batch(self, X, sess=None):
+  def predict_on_batch(self, X, sess=None, transformers=[]):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
 
@@ -272,12 +275,12 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
-  def predict_proba_on_batch(self, X, sess=None):
+  def predict_proba_on_batch(self, X, sess=None, transformers=[]):
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def predict(self, dataset, transformers=[], batch_size=None):
     """
@@ -286,10 +289,8 @@ class TensorGraph(Model):
     Returns:
       y_pred: numpy ndarray of shape (n_samples,)
     """
-    if len(transformers) > 0:
-      raise ValueError("Tensorgraph does not support transformers")
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
     """
@@ -298,10 +299,8 @@ class TensorGraph(Model):
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
-    if len(transformers) > 0:
-      raise ValueError("Tensorgraph does not support transformers")
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator)
+    return self.predict_proba_on_generator(generator, transformers)
 
   def topsort(self):
     return nx.topological_sort(self.nxgraph)
@@ -310,6 +309,7 @@ class TensorGraph(Model):
     if self.built:
       return
     with self._get_tf("Graph").as_default():
+      self._training_placeholder = tf.placeholder(dtype=tf.float32, shape=())
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
@@ -318,7 +318,7 @@ class TensorGraph(Model):
       for node in order:
         with tf.name_scope(node):
           node_layer = self.layers[node]
-          node_layer.create_tensor()
+          node_layer.create_tensor(training=self._training_placeholder)
       self.built = True
 
     for layer in self.layers.values():
@@ -344,6 +344,7 @@ class TensorGraph(Model):
     shapes = []
     pre_q_inputs = []
     q = InputFifoQueue(shapes, names, in_layers=pre_q_inputs)
+
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
       shapes.append(pre_q_input.shape)
@@ -365,6 +366,14 @@ class TensorGraph(Model):
     self._add_layer(layer)
     self.outputs.append(layer)
 
+  def set_optimizer(self, optimizer):
+    """Set the optimizer to use for fitting.
+
+    The argument should be a callable object (most often a TFWrapper) that constructs
+    a Tensorflow optimizer when called.
+    """
+    self.optimizer = optimizer
+
   def save(self):
     # Remove out_tensor from the object to be pickled
     must_restore = False
@@ -376,6 +385,8 @@ class TensorGraph(Model):
       for node in self.topsort():
         node_layer = self.layers[node]
         out_tensors.append(node_layer.none_tensors())
+      training_placeholder = self._training_placeholder
+      self._training_placeholder = None
       self.built = False
 
     # Pickle itself
@@ -388,6 +399,7 @@ class TensorGraph(Model):
       for index, node in enumerate(self.topsort()):
         node_layer = self.layers[node]
         node_layer.set_tensors(out_tensors[index])
+      self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
 
@@ -437,9 +449,8 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'train_op':
-      self.tensor_objects['train_op'] = tf.train.AdamOptimizer(
-          self.learning_rate, beta1=.9,
-          beta2=.999).minimize(self.loss.out_tensor)
+      self.tensor_objects['train_op'] = self.optimizer().minimize(
+          self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
@@ -500,6 +511,7 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     num_samples = 0
     for feed_dict in generator:
       enq = {}
+      enq[tg._training_placeholder] = 1.0
       for layer in tg.features + tg.labels + tg.task_weights:
         enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
@@ -513,23 +525,27 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
     coord.request_stop()
 
 
-class MultiTaskTensorGraph(TensorGraph):
-  """
-  Class created for legacy sake
-  Assumes y is a vector of booleans representing
-  classification metrics
+class TFWrapper(object):
+  """This class exists as a workaround for Tensorflow objects not being picklable.
+
+  The job of a TFWrapper is to create Tensorflow objects by passing defined arguments
+  to a constructor.  There are cases where we really want to store Tensorflow objects
+  of various sorts (optimizers, initializers, etc.), but we can't because they cannot
+  be pickled.  So instead we store a TFWrapper that creates the object when needed.
   """
 
-  def __init__(self, **kwargs):
-    super(MultiTaskTensorGraph, self).__init__(**kwargs)
+  def __init__(self, tf_class, **kwargs):
+    """Create a TFWrapper for constructing a Tensorflow object.
 
-  def _construct_feed_dict(self, X_b, y_b, w_b, ids_b):
-    feed_dict = dict()
-    if y_b is not None:
-      for index, label in enumerate(self.labels):
-        feed_dict[label.out_tensor] = to_one_hot(y_b[:, index])
-    if self.task_weights is not None and w_b is not None:
-      feed_dict[self.task_weights.out_tensor] = w_b
-    if self.features is not None:
-      feed_dict[self.features[0].out_tensor] = X_b
-    return feed_dict
+    Parameters
+    ----------
+    tf_class: class
+      the type of object to create
+    kwargs:
+      any other arguments will be passed on to the object's constructor
+    """
+    self.tf_class = tf_class
+    self.kwargs = kwargs
+
+  def __call__(self):
+    return self.tf_class(**self.kwargs)

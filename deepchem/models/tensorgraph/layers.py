@@ -39,7 +39,7 @@ class Layer(object):
   def set_tensors(self, tensor):
     self.out_tensor = tensor
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     raise NotImplementedError("Subclasses must implement for themselves")
 
   def __key(self):
@@ -80,7 +80,7 @@ class TensorWrapper(Layer):
     self.out_tensor = out_tensor
     super(TensorWrapper, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
     pass
 
@@ -106,7 +106,7 @@ class Conv1D(Layer):
     self.out_tensor = None
     super(Conv1D, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -150,7 +150,7 @@ class Dense(Layer):
       scope_name = self.name
     self.scope_name = scope_name
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -197,7 +197,7 @@ class Flatten(Layer):
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -219,7 +219,7 @@ class Reshape(Layer):
     self.shape = shape
     super(Reshape, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -234,7 +234,7 @@ class Transpose(Layer):
     super(Transpose, self).__init__(**kwargs)
     self.perm = perm
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -249,7 +249,7 @@ class CombineMeanStd(Layer):
   def __init__(self, **kwargs):
     super(CombineMeanStd, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -269,7 +269,7 @@ class Repeat(Layer):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -290,7 +290,7 @@ class GRU(Layer):
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -315,7 +315,7 @@ class TimeSeriesDense(Layer):
     self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -337,7 +337,7 @@ class Input(Layer):
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -380,13 +380,14 @@ class L2Loss(Layer):
   def __init__(self, **kwargs):
     super(L2Loss, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     guess, label = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_mean(
-        tf.square(guess.out_tensor - label.out_tensor))
+        tf.square(guess.out_tensor - label.out_tensor),
+        axis=list(range(1, len(label.out_tensor.shape))))
     return self.out_tensor
 
 
@@ -395,7 +396,7 @@ class SoftMax(Layer):
   def __init__(self, **kwargs):
     super(SoftMax, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -412,7 +413,7 @@ class Concat(Layer):
     self.axis = axis
     super(Concat, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -434,7 +435,7 @@ class InteratomicL2Distances(Layer):
     self.ndim = ndim
     super(InteratomicL2Distances, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -458,7 +459,7 @@ class SoftMaxCrossEntropy(Layer):
   def __init__(self, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -477,7 +478,7 @@ class ReduceMean(Layer):
     self.axis = axis
     super(ReduceMean, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -493,7 +494,7 @@ class ReduceMean(Layer):
 
 class ToFloat(Layer):
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -509,7 +510,7 @@ class ReduceSum(Layer):
     self.axis = axis
     super(ReduceSum, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -529,7 +530,7 @@ class ReduceSquareDifference(Layer):
     self.axis = axis
     super(ReduceSquareDifference, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -547,7 +548,7 @@ class Conv2D(Layer):
     self.kernel_size = kernel_size
     super(Conv2D, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -575,7 +576,7 @@ class MaxPool(Layer):
     self.padding = padding
     super(MaxPool, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -597,7 +598,7 @@ class InputFifoQueue(Layer):
     self.capacity = capacity
     super(InputFifoQueue, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -636,7 +637,7 @@ class GraphConv(Layer):
     self.activation_fn = activation_fn
     super(GraphConv, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -742,7 +743,7 @@ class GraphPool(Layer):
     self.max_degree = max_degree
     super(GraphPool, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -792,7 +793,7 @@ class GraphGather(Layer):
     self.activation_fn = activation_fn
     super(GraphGather, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -834,7 +835,7 @@ class GraphGather(Layer):
 
 class BatchNorm(Layer):
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -846,7 +847,7 @@ class BatchNorm(Layer):
 
 class WeightedError(Layer):
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -924,7 +925,7 @@ class VinaFreeEnergy(Layer):
     out_tensor = tf.exp(-((d - 3) / 2)**2)
     return out_tensor
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """
     Parameters
     ----------
@@ -980,7 +981,7 @@ class WeightedLinearCombo(Layer):
     self.std = std
     super(WeightedLinearCombo, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -1032,7 +1033,7 @@ class NeighborList(Layer):
     self.stop = stop
     super(NeighborList, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """Creates tensors associated with neighbor-listing."""
     if in_layers is None:
       in_layers = self.in_layers
@@ -1285,6 +1286,53 @@ class NeighborList(Layer):
                                                               self.ndim)))
 
 
+class Dropout(Layer):
+
+  def __init__(self, dropout_prob, **kwargs):
+    self.dropout_prob = dropout_prob
+    super(Dropout, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
+    keep_prob = 1.0 - self.dropout_prob * kwargs['training']
+    self.out_tensor = tf.nn.dropout(parent_tensor, keep_prob)
+    return self.out_tensor
+
+
+class WeightDecay(Layer):
+  """Apply a weight decay penalty.
+
+  The input should be the loss value.  This layer adds a weight decay penalty to it
+  and outputs the sum.
+  """
+
+  def __init__(self, penalty, penalty_type, **kwargs):
+    """Create a weight decay penalty layer.
+
+    Parameters
+    ----------
+    penalty: float
+      magnitude of the penalty term
+    penalty_type: str
+      type of penalty to compute, either 'l1' or 'l2'
+    """
+    self.penalty = penalty
+    self.penalty_type = penalty_type
+    super(WeightDecay, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    parent_tensor = in_layers[0].out_tensor
+    self.out_tensor = parent_tensor + model_ops.weight_decay(self.penalty_type,
+                                                             self.penalty)
+    return self.out_tensor
+
+
 class AtomicConvolution(Layer):
 
   def __init__(self,
@@ -1313,7 +1361,7 @@ class AtomicConvolution(Layer):
     self.atom_types = atom_types
     super(AtomicConvolution, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None):
+  def create_tensor(self, in_layers=None, **kwargs):
     """
     Parameters
     ----------
