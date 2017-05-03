@@ -386,7 +386,8 @@ class L2Loss(Layer):
     in_layers = convert_to_layers(in_layers)
     guess, label = in_layers[0], in_layers[1]
     self.out_tensor = tf.reduce_mean(
-        tf.square(guess.out_tensor - label.out_tensor))
+        tf.square(guess.out_tensor - label.out_tensor),
+        axis=list(range(1, len(label.out_tensor.shape))))
     return self.out_tensor
 
 

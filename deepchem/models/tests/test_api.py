@@ -182,3 +182,45 @@ class TestAPI(unittest.TestCase):
     # Eval model on train/test
     _ = model.evaluate(train_dataset, classification_metrics, transformers)
     _ = model.evaluate(test_dataset, classification_metrics, transformers)
+
+  def test_singletask_tg_mlp_ECFP_classification_API(self):
+    """Test of TensorGraph singletask deepchem classification API."""
+    n_features = 1024
+    featurizer = dc.feat.CircularFingerprint(size=n_features)
+
+    tasks = ["outcome"]
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "example_classification.csv")
+
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    splitter = dc.splits.ScaffoldSplitter()
+    train_dataset, test_dataset = splitter.train_test_split(dataset)
+
+    transformers = [
+        dc.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)
+    ]
+
+    for dataset in [train_dataset, test_dataset]:
+      for transformer in transformers:
+        dataset = transformer.transform(dataset)
+
+    classification_metrics = [
+        dc.metrics.Metric(dc.metrics.roc_auc_score),
+        dc.metrics.Metric(dc.metrics.matthews_corrcoef),
+        dc.metrics.Metric(dc.metrics.recall_score),
+        dc.metrics.Metric(dc.metrics.accuracy_score)
+    ]
+
+    model = dc.models.TensorGraphMultiTaskClassifier(len(tasks), n_features)
+
+    # Fit trained model
+    model.fit(train_dataset)
+    model.save()
+
+    # Eval model on train/test
+    _ = model.evaluate(train_dataset, classification_metrics, transformers)
+    _ = model.evaluate(test_dataset, classification_metrics, transformers)
