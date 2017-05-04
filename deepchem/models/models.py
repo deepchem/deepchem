@@ -16,6 +16,7 @@ import joblib
 import os
 import tempfile
 import sklearn
+from sklearn.base import BaseEstimator
 
 from deepchem.data import Dataset, pad_features
 from deepchem.trans import undo_transforms
@@ -25,7 +26,7 @@ from deepchem.utils.save import log
 from deepchem.utils.evaluate import Evaluator
 
 
-class Model(object):
+class Model(BaseEstimator):
   """
   Abstract base class for different ML models.
   """
@@ -162,7 +163,7 @@ class Model(object):
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
     """
     Evaluates the performance of this model on specified dataset.
-  
+
     Parameters
     ----------
     dataset: dc.data.Dataset
