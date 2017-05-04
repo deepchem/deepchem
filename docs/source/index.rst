@@ -19,7 +19,7 @@ documentation live on Github_.
 
 Licensing and Commercial Uses
 -----------------------------
-DeepChem is licensed under the GNU GPL (v3.0 or later). We actively support
+DeepChem is licensed under the MIT License. We actively support
 commercial users. Note that any novel molecular entities found through DeepChem
 belong entirely to the user and not to DeepChem developers.
 
