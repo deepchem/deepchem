@@ -823,11 +823,6 @@ def fully_connected_layer(tensor,
   ValueError
     If input tensor is not 2D.
   """
-  ###################################################### DEBUG
-  #print("fully_connected_layer")
-  #print("tensor")
-  #print(tensor)
-  ###################################################### DEBUG
   if weight_init is None:
     num_features = tensor.get_shape()[-1].value
     weight_init = tf.truncated_normal([num_features, size], stddev=0.01)
