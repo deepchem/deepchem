@@ -25,13 +25,16 @@ class Combine_AP(Layer):
   def __init__(self, **kwargs):
     super(Combine_AP, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     A = in_layers[0].out_tensor
     P = in_layers[1].out_tensor
-    self.out_tensor = [A, P]
+    out_tensor = [A, P]
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class Separate_AP(Layer):
@@ -39,11 +42,14 @@ class Separate_AP(Layer):
   def __init__(self, **kwargs):
     super(Separate_AP, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-    self.out_tensor = in_layers[0].out_tensor[0]
+    out_tensor = in_layers[0].out_tensor[0]
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class WeaveLayer(Layer):
@@ -108,6 +114,9 @@ class WeaveLayer(Layer):
 
   def build(self):
     """ Construct internal trainable weights.
+
+    TODO(rbharath): Need to make this not set instance variables to
+    follow style in other layers.
     """
 
     self.W_AA = self.init([self.n_atom_input_feat, self.n_hidden_AA])
@@ -147,7 +156,7 @@ class WeaveLayer(Layer):
       self.trainable_weights.extend(
           [self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P])
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ description and explanation refer to deepchem.nn.WeaveLayer
     parent layers: [atom_features, pair_features], pair_split, atom_to_pair
     """
@@ -190,7 +199,11 @@ class WeaveLayer(Layer):
       P = self.activation(P)
     else:
       P = pair_features
-    self.out_tensor = [A, P]
+    out_tensor = [A, P]
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class WeaveGather(Layer):
@@ -241,7 +254,7 @@ class WeaveGather(Layer):
     else:
       self.trainable_weights = None
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ description and explanation refer to deepchem.nn.WeaveGather
     parent layers: atom_features, atom_split
     """
@@ -261,7 +274,11 @@ class WeaveGather(Layer):
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
-    self.out_tensor = output_molecules
+    out_tensor = output_molecules
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
   def gaussian_histogram(self, x):
     gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170), (-0.739, 0.134),
@@ -312,7 +329,7 @@ class DTNNEmbedding(Layer):
         [self.periodic_table_length, self.n_embedding])
     self.trainable_weights = [self.embedding_list]
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNEmbedding
     parent layers: atom_number
     """
@@ -406,7 +423,11 @@ class DTNNStep(Layer):
     # for atom i, sum the influence from all other atom j in the molecule
     outputs = tf.segment_sum(outputs,
                              distance_membership_i) - output_ii + atom_features
-    self.out_tensor = outputs
+    out_tensor = outputs
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class DTNNGather(Layer):
@@ -461,7 +482,7 @@ class DTNNGather(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNGather
     parent layers: atom_features, atom_membership
     """
@@ -476,7 +497,11 @@ class DTNNGather(Layer):
       output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
     output = tf.segment_sum(output, atom_membership)
-    self.out_tensor = output
+    out_tensor = output
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class DAGLayer(Layer):
@@ -548,7 +573,7 @@ class DAGLayer(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """description and explanation refer to deepchem.nn.DAGLayer
     parent layers: atom_features, parents, calculation_orders, calculation_masks, n_atoms
     """
@@ -614,7 +639,11 @@ class DAGLayer(Layer):
       graph_features = tf.scatter_nd_update(graph_features, target_index,
                                             batch_outputs)
 
-    self.out_tensor = batch_outputs
+    out_tensor = batch_outputs
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
   def DAGgraph_step(self, batch_inputs, W_list, b_list):
     outputs = batch_inputs
@@ -686,7 +715,7 @@ class DAGGather(Layer):
 
     self.trainable_weights = self.W_list + self.b_list
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """description and explanation refer to deepchem.nn.DAGGather
     parent layers: atom_features, membership
     """
@@ -704,7 +733,11 @@ class DAGGather(Layer):
     graph_features = tf.segment_sum(atom_features, membership)
     # sum all graph outputs
     outputs = self.DAGgraph_step(graph_features, self.W_list, self.b_list)
-    self.out_tensor = outputs
+    out_tensor = outputs
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
 
   def DAGgraph_step(self, batch_inputs, W_list, b_list):
     outputs = batch_inputs
