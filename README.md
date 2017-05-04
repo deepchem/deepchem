@@ -10,7 +10,10 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 ### Table of contents:
 
 * [Requirements](#requirements)
-* [Installation from Source](#installation)
+* [Installation](#installation)
+    * [Conda Environment](#using-a-conda-environment)
+    * [Direct from Source](#installing-dependencies-manually)
+    * [Docker](#using-a-docker-image)
 * [FAQ](#faq)
 * [Getting Started](#getting-started)
     * [Input Formats](#input-formats)
@@ -154,18 +157,6 @@ import deepchem as dc
    conda install nomkl numpy scipy scikit-learn numexpr
    conda remove mkl mkl-service
    ```
-2. Question: The test suite is core-dumping for me. What's up?
-   ```
-   [rbharath]$ nosetests -v deepchem --nologcapture
-   Illegal instruction (core dumped)
-   ```
-
-   Answer: This is often due to `openbabel` issues on older linux systems. Open `ipython` and run the following
-   ```
-   In [1]: import openbabel as ob
-   ```
-   If you see a core-dump, then it's a sign there's an issue with your `openbabel` install. Try reinstalling `openbabel` from source for your machine.
-
 
 ## Getting Started
 The first step to getting started is looking at the examples in the `examples/` directory. Try running some of these examples on your system and verify that the models train successfully. Afterwards, to apply `deepchem` to a new problem, try starting from one of the existing examples and modifying it step by step to work with your new use-case.
@@ -709,4 +700,4 @@ DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanf
 
 
 ## Version
-1.0.1
+1.1.0
