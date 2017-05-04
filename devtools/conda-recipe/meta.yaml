@@ -1,16 +1,14 @@
 package:
   name: deepchem
-  version: "0.0.4"
+  version: {{ GIT_DESCRIBE_TAG }} 
 
 source:
-    git_url: https://github.com/pandegroup/deepchem/
-    git_tag: 0.0.4
+  path: ../../
 
 build:
   number: 0
   skip:
     - [osx or win]
-    - [py3k]
 
 
 requirements:
@@ -21,10 +19,10 @@ requirements:
     - scipy
     - pandas
     - scikit-learn
+    - networkx
+    - tensorflow
     - keras
-    - theano ==0.7.2
     - rdkit
-    - openbabel 
     - joblib
     - pbr
     - h5py
@@ -36,10 +34,13 @@ requirements:
     - scipy
     - pandas
     - scikit-learn
+    - networkx
+    - tensorflow
+    - py-xgboost
     - keras
-    - theano ==0.7.2
     - rdkit
-    - openbabel 
+    - mdtraj
+    - pdbfixer
     - joblib
     - pbr
     - h5py
