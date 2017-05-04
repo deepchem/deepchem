@@ -481,7 +481,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .8
+    assert scores[classification_metric.name] > .7
 
   def test_sklearn_multitask_classification_overfit(self):
     """Test SKLearn singletask-to-multitask overfits tiny data."""
