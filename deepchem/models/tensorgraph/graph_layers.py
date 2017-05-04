@@ -392,7 +392,7 @@ class DTNNStep(Layer):
         self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
     ]
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """description and explanation refer to deepchem.nn.DTNNStep
     parent layers: atom_features, distance, distance_membership_i, distance_membership_j
     """
