@@ -25,7 +25,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
     * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
 * [Corporate Supporters](#corporate-supporters)
-    * [Schrodinger](#schrodinger)
+    * [Schrödinger](#schrödinger)
     * [Deep Crystal](#deep-crystal)
 * [Examples](/examples)
 * [About Us](#about-us)
