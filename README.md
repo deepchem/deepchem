@@ -24,6 +24,9 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
     * [Documentation Style Guidelines](#documentation-style-guidelines)
     * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
+* [Corporate Supporters](#corporate-supporters)
+    * [Schrodinger](#schrodinger)
+    * [Deep Crystal](#deep-crystal)
 * [Examples](/examples)
 * [About Us](#about-us)
 
@@ -697,6 +700,19 @@ Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 
 ## About Us
 DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanford. DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/), and has grown through the contributions of a number of undergraduate, graduate, and postdoctoral researchers working with the Pande lab.
+
+## Corporate Supporters
+DeepChem is supported by a number of corporate partners who use DeepChem to solve interesting problems.
+
+### Schrodinger
+![alt text](https://github.com/deepchem/deepchem/raw/master/docs/_static/schrodinger_logo.png "Schrodinger Logo")
+
+> DeepChem has transformed how we think about building QSAR and QSPR models when very large data sets are available; and we are actively using DeepChem to investigate how to best combine the power of deep learning with next generation physics-based scoring methods.
+
+### Deep Crystal
+<img src="https://raw.githubusercontent.com/deepchem/deepchem/master/docs/_static/deep_crystal_logo.png" alt="DeepCrystal Logo" height=150px/>
+
+> DeepCrystal was an early adopter of DeepChem, which we now rely on to abstract away some of the hardest pieces of deep learning in drug discovery. By open sourcing these efficient implementations of chemically / biologically aware deep-learning systems, DeepChem puts the latest research into the hands of the scientists that need it, materially pushing forward the field of in-silico drug discovery in the process.
 
 
 ## Version
