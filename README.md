@@ -25,7 +25,7 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
     * [Gitter](#gitter)
 * [DeepChem Publications](#deepchem-publications)
 * [Corporate Supporters](#corporate-supporters)
-    * [Schrodinger](#schrodinger)
+    * [Schrödinger](#schrödinger)
     * [Deep Crystal](#deep-crystal)
 * [Examples](/examples)
 * [About Us](#about-us)
@@ -704,8 +704,8 @@ DeepChem is a package by the [Pande group](https://pande.stanford.edu/) at Stanf
 ## Corporate Supporters
 DeepChem is supported by a number of corporate partners who use DeepChem to solve interesting problems.
 
-### Schrodinger
-![alt text](https://github.com/deepchem/deepchem/raw/master/docs/_static/schrodinger_logo.png "Schrodinger Logo")
+### Schrödinger
+[![Schödinger](https://github.com/deepchem/deepchem/raw/master/docs/_static/schrodinger_logo.png)](https://www.schrodinger.com/)
 
 > DeepChem has transformed how we think about building QSAR and QSPR models when very large data sets are available; and we are actively using DeepChem to investigate how to best combine the power of deep learning with next generation physics-based scoring methods.
 
