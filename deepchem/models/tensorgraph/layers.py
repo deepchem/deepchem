@@ -190,7 +190,10 @@ class Dense(Layer):
     if len(in_layers) != 1:
       raise ValueError("Only One Parent to Dense over %s" % in_layers)
     parent = in_layers[0]
-    biases_initializer = None if self.biases_initializer is None else self.biases_initializer()
+    if self.biases_initializer is None:
+      biases_initializer = None
+    else:
+      biases_initializer = self.biases_initializer()
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
           parent.out_tensor,
