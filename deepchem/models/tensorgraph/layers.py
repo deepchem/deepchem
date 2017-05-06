@@ -146,6 +146,31 @@ class Dense(Layer):
       scope_name=None,
       reuse=False,
       **kwargs):
+    """Create a dense layer.
+
+    The weight and bias initializers are specified by callable objects that construct
+    and return a Tensorflow initializer when invoked with no arguments.  This will typically
+    be either the initializer class itself (if the constructor does not require arguments),
+    or a TFWrapper (if it does).
+
+    Parameters
+    ----------
+    out_channels: int
+      the number of output values
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
+    time_series: bool
+      if True, the dense layer is applied to each element of a batch in sequence
+    scope_name: str
+      an optional scope name for the layer's variables
+    reuse: bool
+      whether or not the layer and its variables should be reused
+    """
     super(Dense, self).__init__(**kwargs)
     self.out_channels = out_channels
     self.out_tensor = None
@@ -165,12 +190,13 @@ class Dense(Layer):
     if len(in_layers) != 1:
       raise ValueError("Only One Parent to Dense over %s" % in_layers)
     parent = in_layers[0]
+    biases_initializer = None if self.biases_initializer is None else self.biases_initializer()
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
           parent.out_tensor,
           num_outputs=self.out_channels,
           activation_fn=self.activation_fn,
-          biases_initializer=self.biases_initializer(),
+          biases_initializer=biases_initializer,
           weights_initializer=self.weights_initializer(),
           scope=self.scope_name,
           reuse=self.reuse,
@@ -179,7 +205,7 @@ class Dense(Layer):
     dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
                                                            num_outputs=self.out_channels,
                                                            activation_fn=self.activation_fn,
-                                                           biases_initializer=self.biases_initializer(),
+                                                           biases_initializer=biases_initializer,
                                                            weights_initializer=self.weights_initializer(),
                                                            scope=self.scope_name,
                                                            reuse=self.reuse,
