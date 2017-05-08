@@ -142,7 +142,6 @@ CheckFeaturizer = {
     ('kaggle', 'rf_regression'): [None, 14293],
     ('pdbbind', 'tf_regression'): ['grid', 2052],
     ('pdbbind', 'rf_regression'): ['grid', 2052],
-    ('pdbbind', 'graphconvreg'): ['GraphConv', 75],
     ('qm7', 'tf_regression'): ['ECFP', 1024],
     ('qm7', 'rf_regression'): ['ECFP', 1024],
     ('qm7', 'graphconvreg'): ['GraphConv', 75],
