@@ -60,7 +60,7 @@ hps['graphconv'] = {
 }
 hps['dag'] = {
     'batch_size': 64,
-    'nb_epoch': 50,
+    'nb_epoch': 100,
     'learning_rate': 0.001,
     'n_graph_feat': 30,
     'default_max_atoms': 60,
@@ -135,7 +135,7 @@ hps['dtnn'] = {
 }
 hps['dag_regression'] = {
     'batch_size': 64,
-    'nb_epoch': 50,
+    'nb_epoch': 100,
     'learning_rate': 0.001,
     'n_graph_feat': 30,
     'default_max_atoms': 60,
