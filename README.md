@@ -101,7 +101,7 @@ via this installation procedure.
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    pip install tensorflow-gpu==1.0.1
+    pip install tensorflow-gpu
     ```
 
 9. `deepchem`: Clone the `deepchem` github repo:
