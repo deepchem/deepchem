@@ -31,6 +31,7 @@ conda install -y -c omnia mdtraj
 conda install -y scikit-learn
 conda install -y setuptools
 conda install -y -c conda-forge keras=1.2.2
+conda install -c anaconda pandas=0.19.2
 yes | pip install --upgrade $protobuf_url
 yes | pip install --upgrade $protobuf_url
 conda install -y -c anaconda networkx=1.11
