@@ -11,10 +11,10 @@ class Layer(object):
   layer_number_dict = {}
 
   def __init__(self, in_layers=None, **kwargs):
-    if "name" not in kwargs:
-      self.name = "%s_%s" % (self.__class__.__name__, self._get_layer_number())
-    else:
+    if "name" in kwargs:
       self.name = kwargs['name']
+    else:
+      self.name = None
     if "tensorboard" not in kwargs:
       self.tensorboard = False
     else:
@@ -179,8 +179,6 @@ class Dense(Layer):
     self.weights_initializer = weights_initializer
     self.time_series = time_series
     self.reuse = reuse
-    if scope_name is None:
-      scope_name = self.name
     self.scope_name = scope_name
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -194,6 +192,10 @@ class Dense(Layer):
       biases_initializer = None
     else:
       biases_initializer = self.biases_initializer()
+    if self.scope_name is None:
+      scope_name = self.name
+    else:
+      scope_name = self.scope_name
     if not self.time_series:
       self.out_tensor = tf.contrib.layers.fully_connected(
           parent.out_tensor,
@@ -201,7 +203,7 @@ class Dense(Layer):
           activation_fn=self.activation_fn,
           biases_initializer=biases_initializer,
           weights_initializer=self.weights_initializer(),
-          scope=self.scope_name,
+          scope=scope_name,
           reuse=self.reuse,
           trainable=True)
       return self.out_tensor

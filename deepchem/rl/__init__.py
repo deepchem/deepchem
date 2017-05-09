@@ -9,6 +9,10 @@ class Environment(object):
   is concerned, they are simply arbitrary objects.  The environment also computes
   a reward for each action, and reports when the task has been terminated
   (meaning that no more actions may be taken.
+
+  Environment objects should be written to support pickle and deepcopy operations.
+  Many algorithms involve creating multiple copies of the Environment, possibly
+  running in different processes or even on different computers.
   """
 
   def __init__(self, state_shape, n_actions):
@@ -71,11 +75,12 @@ class Environment(object):
 
 
 class GymEnvironment(Environment):
-  """This is a convenient class for working with environments from OpenAI Gym."""
+  """This is a convenience class for working with environments from OpenAI Gym."""
   def __init__(self, name):
     """Create an Environment wrapping the OpenAI Gym environment with a specified name."""
     import gym
     self.env = gym.make(name)
+    self.name = name
     super().__init__(self.env.observation_space.shape, self.env.action_space.n)
 
   def reset(self):
@@ -85,6 +90,9 @@ class GymEnvironment(Environment):
   def step(self, action):
     self._state, reward, self._terminated, info = self.env.step(action)
     return reward
+
+  def __deepcopy__(self, memo):
+    return GymEnvironment(self.name)
 
 
 class Policy(object):
