@@ -15,8 +15,8 @@ def load_permeability(featurizer='ECFP', split='index'):
   """Load membrain permeability datasets. Does not do train/test split"""
   print("About to load membrain permeability dataset.")
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  dataset_file = os.path.join(
-    current_dir, "../../datasets/membrane_permeability.sdf")
+  dataset_file = os.path.join(current_dir,
+                              "../../datasets/membrane_permeability.sdf")
   # Featurize permeability dataset
   print("About to featurize membrain permeability dataset.")
 
@@ -28,12 +28,14 @@ def load_permeability(featurizer='ECFP', split='index'):
   permeability_tasks = sorted(['LogP(RRCK)'])
 
   loader = dc.data.SDFLoader(
-    tasks=permeability_tasks, clean_mols=True, featurizer=featurizer_func)
+      tasks=permeability_tasks, clean_mols=True, featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file)
 
-  splitters = {'index': dc.splits.IndexSplitter(),
-               'random': dc.splits.RandomSplitter(),
-               'scaffold': dc.splits.ScaffoldSplitter()}
+  splitters = {
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter(),
+      'scaffold': dc.splits.ScaffoldSplitter()
+  }
   splitter = splitters[split]
   train, valid, test = splitter.train_valid_test_split(dataset)
   return permeability_tasks, (train, valid, test), []

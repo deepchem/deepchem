@@ -13,7 +13,8 @@ import deepchem as dc
 from membrain_permeability_datasets import load_permeability
 
 # Load Tox21 dataset
-permeability_tasks, permeability_datasets, transformers = load_permeability(featurizer='GraphConv')
+permeability_tasks, permeability_datasets, transformers = load_permeability(
+    featurizer='GraphConv')
 train_dataset, valid_dataset, test_dataset = permeability_datasets
 
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
@@ -34,13 +35,13 @@ valid_dataset.reshard(reshard_size)
 valid_dataset = transformer.transform(valid_dataset)
 
 model = dc.models.DAGTensorGraph(
-  len(permeability_tasks),
-  max_atoms=max_atoms,
-  n_atom_feat=n_atom_feat,
-  batch_size=batch_size,
-  learning_rate=1e-3,
-  use_queue=False,
-  mode='regression')
+    len(permeability_tasks),
+    max_atoms=max_atoms,
+    n_atom_feat=n_atom_feat,
+    batch_size=batch_size,
+    learning_rate=1e-3,
+    use_queue=False,
+    mode='regression')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=50)
@@ -53,4 +54,3 @@ print(train_scores)
 
 print("Validation scores")
 print(valid_scores)
-
