@@ -30,7 +30,7 @@ def convert_df_to_numpy(df, tasks, verbose=False):
 
   time1 = time.time()
   y = np.hstack(
-      [np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
+    [np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks])
   time2 = time.time()
 
   w = np.ones((n_samples, n_tasks))
@@ -75,7 +75,7 @@ def featurize_smiles_df(df, featurizer, field, log_every_N=1000, verbose=True):
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
   valid_inds = np.array(
-      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+    [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
 
@@ -98,7 +98,7 @@ def get_user_specified_features(df, featurizer, verbose=True):
   """
   time1 = time.time()
   df[featurizer.feature_fields] = df[featurizer.feature_fields].apply(
-      pd.to_numeric)
+    pd.to_numeric)
   X_shard = df.as_matrix(columns=featurizer.feature_fields)
   time2 = time.time()
   log("TIMING: user specified processing took %0.3f s" % (time2 - time1),
@@ -123,7 +123,7 @@ def featurize_mol_df(df, featurizer, field, verbose=True, log_every_N=1000):
       log("Featurizing sample %d" % ind, verbose)
     features.append(featurizer.featurize([mol]))
   valid_inds = np.array(
-      [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
+    [1 if elt.size > 0 else 0 for elt in features], dtype=bool)
   features = [elt for (is_valid, elt) in zip(valid_inds, features) if is_valid]
   return np.squeeze(np.array(features)), valid_inds
 
@@ -171,7 +171,7 @@ class DataLoader(object):
 
     def shard_generator():
       for shard_num, shard in enumerate(
-          self.get_shards(input_files, shard_size)):
+        self.get_shards(input_files, shard_size)):
         time1 = time.time()
         X, valid_inds = self.featurize_shard(shard)
         ids = shard[self.id_field].values
@@ -194,7 +194,7 @@ class DataLoader(object):
         yield X, y, w, ids
 
     return DiskDataset.create_dataset(
-        shard_generator(), data_dir, self.tasks, verbose=self.verbose)
+      shard_generator(), data_dir, self.tasks, verbose=self.verbose)
 
   def get_shards(self, input_files, shard_size):
     """Stub for children classes."""
@@ -240,9 +240,16 @@ class SDFLoader(DataLoader):
   Handles loading of SDF files.
   """
 
+  def __init__(self, clean_mols=False, **kwargs):
+    super(SDFLoader, self).__init__(**kwargs)
+    self.clean_mols = clean_mols
+    self.smiles_field = "smiles"
+    self.mol_field = "mol"
+    self.id_field = "mol_id"
+
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
-    return load_sdf_files(input_files)
+    return load_sdf_files(input_files, self.clean_mols)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""
