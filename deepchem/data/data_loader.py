@@ -240,8 +240,8 @@ class SDFLoader(DataLoader):
   Handles loading of SDF files.
   """
 
-  def __init__(self, clean_mols=False, **kwargs):
-    super(SDFLoader, self).__init__(**kwargs)
+  def __init__(self, tasks, clean_mols=False, **kwargs):
+    super(SDFLoader, self).__init__(tasks, **kwargs)
     self.clean_mols = clean_mols
     self.smiles_field = "smiles"
     self.mol_field = "mol"
