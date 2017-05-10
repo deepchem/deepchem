@@ -240,9 +240,16 @@ class SDFLoader(DataLoader):
   Handles loading of SDF files.
   """
 
+  def __init__(self, tasks, clean_mols=False, **kwargs):
+    super(SDFLoader, self).__init__(tasks, **kwargs)
+    self.clean_mols = clean_mols
+    self.smiles_field = "smiles"
+    self.mol_field = "mol"
+    self.id_field = "smiles"
+
   def get_shards(self, input_files, shard_size):
     """Defines a generator which returns data for each shard"""
-    return load_sdf_files(input_files)
+    return load_sdf_files(input_files, self.clean_mols)
 
   def featurize_shard(self, shard):
     """Featurizes a shard of an input dataframe."""

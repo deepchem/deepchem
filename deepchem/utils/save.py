@@ -67,7 +67,7 @@ def load_data(input_files, shard_size=None, verbose=True):
       yield load_pickle_from_disk(input_file)
 
 
-def load_sdf_files(input_files):
+def load_sdf_files(input_files, clean_mols):
   """Load SDF file into dataframe."""
   dataframes = []
   for input_file in input_files:
@@ -75,7 +75,7 @@ def load_sdf_files(input_files):
     raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
     # Structures are stored in .sdf file
     print("Reading structures from %s." % input_file)
-    suppl = Chem.SDMolSupplier(str(input_file), False, False, False)
+    suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
     df_rows = []
     for ind, mol in enumerate(suppl):
       if mol is not None:

@@ -57,6 +57,7 @@ from qm9.qm9_datasets import load_qm9
 from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 from hiv.hiv_datasets import load_hiv
+from membrane_permeability.membrane_permeability_datasets import load_permeability
 import xgboost
 
 
@@ -92,7 +93,7 @@ def benchmark_loading_datasets(hyper_parameters,
     mode = 'classification'
   elif dataset in [
       'kaggle', 'delaney', 'nci', 'pdbbind', 'chembl', 'qm7', 'qm7b', 'qm9',
-      'sampl'
+      'sampl', 'membrane_permeability'
   ]:
     mode = 'regression'
   else:
@@ -160,7 +161,8 @@ def benchmark_loading_datasets(hyper_parameters,
       'qm9': load_qm9,
       'sampl': load_sampl,
       'clintox': load_clintox,
-      'hiv': load_hiv
+      'hiv': load_hiv,
+      'membrane_permeability': load_permeability
   }
 
   print('-------------------------------------')
@@ -916,8 +918,8 @@ if __name__ == '__main__':
       dest='dataset_args',
       default=[],
       help='Choice of dataset: tox21, sider, muv, toxcast, pcba, ' +
-      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv'
-  )
+      'kaggle, delaney, nci, pdbbind, chembl, sampl, qm7, qm7b, qm9, clintox, hiv,'
+      ' membrane_permeability')
   parser.add_argument(
       '-t',
       action='store_true',
@@ -943,7 +945,8 @@ if __name__ == '__main__':
   if len(datasets) == 0:
     datasets = [
         'tox21', 'sider', 'muv', 'toxcast', 'pcba', 'clintox', 'hiv', 'sampl',
-        'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b', 'qm9'
+        'delaney', 'nci', 'kaggle', 'pdbbind', 'chembl', 'qm7b', 'qm9',
+        'membrane_permeability'
     ]
 
   #input hyperparameters
