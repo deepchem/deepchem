@@ -8,7 +8,7 @@ class Environment(object):
   a "state" or "action" is defined by each subclass.  As far as this interface
   is concerned, they are simply arbitrary objects.  The environment also computes
   a reward for each action, and reports when the task has been terminated
-  (meaning that no more actions may be taken.
+  (meaning that no more actions may be taken).
 
   Environment objects should be written to support pickle and deepcopy operations.
   Many algorithms involve creating multiple copies of the Environment, possibly

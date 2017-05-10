@@ -29,7 +29,7 @@ class A3C(object):
   """
   Implements the Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning.
 
-  This algorithm requires the policy to output two quantities: a vector giving the probably of
+  This algorithm requires the policy to output two quantities: a vector giving the probability of
   taking each action, and an estimate of the value function for the current state.  It optimizes
   both outputs at once using a loss that is the sum of three terms:
 
@@ -37,6 +37,9 @@ class A3C(object):
   2. The value loss, which tries to make the value estimate match the actual discounted reward
      that was attained at each step.
   3. An entropy term to encourage exploration.
+
+  This class only supports environments with discrete action spaces, not continuous ones.  The
+  "action" argument passed to the environment is an integer, giving the index of the action to perform.
   """
 
   def __init__(self, env, policy, max_rollout_length=20, discount_factor=0.99, value_weight=0.25, entropy_weight=0.01):
@@ -55,7 +58,7 @@ class A3C(object):
       the discount factor to use when computing rewards
     value_weight: float
       a scale factor for the value loss term in the loss function
-    entropy:weight: float
+    entropy_weight: float
       a scale factor for the entropy term in the loss function
     """
     self._env = env
@@ -65,6 +68,9 @@ class A3C(object):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.optimizer = TFWrapper(tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+    (self._graph, self._features, rewards, actions, self._action_prob, self._value) = self._build_graph(None, 'global')
+    with self._graph._get_tf("Graph").as_default():
+      self._session = tf.Session()
 
   def _build_graph(self, tf_graph, scope):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -86,54 +92,104 @@ class A3C(object):
     return graph, features, rewards, actions, action_prob, value
 
   def fit(self, total_steps):
-    (graph, features, rewards, actions, action_prob, value) = self._build_graph(None, 'global')
-    with graph._get_tf("Graph").as_default():
-      train_op = graph._get_tf('train_op')
-      with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        step_count = [0]
-        workers = []
-        threads = []
-        for i in range(multiprocessing.cpu_count()):
-          workers.append(Worker(self, graph, i))
-        for worker in workers:
-          thread = threading.Thread(name=worker.scope, target=lambda: worker.run(sess, step_count, total_steps))
-          threads.append(thread)
-          thread.start()
-        for thread in threads:
-          thread.join()
+    """Train the policy.
+
+    Parameters
+    ----------
+    total_steps: int
+      the total number of time steps to perform on the environment, across all rollouts
+      on all threads
+    """
+    with self._graph._get_tf("Graph").as_default():
+      train_op = self._graph._get_tf('train_op')
+      self._session.run(tf.global_variables_initializer())
+      step_count = [0]
+      workers = []
+      threads = []
+      for i in range(multiprocessing.cpu_count()):
+        workers.append(Worker(self, i))
+      for worker in workers:
+        thread = threading.Thread(name=worker.scope, target=lambda: worker.run(step_count, total_steps))
+        threads.append(thread)
+        thread.start()
+      for thread in threads:
+        thread.join()
+
+  def predict(self, state):
+    """Compute the policy's output predictions for a state.
+
+    Parameters
+    ----------
+    state: array
+      the state of the environment for which to generate predictions
+
+    Returns
+    -------
+    the array of action probabilities, and the estimated value function
+    """
+    with self._graph._get_tf("Graph").as_default():
+      feed_dict = {self._features.out_tensor: np.expand_dims(state, axis=0)}
+      return self._session.run([self._action_prob.out_tensor, self._value.out_tensor], feed_dict=feed_dict)
+
+  def select_action(self, state, deterministic=False):
+    """Select an action to perform based on the environment's state.
+
+    Parameters
+    ----------
+    state: array
+      the state of the environment for which to select an action
+    deterministic: bool
+      if True, always return the best action (that is, the one with highest probability).
+      If False, randomly select an action based on the computed probabilities.
+
+    Returns
+    -------
+    the index of the selected action
+    """
+    with self._graph._get_tf("Graph").as_default():
+      feed_dict = {self._features.out_tensor: np.expand_dims(state, axis=0)}
+      probabilities = self._session.run(self._action_prob.out_tensor, feed_dict=feed_dict)
+      if deterministic:
+        return probabilities.argmax()
+      else:
+        return np.random.choice(np.arange(self._env.n_actions), p=probabilities[0])
 
 
 class Worker(object):
-  def __init__(self, a3c, global_graph, index):
+  """A Worker object is created for each training thread."""
+
+  def __init__(self, a3c, index):
     self.a3c = a3c
     self.index = index
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(global_graph._get_tf('Graph'), self.scope)
-    local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
-    global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
-    gradients = tf.gradients(self.graph.loss.out_tensor, local_vars)
-    grads_and_vars = list(zip(gradients, global_vars))
-    self.train_op = global_graph._get_tf('Optimizer').apply_gradients(grads_and_vars)
-    self.update_local_variables = tf.group(*[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(a3c._graph._get_tf('Graph'), self.scope)
+    with a3c._graph._get_tf("Graph").as_default():
+      local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+      global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
+      gradients = tf.gradients(self.graph.loss.out_tensor, local_vars)
+      grads_and_vars = list(zip(gradients, global_vars))
+      self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(grads_and_vars)
+      self.update_local_variables = tf.group(*[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
-  def run(self, sess, step_count, total_steps):
+  def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
+      session = self.a3c._session
       while step_count[0] < total_steps:
-        sess.run(self.update_local_variables)
-        episode_states, episode_actions, episode_rewards = self.create_rollout(sess)
+        session.run(self.update_local_variables)
+        episode_states, episode_actions, episode_rewards = self.create_rollout()
         feed_dict = {}
         feed_dict[self.features.out_tensor] = episode_states
         feed_dict[self.rewards.out_tensor] = episode_rewards
         feed_dict[self.actions.out_tensor] = episode_actions
-        sess.run(self.train_op, feed_dict=feed_dict)
+        session.run(self.train_op, feed_dict=feed_dict)
         step_count[0] += len(episode_states)
 
-  def create_rollout(self, sess):
+  def create_rollout(self):
     """Generate a rollout."""
     n_actions = self.env.n_actions
+    session = self.a3c._session
     states = []
     actions = []
     scores = []
@@ -142,15 +198,15 @@ class Worker(object):
         break
       states.append(self.env.state)
       feed_dict = {self.features.out_tensor: np.expand_dims(self.env.state, axis=0)}
-      probabilities = sess.run(self.action_prob.out_tensor, feed_dict=feed_dict)
-      action = np.random.choice([0,1], p=probabilities[0])
+      probabilities = session.run(self.action_prob.out_tensor, feed_dict=feed_dict)
+      action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
       scores.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = {self.features.out_tensor: np.expand_dims(self.env.state, axis=0)}
-      scores[-1] += sess.run(self.value.out_tensor, feed_dict)
+      scores[-1] += session.run(self.value.out_tensor, feed_dict)
     for j in range(len(scores)-1, 0, -1):
       scores[j-1] += self.a3c.discount_factor*scores[j]
     if self.env.terminated:
