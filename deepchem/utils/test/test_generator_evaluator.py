@@ -12,7 +12,6 @@ from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
 class TestGeneratorEvaluator(TestCase):
 
-  @attr('slow')
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
     n_features = 2
@@ -65,7 +64,6 @@ class TestGeneratorEvaluator(TestCase):
     # Loosening atol to see if tests stop failing sporadically
     assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
 
-  @attr('slow')
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
     n_features = 10
@@ -116,7 +114,6 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.isclose(scores, [1.0], atol=0.05))
 
-  @attr('slow')
   def test_compute_model_performance_multitask_regressor(self):
     random_seed = 42
     n_data_points = 20
@@ -170,7 +167,6 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
 
-  @attr('slow')
   def test_compute_model_performance_singletask_regressor(self):
     n_data_points = 20
     n_features = 2

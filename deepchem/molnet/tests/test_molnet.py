@@ -1,17 +1,19 @@
 """
 Tests for molnet function 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
-import unittest
-import numpy as np
-import pandas as pd
-import deepchem as dc
-import tempfile
 import csv
+import tempfile
+import unittest
+
+import numpy as np
+import os
+from nose.tools import attr
+
+import deepchem as dc
 
 
 class TestMolnet(unittest.TestCase):
@@ -23,6 +25,7 @@ class TestMolnet(unittest.TestCase):
     super(TestMolnet, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
+  @attr('slow')
   def test_delaney_graphconvreg(self):
     """Tests molnet benchmarking on delaney with graphconvreg."""
     datasets = ['delaney']
@@ -45,6 +48,7 @@ class TestMolnet(unittest.TestCase):
       assert float(lastrow[-3]) > 0.75
     os.remove(os.path.join(out_path, 'results.csv'))
 
+  @attr('slow')
   def test_qm7_multitask(self):
     """Tests molnet benchmarking on qm7 with multitask network."""
     datasets = ['qm7']

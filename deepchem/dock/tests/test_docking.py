@@ -1,8 +1,8 @@
 """
 Tests for Docking 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
@@ -10,10 +10,8 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import unittest
-import tempfile
 import os
-import shutil
-import numpy as np
+from nose.tools import attr
 import sys
 import deepchem as dc
 
@@ -117,6 +115,7 @@ class TestDocking(unittest.TestCase):
     assert os.path.exists(protein_docked)
     assert os.path.exists(ligand_docked)
 
+  @attr('slow')
   def test_pocket_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
     if sys.version_info >= (3, 0):

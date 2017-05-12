@@ -12,8 +12,10 @@ export retval1=$?
 cd ..
 nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
 export retval2=$?
+nosetests -a 'slow' --with-timer deepchem --with-xunit -unit-file=slow_tests.xml|| true
+export retval3=$?
 
 source deactivate
 conda remove --name $envname --all
-export retval=$(($retval1 + $retval2))
+export retval=$(($retval1 + $retval2 + $retval3))
 exit ${retval}
