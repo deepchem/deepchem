@@ -1,5 +1,5 @@
 import numpy as np
-from nose.tools import assert_true
+from nose.tools import assert_true, with_setup
 from unittest import TestCase
 
 import deepchem as dc
@@ -9,9 +9,12 @@ from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftM
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
+def set_random_seeds():
+  np.random.seed(42)
 
 class TestGeneratorEvaluator(TestCase):
 
+  @with_setup(set_random_seeds)
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
     n_features = 2
@@ -64,6 +67,7 @@ class TestGeneratorEvaluator(TestCase):
     # Loosening atol to see if tests stop failing sporadically
     assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
 
+  @with_setup(set_random_seeds)
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
     n_features = 10
@@ -114,6 +118,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.isclose(scores, [1.0], atol=0.05))
 
+  @with_setup(set_random_seeds)
   def test_compute_model_performance_multitask_regressor(self):
     random_seed = 42
     n_data_points = 20
@@ -167,6 +172,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
 
+  @with_setup(set_random_seeds)
   def test_compute_model_performance_singletask_regressor(self):
     n_data_points = 20
     n_features = 2
