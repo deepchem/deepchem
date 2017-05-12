@@ -1,5 +1,6 @@
 import numpy as np
-from nose.tools import assert_true, attr
+from nose.tools import assert_true
+from nose.plugins.attrib import attr
 from unittest import TestCase
 
 import deepchem as dc

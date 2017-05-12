@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from nose.tools import assert_equals, attr
+from nose.tools import assert_equals
+from nose.plugins.attrib import attr
 from rdkit import Chem
 
 import deepchem as dc

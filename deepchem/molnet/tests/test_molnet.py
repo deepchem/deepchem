@@ -11,7 +11,8 @@ import unittest
 
 import numpy as np
 import os
-from nose.tools import attr
+from nose.plugins.attrib import attr
+
 
 import deepchem as dc
 
