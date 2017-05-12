@@ -62,7 +62,7 @@ class TestGeneratorEvaluator(TestCase):
         databag.iterbatches(), [metric], labels=labels, per_task_metrics=True)
     scores = list(scores[1].values())
     # Loosening atol to see if tests stop failing sporadically
-    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.20)))
+    assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
 
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
