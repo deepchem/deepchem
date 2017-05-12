@@ -1,25 +1,18 @@
 import numpy as np
-from nose.tools import assert_true, with_setup
+from nose.tools import assert_true, attr
 from unittest import TestCase
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, \
-  SoftMaxCrossEntropy, L2Loss
+from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2Loss
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
-
-RANDOM_SEED = 42
-
-
-def set_random_seeds():
-  np.random.seed(RANDOM_SEED)
 
 
 class TestGeneratorEvaluator(TestCase):
 
-  @with_setup(set_random_seeds)
+  @attr('slow')
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
     n_features = 2
@@ -55,7 +48,7 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1, random_seed=RANDOM_SEED)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -72,7 +65,7 @@ class TestGeneratorEvaluator(TestCase):
     # Loosening atol to see if tests stop failing sporadically
     assert_true(np.all(np.isclose(scores, [1.0, 1.0], atol=0.50)))
 
-  @with_setup(set_random_seeds)
+  @attr('slow')
   def test_compute_model_performance_singletask_classifier(self):
     n_data_points = 20
     n_features = 10
@@ -107,7 +100,7 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1, random_seed=RANDOM_SEED)
+    tg = dc.models.TensorGraph(learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -123,10 +116,12 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.isclose(scores, [1.0], atol=0.05))
 
-  @with_setup(set_random_seeds)
+  @attr('slow')
   def test_compute_model_performance_multitask_regressor(self):
+    random_seed = 42
     n_data_points = 20
     n_features = 2
+    np.random.seed(seed=random_seed)
 
     X = np.random.rand(n_data_points, n_features)
     y1 = np.expand_dims(np.array([0.5 for x in range(n_data_points)]), axis=-1)
@@ -157,7 +152,7 @@ class TestGeneratorEvaluator(TestCase):
     tg = dc.models.TensorGraph(
         mode="regression",
         batch_size=20,
-        random_seed=RANDOM_SEED,
+        random_seed=random_seed,
         learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
@@ -175,7 +170,7 @@ class TestGeneratorEvaluator(TestCase):
     scores = list(scores[1].values())
     assert_true(np.all(np.isclose(scores, [0.0, 0.0], atol=1.0)))
 
-  @with_setup(set_random_seeds)
+  @attr('slow')
   def test_compute_model_performance_singletask_regressor(self):
     n_data_points = 20
     n_features = 2
@@ -205,8 +200,7 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=losses)
 
-    tg = dc.models.TensorGraph(
-        mode="regression", learning_rate=0.1, random_seed=RANDOM_SEED)
+    tg = dc.models.TensorGraph(mode="regression", learning_rate=0.1)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
