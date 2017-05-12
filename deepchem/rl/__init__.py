@@ -1,5 +1,7 @@
 """Interface for reinforcement learning."""
 
+from deepchem.rl.a3c import A3C
+
 class Environment(object):
   """An environment in which an actor performs actions to accomplish a task.
 

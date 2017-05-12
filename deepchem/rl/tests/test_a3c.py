@@ -1,0 +1,62 @@
+import deepchem as dc
+from deepchem.models.tensorgraph.layers import Reshape, Dense, SoftMax
+import numpy as np
+import tensorflow as tf
+import unittest
+
+
+class TestA3C(unittest.TestCase):
+
+  def test_roulette(self):
+    """Test training a policy for the roulette environment."""
+
+    # This is modeled after the Roulette-v0 environment from OpenAI Gym.
+    # The player can bet on any number from 0 to 36, or walk away (which ends the
+    # game).  The average reward for any bet is slightly negative, so the best
+    # strategy is to walk away.
+
+    class RouletteEnvironment(dc.rl.Environment):
+      def __init__(self):
+        super().__init__([1], 38)
+        self._state = np.array([0])
+
+      def step(self, action):
+        if action == 37:
+          self._terminated = True # Walk away.
+          return 0.0
+        wheel = np.random.randint(37)
+        if wheel == 0:
+          if action == 0:
+            return 35.0
+          return -1.0
+        if action != 0 and wheel%2 == action%2:
+          return 1.0
+        return -1.0
+
+      def reset(self):
+        self._terminated = False
+
+    env = RouletteEnvironment()
+
+    # This policy just learns a constant probability for each action, and a constant for the value.
+
+    class TestPolicy(dc.rl.Policy):
+      def create_layers(self, features, **kwargs):
+        action = Dense(in_layers=[features], out_channels=env.n_actions)
+        output = SoftMax(in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
+        value = Dense(in_layers=[features], out_channels=1)
+        return {'action_prob':output, 'value':value}
+
+    # Optimize it.
+
+    a3c = dc.rl.A3C(env, TestPolicy(), value_weight=100.0)
+    a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.1)
+    a3c.fit(100000)
+
+    # It should have learned that the expected value is very close to zero, and that the best
+    # action is to walk away.
+
+    action_prob, value = a3c.predict([0])
+    assert -0.5 < value[0] < 0.5
+    assert action_prob.argmax() == 37
+    assert a3c.select_action([0], deterministic=True) == 37

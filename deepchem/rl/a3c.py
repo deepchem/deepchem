@@ -42,7 +42,7 @@ class A3C(object):
   "action" argument passed to the environment is an integer, giving the index of the action to perform.
   """
 
-  def __init__(self, env, policy, max_rollout_length=20, discount_factor=0.99, value_weight=0.25, entropy_weight=0.01):
+  def __init__(self, env, policy, max_rollout_length=20, discount_factor=0.99, value_weight=1.0, entropy_weight=0.01):
     """Create an object for optimizing a policy.
 
     Parameters
@@ -192,7 +192,7 @@ class Worker(object):
     session = self.a3c._session
     states = []
     actions = []
-    scores = []
+    rewards = []
     for i in range(self.a3c.max_rollout_length):
       if self.env.terminated:
         break
@@ -202,13 +202,13 @@ class Worker(object):
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
-      scores.append(self.env.step(action))
+      rewards.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = {self.features.out_tensor: np.expand_dims(self.env.state, axis=0)}
-      scores[-1] += session.run(self.value.out_tensor, feed_dict)
-    for j in range(len(scores)-1, 0, -1):
-      scores[j-1] += self.a3c.discount_factor*scores[j]
+      rewards[-1] += self.a3c.discount_factor*session.run(self.value.out_tensor, feed_dict)
+    for j in range(len(rewards)-1, 0, -1):
+      rewards[j-1] += self.a3c.discount_factor*rewards[j]
     if self.env.terminated:
       self.env.reset()
-    return np.array(states), np.array(actions), np.array(scores).reshape((len(scores), 1))
+    return np.array(states), np.array(actions), np.array(rewards).reshape((len(rewards), 1))
