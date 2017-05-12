@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 import unittest
 import os
-from nose.tools import attr
+from nose.plugins.attrib import attr
 import sys
 import deepchem as dc
 

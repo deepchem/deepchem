@@ -151,7 +151,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=1.0, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
