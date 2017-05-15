@@ -60,3 +60,11 @@ class TestA3C(unittest.TestCase):
     assert -0.5 < value[0] < 0.5
     assert action_prob.argmax() == 37
     assert a3c.select_action([0], deterministic=True) == 37
+
+    # Verify that we can create a new A3C object, reload the parameters from the first one, and
+    # get the same result.
+
+    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
+    new_a3c.restore()
+    action_prob2, value2 = new_a3c.predict([0])
+    assert value2 == value
