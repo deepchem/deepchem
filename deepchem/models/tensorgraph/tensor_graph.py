@@ -349,6 +349,7 @@ class TensorGraph(Model):
     shapes = []
     pre_q_inputs = []
     q = InputFifoQueue(shapes, names, in_layers=pre_q_inputs)
+    q.name = "%s_%s" % (q.__class__.__name__, len(self.layers)+1)
 
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
