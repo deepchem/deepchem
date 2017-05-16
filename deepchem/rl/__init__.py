@@ -5,10 +5,10 @@ from deepchem.rl.a3c import A3C
 class Environment(object):
   """An environment in which an actor performs actions to accomplish a task.
 
-  An environment has a current state that can be queried.  When an action
-  is taken, that causes the state to be updated.  Exactly what is meant by
-  a "state" or "action" is defined by each subclass.  As far as this interface
-  is concerned, they are simply arbitrary objects.  The environment also computes
+  An environment has a current state, which is represented as a list of NumPy
+  arrays.  When an action is taken, that causes the state to be updated.  Exactly
+  what is meant by an "action" is defined by each subclass.  As far as this interface
+  is concerned, it is simply an arbitrary object.  The environment also computes
   a reward for each action, and reports when the task has been terminated
   (meaning that no more actions may be taken).
 
@@ -26,8 +26,8 @@ class Environment(object):
 
   @property
   def state(self):
-    """The current state of the environment, represented as a class-specific object.
-    
+    """The current state of the environment, represented as a list of NumPy arrays.
+
     If reset() has not yet been called at least once, this is undefined.
     """
     return self._state
@@ -35,14 +35,17 @@ class Environment(object):
   @property
   def terminated(self):
     """Whether the task has reached its end.
-    
+
     If reset() has not yet been called at least once, this is undefined.
     """
     return self._terminated
 
   @property
   def state_shape(self):
-    """The shape of the values that describe a state."""
+    """The shape of the arrays that describe a state.
+
+    This returns a list of tuples, where each tuple is the shape of one array.
+    """
     return self._state_shape
 
   @property
@@ -83,14 +86,16 @@ class GymEnvironment(Environment):
     import gym
     self.env = gym.make(name)
     self.name = name
-    super().__init__(self.env.observation_space.shape, self.env.action_space.n)
+    super().__init__([self.env.observation_space.shape], self.env.action_space.n)
 
   def reset(self):
-    self._state = self.env.reset()
+    state = self.env.reset()
+    self._state = [state]
     self._terminated = False
 
   def step(self, action):
-    self._state, reward, self._terminated, info = self.env.step(action)
+    state, reward, self._terminated, info = self.env.step(action)
+    self._state = [state]
     return reward
 
   def __deepcopy__(self, memo):
@@ -113,12 +118,13 @@ class Policy(object):
   or even on different computers.
   """
 
-  def create_layers(self, features, **kwargs):
+  def create_layers(self, state, **kwargs):
     """Create the TensorGraph Layers that define the policy.
 
-    The arguments always include a Feature layer representing the current state of
-    the environment.  Depending on the algorithm being used, other arguments might
-    get passed as well.  It is up to each algorithm to document that.
+    The arguments always include a list of Feature layers representing the current
+    state of the environment (one layer for each array in the state).  Depending on
+    the algorithm being used, other arguments might get passed as well.  It is up
+    to each algorithm to document that.
 
     This method should construct and return a dict that maps strings to Layer
     objects.  Each algorithm must document what Layers it expects the policy to

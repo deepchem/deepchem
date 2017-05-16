@@ -17,8 +17,8 @@ class TestA3C(unittest.TestCase):
 
     class RouletteEnvironment(dc.rl.Environment):
       def __init__(self):
-        super().__init__([1], 38)
-        self._state = np.array([0])
+        super().__init__([(1,)], 38)
+        self._state = [np.array([0])]
 
       def step(self, action):
         if action == 37:
@@ -41,30 +41,30 @@ class TestA3C(unittest.TestCase):
     # This policy just learns a constant probability for each action, and a constant for the value.
 
     class TestPolicy(dc.rl.Policy):
-      def create_layers(self, features, **kwargs):
-        action = Dense(in_layers=[features], out_channels=env.n_actions)
+      def create_layers(self, state, **kwargs):
+        action = Dense(in_layers=state, out_channels=env.n_actions)
         output = SoftMax(in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
-        value = Dense(in_layers=[features], out_channels=1)
+        value = Dense(in_layers=state, out_channels=1)
         return {'action_prob':output, 'value':value}
 
     # Optimize it.
 
-    a3c = dc.rl.A3C(env, TestPolicy(), value_weight=100.0)
-    a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.1)
+    a3c = dc.rl.A3C(env, TestPolicy(), value_weight=100.0, max_rollout_length=50)
+    a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.2)
     a3c.fit(100000)
 
     # It should have learned that the expected value is very close to zero, and that the best
     # action is to walk away.
 
-    action_prob, value = a3c.predict([0])
+    action_prob, value = a3c.predict([[0]])
     assert -0.5 < value[0] < 0.5
     assert action_prob.argmax() == 37
-    assert a3c.select_action([0], deterministic=True) == 37
+    assert a3c.select_action([[0]], deterministic=True) == 37
 
     # Verify that we can create a new A3C object, reload the parameters from the first one, and
     # get the same result.
 
     new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
     new_a3c.restore()
-    action_prob2, value2 = new_a3c.predict([0])
+    action_prob2, value2 = new_a3c.predict([[0]])
     assert value2 == value
