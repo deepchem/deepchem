@@ -2,6 +2,7 @@
 
 from deepchem.rl.a3c import A3C
 
+
 class Environment(object):
   """An environment in which an actor performs actions to accomplish a task.
 
@@ -81,12 +82,14 @@ class Environment(object):
 
 class GymEnvironment(Environment):
   """This is a convenience class for working with environments from OpenAI Gym."""
+
   def __init__(self, name):
     """Create an Environment wrapping the OpenAI Gym environment with a specified name."""
     import gym
     self.env = gym.make(name)
     self.name = name
-    super().__init__([self.env.observation_space.shape], self.env.action_space.n)
+    super().__init__([self.env.observation_space.shape],
+                     self.env.action_space.n)
 
   def reset(self):
     state = self.env.reset()
@@ -132,4 +135,3 @@ class Policy(object):
     of Layers every time.
     """
     raise NotImplemented("Subclasses must implement this")
-

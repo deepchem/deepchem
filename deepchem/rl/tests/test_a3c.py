@@ -16,20 +16,21 @@ class TestA3C(unittest.TestCase):
     # strategy is to walk away.
 
     class RouletteEnvironment(dc.rl.Environment):
+
       def __init__(self):
         super().__init__([(1,)], 38)
         self._state = [np.array([0])]
 
       def step(self, action):
         if action == 37:
-          self._terminated = True # Walk away.
+          self._terminated = True  # Walk away.
           return 0.0
         wheel = np.random.randint(37)
         if wheel == 0:
           if action == 0:
             return 35.0
           return -1.0
-        if action != 0 and wheel%2 == action%2:
+        if action != 0 and wheel % 2 == action % 2:
           return 1.0
         return -1.0
 
@@ -41,16 +42,20 @@ class TestA3C(unittest.TestCase):
     # This policy just learns a constant probability for each action, and a constant for the value.
 
     class TestPolicy(dc.rl.Policy):
+
       def create_layers(self, state, **kwargs):
         action = Dense(in_layers=state, out_channels=env.n_actions)
-        output = SoftMax(in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
+        output = SoftMax(
+            in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
         value = Dense(in_layers=state, out_channels=1)
-        return {'action_prob':output, 'value':value}
+        return {'action_prob': output, 'value': value}
 
     # Optimize it.
 
-    a3c = dc.rl.A3C(env, TestPolicy(), value_weight=100.0, max_rollout_length=50)
-    a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.2)
+    a3c = dc.rl.A3C(
+        env, TestPolicy(), value_weight=100.0, max_rollout_length=50)
+    a3c.optimizer = dc.models.tensorgraph.TFWrapper(
+        tf.train.AdamOptimizer, learning_rate=0.2)
     a3c.fit(100000)
 
     # It should have learned that the expected value is very close to zero, and that the best

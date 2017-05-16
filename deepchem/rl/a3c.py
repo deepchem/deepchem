@@ -11,8 +11,10 @@ import os
 import re
 import threading
 
+
 class A3CLoss(Layer):
   """This layer computes the loss function for A3C."""
+
   def __init__(self, value_weight, entropy_weight, **kwargs):
     super(A3CLoss, self).__init__(**kwargs)
     self.value_weight = value_weight
@@ -21,15 +23,17 @@ class A3CLoss(Layer):
   def create_tensor(self, **kwargs):
     reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
     log_prob = tf.log(prob)
-    policy_loss = -tf.reduce_sum((reward-value)*tf.reduce_sum(action*log_prob))
-    value_loss = tf.reduce_sum(tf.square(reward-value))
-    entropy = -tf.reduce_sum(prob*log_prob)
-    self.out_tensor = policy_loss + self.value_weight*value_loss - self.entropy_weight*entropy
+    policy_loss = -tf.reduce_sum(
+        (reward - value) * tf.reduce_sum(action * log_prob))
+    value_loss = tf.reduce_sum(tf.square(reward - value))
+    entropy = -tf.reduce_sum(prob * log_prob)
+    self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
     return self.out_tensor
 
 
 def _create_feed_dict(features, state):
-  return dict((f.out_tensor, np.expand_dims(s, axis=0)) for f,s in zip(features, state))
+  return dict((f.out_tensor, np.expand_dims(s, axis=0))
+              for f, s in zip(features, state))
 
 
 class A3C(object):
@@ -49,7 +53,14 @@ class A3C(object):
   "action" argument passed to the environment is an integer, giving the index of the action to perform.
   """
 
-  def __init__(self, env, policy, max_rollout_length=20, discount_factor=0.99, value_weight=1.0, entropy_weight=0.01, model_dir=None):
+  def __init__(self,
+               env,
+               policy,
+               max_rollout_length=20,
+               discount_factor=0.99,
+               value_weight=1.0,
+               entropy_weight=0.01,
+               model_dir=None):
     """Create an object for optimizing a policy.
 
     Parameters
@@ -76,21 +87,30 @@ class A3C(object):
     self.discount_factor = discount_factor
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
-    self.optimizer = TFWrapper(tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
-    (self._graph, self._features, rewards, actions, self._action_prob, self._value) = self._build_graph(None, 'global', model_dir)
+    self.optimizer = TFWrapper(
+        tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+    (self._graph, self._features, rewards, actions, self._action_prob,
+     self._value) = self._build_graph(None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
-    features = [Feature(shape=[None]+list(s)) for s in self._env.state_shape]
+    features = [Feature(shape=[None] + list(s)) for s in self._env.state_shape]
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
     rewards = Weights(shape=(None, 1))
     actions = Label(shape=(None, self._env.n_actions))
-    loss = A3CLoss(self.value_weight, self.entropy_weight, in_layers=[rewards, actions, action_prob, value])
-    graph = TensorGraph(batch_size=self.max_rollout_length, use_queue=False, graph=tf_graph, model_dir=model_dir)
+    loss = A3CLoss(
+        self.value_weight,
+        self.entropy_weight,
+        in_layers=[rewards, actions, action_prob, value])
+    graph = TensorGraph(
+        batch_size=self.max_rollout_length,
+        use_queue=False,
+        graph=tf_graph,
+        model_dir=model_dir)
     graph.add_output(action_prob)
     graph.add_output(value)
     graph.set_loss(loss)
@@ -100,7 +120,8 @@ class A3C(object):
         graph.build()
     return graph, features, rewards, actions, action_prob, value
 
-  def fit(self, total_steps, max_checkpoints_to_keep=5, checkpoint_interval=600):
+  def fit(self, total_steps, max_checkpoints_to_keep=5,
+          checkpoint_interval=600):
     """Train the policy.
 
     Parameters
@@ -123,7 +144,9 @@ class A3C(object):
       for i in range(multiprocessing.cpu_count()):
         workers.append(_Worker(self, i))
       for worker in workers:
-        thread = threading.Thread(name=worker.scope, target=lambda: worker.run(step_count, total_steps))
+        thread = threading.Thread(
+            name=worker.scope,
+            target=lambda: worker.run(step_count, total_steps))
         threads.append(thread)
         thread.start()
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
@@ -133,7 +156,8 @@ class A3C(object):
         if len(threads) > 0:
           threads[0].join(checkpoint_interval)
         checkpoint_index += 1
-        saver.save(self._session, self._graph.save_file, global_step=checkpoint_index)
+        saver.save(
+            self._session, self._graph.save_file, global_step=checkpoint_index)
         if len(threads) == 0:
           break
 
@@ -151,7 +175,9 @@ class A3C(object):
     """
     with self._graph._get_tf("Graph").as_default():
       feed_dict = _create_feed_dict(self._features, state)
-      return self._session.run([self._action_prob.out_tensor, self._value.out_tensor], feed_dict=feed_dict)
+      return self._session.run(
+          [self._action_prob.out_tensor, self._value.out_tensor],
+          feed_dict=feed_dict)
 
   def select_action(self, state, deterministic=False):
     """Select an action to perform based on the environment's state.
@@ -170,11 +196,13 @@ class A3C(object):
     """
     with self._graph._get_tf("Graph").as_default():
       feed_dict = _create_feed_dict(self._features, state)
-      probabilities = self._session.run(self._action_prob.out_tensor, feed_dict=feed_dict)
+      probabilities = self._session.run(
+          self._action_prob.out_tensor, feed_dict=feed_dict)
       if deterministic:
         return probabilities.argmax()
       else:
-        return np.random.choice(np.arange(self._env.n_actions), p=probabilities[0])
+        return np.random.choice(
+            np.arange(self._env.n_actions), p=probabilities[0])
 
   def restore(self):
     """Reload the model parameters from the most recent checkpoint file."""
@@ -195,14 +223,19 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(a3c._graph._get_tf('Graph'), self.scope, None)
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(
+        a3c._graph._get_tf('Graph'), self.scope, None)
     with a3c._graph._get_tf("Graph").as_default():
-      local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
-      global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
+      local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                     self.scope)
+      global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                      'global')
       gradients = tf.gradients(self.graph.loss.out_tensor, local_vars)
       grads_and_vars = list(zip(gradients, global_vars))
-      self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(grads_and_vars)
-      self.update_local_variables = tf.group(*[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+      self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
+          grads_and_vars)
+      self.update_local_variables = tf.group(
+          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
@@ -211,7 +244,7 @@ class _Worker(object):
         session.run(self.update_local_variables)
         episode_states, episode_actions, episode_rewards = self.create_rollout()
         feed_dict = {}
-        for f,s in zip(self.features, episode_states):
+        for f, s in zip(self.features, episode_states):
           feed_dict[f.out_tensor] = s
         feed_dict[self.rewards.out_tensor] = episode_rewards
         feed_dict[self.actions.out_tensor] = episode_actions
@@ -232,7 +265,8 @@ class _Worker(object):
       for j in range(len(state)):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
-      probabilities = session.run(self.action_prob.out_tensor, feed_dict=feed_dict)
+      probabilities = session.run(
+          self.action_prob.out_tensor, feed_dict=feed_dict)
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
@@ -240,9 +274,11 @@ class _Worker(object):
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = _create_feed_dict(self.features, self.env.state)
-      rewards[-1] += self.a3c.discount_factor*session.run(self.value.out_tensor, feed_dict)
-    for j in range(len(rewards)-1, 0, -1):
-      rewards[j-1] += self.a3c.discount_factor*rewards[j]
+      rewards[-1] += self.a3c.discount_factor * session.run(
+          self.value.out_tensor, feed_dict)
+    for j in range(len(rewards) - 1, 0, -1):
+      rewards[j - 1] += self.a3c.discount_factor * rewards[j]
     if self.env.terminated:
       self.env.reset()
-    return np.array(states), np.array(actions), np.array(rewards).reshape((len(rewards), 1))
+    return np.array(states), np.array(actions), np.array(rewards).reshape(
+        (len(rewards), 1))
