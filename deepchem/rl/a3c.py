@@ -235,7 +235,7 @@ class _Worker(object):
       self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
           grads_and_vars)
       self.update_local_variables = tf.group(
-          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
