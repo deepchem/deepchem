@@ -1,8 +1,8 @@
 """
 Tests for Pose Generation 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
@@ -12,10 +12,8 @@ __license__ = "MIT"
 import os
 import sys
 import unittest
-import tempfile
-import shutil
-import numpy as np
 import deepchem as dc
+from nose.plugins.attrib import attr
 
 
 class TestPoseGeneration(unittest.TestCase):
@@ -50,6 +48,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert os.path.exists(protein_pose_file)
     assert os.path.exists(ligand_pose_file)
 
+  @attr('slow')
   def test_pocket_vina_poses(self):
     """Test that VinaPoseGenerator creates pose files."""
     if sys.version_info >= (3, 0):
