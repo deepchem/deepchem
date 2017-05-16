@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
+import shutil
 import tempfile
 import sklearn
 from sklearn.base import BaseEstimator
@@ -44,16 +45,22 @@ class Model(BaseEstimator):
     model_dir: str
       Path to directory where model will be stored.
     """
+    self.model_dir_is_temp = False
     if model_dir is not None:
       if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     else:
       model_dir = tempfile.mkdtemp()
+      self.model_dir_is_temp = True
     self.model_dir = model_dir
     self.model_instance = model_instance
     self.model_class = model_instance.__class__
 
     self.verbose = verbose
+
+  def __del__(self):
+    if 'model_dir_is_temp' in dir(self) and self.model_dir_is_temp:
+      shutil.rmtree(self.model_dir)
 
   def fit_on_batch(self, X, y, w):
     """

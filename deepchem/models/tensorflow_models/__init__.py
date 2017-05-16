@@ -190,22 +190,16 @@ class TensorflowGraphModel(Model):
     self.batch_size = batch_size
     self.n_classes = n_classes
     self.pad_batches = pad_batches
-    self.verbose = verbose
     self.seed = seed
 
-    if logdir is not None:
-      if not os.path.exists(logdir):
-        os.makedirs(logdir)
-    else:
-      logdir = tempfile.mkdtemp()
-    self.logdir = logdir
+    super().__init__(self, model_dir=logdir, verbose=verbose)
 
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.
     self._restored_model = False
     # Path to save checkpoint files, which matches the
     # replicated supervisor's default path.
-    self._save_path = os.path.join(logdir, 'model.ckpt')
+    self._save_path = os.path.join(self.model_dir, 'model.ckpt')
 
     self.train_graph = self.construct_graph(training=True, seed=self.seed)
     self.eval_graph = self.construct_graph(training=False, seed=self.seed)
@@ -593,9 +587,9 @@ class TensorflowGraphModel(Model):
   def _find_last_checkpoint(self):
     """Finds last saved checkpoint."""
     highest_num, last_checkpoint = -np.inf, None
-    for filename in os.listdir(self.logdir):
-      # checkpoints look like logdir/model.ckpt-N
-      # self._save_path is "logdir/model.ckpt"
+    for filename in os.listdir(self.model_dir):
+      # checkpoints look like model_dir/model.ckpt-N
+      # self._save_path is "model_dir/model.ckpt"
       if os.path.basename(self._save_path) in filename:
         try:
           N = int(filename.split("-")[1].split(".")[0])
@@ -604,7 +598,7 @@ class TensorflowGraphModel(Model):
             last_checkpoint = "model.ckpt-" + str(N)
         except ValueError:
           pass
-    return os.path.join(self.logdir, last_checkpoint)
+    return os.path.join(self.model_dir, last_checkpoint)
 
 
 class TensorflowClassifier(TensorflowGraphModel):

@@ -84,17 +84,11 @@ class MultitaskGraphClassifier(Model):
                pad_batches=True,
                verbose=True):
 
-    self.verbose = verbose
+    super().__init__(self, model_dir=logdir, verbose=verbose)
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model
     self.sess = tf.Session(graph=self.model.graph)
-    if logdir is not None:
-      if not os.path.exists(logdir):
-        os.makedirs(logdir)
-    else:
-      logdir = tempfile.mkdtemp()
-    self.logdir = logdir
 
     with self.model.graph.as_default():
       # Extract model info 
@@ -129,7 +123,7 @@ class MultitaskGraphClassifier(Model):
 
       # Path to save checkpoint files, which matches the
       # replicated supervisor's default path.
-      self._save_path = os.path.join(logdir, 'model.ckpt')
+      self._save_path = os.path.join(self.model_dir, 'model.ckpt')
 
   def build(self):
     # Create target inputs

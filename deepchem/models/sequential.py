@@ -52,6 +52,7 @@ class Sequential(Model):
   """
 
   def __init__(self, name=None, logdir=None):
+    super().__init__(self, model_dir=logdir)
     self.layers = []  # stack of layers
     self.outputs = None  # tensors (length 1)
 
@@ -64,13 +65,7 @@ class Sequential(Model):
     config = tf.ConfigProto(allow_soft_placement=True)
     self.session = tf.Session(graph=self.graph, config=config)
     # Path to save checkpoint files
-    if logdir is not None:
-      if not os.path.exists(logdir):
-        os.makedirs(logdir)
-    else:
-      logdir = tempfile.mkdtemp()
-    self.logdir = logdir
-    self._save_path = os.path.join(self.logdir, 'model.ckpt')
+    self._save_path = os.path.join(self.model_dir, 'model.ckpt')
 
   def add(self, layer):
     """Adds a layer instance on top of the layer stack.

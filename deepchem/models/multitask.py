@@ -22,16 +22,10 @@ class SingletaskToMultitask(Model):
   Warning: This current implementation is only functional for sklearn models. 
   """
   def __init__(self, tasks, model_builder, model_dir=None, verbose=True):
+    super().__init__(self, model_dir=model_dir, verbose=verbose)
     self.tasks = tasks
-    if model_dir is not None:
-      if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    else:
-      model_dir = tempfile.mkdtemp()
-    self.model_dir = model_dir
     self.task_model_dirs = {}
     self.model_builder = model_builder
-    self.verbose = True 
     log("About to initialize singletask to multitask model", self.verbose)
     for task in self.tasks:
       task_model_dir = os.path.join(self.model_dir, str(task))
