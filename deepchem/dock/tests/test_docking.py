@@ -33,6 +33,7 @@ class TestDocking(unittest.TestCase):
       return
     docker = dc.dock.VinaGridRFDocker(exhaustiveness=1, detect_pockets=True)
 
+  @attr("slow")
   def test_vina_grid_dnn_docker_init(self):
     """Test that VinaGridDNNDocker can be initialized."""
     docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=False)

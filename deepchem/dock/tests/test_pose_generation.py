@@ -13,6 +13,7 @@ import os
 import sys
 import unittest
 import deepchem as dc
+from nose.plugins.attrib import attr
 
 
 class TestPoseGeneration(unittest.TestCase):
