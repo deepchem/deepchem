@@ -13,7 +13,6 @@ import numpy as np
 import os
 from nose.plugins.attrib import attr
 
-
 import deepchem as dc
 
 
