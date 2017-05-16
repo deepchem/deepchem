@@ -26,6 +26,7 @@ class TensorGraph(Model):
                random_seed=None,
                use_queue=True,
                mode="regression",
+               graph=None,
                **kwargs):
     """
     TODO(LESWING) allow a model to change its learning rate
@@ -47,6 +48,9 @@ class TensorGraph(Model):
       "regression" or "classification".  "classification" models on
       predict will do an argmax(axis=2) to determine the class of the
       prediction.
+    graph: tensorflow.Graph
+      the Graph in which to create Tensorflow objects.  If None, a new Graph
+      is created.
     kwargs
     """
 
@@ -68,7 +72,7 @@ class TensorGraph(Model):
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
         "FileWriter": None,
-        "Graph": tf.Graph(),
+        "Graph": graph,
         "train_op": None,
         "summary_op": None,
     }
@@ -87,6 +91,8 @@ class TensorGraph(Model):
     self.model_class = None
 
   def _add_layer(self, layer):
+    if layer.name is None:
+      layer.name = "%s_%s" % (layer.__class__.__name__, len(self.layers) + 1)
     if layer.name in self.layers:
       return
     if isinstance(layer, Feature):
@@ -98,8 +104,8 @@ class TensorGraph(Model):
     self.nxgraph.add_node(layer.name)
     self.layers[layer.name] = layer
     for in_layer in layer.in_layers:
-      self.nxgraph.add_edge(in_layer.name, layer.name)
       self._add_layer(in_layer)
+      self.nxgraph.add_edge(in_layer.name, layer.name)
 
   def fit(self,
           dataset,
@@ -314,7 +320,6 @@ class TensorGraph(Model):
         tf.set_random_seed(self.random_seed)
       self._install_queue()
       order = self.topsort()
-      print(order)
       for node in order:
         with tf.name_scope(node):
           node_layer = self.layers[node]
@@ -344,6 +349,7 @@ class TensorGraph(Model):
     shapes = []
     pre_q_inputs = []
     q = InputFifoQueue(shapes, names, in_layers=pre_q_inputs)
+    q.name = "%s_%s" % (q.__class__.__name__, len(self.layers) + 1)
 
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
@@ -448,8 +454,10 @@ class TensorGraph(Model):
       self.tensor_objects['Graph'] = tf.Graph()
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
+    elif obj == 'Optimizer':
+      self.tensor_objects['Optimizer'] = self.optimizer()
     elif obj == 'train_op':
-      self.tensor_objects['train_op'] = self.optimizer().minimize(
+      self.tensor_objects['train_op'] = self._get_tf('Optimizer').minimize(
           self.loss.out_tensor)
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
