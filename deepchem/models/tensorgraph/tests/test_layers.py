@@ -21,6 +21,10 @@ from deepchem.models.tensorgraph.layers import TimeSeriesDense
 from deepchem.models.tensorgraph.layers import Input
 from deepchem.models.tensorgraph.layers import L2Loss
 from deepchem.models.tensorgraph.layers import Concat
+from deepchem.models.tensorgraph.layers import Constant
+from deepchem.models.tensorgraph.layers import Variable
+from deepchem.models.tensorgraph.layers import Add
+from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import ReduceMean
@@ -212,6 +216,41 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Concat(axis=1)(in_tensor_1, in_tensor_2)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, 2 * n_features)
+
+  def test_constant(self):
+    """Test that Constant can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Constant(value)()
+      assert np.array_equal(value, out_tensor.eval())
+
+  def test_variable(self):
+    """Test that Variable can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Variable(value)()
+      sess.run(tf.global_variables_initializer())
+      assert np.array_equal(value, out_tensor.eval())
+
+  def test_add(self):
+    """Test that Add can be invoked."""
+    value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    value2 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    value3 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Add(weights=[1, 2, 1])(
+          tf.constant(value1), tf.constant(value2), tf.constant(value3))
+      assert np.array_equal(value1 + 2 * value2 + value3, out_tensor.eval())
+
+  def test_multiply(self):
+    """Test that Multiply can be invoked."""
+    value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    value2 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    value3 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Multiply()(tf.constant(value1), tf.constant(value2),
+                              tf.constant(value3))
+      assert np.array_equal(value1 * value2 * value3, out_tensor.eval())
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
