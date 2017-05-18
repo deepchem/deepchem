@@ -476,6 +476,107 @@ class Concat(Layer):
     return out_tensor
 
 
+class Constant(Layer):
+  """Output a constant value."""
+
+  def __init__(self, value, dtype=tf.float32, **kwargs):
+    """Construct a constant layer.
+
+    Parameters
+    ----------
+    value: array
+      the value the layer should output
+    dtype: tf.DType
+      the data type of the output value.
+    """
+    self.value = value
+    self.dtype = dtype
+    super(Constant, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    out_tensor = tf.constant(self.value, dtype=self.dtype)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Variable(Layer):
+  """Output a trainable value."""
+
+  def __init__(self, initial_value, dtype=tf.float32, **kwargs):
+    """Construct a variable layer.
+
+    Parameters
+    ----------
+    initial_value: array
+      the initial value the layer should output
+    dtype: tf.DType
+      the data type of the output value.
+    """
+    self.initial_value = initial_value
+    self.dtype = dtype
+    super(Variable, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Add(Layer):
+  """Compute the (optionally weighted) sum of the input layers."""
+
+  def __init__(self, weights=None, **kwargs):
+    """Create an Add layer.
+
+    Parameters
+    ----------
+    weights: array
+      an array of length equal to the number of input layers, giving the weight
+      to multiply each input by.  If None, all weights are set to 1.
+    """
+    super(Add, self).__init__(**kwargs)
+    self.weights = weights
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    weights = self.weights
+    if weights is None:
+      weights = [1] * len(in_layers)
+    out_tensor = in_layers[0].out_tensor
+    if weights[0] != 1:
+      out_tensor *= weights[0]
+    for layer, weight in zip(in_layers[1:], weights[1:]):
+      if weight == 1:
+        out_tensor += layer.out_tensor
+      else:
+        out_tensor += weight * layer.out_tensor
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Multiply(Layer):
+  """Compute the product of the input layers."""
+
+  def __init__(self, **kwargs):
+    super(Multiply, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    out_tensor = in_layers[0].out_tensor
+    for layer in in_layers[1:]:
+      out_tensor *= layer.out_tensor
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class InteratomicL2Distances(Layer):
   """Compute (squared) L2 Distances between atoms given neighbors."""
 

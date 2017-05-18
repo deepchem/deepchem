@@ -111,6 +111,8 @@ class A3C(object):
         use_queue=False,
         graph=tf_graph,
         model_dir=model_dir)
+    for f in features:
+      graph._add_layer(f)
     graph.add_output(action_prob)
     graph.add_output(value)
     graph.set_loss(loss)

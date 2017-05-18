@@ -1,5 +1,5 @@
 import deepchem as dc
-from deepchem.models.tensorgraph.layers import Reshape, Dense, SoftMax
+from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax
 import numpy as np
 import tensorflow as tf
 import unittest
@@ -44,10 +44,10 @@ class TestA3C(unittest.TestCase):
     class TestPolicy(dc.rl.Policy):
 
       def create_layers(self, state, **kwargs):
-        action = Dense(in_layers=state, out_channels=env.n_actions)
+        action = Variable(np.ones(env.n_actions))
         output = SoftMax(
             in_layers=[Reshape(in_layers=[action], shape=(-1, env.n_actions))])
-        value = Dense(in_layers=state, out_channels=1)
+        value = Variable([0.0])
         return {'action_prob': output, 'value': value}
 
     # Optimize it.
