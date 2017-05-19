@@ -4,11 +4,11 @@ import networkx as nx
 import numpy as np
 import os
 
-from pdbfixer import PDBFixer
+from deepchem.utils.dependencies import pdbfixer
+from deepchem.utils.dependencies import simtk
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import rdmolops
-from simtk.openmm.app import PDBFile
 
 try:
   from StringIO import StringIO
@@ -50,11 +50,11 @@ def add_hydrogens_to_mol(mol):
     pdb_stringio = StringIO()
     pdb_stringio.write(pdbblock)
     pdb_stringio.seek(0)
-    fixer = PDBFixer(pdbfile=pdb_stringio)
+    fixer = pdbfixer.PDBFixer(pdbfile=pdb_stringio)
     fixer.addMissingHydrogens(7.4)
 
     hydrogenated_io = StringIO()
-    PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
+    simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
     hydrogenated_io.seek(0)
     return Chem.MolFromPDBBlock(
         hydrogenated_io.read(), sanitize=False, removeHs=False)

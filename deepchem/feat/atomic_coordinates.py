@@ -10,7 +10,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "LGPL v2.1+"
 
 import numpy as np
-import mdtraj
+from deepchem.utils.dependencies import mdtraj
 from deepchem.feat import Featurizer
 from deepchem.feat import ComplexFeaturizer
 from deepchem.utils import rdkit_util, pad_array

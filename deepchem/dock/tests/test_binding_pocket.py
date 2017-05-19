@@ -10,7 +10,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import sys
-import mdtraj as md
+from deepchem.utils.dependencies import mdtraj as md
 import unittest
 import tempfile
 import os
