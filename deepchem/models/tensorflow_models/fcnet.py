@@ -98,9 +98,7 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, n_classes))
     weights = Weights(shape=(None, n_tasks))
-    loss = Reshape(
-        shape=(-1, n_tasks),
-        in_layers=[SoftMaxCrossEntropy(in_layers=[labels, output])])
+    loss = SoftMaxCrossEntropy(in_layers=[labels, output])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
@@ -211,8 +209,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
     weights = Weights(shape=(None, n_tasks))
-    loss = Reshape(
-        shape=(-1, n_tasks), in_layers=[L2Loss(in_layers=[labels, output])])
+    loss = L2Loss(in_layers=[labels, output])
     weighted_loss = WeightedError(in_layers=[loss, weights])
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
