@@ -54,7 +54,8 @@ def add_hydrogens_to_mol(mol):
     fixer.addMissingHydrogens(7.4)
 
     hydrogenated_io = StringIO()
-    simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
+    simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
+                                       hydrogenated_io)
     hydrogenated_io.seek(0)
     return Chem.MolFromPDBBlock(
         hydrogenated_io.read(), sanitize=False, removeHs=False)
