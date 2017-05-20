@@ -10,7 +10,7 @@ __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "MIT"
 
 import numpy as np
-import mdtraj as md
+from deepchem.utils.dependencies import mdtraj as md
 from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 

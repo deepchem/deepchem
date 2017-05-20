@@ -58,7 +58,7 @@ from sampl.sampl_datasets import load_sampl
 from clintox.clintox_datasets import load_clintox
 from hiv.hiv_datasets import load_hiv
 from membrane_permeability.membrane_permeability_datasets import load_permeability
-import xgboost
+from deepchem.utils.dependencies import xgboost
 
 
 def benchmark_loading_datasets(hyper_parameters,
