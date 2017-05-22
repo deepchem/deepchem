@@ -139,12 +139,12 @@ class A3C(object):
     """
     with self._graph._get_tf("Graph").as_default():
       train_op = self._graph._get_tf('train_op')
-      self._session.run(tf.global_variables_initializer())
       step_count = [0]
       workers = []
       threads = []
       for i in range(multiprocessing.cpu_count()):
         workers.append(_Worker(self, i))
+      self._session.run(tf.global_variables_initializer())
       for worker in workers:
         thread = threading.Thread(
             name=worker.scope,
@@ -237,7 +237,7 @@ class _Worker(object):
       self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
           grads_and_vars)
       self.update_local_variables = tf.group(
-          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
@@ -263,7 +263,7 @@ class _Worker(object):
     for i in range(self.a3c.max_rollout_length):
       if self.env.terminated:
         break
-      state = self.env.state
+      state = copy.deepcopy(self.env.state)
       for j in range(len(state)):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
