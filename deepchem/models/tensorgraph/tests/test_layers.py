@@ -511,3 +511,13 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, n_features)
+
+  def test_reshape_inputs(self):
+    """Test that layers can automatically reshape inconsistent inputs."""
+    value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    value2 = np.random.uniform(size=(1, 6, 1)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Add()(tf.constant(value1), tf.constant(value2))
+      result = out_tensor.eval()
+      assert result.shape == (1, 6, 1)
+      assert np.array_equal(value1.reshape((1, 6, 1)) + value2, result)
