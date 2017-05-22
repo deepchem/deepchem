@@ -3,6 +3,7 @@ import numpy as np
 import random
 import tensorflow as tf
 import time
+import copy
 
 from deepchem.models.tensorgraph.layers import Flatten, Dense, SoftMax, \
   Variable, \
@@ -35,6 +36,7 @@ class TicTacToeEnvironment(dc.rl.Environment):
       self._state[0][move[0]][move[1]] = TicTacToeEnvironment.O
 
   def step(self, action):
+    self._state = copy.deepcopy(self._state)
     row = action // 3
     col = action % 3
 

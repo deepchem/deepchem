@@ -22,7 +22,7 @@ class A3CLoss(Layer):
 
   def create_tensor(self, **kwargs):
     reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
-    log_prob = tf.log(prob)
+    log_prob = tf.log(prob + 0.0001)
     policy_loss = -tf.reduce_sum(
         (reward - value) * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
@@ -263,7 +263,7 @@ class _Worker(object):
     for i in range(self.a3c.max_rollout_length):
       if self.env.terminated:
         break
-      state = copy.deepcopy(self.env.state)
+      state = self.env.state
       for j in range(len(state)):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
