@@ -56,7 +56,6 @@ class TicTacToeEnvironment(dc.rl.Environment):
 
     if self.game_over():
       self._terminated = True
-      print("Draw")
       return TicTacToeEnvironment.DRAW_REWARD
 
     move = self.get_O_move()
@@ -116,8 +115,7 @@ class TicTacToeEnvironment(dc.rl.Environment):
 class TicTacToePolicy(dc.rl.Policy):
 
   def create_layers(self, state, **kwargs):
-    d1 = Conv2D(num_outputs=64, kernel_size=3, in_layers=state)
-    d1 = Flatten(in_layers=[d1])
+    d1 = Flatten(in_layers=state)
     d2 = Dense(
         in_layers=[d1],
         activation_fn=tf.nn.relu,
@@ -152,10 +150,9 @@ def main():
   timeout = 60 * 60  # One Hour
   while end - start < timeout:
     a3c = dc.rl.A3C(
-        env, policy, entropy_weight=0, model_dir="/home/leswing/tictactoe")
+        env, policy, entropy_weight=0, value_weight=0.0001, model_dir="/home/leswing/tictactoe")
     a3c.optimizer = dc.models.tensorgraph.TFWrapper(
         tf.train.AdamOptimizer, learning_rate=0.01)
-    TicTacToeEnvironment.ILLEGAL_MOVE_PENALTY = -10000.0
     try:
       a3c.restore()
     except:

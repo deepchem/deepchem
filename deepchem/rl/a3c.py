@@ -27,7 +27,6 @@ class A3CLoss(Layer):
         advantages * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
     entropy = -tf.reduce_sum(prob * log_prob)
-    entropy = tf.Print(entropy, [entropy])
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
     return self.out_tensor
 
