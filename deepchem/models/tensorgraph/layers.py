@@ -640,7 +640,7 @@ class ReduceMean(Layer):
     else:
       self.out_tensor = inputs[0]
 
-    out_tensor = tf.reduce_mean(self.out_tensor)
+    out_tensor = tf.reduce_mean(self.out_tensor, axis=self.axis)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
