@@ -50,7 +50,6 @@ class TicTacToeEnvironment(dc.rl.Environment):
 
     # Did X Win
     if self.check_winner(TicTacToeEnvironment.X):
-      print("Winner")
       self._terminated = True
       return TicTacToeEnvironment.WIN_REWARD
 
@@ -81,11 +80,18 @@ class TicTacToeEnvironment(dc.rl.Environment):
 
   def check_winner(self, player):
     for i in range(3):
-      row = np.sum(self._state[0][i][:])
+      row = np.sum(self._state[0][i][:], axis=0)
       if np.all(row == player * 3):
         return True
-      col = np.sum(self._state[0][:][i])
+      col = np.sum(self._state[0][:][i], axis=0)
       if np.all(col == player * 3):
+        return True
+
+    diag1 = self._state[0][0][0] + self._state[0][1][1] + self._state[0][2][2]
+    if np.all(diag1 == player * 3):
+        return True
+    diag2 = self._state[0][0][2] + self._state[0][1][1] + self._state[0][2][0]
+    if np.all(diag2 == player * 3):
         return True
     return False
 
@@ -144,30 +150,19 @@ class TicTacToePolicy(dc.rl.Policy):
 def main():
   env = TicTacToeEnvironment()
   policy = TicTacToePolicy()
-
-  start = time.time()
-  end = time.time()
-  timeout = 60 * 60  # One Hour
-  while end - start < timeout:
-    a3c = dc.rl.A3C(
-        env, policy, entropy_weight=0, value_weight=0.0001, model_dir="/home/leswing/tictactoe")
-    a3c.optimizer = dc.models.tensorgraph.TFWrapper(
-        tf.train.AdamOptimizer, learning_rate=0.01)
-    try:
-      a3c.restore()
-    except:
-      print("Restore Failed")
-      pass
-    a3c.fit(100000)
-    env.reset()
-    while not env._terminated:
-      print(env.display())
-      print(a3c.predict(env._state))
-      action = a3c.select_action(env._state)
-      print(action)
-      print(env.step(action))
+  a3c = dc.rl.A3C(
+      env, policy, entropy_weight=0, value_weight=0.0001)
+  a3c.optimizer = dc.models.tensorgraph.TFWrapper(
+      tf.train.AdamOptimizer, learning_rate=0.01)
+  a3c.fit(10000)
+  env.reset()
+  while not env._terminated:
     print(env.display())
-    end = time.time()
+    print(a3c.predict(env._state))
+    action = a3c.select_action(env._state)
+    print(action)
+    print(env.step(action))
+  print(env.display())
 
 
 if __name__ == "__main__":
