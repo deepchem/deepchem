@@ -151,10 +151,10 @@ def main():
   env = TicTacToeEnvironment()
   policy = TicTacToePolicy()
   a3c = dc.rl.A3C(
-      env, policy, entropy_weight=0, value_weight=0.0001)
+      env, policy, entropy_weight=0, value_weight=0.25)
   a3c.optimizer = dc.models.tensorgraph.TFWrapper(
       tf.train.AdamOptimizer, learning_rate=0.01)
-  a3c.fit(10000)
+  a3c.fit(100000)
   env.reset()
   while not env._terminated:
     print(env.display())
