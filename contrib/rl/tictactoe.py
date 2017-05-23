@@ -152,7 +152,7 @@ def main():
   timeout = 60 * 60  # One Hour
   while end - start < timeout:
     a3c = dc.rl.A3C(
-        env, policy, discount_factor=0, model_dir="/home/leswing/tictactoe")
+        env, policy, entropy_weight=0, model_dir="/home/leswing/tictactoe")
     a3c.optimizer = dc.models.tensorgraph.TFWrapper(
         tf.train.AdamOptimizer, learning_rate=0.01)
     TicTacToeEnvironment.ILLEGAL_MOVE_PENALTY = -10000.0
