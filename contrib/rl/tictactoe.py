@@ -89,10 +89,10 @@ class TicTacToeEnvironment(dc.rl.Environment):
 
     diag1 = self._state[0][0][0] + self._state[0][1][1] + self._state[0][2][2]
     if np.all(diag1 == player * 3):
-        return True
+      return True
     diag2 = self._state[0][0][2] + self._state[0][1][1] + self._state[0][2][0]
     if np.all(diag2 == player * 3):
-        return True
+      return True
     return False
 
   def game_over(self):
@@ -150,8 +150,7 @@ class TicTacToePolicy(dc.rl.Policy):
 def main():
   env = TicTacToeEnvironment()
   policy = TicTacToePolicy()
-  a3c = dc.rl.A3C(
-      env, policy, entropy_weight=0, value_weight=0.25)
+  a3c = dc.rl.A3C(env, policy, entropy_weight=0, value_weight=0.25)
   a3c.optimizer = dc.models.tensorgraph.TFWrapper(
       tf.train.AdamOptimizer, learning_rate=0.01)
   a3c.fit(100000)

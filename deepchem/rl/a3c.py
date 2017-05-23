@@ -21,10 +21,11 @@ class A3CLoss(Layer):
     self.entropy_weight = entropy_weight
 
   def create_tensor(self, **kwargs):
-    reward, action, prob, value, advantages = [layer.out_tensor for layer in self.in_layers]
+    reward, action, prob, value, advantages = [
+        layer.out_tensor for layer in self.in_layers
+    ]
     log_prob = tf.log(prob + 0.0001)
-    policy_loss = -tf.reduce_sum(
-        advantages * tf.reduce_sum(action * log_prob))
+    policy_loss = -tf.reduce_sum(advantages * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
     entropy = -tf.reduce_sum(prob * log_prob)
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
@@ -90,7 +91,8 @@ class A3C(object):
     self.optimizer = TFWrapper(
         tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
     (self._graph, self._features, rewards, actions, self._action_prob,
-     self._value, self._advantages) = self._build_graph(None, 'global', model_dir)
+     self._value,
+     self._advantages) = self._build_graph(None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
 
@@ -237,14 +239,15 @@ class _Worker(object):
       self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
           grads_and_vars)
       self.update_local_variables = tf.group(
-          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
       session = self.a3c._session
       while step_count[0] < total_steps:
         session.run(self.update_local_variables)
-        episode_states, episode_actions, episode_rewards, episode_advantages = self.create_rollout()
+        episode_states, episode_actions, episode_rewards, episode_advantages = self.create_rollout(
+        )
         feed_dict = {}
         for f, s in zip(self.features, episode_states):
           feed_dict[f.out_tensor] = s
@@ -270,7 +273,8 @@ class _Worker(object):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
       probabilities, value = session.run(
-          [self.action_prob.out_tensor, self.value.out_tensor], feed_dict=feed_dict)
+          [self.action_prob.out_tensor, self.value.out_tensor],
+          feed_dict=feed_dict)
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
@@ -284,7 +288,7 @@ class _Worker(object):
     gamma = 0.99
     advantages = []
     for i in range(1, len(rewards)):
-      advantages.append(rewards[i-1] + gamma * (values[i] - values[i-1]))
+      advantages.append(rewards[i - 1] + gamma * (values[i] - values[i - 1]))
     advantages.append(rewards[-1] - values[-1])
 
     for j in range(len(rewards) - 1, 0, -1):
