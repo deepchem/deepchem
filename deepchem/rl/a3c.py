@@ -278,7 +278,7 @@ class _Worker(object):
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
-      values.append(value[0])
+      values.append(value)
       rewards.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.

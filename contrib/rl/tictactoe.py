@@ -7,7 +7,7 @@ import copy
 
 from deepchem.models.tensorgraph.layers import Flatten, Dense, SoftMax, \
   Variable, \
-  Feature, Layer, Add, BatchNorm, Conv2D
+  Feature, Layer, Add, BatchNorm, Conv2D, Squeeze
 from deepchem.rl.a3c import _Worker
 
 
@@ -143,6 +143,7 @@ class TicTacToePolicy(dc.rl.Policy):
     d4 = BatchNorm(in_layers=[d4])
     d5 = Dense(in_layers=[d4], activation_fn=None, out_channels=9)
     value = Dense(in_layers=[d4], activation_fn=None, out_channels=1)
+    value = Squeeze(squeeze_dims=1, in_layers=[value])
     probs = SoftMax(in_layers=[d5])
     return {'action_prob': probs, 'value': value}
 
