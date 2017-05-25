@@ -5,6 +5,7 @@ import tensorflow as tf
 import json
 import time
 import copy
+import shutil
 
 from deepchem.models.tensorgraph.layers import Flatten, Dense, SoftMax, \
     Variable, \
@@ -148,7 +149,7 @@ class TicTacToePolicy(dc.rl.Policy):
         return {'action_prob': probs, 'value': value}
 
 
-def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
+def eval_tic_tac_toe(value_weight, num_epoch_rounds=1, games=10 ** 4, rollouts=10 ** 5):
     """
     Returns the average reward over 1k games after 10k rollouts
     :param value_weight:
@@ -156,10 +157,12 @@ def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
     """
     env = TicTacToeEnvironment()
     policy = TicTacToePolicy()
+    model_dir = "/tmp/tictactoe"
+    shutil.rmtree(model_dir)
 
     avg_rewards = []
-    for j in range(10):
-        a3c = dc.rl.A3C(env, policy, entropy_weight=0.01, value_weight=value_weight, model_dir="/tmp/tictactoe")
+    for j in range(num_epoch_rounds):
+        a3c = dc.rl.A3C(env, policy, entropy_weight=0.01, value_weight=value_weight, model_dir=model_dir)
         a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.01)
         try:
             a3c.restore()
@@ -175,16 +178,14 @@ def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
                 action = a3c.select_action(env._state)
                 reward = env.step(action)
             rewards.append(reward)
-        avg_rewards.append({(j+1) * rollouts: np.mean(rewards)})
+        avg_rewards.append({(j + 1) * rollouts: np.mean(rewards)})
     return avg_rewards
 
 
 def main():
-    value_weight = 0.70
-    score = eval_tic_tac_toe(value_weight)
-    with open('tictactoe_converge_lambda1.json', 'w') as fout:
-        fout.write(json.dumps(score))
-
+    value_weight = 6.0
+    score = eval_tic_tac_toe(value_weight, num_epoch_rounds=10)
+    print(score)
 
 
 if __name__ == "__main__":
