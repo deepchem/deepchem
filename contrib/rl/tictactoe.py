@@ -159,28 +159,26 @@ def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
     a3c = dc.rl.A3C(env, policy, entropy_weight=0.01, value_weight=value_weight)
     a3c.optimizer = dc.models.tensorgraph.TFWrapper(
         tf.train.AdamOptimizer, learning_rate=0.01)
-    a3c.fit(rollouts)
-    rewards = []
-    for i in range(games):
-        env.reset()
-        reward = -float('inf')
-        while not env._terminated:
-            action = a3c.select_action(env._state)
-            reward = env.step(action)
-        rewards.append(reward)
-    return np.mean(rewards)
+    avg_rewards = []
+    for j in range(10):
+        a3c.fit(rollouts)
+        rewards = []
+        for i in range(games):
+            env.reset()
+            reward = -float('inf')
+            while not env._terminated:
+                action = a3c.select_action(env._state)
+                reward = env.step(action)
+            rewards.append(reward)
+        avg_rewards.append(((j+1) * rollouts, np.mean(rewards)))
+    return avg_rewards
 
 
 def main():
-    scores = {}
-    value_weight = 0.05
-    while value_weight <= 1.0:
-        print(value_weight)
-        score = eval_tic_tac_toe(value_weight)
-        scores[value_weight] = score
-        with open('tictactoe_value_search_lambda1.json', 'w') as fout:
-            fout.write(json.dumps(scores))
-        value_weight += 0.05
+    value_weight = 0.70
+    score = eval_tic_tac_toe(value_weight)
+    with open('tictactoe_converge_lambda1.json', 'w') as fout:
+        fout.write(json.dumps(score))
 
 
 
