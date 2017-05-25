@@ -1,5 +1,6 @@
 import random
 import string
+from collections import Sequence
 
 import tensorflow as tf
 import numpy as np
@@ -21,6 +22,8 @@ class Layer(object):
       self.tensorboard = kwargs['tensorboard']
     if in_layers is None:
       in_layers = list()
+    if not isinstance(in_layers, Sequence):
+      in_layers = [in_layers]
     self.in_layers = in_layers
     self.op_type = "gpu"
     self.variables = []
@@ -77,6 +80,8 @@ class Layer(object):
     """
     if in_layers is None:
       in_layers = self.in_layers
+    if not isinstance(in_layers, Sequence):
+      in_layers = [in_layers]
     tensors = []
     for input in in_layers:
       if isinstance(input, tf.Tensor):
@@ -205,7 +210,7 @@ class Dense(Layer):
     else:
       biases_initializer = self.biases_initializer()
     if not self.time_series:
-      self.out_tensor = tf.contrib.layers.fully_connected(
+      out_tensor = tf.contrib.layers.fully_connected(
           parent,
           num_outputs=self.out_channels,
           activation_fn=self.activation_fn,
@@ -214,19 +219,19 @@ class Dense(Layer):
           scope=self._get_scope_name(),
           reuse=self._reuse,
           trainable=True)
-      return self.out_tensor
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-                                                           num_outputs=self.out_channels,
-                                                           activation_fn=self.activation_fn,
-                                                           biases_initializer=biases_initializer,
-                                                           weights_initializer=self.weights_initializer(),
-                                                           scope=self._get_scope_name(),
-                                                           reuse=self._reuse,
-                                                           trainable=True)
-    out_tensor = tf.map_fn(dense_fn, parent)
+    else:
+      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+                                                             num_outputs=self.out_channels,
+                                                             activation_fn=self.activation_fn,
+                                                             biases_initializer=biases_initializer,
+                                                             weights_initializer=self.weights_initializer(),
+                                                             scope=self._get_scope_name(),
+                                                             reuse=self._reuse,
+                                                             trainable=True)
+      out_tensor = tf.map_fn(dense_fn, parent)
     if set_tensors:
       self.variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope_name)
+          tf.GraphKeys.GLOBAL_VARIABLES, scope=self._get_scope_name())
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -341,10 +346,24 @@ class Repeat(Layer):
 
 
 class GRU(Layer):
+  """A Gated Recurrent Unit.
 
-  def __init__(self, n_hidden, out_channels, batch_size, **kwargs):
+  This layer expects its input to be of shape (batch_size, sequence_length, ...).
+  It consists of a set of independent sequence (one for each element in the batch),
+  that are each propagated independently through the GRU.
+  """
+
+  def __init__(self, n_hidden, batch_size, **kwargs):
+    """Create a Gated Recurrent Unit.
+
+    Parameters
+    ----------
+    n_hidden: int
+      the size of the GRU's hidden state, which also determines the size of its output
+    batch_size: int
+      the batch size that will be used with this layer
+    """
     self.n_hidden = n_hidden
-    self.out_channels = out_channels
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
 
@@ -355,13 +374,11 @@ class GRU(Layer):
     parent_tensor = inputs[0]
     gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
     initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
-    rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
+    out_tensor, rnn_states = tf.nn.dynamic_rnn(
         gru_cell,
         parent_tensor,
         initial_state=initial_gru_state,
         scope=self.name)
-    projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
-    out_tensor = tf.map_fn(projection, rnn_outputs)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
