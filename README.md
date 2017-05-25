@@ -140,7 +140,7 @@ In order to get GPU support you will have to use the
 docker pull deepchemio/deepchem
 
 # This will create a container out of our latest image with GPU support
-nvidia_docker run -i -t deepchemio/deepchem
+nvidia-docker run -i -t deepchemio/deepchem
 
 # You are now in a docker container whose python has deepchem installed
 # For example you can run our tox21 benchmark
