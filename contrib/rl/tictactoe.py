@@ -88,7 +88,7 @@ def eval_tic_tac_toe(value_weight,
 
 def main():
   value_weight = 6.0
-  score = eval_tic_tac_toe(value_weight, num_epoch_rounds=1)
+  score = eval_tic_tac_toe(value_weight, num_epoch_rounds=3)
   print(score)
 
 

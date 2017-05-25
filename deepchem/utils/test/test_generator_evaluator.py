@@ -15,7 +15,7 @@ class TestGeneratorEvaluator(TestCase):
 
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
-    n_features = 2
+    n_features = 1
 
     X = np.ones(shape=(n_data_points // 2, n_features)) * -1
     X1 = np.ones(shape=(n_data_points // 2, n_features))
