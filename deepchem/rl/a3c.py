@@ -22,7 +22,8 @@ class A3CLoss(Layer):
 
   def create_tensor(self, **kwargs):
     reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
-    log_prob = tf.log(prob + 0.0001)
+    prob = prob + np.finfo(np.float32).eps
+    log_prob = tf.log(prob)
     policy_loss = -tf.reduce_sum(
         (reward - value) * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
