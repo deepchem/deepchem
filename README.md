@@ -132,13 +132,15 @@ via this installation procedure.
     Try running tests for one submodule at a time if memory proves an issue.
 
 ### Using a Docker Image
-For major releases we will create docker environments with everything pre-installed
+For major releases we will create docker environments with everything pre-installed.
+In order to get GPU support you will have to use the 
+[nvidia-docker](https://github.com/NVIDIA/nvidia-docker) plugin.
 ``` bash
 # This will the download the latest stable deepchem docker image into your images
 docker pull deepchemio/deepchem
 
-# This will create a container out of our latest image
-docker run -i -t deepchemio/deepchem
+# This will create a container out of our latest image with GPU support
+nvidia_docker run -i -t deepchemio/deepchem
 
 # You are now in a docker container whose python has deepchem installed
 # For example you can run our tox21 benchmark
