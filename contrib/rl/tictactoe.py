@@ -175,7 +175,7 @@ def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
                 action = a3c.select_action(env._state)
                 reward = env.step(action)
             rewards.append(reward)
-        avg_rewards.append(((j+1) * rollouts, np.mean(rewards)))
+        avg_rewards.append({(j+1) * rollouts: np.mean(rewards)})
     return avg_rewards
 
 
