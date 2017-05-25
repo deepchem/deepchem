@@ -21,11 +21,10 @@ class A3CLoss(Layer):
     self.entropy_weight = entropy_weight
 
   def create_tensor(self, **kwargs):
-    reward, action, prob, value, advantages = [
-        layer.out_tensor for layer in self.in_layers
-    ]
+    reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
     log_prob = tf.log(prob + 0.0001)
-    policy_loss = -tf.reduce_sum(advantages * tf.reduce_sum(action * log_prob))
+    policy_loss = -tf.reduce_sum(
+        (reward - value) * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
     entropy = -tf.reduce_sum(prob * log_prob)
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
@@ -91,8 +90,7 @@ class A3C(object):
     self.optimizer = TFWrapper(
         tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
     (self._graph, self._features, rewards, actions, self._action_prob,
-     self._value,
-     self._advantages) = self._build_graph(None, 'global', model_dir)
+     self._value) = self._build_graph(None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
 
@@ -103,12 +101,11 @@ class A3C(object):
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
     rewards = Weights(shape=(None, 1))
-    advantages = Weights(shape=(None, 1))
     actions = Label(shape=(None, self._env.n_actions))
     loss = A3CLoss(
         self.value_weight,
         self.entropy_weight,
-        in_layers=[rewards, actions, action_prob, value, advantages])
+        in_layers=[rewards, actions, action_prob, value])
     graph = TensorGraph(
         batch_size=self.max_rollout_length,
         use_queue=False,
@@ -123,7 +120,7 @@ class A3C(object):
     with graph._get_tf("Graph").as_default():
       with tf.variable_scope(scope):
         graph.build()
-    return graph, features, rewards, actions, action_prob, value, advantages
+    return graph, features, rewards, actions, action_prob, value
 
   def fit(self, total_steps, max_checkpoints_to_keep=5,
           checkpoint_interval=600):
@@ -227,7 +224,7 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages = a3c._build_graph(
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(
         a3c._graph._get_tf('Graph'), self.scope, None)
     with a3c._graph._get_tf("Graph").as_default():
       local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
@@ -246,14 +243,12 @@ class _Worker(object):
       session = self.a3c._session
       while step_count[0] < total_steps:
         session.run(self.update_local_variables)
-        episode_states, episode_actions, episode_rewards, episode_advantages = self.create_rollout(
-        )
+        episode_states, episode_actions, episode_rewards = self.create_rollout()
         feed_dict = {}
         for f, s in zip(self.features, episode_states):
           feed_dict[f.out_tensor] = s
         feed_dict[self.rewards.out_tensor] = episode_rewards
         feed_dict[self.actions.out_tensor] = episode_actions
-        feed_dict[self.advantages.out_tensor] = episode_advantages
         session.run(self.train_op, feed_dict=feed_dict)
         step_count[0] += len(episode_actions)
 
@@ -264,7 +259,6 @@ class _Worker(object):
     states = [[] for i in range(len(self.features))]
     actions = []
     rewards = []
-    values = []
     for i in range(self.a3c.max_rollout_length):
       if self.env.terminated:
         break
@@ -272,29 +266,20 @@ class _Worker(object):
       for j in range(len(state)):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
-      probabilities, value = session.run(
-          [self.action_prob.out_tensor, self.value.out_tensor],
-          feed_dict=feed_dict)
+      probabilities = session.run(
+          self.action_prob.out_tensor, feed_dict=feed_dict)
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
-      values.append(value)
       rewards.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = _create_feed_dict(self.features, self.env.state)
       rewards[-1] += self.a3c.discount_factor * session.run(
           self.value.out_tensor, feed_dict)
-    gamma = 0.99
-    advantages = []
-    for i in range(1, len(rewards)):
-      advantages.append(rewards[i - 1] + gamma * (values[i] - values[i - 1]))
-    advantages.append(rewards[-1] - values[-1])
-
     for j in range(len(rewards) - 1, 0, -1):
       rewards[j - 1] += self.a3c.discount_factor * rewards[j]
-
     if self.env.terminated:
       self.env.reset()
     return np.array(states), np.array(actions), np.array(rewards).reshape(
-        (len(rewards), 1)), advantages
+        (len(rewards), 1))

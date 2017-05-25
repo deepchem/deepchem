@@ -178,7 +178,7 @@ def main():
         print(value_weight)
         score = eval_tic_tac_toe(value_weight)
         scores[value_weight] = score
-        with open('tictactoe_value_search.json', 'w') as fout:
+        with open('tictactoe_value_search_lambda1.json', 'w') as fout:
             fout.write(json.dumps(scores))
         value_weight += 0.05
 
