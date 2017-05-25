@@ -156,11 +156,16 @@ def eval_tic_tac_toe(value_weight, games=10 ** 4, rollouts=10 ** 5):
     """
     env = TicTacToeEnvironment()
     policy = TicTacToePolicy()
-    a3c = dc.rl.A3C(env, policy, entropy_weight=0.01, value_weight=value_weight)
-    a3c.optimizer = dc.models.tensorgraph.TFWrapper(
-        tf.train.AdamOptimizer, learning_rate=0.01)
+
     avg_rewards = []
     for j in range(10):
+        a3c = dc.rl.A3C(env, policy, entropy_weight=0.01, value_weight=value_weight, model_dir="/tmp/tictactoe")
+        a3c.optimizer = dc.models.tensorgraph.TFWrapper(tf.train.AdamOptimizer, learning_rate=0.01)
+        try:
+            a3c.restore()
+        except:
+            print("unable to restore")
+            pass
         a3c.fit(rollouts)
         rewards = []
         for i in range(games):
