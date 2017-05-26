@@ -125,7 +125,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=losses)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
