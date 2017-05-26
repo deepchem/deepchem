@@ -30,7 +30,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
@@ -66,7 +66,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -90,7 +90,7 @@ class TestTensorGraph(unittest.TestCase):
     dense = Dense(out_channels=1, in_layers=[features])
     label = Label(shape=(None, 1))
     loss = ReduceSquareDifference(in_layers=[dense, label])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(dense)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
@@ -173,7 +173,7 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(
         tensorboard=True,
         tensorboard_log_frequency=1,
-        learning_rate=0.1,
+        learning_rate=0.01,
         model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
@@ -197,7 +197,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1)
@@ -237,7 +237,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=[smce])
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
