@@ -92,7 +92,6 @@ class TicTacToeEnvironment(deepchem.rl.Environment):
     return False
 
   def game_over(self):
-    s = set()
     for i in range(3):
       for j in range(3):
         if np.all(self._state[0][i][j] == TicTacToeEnvironment.EMPTY):
