@@ -227,12 +227,14 @@ def benchmark_classification(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
     n_graph_feat = hyper_parameters['n_graph_feat']
+    default_max_atoms = hyper_parameters['default_max_atoms']
 
     max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
     max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
     max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
     max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
-
+    max_atoms = min([max_atoms, default_max_atoms])
+    print('Maximum number of atoms: %i' % max_atoms)
     reshard_size = 256
     transformer = deepchem.trans.DAGTransformer(max_atoms=max_atoms)
     train_dataset.reshard(reshard_size)
@@ -560,12 +562,14 @@ def benchmark_regression(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
     n_graph_feat = hyper_parameters['n_graph_feat']
+    default_max_atoms = hyper_parameters['default_max_atoms']
 
     max_atoms_train = max([mol.get_num_atoms() for mol in train_dataset.X])
     max_atoms_valid = max([mol.get_num_atoms() for mol in valid_dataset.X])
     max_atoms_test = max([mol.get_num_atoms() for mol in test_dataset.X])
     max_atoms = max([max_atoms_train, max_atoms_valid, max_atoms_test])
-
+    max_atoms = min([max_atoms, default_max_atoms])
+    print('Maximum number of atoms: %i' % max_atoms)
     reshard_size = 512
     transformer = deepchem.trans.DAGTransformer(max_atoms=max_atoms)
     train_dataset.reshard(reshard_size)
