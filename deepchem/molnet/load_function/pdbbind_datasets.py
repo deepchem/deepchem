@@ -78,15 +78,16 @@ def load_pdbbind_grid(split="random",
     else:
       data_dir = "/tmp"
     if reload:
-      save_dir = os.path.join(data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + split)
+      save_dir = os.path.join(
+          data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + split)
 
     dataset_file = os.path.join(data_dir, subset + "_smiles_labels.csv")
 
     if not os.path.exists(dataset_file):
       os.system(
           'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' + subset + "_smiles_labels.csv"
-      )
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
+          subset + "_smiles_labels.csv")
 
     tasks = ["-logKd/Ki"]
     if reload:

@@ -20,7 +20,6 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
-
   if featurizer == 'CoulombMatrix':
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
@@ -38,7 +37,7 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
           'wget -P ' + data_dir +
           ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm9.csv '
       )
-      
+
   qm9_tasks = [
       "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
       "u0_atom", "u298_atom", "h298_atom", "g298_atom"
@@ -68,7 +67,6 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
       featurizer = deepchem.feat.RawFeaturizer()
     loader = deepchem.data.CSVLoader(
         tasks=qm9_tasks, smiles_field="smiles", featurizer=featurizer)
-
 
   dataset = loader.featurize(dataset_file)
   splitters = {

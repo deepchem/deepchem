@@ -65,7 +65,7 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
       featurizer = deepchem.feat.RawFeaturizer()
     loader = deepchem.data.CSVLoader(
         tasks=qm8_tasks, smiles_field="smiles", featurizer=featurizer)
-    
+
   dataset = loader.featurize(dataset_file)
   splitters = {
       'index': deepchem.splits.IndexSplitter(),

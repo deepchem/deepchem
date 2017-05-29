@@ -20,7 +20,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     data_dir = "/tmp"
   if reload:
     save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + split)
-    
+
   qm7_tasks = ["u0_atom"]
 
   if reload:
@@ -28,7 +28,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
         save_dir)
     if loaded:
       return qm7_tasks, all_dataset, transformers
-  
+
   if featurizer == 'CoulombMatrix':
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
@@ -60,7 +60,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     loader = deepchem.data.CSVLoader(
         tasks=qm7_tasks, smiles_field="smiles", featurizer=featurizer)
     dataset = loader.featurize(dataset_file)
-      
+
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
@@ -83,7 +83,7 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
   if reload:
     deepchem.utils.save.save_dataset_to_disk(
         save_dir, train_dataset, valid_dataset, test_dataset, transformers)
-    
+
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 
