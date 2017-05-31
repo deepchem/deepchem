@@ -43,7 +43,8 @@ class MultitaskGraphRegressor(Model):
                pad_batches=True,
                verbose=True):
 
-    super().__init__(self, model_dir=logdir, verbose=verbose)
+    super(MultitaskGraphRegressor, self).__init__(
+        model_dir=logdir, verbose=verbose)
     self.n_tasks = n_tasks
     self.final_loss = final_loss
     self.model = model

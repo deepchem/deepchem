@@ -18,22 +18,48 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     data_dir = os.environ["DEEPCHEM_DATA_DIR"]
   else:
     data_dir = "/tmp"
+  if reload:
+    save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + split)
 
-  dataset_file = os.path.join(data_dir, "qm7.mat")
+  qm7_tasks = ["u0_atom"]
 
-  if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
-    )
+  if reload:
+    loaded, all_dataset, transformers = deepchem.utils.save.load_dataset_from_disk(
+        save_dir)
+    if loaded:
+      return qm7_tasks, all_dataset, transformers
 
-  dataset = scipy.io.loadmat(dataset_file)
+  if featurizer == 'CoulombMatrix':
+    dataset_file = os.path.join(data_dir, "qm7.mat")
 
-  X = dataset['X']
-  y = dataset['T']
-  w = np.ones_like(y)
-  dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
-  print(len(dataset))
+    if not os.path.exists(dataset_file):
+      os.system(
+          'wget -P ' + data_dir +
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+      )
+    dataset = scipy.io.loadmat(dataset_file)
+    X = dataset['X']
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
+  else:
+    dataset_file = os.path.join(data_dir, "qm7.csv")
+    if not os.path.exists(dataset_file):
+      os.system(
+          'wget -P ' + data_dir +
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv '
+      )
+    if featurizer == 'ECFP':
+      featurizer = deepchem.feat.CircularFingerprint(size=1024)
+    elif featurizer == 'GraphConv':
+      featurizer = deepchem.feat.ConvMolFeaturizer()
+    elif featurizer == 'Weave':
+      featurizer = deepchem.feat.WeaveFeaturizer()
+    elif featurizer == 'Raw':
+      featurizer = deepchem.feat.RawFeaturizer()
+    loader = deepchem.data.CSVLoader(
+        tasks=qm7_tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(dataset_file)
 
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
@@ -54,8 +80,10 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
+  if reload:
+    deepchem.utils.save.save_dataset_to_disk(
+        save_dir, train_dataset, valid_dataset, test_dataset, transformers)
 
-  qm7_tasks = np.arange(y.shape[0])
   return qm7_tasks, (train_dataset, valid_dataset, test_dataset), transformers
 
 

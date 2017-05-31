@@ -39,8 +39,6 @@ import numpy as np
 import deepchem as dc
 import argparse
 
-np.random.seed(123)
-
 parser = argparse.ArgumentParser(
     description='Deepchem benchmark: ' +
     'giving performances of different learning models on datasets')
@@ -72,12 +70,22 @@ parser.add_argument(
     dest='test',
     default=False,
     help='Evalute performance on test set')
+parser.add_argument(
+    '--seed',
+    action='append',
+    dest='seed_args',
+    default=[],
+    help='Choice of random seed')
 args = parser.parse_args()
 #Datasets and models used in the benchmark test
 splitters = args.splitter_args
 models = args.model_args
 datasets = args.dataset_args
 test = args.test
+if len(args.seed_args) > 0:
+  seed = int(args.seed_args[0])
+else:
+  seed = 123
 
 if len(splitters) == 0:
   splitters = ['index', 'random', 'scaffold']
@@ -97,4 +105,6 @@ if len(datasets) == 0:
 for dataset in datasets:
   for split in splitters:
     for model in models:
-      dc.molnet.run_benchmark([dataset], str(model), split=split, test=test)
+      np.random.seed(seed)
+      dc.molnet.run_benchmark(
+          [dataset], str(model), split=split, test=test, seed=seed)
