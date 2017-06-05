@@ -141,6 +141,7 @@ class TestTensorGraph(unittest.TestCase):
       y_pred = prediction[:, i, :]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=1.5)))
 
+  @flaky
   def test_no_queue(self):
     n_data_points = 20
     n_features = 2
