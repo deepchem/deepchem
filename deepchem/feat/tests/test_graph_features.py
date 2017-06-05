@@ -26,8 +26,8 @@ class TestConvMolFeaturizer(unittest.TestCase):
 
   def test_carbon_nitrogen(self):
     """Test on carbon nitrogen molecule"""
-    # Note there is a central carbon of degree 4, with 3 carbons and
-    # one nitrogen of degree 1 (connected only to central carbon).
+    # Note there is a central nitrogen of degree 4, with 4 carbons
+    # of degree 1 (connected only to central nitrogen).
     raw_smiles = ['C[N+](C)(C)C']
     mols = [rdkit.Chem.MolFromSmiles(s) for s in raw_smiles]
     featurizer = ConvMolFeaturizer()
@@ -40,12 +40,12 @@ class TestConvMolFeaturizer(unittest.TestCase):
     # Get the adjacency lists grouped by degree
     deg_adj_lists = mol.get_deg_adjacency_lists()
     assert np.array_equal(deg_adj_lists[0], np.zeros([0, 0], dtype=np.int32))
-    # The 4 outer atoms connected to central carbon
+    # The 4 outer atoms connected to central nitrogen
     assert np.array_equal(deg_adj_lists[1],
                           np.array([[4], [4], [4], [4]], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[2], np.zeros([0, 2], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[3], np.zeros([0, 3], dtype=np.int32))
-    # Central carbon connected to everything else.
+    # Central nitrogen connected to everything else.
     assert np.array_equal(deg_adj_lists[4],
                           np.array([[0, 1, 2, 3]], dtype=np.int32))
     assert np.array_equal(deg_adj_lists[5], np.zeros([0, 5], dtype=np.int32))
