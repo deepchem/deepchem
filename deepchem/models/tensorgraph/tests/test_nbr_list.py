@@ -73,6 +73,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
+    assert len(tg.get_layer_variables(combo)) >= 2
 
   def test_neighbor_list_shape(self):
     """Test that NeighborList works."""
