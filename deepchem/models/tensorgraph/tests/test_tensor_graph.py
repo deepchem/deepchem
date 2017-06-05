@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import os
 from nose.tools import assert_true
+from flaky import flaky
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -37,6 +38,7 @@ class TestTensorGraph(unittest.TestCase):
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
+  @flaky
   def test_multi_task_classifier(self):
     n_data_points = 20
     n_features = 2

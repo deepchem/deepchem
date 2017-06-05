@@ -40,3 +40,4 @@ conda install -y -c anaconda pandas=0.19.2
 yes | pip install $tensorflow==1.0.1
 yes | pip install nose
 yes | pip install nose-timer
+yes | pip install flaky==3.3.0
