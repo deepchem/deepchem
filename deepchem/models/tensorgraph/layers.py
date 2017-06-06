@@ -1,5 +1,6 @@
 import random
 import string
+from collections import Sequence
 
 import tensorflow as tf
 import numpy as np
@@ -21,9 +22,11 @@ class Layer(object):
       self.tensorboard = kwargs['tensorboard']
     if in_layers is None:
       in_layers = list()
+    if not isinstance(in_layers, Sequence):
+      in_layers = [in_layers]
     self.in_layers = in_layers
     self.op_type = "gpu"
-    self.variables = []
+    self.variable_scope = ''
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -31,10 +34,6 @@ class Layer(object):
       Layer.layer_number_dict[class_name] = 0
     Layer.layer_number_dict[class_name] += 1
     return "%s" % Layer.layer_number_dict[class_name]
-
-  def get_variables(self):
-    """Get trainable variables in this layer."""
-    return self.variables
 
   def none_tensors(self):
     out_tensor = self.out_tensor
@@ -77,6 +76,8 @@ class Layer(object):
     """
     if in_layers is None:
       in_layers = self.in_layers
+    if not isinstance(in_layers, Sequence):
+      in_layers = [in_layers]
     tensors = []
     for input in in_layers:
       if isinstance(input, tf.Tensor):
@@ -99,6 +100,17 @@ class Layer(object):
           tensors[i] = tf.reshape(tensors[i], shape)
     return tensors
 
+  def _record_variable_scope(self, local_scope):
+    """Record the scope name used for creating variables.
+
+    This should be called from create_tensor().  It allows the list of variables
+    belonging to this layer to be retrieved later."""
+    parent_scope = tf.get_variable_scope().name
+    if len(parent_scope) > 0:
+      self.variable_scope = '%s/%s' % (parent_scope, local_scope)
+    else:
+      self.variable_scope = local_scope
+
 
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
@@ -109,7 +121,7 @@ class TensorWrapper(Layer):
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
-    self.variables = []
+    pass
 
 
 def convert_to_layers(in_layers):
@@ -149,7 +161,7 @@ class Conv1D(Layer):
     t = tf.nn.bias_add(t, b)
     out_tensor = tf.nn.relu(t)
     if set_tensors:
-      self.variables = [f, b]
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -204,29 +216,29 @@ class Dense(Layer):
       biases_initializer = None
     else:
       biases_initializer = self.biases_initializer()
-    if not self.time_series:
-      self.out_tensor = tf.contrib.layers.fully_connected(
-          parent,
-          num_outputs=self.out_channels,
-          activation_fn=self.activation_fn,
-          biases_initializer=biases_initializer,
-          weights_initializer=self.weights_initializer(),
-          scope=self._get_scope_name(),
-          reuse=self._reuse,
-          trainable=True)
-      return self.out_tensor
-    dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-                                                           num_outputs=self.out_channels,
-                                                           activation_fn=self.activation_fn,
-                                                           biases_initializer=biases_initializer,
-                                                           weights_initializer=self.weights_initializer(),
-                                                           scope=self._get_scope_name(),
-                                                           reuse=self._reuse,
-                                                           trainable=True)
-    out_tensor = tf.map_fn(dense_fn, parent)
+    for reuse in (self._reuse, False):
+      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+                                                             num_outputs=self.out_channels,
+                                                             activation_fn=self.activation_fn,
+                                                             biases_initializer=biases_initializer,
+                                                             weights_initializer=self.weights_initializer(),
+                                                             scope=self._get_scope_name(),
+                                                             reuse=reuse,
+                                                             trainable=True)
+      try:
+        if self.time_series:
+          out_tensor = tf.map_fn(dense_fn, parent)
+        else:
+          out_tensor = dense_fn(parent)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
-      self.variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope_name)
+      self._record_variable_scope(self._get_scope_name())
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -356,10 +368,24 @@ class Repeat(Layer):
 
 
 class GRU(Layer):
+  """A Gated Recurrent Unit.
 
-  def __init__(self, n_hidden, out_channels, batch_size, **kwargs):
+  This layer expects its input to be of shape (batch_size, sequence_length, ...).
+  It consists of a set of independent sequence (one for each element in the batch),
+  that are each propagated independently through the GRU.
+  """
+
+  def __init__(self, n_hidden, batch_size, **kwargs):
+    """Create a Gated Recurrent Unit.
+
+    Parameters
+    ----------
+    n_hidden: int
+      the size of the GRU's hidden state, which also determines the size of its output
+    batch_size: int
+      the batch size that will be used with this layer
+    """
     self.n_hidden = n_hidden
-    self.out_channels = out_channels
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
 
@@ -370,13 +396,11 @@ class GRU(Layer):
     parent_tensor = inputs[0]
     gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
     initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
-    rnn_outputs, rnn_states = tf.nn.dynamic_rnn(
+    out_tensor, rnn_states = tf.nn.dynamic_rnn(
         gru_cell,
         parent_tensor,
         initial_state=initial_gru_state,
         scope=self.name)
-    projection = lambda x: tf.contrib.layers.linear(x, num_outputs=self.out_channels, activation_fn=tf.nn.sigmoid)
-    out_tensor = tf.map_fn(projection, rnn_outputs)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -731,8 +755,7 @@ class Conv2D(Layer):
         scope=self.scope_name)
     out_tensor = out_tensor
     if set_tensors:
-      self.variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope_name)
+      self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -886,7 +909,7 @@ class GraphConv(Layer):
 
     out_tensor = atom_features
     if set_tensors:
-      self.variables = self.W_list + self.b_list
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -1145,7 +1168,7 @@ class VinaFreeEnergy(Layer):
 
     out_tensor = free_energy
     if set_tensors:
-      self.variables = [weight] + weighted_combo.variables
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -1161,18 +1184,16 @@ class WeightedLinearCombo(Layer):
     inputs = self._get_input_tensors(in_layers, True)
     weights = []
     out_tensor = None
-    variables = []
     for in_tensor in inputs:
       w = tf.Variable(tf.random_normal([
           1,
       ], stddev=self.std))
-      variables.append(w)
       if out_tensor is None:
         out_tensor = w * in_tensor
       else:
         out_tensor += w * in_tensor
     if set_tensors:
-      self.variables = variables
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -1572,13 +1593,11 @@ class AtomicConvolution(Layer):
     R = self.distance_matrix(D)
     sym = []
     rsf_zeros = tf.zeros((B, N, M))
-    variables = []
     for param in self.radial_params:
 
       # We apply the radial pooling filter before atom type conv
       # to reduce computation
       param_variables, rsf = self.radial_symmetry_function(R, *param)
-      variables += param_variables
 
       if not self.atom_types:
         cond = tf.not_equal(Nbrs_Z, 0.0)
@@ -1593,7 +1612,7 @@ class AtomicConvolution(Layer):
     m, v = tf.nn.moments(layer, axes=[0])
     out_tensor = tf.nn.batch_normalization(layer, m, v, None, None, 1e-3)
     if set_tensors:
-      self.variables = variables
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 

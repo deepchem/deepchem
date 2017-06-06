@@ -166,12 +166,12 @@ class TensorGraph(Model):
           if self.global_step % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.global_step)
             avg_loss = float(avg_loss) / n_batches
-            print('Ending global_step %d: Average loss %g' %
-                  (self.global_step, avg_loss))
+            print('Ending global_step %d: Average loss %g' % (self.global_step,
+                                                              avg_loss))
             avg_loss, n_batches = 0.0, 0.0
         avg_loss = float(avg_loss) / n_batches
-        print('Ending global_step %d: Average loss %g' %
-              (self.global_step, avg_loss))
+        print('Ending global_step %d: Average loss %g' % (self.global_step,
+                                                          avg_loss))
         saver.save(sess, self.save_file, global_step=self.global_step)
         self.last_checkpoint = saver.last_checkpoints[-1]
       ############################################################## TIMING
@@ -434,6 +434,14 @@ class TensorGraph(Model):
       scores, per_task_scores = evaluator.compute_model_performance(
           metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
+
+  def get_layer_variables(self, layer):
+    """Get the list of trainable variables in a layer of the graph."""
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      return tf.get_collection(
+          tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
 
   def _get_tf(self, obj):
     """

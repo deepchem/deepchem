@@ -149,16 +149,15 @@ class TestLayers(test_util.TensorFlowTestCase):
     batch_size = 10
     n_hidden = 7
     in_channels = 4
-    out_channels = 5
     n_repeat = 2
     n_steps = 6
     in_tensor = np.random.rand(batch_size, n_steps, in_channels)
     with self.test_session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
-      out_tensor = GRU(n_hidden, out_channels, batch_size)(in_tensor)
+      out_tensor = GRU(n_hidden, batch_size)(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, n_steps, out_channels)
+      assert out_tensor.shape == (batch_size, n_steps, n_hidden)
 
   def test_time_series_dense(self):
     """Test that TimeSeriesDense can be invoked."""
