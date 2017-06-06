@@ -12,6 +12,7 @@ then
 fi
 
 if [ -z "$python_version" ]
+then
     echo "Using python 3.5 by default"
     export python_version=3.5
 fi
