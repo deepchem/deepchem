@@ -24,7 +24,8 @@ class SingletaskToMultitask(Model):
   """
 
   def __init__(self, tasks, model_builder, model_dir=None, verbose=True):
-    super(SingletaskToMultitask, self).__init__(self, model_dir=model_dir, verbose=verbose)
+    super(SingletaskToMultitask, self).__init__(
+        self, model_dir=model_dir, verbose=verbose)
     self.tasks = tasks
     self.task_model_dirs = {}
     self.model_builder = model_builder

@@ -192,7 +192,8 @@ class TensorflowGraphModel(Model):
     self.pad_batches = pad_batches
     self.seed = seed
 
-    super(TensorflowGraphModel, self).__init__(self, model_dir=logdir, verbose=verbose)
+    super(TensorflowGraphModel, self).__init__(
+        self, model_dir=logdir, verbose=verbose)
 
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.

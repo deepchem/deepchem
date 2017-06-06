@@ -62,7 +62,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     n_classes: int
       the number of classes
     """
-    super(TensorGraphMultiTaskClassifier, self).__init__(mode='classification', **kwargs)
+    super(TensorGraphMultiTaskClassifier, self).__init__(
+        mode='classification', **kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.n_classes = n_classes
@@ -167,7 +168,8 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
     dropouts: list
       the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
     """
-    super(TensorGraphMultiTaskRegressor, self).__init__(mode='regression', **kwargs)
+    super(TensorGraphMultiTaskRegressor, self).__init__(
+        mode='regression', **kwargs)
     self.n_tasks = n_tasks
     self.n_features = n_features
 
@@ -296,7 +298,8 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
       X_b = transformer.X_transform(X_b)
     n_features = X_b.shape[1]
     print("n_features after fit_transform: %d" % int(n_features))
-    super(TensorGraphMultiTaskFitTransformRegressor, self).__init__(n_tasks, n_features, batch_size=batch_size, **kwargs)
+    super(TensorGraphMultiTaskFitTransformRegressor, self).__init__(
+        n_tasks, n_features, batch_size=batch_size, **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -332,8 +335,9 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
         feed_dict[self.features[0]] = X_t
         yield feed_dict
 
-    return super(TensorGraphMultiTaskFitTransformRegressor, self).predict_proba_on_generator(transform_generator(),
-                                              transformers)
+    return super(TensorGraphMultiTaskFitTransformRegressor,
+                 self).predict_proba_on_generator(transform_generator(),
+                                                  transformers)
 
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):
