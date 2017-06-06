@@ -233,7 +233,7 @@ class MultitaskGraphClassifier(Model):
 
   def save(self):
     """
-    No-op since this model doesn't currently support saving... 
+    No-op since this model doesn't currently support saving...
     """
     pass
 

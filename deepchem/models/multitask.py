@@ -20,11 +20,11 @@ class SingletaskToMultitask(Model):
   """
   Convenience class to let singletask models be fit on multitask data.
 
-  Warning: This current implementation is only functional for sklearn models. 
+  Warning: This current implementation is only functional for sklearn models.
   """
 
   def __init__(self, tasks, model_builder, model_dir=None, verbose=True):
-    super().__init__(self, model_dir=model_dir, verbose=verbose)
+    super(SingletaskToMultitask, self).__init__(self, model_dir=model_dir, verbose=verbose)
     self.tasks = tasks
     self.task_model_dirs = {}
     self.model_builder = model_builder
@@ -86,7 +86,7 @@ class SingletaskToMultitask(Model):
     """
     Updates all singletask models with new information.
 
-    Warning: This current implementation is only functional for sklearn models. 
+    Warning: This current implementation is only functional for sklearn models.
     """
     if not isinstance(dataset, DiskDataset):
       raise ValueError('SingletaskToMultitask only works with DiskDatasets')
@@ -114,7 +114,7 @@ class SingletaskToMultitask(Model):
 
   def predict(self, dataset, transformers=[]):
     """
-    Prediction for multitask models. 
+    Prediction for multitask models.
     """
     n_tasks = len(self.tasks)
     n_samples = len(dataset)

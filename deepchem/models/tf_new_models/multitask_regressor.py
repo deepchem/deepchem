@@ -51,7 +51,7 @@ class MultitaskGraphRegressor(Model):
     self.sess = tf.Session(graph=self.model.graph)
 
     with self.model.graph.as_default():
-      # Extract model info 
+      # Extract model info
       self.batch_size = batch_size
       self.pad_batches = pad_batches
       # Get graph topology for x
@@ -182,7 +182,7 @@ class MultitaskGraphRegressor(Model):
 
   def save(self):
     """
-    No-op since this model doesn't currently support saving... 
+    No-op since this model doesn't currently support saving...
     """
     pass
 

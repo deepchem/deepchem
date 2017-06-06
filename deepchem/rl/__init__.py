@@ -88,7 +88,7 @@ class GymEnvironment(Environment):
     import gym
     self.env = gym.make(name)
     self.name = name
-    super().__init__([self.env.observation_space.shape],
+    super(GymEnvironment, self).__init__([self.env.observation_space.shape],
                      self.env.action_space.n)
 
   def reset(self):
