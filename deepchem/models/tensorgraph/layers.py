@@ -287,6 +287,21 @@ class Reshape(Layer):
     return out_tensor
 
 
+class Squeeze(Layer):
+
+  def __init__(self, squeeze_dims, **kwargs):
+    self.squeeze_dims = squeeze_dims
+    super(Squeeze, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    out_tensor = tf.squeeze(parent_tensor, squeeze_dims=self.squeeze_dims)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Transpose(Layer):
 
   def __init__(self, perm, **kwargs):

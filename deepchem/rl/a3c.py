@@ -22,6 +22,7 @@ class A3CLoss(Layer):
 
   def create_tensor(self, **kwargs):
     reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
+    prob = prob + np.finfo(np.float32).eps
     log_prob = tf.log(prob)
     policy_loss = -tf.reduce_sum(
         (reward - value) * tf.reduce_sum(action * log_prob))
@@ -138,13 +139,12 @@ class A3C(object):
       the time interval at which to save checkpoints, measured in seconds
     """
     with self._graph._get_tf("Graph").as_default():
-      train_op = self._graph._get_tf('train_op')
-      self._session.run(tf.global_variables_initializer())
       step_count = [0]
       workers = []
       threads = []
       for i in range(multiprocessing.cpu_count()):
         workers.append(_Worker(self, i))
+      self._session.run(tf.global_variables_initializer())
       for worker in workers:
         thread = threading.Thread(
             name=worker.scope,

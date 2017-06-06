@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import os
 from nose.tools import assert_true
+from flaky import flaky
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -30,13 +31,14 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
+  @flaky
   def test_multi_task_classifier(self):
     n_data_points = 20
     n_features = 2
@@ -66,7 +68,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -90,7 +92,7 @@ class TestTensorGraph(unittest.TestCase):
     dense = Dense(out_channels=1, in_layers=[features])
     label = Label(shape=(None, 1))
     loss = ReduceSquareDifference(in_layers=[dense, label])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(dense)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
@@ -125,7 +127,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=losses)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
@@ -139,6 +141,7 @@ class TestTensorGraph(unittest.TestCase):
       y_pred = prediction[:, i, :]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=1.5)))
 
+  @flaky
   def test_no_queue(self):
     n_data_points = 20
     n_features = 2
@@ -151,7 +154,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1, use_queue=False)
+    tg = dc.models.TensorGraph(learning_rate=0.01, use_queue=False)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
@@ -173,7 +176,7 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(
         tensorboard=True,
         tensorboard_log_frequency=1,
-        learning_rate=0.1,
+        learning_rate=0.01,
         model_dir='/tmp/tensorgraph')
     tg.add_output(output)
     tg.set_loss(loss)
@@ -197,7 +200,7 @@ class TestTensorGraph(unittest.TestCase):
     label = Label(shape=(None, 2))
     smce = SoftMaxCrossEntropy(in_layers=[label, dense])
     loss = ReduceMean(in_layers=[smce])
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1)
@@ -237,7 +240,7 @@ class TestTensorGraph(unittest.TestCase):
 
     total_loss = ReduceMean(in_layers=[smce])
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)

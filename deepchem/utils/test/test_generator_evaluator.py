@@ -1,21 +1,22 @@
-import numpy as np
-from nose.tools import assert_true
-from nose.plugins.attrib import attr
 from unittest import TestCase
 
 import deepchem as dc
+import numpy as np
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy, L2Loss
+from deepchem.models.tensorgraph.layers import Dense, ReduceMean, SoftMax, SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from nose.tools import assert_true
+from flaky import flaky
 
 
 class TestGeneratorEvaluator(TestCase):
 
+  @flaky
   def test_compute_model_performance_multitask_classifier(self):
     n_data_points = 20
-    n_features = 2
+    n_features = 1
 
     X = np.ones(shape=(n_data_points // 2, n_features)) * -1
     X1 = np.ones(shape=(n_data_points // 2, n_features))
@@ -48,7 +49,7 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.1)
+    tg = dc.models.TensorGraph(learning_rate=0.01)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)
