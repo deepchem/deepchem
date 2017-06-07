@@ -323,8 +323,7 @@ class NumpyDataset(Dataset):
         sample_perm = np.arange(n_samples)
       if batch_size is None:
         batch_size = n_samples
-      interval_points = np.linspace(
-          0, n_samples, np.ceil(float(n_samples) / batch_size) + 1, dtype=int)
+      interval_points = np.asarray([min(i*batch_size, n_samples) for i in range(1+int(np.ceil(n_samples/batch_size)))])
       for j in range(len(interval_points) - 1):
         indices = range(interval_points[j], interval_points[j + 1])
         perm_indices = sample_perm[indices]
