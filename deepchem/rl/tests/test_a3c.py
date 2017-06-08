@@ -18,7 +18,7 @@ class TestA3C(unittest.TestCase):
     class RouletteEnvironment(dc.rl.Environment):
 
       def __init__(self):
-        super().__init__([(1,)], 38)
+        super(RouletteEnvironment, self).__init__([(1,)], 38)
         self._state = [np.array([0])]
 
       def step(self, action):

@@ -44,7 +44,7 @@ class Conv2d(Layer):
     def __init__(self, num_outputs, kernel_size=5, **kwargs):
         self.num_outputs = num_outputs
         self.kernel_size = kernel_size
-        super().__init__(**kwargs)
+        super(Conv2d, self).__init__(**kwargs)
     def __call__(self, *parents):
         parent_tensor = parents[0].out_tensor
         out_tensor = tf.contrib.layers.conv2d(parent_tensor,
@@ -53,9 +53,9 @@ class Conv2d(Layer):
                                               padding="SAME",
                                               activation_fn=tf.nn.relu,
                                               normalizer_fn=tf.contrib.layers.batch_norm)
-        self.out_tensor = tf.nn.max_pool(out_tensor, 
+        self.out_tensor = tf.nn.max_pool(out_tensor,
                                          ksize=[1, 2, 2, 1],
-                                         strides=[1, 2, 2, 1], 
+                                         strides=[1, 2, 2, 1],
                                          padding='SAME')
         return self.out_tensor
 conv2d_1 = Conv2d(num_outputs=32)

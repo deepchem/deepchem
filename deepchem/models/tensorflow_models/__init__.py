@@ -93,7 +93,7 @@ class TensorflowGraph(object):
 
 class TensorflowGraphModel(Model):
   """Parent class for deepchem Tensorflow models.
-  
+
   Classifier:
     n_classes
 
@@ -107,7 +107,7 @@ class TensorflowGraphModel(Model):
   Subclasses must implement the following methods:
     build
     add_output_ops
-    add_training_cost 
+    add_training_cost
 
   Args:
     train: If True, model is in training mode.
@@ -170,10 +170,10 @@ class TensorflowGraphModel(Model):
     n_classes: int
       Number of classes if this is for classification.
       TODO(rbharath): Move this argument to TensorflowClassifier
-    verbose: True 
+    verbose: True
       Perform logging.
     seed: int
-      If not none, is used as random seed for tensorflow. 
+      If not none, is used as random seed for tensorflow.
     """
     # Save hyperparameters
     self.n_tasks = n_tasks
@@ -192,7 +192,8 @@ class TensorflowGraphModel(Model):
     self.pad_batches = pad_batches
     self.seed = seed
 
-    super().__init__(self, model_dir=logdir, verbose=verbose)
+    super(TensorflowGraphModel, self).__init__(
+        self, model_dir=logdir, verbose=verbose)
 
     # Guard variable to make sure we don't Restore() this model
     # from a disk checkpoint more than once.
@@ -298,9 +299,9 @@ class TensorflowGraphModel(Model):
     """Fit the model.
 
     Parameters
-    ---------- 
+    ----------
     dataset: dc.data.Dataset
-      Dataset object holding training data 
+      Dataset object holding training data
     nb_epoch: 10
       Number of training epochs.
     max_checkpoints_to_keep: int

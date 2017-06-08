@@ -1,8 +1,8 @@
 """
 Tests for binding pocket detection. 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 __author__ = "Bharath Ramsundar"
@@ -12,11 +12,10 @@ __license__ = "MIT"
 import sys
 from deepchem.utils.dependencies import mdtraj as md
 import unittest
-import tempfile
 import os
-import shutil
 import numpy as np
 import deepchem as dc
+from nose.tools import nottest
 from deepchem.utils import rdkit_util
 
 
@@ -149,6 +148,7 @@ class TestBindingPocket(unittest.TestCase):
 
     assert len(pockets) < len(all_pockets)
 
+  @nottest
   def test_rf_convex_find_pockets(self):
     """Test that filter with pre-trained RF models works."""
     if sys.version_info >= (3, 0):

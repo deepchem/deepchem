@@ -52,7 +52,7 @@ class Sequential(Model):
   """
 
   def __init__(self, name=None, logdir=None):
-    super().__init__(self, model_dir=logdir)
+    super(Sequential, self).__init__(self, model_dir=logdir)
     self.layers = []  # stack of layers
     self.outputs = None  # tensors (length 1)
 
@@ -106,7 +106,7 @@ class Sequential(Model):
 
   def add_loss(self, loss, inputs=None):
     """Adds a loss to model.
-    
+
     Parameters
     ----------
     losses: list

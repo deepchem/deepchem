@@ -12,7 +12,7 @@ class GraphConvTensorGraph(TensorGraph):
   """
 
   def __init__(self, **kwargs):
-    super().__init__(**kwargs)
+    super(GraphConvTensorGraph, self).__init__(**kwargs)
     self.min_degree = 0
     self.max_degree = 10
 

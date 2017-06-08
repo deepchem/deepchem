@@ -19,7 +19,7 @@ class TicTacToeEnvironment(deepchem.rl.Environment):
   WIN_REWARD = 10.0
 
   def __init__(self):
-    super().__init__([(3, 3, 2)], 9)
+    super(TicTacToeEnvironment, self).__init__([(3, 3, 2)], 9)
     self.reset()
 
   def reset(self):

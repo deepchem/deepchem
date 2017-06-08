@@ -12,6 +12,7 @@ __license__ = "MIT"
 import unittest
 import os
 from nose.plugins.attrib import attr
+from nose.tools import nottest
 import sys
 import deepchem as dc
 
@@ -82,6 +83,7 @@ class TestDocking(unittest.TestCase):
     # Check returned files exist
     assert score.shape == (1,)
 
+  @nottest
   def test_pocket_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
     if sys.version_info >= (3, 0):

@@ -4,12 +4,17 @@
 # Change commented out line For gpu tensorflow
 #export tensorflow=tensorflow-gpu
 export tensorflow=tensorflow
-export python_version=3.5
 
 
 if [ -z "$1" ]
 then
     echo "Must Specify Conda Environment Name"
+fi
+
+if [ -z "$python_version" ]
+then
+    echo "Using python 3.5 by default"
+    export python_version=3.5
 fi
 
 if [ "$python_version" == "3.5" ]
