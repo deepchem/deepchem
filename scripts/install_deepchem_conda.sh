@@ -39,7 +39,7 @@ conda install -y -c conda-forge keras=1.2.2
 yes | pip install --upgrade $protobuf_url
 yes | pip install --upgrade $protobuf_url
 conda install -y -c anaconda networkx=1.11
-conda install -y -c bioconda xgboost=0.6a2
+conda install -y -c conda-forge xgboost=0.6a2
 conda install -y -c pillow
 conda install -y -c anaconda pandas=0.19.2
 yes | pip install $tensorflow==1.0.1
