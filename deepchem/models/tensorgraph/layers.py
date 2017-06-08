@@ -507,20 +507,26 @@ class SoftMax(Layer):
 
 class Concat(Layer):
 
-  def __init__(self, axis=1, **kwargs):
+  def __init__(self, axis=1, normalize=False, svd=False, **kwargs):
     self.axis = axis
+    self.normalize = normalize
+    self.svd = svd
     super(Concat, self).__init__(**kwargs)
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) == 1:
-      self.out_tensor = inputs[0]
+  def create_tensor(self, in_layers=None):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    if len(in_layers) == 1:
+      self.out_tensor = in_layers[0].out_tensor
       return self.out_tensor
-
-    out_tensor = tf.concat(inputs, axis=self.axis)
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+    out_tensors = [x.out_tensor for x in in_layers]
+    if self.normalize:
+      to_norm_tensor = tf.concat(out_tensors, 1)
+      self.out_tensor = tf.nn.l2_normalize(to_norm_tensor, 1)
+    else:
+      self.out_tensor = tf.concat(out_tensors, axis=self.axis)
+    return self.out_tensor
 
 
 class Constant(Layer):
@@ -983,6 +989,22 @@ class GraphPool(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+def geqk(x,k):
+  dim = int(x.shape[1])
+  x_T = tf.transpose(x)
+  k_max = tf.nn.top_k(x_T, k=k, sorted=True)
+  flat = tf.reshape(k_max[0], [-1, (k*dim)])
+  return flat
+
+def lessk(x,k):
+  top = tf.reduce_max(x, 0, keep_dims=True)
+  repl = tf.concat(axis=1,values=[top]*k)
+  return repl
+
+def reduce_max_k(x,k):
+  no_atoms = tf.shape(x)[0]
+  reduce_op = tf.cond(tf.less(no_atoms,k), lambda: lessk(x,k), lambda: geqk(x,k))
+  return reduce_op
 
 class GraphGather(Layer):
 
@@ -1014,7 +1036,8 @@ class GraphGather(Layer):
         for activated in activated_par
     ]
     max_reps = [
-        tf.reduce_max(activated, 0, keep_dims=True)
+        #tf.reduce_max(activated, 0, keep_dims=True)
+        reduce_max_k(activated,3)
         for activated in activated_par
     ]
 
@@ -1486,18 +1509,11 @@ class NeighborList(Layer):
 
 class Dropout(Layer):
 
-  def __init__(self, dropout_prob, **kwargs):
-    self.dropout_prob = dropout_prob
-    super(Dropout, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    parent_tensor = inputs[0]
-    keep_prob = 1.0 - self.dropout_prob * kwargs['training']
-    out_tensor = tf.nn.dropout(parent_tensor, keep_prob)
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+  def create_tensor(self):
+    parent_tensor = self.in_layers[0].out_tensor
+    dropout_prob = self.in_layers[1].out_tensor
+    self.out_tensor = tf.nn.dropout(parent_tensor, dropout_prob)
+    return self.out_tensor
 
 
 class WeightDecay(Layer):
