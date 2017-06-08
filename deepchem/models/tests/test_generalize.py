@@ -19,7 +19,7 @@ import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
-import xgboost
+from deepchem.utils.dependencies import xgboost
 
 
 class TestGeneralize(unittest.TestCase):
