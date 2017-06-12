@@ -51,6 +51,9 @@ def add_hydrogens_to_mol(mol):
     pdb_stringio.write(pdbblock)
     pdb_stringio.seek(0)
     fixer = pdbfixer.PDBFixer(pdbfile=pdb_stringio)
+    fixer.findMissingResidues()
+    fixer.findMissingAtoms()
+    fixer.addMissingAtoms()
     fixer.addMissingHydrogens(7.4)
 
     hydrogenated_io = StringIO()
