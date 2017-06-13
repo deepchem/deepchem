@@ -27,6 +27,7 @@ class TensorGraph(Model):
                use_queue=True,
                mode="regression",
                graph=None,
+               learning_rate=0.001,
                **kwargs):
     """
     TODO(LESWING) allow a model to change its learning rate
@@ -65,7 +66,7 @@ class TensorGraph(Model):
     self.built = False
     self.queue_installed = False
     self.optimizer = TFWrapper(
-        tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+        tf.train.AdamOptimizer, learning_rate=learning_rate, beta1=0.9, beta2=0.999)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
