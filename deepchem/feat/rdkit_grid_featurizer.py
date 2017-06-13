@@ -192,7 +192,7 @@ def hash_ecfp(ecfp, power):
   Returns an int of size 2^power representing that
   ECFP fragment. Input must be a string.
   """
-
+  ecfp = ecfp.encode('utf-8')
   md5 = hashlib.md5()
   md5.update(ecfp)
   digest = md5.hexdigest()
@@ -206,6 +206,7 @@ def hash_ecfp_pair(ecfp_pair, power):
   ECFP pair. Input must be a tuple of strings.
   """
   ecfp = "%s,%s" % (ecfp_pair[0], ecfp_pair[1])
+  ecfp = ecfp.encode('utf-8')
   md5 = hashlib.md5()
   md5.update(ecfp)
   digest = md5.hexdigest()
