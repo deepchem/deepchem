@@ -49,7 +49,7 @@ class TestGeneratorEvaluator(TestCase):
 
     total_loss = ReduceMean(in_layers=entropies)
 
-    tg = dc.models.TensorGraph(learning_rate=0.01)
+    tg = dc.models.TensorGraph(learning_rate=0.01, batch_size=n_data_points)
     for output in outputs:
       tg.add_output(output)
     tg.set_loss(total_loss)

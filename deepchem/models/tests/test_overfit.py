@@ -21,6 +21,7 @@ import scipy.io
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
+from flaky import flaky
 
 
 class TestOverfit(test_util.TensorFlowTestCase):
@@ -548,6 +549,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
+  @flaky
   def test_tg_multitask_classification_overfit(self):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
