@@ -2,7 +2,6 @@ sphinx
 scikit-learn
 keras
 theano ==0.7.2
-openbabel
 rdkit
 pandas
 numpy

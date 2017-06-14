@@ -235,11 +235,11 @@ def compute_all_ecfp(mol, indices=None, degree=2):
 
 
 def compute_ecfp_features(mol, ecfp_degree, ecfp_power):
-  """Computes ECFP features for provided openbabel molecule.
+  """Computes ECFP features for provided rdkit molecule.
 
   Parameters:
   -----------
-    system_ob: openbabel molecules
+    mol: rdkit molecule
       Molecule to featurize.
     ecfp_degree: int
       ECFP radius
