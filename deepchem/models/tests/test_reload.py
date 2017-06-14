@@ -75,6 +75,8 @@ class TestReload(unittest.TestCase):
 
     # Fit trained model
     model.fit(dataset)
+    scores_preload = model.evaluate(dataset,
+                                    [classification_metric])['accuracy_score']
     model.save()
 
     # Load trained model
@@ -83,5 +85,6 @@ class TestReload(unittest.TestCase):
     reloaded_model.reload()
 
     # Eval model on train
-    scores = reloaded_model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > .6
+    scores_reload = reloaded_model.evaluate(
+        dataset, [classification_metric])['accuracy_score']
+    assert np.isclose(scores_preload, scores_reload, 0.01)

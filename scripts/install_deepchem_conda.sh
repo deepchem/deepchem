@@ -27,7 +27,6 @@ fi
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
-conda install -y -c omnia openbabel=2.4.0
 conda install -y -c omnia pdbfixer=1.4
 conda install -y -c rdkit rdkit
 conda install -y joblib
