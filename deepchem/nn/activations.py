@@ -68,6 +68,9 @@ def softmax(x):
 def elu(x, alpha=1.0):
   return model_ops.elu(x, alpha)
 
+def selu(x):
+  return model_ops.selu(x)
+
 def softplus(x):
   return tf.nn.softplus(x)
 

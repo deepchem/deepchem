@@ -645,6 +645,12 @@ def relu(x, alpha=0., max_value=None):
   return x
 
 
+def selu(x):
+  alpha = 1.6732632423543772848170429916717
+  scale = 1.0507009873554804934193349852946
+  return scale * elu(x, alpha)
+
+
 def hard_sigmoid(x):
   """Segment-wise linear approximation of sigmoid.
   Faster than sigmoid.
