@@ -12,8 +12,12 @@ import tensorflow as tf
 from deepchem.nn import model_ops
 from deepchem.nn.model_ops import get_ndim
 
-def get_from_module(identifier, module_params, module_name,
-                    instantiate=False, kwargs=None):
+
+def get_from_module(identifier,
+                    module_params,
+                    module_name,
+                    instantiate=False,
+                    kwargs=None):
   """Retrieves a class of function member of a module.
 
   Parameters
@@ -41,8 +45,7 @@ def get_from_module(identifier, module_params, module_name,
   if isinstance(identifier, six.string_types):
     res = module_params.get(identifier)
     if not res:
-        raise ValueError('Invalid ' + str(module_name) + ': ' +
-                         str(identifier))
+      raise ValueError('Invalid ' + str(module_name) + ': ' + str(identifier))
     if instantiate and not kwargs:
       return res()
     elif instantiate and kwargs:
@@ -51,6 +54,7 @@ def get_from_module(identifier, module_params, module_name,
       return res
 
   return identifier
+
 
 def softmax(x):
   ndim = get_ndim(x)
@@ -65,32 +69,42 @@ def softmax(x):
                      'that is not 2D or 3D. '
                      'Here, ndim=' + str(ndim))
 
+
 def elu(x, alpha=1.0):
   return model_ops.elu(x, alpha)
+
 
 def selu(x):
   return model_ops.selu(x)
 
+
 def softplus(x):
   return tf.nn.softplus(x)
+
 
 def softsign(x):
   return tf.nn.softsign(x)
 
+
 def relu(x, alpha=0., max_value=None):
   return model_ops.relu(x, alpha=alpha, max_value=max_value)
+
 
 def tanh(x):
   return tf.nn.tanh(x)
 
+
 def sigmoid(x):
   return tf.nn.sigmoid(x)
+
 
 def hard_sigmoid(x):
   return model_ops.hard_sigmoid(x)
 
+
 def linear(x):
   return x
+
 
 def get(identifier):
   if identifier is None:
