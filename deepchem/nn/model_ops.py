@@ -17,7 +17,7 @@ from collections import defaultdict
 # TODO(rbharath): What does this line do?
 py_all = all
 
-# TODO(rbharath): REMOVE GLOBAL VARS! BREAKS DEEPCHEM STYLE! 
+# TODO(rbharath): REMOVE GLOBAL VARS! BREAKS DEEPCHEM STYLE!
 _UID_PREFIXES = defaultdict(int)
 # This dictionary holds a mapping {graph: learning_phase}.
 # A learning phase is a bool tensor used to run Keras models in
@@ -134,7 +134,7 @@ def ones(shape, dtype=None, name=None):
   Parameters
   ----------
   shape: Tuple of integers, shape of returned Keras variable.
-  dtype: Tensorflow dtype 
+  dtype: Tensorflow dtype
   name: String, name of returned Keras variable.
 
   Returns
@@ -559,7 +559,7 @@ def zeros(shape, dtype=tf.float32, name=None):
   Parameters
   ----------
   shape: Tuple of integers, shape of returned Keras variable
-  dtype: Tensorflow dtype 
+  dtype: Tensorflow dtype
   name: String, name of returned Keras variable
 
   Returns
@@ -646,6 +646,20 @@ def relu(x, alpha=0., max_value=None):
 
 
 def selu(x):
+  """Scaled Exponential Linear unit.
+
+  Parameters
+  ----------
+  x: A tensor or variable.
+
+  Returns
+  -------
+  A tensor.
+
+  References
+  ----------
+  - [Self-Normalizing Neural Networks](https://arxiv.org/abs/1706.02515)
+  """
   alpha = 1.6732632423543772848170429916717
   scale = 1.0507009873554804934193349852946
   return scale * elu(x, alpha)
@@ -742,7 +756,7 @@ def add_bias(tensor, init=None, name=None):
   """Add a bias term to a tensor.
 
   Parameters
-  ---------- 
+  ----------
   tensor: tf.Tensor
     Variable tensor.
   init: float
@@ -777,7 +791,7 @@ def dropout(tensor, dropout_prob, training=True, training_only=True):
     inference and those that do not.
 
   Parameters
-  ---------- 
+  ----------
   tensor: tf.Tensor
     Input tensor.
   dropout_prob: float
