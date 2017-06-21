@@ -690,7 +690,7 @@ class FingerprintSplitter(Splitter):
   """
     Class for doing data splits based on the fingerprints of small molecules
     O(N**2) algorithm
-    """
+  """
 
   def split(self,
             dataset,
@@ -699,8 +699,8 @@ class FingerprintSplitter(Splitter):
             frac_test=.1,
             log_every_n=1000):
     """
-        Splits internal compounds into train/validation/test by scaffold.
-        """
+        Splits internal compounds into train/validation/test by fingerprint.
+    """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
     data_len = len(dataset)
     mols, fingerprints = [], []
