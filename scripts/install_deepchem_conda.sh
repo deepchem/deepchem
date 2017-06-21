@@ -41,7 +41,7 @@ conda install -y -c anaconda networkx=1.11
 conda install -y -c conda-forge xgboost=0.6a2
 conda install -y -c pillow
 conda install -y -c anaconda pandas=0.19.2
-yes | pip install $tensorflow==1.0.1
+conda install -y $tensorflow=1.0.1
 yes | pip install nose
 yes | pip install nose-timer
 yes | pip install flaky==3.3.0
