@@ -756,7 +756,6 @@ class FingerprintSplitter(Splitter):
       if i in leave_out_indexes:
         continue
       test_inds.append(i)
-    print(train_inds, valid_inds, test_inds)
     return train_inds, valid_inds, test_inds
 
   def update_distances(self, last_selected, cur_distances, distance_matrix,
