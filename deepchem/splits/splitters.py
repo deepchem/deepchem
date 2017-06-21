@@ -714,8 +714,8 @@ class FingerprintSplitter(Splitter):
     distances = np.ones(shape=(data_len, data_len))
     for i in range(data_len):
       for j in range(data_len):
-        distances[i][j] = DataStructs.FingerprintSimilarity(fingerprints[i],
-                                                            fingerprints[j])
+        distances[i][j] = 1 - DataStructs.FingerprintSimilarity(fingerprints[i],
+                                                                fingerprints[j])
 
     train_cutoff = int(frac_train * len(dataset))
     valid_cutoff = int(frac_valid * len(dataset))
