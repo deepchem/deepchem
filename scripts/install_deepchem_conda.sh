@@ -19,9 +19,9 @@ fi
 
 if [ "$python_version" == "3.5" ]
 then
-    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.1.0-cp35-none-linux_x86_64.whl
+    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.2.0-cp35-none-linux_x86_64.whl
 else
-    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.1.0-cp27-none-linux_x86_64.whl
+    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.2.0-cp27-none-linux_x86_64.whl
 fi
 
 export envname=$1
