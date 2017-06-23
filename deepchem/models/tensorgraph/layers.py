@@ -567,6 +567,7 @@ class Variable(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
     if set_tensors:
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -733,10 +734,43 @@ class ReduceSquareDifference(Layer):
 
 
 class Conv2D(Layer):
+  """A 2D convolution on the input.
 
-  def __init__(self, num_outputs, kernel_size=5, scope_name=None, **kwargs):
+  This layer expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv2D layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a two element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a two
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
     super(Conv2D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -749,8 +783,9 @@ class Conv2D(Layer):
         parent_tensor,
         num_outputs=self.num_outputs,
         kernel_size=self.kernel_size,
-        padding="SAME",
-        activation_fn=tf.nn.relu,
+        stride=self.stride,
+        padding=self.padding,
+        activation_fn=self.activation_fn,
         normalizer_fn=tf.contrib.layers.batch_norm,
         scope=self.scope_name)
     out_tensor = out_tensor
