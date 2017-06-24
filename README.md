@@ -63,6 +63,11 @@ Check [this link](https://conda.io/docs/using/envs.html) for more information ab
 the benefits and usage of conda environments. **Warning**: Segmentation faults can [still happen](https://github.com/deepchem/deepchem/pull/379#issuecomment-277013514)
 via this installation procedure.
 
+### Easy Install via Conda
+```bash
+conda install -c omnia deepchem
+```
+
 ### Installing Dependencies Manually
 
 1. Download the **64-bit** Python 2.7 or Python 3.5 versions of Anaconda for linux [here](https://www.continuum.io/downloads#_unix).
