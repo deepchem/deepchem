@@ -45,6 +45,11 @@ Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io
 
 Installation from source is the only currently supported format. ```deepchem``` currently supports both Python 2.7 and Python 3.5, but is not supported on any OS'es except 64 bit linux. Please make sure you follow the directions below precisely. While you may already have system versions of some of these packages, there is no guarantee that `deepchem` will work with alternate versions than those specified below.
 
+Note that when using Ubuntu 16.04 server or similar environments, you may need to ensure libxrender is provided via e.g.:
+```bash
+sudo apt-get install -y libxrender-dev
+```
+
 ### Using a conda environment
 You can install deepchem in a new conda environment using the conda commands in scripts/install_deepchem_conda.sh
 
