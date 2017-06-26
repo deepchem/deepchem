@@ -109,8 +109,8 @@ class A3C(object):
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
-    rewards = Weights(shape=(None, 1))
-    advantages = Weights(shape=(None, 1))
+    rewards = Weights(shape=(None,))
+    advantages = Weights(shape=(None,))
     actions = Label(shape=(None, self._env.n_actions))
     loss = A3CLoss(
         self.value_weight,
@@ -297,16 +297,16 @@ class _Worker(object):
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
-      values.append(value[0])
+      values.append(float(value))
       rewards.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = _create_feed_dict(self.features, self.env.state)
-      rewards[-1] += self.a3c.discount_factor * session.run(
-          self.value.out_tensor, feed_dict)
+      rewards[-1] += self.a3c.discount_factor * float(
+          session.run(self.value.out_tensor, feed_dict))
     for j in range(len(rewards) - 1, 0, -1):
       rewards[j - 1] += self.a3c.discount_factor * rewards[j]
-    rewards_array = np.array(rewards).reshape((len(rewards), 1))
+    rewards_array = np.array(rewards)
     advantages = rewards_array - np.array(values)
     if self.env.terminated:
       self.env.reset()
