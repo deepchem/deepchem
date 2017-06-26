@@ -65,9 +65,9 @@ def eval_tic_tac_toe(value_weight,
         policy,
         entropy_weight=0.01,
         value_weight=value_weight,
-        model_dir=model_dir)
-    a3c.optimizer = dc.models.tensorgraph.TFWrapper(
-        tf.train.AdamOptimizer, learning_rate=0.01)
+        model_dir=model_dir,
+        optimizer=dc.models.tensorgraph.TFWrapper(
+            tf.train.AdamOptimizer, learning_rate=0.001))
     try:
       a3c.restore()
     except:
