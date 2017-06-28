@@ -81,5 +81,4 @@ class TestA3C(unittest.TestCase):
     new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
     new_a3c.fit(0, restore=True)
     action_prob2, value2 = new_a3c.predict([[0]])
-    print(value2, value)
     assert value2 == value
