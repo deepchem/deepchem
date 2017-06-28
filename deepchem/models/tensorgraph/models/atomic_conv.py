@@ -9,7 +9,7 @@ __license__ = "MIT"
 import sys
 
 sys.path.append("../../models")
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution, L2Loss
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution, L2Loss, ReduceMean
 from deepchem.models import TensorGraph
 
 import numpy as np
@@ -212,7 +212,7 @@ def atomic_conv_model(
       ])
 
   label = Label(shape=(None, 1))
-  loss = L2Loss(in_layers=[score, label])
+  loss = ReduceMean(in_layers=L2Loss(in_layers=[score, label]))
 
   def feed_dict_generator(dataset, batch_size, epochs=1, pad_batches=True):
 
