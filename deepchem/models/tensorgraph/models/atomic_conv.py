@@ -64,7 +64,7 @@ class AtomicConvScore(Layer):
     self.layer_sizes = layer_sizes
     super(AtomicConvScore, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, **kwargs):
     frag1_layer = self.in_layers[0].out_tensor
     frag2_layer = self.in_layers[1].out_tensor
     complex_layer = self.in_layers[2].out_tensor
