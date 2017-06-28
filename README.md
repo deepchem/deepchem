@@ -712,7 +712,7 @@ Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 4. [Atomic Convolutional Networks for Predicting Protein-Ligand Binding Affinity](https://arxiv.org/abs/1703.10603)
 
 ## About Us
-DeepChem is a package from the [Pande group](https://pande.stanford.edu/) at Stanford with significant contributions from many academic and industrial collaborators. In particular, DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/).
+DeepChem is a package from the [Pande group](https://pande.stanford.edu/) at Stanford with significant contributions from many academic and industrial collaborators. In particular, DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
 
 ## Corporate Supporters
 DeepChem is supported by a number of corporate partners who use DeepChem to solve interesting problems.
