@@ -41,15 +41,13 @@ def graph_conv_model(batch_size, tasks):
       activation_fn=tf.nn.relu,
       in_layers=[atom_features, degree_slice, membership] + deg_adjs)
   batch_norm1 = BatchNorm(in_layers=[gc1])
-  gp1 = GraphPool(
-      in_layers=[batch_norm1, degree_slice, membership] + deg_adjs)
+  gp1 = GraphPool(in_layers=[batch_norm1, degree_slice, membership] + deg_adjs)
   gc2 = GraphConv(
       64,
       activation_fn=tf.nn.relu,
       in_layers=[gp1, degree_slice, membership] + deg_adjs)
   batch_norm2 = BatchNorm(in_layers=[gc2])
-  gp2 = GraphPool(
-      in_layers=[batch_norm2, degree_slice, membership] + deg_adjs)
+  gp2 = GraphPool(in_layers=[batch_norm2, degree_slice, membership] + deg_adjs)
   dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2])
   batch_norm3 = BatchNorm(in_layers=[dense])
   gg1 = GraphGather(
