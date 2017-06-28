@@ -1,3 +1,5 @@
+from flaky import flaky
+
 import deepchem as dc
 from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax
 import numpy as np
@@ -7,6 +9,7 @@ import unittest
 
 class TestA3C(unittest.TestCase):
 
+  @flaky
   def test_roulette(self):
     """Test training a policy for the roulette environment."""
 
