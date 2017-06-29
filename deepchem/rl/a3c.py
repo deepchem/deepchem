@@ -22,11 +22,12 @@ class A3CLoss(Layer):
     self.entropy_weight = entropy_weight
 
   def create_tensor(self, **kwargs):
-    reward, action, prob, value = [layer.out_tensor for layer in self.in_layers]
+    reward, action, prob, value, advantage = [
+        layer.out_tensor for layer in self.in_layers
+    ]
     prob = prob + np.finfo(np.float32).eps
     log_prob = tf.log(prob)
-    policy_loss = -tf.reduce_sum(
-        (reward - value) * tf.reduce_sum(action * log_prob))
+    policy_loss = -tf.reduce_sum(advantage * tf.reduce_sum(action * log_prob))
     value_loss = tf.reduce_sum(tf.square(reward - value))
     entropy = -tf.reduce_sum(prob * log_prob)
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
@@ -62,6 +63,7 @@ class A3C(object):
                discount_factor=0.99,
                value_weight=1.0,
                entropy_weight=0.01,
+               optimizer=None,
                model_dir=None):
     """Create an object for optimizing a policy.
 
@@ -80,6 +82,8 @@ class A3C(object):
       a scale factor for the value loss term in the loss function
     entropy_weight: float
       a scale factor for the entropy term in the loss function
+    optimizer: TFWrapper
+      a callable object that creates the optimizer to use.  If None, a default optimizer is used.
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     """
@@ -89,10 +93,14 @@ class A3C(object):
     self.discount_factor = discount_factor
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
-    self.optimizer = TFWrapper(
-        tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
-    (self._graph, self._features, rewards, actions, self._action_prob,
-     self._value) = self._build_graph(None, 'global', model_dir)
+    if optimizer is None:
+      self._optimizer = TFWrapper(
+          tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+    else:
+      self._optimizer = optimizer
+    (self._graph, self._features, self._rewards, self._actions,
+     self._action_prob, self._value, self._advantages) = self._build_graph(
+         None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
 
@@ -102,12 +110,13 @@ class A3C(object):
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
-    rewards = Weights(shape=(None, 1))
+    rewards = Weights(shape=(None,))
+    advantages = Weights(shape=(None,))
     actions = Label(shape=(None, self._env.n_actions))
     loss = A3CLoss(
         self.value_weight,
         self.entropy_weight,
-        in_layers=[rewards, actions, action_prob, value])
+        in_layers=[rewards, actions, action_prob, value, advantages])
     graph = TensorGraph(
         batch_size=self.max_rollout_length,
         use_queue=False,
@@ -118,11 +127,11 @@ class A3C(object):
     graph.add_output(action_prob)
     graph.add_output(value)
     graph.set_loss(loss)
-    graph.set_optimizer(self.optimizer)
+    graph.set_optimizer(self._optimizer)
     with graph._get_tf("Graph").as_default():
       with tf.variable_scope(scope):
         graph.build()
-    return graph, features, rewards, actions, action_prob, value
+    return graph, features, rewards, actions, action_prob, value, advantages
 
   def fit(self,
           total_steps,
@@ -238,7 +247,7 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value = a3c._build_graph(
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages = a3c._build_graph(
         a3c._graph._get_tf('Graph'), self.scope, None)
     with a3c._graph._get_tf("Graph").as_default():
       local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
@@ -257,12 +266,14 @@ class _Worker(object):
       session = self.a3c._session
       while step_count[0] < total_steps:
         session.run(self.update_local_variables)
-        episode_states, episode_actions, episode_rewards = self.create_rollout()
+        episode_states, episode_actions, episode_rewards, episode_advantages = self.create_rollout(
+        )
         feed_dict = {}
         for f, s in zip(self.features, episode_states):
           feed_dict[f.out_tensor] = s
         feed_dict[self.rewards.out_tensor] = episode_rewards
         feed_dict[self.actions.out_tensor] = episode_actions
+        feed_dict[self.advantages.out_tensor] = episode_advantages
         session.run(self.train_op, feed_dict=feed_dict)
         step_count[0] += len(episode_actions)
 
@@ -273,6 +284,7 @@ class _Worker(object):
     states = [[] for i in range(len(self.features))]
     actions = []
     rewards = []
+    values = []
     for i in range(self.a3c.max_rollout_length):
       if self.env.terminated:
         break
@@ -280,20 +292,23 @@ class _Worker(object):
       for j in range(len(state)):
         states[j].append(state[j])
       feed_dict = _create_feed_dict(self.features, state)
-      probabilities = session.run(
-          self.action_prob.out_tensor, feed_dict=feed_dict)
+      probabilities, value = session.run(
+          [self.action_prob.out_tensor, self.value.out_tensor],
+          feed_dict=feed_dict)
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(np.zeros(n_actions))
       actions[i][action] = 1.0
+      values.append(float(value))
       rewards.append(self.env.step(action))
     if not self.env.terminated:
       # Add an estimate of the reward for the rest of the episode.
       feed_dict = _create_feed_dict(self.features, self.env.state)
-      rewards[-1] += self.a3c.discount_factor * session.run(
-          self.value.out_tensor, feed_dict)
+      rewards[-1] += self.a3c.discount_factor * float(
+          session.run(self.value.out_tensor, feed_dict))
     for j in range(len(rewards) - 1, 0, -1):
       rewards[j - 1] += self.a3c.discount_factor * rewards[j]
+    rewards_array = np.array(rewards)
+    advantages = rewards_array - np.array(values)
     if self.env.terminated:
       self.env.reset()
-    return np.array(states), np.array(actions), np.array(rewards).reshape(
-        (len(rewards), 1))
+    return np.array(states), np.array(actions), rewards_array, advantages
