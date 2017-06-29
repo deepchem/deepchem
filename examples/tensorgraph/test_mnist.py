@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/dibya/deepchem/deepchem') #suggest this as a modification
 import unittest
 import numpy as np
 import tensorflow as tf
@@ -9,7 +11,7 @@ from deepchem.data import NumpyDataset
 
 from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax, ReduceSquareDifference
-from deepchem.models.tensorgraph.layers import Reshape, Flatten, Feature, Conv2d, MaxPool, Label
+from deepchem.models.tensorgraph.layers import Reshape, Flatten, Feature, Conv2D, MaxPool, Label
 
 
 class TestTensorGraphMNIST(unittest.TestCase):
@@ -25,10 +27,10 @@ class TestTensorGraphMNIST(unittest.TestCase):
     feature = Feature(shape=(None, 784), name="Feature")
     make_image = Reshape(shape=(-1, 28, 28, 1), in_layers=[feature])
 
-    conv2d_1 = Conv2d(num_outputs=32, in_layers=[make_image])
+    conv2d_1 = Conv2D(num_outputs=32, in_layers=[make_image])
     maxpool_1 = MaxPool(in_layers=[conv2d_1])
 
-    conv2d_2 = Conv2d(num_outputs=64, in_layers=[maxpool_1])
+    conv2d_2 = Conv2D(num_outputs=64, in_layers=[maxpool_1])
     maxpool_2 = MaxPool(in_layers=[conv2d_2])
     flatten = Flatten(in_layers=[maxpool_2])
 
