@@ -32,7 +32,7 @@ conda install -y -c rdkit rdkit
 conda install -y joblib
 yes | pip install six
 conda install -y -c omnia mdtraj
-conda install -y scikit-learn
+conda install -y scikit-learn=0.18.1
 conda install -y setuptools
 conda install -y -c conda-forge keras=1.2.2
 yes | pip install --upgrade $protobuf_url

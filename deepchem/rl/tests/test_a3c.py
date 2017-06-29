@@ -1,3 +1,5 @@
+from flaky import flaky
+
 import deepchem as dc
 from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax
 import numpy as np
@@ -7,6 +9,7 @@ import unittest
 
 class TestA3C(unittest.TestCase):
 
+  @flaky
   def test_roulette(self):
     """Test training a policy for the roulette environment."""
 
@@ -57,7 +60,7 @@ class TestA3C(unittest.TestCase):
         TestPolicy(),
         max_rollout_length=50,
         optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.005))
+            tf.train.AdamOptimizer, learning_rate=0.0001))
     a3c.fit(100000)
 
     # It should have learned that the expected value is very close to zero, and that the best
