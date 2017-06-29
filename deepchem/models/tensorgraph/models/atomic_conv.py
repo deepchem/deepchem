@@ -9,7 +9,7 @@ __license__ = "MIT"
 import sys
 
 sys.path.append("../../models")
-from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution, L2Loss
+from deepchem.models.tensorgraph.layers import Layer, Feature, Label, AtomicConvolution, L2Loss, ReduceMean
 from deepchem.models import TensorGraph
 
 import numpy as np
@@ -64,7 +64,7 @@ class AtomicConvScore(Layer):
     self.layer_sizes = layer_sizes
     super(AtomicConvScore, self).__init__(**kwargs)
 
-  def _create_tensor(self):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     frag1_layer = self.in_layers[0].out_tensor
     frag2_layer = self.in_layers[1].out_tensor
     complex_layer = self.in_layers[2].out_tensor
@@ -212,7 +212,7 @@ def atomic_conv_model(
       ])
 
   label = Label(shape=(None, 1))
-  loss = L2Loss(in_layers=[score, label])
+  loss = ReduceMean(in_layers=L2Loss(in_layers=[score, label]))
 
   def feed_dict_generator(dataset, batch_size, epochs=1, pad_batches=True):
 
