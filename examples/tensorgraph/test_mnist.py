@@ -1,5 +1,4 @@
 import sys
-sys.path.append('/home/dibya/deepchem/deepchem') #suggest this as a modification
 import unittest
 import numpy as np
 import tensorflow as tf
