@@ -151,10 +151,19 @@ class NormalizationTransformer(Transformer):
     """
     Undo transformation on provided data.
     """
+    has_channel = False
+    if len(z.shape) == 3:
+      z = np.squeeze(z, axis=-1)
+      has_channel = True
+
     if self.transform_X:
-      return z * self.X_stds + self.X_means
+      z = z * self.X_stds + self.X_means
     elif self.transform_y:
-      return z * self.y_stds + self.y_means
+      z = z * self.y_stds + self.y_means
+
+    if has_channel:
+      z = np.expand_dims(z, axis=-1)
+    return z
 
   def untransform_grad(self, grad, tasks):
     """
@@ -181,7 +190,7 @@ class NormalizationTransformer(Transformer):
 
 
 class ClippingTransformer(Transformer):
-  """Clip large values in datasets.     
+  """Clip large values in datasets.
 
      Example:
 
@@ -195,7 +204,7 @@ class ClippingTransformer(Transformer):
      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
      >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
      >>> dataset = transformer.transform(dataset)
-  
+
   """
 
   def __init__(self,
@@ -476,7 +485,7 @@ class PowerTransformer(Transformer):
     return NumpyDataset(X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    # print("Cannot undo Power Transformer, for now.")    
+    # print("Cannot undo Power Transformer, for now.")
     n_powers = len(self.powers)
     orig_len = (z.shape[1]) / n_powers
     z = z[:, :orig_len]
@@ -552,7 +561,7 @@ class CoulombFitTransformer():
     return np.array([_realize_(z) for z in X])
 
   def normalize(self, X):
-    """Normalize features. 
+    """Normalize features.
 
     Parameters:
     ----------
@@ -568,7 +577,7 @@ class CoulombFitTransformer():
     return (X - self.mean) / self.std
 
   def expand(self, X):
-    """Binarize features. 
+    """Binarize features.
 
     Parameters:
     ----------
@@ -638,7 +647,7 @@ class IRVTransformer():
 
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
-    
+
     Parameters:
     -----------
     similarity: np.ndarray
@@ -648,7 +657,7 @@ class IRVTransformer():
       labels for a single task
     w: np.array
       weights for a single task
-   
+
     Return:
     ----------
     features: list
@@ -668,7 +677,7 @@ class IRVTransformer():
           dtype=tf.float64, shape=(None, reference_len))
       value, indice = tf.nn.top_k(
           similarity_placeholder, k=self.K + 1, sorted=True)
-      # the tf graph here pick up the (K+1) highest similarity values 
+      # the tf graph here pick up the (K+1) highest similarity values
       # and their indices
       top_label = tf.gather(labels_tf, indice)
       # map the indices to labels
@@ -677,7 +686,7 @@ class IRVTransformer():
         for count in range(target_len // 100 + 1):
           feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
               count + 1) * 100, target_len), :]
-          # generating batch of data by slicing similarity matrix 
+          # generating batch of data by slicing similarity matrix
           # into 100*reference_dataset_length
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
           values.append(fetched_values[0])
@@ -701,7 +710,7 @@ class IRVTransformer():
     return features
 
   def X_transform(self, X_target):
-    """ Calculate similarity between target dataset(X_target) and 
+    """ Calculate similarity between target dataset(X_target) and
     reference dataset(X): #(1 in intersection)/#(1 in union)
          similarity = (X_target intersect X)/(X_target union X)
     Parameters:
@@ -709,12 +718,12 @@ class IRVTransformer():
     X_target: np.ndarray
       fingerprints of target dataset
       should have same length with X in the second axis
-    
+
     Returns:
     ----------
     X_target: np.ndarray
       features of size(batch_size, 2*K*n_tasks)
-    
+
     """
     X_target2 = []
     n_features = X_target.shape[1]
@@ -780,7 +789,7 @@ class IRVTransformer():
 
 
 class DAGTransformer(Transformer):
-  """Performs transform from ConvMol adjacency lists to 
+  """Performs transform from ConvMol adjacency lists to
   DAG calculation orders
   """
 
@@ -821,7 +830,7 @@ class DAGTransformer(Transformer):
     UG = sample.get_adjacency_list()
     # number of atoms, also number of DAGs
     n_atoms = sample.get_num_atoms()
-    # DAG on a molecule with k atoms includes k steps of calculation, 
+    # DAG on a molecule with k atoms includes k steps of calculation,
     # each step calculating graph features for one atom.
     # `max_atoms` is the maximum number of steps
     max_atoms = self.max_atoms
@@ -840,9 +849,9 @@ class DAGTransformer(Transformer):
       # recording number of radial propagation steps
       radial = 0
       while np.sum(atoms_indicator) > 0:
-        # in the fisrt loop, atoms directly connected to `count` will be added 
-        # into the DAG(radial=0), then atoms two-bond away from `count` 
-        # will be added in the second loop(radial=1). 
+        # in the fisrt loop, atoms directly connected to `count` will be added
+        # into the DAG(radial=0), then atoms two-bond away from `count`
+        # will be added in the second loop(radial=1).
         # atoms i-bond away will be added in i-th loop
         if radial > n_atoms:
           # when molecules have separate parts, starting from one part,
@@ -879,7 +888,7 @@ class DAGTransformer(Transformer):
 
       # atoms with less parents(farther from the target atom) come first.
       # graph features of atoms without parents will be first calculated,
-      # then atoms with more parents can be calculated in order 
+      # then atoms with more parents can be calculated in order
       # based on previously calculated graph features.
       # target atom of this DAG will be calculated in the last step
       parent = sorted(parent, key=len)
@@ -906,7 +915,7 @@ class DAGTransformer(Transformer):
 
 class ImageTransformer(Transformer):
   """
-  Convert an image into width, height, channel 
+  Convert an image into width, height, channel
   """
 
   def __init__(self,
