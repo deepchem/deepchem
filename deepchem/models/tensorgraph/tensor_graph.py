@@ -425,7 +425,6 @@ class TensorGraph(Model):
 
     # Pickle itself
     pickle_name = os.path.join(self.model_dir, "model.pickle")
-    self.get_pickling_errors(self)
     with open(pickle_name, 'wb') as fout:
       try:
         pickle.dump(self, fout)
