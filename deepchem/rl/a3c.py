@@ -1,6 +1,5 @@
 """Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning."""
 
-
 from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph import TFWrapper
 from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
