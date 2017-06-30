@@ -384,6 +384,30 @@ class TensorGraph(Model):
     """
     self.optimizer = optimizer
 
+  def get_pickling_errors(self, obj, seen=None):
+    if seen == None:
+      seen = []
+    try:
+      state = obj.__getstate__()
+    except AttributeError:
+      return
+    if state == None:
+      return
+    if isinstance(state, tuple):
+      if not isinstance(state[0], dict):
+        state = state[1]
+      else:
+        state = state[0].update(state[1])
+    result = {}
+    for i in state:
+      try:
+        pickle.dumps(state[i], protocol=2)
+      except pickle.PicklingError:
+        if not state[i] in seen:
+          seen.append(state[i])
+          result[i] = self.get_pickling_errors(state[i], seen)
+    return result
+
   def save(self):
     # Remove out_tensor from the object to be pickled
     must_restore = False
@@ -401,8 +425,13 @@ class TensorGraph(Model):
 
     # Pickle itself
     pickle_name = os.path.join(self.model_dir, "model.pickle")
+    self.get_pickling_errors(self)
     with open(pickle_name, 'wb') as fout:
-      pickle.dump(self, fout)
+      try:
+        pickle.dump(self, fout)
+      except Exception as e:
+        print(self.get_pickling_errors(self))
+        raise e
 
     # add out_tensor back to everyone
     if must_restore:
