@@ -151,19 +151,17 @@ class NormalizationTransformer(Transformer):
     """
     Undo transformation on provided data.
     """
-    has_channel = False
-    if len(z.shape) == 3:
-      z = np.squeeze(z, axis=-1)
-      has_channel = True
-
     if self.transform_X:
-      z = z * self.X_stds + self.X_means
+      return z * self.X_stds + self.X_means
     elif self.transform_y:
+      has_channel = False
+      if len(z.shape) == 3:
+        z = np.squeeze(z, axis=-1)
+        has_channel = True
       z = z * self.y_stds + self.y_means
-
-    if has_channel:
-      z = np.expand_dims(z, axis=-1)
-    return z
+      if has_channel:
+        z = np.expand_dims(z, axis=-1)
+      return z
 
   def untransform_grad(self, grad, tasks):
     """
