@@ -327,6 +327,7 @@ class TensorGraph(Model):
       for node in order:
         with tf.name_scope(node):
           node_layer = self.layers[node]
+          print(node)
           node_layer.create_tensor(training=self._training_placeholder)
       self.built = True
 
