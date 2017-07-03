@@ -208,6 +208,7 @@ class Metric(object):
       n_samples, n_tasks = y_true.shape[0], y_true.shape[1]
     else:
       n_samples, n_tasks = y_true.shape[0], 1
+    y_pred = y_pred[:n_samples]
     if self.mode == "classification":
       y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     else:
