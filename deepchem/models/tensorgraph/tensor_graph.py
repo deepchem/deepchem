@@ -452,13 +452,17 @@ class TensorGraph(Model):
 
     if labels is None:
       raise ValueError
+    n_tasks = len(self.outputs)
+    n_classes = self.outputs[0].out_tensor.get_shape()[-1].value
     evaluator = GeneratorEvaluator(
         self,
         feed_dict_generator,
         transformers,
         labels=labels,
         outputs=outputs,
-        weights=weights)
+        weights=weights,
+        n_tasks=n_tasks,
+        n_classes=n_classes)
     if not per_task_metrics:
       scores = evaluator.compute_model_performance(metrics)
       return scores
@@ -542,7 +546,7 @@ class TensorGraph(Model):
 
 def _enqueue_batch(tg, generator, graph, sess, coord):
   """
-  Function to load data into 
+  Function to load data into
   Parameters
   ----------
   tg

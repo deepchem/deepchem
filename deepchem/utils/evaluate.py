@@ -144,6 +144,8 @@ class GeneratorEvaluator(object):
                transformers,
                labels,
                outputs=None,
+               n_tasks=1,
+               n_classes=2,
                weights=list()):
     """
     Parameters
@@ -165,6 +167,8 @@ class GeneratorEvaluator(object):
     """
     self.model = model
     self.generator = generator
+    self.n_tasks = n_tasks
+    self.n_classes = n_classes
     self.output_transformers = [
         transformer for transformer in transformers if transformer.transform_y
     ]
@@ -211,22 +215,21 @@ class GeneratorEvaluator(object):
     if mode == "classification":
       y_pred = self.model.predict_proba_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.reshape(
-          y, newshape=(y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
+      y = np.reshape(y, newshape=(-1, self.n_tasks, self.n_classes))
       y = from_one_hot(y, axis=-1)
     else:
       y_pred = self.model.predict_proba_on_generator(generator_closure())
       y = np.transpose(np.array(y), axes=[0, 2, 1, 3])
-      y = np.reshape(
-          y, newshape=(y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-      y_pred = np.squeeze(y_pred, axis=-1)
-    if len(w) != 0:
-      w = np.reshape(w, newshape=y.shape)
+      y = np.reshape(y, newshape=(-1, self.n_tasks))
+      y_pred = np.reshape(y_pred, newshape=(-1, self.n_tasks))
     multitask_scores = {}
     all_task_scores = {}
 
     y = undo_transforms(y, self.output_transformers)
     y_pred = undo_transforms(y_pred, self.output_transformers)
+    if len(w) != 0:
+      w = np.array(w)
+      w = np.reshape(w, newshape=y.shape)
 
     # Compute multitask metrics
     for metric in metrics:
