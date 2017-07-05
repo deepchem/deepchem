@@ -87,7 +87,7 @@ class Layer(object):
       else:
         raise ValueError('Unexpected input: ' + str(input))
     if reshape and len(tensors) > 1:
-      shapes = [t.shape for t in tensors]
+      shapes = [t.get_shape() for t in tensors]
       if any(s != shapes[0] for s in shapes[1:]):
         # Reshape everything to match the input with the most dimensions.
 

@@ -102,7 +102,7 @@ class WeaveTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
-    all_cost = Concat(in_layers=costs)
+    all_cost = Concat(in_layers=costs, axis=0)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
