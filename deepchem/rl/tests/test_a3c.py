@@ -58,9 +58,9 @@ class TestA3C(unittest.TestCase):
     a3c = dc.rl.A3C(
         env,
         TestPolicy(),
-        max_rollout_length=50,
+        max_rollout_length=20,
         optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.0001))
+            tf.train.AdamOptimizer, learning_rate=0.001))
     a3c.fit(100000)
 
     # It should have learned that the expected value is very close to zero, and that the best

@@ -26,9 +26,9 @@ class A3CLoss(Layer):
     ]
     prob = prob + np.finfo(np.float32).eps
     log_prob = tf.log(prob)
-    policy_loss = -tf.reduce_sum(advantage * tf.reduce_sum(action * log_prob))
-    value_loss = tf.reduce_sum(tf.square(reward - value))
-    entropy = -tf.reduce_sum(prob * log_prob)
+    policy_loss = -tf.reduce_mean(advantage * tf.reduce_sum(action * log_prob))
+    value_loss = tf.reduce_mean(tf.square(reward - value))
+    entropy = -tf.reduce_mean(tf.reduce_sum(prob * log_prob, axis=1))
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
     return self.out_tensor
 
