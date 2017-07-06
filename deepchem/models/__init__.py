@@ -28,4 +28,4 @@ from deepchem.models.tensorflow_models.progressive_multitask import ProgressiveM
 from deepchem.models.tensorflow_models.progressive_joint import ProgressiveJointRegressor
 from deepchem.models.tensorflow_models.IRV import TensorflowMultiTaskIRVClassifier
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
-from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph
+from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph
