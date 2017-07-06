@@ -278,7 +278,7 @@ class RandomStratifiedSplitter(Splitter):
 
     return train_dataset, valid_dataset, test_dataset
 
-  def k_fold_split(self, dataset, k, directories=None):
+  def k_fold_split(self, dataset, k, directories=None, **kwargs):
     """Needs custom implementation due to ragged splits for stratification."""
     log("Computing K-fold split", self.verbose)
     if directories is None:
