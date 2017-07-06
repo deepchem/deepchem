@@ -543,6 +543,9 @@ class TensorGraph(Model):
       tensorgraph.built = False
       return tensorgraph
 
+  def __del__(self):
+    pass
+
 
 def _enqueue_batch(tg, generator, graph, sess, coord):
   """

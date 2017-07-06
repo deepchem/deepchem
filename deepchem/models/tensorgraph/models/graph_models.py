@@ -705,6 +705,8 @@ class GraphConvTensorGraph(TensorGraph):
         return np.concatenate(results, axis=0)
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+    if not self.built:
+      self.build()
     return self.evaluate_generator(
         self.default_generator(dataset),
         metrics,
