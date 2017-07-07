@@ -139,7 +139,7 @@ def graph_gather(atoms, membership_placeholder, batch_size):
   activated_par = tf.dynamic_partition(atoms, membership_placeholder,
                                        batch_size)
 
-  # Sum over atoms for each molecule 
+  # Sum over atoms for each molecule
   sparse_reps = [
       tf.reduce_sum(activated, 0, keep_dims=True) for activated in activated_par
   ]
@@ -252,12 +252,12 @@ class GraphConv(Layer):
   def build(self):
     """"Construct internal trainable weights.
 
-    n_atom_features should provide the number of features per atom. 
+    n_atom_features should provide the number of features per atom.
 
     Parameters
     ----------
-    n_atom_features: int 
-      Number of features provied per atom. 
+    n_atom_features: int
+      Number of features provied per atom.
     """
     n_atom_features = self.n_atom_features
 
@@ -293,7 +293,7 @@ class GraphConv(Layer):
     Visually
 
     x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    
+
     Parameters
     ----------
     x: list
@@ -382,7 +382,7 @@ class GraphGather(Layer):
     Visually
 
     x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    
+
     Parameters
     ----------
     x: list
@@ -395,7 +395,7 @@ class GraphGather(Layer):
     tf.Tensor
       Of shape (batch_size, n_feat), where n_feat is number of atom_features
     """
-    # Extract atom_features 
+    # Extract atom_features
     atom_features = x[0]
 
     # Extract graph topology
@@ -451,7 +451,7 @@ class GraphPool(Layer):
     Visually
 
     x = [atom_features, deg_slice, membership, deg_adj_list placeholders...]
-    
+
     Parameters
     ----------
     x: list
@@ -464,7 +464,7 @@ class GraphPool(Layer):
     tf.Tensor
       Of shape (n_atoms, n_feat), where n_feat is number of atom_features
     """
-    # Extract atom_features 
+    # Extract atom_features
     atom_features = x[0]
 
     # Extract graph topology
@@ -575,7 +575,7 @@ class AttnLSTMEmbedding(Layer):
 
     # Get initializations
     q = self.q_init
-    #r = self.r_init      
+    #r = self.r_init
     states = self.states_init
 
     for d in range(self.max_depth):
@@ -711,7 +711,7 @@ class ResiLSTMEmbedding(Layer):
 
       # Not sure if it helps to place the update here or later yet.  Will
       # decide
-      #z = r  
+      #z = r
 
       # Process test x using attention
       x_e = cos(x + p, z)
@@ -726,7 +726,7 @@ class ResiLSTMEmbedding(Layer):
       ps = model_ops.concatenate([p, s], axis=1)
       p, x_states = self.test_lstm([ps] + x_states)
 
-      # Redefine  
+      # Redefine
       z = r
 
     #return [x+p, z+q]
@@ -827,7 +827,7 @@ class DTNNEmbedding(Layer):
 
   def __init__(self,
                n_embedding=30,
-               periodic_table_length=83,
+               periodic_table_length=30,
                init='glorot_uniform',
                **kwargs):
     """
@@ -857,7 +857,7 @@ class DTNNEmbedding(Layer):
 
     Parameters
     ----------
-    x: Tensor 
+    x: Tensor
       1D tensor of length n_atoms (atomic number)
 
     Returns
@@ -871,9 +871,9 @@ class DTNNEmbedding(Layer):
 
 
 class DTNNStep(Layer):
-  """A convolution step that merge in distance and atom info of 
+  """A convolution step that merge in distance and atom info of
      all other atoms into current atom.
-   
+
      model based on https://arxiv.org/abs/1609.08259
   """
 
@@ -927,8 +927,8 @@ class DTNNStep(Layer):
 
     Parameters
     ----------
-    x: list of Tensor 
-      should be [atom_features: n_atoms*n_embedding, 
+    x: list of Tensor
+      should be [atom_features: n_atoms*n_embedding,
                  distance_matrix: n_pairs*n_distance,
                  atom_membership: n_atoms
                  distance_membership_i: n_pairs,
@@ -975,8 +975,8 @@ class DTNNGather(Layer):
 
   def __init__(self,
                n_embedding=30,
-               n_outputs=100,
-               layer_sizes=[100],
+               layer_sizes=[15],
+               n_tasks=1,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
@@ -985,18 +985,18 @@ class DTNNGather(Layer):
     ----------
     n_embedding: int, optional
       Number of features for each atom
-    n_outputs: int, optional
-      Number of features for each molecule(output)
     layer_sizes: list of int, optional(default=[1000])
       Structure of hidden layer(s)
+    n_tasks: int, optional
+      Number of final summed outputs
     init: str, optional
       Weight initialization for filters.
     activation: str, optional
       Activation function applied
     """
     self.n_embedding = n_embedding
-    self.n_outputs = n_outputs
     self.layer_sizes = layer_sizes
+    self.n_outputs = n_tasks
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 
@@ -1016,7 +1016,6 @@ class DTNNGather(Layer):
     self.b_list.append(model_ops.zeros(shape=[
         self.n_outputs,
     ]))
-    prev_layer_size = self.n_outputs
 
     self.trainable_weights = self.W_list + self.b_list
 
@@ -1025,7 +1024,7 @@ class DTNNGather(Layer):
 
     Parameters
     ----------
-    x: list of Tensor 
+    x: list of Tensor
       should be [embedding tensor of molecules, of shape (batch_size*max_n_atoms*n_embedding),
                  mask tensor of molecules, of shape (batch_size*max_n_atoms)]
 
@@ -1037,9 +1036,10 @@ class DTNNGather(Layer):
     self.build()
     output = x[0]
     atom_membership = x[1]
-    for i, W in enumerate(self.W_list):
+    for i, W in enumerate(self.W_list[:-1]):
       output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
+    output = tf.matmul(output, self.W_list[-1]) + self.b_list[-1]
     output = tf.segment_sum(output, atom_membership)
     return output
 
@@ -1119,7 +1119,7 @@ class DAGLayer(Layer):
     """Execute this layer on input tensors.
 
     x = [atom_features, parents, calculation_orders, calculation_masks, membership, n_atoms]
-    
+
     Parameters
     ----------
     x: list
@@ -1143,7 +1143,7 @@ class DAGLayer(Layer):
     # step i calculates the graph features for atoms of index `parents[:,i,0]`
     parents = x[1]
     # target atoms for each step: (batch_size*max_atoms) * max_atoms
-    # represent the same atoms of `parents[:, :, 0]`, 
+    # represent the same atoms of `parents[:, :, 0]`,
     # different in that these index are positions in `atom_features`
     calculation_orders = x[2]
     calculation_masks = x[3]
@@ -1272,7 +1272,7 @@ class DAGGather(Layer):
     """Execute this layer on input tensors.
 
     x = [graph_features, membership]
-    
+
     Parameters
     ----------
     x: tf.Tensor
@@ -1282,7 +1282,7 @@ class DAGGather(Layer):
     -------
     outputs: tf.Tensor
       Tensor of each molecule's features
-      
+
     """
     # Add trainable weights
     self.build()

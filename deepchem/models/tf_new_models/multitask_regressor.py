@@ -212,3 +212,19 @@ class MultitaskGraphRegressor(Model):
   def get_num_tasks(self):
     """Needed to use Model.predict() from superclass."""
     return self.n_tasks
+
+
+class DTNNMultitaskGraphRegressor(MultitaskGraphRegressor):
+
+  def build(self):
+    # Create target inputs
+    self.label_placeholder = tf.placeholder(
+        dtype='float32', shape=(None, self.n_tasks), name="label_placeholder")
+    self.weight_placeholder = tf.placeholder(
+        dtype='float32', shape=(None, self.n_tasks), name="weight_placholder")
+
+    feat = self.model.return_outputs()
+    outputs = []
+    for task in range(self.n_tasks):
+      outputs.append(feat[:, task])
+    return outputs
