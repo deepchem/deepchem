@@ -17,7 +17,7 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
   if reload:
     save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
 
-  if featurizer == 'CoulombMatrix':
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
 
     if not os.path.exists(dataset_file):
@@ -49,6 +49,13 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
 
   if featurizer == 'CoulombMatrix':
     featurizer = deepchem.feat.CoulombMatrix(26)
+    loader = deepchem.data.SDFLoader(
+        tasks=qm8_tasks,
+        smiles_field="smiles",
+        mol_field="mol",
+        featurizer=featurizer)
+  elif featurizer == 'BPSymmetryFunction':
+    featurizer = deepchem.feat.BPSymmetryFunction(26)
     loader = deepchem.data.SDFLoader(
         tasks=qm8_tasks,
         smiles_field="smiles",
