@@ -18,7 +18,7 @@ from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
 
 class BPSymmetryFunctionRegression(TensorGraph):
 
-  def __init__(self, n_tasks, max_atoms, n_hidden=10, **kwargs):
+  def __init__(self, n_tasks, max_atoms, n_hidden=10, n_embedding=10, **kwargs):
     """
     Parameters
     ----------
@@ -32,6 +32,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
     self.n_hidden = n_hidden
+    self.n_embedding = n_embedding
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
     self.build_graph()
 
@@ -51,7 +52,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
     angular_symmetry = AngularSymmetry(
         self.max_atoms,
         in_layers=[distance_cutoff, distance_matrix, self.atom_coordinates])
-    atom_embedding = DTNNEmbedding(n_embedding=5, in_layers=[self.atom_numbers])
+    atom_embedding = DTNNEmbedding(n_embedding=self.n_embedding, in_layers=[self.atom_numbers])
 
     feature_merge = BPFeatureMerge(
         self.max_atoms,

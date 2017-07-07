@@ -99,9 +99,9 @@ class RadialSymmetry(Layer):
   def build(self):
     """ Parameters for the Gaussian """
     self.Rs = tf.Variable(tf.constant(0.))
-    #self.ita = tf.Variable(tf.constant(1.))
+    #self.ita = tf.exp(tf.Variable(tf.constant(0.)))
     self.ita = 1.
-
+    
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
     if in_layers is None:
@@ -124,10 +124,10 @@ class AngularSymmetry(Layer):
 
   def build(self):
     #self.lambd = tf.Variable(tf.constant(1.))
-    #self.ita = tf.Variable(tf.constant(1.))
-    #self.zeta = tf.Variable(tf.constant(1.))
     self.lambd = 1.
+    #self.ita = tf.exp(tf.Variable(tf.constant(0.)))
     self.ita = 1.
+    #self.zeta = tf.Variable(tf.constant(0.8))
     self.zeta = 0.8
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -154,7 +154,7 @@ class AngularSymmetry(Layer):
     theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1,1,1,max_atoms,1)) * \
         tf.tile(tf.expand_dims(vector_distances, axis=2), (1,1,max_atoms,1,1)), axis=4)
 
-    theta = tf.div(theta, R_ij * R_ik)
+    theta = tf.div(theta, R_ij * R_ik + 1e-5)
 
     out_tensor = tf.pow(1+self.lambd*tf.cos(theta), self.zeta) * \
         tf.exp(-self.ita*(tf.square(R_ij)+tf.square(R_ik)+tf.square(R_jk))) * \
