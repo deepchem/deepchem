@@ -41,9 +41,9 @@ def load_tox21(featurizer='ECFP', split='index'):
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
   #saved_dataset = copy.deepcopy(dataset)
-  #dataset 
+  #dataset
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = []
   #transformers = [
   #    dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
