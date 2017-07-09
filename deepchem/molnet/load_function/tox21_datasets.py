@@ -45,12 +45,14 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
     featurizer = deepchem.feat.WeaveFeaturizer()
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
+  elif featurizer == 'AdjacencyConv':
+    featurizer = dc.feat.AdjacencyFingerprint(max_n_atoms=150, max_valence=6)
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
