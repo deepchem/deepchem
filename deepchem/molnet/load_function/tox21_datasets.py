@@ -52,7 +52,7 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
@@ -79,4 +79,3 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
       deepchem.utils.save.save_dataset_to_disk(save_dir, train, valid, test,
                                                transformers)
   return tox21_tasks, all_dataset, transformers
-
