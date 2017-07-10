@@ -2,6 +2,10 @@ import numpy as np
 import six
 import tensorflow as tf
 
+from deepchem.feat.graph_features import ConvMolFeaturizer
+from deepchem.data.data_loader import featurize_smiles_np
+from deepchem.data import NumpyDataset
+
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
@@ -608,7 +612,7 @@ class GraphConvTensorGraph(TensorGraph):
     batch_norm2 = BatchNorm(in_layers=[gc2])
     gp2 = GraphPool(in_layers=[batch_norm2, self.degree_slice, self.membership]
                     + self.deg_adjs)
-    dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2])
+    dense = Dense(out_channels=128, activation_fn=tf.nn.relu, in_layers=[gp2])
     batch_norm3 = BatchNorm(in_layers=[dense])
     gg1 = GraphGather(
         batch_size=self.batch_size,
@@ -712,3 +716,29 @@ class GraphConvTensorGraph(TensorGraph):
         metrics,
         labels=self.my_labels,
         weights=[self.my_task_weights])
+
+  def predict_on_smiles(self, smiles, transformers):
+    max_index = len(smiles)
+    num_batches = max_index / self.batch_size
+
+    y_ = []
+    for i in range(num_batches):
+      smiles_batch = smiles[i*self.batch_size:(i+1)*self.batch_size]
+      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+    smiles_batch = smiles[num_batches*self.batch_size:max_index]
+    y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+
+    return np.concatenate(y_, axis=1)
+  
+  def predict_on_smiles_batch(self, smiles, transformers=[]):
+    featurizer = ConvMolFeaturizer()
+    convmols = featurize_smiles_np(smiles, featurizer)
+
+    n_smiles = convmols.shape[0]
+    n_tasks = len(self.outputs)
+    
+    dataset = NumpyDataset(X=convmols, y=None, n_tasks=n_tasks)
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    y_ = self.predict_on_generator(generator, transformers)
+
+    return y_.reshape(-1, n_tasks)[:n_smiles]
