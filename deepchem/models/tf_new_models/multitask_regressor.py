@@ -109,6 +109,9 @@ class MultitaskGraphRegressor(Model):
           beta1=self.optimizer_beta1,
           beta2=self.optimizer_beta2,
           epsilon=self.epsilon)
+    elif self.optimizer_type == "SGD":
+      self.optimizer = tf.train.GradientDescentOptimizer(
+          self.learning_rate)
     else:
       raise ValueError("Optimizer type not recognized.")
 

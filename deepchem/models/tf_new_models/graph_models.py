@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
-from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology, AlternateWeaveGraphTopology, BPSymmetryFunctionGraphTopology
+from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology, AlternateWeaveGraphTopology
 
 
 class SequentialGraph(object):
@@ -115,42 +115,6 @@ class SequentialDTNNGraph(SequentialGraph):
       elif type(layer).__name__ in ['DTNNGather']:
         self.output = layer(
             [self.output, self.graph_topology.atom_membership_placeholder])
-      else:
-        self.output = layer(self.output)
-      self.layers.append(layer)
-
-
-class BPSymmetryFunctionGraph(SequentialGraph):
-
-  def __init__(self, max_atoms):
-    self.graph = tf.Graph()
-    with self.graph.as_default():
-      self.graph_topology = BPSymmetryFunctionGraphTopology(max_atoms)
-    self.layers = []
-
-  def add(self, layer):
-    """Adds a new layer to model."""
-    with self.graph.as_default():
-      if type(layer).__name__ in ['DistanceMatrix']:
-        self.d = layer(self.graph_topology.inputs)
-      elif type(layer).__name__ in ['DistanceCutoff']:
-        self.d_cutoff = layer(
-            [self.d, self.graph_topology.atom_flag_placeholder])
-      elif type(layer).__name__ in ['RadialSymmetry']:
-        self.symmetry1 = layer([self.d_cutoff, self.d])
-      elif type(layer).__name__ in ['AngularSymmetry']:
-        self.symmetry2 = layer(
-            [self.d_cutoff, self.d, self.graph_topology.atom_coordinates])
-      elif type(layer).__name__ in ['DTNNEmbedding']:
-        self.atom_embedding = layer(self.graph_topology.atom_number_placeholder)
-      elif type(layer).__name__ in ['BPFeatureMerge']:
-        self.output = layer([
-            self.atom_embedding, self.symmetry1, self.symmetry2,
-            self.graph_topology.atom_flag_placeholder
-        ])
-      elif type(layer).__name__ in ['BPGather']:
-        self.output = layer(
-            [self.output, self.graph_topology.atom_flag_placeholder])
       else:
         self.output = layer(self.output)
       self.layers.append(layer)

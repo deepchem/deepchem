@@ -26,13 +26,6 @@ from deepchem.nn.weave_layers import WeaveConcat
 from deepchem.nn.weave_layers import WeaveGather
 from deepchem.nn.weave_layers import AlternateWeaveGather
 
-from deepchem.nn.symmetry_functions import DistanceMatrix
-from deepchem.nn.symmetry_functions import DistanceCutoff
-from deepchem.nn.symmetry_functions import RadialSymmetry
-from deepchem.nn.symmetry_functions import AngularSymmetry
-from deepchem.nn.symmetry_functions import BPFeatureMerge
-from deepchem.nn.symmetry_functions import BPGather
-
 from deepchem.nn.model_ops import weight_decay
 from deepchem.nn.model_ops import optimizer
 from deepchem.nn.model_ops import add_bias
@@ -46,11 +39,9 @@ from deepchem.models.tf_new_models.graph_topology import DTNNGraphTopology
 from deepchem.models.tf_new_models.graph_topology import DAGGraphTopology
 from deepchem.models.tf_new_models.graph_topology import WeaveGraphTopology
 from deepchem.models.tf_new_models.graph_topology import AlternateWeaveGraphTopology
-from deepchem.models.tf_new_models.graph_topology import BPSymmetryFunctionGraphTopology
 from deepchem.models.tf_new_models.graph_models import SequentialGraph
 from deepchem.models.tf_new_models.graph_models import SequentialDTNNGraph
 from deepchem.models.tf_new_models.graph_models import SequentialDAGGraph
 from deepchem.models.tf_new_models.graph_models import SequentialWeaveGraph
 from deepchem.models.tf_new_models.graph_models import AlternateSequentialWeaveGraph
 from deepchem.models.tf_new_models.graph_models import SequentialSupportGraph
-from deepchem.models.tf_new_models.graph_models import BPSymmetryFunctionGraph
