@@ -5,7 +5,7 @@ import tensorflow as tf
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather
+    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather, DTNNExtract
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, SoftMaxCrossEntropy, GraphConv, BatchNorm, \
     GraphPool, GraphGather, WeightedError
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
@@ -273,14 +273,14 @@ class DTNNTensorGraph(TensorGraph):
         ])
     dtnn_gather = DTNNGather(
         n_embedding=self.n_embedding,
-        n_outputs=self.n_hidden,
+        layer_sizes=[self.n_hidden],
+        n_outputs=self.n_tasks,
         in_layers=[dtnn_layer2, self.atom_membership])
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
-      regression = Dense(
-          out_channels=1, activation_fn=None, in_layers=[dtnn_gather])
+      regression = DTNNExtract(task, in_layers=[dtnn_gather])
       self.add_output(regression)
 
       label = Label(shape=(None, 1))

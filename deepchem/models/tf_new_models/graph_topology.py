@@ -260,6 +260,45 @@ class DTNNGraphTopology(GraphTopology):
     return dict_DTNN
 
 
+class BPSymmetryFunctionGraphTopology(GraphTopology):
+
+  def __init__(self, max_atoms, name='DTNN_topology'):
+    self.name = name
+    self.max_atoms = max_atoms
+
+    self.atom_number_placeholder = tf.placeholder(
+        dtype='int32',
+        shape=(None, self.max_atoms),
+        name=self.name + '_atom_number')
+    self.atom_flag_placeholder = tf.placeholder(
+        dtype='float32',
+        shape=(None, self.max_atoms, self.max_atoms),
+        name=self.name + '_atom_flag')
+    self.atom_coordinates = tf.placeholder(
+        dtype='float32',
+        shape=(None, self.max_atoms, 3),
+        name=self.name + '_coordinates')
+
+    # Define the list of tensors to be used as topology
+    self.topology = [self.atom_coordinates, self.atom_flag_placeholder]
+    self.inputs = [self.atom_number_placeholder]
+    self.inputs += self.topology
+
+  def get_atom_number_placeholder(self):
+    return self.atom_number_placeholder
+
+  def batch_to_feed_dict(self, batch):
+
+    feed_dict = dict()
+    flags = np.sign(np.array(batch[:, :, 0]))
+    feed_dict[self.atom_flag_placeholder] = np.stack([flags]*self.max_atoms, axis=2)*\
+            np.stack([flags]*self.max_atoms, axis=1)
+    feed_dict[self.atom_number_placeholder] = np.array(
+        batch[:, :, 0], dtype=int)
+    feed_dict[self.atom_coordinates] = np.array(batch[:, :, 1:], dtype=float)
+    return feed_dict
+
+
 class DAGGraphTopology(GraphTopology):
   """GraphTopology for DAG models
   """

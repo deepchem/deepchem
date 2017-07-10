@@ -524,14 +524,31 @@ class DTNNGather(Layer):
     self.build()
     output = in_layers[0].out_tensor
     atom_membership = in_layers[1].out_tensor
-    for i, W in enumerate(self.W_list):
+    for i, W in enumerate(self.W_list[:-1]):
       output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
+    output = tf.matmul(output, self.W_list[-1]) + self.b_list[-1]
     output = tf.segment_sum(output, atom_membership)
     out_tensor = output
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
+    return out_tensor
+
+
+class DTNNExtract(Layer):
+
+  def __init__(self, task_id, **kwargs):
+    self.task_id = task_id
+    super(DTNNExtract, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+    output = in_layers[0].out_tensor
+    out_tensor = output[:, self.task_id:self.task_id + 1]
+    self.out_tensor = out_tensor
     return out_tensor
 
 

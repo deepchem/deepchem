@@ -24,19 +24,25 @@ metric = [
 # Batch size of models
 batch_size = 64
 n_embedding = 30
-n_distance = 100
+n_distance = 51
+distance_min = -1.
+distance_max = 9.2
+n_hidden = 15
 
 model = dc.models.DTNNTensorGraph(
     len(tasks),
     n_embedding=n_embedding,
+    n_hidden=n_hidden,
     n_distance=n_distance,
+    distance_min=distance_min,
+    distance_max=distance_max,
     batch_size=batch_size,
     learning_rate=0.001,
     use_queue=False,
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=1000)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)

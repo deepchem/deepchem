@@ -834,12 +834,12 @@ class DAGTransformer(Transformer):
       # starting from the target atom with index `count`
       current_atoms = [count]
       # flags of whether the atom is already included in the DAG
-      atoms_indicator = np.ones((n_atoms,))
+      atoms_indicator = np.zeros((n_atoms,))
       # atom `count` is in the DAG
-      atoms_indicator[count] = 0
+      radial = 1
+      atoms_indicator[count] = radial
       # recording number of radial propagation steps
-      radial = 0
-      while np.sum(atoms_indicator) > 0:
+      while not np.all(atoms_indicator):
         # in the fisrt loop, atoms directly connected to `count` will be added 
         # into the DAG(radial=0), then atoms two-bond away from `count` 
         # will be added in the second loop(radial=1). 
@@ -851,27 +851,27 @@ class DAGTransformer(Transformer):
           break
         # reinitialize targets for next iteration
         next_atoms = []
+        radial = radial + 1
         for current_atom in current_atoms:
           for atom_adj in UG[current_atom]:
             # atoms connected to current_atom
-            if atoms_indicator[atom_adj] > 0:
+            if atoms_indicator[atom_adj] == 0:
               # generate the dependency map of current DAG
               # atoms connected to `current_atoms`(and not included in the DAG)
               # are added, and will be the `current_atoms` for next iteration.
               DAG.append((current_atom, atom_adj))
-              atoms_indicator[atom_adj] = 0
+              atoms_indicator[atom_adj] = radial
               next_atoms.append(atom_adj)
         current_atoms = next_atoms
-        # into next iteration, finding atoms connected one more bond away
-        radial = radial + 1
       # DAG starts from the target atom, calculation should go in reverse
       for edge in reversed(DAG):
         # `edge[1]` is the parent of `edge[0]`
         parent[edge[0]].append(edge[1] % max_atoms)
-        # all the parents of `edge[1]` is also the parents of `edge[0]`
         parent[edge[0]].extend(parent[edge[1]])
-      # after this loop, `parents[i]` includes all parents of atom i
 
+      for i, order in enumerate(parent):
+        parent[i] = sorted(order, key=lambda x: atoms_indicator[x])
+      # after this loop, `parents[i]` includes all parents of atom i
       for ids, atom in enumerate(parent):
         # manually adding the atom index into its parents list
         parent[ids].insert(0, ids % max_atoms)
