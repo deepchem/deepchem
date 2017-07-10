@@ -422,7 +422,13 @@ class TensorGraph(Model):
     # Remove out_tensor from the object to be pickled
     must_restore = False
     tensor_objects = self.tensor_objects
+    rnn_initial_states = self.rnn_initial_states
+    rnn_final_states = self.rnn_final_states
+    rnn_zero_states = self.rnn_zero_states
     self.tensor_objects = {}
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
     out_tensors = []
     if self.built:
       must_restore = True
@@ -450,6 +456,9 @@ class TensorGraph(Model):
       self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
+    self.rnn_initial_states = rnn_initial_states
+    self.rnn_final_states = rnn_final_states
+    self.rnn_zero_states = rnn_zero_states
 
   def evaluate_generator(self,
                          feed_dict_generator,

@@ -413,6 +413,20 @@ class GRU(Layer):
       self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
     return out_tensor
 
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
+
 
 class TimeSeriesDense(Layer):
 
