@@ -1,4 +1,6 @@
-
+"""
+Script that trains ANI models on qm7 dataset.
+"""
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -25,12 +27,14 @@ max_atoms = 23
 n_hidden = 40
 n_embedding = 0
 batch_size = 16
+atom_number_cases = [1, 6, 7, 8]
 
-model = dc.models.BPSymmetryFunctionRegression(
+model = dc.models.ANIRegression(
     len(tasks),
     max_atoms,
     n_hidden=n_hidden,
     n_embedding=n_embedding,
+    atom_number_cases=atom_number_cases,
     batch_size=batch_size,
     learning_rate=0.001,
     use_queue=False,

@@ -116,7 +116,7 @@ class RadialSymmetry(Layer):
     Rs_init, ita_init = np.meshgrid(self.Rs_init, self.ita_init)
     self.Rs = tf.constant(Rs_init.flatten(), dtype=tf.float32)
     self.ita = tf.constant(ita_init.flatten(), dtype=tf.float32)
-    self.atom_number_embedding = tf.eye(max(self.atom_number_cases))
+    self.atom_number_embedding = tf.eye(max(self.atom_number_cases)+1)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
@@ -289,7 +289,7 @@ class AngularSymmetryMod(Layer):
     self.zeta = tf.constant(zeta_init.flatten(), dtype=tf.float32)
     self.Rs = tf.constant(Rs_init.flatten(), dtype=tf.float32)
     self.thetas = tf.constant(thetas_init.flatten(), dtype=tf.float32)
-    self.atom_number_embedding = tf.eye(max(self.atom_number_cases))
+    self.atom_number_embedding = tf.eye(max(self.atom_number_cases)+1)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Angular Symmetry Function """
@@ -389,3 +389,43 @@ class BPGather(Layer):
 
     out_tensor = tf.reduce_sum(out_tensor * flags[:, :, 0:1], axis=1)
     self.out_tensor = out_tensor
+
+
+class AtomicDifferentiatedDense(Layer):
+  """ Separate Dense module for different atoms """
+
+  def __init__(self,
+               max_atoms,
+               out_channels,
+               atom_number_cases=[1, 6, 7, 8],
+               init='glorot_uniform',
+               activation='relu',
+               **kwargs):
+    self.init = initializations.get(init)  # Set weight initialization
+    self.activation = activations.get(activation)  # Get activations
+    self.max_atoms = max_atoms
+    self.out_channels = out_channels
+    self.atom_number_cases = atom_number_cases
+    
+    super(AtomicDifferentiatedDense, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Generate Radial Symmetry Function """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    inputs = in_layers[0].out_tensor
+    atom_numbers = in_layers[1].out_tensor
+    in_channels = inputs.get_shape().as_list()[-1]
+    in_dimension = len(inputs.get_shape())
+    self.W = self.init([max(self.atom_number_cases), in_channels, self.out_channels])
+    self.b = model_ops.zeros((max(self.atom_number_cases), self.out_channels))
+    W = tf.nn.embedding_lookup(self.W, atom_numbers)
+    b = tf.nn.embedding_lookup(self.b, atom_numbers)
+    outputs = tf.expand_dims(inputs, in_dimension) * W
+    outputs = tf.reduce_sum(outputs, in_dimension-1) + b
+    outputs = self.activation(outputs)
+    self.out_tensor = outputs
+
+
