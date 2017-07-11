@@ -14,7 +14,7 @@ to improve performance.
  
 This can be improved significantly by using batch normalization, or more interestingly, the new SELU activation [https://arxiv.org/pdf/1706.02515.pdf]. In order to use SELUs straight through the system, we dropped the GRU unit [https://arxiv.org/pdf/1412.3555.pdf] the authors used in favor of a SELU activated fully-connected neural network for each time step **T**. This modified approach now achieves peak performance in as little as 60 epochs on most molecular machine learning datasets.
 
-MPNN-S sets a new record on the Delaney & PPB datasets:
+MPNN-S sets new records on the Delaney & PPB datasets:
 
 | Dataset | Num Examples | MP-DNN Val R2 [Scaffold Split] | GraphConv Val R2 [Scaffold Split] |
 | ------ | ------ | ------ | ------ |
