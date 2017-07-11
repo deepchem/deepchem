@@ -719,7 +719,7 @@ class GraphConvTensorGraph(TensorGraph):
 
   def predict_on_smiles(self, smiles, transformers):
     max_index = len(smiles)
-    num_batches = max_index / self.batch_size
+    num_batches = max_index // self.batch_size
 
     y_ = []
     for i in range(num_batches):
