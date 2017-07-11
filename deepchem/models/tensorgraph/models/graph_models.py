@@ -2,10 +2,6 @@ import numpy as np
 import six
 import tensorflow as tf
 
-from deepchem.feat.graph_features import ConvMolFeaturizer
-from deepchem.data.data_loader import featurize_smiles_np
-from deepchem.data import NumpyDataset
-
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
@@ -613,7 +609,7 @@ class GraphConvTensorGraph(TensorGraph):
     batch_norm2 = BatchNorm(in_layers=[gc2])
     gp2 = GraphPool(in_layers=[batch_norm2, self.degree_slice, self.membership]
                     + self.deg_adjs)
-    dense = Dense(out_channels=128, activation_fn=tf.nn.relu, in_layers=[gp2])
+    dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2])
     batch_norm3 = BatchNorm(in_layers=[dense])
     gg1 = GraphGather(
         batch_size=self.batch_size,

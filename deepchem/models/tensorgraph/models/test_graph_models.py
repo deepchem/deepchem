@@ -55,8 +55,3 @@ def test_graph_conv_regression_model():
   model.save()
   model = TensorGraph.load_from_dir(model.model_dir)
   scores = model.evaluate(dataset, [metric], transformers)
-
-  caffeine = 'CN1C(=O)N(C)c2ncn(C)c2C1=O'
-  asprin = 'CC(=O)Oc1ccccc1C(=O)O'
-  mols = np.array([caffeine, asprin])
-  out = model.predict_on_smiles(mols, transformers)

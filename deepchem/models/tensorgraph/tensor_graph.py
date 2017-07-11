@@ -94,6 +94,10 @@ class TensorGraph(Model):
     self.save_file = "%s/%s" % (self.model_dir, "model")
     self.model_class = None
 
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+
   def _add_layer(self, layer):
     if layer.name is None:
       layer.name = "%s_%s" % (layer.__class__.__name__, len(self.layers) + 1)
@@ -226,6 +230,9 @@ class TensorGraph(Model):
           feed_dict[self.features[0]] = X_b
         if len(self.task_weights) == 1 and w_b is not None and not predict:
           feed_dict[self.task_weights[0]] = w_b
+        for (inital_state, zero_state) in zip(self.rnn_initial_states,
+                                              self.rnn_zero_states):
+          feed_dict[initial_state] = zero_state
         yield feed_dict
 
   def predict_on_generator(self, generator, transformers=[]):
@@ -328,6 +335,9 @@ class TensorGraph(Model):
         with tf.name_scope(node):
           node_layer = self.layers[node]
           node_layer.create_tensor(training=self._training_placeholder)
+          self.rnn_initial_states += node_layer.rnn_initial_states
+          self.rnn_final_states += node_layer.rnn_final_states
+          self.rnn_zero_states += node_layer.rnn_zero_states
       self.built = True
 
     for layer in self.layers.values():
@@ -412,7 +422,13 @@ class TensorGraph(Model):
     # Remove out_tensor from the object to be pickled
     must_restore = False
     tensor_objects = self.tensor_objects
+    rnn_initial_states = self.rnn_initial_states
+    rnn_final_states = self.rnn_final_states
+    rnn_zero_states = self.rnn_zero_states
     self.tensor_objects = {}
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
     out_tensors = []
     if self.built:
       must_restore = True
@@ -440,6 +456,9 @@ class TensorGraph(Model):
       self._training_placeholder = training_placeholder
       self.built = True
     self.tensor_objects = tensor_objects
+    self.rnn_initial_states = rnn_initial_states
+    self.rnn_final_states = rnn_final_states
+    self.rnn_zero_states = rnn_zero_states
 
   def evaluate_generator(self,
                          feed_dict_generator,
