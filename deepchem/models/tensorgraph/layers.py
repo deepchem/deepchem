@@ -27,6 +27,9 @@ class Layer(object):
     self.in_layers = in_layers
     self.op_type = "gpu"
     self.variable_scope = ''
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -395,15 +398,34 @@ class GRU(Layer):
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
     gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
-    initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
-    out_tensor, rnn_states = tf.nn.dynamic_rnn(
-        gru_cell,
-        parent_tensor,
-        initial_state=initial_gru_state,
-        scope=self.name)
+    zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
+      initial_state = tf.placeholder(tf.float32, zero_state.get_shape())
+    else:
+      initial_state = zero_state
+    out_tensor, final_state = tf.nn.dynamic_rnn(
+        gru_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if set_tensors:
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+      self.rnn_initial_states.append(initial_state)
+      self.rnn_final_states.append(final_state)
+      self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
     return out_tensor
+
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
 
 
 class TimeSeriesDense(Layer):
