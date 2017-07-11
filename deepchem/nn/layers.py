@@ -975,8 +975,8 @@ class DTNNGather(Layer):
 
   def __init__(self,
                n_embedding=30,
+               n_outputs=1,
                layer_sizes=[15],
-               n_tasks=1,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
@@ -996,7 +996,7 @@ class DTNNGather(Layer):
     """
     self.n_embedding = n_embedding
     self.layer_sizes = layer_sizes
-    self.n_outputs = n_tasks
+    self.n_outputs = n_outputs
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 

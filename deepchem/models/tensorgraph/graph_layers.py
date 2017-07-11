@@ -336,7 +336,7 @@ class DTNNEmbedding(Layer):
 
   def __init__(self,
                n_embedding=30,
-               periodic_table_length=83,
+               periodic_table_length=30,
                init='glorot_uniform',
                **kwargs):
     """
@@ -468,8 +468,8 @@ class DTNNGather(Layer):
 
   def __init__(self,
                n_embedding=30,
-               n_outputs=100,
-               layer_sizes=[100],
+               n_outputs=1,
+               layer_sizes=[15],
                init='glorot_uniform',
                activation='tanh',
                **kwargs):

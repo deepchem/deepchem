@@ -104,7 +104,7 @@ class WeaveTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
-    all_cost = Concat(in_layers=costs, axis=0)
+    all_cost = Concat(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -118,6 +118,7 @@ class WeaveTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
+      print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -165,42 +166,6 @@ class WeaveTensorGraph(TensorGraph):
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
-
-  def predict(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
-
-  def predict_on_generator(self, generator, transformers=[]):
-    retval = self.predict_proba_on_generator(generator, transformers)
-    if self.mode == 'classification':
-      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-    return retval
-
-  def predict_proba_on_generator(self, generator, transformers=[]):
-    if not self.built:
-      self.build()
-    with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          if len(transformers) > 0:
-            result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
 
 
 class DTNNTensorGraph(TensorGraph):
@@ -279,19 +244,20 @@ class DTNNTensorGraph(TensorGraph):
 
     costs = []
     self.labels_fd = []
+    self.weights_fd = []
     for task in range(self.n_tasks):
       regression = DTNNExtract(task, in_layers=[dtnn_gather])
       self.add_output(regression)
-
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
       cost = L2Loss(in_layers=[label, regression])
       costs.append(cost)
 
-    all_cost = Concat(in_layers=costs)
+    all_cost = Concat(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
+
 
   def default_generator(self,
                         dataset,
@@ -302,6 +268,7 @@ class DTNNTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.DTNNGraphTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
+      print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -313,7 +280,6 @@ class DTNNTensorGraph(TensorGraph):
             feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None and not predict:
           feed_dict[self.weights] = w_b
-
         distance = []
         atom_membership = []
         distance_membership_i = []
@@ -348,42 +314,6 @@ class DTNNTensorGraph(TensorGraph):
         feed_dict[self.atom_membership] = np.concatenate(atom_membership)
 
         yield feed_dict
-
-  def predict(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
-
-  def predict_on_generator(self, generator, transformers=[]):
-    retval = self.predict_proba_on_generator(generator, transformers)
-    if self.mode == 'classification':
-      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-    return retval
-
-  def predict_proba_on_generator(self, generator, transformers=[]):
-    if not self.built:
-      self.build()
-    with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          if len(transformers) > 0:
-            result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
 
 
 class DAGTensorGraph(TensorGraph):
@@ -483,6 +413,7 @@ class DAGTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.DAGGraphTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
+      print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -528,42 +459,6 @@ class DAGTensorGraph(TensorGraph):
         feed_dict[self.membership] = np.array(membership)
         feed_dict[self.n_atoms] = n_atoms
         yield feed_dict
-
-  def predict(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
-
-  def predict_on_generator(self, generator, transformers=[]):
-    retval = self.predict_proba_on_generator(generator, transformers)
-    if self.mode == 'classification':
-      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-    return retval
-
-  def predict_proba_on_generator(self, generator, transformers=[]):
-    if not self.built:
-      self.build()
-    with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          if len(transformers) > 0:
-            result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
 
 
 class GraphConvTensorGraph(TensorGraph):
@@ -650,6 +545,7 @@ class GraphConvTensorGraph(TensorGraph):
                         predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
+      print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
               self.batch_size, pad_batches=True, deterministic=True)):
@@ -667,48 +563,3 @@ class GraphConvTensorGraph(TensorGraph):
         for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
-
-  def predict(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba(self, dataset, transformers=[], batch_size=None):
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
-
-  def predict_on_generator(self, generator, transformers=[]):
-    retval = self.predict_proba_on_generator(generator, transformers)
-    if self.mode == 'classification':
-      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-    return retval
-
-  def predict_proba_on_generator(self, generator, transformers=[]):
-    if not self.built:
-      self.build()
-    with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          if len(transformers) > 0:
-            result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
-
-  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
-    if not self.built:
-      self.build()
-    return self.evaluate_generator(
-        self.default_generator(dataset),
-        metrics,
-        labels=self.my_labels,
-        weights=[self.my_task_weights])

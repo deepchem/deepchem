@@ -169,6 +169,7 @@ class TensorGraph(Model):
             break
           if self.global_step % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.global_step)
+            self.last_checkpoint = saver.last_checkpoints[-1]
             avg_loss = float(avg_loss) / n_batches
             print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                               avg_loss))
@@ -524,6 +525,7 @@ class TensorGraph(Model):
     if self.last_checkpoint is None:
       sess.run(tf.global_variables_initializer())
       saver.save(sess, self.save_file, global_step=self.global_step)
+      self.last_checkpoint = saver.last_checkpoints[-1]
     else:
       saver.restore(sess, self.last_checkpoint)
 

@@ -32,7 +32,7 @@ graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=51))
 graph_model.add(dc.nn.DTNNStep(n_embedding=n_embedding, n_distance=51))
 graph_model.add(
     dc.nn.DTNNGather(
-        n_embedding=n_embedding, layer_sizes=[15], n_tasks=len(tasks)))
+        n_embedding=n_embedding, layer_sizes=[15], n_outputs=len(tasks)))
 n_feat = n_embedding
 
 model = dc.models.DTNNMultitaskGraphRegressor(

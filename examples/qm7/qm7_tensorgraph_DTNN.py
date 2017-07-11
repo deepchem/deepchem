@@ -22,7 +22,7 @@ metric = [
 ]
 
 # Batch size of models
-batch_size = 64
+batch_size = 50
 n_embedding = 30
 n_distance = 51
 distance_min = -1.
@@ -37,7 +37,7 @@ model = dc.models.DTNNTensorGraph(
     distance_min=distance_min,
     distance_max=distance_max,
     batch_size=batch_size,
-    learning_rate=0.001,
+    learning_rate=0.0001,
     use_queue=False,
     mode="regression")
 

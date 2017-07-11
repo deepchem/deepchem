@@ -98,11 +98,12 @@ class RadialSymmetry(Layer):
     self.atomic_number_differentiated = atomic_number_differentiated
     self.atom_number_cases = atom_numbers
     if Rs_init is None:
-      self.Rs_init = np.array([0.5, 1.17, 1.83, 2.5, 3.17, 3.83, 4.5, 5.17])
+      self.Rs_init = np.array([0.5, 1.17, 1.83, 2.5, 3.17, 3.83, 4.5])
+      self.Rs_init = self.Rs_init / 0.52917721092
     else:
       self.Rs_init = np.array(Rs_init)
     if ita_init is None:
-      self.ita_init = np.array([4.])
+      self.ita_init = np.array([1.5])
     else:
       self.ita_init = np.array(ita_init)
 
@@ -254,17 +255,18 @@ class AngularSymmetryMod(Layer):
       self.lambd_init = np.array(lambd_init)
 
     if ita_init is None:
-      self.ita_init = np.array([4.])
+      self.ita_init = np.array([1.5])
     else:
       self.ita_init = np.array(ita_init)
 
     if zeta_init is None:
-      self.zeta_init = np.array([2., 4., 8.])
+      self.zeta_init = np.array([4.])
     else:
       self.zeta_init = np.array(zeta_init)
 
     if Rs_init is None:
-      self.Rs_init = np.array([0.5, 1.17, 1.83, 2.5, 3.17, 3.83, 4.5, 5.17])
+      self.Rs_init = np.array([0.5, 1.17, 1.83, 2.5, 3.17])
+      self.Rs_init = self.Rs_init / 0.52917721092
     else:
       self.Rs_init = np.array(Rs_init)
 
@@ -406,7 +408,7 @@ class AtomicDifferentiatedDense(Layer):
     self.max_atoms = max_atoms
     self.out_channels = out_channels
     self.atom_number_cases = atom_number_cases
-    
+
     super(AtomicDifferentiatedDense, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):

@@ -489,6 +489,7 @@ class L2Loss(Layer):
     return out_tensor
 
 
+
 class SoftMax(Layer):
 
   def __init__(self, **kwargs):
@@ -1165,7 +1166,7 @@ class VinaFreeEnergy(Layer):
       Coordinates/features.
     Z: tf.Tensor of shape (N)
       Atomic numbers of neighbor atoms.
-      
+
     Returns
     -------
     layer: tf.Tensor of shape (B)
@@ -1387,19 +1388,19 @@ class NeighborList(Layer):
 
   def get_closest_atoms(self, coords, cells):
     """For each cell, find M_nbrs closest atoms.
-    
+
     Let N_atoms be the number of atoms.
-        
-    Parameters    
-    ----------    
-    coords: tf.Tensor 
+
+    Parameters
+    ----------
+    coords: tf.Tensor
       (N_atoms, ndim) shape.
     cells: tf.Tensor
       (n_cells, ndim) shape.
 
     Returns
     -------
-    closest_inds: tf.Tensor 
+    closest_inds: tf.Tensor
       Of shape (n_cells, M_nbrs)
     """
     N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
@@ -1466,16 +1467,16 @@ class NeighborList(Layer):
     return n_nbr_cells
 
   def get_neighbor_cells(self, cells):
-    """Compute neighbors of cells in grid.    
+    """Compute neighbors of cells in grid.
 
     # TODO(rbharath): Do we need to handle periodic boundary conditions
     properly here?
     # TODO(rbharath): This doesn't handle boundaries well. We hard-code
     # looking for n_nbr_cells neighbors, which isn't right for boundary cells in
     # the cube.
-        
-    Parameters    
-    ----------    
+
+    Parameters
+    ----------
     cells: tf.Tensor
       (n_cells, ndim) shape.
     Returns
@@ -1580,14 +1581,14 @@ class AtomicConvolution(Layer):
 
     Parameters
     ----------
-    
+
     atom_types: list or None
       Of length a, where a is number of atom types for filtering.
     radial_params: list
       Of length l, where l is number of radial filters learned.
     boxsize: float or None
       Simulation box length [Angstrom].
-    
+
     """
     self.boxsize = boxsize
     self.radial_params = radial_params
@@ -1604,11 +1605,11 @@ class AtomicConvolution(Layer):
       Neighbor list.
     Nbrs_Z: tf.Tensor of shape (B, N, M)
       Atomic numbers of neighbor atoms.
-    
+
     Returns
     -------
     layer: tf.Tensor of shape (B, N, l)
-      A new tensor representing the output of the atomic conv layer 
+      A new tensor representing the output of the atomic conv layer
     """
     inputs = self._get_input_tensors(in_layers)
     X = inputs[0]
@@ -1653,9 +1654,9 @@ class AtomicConvolution(Layer):
 
   def radial_symmetry_function(self, R, rc, rs, e):
     """Calculates radial symmetry function.
-  
+
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_filters
-  
+
     Parameters
     ----------
     R: tf.Tensor of shape (B, N, M)
@@ -1666,12 +1667,12 @@ class AtomicConvolution(Layer):
       Gaussian distance matrix mean.
     e: float
       Gaussian distance matrix width.
-  
+
     Returns
     -------
     retval: tf.Tensor of shape (B, N, M)
       Radial symmetry function (before summation)
-  
+
     """
 
     with tf.name_scope(None, "NbrRadialSymmetryFunction", [rc, rs, e]):
@@ -1775,21 +1776,21 @@ class AtomicConvolution(Layer):
 
   def gather_neighbors(self, X, nbr_indices, B, N, M, d):
     """Gathers the neighbor subsets of the atoms in X.
-  
+
     B = batch_size, N = max_num_atoms, M = max_num_neighbors, d = num_features
-  
+
     Parameters
     ----------
     X: tf.Tensor of shape (B, N, d)
       Coordinates/features tensor.
     atom_indices: tf.Tensor of shape (B, M)
       Neighbor list for single atom.
-  
+
     Returns
     -------
     neighbors: tf.Tensor of shape (B, M, d)
       Neighbor coordinates/features tensor for single atom.
-  
+
     """
 
     example_tensors = tf.unstack(X, axis=0)
