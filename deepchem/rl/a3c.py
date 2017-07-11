@@ -51,7 +51,7 @@ class A3C(object):
   "action" argument passed to the environment is an integer, giving the index of the action to perform.
 
   This class supports Generalized Advantage Estimation as described in Schulman et al., "High-Dimensional
-  Continuous Control Using Generalized Advantage Estimation," (https://arxiv.org/abs/1506.02438).
+  Continuous Control Using Generalized Advantage Estimation" (https://arxiv.org/abs/1506.02438).
   This is a method of trading off bias and variance in the advantage estimate, which can sometimes
   improve the rate of convergance.  Use the advantage_lambda parameter to adjust the tradeoff.
   """
@@ -380,10 +380,15 @@ class _Worker(object):
     values_array = np.array(values)
     discounted_rewards = rewards_array.copy()
     discounted_rewards[-1] += final_value
-    advantages = rewards_array - values_array + self.a3c.discount_factor * np.array(values[1:]+[final_value])
+    advantages = rewards_array - values_array + self.a3c.discount_factor * np.array(
+        values[1:] + [final_value])
     for j in range(len(rewards) - 1, 0, -1):
-      discounted_rewards[j - 1] += self.a3c.discount_factor * discounted_rewards[j]
-      advantages[j - 1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[j]
+      discounted_rewards[j -
+                         1] += self.a3c.discount_factor * discounted_rewards[j]
+      advantages[
+          j -
+          1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[
+              j]
     if self.env.terminated:
       self.env.reset()
       self.rnn_states = self.graph.rnn_zero_states
