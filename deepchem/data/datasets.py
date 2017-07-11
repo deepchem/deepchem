@@ -256,7 +256,7 @@ class NumpyDataset(Dataset):
           w = np.reshape(w, (n_samples, -1))
       else:
         # Set labels to be zero, with zero weights
-        y = np.zeros((n_samples, 1*n_tasks))
+        y = np.zeros((n_samples, n_tasks))
         w = np.zeros_like(y)
     if ids is None:
       ids = np.arange(n_samples)
