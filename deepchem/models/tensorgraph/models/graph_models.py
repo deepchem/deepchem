@@ -244,7 +244,6 @@ class DTNNTensorGraph(TensorGraph):
 
     costs = []
     self.labels_fd = []
-    self.weights_fd = []
     for task in range(self.n_tasks):
       regression = DTNNExtract(task, in_layers=[dtnn_gather])
       self.add_output(regression)
