@@ -767,6 +767,7 @@ class Conv2D(Layer):
                stride=1,
                padding='SAME',
                activation_fn=tf.nn.relu,
+               normalizer_fn=None,
                scope_name=None,
                **kwargs):
     """Create a Conv2D layer.
@@ -787,12 +788,15 @@ class Conv2D(Layer):
       the padding method to use, either 'SAME' or 'VALID'
     activation_fn: object
       the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
     self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
     super(Conv2D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -808,7 +812,7 @@ class Conv2D(Layer):
         stride=self.stride,
         padding=self.padding,
         activation_fn=self.activation_fn,
-        normalizer_fn=tf.contrib.layers.batch_norm,
+        normalizer_fn=self.normalizer_fn,
         scope=self.scope_name)
     out_tensor = out_tensor
     if set_tensors:
