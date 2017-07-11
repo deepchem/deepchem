@@ -246,7 +246,7 @@ class Dataset(object):
 class NumpyDataset(Dataset):
   """A Dataset defined by in-memory numpy arrays."""
 
-  def __init__(self, X, y=None, w=None, ids=None, n_tasks=1):
+  def __init__(self, X, y=None, w=None, ids=None):
     n_samples = len(X)
     # The -1 indicates that y will be reshaped to have length -1
     if n_samples > 0:
@@ -256,8 +256,9 @@ class NumpyDataset(Dataset):
           w = np.reshape(w, (n_samples, -1))
       else:
         # Set labels to be zero, with zero weights
-        y = np.zeros((n_samples, 1*n_tasks))
+        y = np.zeros((n_samples, 1))
         w = np.zeros_like(y)
+    n_tasks = y.shape[1]
     if ids is None:
       ids = np.arange(n_samples)
     if w is None:

@@ -71,6 +71,7 @@ def pearson_r2_score(y, y_pred):
   """Computes Pearson R^2 (square of Pearson correlation)."""
   return pearsonr(y, y_pred)[0]**2
 
+
 def prc_auc_score(y, y_pred):
   """Compute area under precision-recall curve"""
   assert y_pred.shape == y.shape
