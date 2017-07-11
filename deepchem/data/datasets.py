@@ -59,7 +59,7 @@ def pad_features(batch_size, X_b):
     else:
       X_out = np.zeros((batch_size,), dtype=X_b.dtype)
 
-    # Fill in batch arrays 
+    # Fill in batch arrays
     start = 0
     while start < batch_size:
       num_left = batch_size - start
@@ -94,7 +94,7 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
     w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
     ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
 
-    # Fill in batch arrays 
+    # Fill in batch arrays
     start = 0
     while start < batch_size:
       num_left = batch_size - start
@@ -931,8 +931,8 @@ class DiskDataset(Dataset):
           if indices_count + num_shard_elts >= len(indices):
             break
         # Need to offset indices to fit within shard_size
-        shard_inds = indices[indices_count:indices_count +
-                             num_shard_elts] - count
+        shard_inds = indices[indices_count:
+                             indices_count + num_shard_elts] - count
         X_sel = X[shard_inds]
         # Handle the case of datasets with y/w missing
         if y is not None:
