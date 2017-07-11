@@ -18,7 +18,7 @@ from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
 
 class BPSymmetryFunctionRegression(TensorGraph):
 
-  def __init__(self, n_tasks, max_atoms, n_hidden=10, n_embedding=10, **kwargs):
+  def __init__(self, n_tasks, max_atoms, n_hidden=40, n_embedding=10, **kwargs):
     """
     Parameters
     ----------
@@ -52,7 +52,8 @@ class BPSymmetryFunctionRegression(TensorGraph):
     angular_symmetry = AngularSymmetry(
         self.max_atoms,
         in_layers=[distance_cutoff, distance_matrix, self.atom_coordinates])
-    atom_embedding = DTNNEmbedding(n_embedding=self.n_embedding, in_layers=[self.atom_numbers])
+    atom_embedding = DTNNEmbedding(
+        n_embedding=self.n_embedding, in_layers=[self.atom_numbers])
 
     feature_merge = BPFeatureMerge(
         self.max_atoms,
@@ -64,11 +65,15 @@ class BPSymmetryFunctionRegression(TensorGraph):
         out_channels=self.n_hidden,
         activation_fn=tf.nn.tanh,
         in_layers=[feature_merge])
-
+    Hidden2 = Dense(
+        out_channels=self.n_hidden,
+        activation_fn=tf.nn.tanh,
+        in_layers=[Hidden])
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
-      regression = Dense(out_channels=1, activation_fn=None, in_layers=[Hidden])
+      regression = Dense(
+          out_channels=1, activation_fn=None, in_layers=[Hidden2])
       output = BPGather(self.max_atoms, in_layers=[regression, self.atom_flags])
       self.add_output(output)
 

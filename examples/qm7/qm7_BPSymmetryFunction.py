@@ -24,7 +24,7 @@ metric = [
 
 # Batch size of models
 max_atoms = 23
-n_hidden = 10
+n_hidden = 40
 n_embedding = 0
 batch_size = 16
 
@@ -34,12 +34,12 @@ model = dc.models.BPSymmetryFunctionRegression(
     n_hidden=n_hidden,
     n_embedding=n_embedding,
     batch_size=batch_size,
-    learning_rate=0.0001,
+    learning_rate=0.001,
     use_queue=False,
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=200, checkpoint_interval=100)
+model.fit(train_dataset, nb_epoch=20, checkpoint_interval=1000)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
