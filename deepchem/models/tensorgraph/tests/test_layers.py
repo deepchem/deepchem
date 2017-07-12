@@ -264,8 +264,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       coords_tensor = tf.convert_to_tensor(coords)
       nbr_list_tensor = tf.convert_to_tensor(nbr_list)
 
-      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs, ndim)(
-          coords_tensor, nbr_list_tensor)
+      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs,
+                                           ndim)(coords_tensor, nbr_list_tensor)
 
       dists = dist_tensor.eval()
       assert dists.shape == (N_atoms, M_nbrs)
