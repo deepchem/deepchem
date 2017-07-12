@@ -103,7 +103,7 @@ class RadialSymmetry(Layer):
     else:
       self.Rs_init = np.array(Rs_init)
     if ita_init is None:
-      self.ita_init = np.array([1.5])
+      self.ita_init = np.array([1.12])
     else:
       self.ita_init = np.array(ita_init)
 
@@ -255,7 +255,7 @@ class AngularSymmetryMod(Layer):
       self.lambd_init = np.array(lambd_init)
 
     if ita_init is None:
-      self.ita_init = np.array([1.5])
+      self.ita_init = np.array([1.12])
     else:
       self.ita_init = np.array(ita_init)
 
@@ -420,14 +420,14 @@ class AtomicDifferentiatedDense(Layer):
     inputs = in_layers[0].out_tensor
     atom_numbers = in_layers[1].out_tensor
     in_channels = inputs.get_shape().as_list()[-1]
-    in_dimension = len(inputs.get_shape())
-    self.W = self.init([max(self.atom_number_cases), in_channels, self.out_channels])
-    self.b = model_ops.zeros((max(self.atom_number_cases), self.out_channels))
-    W = tf.nn.embedding_lookup(self.W, atom_numbers)
-    b = tf.nn.embedding_lookup(self.b, atom_numbers)
-    outputs = tf.expand_dims(inputs, in_dimension) * W
-    outputs = tf.reduce_sum(outputs, in_dimension-1) + b
-    outputs = self.activation(outputs)
-    self.out_tensor = outputs
+    self.W = self.init([len(self.atom_number_cases), in_channels, self.out_channels])
+    self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
+    outputs = []
+    for i, atom_case in enumerate(self.atom_number_cases):
+      output = self.activation(tf.tensordot(inputs, self.W[i, :, :], [[2], [0]]) + self.b[i, :])
+      mask = 1 - tf.to_float(tf.cast(atom_numbers-atom_case, tf.bool))
+      output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms, self.out_channels))
+      outputs.append(output)
+    self.out_tensor = tf.add_n(outputs)
 
 

@@ -27,7 +27,7 @@ max_atoms = 23
 n_hidden = 40
 n_embedding = 0
 batch_size = 16
-atom_number_cases = [1, 6, 7, 8]
+atom_number_cases = [1, 6, 7, 8, 16]
 
 model = dc.models.ANIRegression(
     len(tasks),
@@ -41,7 +41,7 @@ model = dc.models.ANIRegression(
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=20, checkpoint_interval=1000)
+model.fit(train_dataset, nb_epoch=20, checkpoint_interval=10)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
