@@ -185,8 +185,7 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   return features
 
 
-def load_pdbbind_grid(split="index", featurizer="grid",
-                      subset="core"):
+def load_pdbbind_grid(split="index", featurizer="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
   dataset.w
