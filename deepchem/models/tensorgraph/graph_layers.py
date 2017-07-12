@@ -73,29 +73,30 @@ class WeaveLayer(Layer):
                dropout=None,
                **kwargs):
     """
-        Parameters
-        ----------
-        n_atom_input_feat: int
-          Number of features for each atom in input.
-        n_pair_input_feat: int
-          Number of features for each pair of atoms in input.
-        n_atom_output_feat: int
-          Number of features for each atom in output.
-        n_pair_output_feat: int
-          Number of features for each pair of atoms in output.
-        n_hidden_XX: int
-          Number of units(convolution depths) in corresponding hidden layer
-        update_pair: bool, optional
-          Whether to calculate for pair features,
-          could be turned off for last layer
-        init: str, optional
-          Weight initialization for filters.
-        activation: str, optional
-          Activation function applied
-        dropout: float, optional
-          Dropout probability, not supported here
+    Parameters
+    ----------
+    n_atom_input_feat: int, optional
+      Number of features for each atom in input.
+    n_pair_input_feat: int, optional
+      Number of features for each pair of atoms in input.
+    n_atom_output_feat: int, optional
+      Number of features for each atom in output.
+    n_pair_output_feat: int, optional
+      Number of features for each pair of atoms in output.
+    n_hidden_XX: int, optional
+      Number of units(convolution depths) in corresponding hidden layer
+    update_pair: bool, optional
+      Whether to calculate for pair features, 
+      could be turned off for last layer
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
+    dropout: float, optional
+      Dropout probability, not supported here
 
-        """
+    """
+    super(WeaveLayer, self).__init__(**kwargs)
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
     self.update_pair = update_pair  # last weave layer does not need to update
@@ -111,7 +112,6 @@ class WeaveLayer(Layer):
     self.n_atom_output_feat = n_atom_output_feat
     self.n_pair_output_feat = n_pair_output_feat
     self.W_AP, self.b_AP, self.W_PP, self.b_PP, self.W_P, self.b_P = None, None, None, None, None, None
-    super(WeaveLayer, self).__init__(**kwargs)
 
   def build(self):
     """ Construct internal trainable weights.
@@ -200,6 +200,7 @@ class WeaveLayer(Layer):
       P = self.activation(P)
     else:
       P = pair_features
+      
     out_tensor = [A, P]
     if set_tensors:
       self.variables = self.trainable_weights
@@ -241,20 +242,20 @@ class WeaveGather(Layer):
                momentum=0.99,
                **kwargs):
     """
-        Parameters
-        ----------
-        batch_size: int
-          number of molecules in a batch
-        n_input: int, optional
-          number of features for each input molecule
-        gaussian_expand: boolean. optional
-          Whether to expand each dimension of atomic features by gaussian histogram
-        init: str, optional
-          Weight initialization for filters.
-        activation: str, optional
-          Activation function applied
+    Parameters
+    ----------
+    batch_size: int
+      number of molecules in a batch
+    n_input: int, optional
+      number of features for each input molecule
+    gaussian_expand: boolean. optional
+      Whether to expand each dimension of atomic features by gaussian histogram
+    init: str, optional
+      Weight initialization for filters.
+    activation: str, optional
+      Activation function applied
 
-        """
+    """
     self.n_input = n_input
     self.batch_size = batch_size
     self.gaussian_expand = gaussian_expand
@@ -295,6 +296,7 @@ class WeaveGather(Layer):
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
+      
     out_tensor = output_molecules
     if set_tensors:
       self.variables = self.trainable_weights

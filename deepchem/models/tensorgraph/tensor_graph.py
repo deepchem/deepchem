@@ -69,7 +69,8 @@ class TensorGraph(Model):
         tf.train.AdamOptimizer,
         learning_rate=learning_rate,
         beta1=0.9,
-        beta2=0.999)
+        beta2=0.999,
+        epsilon=1e-7)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle

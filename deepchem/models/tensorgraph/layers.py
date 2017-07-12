@@ -5,7 +5,7 @@ from collections import Sequence
 import tensorflow as tf
 import numpy as np
 
-from deepchem.nn import model_ops, initializations
+from deepchem.nn import model_ops, initializations, regularizers, activations
 
 
 class Layer(object):
@@ -487,7 +487,6 @@ class L2Loss(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
-
 
 
 class SoftMax(Layer):
@@ -1076,8 +1075,53 @@ class BatchNorm(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+  
+class BatchNormalization(Layer):
+  def __init__(self,
+               epsilon=1e-5,
+               axis=-1,
+               momentum=0.99,
+               beta_init='zero',
+               gamma_init='one',
+               **kwargs):
+    self.beta_init = initializations.get(beta_init)
+    self.gamma_init = initializations.get(gamma_init)
+    self.epsilon = epsilon
+    self.axis = axis
+    self.momentum = momentum
+    super(BatchNormalization, self).__init__(**kwargs)
 
+  def add_weight(self, shape, initializer, name=None):
+    initializer = initializations.get(initializer)
+    weight = initializer(shape, name=name)
+    return weight
 
+  def build(self, input_shape):
+    shape = (input_shape[self.axis],)
+    self.gamma = self.add_weight(
+        shape,
+        initializer=self.gamma_init,
+        name='{}_gamma'.format(self.name))
+    self.beta = self.add_weight(
+        shape,
+        initializer=self.beta_init,
+        name='{}_beta'.format(self.name))
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    x = inputs[0]
+    input_shape = model_ops.int_shape(x)
+    self.build(input_shape)
+    m = model_ops.mean(x, axis=-1, keepdims=True)
+    std = model_ops.sqrt(model_ops.var(x, axis=-1, keepdims=True) + self.epsilon)
+    x_normed = (x - m) / (std + self.epsilon)
+    x_normed = self.gamma * x_normed + self.beta
+    out_tensor = x_normed
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+    
 class WeightedError(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):

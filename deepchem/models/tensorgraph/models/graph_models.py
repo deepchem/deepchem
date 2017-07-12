@@ -7,7 +7,7 @@ from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather, DTNNExtract
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-    GraphPool, GraphGather, WeightedError
+    GraphPool, GraphGather, WeightedError, BatchNormalization
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -72,9 +72,9 @@ class WeaveTensorGraph(TensorGraph):
     separated = Separate_AP(in_layers=[weave_layer2])
     dense1 = Dense(
         out_channels=self.n_graph_feat,
-        activation_fn=tf.nn.relu,
+        activation_fn=tf.nn.tanh,
         in_layers=[separated])
-    batch_norm1 = BatchNorm(in_layers=[dense1])
+    batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
         n_input=self.n_graph_feat,
@@ -103,7 +103,6 @@ class WeaveTensorGraph(TensorGraph):
         self.labels_fd.append(label)
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
-
     all_cost = Concat(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
@@ -162,7 +161,7 @@ class WeaveTensorGraph(TensorGraph):
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
-        feed_dict[self.pair_split] = np.array(pair_split)
+        feed_dict[self.pair_split] = pair_split
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
@@ -398,7 +397,7 @@ class DAGTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
 
-    all_cost = Concat(in_layers=costs)
+    all_cost = Concat(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
