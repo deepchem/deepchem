@@ -9,6 +9,7 @@ import time
 import numpy as np
 from deepchem.data import NumpyDataset
 
+
 def remove_dead_examples(dataset):
   """Removes compounds with no weight.
 
@@ -28,6 +29,7 @@ def remove_dead_examples(dataset):
 
   return NumpyDataset(X, y, w, ids)
 
+
 def dataset_difference(dataset, remove):
   """Removes the compounds in remove from dataset.
 
@@ -39,8 +41,9 @@ def dataset_difference(dataset, remove):
     Dataset whose overlap will be removed.
   """
   remove_ids = set(remove.ids)
-  keep_inds = [ind for ind in range(len(dataset))
-               if dataset.ids[ind] not in remove_ids]
+  keep_inds = [
+      ind for ind in range(len(dataset)) if dataset.ids[ind] not in remove_ids
+  ]
 
   # Remove support indices
   X = dataset.X[keep_inds]
@@ -49,6 +52,7 @@ def dataset_difference(dataset, remove):
   ids = dataset.ids[keep_inds]
 
   return NumpyDataset(X, y, w, ids)
+
 
 def get_task_dataset_minus_support(dataset, support, task):
   """Gets data for specified task, minus support points.
@@ -66,8 +70,9 @@ def get_task_dataset_minus_support(dataset, support, task):
     Task number of task to select.
   """
   support_ids = set(support.ids)
-  non_support_inds = [ind for ind in range(len(dataset))
-                      if dataset.ids[ind] not in support_ids]
+  non_support_inds = [
+      ind for ind in range(len(dataset)) if dataset.ids[ind] not in support_ids
+  ]
 
   # Remove support indices
   X = dataset.X[non_support_inds]
@@ -85,6 +90,7 @@ def get_task_dataset_minus_support(dataset, support, task):
 
   return NumpyDataset(X_task, y_task, w_task, ids_task)
 
+
 def get_task_dataset(dataset, task):
   """Selects out entries for a particular task."""
   X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
@@ -97,6 +103,7 @@ def get_task_dataset(dataset, task):
   w_task = w[w_task != 0, task]
 
   return NumpyDataset(X_task, y_task, w_task, ids_task)
+
 
 def get_task_test(dataset, n_episodes, n_test, task, log_every_n=50):
   """Gets test set from specified task.
@@ -124,16 +131,17 @@ def get_task_test(dataset, n_episodes, n_test, task, log_every_n=50):
   ids = np.random.choice(np.arange(n_samples), (n_episodes, n_test))
 
   tests = []
-  for episode in range(n_episodes): 
+  for episode in range(n_episodes):
     if episode % log_every_n == 0:
       print("Sampling test %d" % episode)
-    inds = ids[episode] 
+    inds = ids[episode]
     X_batch = X_task[inds]
     y_batch = np.squeeze(y_task[inds, task])
     w_batch = np.squeeze(w_task[inds, task])
     ids_batch = ids_task[inds]
     tests.append(NumpyDataset(X_batch, y_batch, w_batch, ids_batch))
   return tests
+
 
 def get_single_task_test(dataset, batch_size, task, replace=True):
   """Gets test set from specified task.
@@ -154,7 +162,6 @@ def get_single_task_test(dataset, batch_size, task, replace=True):
   w_batch = np.squeeze(w_task[inds, task])
   ids_batch = ids_task[inds]
   return NumpyDataset(X_batch, y_batch, w_batch, ids_batch)
-
 
 
 def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
@@ -179,6 +186,7 @@ def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
     List of NumpyDatasets, each of which is a support set.
   """
   return get_task_support(dataset, 1, n_pos, n_neg, task)[0]
+
 
 def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
   """Generates one support set purely for specified task.
@@ -221,19 +229,15 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
     # Handle one-d vs. non one-d feature matrices
     one_dimensional_features = (len(dataset.X.shape) == 1)
     if not one_dimensional_features:
-      X = np.vstack(
-          [dataset.X[pos_inds], dataset.X[neg_inds]])
+      X = np.vstack([dataset.X[pos_inds], dataset.X[neg_inds]])
     else:
-      X = np.concatenate(
-          [dataset.X[pos_inds], dataset.X[neg_inds]])
-    y = np.concatenate(
-        [dataset.y[pos_inds, task], dataset.y[neg_inds, task]])
-    w = np.concatenate(
-        [dataset.w[pos_inds, task], dataset.w[neg_inds, task]])
-    ids = np.concatenate(
-        [dataset.ids[pos_inds], dataset.ids[neg_inds]])
+      X = np.concatenate([dataset.X[pos_inds], dataset.X[neg_inds]])
+    y = np.concatenate([dataset.y[pos_inds, task], dataset.y[neg_inds, task]])
+    w = np.concatenate([dataset.w[pos_inds, task], dataset.w[neg_inds, task]])
+    ids = np.concatenate([dataset.ids[pos_inds], dataset.ids[neg_inds]])
     supports.append(NumpyDataset(X, y, w, ids))
   return supports
+
 
 class EpisodeGenerator(object):
   """Generates (support, test) pairs for episodic training.
@@ -241,6 +245,7 @@ class EpisodeGenerator(object):
   Precomputes all (support, test) pairs at construction. Allows to reduce
   overhead from computation.
   """
+
   def __init__(self, dataset, n_pos, n_neg, n_test, n_episodes_per_task):
     """
     Parameters
@@ -259,19 +264,19 @@ class EpisodeGenerator(object):
       Whether to use sampling with or without replacement.
     """
     time_start = time.time()
-    self.tasks = range(len(dataset.get_task_names()) )
+    self.tasks = range(len(dataset.get_task_names()))
     self.n_tasks = len(self.tasks)
-    self.n_episodes_per_task = n_episodes_per_task 
+    self.n_episodes_per_task = n_episodes_per_task
     self.dataset = dataset
     self.n_pos = n_pos
     self.n_neg = n_neg
     self.task_episodes = {}
 
     for task in range(self.n_tasks):
-      task_supports = get_task_support(
-          self.dataset, n_episodes_per_task, n_pos, n_neg, task)
-      task_tests = get_task_test(
-          self.dataset, n_episodes_per_task, n_test, task)
+      task_supports = get_task_support(self.dataset, n_episodes_per_task, n_pos,
+                                       n_neg, task)
+      task_tests = get_task_test(self.dataset, n_episodes_per_task, n_test,
+                                 task)
       self.task_episodes[task] = (task_supports, task_tests)
 
     # Init the iterator
@@ -280,8 +285,8 @@ class EpisodeGenerator(object):
     self.task_num = 0
     self.trial_num = 0
     time_end = time.time()
-    print("Constructing EpisodeGenerator took %s seconds"
-          % str(time_end-time_start))
+    print("Constructing EpisodeGenerator took %s seconds" %
+          str(time_end - time_start))
 
   def __iter__(self):
     return self
@@ -296,7 +301,7 @@ class EpisodeGenerator(object):
     else:
       task = self.perm_tasks[self.task_num]  # Get id from permutation
       #support = self.supports[task][self.trial_num]
-      task_supports, task_tests = self.task_episodes[task] 
+      task_supports, task_tests = self.task_episodes[task]
       support, test = (task_supports[self.trial_num],
                        task_tests[self.trial_num])
       # Increment and update logic
@@ -308,7 +313,7 @@ class EpisodeGenerator(object):
 
       return (task, support, test)
 
-  __next__ = next # Python 3.X compatibility
+  __next__ = next  # Python 3.X compatibility
 
 
 class SupportGenerator(object):
@@ -317,6 +322,7 @@ class SupportGenerator(object):
   Iterates over tasks and trials. For each trial, picks one support from
   each task, and returns in a randomized order
   """
+
   def __init__(self, dataset, n_pos, n_neg, n_trials):
     """
     Parameters
@@ -331,8 +337,8 @@ class SupportGenerator(object):
       Number of passes over dataset to make. In total, n_tasks*n_trials
       support sets will be sampled by algorithm.
     """
-      
-    self.tasks = range(len(dataset.get_task_names()) )
+
+    self.tasks = range(len(dataset.get_task_names()))
     self.n_tasks = len(self.tasks)
     self.n_trials = n_trials
     self.dataset = dataset
@@ -360,7 +366,10 @@ class SupportGenerator(object):
       task = self.perm_tasks[self.task_num]  # Get id from permutation
       #support = self.supports[task][self.trial_num]
       support = get_single_task_support(
-          self.dataset, n_pos=self.n_pos, n_neg=self.n_neg, task=task,
+          self.dataset,
+          n_pos=self.n_pos,
+          n_neg=self.n_neg,
+          task=task,
           replace=False)
       # Increment and update logic
       self.task_num += 1
@@ -371,5 +380,4 @@ class SupportGenerator(object):
 
       return (task, support)
 
-  __next__ = next # Python 3.X compatibility
-
+  __next__ = next  # Python 3.X compatibility

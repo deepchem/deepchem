@@ -6,6 +6,7 @@ import deepchem as dc
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
+
 class TestDrop(unittest.TestCase):
   """
   Test how loading of malformed compounds is handled.
@@ -21,8 +22,7 @@ class TestDrop(unittest.TestCase):
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     print("About to load emols dataset.")
-    dataset_file = os.path.join(
-        current_dir, "mini_emols.csv")
+    dataset_file = os.path.join(current_dir, "mini_emols.csv")
 
     # Featurize emols dataset
     print("About to featurize datasets.")

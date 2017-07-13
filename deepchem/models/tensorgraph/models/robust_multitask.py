@@ -18,7 +18,7 @@
 #                                   model_dir=None):
 #  """
 #  TODO(LESWING) Add Dropout and regularization
-#  
+#
 #  Parameters
 #  ----------
 #  n_tasks

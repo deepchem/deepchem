@@ -147,7 +147,8 @@ class WeaveTensorGraph(TensorGraph):
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
               np.transpose(
-                  np.array([C1.flatten() + start, C0.flatten() + start])))
+                  np.array([C1.flatten() + start,
+                            C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
@@ -712,3 +713,29 @@ class GraphConvTensorGraph(TensorGraph):
         metrics,
         labels=self.my_labels,
         weights=[self.my_task_weights])
+
+  def predict_on_smiles(self, smiles, transformers):
+    max_index = len(smiles)
+    num_batches = max_index // self.batch_size
+
+    y_ = []
+    for i in range(num_batches):
+      smiles_batch = smiles[i * self.batch_size:(i + 1) * self.batch_size]
+      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+    smiles_batch = smiles[num_batches * self.batch_size:max_index]
+    y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+
+    return np.concatenate(y_, axis=1)
+
+  def predict_on_smiles_batch(self, smiles, transformers=[]):
+    featurizer = ConvMolFeaturizer()
+    convmols = featurize_smiles_np(smiles, featurizer)
+
+    n_smiles = convmols.shape[0]
+    n_tasks = len(self.outputs)
+
+    dataset = NumpyDataset(X=convmols, y=None, n_tasks=n_tasks)
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    y_ = self.predict_on_generator(generator, transformers)
+
+    return y_.reshape(-1, n_tasks)[:n_smiles]

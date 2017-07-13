@@ -43,8 +43,8 @@ class MetricsTest(googletest.TestCase):
   def test_one_hot(self):
     y = np.array([0, 0, 1, 0, 1, 1, 0])
     y_hot = metrics.to_one_hot(y)
-    expected = np.array(
-        [[1, 0], [1, 0], [0, 1], [1, 0], [0, 1], [0, 1], [1, 0]])
+    expected = np.array([[1, 0], [1, 0], [0, 1], [1, 0], [0, 1], [0, 1], [1,
+                                                                          0]])
     yp = metrics.from_one_hot(y_hot)
     assert np.array_equal(expected, y_hot)
     assert np.array_equal(y, yp)
