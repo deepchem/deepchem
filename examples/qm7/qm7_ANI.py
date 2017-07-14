@@ -16,12 +16,6 @@ tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
     featurizer='BPSymmetryFunction')
 train_dataset, valid_dataset, test_dataset = datasets
 
-# Fit models
-metric = [
-    dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
-    dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
-]
-
 # Batch size of models
 max_atoms = 23
 n_hidden = 40
@@ -29,11 +23,27 @@ n_embedding = 0
 batch_size = 16
 atom_number_cases = [1, 6, 7, 8, 16]
 
+ANItransformer = dc.trans.ANITransformer(max_atoms=max_atoms,
+                                         atom_cases=atom_number_cases)
+train_dataset = ANItransformer.transform(train_dataset)
+valid_dataset = ANItransformer.transform(valid_dataset)
+test_dataset = ANItransformer.transform(test_dataset)
+
+# The first column is atom numbers
+n_feat = ANItransformer.get_num_feats() - 1
+
+# Fit models
+metric = [
+    dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
+    dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+]
+
+
 model = dc.models.ANIRegression(
     len(tasks),
     max_atoms,
+    n_feat=n_feat,
     n_hidden=n_hidden,
-    n_embedding=n_embedding,
     atom_number_cases=atom_number_cases,
     batch_size=batch_size,
     learning_rate=0.001,
@@ -41,7 +51,7 @@ model = dc.models.ANIRegression(
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=20, checkpoint_interval=10)
+model.fit(train_dataset, nb_epoch=100, checkpoint_interval=100)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)

@@ -115,12 +115,12 @@ class BPSymmetryFunctionRegression(TensorGraph):
 
 class ANIRegression(TensorGraph):
 
-  def __init__(self, 
-               n_tasks, 
-               max_atoms, 
-               n_hidden=40, 
-               n_embedding=10, 
-               atom_number_cases=[1, 6, 7, 8],
+  def __init__(self,
+               n_tasks,
+               max_atoms,
+               n_feat=1120,
+               n_hidden=40,
+               atom_number_cases=[1, 6, 7, 8, 16],
                **kwargs):
     """
     Parameters
@@ -135,7 +135,7 @@ class ANIRegression(TensorGraph):
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
     self.n_hidden = n_hidden
-    self.n_embedding = n_embedding
+    self.n_feat = n_feat
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
     self.build_graph()
@@ -143,51 +143,22 @@ class ANIRegression(TensorGraph):
   def build_graph(self):
     self.atom_numbers = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
     self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
-    self.atom_coordinates = Feature(shape=(None, self.max_atoms, 3))
-
-    distance_matrix = DistanceMatrix(
-        self.max_atoms, in_layers=[self.atom_coordinates, self.atom_flags])
-    distance_cutoff_radial = DistanceCutoff(
-        self.max_atoms,
-        cutoff=4.6 / 0.52917721092,
-        in_layers=[distance_matrix, self.atom_flags])
-    distance_cutoff_angular = DistanceCutoff(
-        self.max_atoms,
-        cutoff=3.1 / 0.52917721092,
-        in_layers=[distance_matrix, self.atom_flags])
-    radial_symmetry = RadialSymmetry(
-        self.max_atoms,
-        atomic_number_differentiated=True,
-        atom_numbers=self.atom_number_cases,
-        in_layers=[distance_cutoff_radial, distance_matrix, self.atom_numbers])
-    angular_symmetry = AngularSymmetryMod(
-        self.max_atoms,
-        atomic_number_differentiated=True,
-        atom_numbers=self.atom_number_cases,
-        in_layers=[distance_cutoff_angular, distance_matrix, self.atom_coordinates, self.atom_numbers])
-    atom_embedding = DTNNEmbedding(
-        n_embedding=0, in_layers=[self.atom_numbers])
-
-    feature_merge = BPFeatureMerge(
-        self.max_atoms,
-        in_layers=[
-            atom_embedding, radial_symmetry, angular_symmetry, self.atom_flags
-        ])
+    self.atom_feats = Feature(shape=(None, self.max_atoms, self.n_feat))
 
     Hidden = AtomicDifferentiatedDense(
         self.max_atoms,
         self.n_hidden,
         self.atom_number_cases,
         activation='tanh',
-        in_layers=[feature_merge, self.atom_numbers])
-    
+        in_layers=[self.atom_feats, self.atom_numbers])
+
     Hidden2 = AtomicDifferentiatedDense(
         self.max_atoms,
         self.n_hidden,
         self.atom_number_cases,
         activation='tanh',
         in_layers=[Hidden, self.atom_numbers])
-    
+
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
@@ -212,6 +183,7 @@ class ANIRegression(TensorGraph):
                         predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
+      print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -228,5 +200,5 @@ class ANIRegression(TensorGraph):
         feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
             np.stack([flags]*self.max_atoms, axis=1)
         feed_dict[self.atom_numbers] = np.array(X_b[:, :, 0], dtype=int)
-        feed_dict[self.atom_coordinates] = np.array(X_b[:, :, 1:], dtype=float)
+        feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
         yield feed_dict
