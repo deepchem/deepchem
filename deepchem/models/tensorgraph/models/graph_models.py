@@ -117,7 +117,8 @@ class WeaveTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
-      print('Starting epoch %i' % epoch)
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -266,7 +267,8 @@ class DTNNTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.DTNNGraphTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
-      print('Starting epoch %i' % epoch)
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -411,7 +413,8 @@ class DAGTensorGraph(TensorGraph):
         similar to deepchem.models.tf_new_models.graph_topology.DAGGraphTopology.batch_to_feed_dict
         """
     for epoch in range(epochs):
-      print('Starting epoch %i' % epoch)
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -543,7 +546,8 @@ class GraphConvTensorGraph(TensorGraph):
                         predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
-      print('Starting epoch %i' % epoch)
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
               self.batch_size, pad_batches=True, deterministic=True)):

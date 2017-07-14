@@ -94,6 +94,8 @@ class BPSymmetryFunctionRegression(TensorGraph):
                         predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,
@@ -118,8 +120,8 @@ class ANIRegression(TensorGraph):
   def __init__(self,
                n_tasks,
                max_atoms,
-               n_feat=1120,
-               n_hidden=40,
+               n_feat,
+               layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
                **kwargs):
     """
@@ -134,8 +136,8 @@ class ANIRegression(TensorGraph):
     """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
-    self.n_hidden = n_hidden
     self.n_feat = n_feat
+    self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
     self.build_graph()
@@ -144,26 +146,24 @@ class ANIRegression(TensorGraph):
     self.atom_numbers = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
     self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
     self.atom_feats = Feature(shape=(None, self.max_atoms, self.n_feat))
+    previous_layer = self.atom_feats
 
-    Hidden = AtomicDifferentiatedDense(
-        self.max_atoms,
-        self.n_hidden,
-        self.atom_number_cases,
-        activation='tanh',
-        in_layers=[self.atom_feats, self.atom_numbers])
-
-    Hidden2 = AtomicDifferentiatedDense(
-        self.max_atoms,
-        self.n_hidden,
-        self.atom_number_cases,
-        activation='tanh',
-        in_layers=[Hidden, self.atom_numbers])
+    Hiddens = []
+    for n_hidden in self.layer_structures:
+      Hidden = AtomicDifferentiatedDense(
+          self.max_atoms,
+          n_hidden,
+          self.atom_number_cases,
+          activation='tanh',
+          in_layers=[previous_layer, self.atom_numbers])
+      Hiddens.append(Hidden)
+      previous_layer = Hiddens[-1]
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       regression = Dense(
-          out_channels=1, activation_fn=None, in_layers=[Hidden2])
+          out_channels=1, activation_fn=None, in_layers=[Hiddens[-1]])
       output = BPGather(self.max_atoms, in_layers=[regression, self.atom_flags])
       self.add_output(output)
 
@@ -183,7 +183,8 @@ class ANIRegression(TensorGraph):
                         predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
-      print('Starting epoch %i' % epoch)
+      if not predict:
+        print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=True,

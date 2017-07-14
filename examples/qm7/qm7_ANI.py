@@ -18,9 +18,8 @@ train_dataset, valid_dataset, test_dataset = datasets
 
 # Batch size of models
 max_atoms = 23
-n_hidden = 40
-n_embedding = 0
 batch_size = 16
+layer_structures = [128, 128, 64]
 atom_number_cases = [1, 6, 7, 8, 16]
 
 ANItransformer = dc.trans.ANITransformer(max_atoms=max_atoms,
@@ -28,8 +27,6 @@ ANItransformer = dc.trans.ANITransformer(max_atoms=max_atoms,
 train_dataset = ANItransformer.transform(train_dataset)
 valid_dataset = ANItransformer.transform(valid_dataset)
 test_dataset = ANItransformer.transform(test_dataset)
-
-# The first column is atom numbers
 n_feat = ANItransformer.get_num_feats() - 1
 
 # Fit models
@@ -42,8 +39,8 @@ metric = [
 model = dc.models.ANIRegression(
     len(tasks),
     max_atoms,
-    n_feat=n_feat,
-    n_hidden=n_hidden,
+    n_feat,
+    layer_structures=layer_structures,
     atom_number_cases=atom_number_cases,
     batch_size=batch_size,
     learning_rate=0.001,
@@ -51,7 +48,7 @@ model = dc.models.ANIRegression(
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=100, checkpoint_interval=100)
+model.fit(train_dataset, nb_epoch=3000, checkpoint_interval=100)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
