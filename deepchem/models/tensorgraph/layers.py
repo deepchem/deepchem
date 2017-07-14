@@ -27,6 +27,9 @@ class Layer(object):
     self.in_layers = in_layers
     self.op_type = "gpu"
     self.variable_scope = ''
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -395,15 +398,34 @@ class GRU(Layer):
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
     gru_cell = tf.contrib.rnn.GRUCell(self.n_hidden)
-    initial_gru_state = gru_cell.zero_state(self.batch_size, tf.float32)
-    out_tensor, rnn_states = tf.nn.dynamic_rnn(
-        gru_cell,
-        parent_tensor,
-        initial_state=initial_gru_state,
-        scope=self.name)
+    zero_state = gru_cell.zero_state(self.batch_size, tf.float32)
     if set_tensors:
+      initial_state = tf.placeholder(tf.float32, zero_state.get_shape())
+    else:
+      initial_state = zero_state
+    out_tensor, final_state = tf.nn.dynamic_rnn(
+        gru_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if set_tensors:
+      self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
+      self.rnn_initial_states.append(initial_state)
+      self.rnn_final_states.append(final_state)
+      self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
     return out_tensor
+
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
 
 
 class TimeSeriesDense(Layer):
@@ -745,6 +767,7 @@ class Conv2D(Layer):
                stride=1,
                padding='SAME',
                activation_fn=tf.nn.relu,
+               normalizer_fn=None,
                scope_name=None,
                **kwargs):
     """Create a Conv2D layer.
@@ -765,12 +788,15 @@ class Conv2D(Layer):
       the padding method to use, either 'SAME' or 'VALID'
     activation_fn: object
       the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
     self.stride = stride
     self.padding = padding
     self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
     super(Conv2D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -786,7 +812,7 @@ class Conv2D(Layer):
         stride=self.stride,
         padding=self.padding,
         activation_fn=self.activation_fn,
-        normalizer_fn=tf.contrib.layers.batch_norm,
+        normalizer_fn=self.normalizer_fn,
         scope=self.scope_name)
     out_tensor = out_tensor
     if set_tensors:
@@ -1369,8 +1395,8 @@ class NeighborList(Layer):
     # List of length N_atoms each of shape (M_nbrs)
     padded_dists = [
         tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
-        for (atom_coord, padded_nbr_coord
-            ) in zip(atom_coords, padded_nbr_coords)
+        for (atom_coord,
+             padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
     ]
 
     padded_closest_nbrs = [
@@ -1381,8 +1407,8 @@ class NeighborList(Layer):
     # N_atoms elts of size (M_nbrs,) each
     padded_neighbor_list = [
         tf.gather(padded_atom_nbrs, padded_closest_nbr)
-        for (padded_atom_nbrs, padded_closest_nbr
-            ) in zip(padded_nbrs, padded_closest_nbrs)
+        for (padded_atom_nbrs,
+             padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
     ]
 
     neighbor_list = tf.stack(padded_neighbor_list)

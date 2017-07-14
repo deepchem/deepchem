@@ -63,7 +63,7 @@ def add_hydrogens_to_mol(mol):
     return Chem.MolFromPDBBlock(
         hydrogenated_io.read(), sanitize=False, removeHs=False)
   except ValueError as e:
-    logging.warning("Unable to add hydrogens", e)
+    logging.warning("Unable to add hydrogens %s", e)
     raise MoleculeLoadException(e)
   finally:
     try:

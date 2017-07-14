@@ -74,13 +74,13 @@ class TestReload(unittest.TestCase):
     dataset_file = os.path.join(current_dir,
                                 "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time without reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(dataset_file,
-                                                                reload)
+    (len_train, len_valid, len_test) = self._run_muv_experiment(
+        dataset_file, reload)
 
     print("Running experiment for second time with reload.")
     reload = True
-    (len_reload_train, len_reload_valid, len_reload_test) = (
-        self._run_muv_experiment(dataset_file, reload))
+    (len_reload_train, len_reload_valid,
+     len_reload_test) = (self._run_muv_experiment(dataset_file, reload))
     assert len_train == len_reload_train
     assert len_valid == len_reload_valid
     assert len_test == len_reload_valid
@@ -92,12 +92,12 @@ class TestReload(unittest.TestCase):
     dataset_file = os.path.join(current_dir,
                                 "../../../datasets/mini_muv.csv.gz")
     print("Running experiment for first time with reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(dataset_file,
-                                                                reload)
+    (len_train, len_valid, len_test) = self._run_muv_experiment(
+        dataset_file, reload)
 
     print("Running experiment for second time with reload.")
-    (len_reload_train, len_reload_valid, len_reload_test) = (
-        self._run_muv_experiment(dataset_file, reload))
+    (len_reload_train, len_reload_valid,
+     len_reload_test) = (self._run_muv_experiment(dataset_file, reload))
     assert len_train == len_reload_train
     assert len_valid == len_reload_valid
     assert len_test == len_reload_valid

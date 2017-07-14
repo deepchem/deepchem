@@ -84,8 +84,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   elif feat == "coord":
     neighbor_cutoff = 4
     max_num_neighbors = 10
-    featurizer = dc.feat.NeighborListComplexAtomicCoordinates(max_num_neighbors,
-                                                              neighbor_cutoff)
+    featurizer = dc.feat.NeighborListComplexAtomicCoordinates(
+        max_num_neighbors, neighbor_cutoff)
   elif feat == 'atomic_conv':
     dataset = compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids)
     return dataset, tasks
@@ -161,19 +161,16 @@ def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
 
 
 def compute_single_pdbbind_feature(x):
-  ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
-  print("Processing complex %d, %s" % (ind, str(pdb_code)))
-  pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
   try:
+    ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
+    print("Processing complex %d, %s" % (ind, str(pdb_code)))
+    pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
     computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
                                                 pdb_code)
-  except MoleculeLoadException as e:
-    logging.warning("Unable to compute features for %s" % x)
-    return None
+    return ind, computed_feature
   except Exception as e:
-    logging.warning("Unable to compute features for %s" % x)
+    logging.warning("Unable to compute features for %s" % str(x))
     return None
-  return ind, computed_feature
 
 
 def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
@@ -185,8 +182,7 @@ def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):
   return features
 
 
-def load_pdbbind_grid(split="index", featurizer="atomic_conv",
-                      subset="refined"):
+def load_pdbbind_grid(split="index", featurizer="grid", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind(feat=featurizer, subset=subset)
   dataset.w

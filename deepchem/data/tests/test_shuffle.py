@@ -42,7 +42,7 @@ class TestShuffle(unittest.TestCase):
   #  dataset.shuffle(iterations=5)
   #  X_new, y_new, w_new, new_ids = (dataset.X, dataset.y, dataset.w,
   #                                  dataset.ids)
-  #  
+  #
   #  assert len(dataset) == orig_len
   #  # The shuffling should have switched up the ordering
   #  assert not np.array_equal(orig_ids, new_ids)

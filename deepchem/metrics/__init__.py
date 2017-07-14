@@ -111,13 +111,14 @@ def kappa_score(y_true, y_pred):
   assert len(y_true) == len(y_pred), 'Number of examples does not match.'
   yt = np.asarray(y_true, dtype=int)
   yp = np.asarray(y_pred, dtype=int)
-  assert np.array_equal(np.unique(yt), [0, 1]), (
-      'Class labels must be binary: %s' % np.unique(yt))
+  assert np.array_equal(
+      np.unique(yt), [0,
+                      1]), ('Class labels must be binary: %s' % np.unique(yt))
   observed_agreement = np.true_divide(
       np.count_nonzero(np.equal(yt, yp)), len(yt))
   expected_agreement = np.true_divide(
-      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) + np.count_nonzero(
-          yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
+      np.count_nonzero(yt == 1) * np.count_nonzero(yp == 1) +
+      np.count_nonzero(yt == 0) * np.count_nonzero(yp == 0), len(yt)**2)
   kappa = np.true_divide(observed_agreement - expected_agreement,
                          1.0 - expected_agreement)
   return kappa

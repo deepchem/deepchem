@@ -148,7 +148,8 @@ class WeaveTensorGraph(TensorGraph):
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
               np.transpose(
-                  np.array([C1.flatten() + start, C0.flatten() + start])))
+                  np.array([C1.flatten() + start,
+                            C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
@@ -565,3 +566,60 @@ class GraphConvTensorGraph(TensorGraph):
         for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
+
+  def predict_proba_on_generator(self, generator, transformers=[]):
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      with tf.Session() as sess:
+        saver = tf.train.Saver()
+        saver.restore(sess, self.last_checkpoint)
+        out_tensors = [x.out_tensor for x in self.outputs]
+        results = []
+        for feed_dict in generator:
+          feed_dict = {
+              self.layers[k.name].out_tensor: v
+              for k, v in six.iteritems(feed_dict)
+          }
+          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
+          if len(result.shape) == 3:
+            result = np.transpose(result, axes=[1, 0, 2])
+          if len(transformers) > 0:
+            result = undo_transforms(result, transformers)
+          results.append(result)
+        return np.concatenate(results, axis=0)
+
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+    if not self.built:
+      self.build()
+    return self.evaluate_generator(
+        self.default_generator(dataset),
+        metrics,
+        labels=self.my_labels,
+        weights=[self.my_task_weights])
+
+  def predict_on_smiles(self, smiles, transformers):
+    max_index = len(smiles)
+    num_batches = max_index // self.batch_size
+
+    y_ = []
+    for i in range(num_batches):
+      smiles_batch = smiles[i * self.batch_size:(i + 1) * self.batch_size]
+      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+    smiles_batch = smiles[num_batches * self.batch_size:max_index]
+    y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+
+    return np.concatenate(y_, axis=1)
+
+  def predict_on_smiles_batch(self, smiles, transformers=[]):
+    featurizer = ConvMolFeaturizer()
+    convmols = featurize_smiles_np(smiles, featurizer)
+
+    n_smiles = convmols.shape[0]
+    n_tasks = len(self.outputs)
+
+    dataset = NumpyDataset(X=convmols, y=None, n_tasks=n_tasks)
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    y_ = self.predict_on_generator(generator, transformers)
+
+    return y_.reshape(-1, n_tasks)[:n_smiles]
