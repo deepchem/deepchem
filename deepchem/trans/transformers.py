@@ -937,6 +937,7 @@ class ANITransformer(Transformer):
                radial_length=32,
                angular_length=8,
                atom_cases=[1, 6, 7, 8, 16],
+               atomic_number_differentiated=True,
                coordinates_in_bohr=True,
                transform_X=True,
                transform_y=False,
@@ -950,6 +951,7 @@ class ANITransformer(Transformer):
     self.radial_length = radial_length
     self.angular_length = angular_length
     self.atom_cases = atom_cases
+    self.atomic_number_differentiated = atomic_number_differentiated
     self.coordinates_in_bohr = coordinates_in_bohr
     self.transform_X = transform_X
     self.transform_y = transform_y
@@ -1039,13 +1041,16 @@ class ANITransformer(Transformer):
     ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
 
     out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
-    out_tensors = []
-    for atom_type in self.atom_cases:
-      selected_atoms = tf.expand_dims(
-          tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
-          axis=3)
-      out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
-    return tf.concat(out_tensors, axis=2)
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for atom_type in self.atom_cases:
+        selected_atoms = tf.expand_dims(
+            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+            axis=3)
+        out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out, axis=2)
 
 
   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
@@ -1087,17 +1092,20 @@ class ANITransformer(Transformer):
 
     out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
         tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik
-
-    out_tensors = []
-    for id_j, atom_type_j in enumerate(self.atom_cases):
-      for atom_type_k in self.atom_cases[id_j:]:
-        selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
-                         tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
-        selected_atoms = tf.expand_dims(
-              tf.expand_dims(selected_atoms, axis=1), axis=4)
-        out_tensors.append(
-              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
-    return tf.concat(out_tensors, axis=2)
+    
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for id_j, atom_type_j in enumerate(self.atom_cases):
+        for atom_type_k in self.atom_cases[id_j:]:
+          selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
+                           tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
+          selected_atoms = tf.expand_dims(
+                tf.expand_dims(selected_atoms, axis=1), axis=4)
+          out_tensors.append(
+                tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out_tensor, axis=(2, 3))
 
   def get_num_feats(self):
     n_feat = self.outputs.get_shape().as_list()[-1]

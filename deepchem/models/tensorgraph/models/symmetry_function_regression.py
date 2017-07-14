@@ -19,7 +19,7 @@ from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
 
 class BPSymmetryFunctionRegression(TensorGraph):
 
-  def __init__(self, n_tasks, max_atoms, n_hidden=40, n_embedding=10, **kwargs):
+  def __init__(self, n_tasks, max_atoms, n_feat=96, layer_structures=[128, 64], **kwargs):
     """
     Parameters
     ----------
@@ -32,49 +32,30 @@ class BPSymmetryFunctionRegression(TensorGraph):
     """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
-    self.n_hidden = n_hidden
-    self.n_embedding = n_embedding
+    self.n_feat = n_feat
+    self.layer_structures = layer_structures
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
-    self.atom_numbers = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
     self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
-    self.atom_coordinates = Feature(shape=(None, self.max_atoms, 3))
+    self.atom_feats = Feature(shape=(None, self.max_atoms, self.n_feat))
+    previous_layer = self.atom_feats
 
-    distance_matrix = DistanceMatrix(
-        self.max_atoms, in_layers=[self.atom_coordinates, self.atom_flags])
-    distance_cutoff = DistanceCutoff(
-        self.max_atoms,
-        cutoff=6 / 0.52917721092,
-        in_layers=[distance_matrix, self.atom_flags])
-    radial_symmetry = RadialSymmetry(
-        self.max_atoms, in_layers=[distance_cutoff, distance_matrix])
-    angular_symmetry = AngularSymmetry(
-        self.max_atoms,
-        in_layers=[distance_cutoff, distance_matrix, self.atom_coordinates])
-    atom_embedding = DTNNEmbedding(
-        n_embedding=self.n_embedding, in_layers=[self.atom_numbers])
+    Hiddens = []
+    for n_hidden in self.layer_structures:
+      Hidden = Dense(
+          out_channels=n_hidden,
+          activation_fn=tf.nn.tanh,
+          in_layers=[previous_layer])
+      Hiddens.append(Hidden)
+      previous_layer = Hiddens[-1]
 
-    feature_merge = BPFeatureMerge(
-        self.max_atoms,
-        in_layers=[
-            atom_embedding, radial_symmetry, angular_symmetry, self.atom_flags
-        ])
-
-    Hidden = Dense(
-        out_channels=self.n_hidden,
-        activation_fn=tf.nn.tanh,
-        in_layers=[feature_merge])
-    Hidden2 = Dense(
-        out_channels=self.n_hidden,
-        activation_fn=tf.nn.tanh,
-        in_layers=[Hidden])
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       regression = Dense(
-          out_channels=1, activation_fn=None, in_layers=[Hidden2])
+          out_channels=1, activation_fn=None, in_layers=[Hiddens[-1]])
       output = BPGather(self.max_atoms, in_layers=[regression, self.atom_flags])
       self.add_output(output)
 
@@ -87,6 +68,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
+
 
   def default_generator(self,
                         dataset,
@@ -111,8 +93,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
         flags = np.sign(np.array(X_b[:, :, 0]))
         feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
             np.stack([flags]*self.max_atoms, axis=1)
-        feed_dict[self.atom_numbers] = np.array(X_b[:, :, 0], dtype=int)
-        feed_dict[self.atom_coordinates] = np.array(X_b[:, :, 1:], dtype=float)
+        feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
         yield feed_dict
 
 class ANIRegression(TensorGraph):
