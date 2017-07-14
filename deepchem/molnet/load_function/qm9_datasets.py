@@ -79,7 +79,8 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=11)
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(
+          task_number=11)
   }
   splitter = splitters[split]
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

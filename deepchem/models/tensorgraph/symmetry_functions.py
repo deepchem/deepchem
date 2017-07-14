@@ -117,7 +117,7 @@ class RadialSymmetry(Layer):
     Rs_init, ita_init = np.meshgrid(self.Rs_init, self.ita_init)
     self.Rs = tf.constant(Rs_init.flatten(), dtype=tf.float32)
     self.ita = tf.constant(ita_init.flatten(), dtype=tf.float32)
-    self.atom_number_embedding = tf.eye(max(self.atom_number_cases)+1)
+    self.atom_number_embedding = tf.eye(max(self.atom_number_cases) + 1)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
@@ -291,7 +291,7 @@ class AngularSymmetryMod(Layer):
     self.zeta = tf.constant(zeta_init.flatten(), dtype=tf.float32)
     self.Rs = tf.constant(Rs_init.flatten(), dtype=tf.float32)
     self.thetas = tf.constant(thetas_init.flatten(), dtype=tf.float32)
-    self.atom_number_embedding = tf.eye(max(self.atom_number_cases)+1)
+    self.atom_number_embedding = tf.eye(max(self.atom_number_cases) + 1)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Angular Symmetry Function """
@@ -420,14 +420,15 @@ class AtomicDifferentiatedDense(Layer):
     inputs = in_layers[0].out_tensor
     atom_numbers = in_layers[1].out_tensor
     in_channels = inputs.get_shape().as_list()[-1]
-    self.W = self.init([len(self.atom_number_cases), in_channels, self.out_channels])
+    self.W = self.init(
+        [len(self.atom_number_cases), in_channels, self.out_channels])
     self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
     outputs = []
     for i, atom_case in enumerate(self.atom_number_cases):
-      output = self.activation(tf.tensordot(inputs, self.W[i, :, :], [[2], [0]]) + self.b[i, :])
-      mask = 1 - tf.to_float(tf.cast(atom_numbers-atom_case, tf.bool))
-      output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms, self.out_channels))
+      output = self.activation(
+          tf.tensordot(inputs, self.W[i, :, :], [[2], [0]]) + self.b[i, :])
+      mask = 1 - tf.to_float(tf.cast(atom_numbers - atom_case, tf.bool))
+      output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
+                                                             self.out_channels))
       outputs.append(output)
     self.out_tensor = tf.add_n(outputs)
-
-

@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -19,8 +18,8 @@ max_atoms = 23
 batch_size = 16
 layer_structures = [128, 128, 64]
 
-ANItransformer = dc.trans.ANITransformer(max_atoms=max_atoms,
-                                         atomic_number_differentiated=False)
+ANItransformer = dc.trans.ANITransformer(
+    max_atoms=max_atoms, atomic_number_differentiated=False)
 train_dataset = ANItransformer.transform(train_dataset)
 valid_dataset = ANItransformer.transform(valid_dataset)
 test_dataset = ANItransformer.transform(test_dataset)

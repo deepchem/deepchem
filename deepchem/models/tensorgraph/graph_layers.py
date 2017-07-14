@@ -86,7 +86,7 @@ class WeaveLayer(Layer):
     n_hidden_XX: int, optional
       Number of units(convolution depths) in corresponding hidden layer
     update_pair: bool, optional
-      Whether to calculate for pair features, 
+      Whether to calculate for pair features,
       could be turned off for last layer
     init: str, optional
       Weight initialization for filters.
@@ -200,7 +200,7 @@ class WeaveLayer(Layer):
       P = self.activation(P)
     else:
       P = pair_features
-      
+
     out_tensor = [A, P]
     if set_tensors:
       self.variables = self.trainable_weights
@@ -296,7 +296,7 @@ class WeaveGather(Layer):
     if self.gaussian_expand:
       output_molecules = tf.matmul(output_molecules, self.W) + self.b
       output_molecules = self.activation(output_molecules)
-      
+
     out_tensor = output_molecules
     if set_tensors:
       self.variables = self.trainable_weights
@@ -470,8 +470,9 @@ class DTNNGather(Layer):
 
   def __init__(self,
                n_embedding=30,
-               n_outputs=1,
-               layer_sizes=[15],
+               n_outputs=100,
+               layer_sizes=[100],
+               output_activation=True,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
@@ -492,6 +493,7 @@ class DTNNGather(Layer):
     self.n_embedding = n_embedding
     self.n_outputs = n_outputs
     self.layer_sizes = layer_sizes
+    self.output_activation = output_activation
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 
@@ -530,6 +532,8 @@ class DTNNGather(Layer):
       output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
     output = tf.matmul(output, self.W_list[-1]) + self.b_list[-1]
+    if self.output_activation:
+      output = self.activation(output)
     output = tf.segment_sum(output, atom_membership)
     out_tensor = output
     if set_tensors:

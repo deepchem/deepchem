@@ -36,6 +36,7 @@ model = dc.models.DTNNTensorGraph(
     n_distance=n_distance,
     distance_min=distance_min,
     distance_max=distance_max,
+    output_activation=False,
     batch_size=batch_size,
     learning_rate=0.0001,
     use_queue=False,

@@ -163,7 +163,7 @@ class WeaveTensorGraph(TensorGraph):
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
-        feed_dict[self.pair_split] = pair_split
+        feed_dict[self.pair_split] = np.array(pair_split)
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
@@ -178,6 +178,7 @@ class DTNNTensorGraph(TensorGraph):
                n_distance=100,
                distance_min=-1,
                distance_max=18,
+               output_activation=True,
                **kwargs):
     """
         Parameters
@@ -207,6 +208,7 @@ class DTNNTensorGraph(TensorGraph):
     self.steps = np.array(
         [distance_min + i * self.step_size for i in range(n_distance)])
     self.steps = np.expand_dims(self.steps, 0)
+    self.output_activation = output_activation
     super(DTNNTensorGraph, self).__init__(**kwargs)
     assert self.mode == "regression"
     self.build_graph()
@@ -241,6 +243,7 @@ class DTNNTensorGraph(TensorGraph):
         n_embedding=self.n_embedding,
         layer_sizes=[self.n_hidden],
         n_outputs=self.n_tasks,
+        output_activation=self.output_activation,
         in_layers=[dtnn_layer2, self.atom_membership])
 
     costs = []
@@ -257,7 +260,6 @@ class DTNNTensorGraph(TensorGraph):
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
-
 
   def default_generator(self,
                         dataset,

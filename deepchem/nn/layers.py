@@ -740,8 +740,8 @@ class ResiLSTMEmbedding(Layer):
 
 def cos(x, y):
   denom = (
-      model_ops.sqrt(model_ops.sum(tf.square(x)) *
-                     model_ops.sum(tf.square(y))) + model_ops.epsilon())
+      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
+      + model_ops.epsilon())
   return model_ops.dot(x, tf.transpose(y)) / denom
 
 
@@ -975,8 +975,9 @@ class DTNNGather(Layer):
 
   def __init__(self,
                n_embedding=30,
-               n_outputs=1,
-               layer_sizes=[15],
+               n_outputs=100,
+               layer_sizes=[100],
+               output_activation=True,
                init='glorot_uniform',
                activation='tanh',
                **kwargs):
@@ -997,6 +998,7 @@ class DTNNGather(Layer):
     self.n_embedding = n_embedding
     self.layer_sizes = layer_sizes
     self.n_outputs = n_outputs
+    self.output_activation = output_activation
     self.init = initializations.get(init)  # Set weight initialization
     self.activation = activations.get(activation)  # Get activations
 
@@ -1040,6 +1042,8 @@ class DTNNGather(Layer):
       output = tf.matmul(output, W) + self.b_list[i]
       output = self.activation(output)
     output = tf.matmul(output, self.W_list[-1]) + self.b_list[-1]
+    if self.output_activation:
+      output = self.activation(output)
     output = tf.segment_sum(output, atom_membership)
     return output
 

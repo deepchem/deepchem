@@ -19,7 +19,12 @@ from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
 
 class BPSymmetryFunctionRegression(TensorGraph):
 
-  def __init__(self, n_tasks, max_atoms, n_feat=96, layer_structures=[128, 64], **kwargs):
+  def __init__(self,
+               n_tasks,
+               max_atoms,
+               n_feat=96,
+               layer_structures=[128, 64],
+               **kwargs):
     """
     Parameters
     ----------
@@ -69,7 +74,6 @@ class BPSymmetryFunctionRegression(TensorGraph):
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
 
-
   def default_generator(self,
                         dataset,
                         epochs=1,
@@ -95,6 +99,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
             np.stack([flags]*self.max_atoms, axis=1)
         feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
         yield feed_dict
+
 
 class ANIRegression(TensorGraph):
 
