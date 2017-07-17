@@ -933,8 +933,8 @@ class ANITransformer(Transformer):
 
   def __init__(self,
                max_atoms=23,
-               radial_cutoff=4.6,
-               angular_cutoff=3.1,
+               radial_cutoff=6.,
+               angular_cutoff=4.5,
                radial_length=32,
                angular_length=8,
                atom_cases=[1, 6, 7, 8, 16],
@@ -1041,7 +1041,7 @@ class ANITransformer(Transformer):
     d = tf.stack([d] * self.radial_length, axis=3)
 
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 1.25 / (Rs[1] - Rs[0])**2
+    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
     ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
 
@@ -1065,7 +1065,7 @@ class ANITransformer(Transformer):
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
     Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 1.25 / (Rs[1] - Rs[0])**2
+    ita = 3 / (Rs[1] - Rs[0])**2
     thetas = np.linspace(0., np.pi, self.angular_length)
     zeta = float(self.angular_length**2)
 
