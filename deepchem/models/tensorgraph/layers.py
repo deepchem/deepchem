@@ -141,17 +141,45 @@ def convert_to_layers(in_layers):
 
 
 class Conv1D(Layer):
+  """A 1D convolution on the input.
 
-  def __init__(self, width, out_channels, **kwargs):
+  This layer expects its input to be a three dimensional tensor of shape (batch size, width, # channels).
+  """
+
+  def __init__(self,
+               width,
+               out_channels,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               **kwargs):
+    """Create a Conv1D layer.
+
+    Parameters
+    ----------
+    width: int
+      the width of the convolutional kernel
+    out_channels: int
+      the number of outputs produced by the convolutional kernel
+    stride: int
+      the stride between applications of the convolutional kernel
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    """
     self.width = width
     self.out_channels = out_channels
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
     self.out_tensor = None
     super(Conv1D, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
-      raise ValueError("Only One Parent to conv1D over")
+      raise ValueError("Conv1D layer must have exactly one parent")
     parent = inputs[0]
     if len(parent.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
@@ -160,9 +188,9 @@ class Conv1D(Layer):
     f = tf.Variable(
         tf.random_normal([self.width, parent_channel_size, self.out_channels]))
     b = tf.Variable(tf.random_normal([self.out_channels]))
-    t = tf.nn.conv1d(parent, f, stride=1, padding="SAME")
+    t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
     t = tf.nn.bias_add(t, b)
-    out_tensor = tf.nn.relu(t)
+    out_tensor = self.activation_fn(t)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor

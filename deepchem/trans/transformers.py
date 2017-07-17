@@ -965,11 +965,11 @@ class ANITransformer(Transformer):
   def transform_array(self, X, y, w):
     if self.transform_X:
       n_samples = X.shape[0]
-      batches = np.linspace(0, n_samples, int(n_samples / 100)).astype(int)
+      batches = np.linspace(0, n_samples, int(n_samples / 100) + 1).astype(int)
       X_out = []
       sess = tf.Session(graph=self.compute_graph)
       num_transformed = 0
-      for i, start in enumerate(batches[:-1]):
+      for i, start in enumerate(batches):
         if start == batches[-1]:
           X_batch = X[start:]
         else:
@@ -978,6 +978,7 @@ class ANITransformer(Transformer):
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
+
       X_new = np.concatenate(X_out, axis=0)
       assert X_new.shape[0] == X.shape[0]
     return (X_new, y, w)
