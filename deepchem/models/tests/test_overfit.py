@@ -940,7 +940,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     np.random.seed(123)
     tf.set_random_seed(123)
 
-    # Load mini log-solubility dataset.
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
     dataset = scipy.io.loadmat(input_file)
     X = dataset['X']
@@ -983,7 +982,6 @@ class TestOverfit(test_util.TensorFlowTestCase):
     np.random.seed(123)
     tf.set_random_seed(123)
 
-    # Load mini log-solubility dataset.
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
     dataset = scipy.io.loadmat(input_file)
     X = dataset['X']
@@ -1011,6 +1009,105 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
 
     assert scores[regression_metric.name] > .9
+
+  def test_ANI_multitask_regression_overfit(self):
+    """Test ANI-1 regression overfits tiny data."""
+    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    dataset = scipy.io.loadmat(input_file)
+    X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
+    X = X[:, :13, :]
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, mode="regression")
+    n_tasks = y.shape[1]
+    batch_size = 10
+
+    transformers = [
+        dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset),
+        dc.trans.ANITransformer(
+            max_atoms=13,
+            atom_cases=[1, 6, 7, 8],
+            radial_cutoff=8.,
+            angular_cutoff=5.,
+            radial_length=8,
+            angular_length=4)
+    ]
+
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
+    n_feat = transformers[-1].get_num_feats() - 1
+    model = dc.models.ANIRegression(
+        n_tasks,
+        13,
+        n_feat,
+        atom_number_cases=[1, 6, 7, 8],
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=50)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric], transformers[0:1])
+
+    assert scores[regression_metric.name] > .8
+
+  def test_BP_symmetry_function_overfit(self):
+    """Test ANI-1 regression overfits tiny data."""
+    input_file = os.path.join(self.current_dir, "example_DTNN.mat")
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    dataset = scipy.io.loadmat(input_file)
+    X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
+    X = X[:, :13, :]
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids=None)
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, mode="regression")
+    n_tasks = y.shape[1]
+    batch_size = 10
+
+    transformers = [
+        dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset),
+        dc.trans.ANITransformer(
+            max_atoms=13,
+            atom_cases=[1, 6, 7, 8],
+            atomic_number_differentiated=False,
+            radial_cutoff=8.,
+            angular_cutoff=5.,
+            radial_length=8,
+            angular_length=4)
+    ]
+
+    for transformer in transformers:
+      dataset = transformer.transform(dataset)
+
+    n_feat = transformers[-1].get_num_feats() - 1
+    model = dc.models.ANIRegression(
+        n_tasks,
+        13,
+        n_feat,
+        atom_number_cases=[1, 6, 7, 8],
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=50)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric], transformers[0:1])
+
+    assert scores[regression_metric.name] > .8
 
   def test_DAG_singletask_regression_overfit(self):
     """Test DAG regressor multitask overfits tiny data."""

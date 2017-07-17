@@ -42,6 +42,19 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     y = dataset['T']
     w = np.ones_like(y)
     dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
+  elif featurizer == 'BPSymmetryFunction':
+    dataset_file = os.path.join(data_dir, "qm7.mat")
+
+    if not os.path.exists(dataset_file):
+      os.system(
+          'wget -P ' + data_dir +
+          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+      )
+    dataset = scipy.io.loadmat(dataset_file)
+    X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
+    y = dataset['T']
+    w = np.ones_like(y)
+    dataset = deepchem.data.DiskDataset.from_numpy(X, y, w, ids=None)
   else:
     dataset_file = os.path.join(data_dir, "qm7.csv")
     if not os.path.exists(dataset_file):
