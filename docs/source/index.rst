@@ -10,11 +10,9 @@ drug discovery straightforward and convenient.
 
 About Us
 --------
-DeepChem is developed by the Pande_ group at Stanford. DeepChem was
-originally created by `Bharath Ramsundar <https://rbharath.github.io>`_ and
-has grown through the contributions of a number of undergraduate, graduate, and
-postdoctoral researchers working with the Pande lab. Development and
-documentation live on Github_. 
+DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering). DeepChem was originally created by `Bharath Ramsundar <https://rbharath.github.io>`_ with encouragement and guidance from Vijay Pande.
+
+DeepChem started as a Pande group project at Stanford, and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
 
 
 Licensing and Commercial Uses
