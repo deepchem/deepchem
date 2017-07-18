@@ -7,12 +7,12 @@ from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-    GraphPool, GraphGather, WeightedError
+    GraphPool, GraphGather, WeightedError, Dropout
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
-
+from deepchem.data import NumpyDataset
 
 class WeaveTensorGraph(TensorGraph):
 
@@ -609,20 +609,22 @@ class GraphConvTensorGraph(TensorGraph):
     batch_norm2 = BatchNorm(in_layers=[gc2])
     gp2 = GraphPool(in_layers=[batch_norm2, self.degree_slice, self.membership]
                     + self.deg_adjs)
-    dense = Dense(out_channels=128, activation_fn=None, in_layers=[gp2])
+    dense = Dense(out_channels=128, activation_fn=tf.nn.relu, in_layers=[gp2])
     batch_norm3 = BatchNorm(in_layers=[dense])
-    gg1 = GraphGather(
+    readout = GraphGather(
         batch_size=self.batch_size,
         activation_fn=tf.nn.tanh,
         in_layers=[batch_norm3, self.degree_slice, self.membership] +
         self.deg_adjs)
+
+    readout = Dropout(in_layers=[readout], dropout_prob=0.2)
 
     costs = []
     self.my_labels = []
     for task in range(self.n_tasks):
       if self.mode == 'classification':
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[gg1])
+            out_channels=2, activation_fn=None, in_layers=[readout])
 
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
@@ -632,7 +634,7 @@ class GraphConvTensorGraph(TensorGraph):
         cost = SoftMaxCrossEntropy(in_layers=[label, classification])
         costs.append(cost)
       if self.mode == 'regression':
-        regression = Dense(out_channels=1, activation_fn=None, in_layers=[gg1])
+        regression = Dense(out_channels=1, activation_fn=None, in_layers=[readout])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -697,6 +699,7 @@ class GraphConvTensorGraph(TensorGraph):
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
+          feed_dict[self._training_placeholder] = 1.0 ##
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
@@ -714,21 +717,39 @@ class GraphConvTensorGraph(TensorGraph):
         labels=self.my_labels,
         weights=[self.my_task_weights])
 
+  def bayesian_predict(self, dataset, transformers=[], n_passes=4):
+    max_index = dataset.shape[0]
+    num_batches = max_index // self.batch_size
+    
+    mus = []
+    sigmas = []
+    for i in range(num_batches + 1): # think about edge cases here
+      start = i * self.batch_size
+      end = min( (i+1)*self.batch_size, max_index)
+      batch = dataset[start:end]
+      mu, sigma = self.bayesian_predict_on_batch(batch, transformers=[], n_passes=n_passes)
+      mus.append(mu)
+      sigmas.append(sigma)
+    mu = np.concatenate(mus, axis=0)
+    sigma = np.concatenate(sigmas, axis=0)
+
+    return mu[:max_index], sigma[:max_index]
+  
   def predict_on_smiles(self, smiles, transformers):
     max_index = len(smiles)
     num_batches = max_index // self.batch_size
+    featurizer = ConvMolFeaturizer()
 
     y_ = []
     for i in range(num_batches):
       smiles_batch = smiles[i * self.batch_size:(i + 1) * self.batch_size]
-      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers, featurizer))
     smiles_batch = smiles[num_batches * self.batch_size:max_index]
     y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
 
-    return np.concatenate(y_, axis=1)
+    return np.concatenate(y_, axis=1) # wrong axis?
 
   def predict_on_smiles_batch(self, smiles, transformers=[]):
-    featurizer = ConvMolFeaturizer()
     convmols = featurize_smiles_np(smiles, featurizer)
 
     n_smiles = convmols.shape[0]

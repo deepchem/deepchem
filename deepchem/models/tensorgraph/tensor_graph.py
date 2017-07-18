@@ -278,6 +278,24 @@ class TensorGraph(Model):
           results.append(result)
         return np.concatenate(results, axis=0)
 
+  def bayesian_predict_on_batch(self, X, sess=None, transformers=[], n_passes=4):
+    """
+    Returns:
+      mu: SHAPE
+      sigma: SHAPE
+    """
+    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
+    y_ = []
+    for i in range(n_passes):
+      generator = self.default_generator(dataset, predict=True, pad_batches=True)
+      y_.append(self.predict_on_generator(generator, transformers))
+
+    y_ = np.concatenate(y_, axis=2)
+    mu = np.mean(y_, axis=2)
+    sigma = np.std(y_, axis=2)
+    
+    return mu, sigma
+     
   def predict_on_batch(self, X, sess=None, transformers=[]):
     """Generates output predictions for the input samples,
       processing the samples in a batched way.
@@ -290,6 +308,7 @@ class TensorGraph(Model):
     # Returns
         A Numpy array of predictions.
     """
+    print('inside tensorgraph predict_on_batch')
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
     return self.predict_on_generator(generator, transformers)
