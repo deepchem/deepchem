@@ -933,8 +933,8 @@ class ANITransformer(Transformer):
 
   def __init__(self,
                max_atoms=23,
-               radial_cutoff=6.,
-               angular_cutoff=4.5,
+               radial_cutoff=4.6,
+               angular_cutoff=3.1,
                radial_length=32,
                angular_length=8,
                atom_cases=[1, 6, 7, 8, 16],
@@ -1038,13 +1038,14 @@ class ANITransformer(Transformer):
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    d_cutoff = tf.stack([d_cutoff] * self.radial_length, axis=3)
-    d = tf.stack([d] * self.radial_length, axis=3)
-
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
     ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
     ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+    length = ita.get_shape().as_list()[-1]
+
+    d_cutoff = tf.stack([d_cutoff] * length, axis=3)
+    d = tf.stack([d] * length, axis=3)
 
     out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
     if self.atomic_number_differentiated:
@@ -1097,7 +1098,7 @@ class ANITransformer(Transformer):
     theta = tf.stack([theta] * length, axis=4)
 
     out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik
+        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []

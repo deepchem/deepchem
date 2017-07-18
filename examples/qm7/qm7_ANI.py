@@ -18,7 +18,7 @@ train_dataset, valid_dataset, test_dataset = datasets
 
 # Batch size of models
 max_atoms = 23
-batch_size = 16
+batch_size = 128
 layer_structures = [128, 128, 64]
 atom_number_cases = [1, 6, 7, 8, 16]
 
@@ -47,7 +47,7 @@ model = dc.models.ANIRegression(
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=3000, checkpoint_interval=100)
+model.fit(train_dataset, nb_epoch=300, checkpoint_interval=100)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
