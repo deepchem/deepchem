@@ -10,6 +10,7 @@ How to do a release
 ### Release
 - Tag current master with new release version
 - Look at github issues merged since last release
+- Bump Dockerfile Version
 
 ### Post-release
 - Update the docker images
