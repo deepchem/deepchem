@@ -16,11 +16,14 @@ How to do a release
 - Update the docker images
   - sudo docker build -f Dockerfile .
   - sudo docker image list
-  - nvidia-docker run -i -t <IMAGE ID> // smoke test everythin
 
-  - sudo docker tag <IMAGE ID> deepchemio/deepchem:latest
+  - // smoke test everything
+  - nvidia-docker run -i -t \<IMAGE ID\>
+  - cd examples; python benchmark.py -d tox21
+
+  - sudo docker tag \<IMAGE ID\> deepchemio/deepchem:latest
   - sudo docker push deepchemio/deepchem:latest
 
-  - sudo docker tag <IMAGE ID> deepchemio/deepchem:<version>
+  - sudo docker tag \<IMAGE ID\> deepchemio/deepchem:<version>
   - sudo docker push deepchemio/deepchem:<version>
 - Post on Gitter
