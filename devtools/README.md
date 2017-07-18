@@ -19,6 +19,7 @@ How to do a release
 
   - // smoke test everything
   - nvidia-docker run -i -t \<IMAGE ID\>
+  - python scripts/detect_devices.py // verify gpu is enabled
   - cd examples; python benchmark.py -d tox21
 
   - sudo docker tag \<IMAGE ID\> deepchemio/deepchem:latest
