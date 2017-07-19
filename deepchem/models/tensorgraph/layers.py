@@ -250,7 +250,7 @@ class BetaShare(Layer):
         """
         inputs = self._get_input_tensors(in_layers)
         subspaces = []
-        original_cols = int(input_tensor.get_shape()[-1].value)
+        original_cols = int(inputs[0].get_shape()[-1].value)
         for input_tensor in inputs:
             subspaces.append(tf.reshape(input_tensor, [-1]))
         n_betas = len(inputs)
