@@ -23,13 +23,8 @@ from sluice_data import load_sluice
 model_dir = "/tmp/graph_conv"
 
 
-def to_one_hot(y, is_first):
+def to_one_hot(y, n_classes=20):
     n_samples = np.shape(y)[0]
-    n_classes = 0
-    if is_first:
-        n_classes = 20
-    else:
-        n_classes = 20
     y_hot = np.zeros((n_samples, n_classes), dtype='float64')
     for row, value in enumerate(y):
         y_hot[row, value] = 1
@@ -99,8 +94,8 @@ def graph_conv_model(batch_size, tasks):
     task_weights = Weights(shape=(None, len(tasks)))
     loss = WeightedError(in_layers=[entropy, task_weights])
     loss = Add(in_layers=[loss, s_cost])
-    model.set_alphas([as1,as2])
-    model.set_betas([b1,b2])
+    model.set_alphas([as1, as2])
+    model.set_betas([b1, b2])
 
     model.set_loss(loss)
 
@@ -111,10 +106,8 @@ def graph_conv_model(batch_size, tasks):
                 d = {}
                 d[X1] = X_b
                 d[X2] = X_b
-                is_first = True
                 for index, label in enumerate(labels):
-                    d[label] = to_one_hot(y_b[:, index], is_first=is_first)
-                    is_first = False
+                    d[label] = to_one_hot(y_b[:, index])
                 d[task_weights] = w_b
                 yield d
     return model, feed_dict_generator, labels, task_weights
@@ -142,7 +135,8 @@ model, generator, labels, task_weights = graph_conv_model(
 print('labels')
 print(labels)
 
-model.fit_generator(generator(train_dataset, batch_size, epochs=100), checkpoint_interval=100)
+model.fit_generator(generator(train_dataset, batch_size,
+                              epochs=100), checkpoint_interval=100)
 
 print("Evaluating model")
 train_scores = model.evaluate_generator(
