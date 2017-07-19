@@ -140,6 +140,129 @@ def convert_to_layers(in_layers):
   return layers
 
 
+class AlphaShare(Layer):
+    """
+    Part of a sluice network. Adds alpha parameters to control
+    sharing between the main and auxillary tasks
+    """
+
+    def __init__(self, **kwargs):
+        super(AlphaShare, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)
+        # check that there isnt just one or zero inputs
+        if len(inputs) <= 1:
+            raise ValueError("AlphaShare must have more than one input")
+
+        # create subspaces
+        subspaces = []
+        original_cols = int(inputs[0].get_shape()[-1].value)
+        subspace_size = int(original_cols / 2)
+        for input_tensor in inputs:
+            subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
+            subspaces.append(tf.reshape(input_tensor[:, subspace_size:], [-1]))
+        n_alphas = len(inputs) * 2
+        subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
+
+        # create the alpha learnable parameters
+        alphas = tf.Variable(tf.random_normal(
+            [n_alphas, n_alphas]), name='alphas')
+
+        out_tensor = tf.matmul(alphas, subspaces)
+
+        # concatenate subspaces, reshape to size of original input, then stack
+        # such that out_tensor has shape (2,?,original_cols)
+        row = 0
+        lin_comb = []
+        for x in range(0, len(inputs)):
+            lin_comb.append(tf.reshape(
+                out_tensor[row:row + 2, ], [-1, original_cols]))
+            row += 2
+        out_tensor = tf.stack(lin_comb)
+
+        if set_tensors:
+            self.out_tensor = out_tensor
+        return out_tensor
+
+
+class LayerSplitter(Layer):
+    """
+    Crude way of having AlphaShare output two different output tensors
+    Number of LayerSplitter layers should equal the number of layers inputted into
+    the AlphaShare layer
+    """
+
+    def __init__(self, tower_num, **kwargs):
+        """
+        Parameters
+        ----------
+        tower_num: int
+            corresponds to the order that layers were inputted into
+            AlphaShare layer
+        """
+        self.tower_num = tower_num
+        super(LayerSplitter, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)[0]
+        self.out_tensor = inputs[self.tower_num, :]
+        return self.out_tensor
+
+
+class SluiceLoss(Layer):
+    """
+    Calculates the loss in a Sluice Network
+    """
+
+    def __init__(self, **kwargs):
+        super(SluiceLoss, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)
+        temp = []
+        subspaces = []
+        # creates subspaces the same way it was done in AlphaShare
+        for input_tensor in inputs:
+            subspace_size = int(input_tensor.get_shape()[-1].value / 2)
+            subspaces.append(input_tensor[:, :subspace_size])
+            subspaces.append(input_tensor[:, subspace_size:])
+            product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
+            # calculate squared Frobenius norm
+            temp.append(tf.reduce_sum(tf.pow(product, 2)))
+        out_tensor = tf.reduce_sum(temp)
+        self.out_tensor = out_tensor
+        return out_tensor
+
+
+class BetaShare(Layer):
+    """
+    Part of a sluice network. Adds beta params to control which layer
+    outputs are used for prediction
+    """
+
+    def __init__(self, **kwargs):
+        super(BetaShare, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        """
+        Size of input layers must all be the same
+        """
+        inputs = self._get_input_tensors(in_layers)
+        subspaces = []
+        original_cols = int(input_tensor.get_shape()[-1].value)
+        for input_tensor in inputs:
+            subspaces.append(tf.reshape(input_tensor, [-1]))
+        n_betas = len(inputs)
+        subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
+
+        betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+        out_tensor = tf.matmul(betas, subspaces)
+
+        self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
+        return out_tensor
+
+
 class Conv1D(Layer):
   """A 1D convolution on the input.
 
