@@ -142,7 +142,7 @@ model, generator, labels, task_weights = graph_conv_model(
 print('labels')
 print(labels)
 
-model.fit_generator(generator(train_dataset, batch_size, epochs=100))
+model.fit_generator(generator(train_dataset, batch_size, epochs=100), checkpoint_interval=100)
 
 print("Evaluating model")
 train_scores = model.evaluate_generator(
