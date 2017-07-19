@@ -26,8 +26,6 @@ def load_sluice():
     print(X[:20])
     temp_X = np.zeros((10000, 10))
     for row, value in enumerate(X):
-        print(row)
-        print(value)
         temp_X[row, X[row, 0]] = 1
 
     X = temp_X

@@ -180,7 +180,7 @@ class AlphaShare(Layer):
                 out_tensor[row:row + 2, ], [-1, original_cols]))
             row += 2
         out_tensor = tf.stack(lin_comb)
-
+        self.alphas = alphas
         if set_tensors:
             self.out_tensor = out_tensor
         return out_tensor
@@ -258,7 +258,7 @@ class BetaShare(Layer):
 
         betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
         out_tensor = tf.matmul(betas, subspaces)
-
+        self.betas = betas
         self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
         return out_tensor
 
