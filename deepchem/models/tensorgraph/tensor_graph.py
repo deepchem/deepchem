@@ -523,10 +523,13 @@ class TensorGraph(Model):
       self.tensor_objects['Optimizer'] = self.optimizer()
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = self._get_tf('Optimizer').minimize(
-          self.loss.out_tensor)
+          self.loss.out_tensor, global_step=self._get_tf('GlobalStep'))
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
+    elif obj == 'GlobalStep':
+      with self._get_tf("Graph").as_default():
+        self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):

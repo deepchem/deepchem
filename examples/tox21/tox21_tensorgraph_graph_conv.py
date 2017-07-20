@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 import numpy as np
 
+from models.tensorgraph import TFWrapper
+
 np.random.seed(123)
 import tensorflow as tf
 
@@ -32,6 +34,18 @@ batch_size = 50
 
 model = GraphConvTensorGraph(
     len(tox21_tasks), batch_size=batch_size, mode='classification')
+
+global_step = model._get_tf('GlobalStep')
+
+
+def optimizer_function():
+    starter_learning_rate = 0.1
+    learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+                                               100000, 0.96, staircase=True)
+    return tf.train.GradientDescentOptimizer(learning_rate)
+
+
+model.set_optimizer(TFWrapper(optimizer_function))
 
 model.fit(train_dataset, nb_epoch=10)
 
