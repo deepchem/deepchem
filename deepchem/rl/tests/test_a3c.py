@@ -1,10 +1,11 @@
 from flaky import flaky
 
 import deepchem as dc
-from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU
+from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense
 import numpy as np
 import tensorflow as tf
 import unittest
+from nose.plugins.attrib import attr
 
 
 class TestA3C(unittest.TestCase):
@@ -142,3 +143,87 @@ class TestA3C(unittest.TestCase):
     assert np.array_equal(prob1, prob5)
     assert np.array_equal(prob3, prob4)
     assert not np.array_equal(prob2, prob3)
+
+  @attr('slow')
+  def test_hindsight(self):
+    """Test Hindsight Experience Replay."""
+
+    # The environment is a plane in which the agent moves by steps until it reaches a randomly
+    # positioned goal.  No reward is given until it reaches the goal.  That makes it very hard
+    # to learn by standard methods, since it may take a very long time to receive any feedback
+    # at all.  Using hindsight makes it much easier.
+
+    class TestEnvironment(dc.rl.Environment):
+
+      def __init__(self):
+        super(TestEnvironment, self).__init__([(4,)], 4)
+        self.moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+      def reset(self):
+        self._state = [np.concatenate([[0, 0], np.random.randint(-50, 50, 2)])]
+        self._terminated = False
+        self.count = 0
+
+      def step(self, action):
+        new_state = self._state[0].copy()
+        new_state[:2] += self.moves[action]
+        self._state = [new_state]
+        self.count += 1
+        reward = 0
+        if np.array_equal(new_state[:2], new_state[2:]):
+          self._terminated = True
+          reward = 1
+        elif self.count == 1000:
+          self._terminated = True
+        return reward
+
+      def apply_hindsight(self, states, actions, goal):
+        new_states = []
+        rewards = []
+        goal_pos = goal[0][:2]
+        for state, action in zip(states, actions):
+          new_state = state[0].copy()
+          new_state[2:] = goal_pos
+          new_states.append([new_state])
+          pos_after_action = new_state[:2] + self.moves[action]
+          if np.array_equal(pos_after_action, goal_pos):
+            rewards.append(1)
+          else:
+            rewards.append(0)
+        return new_states, rewards
+
+    # A simple policy with two hidden layers.
+
+    class TestPolicy(dc.rl.Policy):
+
+      def create_layers(self, state, **kwargs):
+
+        dense1 = Dense(6, activation_fn=tf.nn.relu, in_layers=state)
+        dense2 = Dense(6, activation_fn=tf.nn.relu, in_layers=dense1)
+        output = Dense(
+            4,
+            activation_fn=tf.nn.softmax,
+            biases_initializer=None,
+            in_layers=dense2)
+        value = Dense(1, in_layers=dense2)
+        return {'action_prob': output, 'value': value}
+
+    # Optimize it.
+
+    env = TestEnvironment()
+    a3c = dc.rl.A3C(
+        env,
+        TestPolicy(),
+        use_hindsight=True,
+        entropy_weight=0.1,
+        optimizer=dc.models.tensorgraph.TFWrapper(
+            tf.train.AdamOptimizer, learning_rate=0.0005))
+    a3c.fit(2000000)
+
+    # Try running it a few times and see if it succeeds.
+
+    for i in range(5):
+      env.reset()
+      while not env.terminated:
+        env.step(a3c.select_action(env.state))
+      assert np.array_equal(env.state[0][:2], env.state[0][2:])
