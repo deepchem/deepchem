@@ -54,6 +54,26 @@ class A3C(object):
   Continuous Control Using Generalized Advantage Estimation" (https://arxiv.org/abs/1506.02438).
   This is a method of trading off bias and variance in the advantage estimate, which can sometimes
   improve the rate of convergance.  Use the advantage_lambda parameter to adjust the tradeoff.
+
+  This class supports Hindsight Experience Replay as described in Andrychowicz et al., "Hindsight
+  Experience Replay" (https://arxiv.org/abs/1707.01495).  This is a method that can enormously
+  accelerate learning when rewards are very rare.  It requires that the environment state contains
+  information about the goal the agent is trying to achieve.  Each time it generates a rollout, it
+  processes that rollout twice: once using the actual goal the agent was pursuing while generating
+  it, and again using the final state of that rollout as the goal.  This guarantees that half of
+  all rollouts processed will be ones that achieved their goals, and hence received a reward.
+
+  To use this feature, specify use_hindsight=True to the constructor.  The environment must have
+  a method defined as follows:
+
+  def apply_hindsight(self, states, actions, goal):
+    ...
+    return new_states, rewards
+
+  The method receives the list of states generated during the rollout, the action taken for each one,
+  and a new goal state.  It should generate a new list of states that are identical to the input ones,
+  except specifying the new goal.  It should return that list of states, and the rewards that would
+  have been received for taking the specified actions from those states.
   """
 
   def __init__(self,
@@ -65,7 +85,8 @@ class A3C(object):
                value_weight=1.0,
                entropy_weight=0.01,
                optimizer=None,
-               model_dir=None):
+               model_dir=None,
+               use_hindsight=False):
     """Create an object for optimizing a policy.
 
     Parameters
@@ -87,6 +108,8 @@ class A3C(object):
       a callable object that creates the optimizer to use.  If None, a default optimizer is used.
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
+    use_hindsight: bool
+      if True, use Hindsight Experience Replay
     """
     self._env = env
     self._policy = policy
@@ -95,6 +118,7 @@ class A3C(object):
     self.advantage_lambda = advantage_lambda
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
+    self.use_hindsight = use_hindsight
     if optimizer is None:
       self._optimizer = TFWrapper(
           tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
@@ -318,28 +342,22 @@ class _Worker(object):
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
-      session = self.a3c._session
       while step_count[0] < total_steps:
-        session.run(self.update_local_variables)
-        feed_dict = {}
-        for placeholder, value in zip(self.graph.rnn_initial_states,
-                                      self.rnn_states):
-          feed_dict[placeholder] = value
-        episode_states, episode_actions, episode_rewards, episode_advantages = self.create_rollout(
-        )
-        for f, s in zip(self.features, episode_states):
-          feed_dict[f.out_tensor] = s
-        feed_dict[self.rewards.out_tensor] = episode_rewards
-        feed_dict[self.actions.out_tensor] = episode_actions
-        feed_dict[self.advantages.out_tensor] = episode_advantages
-        session.run(self.train_op, feed_dict=feed_dict)
-        step_count[0] += len(episode_actions)
+        self.a3c._session.run(self.update_local_variables)
+        initial_rnn_states = self.rnn_states
+        states, actions, rewards, values = self.create_rollout()
+        self.process_rollout(states, actions, rewards, values,
+                             initial_rnn_states)
+        if self.a3c.use_hindsight:
+          self.process_rollout_with_hindsight(states, actions,
+                                              initial_rnn_states)
+        step_count[0] += len(actions)
 
   def create_rollout(self):
     """Generate a rollout."""
     n_actions = self.env.n_actions
     session = self.a3c._session
-    states = [[] for i in range(len(self.features))]
+    states = []
     actions = []
     rewards = []
     values = []
@@ -350,8 +368,7 @@ class _Worker(object):
       if self.env.terminated:
         break
       state = self.env.state
-      for j in range(len(state)):
-        states[j].append(state[j])
+      states.append(state)
       feed_dict = self.create_feed_dict(state)
       results = session.run(
           [self.action_prob.out_tensor, self.value.out_tensor] +
@@ -360,8 +377,7 @@ class _Worker(object):
       probabilities, value = results[:2]
       self.rnn_states = results[2:]
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
-      actions.append(np.zeros(n_actions))
-      actions[i][action] = 1.0
+      actions.append(action)
       values.append(float(value))
       rewards.append(self.env.step(action))
 
@@ -373,15 +389,22 @@ class _Worker(object):
           session.run(self.value.out_tensor, feed_dict))
     else:
       final_value = 0.0
+    values.append(final_value)
+    if self.env.terminated:
+      self.env.reset()
+      self.rnn_states = self.graph.rnn_zero_states
+    return states, actions, np.array(rewards), np.array(values)
 
-    # Compute the output arrays.
+  def process_rollout(self, states, actions, rewards, values,
+                      initial_rnn_states):
+    """Train the network based on a rollout."""
 
-    rewards_array = np.array(rewards)
-    values_array = np.array(values)
-    discounted_rewards = rewards_array.copy()
-    discounted_rewards[-1] += final_value
-    advantages = rewards_array - values_array + self.a3c.discount_factor * np.array(
-        values[1:] + [final_value])
+    # Compute the discounted rewards and advantages.
+
+    discounted_rewards = rewards.copy()
+    discounted_rewards[-1] += values[-1]
+    advantages = rewards - values[:-1] + self.a3c.discount_factor * np.array(
+        values[1:])
     for j in range(len(rewards) - 1, 0, -1):
       discounted_rewards[j -
                          1] += self.a3c.discount_factor * discounted_rewards[j]
@@ -389,10 +412,54 @@ class _Worker(object):
           j -
           1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[
               j]
-    if self.env.terminated:
-      self.env.reset()
-      self.rnn_states = self.graph.rnn_zero_states
-    return np.array(states), np.array(actions), discounted_rewards, advantages
+
+    # Convert the actions to one-hot.
+
+    n_actions = self.env.n_actions
+    actions_matrix = []
+    for action in actions:
+      a = np.zeros(n_actions)
+      a[action] = 1.0
+      actions_matrix.append(a)
+
+    # Rearrange the states into the proper set of arrays.
+
+    state_arrays = [[] for i in range(len(self.features))]
+    for state in states:
+      for j in range(len(state)):
+        state_arrays[j].append(state[j])
+
+    # Build the feed dict and apply gradients.
+
+    feed_dict = {}
+    for placeholder, value in zip(self.graph.rnn_initial_states,
+                                  initial_rnn_states):
+      feed_dict[placeholder] = value
+    for f, s in zip(self.features, state_arrays):
+      feed_dict[f.out_tensor] = s
+    feed_dict[self.rewards.out_tensor] = discounted_rewards
+    feed_dict[self.actions.out_tensor] = actions_matrix
+    feed_dict[self.advantages.out_tensor] = advantages
+    self.a3c._session.run(self.train_op, feed_dict=feed_dict)
+
+  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states):
+    """Create a new rollout by applying hindsight to an existing one, then train the network."""
+    hindsight_states, rewards = self.env.apply_hindsight(
+        states, actions, states[-1])
+    rnn_states = initial_rnn_states
+    values = []
+    session = self.a3c._session
+    for state in hindsight_states:
+      feed_dict = self.create_feed_dict(state)
+      results = session.run(
+          [self.value.out_tensor] + self.graph.rnn_final_states,
+          feed_dict=feed_dict)
+      values.append(float(results[0]))
+      rnn_states = results[1:]
+    values.append(0.0)
+    self.process_rollout(hindsight_states, actions,
+                         np.array(rewards), np.array(values),
+                         initial_rnn_states)
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""
