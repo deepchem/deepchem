@@ -323,7 +323,7 @@ class NumpyDataset(Dataset):
       if batch_size is None:
         batch_size = n_samples
       interval_points = np.linspace(
-        0, n_samples, np.ceil(float(n_samples) / batch_size) + 1, dtype=int)
+          0, n_samples, np.ceil(float(n_samples) / batch_size) + 1, dtype=int)
       for j in range(len(interval_points) - 1):
         indices = range(interval_points[j], interval_points[j + 1])
         perm_indices = sample_perm[indices]
@@ -333,7 +333,7 @@ class NumpyDataset(Dataset):
         ids_batch = dataset._ids[perm_indices]
         if pad_batches:
           (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-            batch_size, X_batch, y_batch, w_batch, ids_batch)
+              batch_size, X_batch, y_batch, w_batch, ids_batch)
         yield (X_batch, y_batch, w_batch, ids_batch)
 
     return iterate(self, batch_size, deterministic, pad_batches)
@@ -403,6 +403,7 @@ class NumpyDataset(Dataset):
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
+
 class DiskDataset(Dataset):
   """
   A Dataset that is stored as a set of files on disk.
@@ -446,8 +447,8 @@ class DiskDataset(Dataset):
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
-        DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
-                                       ids))
+          DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
+                                         ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
     metadata_filename = os.path.join(data_dir, "metadata.joblib")
     save_to_disk((tasks, metadata_df), metadata_filename)
@@ -547,7 +548,7 @@ class DiskDataset(Dataset):
       yield (X_next, y_next, w_next, ids_next)
 
     resharded_dataset = DiskDataset.create_dataset(
-      generator(), data_dir=reshard_dir, tasks=self.tasks)
+        generator(), data_dir=reshard_dir, tasks=self.tasks)
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     self.metadata_df = resharded_dataset.metadata_df
@@ -560,7 +561,7 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_X = load_from_disk(
-      os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
+        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
   def get_shard_size(self):
@@ -568,7 +569,7 @@ class DiskDataset(Dataset):
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
     sample_y = load_from_disk(
-      os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['y']))
+        os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['y']))
     return len(sample_y)
 
   def _get_metadata_filename(self):
@@ -597,8 +598,8 @@ class DiskDataset(Dataset):
       for _, row in dataset.metadata_df.iterrows():
         X = np.array(load_from_disk(os.path.join(dataset.data_dir, row['X'])))
         ids = np.array(
-          load_from_disk(os.path.join(dataset.data_dir, row['ids'])),
-          dtype=object)
+            load_from_disk(os.path.join(dataset.data_dir, row['ids'])),
+            dtype=object)
         # These columns may be missing is the dataset is unlabelled.
         if row['y'] is not None:
           y = np.array(load_from_disk(os.path.join(dataset.data_dir, row['y'])))
@@ -648,10 +649,10 @@ class DiskDataset(Dataset):
         else:
           shard_batch_size = batch_size
         interval_points = np.linspace(
-          0,
-          n_samples,
-          np.ceil(float(n_samples) / shard_batch_size) + 1,
-          dtype=int)
+            0,
+            n_samples,
+            np.ceil(float(n_samples) / shard_batch_size) + 1,
+            dtype=int)
         for j in range(len(interval_points) - 1):
           indices = range(interval_points[j], interval_points[j + 1])
           perm_indices = sample_perm[indices]
@@ -670,7 +671,7 @@ class DiskDataset(Dataset):
           ids_batch = ids[perm_indices]
           if pad_batches:
             (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-              shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
           yield (X_batch, y_batch, w_batch, ids_batch)
 
     return iterate(self)
@@ -738,7 +739,7 @@ class DiskDataset(Dataset):
         yield (newx, newy, neww, ids)
 
     return DiskDataset.create_dataset(
-      generator(), data_dir=out_dir, tasks=tasks)
+        generator(), data_dir=out_dir, tasks=tasks)
 
   @staticmethod
   def from_numpy(X,
@@ -766,7 +767,7 @@ class DiskDataset(Dataset):
       tasks = np.arange(n_tasks)
     # raw_data = (X, y, w, ids)
     return DiskDataset.create_dataset(
-      [(X, y, w, ids)], data_dir=data_dir, tasks=tasks, verbose=verbose)
+        [(X, y, w, ids)], data_dir=data_dir, tasks=tasks, verbose=verbose)
 
   @staticmethod
   def merge(datasets, merge_dir=None):
@@ -801,7 +802,7 @@ class DiskDataset(Dataset):
         yield (X, y, w, ids)
 
     return DiskDataset.create_dataset(
-      generator(), data_dir=subset_dir, tasks=tasks)
+        generator(), data_dir=subset_dir, tasks=tasks)
 
   def sparse_shuffle(self):
     """Shuffling that exploits data sparsity to shuffle large datasets.
@@ -884,7 +885,7 @@ class DiskDataset(Dataset):
       w = None
 
     ids = np.array(
-      load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+        load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
     return (X, y, w, ids)
 
   def add_shard(self, X, y, w, ids):
@@ -894,8 +895,8 @@ class DiskDataset(Dataset):
     basename = "shard-%d" % shard_num
     tasks = self.get_task_names()
     metadata_rows.append(
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                     ids))
+        DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
+                                       ids))
     self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
 
@@ -923,7 +924,7 @@ class DiskDataset(Dataset):
     # Handle edge case with empty indices
     if not len(indices):
       return DiskDataset.create_dataset(
-        [], data_dir=select_dir, verbose=self.verbose)
+          [], data_dir=select_dir, verbose=self.verbose)
     indices = np.array(sorted(indices)).astype(int)
     tasks = self.get_task_names()
 
@@ -939,7 +940,7 @@ class DiskDataset(Dataset):
             break
         # Need to offset indices to fit within shard_size
         shard_inds = indices[indices_count:
-        indices_count + num_shard_elts] - count
+                             indices_count + num_shard_elts] - count
         X_sel = X[shard_inds]
         # Handle the case of datasets with y/w missing
         if y is not None:
@@ -960,7 +961,7 @@ class DiskDataset(Dataset):
           return
 
     return DiskDataset.create_dataset(
-      generator(), data_dir=select_dir, tasks=tasks, verbose=self.verbose)
+        generator(), data_dir=select_dir, tasks=tasks, verbose=self.verbose)
 
   @property
   def ids(self):
