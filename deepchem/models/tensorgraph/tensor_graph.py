@@ -437,6 +437,8 @@ class TensorGraph(Model):
       for node in self.topsort():
         node_layer = self.layers[node]
         out_tensors.append(node_layer.none_tensors())
+      optimizer = self.optimizer
+      self.optimizer = None
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
       self.built = False
@@ -456,6 +458,7 @@ class TensorGraph(Model):
         node_layer = self.layers[node]
         node_layer.set_tensors(out_tensors[index])
       self._training_placeholder = training_placeholder
+      self.optimizer = optimizer
       self.built = True
     self.tensor_objects = tensor_objects
     self.rnn_initial_states = rnn_initial_states
@@ -499,6 +502,9 @@ class TensorGraph(Model):
     with self._get_tf("Graph").as_default():
       return tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
+
+  def get_global_step(self):
+    return self._get_tf("GlobalStep")
 
   def _get_tf(self, obj):
     """
