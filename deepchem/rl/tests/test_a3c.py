@@ -95,11 +95,11 @@ class TestA3C(unittest.TestCase):
     class TestEnvironment(dc.rl.Environment):
 
       def __init__(self):
-        super(TestEnvironment, self).__init__([(10,)], 10)
-        self._state = [np.random.random(10)]
+        super(TestEnvironment, self).__init__((10,), 10)
+        self._state = np.random.random(10)
 
       def step(self, action):
-        self._state = [np.random.random(10)]
+        self._state = np.random.random(10)
         return 0.0
 
       def reset(self):
@@ -156,18 +156,18 @@ class TestA3C(unittest.TestCase):
     class TestEnvironment(dc.rl.Environment):
 
       def __init__(self):
-        super(TestEnvironment, self).__init__([(4,)], 4)
+        super(TestEnvironment, self).__init__((4,), 4)
         self.moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
       def reset(self):
-        self._state = [np.concatenate([[0, 0], np.random.randint(-50, 50, 2)])]
+        self._state = np.concatenate([[0, 0], np.random.randint(-50, 50, 2)])
         self._terminated = False
         self.count = 0
 
       def step(self, action):
-        new_state = self._state[0].copy()
+        new_state = self._state.copy()
         new_state[:2] += self.moves[action]
-        self._state = [new_state]
+        self._state = new_state
         self.count += 1
         reward = 0
         if np.array_equal(new_state[:2], new_state[2:]):
@@ -180,11 +180,11 @@ class TestA3C(unittest.TestCase):
       def apply_hindsight(self, states, actions, goal):
         new_states = []
         rewards = []
-        goal_pos = goal[0][:2]
+        goal_pos = goal[:2]
         for state, action in zip(states, actions):
-          new_state = state[0].copy()
+          new_state = state.copy()
           new_state[2:] = goal_pos
-          new_states.append([new_state])
+          new_states.append(new_state)
           pos_after_action = new_state[:2] + self.moves[action]
           if np.array_equal(pos_after_action, goal_pos):
             rewards.append(1)
@@ -215,7 +215,7 @@ class TestA3C(unittest.TestCase):
         env,
         TestPolicy(),
         use_hindsight=True,
-        entropy_weight=0.1,
+        entropy_weight=0.2,
         optimizer=dc.models.tensorgraph.TFWrapper(
             tf.train.AdamOptimizer, learning_rate=0.0005))
     a3c.fit(2000000)
@@ -226,4 +226,4 @@ class TestA3C(unittest.TestCase):
       env.reset()
       while not env.terminated:
         env.step(a3c.select_action(env.state))
-      assert np.array_equal(env.state[0][:2], env.state[0][2:])
+      assert np.array_equal(env.state[:2], env.state[2:])
