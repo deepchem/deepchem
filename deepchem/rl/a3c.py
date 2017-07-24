@@ -446,17 +446,18 @@ class _Worker(object):
     """Create a new rollout by applying hindsight to an existing one, then train the network."""
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
-    rnn_states = initial_rnn_states
-    values = []
-    session = self.a3c._session
+    state_arrays = [[] for i in range(len(self.features))]
     for state in hindsight_states:
-      feed_dict = self.create_feed_dict(state)
-      results = session.run(
-          [self.value.out_tensor] + self.graph.rnn_final_states,
-          feed_dict=feed_dict)
-      values.append(float(results[0]))
-      rnn_states = results[1:]
-    values.append(0.0)
+      for j in range(len(state)):
+        state_arrays[j].append(state[j])
+    feed_dict = {}
+    for placeholder, value in zip(self.graph.rnn_initial_states,
+                                  initial_rnn_states):
+      feed_dict[placeholder] = value
+    for f, s in zip(self.features, state_arrays):
+      feed_dict[f.out_tensor] = s
+    values = self.a3c._session.run(self.value.out_tensor, feed_dict=feed_dict)
+    values = np.append(values.flatten(), 0.0)
     self.process_rollout(hindsight_states, actions,
                          np.array(rewards), np.array(values),
                          initial_rnn_states)
