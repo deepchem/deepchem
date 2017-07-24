@@ -398,8 +398,17 @@ class NumpyDataset(Dataset):
   @staticmethod
   def from_DiskDataset(ds):
     """
-    :param ds: DiskDataset
-    :return: NumpyDataset with the same data
+
+    Parameters
+    ----------
+    ds : DiskDataset
+    DiskDataset to transorm to NumpyDataset
+
+    Returns
+    -------
+    NumpyDataset
+      Data of ds as NumpyDataset
+
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
 
@@ -939,8 +948,8 @@ class DiskDataset(Dataset):
           if indices_count + num_shard_elts >= len(indices):
             break
         # Need to offset indices to fit within shard_size
-        shard_inds = indices[indices_count:
-                             indices_count + num_shard_elts] - count
+        shard_inds = indices[indices_count:indices_count +
+                             num_shard_elts] - count
         X_sel = X[shard_inds]
         # Handle the case of datasets with y/w missing
         if y is not None:
