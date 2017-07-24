@@ -13,6 +13,8 @@ from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.data import NumpyDataset
+from deepchem.data.data_loader import featurize_smiles_np
+from deepchem.feat.graph_features import ConvMolFeaturizer
 
 class WeaveTensorGraph(TensorGraph):
 
@@ -578,6 +580,7 @@ class GraphConvTensorGraph(TensorGraph):
 
     """
     self.n_tasks = n_tasks
+    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False    
     kwargs['use_queue'] = False
     super(GraphConvTensorGraph, self).__init__(**kwargs)
     self.build_graph()
@@ -617,7 +620,8 @@ class GraphConvTensorGraph(TensorGraph):
         in_layers=[batch_norm3, self.degree_slice, self.membership] +
         self.deg_adjs)
 
-    readout = Dropout(in_layers=[readout], dropout_prob=0.2)
+    if self.error_bars == True:
+      readout = Dropout(in_layers=[readout], dropout_prob=0.2)
 
     costs = []
     self.my_labels = []
@@ -717,46 +721,45 @@ class GraphConvTensorGraph(TensorGraph):
         labels=self.my_labels,
         weights=[self.my_task_weights])
 
-  def bayesian_predict(self, dataset, transformers=[], n_passes=4):
-    max_index = dataset.shape[0]
-    num_batches = max_index // self.batch_size
-    
+  def bayesian_predict(self, X, transformers=[], n_passes=4, untransform=False):
+    max_index = X.shape[0] - 1
+    num_batches = (max_index // self.batch_size) + 1
+
     mus = []
     sigmas = []
-    for i in range(num_batches + 1): # think about edge cases here
+    for i in range(num_batches):
       start = i * self.batch_size
-      end = min( (i+1)*self.batch_size, max_index)
-      batch = dataset[start:end]
+      end = min((i+1)*self.batch_size, max_index + 1)
+      batch = X[start:end]
       mu, sigma = self.bayesian_predict_on_batch(batch, transformers=[], n_passes=n_passes)
       mus.append(mu)
       sigmas.append(sigma)
     mu = np.concatenate(mus, axis=0)
-    sigma = np.concatenate(sigmas, axis=0)
-
-    return mu[:max_index], sigma[:max_index]
+    sigma = np.concatenate(sigmas, axis=0) + 0.55
+    
+    if untransform:
+      mu = undo_transforms(mu, transformers)
+      for i in range(sigma.shape[1]):
+        sigma[:,i] = sigma[:,i] * transformers[0].y_stds[i]
+      
+    return mu[:max_index + 1], sigma[:max_index + 1]
   
-  def predict_on_smiles(self, smiles, transformers):
-    max_index = len(smiles)
-    num_batches = max_index // self.batch_size
+  def predict_on_smiles(self, smiles, transformers=[], untransform=False):
+    max_index = len(smiles) - 1
+    n_tasks = len(self.outputs)
+    num_batches = (max_index // self.batch_size) + 1
     featurizer = ConvMolFeaturizer()
-
+    
     y_ = []
     for i in range(num_batches):
-      smiles_batch = smiles[i * self.batch_size:(i + 1) * self.batch_size]
-      y_.append(self.predict_on_smiles_batch(smiles_batch, transformers, featurizer))
-    smiles_batch = smiles[num_batches * self.batch_size:max_index]
-    y_.append(self.predict_on_smiles_batch(smiles_batch, transformers))
+      start = i * self.batch_size
+      end = min((i+1)*self.batch_size, max_index + 1)
+      smiles_batch = smiles[start:end]
+      y_.append(self.predict_on_smiles_batch(smiles_batch, featurizer, transformers))
+    y_ = np.concatenate(y_, axis=0)[:max_index + 1]
+    y_ = y_.reshape(-1, n_tasks)
 
-    return np.concatenate(y_, axis=1) # wrong axis?
+    if untransform:
+      y_ = undo_transforms(y_, transformers)
 
-  def predict_on_smiles_batch(self, smiles, transformers=[]):
-    convmols = featurize_smiles_np(smiles, featurizer)
-
-    n_smiles = convmols.shape[0]
-    n_tasks = len(self.outputs)
-
-    dataset = NumpyDataset(X=convmols, y=None, n_tasks=n_tasks)
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    y_ = self.predict_on_generator(generator, transformers)
-
-    return y_.reshape(-1, n_tasks)[:n_smiles]
+    return y_
