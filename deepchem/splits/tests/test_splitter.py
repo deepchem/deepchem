@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from rdkit.Chem.Fingerprints import FingerprintMols
 
+
 __author__ = "Bharath Ramsundar, Aneesh Pappu"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -15,6 +16,7 @@ import tempfile
 import unittest
 import numpy as np
 import deepchem as dc
+from deepchem.data import NumpyDataset
 from rdkit import Chem, DataStructs
 
 
@@ -133,7 +135,7 @@ class TestSplitters(unittest.TestCase):
     K = 5
     fold_datasets = random_splitter.k_fold_split(solubility_dataset, K)
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -143,11 +145,11 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge([x[1] for x in fold_datasets])
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
@@ -163,7 +165,7 @@ class TestSplitters(unittest.TestCase):
     fold_datasets = index_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -173,11 +175,11 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge([x[1] for x in fold_datasets])
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
@@ -193,7 +195,7 @@ class TestSplitters(unittest.TestCase):
     fold_datasets = scaffold_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -203,11 +205,11 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge([x[1] for x in fold_datasets])
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 

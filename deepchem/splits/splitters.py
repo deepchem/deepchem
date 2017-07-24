@@ -60,7 +60,10 @@ class Splitter(object):
       directories = [tempfile.mkdtemp() for _ in range(k)]
     else:
       assert len(directories) == k
-    fold_datasets = []
+    all_ids = dataset.ids
+    cv_datasets = []
+    train_ds_base = None
+    train_datasets = []
     # rem_dataset is remaining portion of dataset
     rem_dataset = dataset
     for fold in range(k):
@@ -69,15 +72,19 @@ class Splitter(object):
       frac_fold = 1. / (k - fold)
       fold_dir = directories[fold]
       fold_inds, rem_inds, _ = self.split(
-          rem_dataset,
-          frac_train=frac_fold,
-          frac_valid=1 - frac_fold,
-          frac_test=0)
-      fold_dataset = rem_dataset.select(fold_inds, fold_dir)
+        rem_dataset,
+        frac_train=frac_fold,
+        frac_valid=1 - frac_fold,
+        frac_test=0)
+      cv_dataset = rem_dataset.select(fold_inds, fold_dir)
       rem_dir = tempfile.mkdtemp()
       rem_dataset = rem_dataset.select(rem_inds, rem_dir)
-      fold_datasets.append(fold_dataset)
-    return fold_datasets
+
+      train_dataset = DiskDataset.merge(filter(lambda x: x is not None, [train_ds_base, cv_dataset]))
+      train_datasets.append(train_dataset)
+      train_ds_base = DiskDataset.merge(filter(lambda x: x is not None, [train_ds_base, cv_dataset]))
+      cv_datasets.append(cv_dataset)
+    return list(zip(train_datasets, cv_datasets))
 
   def train_valid_test_split(self,
                              dataset,
@@ -97,11 +104,11 @@ class Splitter(object):
         """
     log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
-        dataset,
-        frac_train=frac_train,
-        frac_test=frac_test,
-        frac_valid=frac_valid,
-        log_every_n=log_every_n)
+      dataset,
+      frac_train=frac_train,
+      frac_test=frac_test,
+      frac_valid=frac_valid,
+      log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -130,14 +137,14 @@ class Splitter(object):
         """
     valid_dir = tempfile.mkdtemp()
     train_dataset, _, test_dataset = self.train_valid_test_split(
-        dataset,
-        train_dir,
-        valid_dir,
-        test_dir,
-        frac_train=frac_train,
-        frac_test=1 - frac_train,
-        frac_valid=0.,
-        verbose=verbose)
+      dataset,
+      train_dir,
+      valid_dir,
+      test_dir,
+      frac_train=frac_train,
+      frac_test=1 - frac_train,
+      frac_valid=0.,
+      verbose=verbose)
     return train_dataset, test_dataset
 
   def split(self,
@@ -221,7 +228,7 @@ class RandomStratifiedSplitter(Splitter):
       dataset_2 = None
       return dataset_1, dataset_2
     X, y, w, ids = randomize_arrays(
-        (dataset.X, dataset.y, dataset.w, dataset.ids))
+      (dataset.X, dataset.y, dataset.w, dataset.ids))
     split_indices = self.get_task_split_indices(y, w, frac_split)
 
     # Create weight matrices fpor two haves.
@@ -262,7 +269,7 @@ class RandomStratifiedSplitter(Splitter):
       test_dir = tempfile.mkdtemp()
     # Obtain original x, y, and w arrays and shuffle
     X, y, w, ids = randomize_arrays(
-        (dataset.X, dataset.y, dataset.w, dataset.ids))
+      (dataset.X, dataset.y, dataset.w, dataset.ids))
     rem_dir = tempfile.mkdtemp()
     train_dataset, rem_dataset = self.split(dataset, frac_train,
                                             [train_dir, rem_dir])
@@ -434,7 +441,7 @@ class SingletaskStratifiedSplitter(Splitter):
       shuffled = np.random.permutation(range(split_cd))
       train_idx = np.hstack([train_idx, sortidx_split[shuffled[:train_cutoff]]])
       valid_idx = np.hstack(
-          [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
+        [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
       test_idx = np.hstack([test_idx, sortidx_split[shuffled[valid_cutoff:]]])
 
     # Append remaining examples to train
@@ -673,9 +680,9 @@ class ScaffoldSplitter(Splitter):
     # Sort from largest to smallest scaffold sets
     scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [
-        scaffold_set
-        for (scaffold, scaffold_set) in sorted(
-            scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
+      scaffold_set
+      for (scaffold, scaffold_set) in sorted(
+        scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
     ]
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
