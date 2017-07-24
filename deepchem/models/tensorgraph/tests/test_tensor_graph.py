@@ -4,6 +4,7 @@ import numpy as np
 import os
 from nose.tools import assert_true
 from flaky import flaky
+import tensorflow as tf
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
@@ -11,7 +12,7 @@ from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
 
 
 class TestTensorGraph(unittest.TestCase):
@@ -160,6 +161,39 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
+
+  @flaky
+  def test_set_optimizer(self):
+    n_data_points = 20
+    n_features = 2
+    X = np.random.rand(n_data_points, n_features)
+    y = [[0, 1] for x in range(n_data_points)]
+    dataset = NumpyDataset(X, y)
+    features = Feature(shape=(None, n_features))
+    dense = Dense(out_channels=2, in_layers=[features])
+    output = SoftMax(in_layers=[dense])
+    label = Label(shape=(None, 2))
+    smce = SoftMaxCrossEntropy(in_layers=[label, dense])
+    loss = ReduceMean(in_layers=[smce])
+    tg = dc.models.TensorGraph(learning_rate=0.01, use_queue=False)
+    tg.add_output(output)
+    tg.set_loss(loss)
+    global_step = tg.get_global_step()
+
+    def optimizer_function():
+      starter_learning_rate = 0.1
+      learning_rate = tf.train.exponential_decay(
+          starter_learning_rate, global_step, 100000, 0.96, staircase=True)
+      return tf.train.GradientDescentOptimizer(learning_rate)
+
+    tg.set_optimizer(TFWrapper(optimizer_function))
+    tg.fit(dataset, nb_epoch=1000)
+    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    tg.save()
+
+    tg1 = TensorGraph.load_from_dir(tg.model_dir)
+    prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
+    assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   def test_tensorboard(self):
     n_data_points = 20
