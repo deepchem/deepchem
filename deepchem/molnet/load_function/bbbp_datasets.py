@@ -9,7 +9,7 @@ import os
 import deepchem
 
 
-def load_bbbp(featurizer='ECFP', split='index', reload=True):
+def load_bbbp(featurizer='ECFP', split='random', reload=True):
   """Load blood-brain barrier penetration datasets """
   # Featurize bbb dataset
   print("About to featurize bbbp dataset.")

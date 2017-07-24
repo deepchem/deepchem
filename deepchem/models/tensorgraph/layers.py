@@ -573,6 +573,20 @@ class Concat(Layer):
     return out_tensor
 
 
+class Stack(Layer):
+
+  def __init__(self, axis=1, **kwargs):
+    self.axis = axis
+    super(Stack, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    out_tensor = tf.stack(inputs, axis=self.axis)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+    
+    
 class Constant(Layer):
   """Output a constant value."""
 

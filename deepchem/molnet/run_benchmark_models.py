@@ -16,7 +16,8 @@ from deepchem.utils.dependencies import xgboost
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-
+from sklearn.svm import SVC
+from sklearn.kernel_ridge import KernelRidge
 
 def benchmark_classification(train_dataset,
                              valid_dataset,
@@ -74,7 +75,7 @@ def benchmark_classification(train_dataset,
 
   assert model in [
       'rf', 'tf', 'tf_robust', 'logreg', 'irv', 'graphconv', 'dag', 'xgb',
-      'weave'
+      'weave', 'kernelsvm'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -319,6 +320,20 @@ def benchmark_classification(train_dataset,
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)
 
+  elif model_name == 'kernelsvm':
+    # Loading hyper parameters
+    C = hyper_parameters['C']
+    gamma = hyper_parameters['gamma']
+    nb_epoch = None
+
+    # Building scikit random forest model
+    def model_builder(model_dir_kernelsvm):
+      sklearn_model = SVC(
+          C=C, gamma=gamma, class_weight="balanced", probability=True)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir_kernelsvm)
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
+
   elif model_name == 'xgb':
     # Loading hyper parameters
     max_depth = hyper_parameters['max_depth']
@@ -432,7 +447,8 @@ def benchmark_regression(train_dataset,
 
   assert model in [
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
-      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression'
+      'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression', 'krr',
+      'ani'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -639,6 +655,44 @@ def benchmark_regression(train_dataset,
         beta1=.9,
         beta2=.999)
 
+  elif model_name == 'ani':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    layer_structures = hyper_parameters['layer_structures']
+    
+    assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
+    max_atoms = n_features[0]
+    atom_number_cases = np.unique(np.concatenate([train_dataset.X[:,:,0], 
+                                                  valid_dataset.X[:,:,0], 
+                                                  test_dataset.X[:,:,0]]))
+    
+    atom_number_cases = atom_number_cases.astype(int).tolist()
+    try:
+      # Remove token for paddings
+      atom_number_cases.remove(0)
+    except:
+      pass
+    ANItransformer = deepchem.trans.ANITransformer(
+        max_atoms=max_atoms, atom_cases=atom_number_cases)
+    train_dataset = ANItransformer.transform(train_dataset)
+    valid_dataset = ANItransformer.transform(valid_dataset)
+    if test:
+      test_dataset = ANItransformer.transform(test_dataset)
+    n_feat = ANItransformer.get_num_feats() - 1
+
+    model = deepchem.models.ANIRegression(
+        len(tasks),
+        max_atoms,
+        n_feat,
+        layer_structures=layer_structures,
+        atom_number_cases=atom_number_cases,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        use_queue=False,
+        mode="regression",
+        random_seed=seed)
+    
   elif model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -651,6 +705,18 @@ def benchmark_regression(train_dataset,
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir_rf_regression)
 
+    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
+                                                            model_builder)
+  elif model_name == 'krr':
+    # Loading hyper parameters
+    alpha = hyper_parameters['alpha']
+    gamma = hyper_parameters['gamma']
+    nb_epoch = None
+
+    # Building scikit random forest model
+    def model_builder(model_dir_krr):
+      sklearn_model = KernelRidge(kernel="rbf", alpha=alpha, gamma=gamma)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)
 
