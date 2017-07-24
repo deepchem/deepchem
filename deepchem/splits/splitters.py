@@ -54,7 +54,13 @@ class Splitter(object):
     self.verbose = verbose
 
   def k_fold_split(self, dataset, k, directories=None, **kwargs):
-    """Does K-fold split of dataset."""
+    """
+    :param dataset: Dataset to do a k-fold split
+    :param k: number of folds
+    :param directories: list of length 2*k to save the result disk-datasets
+    :param kwargs:
+    :return: list of length k tuples of (train, cv)
+    """
     log("Computing K-fold split", self.verbose)
     if directories is None:
       directories = [tempfile.mkdtemp() for _ in range(2 * k)]
