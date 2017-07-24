@@ -178,7 +178,7 @@ class TestTensorGraph(unittest.TestCase):
     tg = dc.models.TensorGraph(learning_rate=0.01, use_queue=False)
     tg.add_output(output)
     tg.set_loss(loss)
-    global_step = tg._get_tf('GlobalStep')
+    global_step = tg.get_global_step()
 
     def optimizer_function():
       starter_learning_rate = 0.1
