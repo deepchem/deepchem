@@ -84,8 +84,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   elif feat == "coord":
     neighbor_cutoff = 4
     max_num_neighbors = 10
-    featurizer = dc.feat.NeighborListComplexAtomicCoordinates(max_num_neighbors,
-                                                              neighbor_cutoff)
+    featurizer = dc.feat.NeighborListComplexAtomicCoordinates(
+        max_num_neighbors, neighbor_cutoff)
   elif feat == 'atomic_conv':
     dataset = compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids)
     return dataset, tasks

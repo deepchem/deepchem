@@ -12,7 +12,7 @@ from datasets import load_sider_convmol
 from datasets import load_tox21_convmol
 from datasets import to_numpy_dataset
 
-# Number of folds for split 
+# Number of folds for split
 K = 4
 # Depth of attention module
 max_depth = 3

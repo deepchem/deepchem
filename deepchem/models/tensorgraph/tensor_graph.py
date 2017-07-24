@@ -18,6 +18,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.data.data_loader import featurize_smiles_np
 
+
 class TensorGraph(Model):
 
   def __init__(self,
@@ -288,16 +289,21 @@ class TensorGraph(Model):
     dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
     y_ = []
     for i in range(n_passes):
-      generator = self.default_generator(dataset, predict=True, pad_batches=True)
+      generator = self.default_generator(
+          dataset, predict=True, pad_batches=True)
       y_.append(self.predict_on_generator(generator, transformers))
 
     y_ = np.concatenate(y_, axis=2)
     mu = np.mean(y_, axis=2)
     sigma = np.std(y_, axis=2)
-    
+
     return mu, sigma
 
-  def predict_on_smiles_batch(self, smiles, featurizer, n_tasks, transformers=[]):
+  def predict_on_smiles_batch(self,
+                              smiles,
+                              featurizer,
+                              n_tasks,
+                              transformers=[]):
     convmols = featurize_smiles_np(smiles, featurizer)
 
     dataset = NumpyDataset(X=convmols, y=None, n_tasks=len(self.outputs))

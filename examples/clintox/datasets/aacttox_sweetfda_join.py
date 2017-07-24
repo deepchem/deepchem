@@ -5,20 +5,27 @@ Join sweetfda and aacttox data
 """
 import pandas as pd
 
-
 ##############################################################################
 ### save dataset
 ##############################################################################
 ### load datasets
 # load sweetfda
 sweetfda_fn = 'sweetfda/sweetfda_approved_processed.csv'
-sweetfda_df = pd.read_csv(sweetfda_fn, index_col=False, na_filter=False,
-                          delimiter=',', lineterminator='\n')
+sweetfda_df = pd.read_csv(
+    sweetfda_fn,
+    index_col=False,
+    na_filter=False,
+    delimiter=',',
+    lineterminator='\n')
 
 # load aact
 aact_fn = 'aacttox/aacttox_phase_multiclass.csv'
-aact_df = pd.read_csv(aact_fn, index_col=False, na_filter=False,
-                      delimiter=',', lineterminator='\n')
+aact_df = pd.read_csv(
+    aact_fn,
+    index_col=False,
+    na_filter=False,
+    delimiter=',',
+    lineterminator='\n')
 
 
 ### fixup smiles for matching
@@ -42,8 +49,6 @@ aact_smiles = list(aact_df['smiles'])
 aact_df['smiles'] = convert_smiles(aact_df['smiles'])
 aact_smiles_map = dict(zip(list(aact_df['smiles']), aact_smiles))
 
-
-
 ### join dataframes, index on smiles
 sweetfda_df.set_index('smiles', inplace=True)
 aact_df.set_index('smiles', inplace=True)
@@ -58,10 +63,8 @@ for idx, smiles in enumerate(index_smiles):
     index_smiles[idx] = sweetfda_smiles_map[smiles]
 df_join.index = pd.Series(index_smiles)
 
-
 ### fill all nan with 0
 df_join.fillna('0', inplace=True)
-
 
 ### construct datasets
 datasets = [[], [], [], [], [], []]
@@ -95,10 +98,10 @@ for smiles in df_join.index:
   if ct_tox_phase.isdigit() and int(ct_tox_phase) > 0:
     for phase, _ in enumerate(ct_tox_phases, start=1):
       if phase >= int(ct_tox_phase):
-        ct_tox_phases[phase-1] = str(ct_tox)
+        ct_tox_phases[phase - 1] = str(ct_tox)
 
-  print('\t'.join(["==>", fda, ct_tox, cto, ct_tox_phase,
-                   '|'.join(ct_tox_phases), smiles]))
+  print('\t'.join(
+      ["==>", fda, ct_tox, cto, ct_tox_phase, '|'.join(ct_tox_phases), smiles]))
 
   # store in new datasets
   datasets[0].append([smiles, fda, ct_tox])
@@ -107,12 +110,10 @@ for smiles in df_join.index:
   datasets[3].append([smiles, cto, fda_tox])
   datasets[4].append([smiles, fda, ct_tox] + ct_tox_phases)
 
-
 ### save datasets
 fout = "clintox.csv"
 cols = ['smiles', 'FDA_APPROVED', 'CT_TOX']
 pd.DataFrame(datasets[0], columns=cols).to_csv(fout, index=False)
-
 
 #fout = "aacttox_sweetfda_phase_multiclass.csv"
 #cols = ['smiles', 'FDA_APPROVED', 'CT_TOX','CT_TOX_PHASE']
@@ -131,4 +132,3 @@ pd.DataFrame(datasets[0], columns=cols).to_csv(fout, index=False)
 #     'CT_TOX_PHASE_1', 'CT_TOX_PHASE_2',
 #     'CT_TOX_PHASE_3', 'CT_TOX_PHASE_4']
 #pd.DataFrame(datasets[4], columns=cols).to_csv(fout, index=False)
-

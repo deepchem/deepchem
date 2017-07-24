@@ -15,7 +15,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from binding_pocket_datasets import load_pdbbind_pockets
 
-# For stable runs 
+# For stable runs
 np.random.seed(123)
 
 split = "random"

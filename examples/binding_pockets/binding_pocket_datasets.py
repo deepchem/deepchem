@@ -15,8 +15,12 @@ import re
 from rdkit import Chem
 import deepchem as dc
 
-def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
-                                    pdb_subdir, pdb_code, threshold=.3):
+
+def compute_binding_pocket_features(pocket_featurizer,
+                                    ligand_featurizer,
+                                    pdb_subdir,
+                                    pdb_code,
+                                    threshold=.3):
   """Compute features for a given complex"""
   protein_file = os.path.join(pdb_subdir, "%s_protein.pdb" % pdb_code)
   ligand_file = os.path.join(pdb_subdir, "%s_ligand.sdf" % pdb_code)
@@ -24,8 +28,7 @@ def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
 
   # Extract active site
   active_site_box, active_site_atoms, active_site_coords = (
-      dc.dock.binding_pocket.extract_active_site(
-          protein_file, ligand_file))
+      dc.dock.binding_pocket.extract_active_site(protein_file, ligand_file))
 
   # Featurize ligand
   mol = Chem.MolFromMol2File(str(ligand_mol2), removeHs=False)
@@ -37,13 +40,14 @@ def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
 
   # Featurize pocket
   finder = dc.dock.ConvexHullPocketFinder()
-  pockets, pocket_atoms, pocket_coords = finder.find_pockets(protein_file, ligand_file)
+  pockets, pocket_atoms, pocket_coords = finder.find_pockets(
+      protein_file, ligand_file)
   n_pockets = len(pockets)
   n_pocket_features = dc.feat.BindingPocketFeaturizer.n_features
 
-  features = np.zeros((n_pockets, n_pocket_features+n_ligand_features))
-  pocket_features = pocket_featurizer.featurize(
-      protein_file, pockets, pocket_atoms, pocket_coords)
+  features = np.zeros((n_pockets, n_pocket_features + n_ligand_features))
+  pocket_features = pocket_featurizer.featurize(protein_file, pockets,
+                                                pocket_atoms, pocket_coords)
   # Note broadcast operation
   features[:, :n_pocket_features] = pocket_features
   features[:, n_pocket_features:] = ligand_features
@@ -52,13 +56,14 @@ def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
   labels = np.zeros(n_pockets)
   pocket_atoms[active_site_box] = active_site_atoms
   for ind, pocket in enumerate(pockets):
-    overlap = dc.dock.binding_pocket.compute_overlap(
-        pocket_atoms, active_site_box, pocket)
+    overlap = dc.dock.binding_pocket.compute_overlap(pocket_atoms,
+                                                     active_site_box, pocket)
     if overlap > threshold:
       labels[ind] = 1
     else:
-      labels[ind] = 0 
+      labels[ind] = 0
   return features, labels
+
 
 def load_pdbbind_labels(labels_file):
   """Loads pdbbind labels as dataframe"""
@@ -84,6 +89,7 @@ def load_pdbbind_labels(labels_file):
       columns=("PDB code", "resolution", "release year", "-logKd/Ki", "Kd/Ki",
                "ignore-this-field", "reference", "ligand name"))
   return contents_df
+
 
 def featurize_pdbbind_pockets(data_dir=None, subset="core"):
   """Featurizes pdbbind according to provided featurization"""
@@ -137,21 +143,24 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
     ids = np.array(["%s%d" % (pdb_code, i) for i in range(len(labels))])
     all_ids.append(ids)
   time2 = time.time()
-  print("TIMING: PDBBind Pocket Featurization took %0.3f s" % (time2-time1))
+  print("TIMING: PDBBind Pocket Featurization took %0.3f s" % (time2 - time1))
   X = np.vstack(all_features)
   y = np.concatenate(all_labels)
   w = np.ones_like(y)
   ids = np.concatenate(all_ids)
-   
+
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
   return dataset, tasks
+
 
 def load_pdbbind_pockets(split="index", subset="core"):
   """Load PDBBind datasets. Does not do train/test split"""
   dataset, tasks = featurize_pdbbind_pockets(subset=subset)
 
-  splitters = {'index': dc.splits.IndexSplitter(),
-               'random': dc.splits.RandomSplitter()}
+  splitters = {
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter()
+  }
   splitter = splitters[split]
   ########################################################### DEBUG
   print("dataset.X.shape")
@@ -172,5 +181,5 @@ def load_pdbbind_pockets(split="index", subset="core"):
     valid = transformer.transform(valid)
   for transformer in transformers:
     test = transformer.transform(test)
-  
+
   return tasks, (train, valid, test), transformers

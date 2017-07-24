@@ -24,7 +24,6 @@ sys.path.append('./../sider')
 
 from tox_datasets import load_tox
 from sider_datasets import load_sider
-
 """
 Load toxicity models now
 """
@@ -50,31 +49,38 @@ tox_splitter = StratifiedSplitter()
 
 #default split is 80-10-10 train-valid-test split
 tox_train_dataset, tox_valid_dataset, tox_test_dataset = tox_splitter.train_valid_test_split(
-  tox_dataset, tox_train_dir, tox_valid_dir, tox_test_dir)
+    tox_dataset, tox_train_dir, tox_valid_dir, tox_test_dir)
 
 # Fit Logistic Regression models
 tox_task_types = {task: "classification" for task in tox_tasks}
 
-
-classification_metric = Metric(metrics.roc_auc_score, np.mean,
-                               verbosity=verbosity,
-                               mode="classification")
+classification_metric = Metric(
+    metrics.roc_auc_score, np.mean, verbosity=verbosity, mode="classification")
 params_dict = {
     "batch_size": None,
     "data_shape": tox_train_dataset.get_data_shape(),
 }
 
-def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
-  return SklearnModel(tasks, task_types, model_params, model_dir,
-                      model_instance=RandomForestClassifier(
-                          class_weight="balanced",
-                          n_estimators=500,
-                          n_jobs=-1),
-                      verbosity=verbosity)
-tox_model = SingletaskToMultitask(tox_tasks, tox_task_types, params_dict, tox_model_dir,
-                              model_builder, verbosity=verbosity)
-tox_model.reload()
 
+def model_builder(tasks, task_types, model_params, model_dir, verbosity=None):
+  return SklearnModel(
+      tasks,
+      task_types,
+      model_params,
+      model_dir,
+      model_instance=RandomForestClassifier(
+          class_weight="balanced", n_estimators=500, n_jobs=-1),
+      verbosity=verbosity)
+
+
+tox_model = SingletaskToMultitask(
+    tox_tasks,
+    tox_task_types,
+    params_dict,
+    tox_model_dir,
+    model_builder,
+    verbosity=verbosity)
+tox_model.reload()
 """
 Load sider models now
 """
@@ -93,20 +99,24 @@ sider_model_dir = os.path.join(base_sider_dir, "model")
 
 sider_splitter = RandomSplitter()
 sider_train_dataset, sider_valid_dataset, sider_test_dataset = sider_splitter.train_valid_test_split(
-  sider_dataset, sider_train_dir, sider_valid_dir, sider_test_dir)
+    sider_dataset, sider_train_dir, sider_valid_dir, sider_test_dir)
 
 # Fit Logistic Regression models
 sider_task_types = {task: "classification" for task in sider_tasks}
 
 params_dict = {
-  "batch_size": None,
-  "data_shape": sider_train_dataset.get_data_shape(),
+    "batch_size": None,
+    "data_shape": sider_train_dataset.get_data_shape(),
 }
 
-sider_model = SingletaskToMultitask(sider_tasks, sider_task_types, params_dict, sider_model_dir,
-                              model_builder, verbosity=verbosity)
+sider_model = SingletaskToMultitask(
+    sider_tasks,
+    sider_task_types,
+    params_dict,
+    sider_model_dir,
+    model_builder,
+    verbosity=verbosity)
 sider_model.reload()
-
 """
 Load sweetlead dataset now. Pass in dataset object and appropriate transformers to predict functions
 """
@@ -129,9 +139,8 @@ for i in range(tox_predictions.shape[0]):
   nonzero_sider = np.nonzero(sider_predictions[i, :])
   for j in nonzero_tox[0]:
     for k in nonzero_sider[0]:
-      confusion_matrix[j,k] +=1
- 
+      confusion_matrix[j, k] += 1
+
 df = pd.DataFrame(confusion_matrix)
 
 df.to_csv("./tox_sider_matrix.csv")
-

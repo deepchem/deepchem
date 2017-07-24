@@ -23,8 +23,13 @@ train_dataset, valid_dataset, test_dataset = SAMPL_datasets
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
 model = dc.models.TensorflowMultiTaskRegressor(
-    len(SAMPL_tasks), n_features, layer_sizes=[1000], dropouts=[.25],
-    learning_rate=0.001, batch_size=50, verbosity="high")
+    len(SAMPL_tasks),
+    n_features,
+    layer_sizes=[1000],
+    dropouts=[.25],
+    learning_rate=0.001,
+    batch_size=50,
+    verbosity="high")
 
 # Fit trained model
 model.fit(train_dataset)

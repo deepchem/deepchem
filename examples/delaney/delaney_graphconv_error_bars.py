@@ -42,7 +42,8 @@ valid_scores = model.evaluate(valid_dataset, [metric], transformers)
 model.save()
 model.load_from_dir('model_saves')
 
-mu, sigma = model.bayesian_predict(valid_dataset.X, transformers, untransform=True, n_passes=24)
+mu, sigma = model.bayesian_predict(
+    valid_dataset.X, transformers, untransform=True, n_passes=24)
 print(mu[:4])
 print(sigma[:4])
 
@@ -51,9 +52,9 @@ target = undo_transforms(valid_dataset.y, transformers)
 
 print(r2_score(target, mu))
 
-mu = mu[:,0].tolist()
-sigma = sigma[:,0].tolist()
-target = target[:,0].tolist()
+mu = mu[:, 0].tolist()
+sigma = sigma[:, 0].tolist()
+target = target[:, 0].tolist()
 
 print(mu[:4])
 print(sigma[:4])
@@ -66,9 +67,9 @@ in_four_sigma = 0
 for i in xrange(0, len(mu)):
   if target[i] < (mu[i] + sigma[i]) and target[i] > (mu[i] - sigma[i]):
     in_one_sigma += 1
-  if target[i] < (mu[i]+ 2*sigma[i]) and target[i] > (mu[i] - 2*sigma[i]):
+  if target[i] < (mu[i] + 2 * sigma[i]) and target[i] > (mu[i] - 2 * sigma[i]):
     in_two_sigma += 1
-  if target[i] < (mu[i]+ 4*sigma[i]) and target[i] > (mu[i] - 4*sigma[i]):
+  if target[i] < (mu[i] + 4 * sigma[i]) and target[i] > (mu[i] - 4 * sigma[i]):
     in_four_sigma += 1
 
 print('percent in 1 sigma [%f]' % (in_one_sigma / float(len(mu))))

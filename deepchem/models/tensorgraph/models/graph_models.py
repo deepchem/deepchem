@@ -16,6 +16,7 @@ from deepchem.data import NumpyDataset
 from deepchem.data.data_loader import featurize_smiles_np
 from deepchem.feat.graph_features import ConvMolFeaturizer
 
+
 class WeaveTensorGraph(TensorGraph):
 
   def __init__(self,
@@ -580,7 +581,7 @@ class GraphConvTensorGraph(TensorGraph):
 
     """
     self.n_tasks = n_tasks
-    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False    
+    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     kwargs['use_queue'] = False
     super(GraphConvTensorGraph, self).__init__(**kwargs)
     self.build_graph()
@@ -638,7 +639,8 @@ class GraphConvTensorGraph(TensorGraph):
         cost = SoftMaxCrossEntropy(in_layers=[label, classification])
         costs.append(cost)
       if self.mode == 'regression':
-        regression = Dense(out_channels=1, activation_fn=None, in_layers=[readout])
+        regression = Dense(
+            out_channels=1, activation_fn=None, in_layers=[readout])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -703,7 +705,7 @@ class GraphConvTensorGraph(TensorGraph):
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
-          feed_dict[self._training_placeholder] = 1.0 ##
+          feed_dict[self._training_placeholder] = 1.0  ##
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
@@ -729,33 +731,35 @@ class GraphConvTensorGraph(TensorGraph):
     sigmas = []
     for i in range(num_batches):
       start = i * self.batch_size
-      end = min((i+1)*self.batch_size, max_index + 1)
+      end = min((i + 1) * self.batch_size, max_index + 1)
       batch = X[start:end]
-      mu, sigma = self.bayesian_predict_on_batch(batch, transformers=[], n_passes=n_passes)
+      mu, sigma = self.bayesian_predict_on_batch(
+          batch, transformers=[], n_passes=n_passes)
       mus.append(mu)
       sigmas.append(sigma)
     mu = np.concatenate(mus, axis=0)
     sigma = np.concatenate(sigmas, axis=0) + 0.55
-    
+
     if untransform:
       mu = undo_transforms(mu, transformers)
       for i in range(sigma.shape[1]):
-        sigma[:,i] = sigma[:,i] * transformers[0].y_stds[i]
-      
+        sigma[:, i] = sigma[:, i] * transformers[0].y_stds[i]
+
     return mu[:max_index + 1], sigma[:max_index + 1]
-  
+
   def predict_on_smiles(self, smiles, transformers=[], untransform=False):
     max_index = len(smiles) - 1
     n_tasks = len(self.outputs)
     num_batches = (max_index // self.batch_size) + 1
     featurizer = ConvMolFeaturizer()
-    
+
     y_ = []
     for i in range(num_batches):
       start = i * self.batch_size
-      end = min((i+1)*self.batch_size, max_index + 1)
+      end = min((i + 1) * self.batch_size, max_index + 1)
       smiles_batch = smiles[start:end]
-      y_.append(self.predict_on_smiles_batch(smiles_batch, featurizer, transformers))
+      y_.append(
+          self.predict_on_smiles_batch(smiles_batch, featurizer, transformers))
     y_ = np.concatenate(y_, axis=0)[:max_index + 1]
     y_ = y_.reshape(-1, n_tasks)
 

@@ -25,7 +25,7 @@ def load_hiv(featurizer='ECFP', split='index'):
   loader = dc.data.CSVLoader(
       tasks=hiv_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]

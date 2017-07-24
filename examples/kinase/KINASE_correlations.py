@@ -39,8 +39,13 @@ for task in range(n_tasks):
     all_results.append(r2)
 
 # the histogram of the data
-n, bins, patches = plt.hist(np.array(all_results), 50, normed=True, stacked=True,
-                            facecolor='green', alpha=0.75)
+n, bins, patches = plt.hist(
+    np.array(all_results),
+    50,
+    normed=True,
+    stacked=True,
+    facecolor='green',
+    alpha=0.75)
 plt.xlabel('Cross-task Correlations')
 plt.ylabel('Probability Density')
 plt.title('Histogram of Kinase Intertask Correlations')

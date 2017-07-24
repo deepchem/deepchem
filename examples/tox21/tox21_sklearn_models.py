@@ -20,10 +20,13 @@ tox21_tasks, tox21_datasets, transformers = load_tox21()
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
+
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=500)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
+
 model = dc.models.SingletaskToMultitask(tox21_tasks, model_builder)
 
 # Fit trained model
