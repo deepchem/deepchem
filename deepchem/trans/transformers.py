@@ -182,7 +182,7 @@ class NormalizationTransformer(Transformer):
 
 
 class ClippingTransformer(Transformer):
-  """Clip large values in datasets.     
+  """Clip large values in datasets.
 
      Example:
 
@@ -196,7 +196,7 @@ class ClippingTransformer(Transformer):
      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
      >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
      >>> dataset = transformer.transform(dataset)
-  
+
   """
 
   def __init__(self,
@@ -477,7 +477,7 @@ class PowerTransformer(Transformer):
     return NumpyDataset(X_t, y_t, w_t, ids_t)
 
   def untransform(self, z):
-    # print("Cannot undo Power Transformer, for now.")    
+    # print("Cannot undo Power Transformer, for now.")
     n_powers = len(self.powers)
     orig_len = (z.shape[1]) / n_powers
     z = z[:, :orig_len]
@@ -553,7 +553,7 @@ class CoulombFitTransformer():
     return np.array([_realize_(z) for z in X])
 
   def normalize(self, X):
-    """Normalize features. 
+    """Normalize features.
 
     Parameters:
     ----------
@@ -569,7 +569,7 @@ class CoulombFitTransformer():
     return (X - self.mean) / self.std
 
   def expand(self, X):
-    """Binarize features. 
+    """Binarize features.
 
     Parameters:
     ----------
@@ -639,7 +639,7 @@ class IRVTransformer():
 
   def realize(self, similarity, y, w):
     """find samples with top ten similarity values in the reference dataset
-    
+
     Parameters:
     -----------
     similarity: np.ndarray
@@ -649,7 +649,7 @@ class IRVTransformer():
       labels for a single task
     w: np.array
       weights for a single task
-   
+
     Return:
     ----------
     features: list
@@ -669,7 +669,7 @@ class IRVTransformer():
           dtype=tf.float64, shape=(None, reference_len))
       value, indice = tf.nn.top_k(
           similarity_placeholder, k=self.K + 1, sorted=True)
-      # the tf graph here pick up the (K+1) highest similarity values 
+      # the tf graph here pick up the (K+1) highest similarity values
       # and their indices
       top_label = tf.gather(labels_tf, indice)
       # map the indices to labels
@@ -678,7 +678,7 @@ class IRVTransformer():
         for count in range(target_len // 100 + 1):
           feed_dict[similarity_placeholder] = similarity_xs[count * 100:min((
               count + 1) * 100, target_len), :]
-          # generating batch of data by slicing similarity matrix 
+          # generating batch of data by slicing similarity matrix
           # into 100*reference_dataset_length
           fetched_values = sess.run([value, top_label], feed_dict=feed_dict)
           values.append(fetched_values[0])
@@ -702,7 +702,7 @@ class IRVTransformer():
     return features
 
   def X_transform(self, X_target):
-    """ Calculate similarity between target dataset(X_target) and 
+    """ Calculate similarity between target dataset(X_target) and
     reference dataset(X): #(1 in intersection)/#(1 in union)
          similarity = (X_target intersect X)/(X_target union X)
     Parameters:
@@ -710,12 +710,12 @@ class IRVTransformer():
     X_target: np.ndarray
       fingerprints of target dataset
       should have same length with X in the second axis
-    
+
     Returns:
     ----------
     X_target: np.ndarray
       features of size(batch_size, 2*K*n_tasks)
-    
+
     """
     X_target2 = []
     n_features = X_target.shape[1]
@@ -781,7 +781,7 @@ class IRVTransformer():
 
 
 class DAGTransformer(Transformer):
-  """Performs transform from ConvMol adjacency lists to 
+  """Performs transform from ConvMol adjacency lists to
   DAG calculation orders
   """
 
@@ -822,7 +822,7 @@ class DAGTransformer(Transformer):
     UG = sample.get_adjacency_list()
     # number of atoms, also number of DAGs
     n_atoms = sample.get_num_atoms()
-    # DAG on a molecule with k atoms includes k steps of calculation, 
+    # DAG on a molecule with k atoms includes k steps of calculation,
     # each step calculating graph features for one atom.
     # `max_atoms` is the maximum number of steps
     max_atoms = self.max_atoms
@@ -835,15 +835,15 @@ class DAGTransformer(Transformer):
       # starting from the target atom with index `count`
       current_atoms = [count]
       # flags of whether the atom is already included in the DAG
-      atoms_indicator = np.ones((n_atoms,))
+      atoms_indicator = np.zeros((n_atoms,))
       # atom `count` is in the DAG
-      atoms_indicator[count] = 0
+      radial = 1
+      atoms_indicator[count] = radial
       # recording number of radial propagation steps
-      radial = 0
-      while np.sum(atoms_indicator) > 0:
-        # in the fisrt loop, atoms directly connected to `count` will be added 
-        # into the DAG(radial=0), then atoms two-bond away from `count` 
-        # will be added in the second loop(radial=1). 
+      while not np.all(atoms_indicator):
+        # in the fisrt loop, atoms directly connected to `count` will be added
+        # into the DAG(radial=0), then atoms two-bond away from `count`
+        # will be added in the second loop(radial=1).
         # atoms i-bond away will be added in i-th loop
         if radial > n_atoms:
           # when molecules have separate parts, starting from one part,
@@ -852,27 +852,27 @@ class DAGTransformer(Transformer):
           break
         # reinitialize targets for next iteration
         next_atoms = []
+        radial = radial + 1
         for current_atom in current_atoms:
           for atom_adj in UG[current_atom]:
             # atoms connected to current_atom
-            if atoms_indicator[atom_adj] > 0:
+            if atoms_indicator[atom_adj] == 0:
               # generate the dependency map of current DAG
               # atoms connected to `current_atoms`(and not included in the DAG)
               # are added, and will be the `current_atoms` for next iteration.
               DAG.append((current_atom, atom_adj))
-              atoms_indicator[atom_adj] = 0
+              atoms_indicator[atom_adj] = radial
               next_atoms.append(atom_adj)
         current_atoms = next_atoms
-        # into next iteration, finding atoms connected one more bond away
-        radial = radial + 1
       # DAG starts from the target atom, calculation should go in reverse
       for edge in reversed(DAG):
         # `edge[1]` is the parent of `edge[0]`
         parent[edge[0]].append(edge[1] % max_atoms)
-        # all the parents of `edge[1]` is also the parents of `edge[0]`
         parent[edge[0]].extend(parent[edge[1]])
-      # after this loop, `parents[i]` includes all parents of atom i
 
+      for i, order in enumerate(parent):
+        parent[i] = sorted(order, key=lambda x: atoms_indicator[x])
+      # after this loop, `parents[i]` includes all parents of atom i
       for ids, atom in enumerate(parent):
         # manually adding the atom index into its parents list
         parent[ids].insert(0, ids % max_atoms)
@@ -880,7 +880,7 @@ class DAGTransformer(Transformer):
 
       # atoms with less parents(farther from the target atom) come first.
       # graph features of atoms without parents will be first calculated,
-      # then atoms with more parents can be calculated in order 
+      # then atoms with more parents can be calculated in order
       # based on previously calculated graph features.
       # target atom of this DAG will be calculated in the last step
       parent = sorted(parent, key=len)
@@ -907,7 +907,7 @@ class DAGTransformer(Transformer):
 
 class ImageTransformer(Transformer):
   """
-  Convert an image into width, height, channel 
+  Convert an image into width, height, channel
   """
 
   def __init__(self,
@@ -926,3 +926,194 @@ class ImageTransformer(Transformer):
     images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
     images = [scipy.misc.imresize(x, size=self.size) for x in images]
     return np.array(images), y, w
+
+
+class ANITransformer(Transformer):
+  """Performs transform from 3D coordinates to ANI symmetry functions
+  """
+
+  def __init__(self,
+               max_atoms=23,
+               radial_cutoff=4.6,
+               angular_cutoff=3.1,
+               radial_length=32,
+               angular_length=8,
+               atom_cases=[1, 6, 7, 8, 16],
+               atomic_number_differentiated=True,
+               coordinates_in_bohr=True,
+               transform_X=True,
+               transform_y=False,
+               transform_w=False):
+    """
+    Only X can be transformed
+    """
+    self.max_atoms = max_atoms
+    self.radial_cutoff = radial_cutoff
+    self.angular_cutoff = angular_cutoff
+    self.radial_length = radial_length
+    self.angular_length = angular_length
+    self.atom_cases = atom_cases
+    self.atomic_number_differentiated = atomic_number_differentiated
+    self.coordinates_in_bohr = coordinates_in_bohr
+    self.transform_X = transform_X
+    self.transform_y = transform_y
+    self.transform_w = transform_w
+    self.compute_graph = self.build()
+    assert self.transform_X
+    assert not self.transform_y
+    assert not self.transform_w
+
+  def transform_array(self, X, y, w):
+    if self.transform_X:
+      n_samples = X.shape[0]
+      batches = np.linspace(0, n_samples, int(n_samples / 100) + 1).astype(int)
+      X_out = []
+      sess = tf.Session(graph=self.compute_graph)
+      num_transformed = 0
+      for i, start in enumerate(batches):
+        if start == batches[-1]:
+          X_batch = X[start:]
+        else:
+          X_batch = X[start:batches[i + 1]]
+        output = sess.run([self.outputs], feed_dict={self.inputs: X_batch})[0]
+        X_out.append(output)
+        num_transformed = num_transformed + X_batch.shape[0]
+        print('%i samples transformed' % num_transformed)
+
+      X_new = np.concatenate(X_out, axis=0)
+      assert X_new.shape[0] == X.shape[0]
+    return (X_new, y, w)
+
+  def untransform(self, z):
+    raise NotImplementedError(
+        "Cannot untransform datasets with ANITransformer.")
+
+  def build(self):
+    """ tensorflow computation graph for transform """
+    graph = tf.Graph()
+    with graph.as_default():
+      self.inputs = tf.placeholder(tf.float32, shape=(None, self.max_atoms, 4))
+      atom_numbers = tf.cast(self.inputs[:, :, 0], tf.int32)
+      flags = tf.sign(atom_numbers)
+      flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
+      coordinates = self.inputs[:, :, 1:]
+      if self.coordinates_in_bohr:
+        coordinates = coordinates * 0.52917721092
+      d = self.distance_matrix(coordinates, flags)
+      d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
+      d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
+      radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
+      angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
+                                          coordinates)
+      self.outputs = tf.concat(
+          [
+              tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym,
+              angular_sym
+          ],
+          axis=2)
+    return graph
+
+  def distance_matrix(self, coordinates, flags):
+    """ Generate distance matrix """
+    max_atoms = self.max_atoms
+    tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
+    tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
+
+    # Calculate pairwise distance
+    d = tf.sqrt(tf.reduce_sum(tf.square(tensor1 - tensor2), axis=3))
+    # Masking for valid atom index
+    d = d * flags
+    return d
+
+  def distance_cutoff(self, d, cutoff, flags):
+    """ Generate distance matrix with trainable cutoff """
+    # Cutoff with threshold Rc
+    d_flag = flags * tf.sign(cutoff - d)
+    d_flag = tf.nn.relu(d_flag)
+    d_flag = d_flag * tf.expand_dims((1 - tf.eye(self.max_atoms)), 0)
+    d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
+    return d * d_flag
+
+  def radial_symmetry(self, d_cutoff, d, atom_numbers):
+    """ Radial Symmetry Function """
+    embedding = tf.eye(np.max(self.atom_cases) + 1)
+    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+
+    d_cutoff = tf.stack([d_cutoff] * self.radial_length, axis=3)
+    d = tf.stack([d] * self.radial_length, axis=3)
+
+    Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
+    ita = np.ones_like(Rs) * 1.25 / (Rs[1] - Rs[0])**2
+    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
+    ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+
+    out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for atom_type in self.atom_cases:
+        selected_atoms = tf.expand_dims(
+            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+            axis=3)
+        out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out, axis=2)
+
+  def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
+    """ Angular Symmetry Function """
+
+    max_atoms = self.max_atoms
+    embedding = tf.eye(np.max(self.atom_cases) + 1)
+    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+
+    Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
+    ita = 1.25 / (Rs[1] - Rs[0])**2
+    thetas = np.linspace(0., np.pi, self.angular_length)
+    zeta = float(self.angular_length**2)
+
+    ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
+    zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
+    ita = tf.to_float(np.reshape(ita, (1, 1, 1, 1, -1)))
+    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
+    thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
+    length = zeta.get_shape().as_list()[-1]
+
+    vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
+        [coordinates] * max_atoms, 2)
+    R_ij = tf.stack([d] * max_atoms, axis=3)
+    R_ik = tf.stack([d] * max_atoms, axis=2)
+    f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
+    f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
+
+    # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
+    vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
+        tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
+    vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
+    theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
+
+    R_ij = tf.stack([R_ij] * length, axis=4)
+    R_ik = tf.stack([R_ik] * length, axis=4)
+    f_R_ij = tf.stack([f_R_ij] * length, axis=4)
+    f_R_ik = tf.stack([f_R_ik] * length, axis=4)
+    theta = tf.stack([theta] * length, axis=4)
+
+    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
+        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik
+
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for id_j, atom_type_j in enumerate(self.atom_cases):
+        for atom_type_k in self.atom_cases[id_j:]:
+          selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
+                           tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
+          selected_atoms = tf.expand_dims(
+              tf.expand_dims(selected_atoms, axis=1), axis=4)
+          out_tensors.append(
+              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out_tensor, axis=(2, 3))
+
+  def get_num_feats(self):
+    n_feat = self.outputs.get_shape().as_list()[-1]
+    return n_feat

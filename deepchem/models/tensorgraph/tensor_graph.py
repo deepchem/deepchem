@@ -71,7 +71,8 @@ class TensorGraph(Model):
         tf.train.AdamOptimizer,
         learning_rate=learning_rate,
         beta1=0.9,
-        beta2=0.999)
+        beta2=0.999,
+        epsilon=1e-7)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -175,6 +176,7 @@ class TensorGraph(Model):
             break
           if self.global_step % checkpoint_interval == checkpoint_interval - 1:
             saver.save(sess, self.save_file, global_step=self.global_step)
+            self.last_checkpoint = saver.last_checkpoints[-1]
             avg_loss = float(avg_loss) / n_batches
             print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                               avg_loss))
@@ -467,6 +469,8 @@ class TensorGraph(Model):
       for node in self.topsort():
         node_layer = self.layers[node]
         out_tensors.append(node_layer.none_tensors())
+      optimizer = self.optimizer
+      self.optimizer = None
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
       self.built = False
@@ -486,6 +490,7 @@ class TensorGraph(Model):
         node_layer = self.layers[node]
         node_layer.set_tensors(out_tensors[index])
       self._training_placeholder = training_placeholder
+      self.optimizer = optimizer
       self.built = True
     self.tensor_objects = tensor_objects
     self.rnn_initial_states = rnn_initial_states
@@ -530,6 +535,9 @@ class TensorGraph(Model):
       return tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
 
+  def get_global_step(self):
+    return self._get_tf("GlobalStep")
+
   def _get_tf(self, obj):
     """
     TODO(LESWING) REALLY NEED TO DOCUMENT THIS
@@ -553,10 +561,13 @@ class TensorGraph(Model):
       self.tensor_objects['Optimizer'] = self.optimizer()
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = self._get_tf('Optimizer').minimize(
-          self.loss.out_tensor)
+          self.loss.out_tensor, global_step=self._get_tf('GlobalStep'))
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
           key=tf.GraphKeys.SUMMARIES)
+    elif obj == 'GlobalStep':
+      with self._get_tf("Graph").as_default():
+        self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
     return self._get_tf(obj)
 
   def _initialize_weights(self, sess, saver):
@@ -575,6 +586,7 @@ class TensorGraph(Model):
     if self.last_checkpoint is None:
       sess.run(tf.global_variables_initializer())
       saver.save(sess, self.save_file, global_step=self.global_step)
+      self.last_checkpoint = saver.last_checkpoints[-1]
     else:
       saver.restore(sess, self.last_checkpoint)
 
