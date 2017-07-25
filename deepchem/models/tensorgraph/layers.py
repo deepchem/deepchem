@@ -169,17 +169,26 @@ class AlphaShare(Layer):
         alphas = tf.Variable(tf.random_normal(
             [n_alphas, n_alphas]), name='alphas')
 
-        out_tensor = tf.matmul(alphas, subspaces)
+        #alphas = tf.constant(5.0, shape =[n_alphas, n_alphas])
+        subspaces = tf.matmul(alphas, subspaces)
 
         # concatenate subspaces, reshape to size of original input, then stack
         # such that out_tensor has shape (2,?,original_cols)
-        row = 0
-        lin_comb = []
-        for x in range(0, len(inputs)):
-            lin_comb.append(tf.reshape(
-                out_tensor[row:row + 2, ], [-1, original_cols]))
-            row += 2
-        out_tensor = tf.stack(lin_comb)
+
+        count = 0
+        out_tensor = []
+        tmp_tensor = []
+        for row in range(n_alphas):
+            tmp_tensor.append(tf.reshape(
+                subspaces[row, ], [-1, subspace_size]))
+            count += 1
+            if(count == 2):
+                out_tensor.append(tf.concat(tmp_tensor, 1))
+                tmp_tensor = []
+                count = 0
+
+        out_tensor = tf.stack(out_tensor)
+
         self.alphas = alphas
         if set_tensors:
             self.out_tensor = out_tensor
