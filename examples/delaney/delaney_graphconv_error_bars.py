@@ -48,7 +48,6 @@ print(mu[:4])
 print(sigma[:4])
 
 target = undo_transforms(valid_dataset.y, transformers)
-#target = valid_dataset.y
 
 print(r2_score(target, mu))
 

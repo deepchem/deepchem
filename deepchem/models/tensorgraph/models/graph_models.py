@@ -609,7 +609,19 @@ class GraphConvTensorGraph(TensorGraph):
         labels=self.my_labels,
         weights=[self.my_task_weights])
 
-  def bayesian_predict(self, X, transformers=[], n_passes=4, untransform=False):
+  def bayesian_predict(self,
+                       dataset,
+                       transformers=[],
+                       n_passes=4,
+                       untransform=False):
+    """Generates predictions and confidences on a dataset object
+     https://arxiv.org/pdf/1506.02142.pdf
+
+    # Returns:
+      mu: numpy ndarray of shape (n_samples, n_tasks)
+      sigma: numpy ndarray of shape (n_samples, n_tasks)
+    """
+    X = dataset.X
     max_index = X.shape[0] - 1
     num_batches = (max_index // self.batch_size) + 1
 
@@ -634,6 +646,11 @@ class GraphConvTensorGraph(TensorGraph):
     return mu[:max_index + 1], sigma[:max_index + 1]
 
   def predict_on_smiles(self, smiles, transformers=[], untransform=False):
+    """Generates predictions on a numpy array of smile strings
+
+    # Returns:
+      y_: numpy ndarray of shape (n_samples, n_tasks)
+    """
     max_index = len(smiles) - 1
     n_tasks = len(self.outputs)
     num_batches = (max_index // self.batch_size) + 1

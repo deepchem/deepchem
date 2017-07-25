@@ -306,6 +306,10 @@ class TensorGraph(Model):
                               featurizer,
                               n_tasks,
                               transformers=[]):
+    """
+    # Returns:
+      A numpy ndarray of shape (n_samples, n_tasks)
+    """
     convmols = featurize_smiles_np(smiles, featurizer)
 
     dataset = NumpyDataset(X=convmols, y=None, n_tasks=len(self.outputs))
