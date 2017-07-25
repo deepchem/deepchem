@@ -12,7 +12,7 @@ tf.set_random_seed(123)
 import deepchem as dc
 from datasets import load_tox21_convmol
 
-# Number of folds for split
+# Number of folds for split 
 K = 4
 # Depth of attention module
 max_depth = 3

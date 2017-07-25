@@ -23,15 +23,11 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
 model = dc.models.TensorflowLogisticRegression(
-    len(tox21_tasks),
-    n_features,
-    learning_rate=0.006,
-    penalty=0.05,
-    weight_init_stddevs=[0.002],
-    batch_size=32)
+    len(tox21_tasks), n_features, learning_rate=0.006, penalty = 0.05,
+    weight_init_stddevs=[0.002], batch_size=32)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset,nb_epoch = 50)
 model.save()
 
 print("Evaluating model")

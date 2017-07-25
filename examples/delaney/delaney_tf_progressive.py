@@ -25,20 +25,12 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 n_layers = 1
 nb_epoch = 10
 model = dc.models.ProgressiveMultitaskRegressor(
-    len(delaney_tasks),
-    n_features,
-    layer_sizes=[1000] * n_layers,
-    dropouts=[.25] * n_layers,
-    alpha_init_stddevs=[.02] * n_layers,
-    weight_init_stddevs=[.02] * n_layers,
-    bias_init_consts=[1.] * n_layers,
-    learning_rate=.001,
-    penalty=.0001,
-    penalty_type="l2",
-    optimizer="adam",
-    batch_size=100,
-    seed=123,
-    verbosity="high")
+    len(delaney_tasks), n_features,
+    layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
+    alpha_init_stddevs=[.02]*n_layers, weight_init_stddevs=[.02]*n_layers,
+    bias_init_consts=[1.]*n_layers, learning_rate=.001,
+    penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
+    seed=123, verbosity="high")
 
 # Fit trained model
 model.fit(train_dataset)

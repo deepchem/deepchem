@@ -228,8 +228,7 @@ def benchmark_loading_datasets(hyper_parameters,
       if mode == 'classification':
         for i in train_score:
           output_line = [
-              count, dataset,
-              str(split), mode, 'train', i,
+              count, dataset, str(split), mode, 'train', i,
               train_score[i]['mean-roc_auc_score'], 'valid', i,
               valid_score[i]['mean-roc_auc_score']
           ]
@@ -242,8 +241,7 @@ def benchmark_loading_datasets(hyper_parameters,
         for i in train_score:
           if metric == 'r2':
             output_line = [
-                count, dataset,
-                str(split), mode, 'train', i,
+                count, dataset, str(split), mode, 'train', i,
                 train_score[i]['mean-pearson_r2_score'], 'valid', i,
                 valid_score[i]['mean-pearson_r2_score']
             ]
@@ -254,8 +252,7 @@ def benchmark_loading_datasets(hyper_parameters,
                 ['time_for_running', time_finish_fitting - time_start_fitting])
           elif metric == 'mae':
             output_line = [
-                count, dataset,
-                str(split), mode, 'train', i,
+                count, dataset, str(split), mode, 'train', i,
                 train_score[i]['mean-mean_absolute_error'], 'valid', i,
                 valid_score[i]['mean-mean_absolute_error']
             ]

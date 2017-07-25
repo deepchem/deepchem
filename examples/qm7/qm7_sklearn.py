@@ -29,42 +29,31 @@ tasks = ["u0_atom"]
 smiles_field = "smiles"
 mol_field = "mol"
 
-featurizer = dc.data.SDFLoader(
-    tasks,
-    smiles_field=smiles_field,
-    mol_field=mol_field,
-    featurizer=featurizers)
+featurizer = dc.data.SDFLoader(tasks, smiles_field=smiles_field, mol_field=mol_field, featurizer=featurizers)
 dataset = featurizer.featurize(input_file, data_dir)
 random_splitter = dc.splits.RandomSplitter()
-train_dataset, test_dataset = random_splitter.train_test_split(
-    dataset, train_dir, test_dir, frac_train=0.8)
+train_dataset, test_dataset = random_splitter.train_test_split(dataset, train_dir, test_dir, frac_train=0.8)
 #transformers = [dc.trans.NormalizationTransformer(transform_X=True, dataset=train_dataset), dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
-transformers = [
-    dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)
-]
+transformers = [dc.trans.NormalizationTransformer(transform_y=True, dataset=train_dataset)]
 
 for transformer in transformers:
-  train_dataset = transformer.transform(train_dataset)
+    train_dataset = transformer.transform(train_dataset)
 for transformer in transformers:
-  test_dataset = transformer.transform(test_dataset)
+    test_dataset = transformer.transform(test_dataset)
 
-regression_metric = dc.metrics.Metric(
-    dc.metrics.mean_absolute_error, mode="regression")
-
+regression_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
 
 def model_builder(model_dir):
-  sklearn_model = KernelRidge(kernel="rbf", alpha=5e-4, gamma=0.008)
+  sklearn_model = KernelRidge(
+      kernel="rbf", alpha=5e-4, gamma=0.008)
   return dc.models.SklearnModel(sklearn_model, model_dir)
-
-
 model = dc.models.SingletaskToMultitask(tasks, model_builder, model_dir)
 
 # Fit trained model
 model.fit(train_dataset)
 model.save()
 
-train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset,
-                                              transformers)
+train_evaluator = dc.utils.evaluate.Evaluator(model, train_dataset, transformers)
 train_scores = train_evaluator.compute_model_performance([regression_metric])
 
 print("Train scores [kcal/mol]")

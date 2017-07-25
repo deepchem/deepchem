@@ -32,8 +32,8 @@ replace = False
 tox21_tasks, dataset, transformers = load_tox21_ecfp()
 
 # Define metric
-metric = Metric(
-    dc.metrics.roc_auc_score, verbosity="high", mode="classification")
+metric = Metric(dc.metrics.roc_auc_score, verbosity="high",
+                mode="classification")
 
 task_splitter = TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
@@ -46,13 +46,12 @@ for fold in range(K):
   test_dataset = fold_datasets[fold]
 
   fold_tasks = range(fold * len(test_dataset.get_task_names()),
-                     (fold + 1) * len(test_dataset.get_task_names()))
+                     (fold+1) * len(test_dataset.get_task_names()))
 
   # Get supports on test-set
   support_generator = SupportGenerator(
-      test_dataset,
-      range(len(test_dataset.get_task_names())), n_pos, n_neg, n_trials,
-      replace)
+      test_dataset, range(len(test_dataset.get_task_names())), n_pos, n_neg,
+      n_trials, replace)
 
   # Compute accuracies
   task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
@@ -66,7 +65,8 @@ for fold in range(K):
     # Test model
     task_dataset = get_task_dataset_minus_support(test_dataset, support, task)
     y_pred = model.predict_proba(task_dataset)
-    score = metric.compute_metric(task_dataset.y, y_pred, task_dataset.w)
+    score = metric.compute_metric(
+        task_dataset.y, y_pred, task_dataset.w)
     #print("Score on task %s is %s" % (str(task), str(score)))
     task_scores[task].append(score)
 
@@ -77,8 +77,7 @@ for fold in range(K):
   print("Fold %s" % str(fold))
   print(mean_task_scores)
 
-  for (fold_task, task) in zip(fold_tasks,
-                               range(len(test_dataset.get_task_names()))):
+  for (fold_task, task) in zip(fold_tasks, range(len(test_dataset.get_task_names()))):
     all_scores[fold_task] = mean_task_scores[task]
 
 print("All scores")

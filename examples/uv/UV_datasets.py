@@ -10,8 +10,7 @@ import shutil
 import time
 import numpy as np
 import deepchem as dc
-from uv_features import uv_descriptors
-
+from uv_features import uv_descriptors 
 
 def remove_missing_entries(dataset):
   """Remove missing entries.
@@ -21,14 +20,13 @@ def remove_missing_entries(dataset):
   """
   for i, (X, y, w, ids) in enumerate(dataset.itershards()):
     available_rows = X.any(axis=1)
-    print("Shard %d has %d missing entries." %
-          (i, np.count_nonzero(~available_rows)))
+    print("Shard %d has %d missing entries."
+        % (i, np.count_nonzero(~available_rows)))
     X = X[available_rows]
     y = y[available_rows]
     w = w[available_rows]
     ids = ids[available_rows]
     dataset.set_shard(i, X, y, w, ids)
-
 
 def get_transformers(train_dataset):
   """Get transformers applied to datasets."""
@@ -39,24 +37,18 @@ def get_transformers(train_dataset):
   #                                      dataset=train_dataset)]
   return transformers
 
-
 def remove_UV_negative_entries(dataset):
   """Remove negative entries from UV dataset.
 
   Negative entries are malformed for UV dataset. Remove them.
   """
   for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-    malformed = np.where(y <= 0)
+    malformed = np.where(y <= 0) 
     y[malformed] = 0
     w[malformed] = 0
     dataset.set_shard(i, X, y, w, ids)
 
-
-def gen_uv(UV_tasks,
-           raw_train_dir,
-           train_dir,
-           valid_dir,
-           test_dir,
+def gen_uv(UV_tasks, raw_train_dir, train_dir, valid_dir, test_dir,
            shard_size=10000):
   """Load UV datasets."""
   train_files = ("UV_training_disguised_combined_full.csv.gz")
@@ -95,7 +87,8 @@ def gen_uv(UV_tasks,
   raw_train_dataset = train_dataset
 
   for transformer in transformers:
-    print("Performing transformations with %s" % transformer.__class__.__name__)
+    print("Performing transformations with %s"
+          % transformer.__class__.__name__)
     print("Transforming dataset")
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
@@ -109,22 +102,24 @@ def gen_uv(UV_tasks,
   train_dataset.move(train_dir)
   valid_dataset.move(valid_dir)
   test_dataset.move(test_dir)
-
+  
   return (raw_train_dataset, train_dataset, valid_dataset, test_dataset)
-
 
 def load_uv(shard_size):
   """Loads uv datasets. Generates if not stored already."""
-  UV_tasks = (['logTIC'] + ['w__%d' % i for i in range(210, 401)])
+  UV_tasks = (['logTIC'] +
+                  ['w__%d' % i for i in range(210, 401)])
 
   current_dir = os.path.dirname(os.path.realpath(__file__))
   raw_train_dir = os.path.join(current_dir, "raw_train_dir")
-  train_dir = os.path.join(current_dir, "train_dir")
-  valid_dir = os.path.join(current_dir, "valid_dir")
-  test_dir = os.path.join(current_dir, "test_dir")
+  train_dir = os.path.join(current_dir, "train_dir") 
+  valid_dir = os.path.join(current_dir, "valid_dir") 
+  test_dir = os.path.join(current_dir, "test_dir") 
 
-  if (os.path.exists(raw_train_dir) and os.path.exists(train_dir) and
-      os.path.exists(valid_dir) and os.path.exists(test_dir)):
+  if (os.path.exists(raw_train_dir) and
+      os.path.exists(train_dir) and
+      os.path.exists(valid_dir) and
+      os.path.exists(test_dir)):
     print("Reloading existing datasets")
     raw_train_dataset = dc.data.DiskDataset(raw_train_dir)
     train_dataset = dc.data.DiskDataset(train_dir)

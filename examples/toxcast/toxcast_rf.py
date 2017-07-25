@@ -16,12 +16,10 @@ toxcast_tasks, toxcast_datasets, transformers = load_toxcast(
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean)
 
-
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=500, n_jobs=-1)
   return dc.models.SklearnModel(sklearn_model, model_dir)
-
 
 model = SingletaskToMultitask(toxcast_tasks, model_builder)
 

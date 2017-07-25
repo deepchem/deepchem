@@ -10,7 +10,7 @@ import deepchem as dc
 import tensorflow as tf
 from datasets import load_muv_convmol
 
-# Number of folds for split
+# Number of folds for split 
 K = 4
 # num positive/negative ligands
 n_pos = 10

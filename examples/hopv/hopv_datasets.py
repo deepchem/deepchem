@@ -32,7 +32,7 @@ def load_hopv(featurizer='ECFP', split='index'):
       tasks=hopv_tasks, smiles_field="smiles", featurizer=featurizer_func)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers
+  # Initialize transformers 
   transformers = [
       dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
   ]

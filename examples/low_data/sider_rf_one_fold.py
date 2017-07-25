@@ -26,13 +26,13 @@ metric = dc.metrics.Metric(dc.metrics.roc_auc_score, mode="classification")
 task_splitter = dc.splits.TaskSplitter()
 fold_datasets = task_splitter.k_fold_split(dataset, K)
 
-train_folds = fold_datasets[:-1]
+train_folds = fold_datasets[:-1] 
 train_dataset = dc.splits.merge_fold_datasets(train_folds)
 test_dataset = fold_datasets[-1]
 
 # Get supports on test-set
-support_generator = dc.data.SupportGenerator(test_dataset, n_pos, n_neg,
-                                             n_trials)
+support_generator = dc.data.SupportGenerator(
+    test_dataset, n_pos, n_neg, n_trials)
 
 # Compute accuracies
 task_scores = {task: [] for task in range(len(test_dataset.get_task_names()))}
@@ -44,10 +44,11 @@ for (task, support) in support_generator:
   model.fit(support)
 
   # Test model
-  task_dataset = dc.data.get_task_dataset_minus_support(test_dataset, support,
-                                                        task)
+  task_dataset = dc.data.get_task_dataset_minus_support(
+      test_dataset, support, task)
   y_pred = model.predict_proba(task_dataset)
-  score = metric.compute_metric(task_dataset.y, y_pred, task_dataset.w)
+  score = metric.compute_metric(
+      task_dataset.y, y_pred, task_dataset.w)
   print("Score on task %s is %s" % (str(task), str(score)))
   task_scores[task].append(score)
 
