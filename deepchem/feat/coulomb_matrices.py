@@ -16,6 +16,27 @@ import deepchem as dc
 from rdkit import Chem
 from deepchem.feat import Featurizer
 from deepchem.utils import pad_array
+from deepchem.feat.atomic_coordinates import AtomicCoordinates
+
+
+class BPSymmetryFunction(Featurizer):
+  """
+  Calculate Symmetry Function for each atom in the molecules
+  Methods described in https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.98.146401
+  """
+
+  def __init__(self, max_atoms):
+    self.max_atoms = max_atoms
+
+  def _featurize(self, mol):
+    coordfeat = AtomicCoordinates()
+    coordinates = coordfeat._featurize(mol)[0]
+    atom_numbers = np.array([atom.GetAtomicNum() for atom in mol.GetAtoms()])
+    atom_numbers = np.expand_dims(atom_numbers, axis=1)
+    assert atom_numbers.shape[0] == coordinates.shape[0]
+    n_atoms = atom_numbers.shape[0]
+    features = np.concatenate([atom_numbers, coordinates], axis=1)
+    return np.pad(features, ((0, self.max_atoms - n_atoms), (0, 0)), 'constant')
 
 
 class CoulombMatrix(Featurizer):

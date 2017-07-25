@@ -20,7 +20,7 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
-  if featurizer == 'CoulombMatrix':
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction']:
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
@@ -56,6 +56,13 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
         smiles_field="smiles",
         mol_field="mol",
         featurizer=featurizer)
+  elif featurizer == 'BPSymmetryFunction':
+    featurizer = deepchem.feat.BPSymmetryFunction(29)
+    loader = deepchem.data.SDFLoader(
+        tasks=qm9_tasks,
+        smiles_field="smiles",
+        mol_field="mol",
+        featurizer=featurizer)
   else:
     if featurizer == 'ECFP':
       featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -72,7 +79,8 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   splitters = {
       'index': deepchem.splits.IndexSplitter(),
       'random': deepchem.splits.RandomSplitter(),
-      'stratified': deepchem.splits.SingletaskStratifiedSplitter(task_number=11)
+      'stratified': deepchem.splits.SingletaskStratifiedSplitter(
+          task_number=11)
   }
   splitter = splitters[split]
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(

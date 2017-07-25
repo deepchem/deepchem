@@ -1,6 +1,3 @@
-"""
-Script that trains DTNN models on qm7 dataset.
-"""
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -12,8 +9,21 @@ tf.set_random_seed(123)
 import deepchem as dc
 
 # Load Tox21 dataset
-tasks, datasets, transformers = dc.molnet.load_qm7_from_mat()
+tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
+    featurizer='BPSymmetryFunction')
 train_dataset, valid_dataset, test_dataset = datasets
+
+# Batch size of models
+max_atoms = 23
+batch_size = 16
+layer_structures = [128, 128, 64]
+
+ANItransformer = dc.trans.ANITransformer(
+    max_atoms=max_atoms, atomic_number_differentiated=False)
+train_dataset = ANItransformer.transform(train_dataset)
+valid_dataset = ANItransformer.transform(valid_dataset)
+test_dataset = ANItransformer.transform(test_dataset)
+n_feat = ANItransformer.get_num_feats() - 1
 
 # Fit models
 metric = [
@@ -21,29 +31,18 @@ metric = [
     dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
 
-# Batch size of models
-batch_size = 50
-n_embedding = 30
-n_distance = 51
-distance_min = -1.
-distance_max = 9.2
-n_hidden = 15
-
-model = dc.models.DTNNTensorGraph(
+model = dc.models.BPSymmetryFunctionRegression(
     len(tasks),
-    n_embedding=n_embedding,
-    n_hidden=n_hidden,
-    n_distance=n_distance,
-    distance_min=distance_min,
-    distance_max=distance_max,
-    output_activation=False,
+    max_atoms,
+    n_feat,
+    layer_structures=layer_structures,
     batch_size=batch_size,
-    learning_rate=0.0001,
+    learning_rate=0.001,
     use_queue=False,
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=1000)
+model.fit(train_dataset, nb_epoch=20, checkpoint_interval=1000)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)

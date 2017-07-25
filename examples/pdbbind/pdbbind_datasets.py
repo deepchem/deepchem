@@ -161,19 +161,16 @@ def compute_atomic_conv_features(tasks, data_dir, pdbbind_dir, y, ids):
 
 
 def compute_single_pdbbind_feature(x):
-  ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
-  print("Processing complex %d, %s" % (ind, str(pdb_code)))
-  pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
   try:
+    ind, pdb_code, pdbbind_dir, featurizer = x[0], x[1], x[2], x[3]
+    print("Processing complex %d, %s" % (ind, str(pdb_code)))
+    pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
     computed_feature = compute_pdbbind_features(featurizer, pdb_subdir,
                                                 pdb_code)
-  except MoleculeLoadException as e:
-    logging.warning("Unable to compute features for %s" % x)
-    return None
+    return ind, computed_feature
   except Exception as e:
-    logging.warning("Unable to compute features for %s" % x)
+    logging.warning("Unable to compute features for %s" % str(x))
     return None
-  return ind, computed_feature
 
 
 def compute_pdbbind_features(grid_featurizer, pdb_subdir, pdb_code):

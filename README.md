@@ -3,9 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
 
 DeepChem aims to provide a high quality open-source toolchain that
-democratizes the use of deep-learning in drug discovery, materials science, and quantum
-chemistry. DeepChem is a package developed by the [Pande group](https://pande.stanford.edu/) at
-Stanford and originally created by [Bharath Ramsundar](http://rbharath.github.io/).
+democratizes the use of deep-learning in drug discovery, materials science, and quantum chemistry.
 
 ### Table of contents:
 
@@ -712,7 +710,9 @@ Approaches](http://pubs.acs.org/doi/abs/10.1021/acs.jcim.6b00290)
 4. [Atomic Convolutional Networks for Predicting Protein-Ligand Binding Affinity](https://arxiv.org/abs/1703.10603)
 
 ## About Us
-DeepChem is a package from the [Pande group](https://pande.stanford.edu/) at Stanford with significant contributions from many academic and industrial collaborators. In particular, DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
+DeepChem is possible due to notable contributions from many people including Peter Eastman, Evan Feinberg, Joe Gomes, Karl Leswing, Vijay Pande, Aneesh Pappu, Bharath Ramsundar and Michael Wu (alphabetical ordering).  DeepChem was originally created by [Bharath Ramsundar](http://rbharath.github.io/) with encouragement and guidance from [Vijay Pande](https://pande.stanford.edu/).
+
+DeepChem started as a [Pande group](https://pande.stanford.edu/) project at Stanford, and is now developed by many academic and industrial collaborators. DeepChem actively encourages new academic and industrial groups to contribute!
 
 ## Corporate Supporters
 DeepChem is supported by a number of corporate partners who use DeepChem to solve interesting problems.
