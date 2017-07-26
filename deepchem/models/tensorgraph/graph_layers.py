@@ -799,3 +799,115 @@ class DAGGather(Layer):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
     return outputs
+
+class MessagePassing(Layer):
+  """ General class for MPNN """
+
+  def __init__(self,
+               T,
+               message_fn='enn',
+               update_fn='gru',
+               n_hidden=100,
+               **kwargs):
+    """
+        Parameters
+        ----------
+        T: int
+          Number of message passing steps
+        message_fn: str, optional
+          message function in the model
+        update_fn: str, optional
+          update function in the model
+        n_hidden: int, optional
+          number of hidden units in the passing phase
+        """
+    
+    self.T = T
+    self.message_fn = message_fn
+    self.update_fn = update_fn
+    self.n_hidden = n_hidden
+    super(MessagePassing, self).__init__(**kwargs)
+
+  def build(self, pair_features, n_pair_features):
+    if self.message_fn == 'enn':
+      self.message_function = EdgeNetwork(pair_features, 
+                                          n_pair_features,
+                                          self.n_hidden)
+    if self.update_fn == 'gru':
+      self.update_function = GatedRecurrentUnit(self.n_hidden)
+  
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Perform T steps of message passing """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    # Extract atom_features
+    atom_features = in_layers[0].out_tensor
+    pair_features = in_layers[1].out_tensor
+    atom_to_pair = in_layers[2].out_tensor
+    n_atom_features = atom_features.get_shape().as_list()[-1]
+    n_pair_features = pair_features.get_shape().as_list()[-1]
+    # Add trainable weights
+    self.build(pair_features, n_pair_features)
+    
+    if n_atom_features < self.n_hidden:
+      pad_length = self.n_hidden - n_atom_features
+      out = tf.pad(atom_features, ((0,0), (0, pad_length)), mode='CONSTANT')
+    elif n_atom_features > self.n_hidden:
+      raise ValueError("Too large initial feature vector")
+    
+    for i in range(self.T):
+      message = self.message_function.forward(out, atom_to_pair)
+      out = self.update_function.forward(out, message)
+    
+    out_tensor = out
+    
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
+
+class EdgeNetwork(object):
+  """ Submodule for Message Passing """
+  def __init__(self, 
+               pair_features,
+               n_pair_features=8, 
+               n_hidden=100, 
+               init='glorot_uniform'):
+    self.n_pair_features = n_pair_features
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    W = self.init([n_pair_features, n_hidden*n_hidden])
+    b = model_ops.zeros(shape=(n_hidden*n_hidden,))
+    self.A = tf.nn.xw_plus_b(pair_features, W, b)
+    
+  
+  def forward(self, atom_features, atom_to_pair):
+    return tf.gather(atom_features, atom_to_pair[:,1]) * self.A
+
+class GatedRecurrentUnit(object):
+  """ Submodule for Message Passing """
+  def __init__(self, n_hidden=100, init='glorot_uniform'):
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    self.Wz = self.init([n_hidden, n_hidden])
+    self.Wr = self.init([n_hidden, n_hidden])
+    self.Wh = self.init([n_hidden, n_hidden])
+    self.Uz = self.init([n_hidden, n_hidden])
+    self.Ur = self.init([n_hidden, n_hidden])
+    self.Uh = self.init([n_hidden, n_hidden])
+    self.bz = model_ops.zeros(shape=(n_hidden,))
+    self.br = model_ops.zeros(shape=(n_hidden,))
+    self.bh = model_ops.zeros(shape=(n_hidden,))
+    
+  def forward(self, inputs, messages):
+    z = tf.nn.sigmoid(tf.matmul(messages, self.Wz) + \
+                      tf.matmul(inputs, self.Uz) + self.bz)
+    r = tf.nn.sigmoid(tf.matmul(messages, self.Wr) + \
+                      tf.matmul(inputs, self.Ur) + self.br)
+    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.Wh) + \
+                           tf.matmul(inputs * r, self.Uh) + self.bh) + \
+         z * inputs
+    return h
+    

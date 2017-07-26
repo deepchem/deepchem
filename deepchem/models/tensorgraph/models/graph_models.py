@@ -632,3 +632,145 @@ class GraphConvTensorGraph(TensorGraph):
     y_ = self.predict_on_generator(generator, transformers)
 
     return y_.reshape(-1, n_tasks)[:n_smiles]
+
+class MPNNTensorGraph(TensorGraph):
+
+  def __init__(self,
+               n_tasks,
+               n_atom_feat=70,
+               n_pair_feat=8,
+               n_hidden=100,
+               T=5,
+               **kwargs):
+    """
+        Parameters
+        ----------
+        n_tasks: int
+          Number of tasks
+        n_atom_feat: int, optional
+          Number of features per atom.
+        n_pair_feat: int, optional
+          Number of features per pair of atoms.
+        n_hidden: int, optional
+          Number of units(convolution depths) in corresponding hidden layer
+        n_graph_feat: int, optional
+          Number of output features for each molecule(graph)
+
+        """
+    self.n_tasks = n_tasks
+    self.n_atom_feat = n_atom_feat
+    self.n_pair_feat = n_pair_feat
+    self.n_hidden = n_hidden
+    self.T = T
+    super(MPNNTensorGraph, self).__init__(**kwargs)
+    self.build_graph()
+
+  def build_graph(self):
+    """Building graph structures:
+        Features => WeaveLayer => WeaveLayer => Dense => WeaveGather => Classification or Regression
+        """
+    self.atom_features = Feature(shape=(None, self.n_atom_feat))
+    self.pair_features = Feature(shape=(None, self.n_pair_feat))
+    self.pair_split = Feature(shape=(None,), dtype=tf.int32)
+    self.atom_split = Feature(shape=(None,), dtype=tf.int32)
+    self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
+    
+    message_passing = MessagePassing(self.T, 
+                                     message_fn='enn', 
+                                     update_fn='gru',
+                                     self.n_hidden,
+                                     in_layers=[self.atom_features,
+                                                self.pair_features,
+                                                self.atom_to_pair])
+    
+    
+
+    costs = []
+    self.labels_fd = []
+    for task in range(self.n_tasks):
+      if self.mode == "classification":
+        classification = Dense(
+            out_channels=2, activation_fn=None, in_layers=[weave_gather])
+        softmax = SoftMax(in_layers=[classification])
+        self.add_output(softmax)
+
+        label = Label(shape=(None, 2))
+        self.labels_fd.append(label)
+        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
+        costs.append(cost)
+      if self.mode == "regression":
+        regression = Dense(
+            out_channels=1, activation_fn=None, in_layers=[weave_gather])
+        self.add_output(regression)
+
+        label = Label(shape=(None, 1))
+        self.labels_fd.append(label)
+        cost = L2Loss(in_layers=[label, regression])
+        costs.append(cost)
+    if self.mode == "classification":
+      all_cost = Concat(in_layers=costs, axis=1)
+    elif self.mode == "regression":
+      all_cost = Stack(in_layers=costs, axis=1)
+    self.weights = Weights(shape=(None, self.n_tasks))
+    loss = WeightedError(in_layers=[all_cost, self.weights])
+    self.set_loss(loss)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        pad_batches=True):
+    """ TensorGraph style implementation
+        similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
+        """
+    for epoch in range(epochs):
+      if not predict:
+        print('Starting epoch %i' % epoch)
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=self.batch_size,
+          deterministic=True,
+          pad_batches=pad_batches):
+
+        feed_dict = dict()
+        if y_b is not None and not predict:
+          for index, label in enumerate(self.labels_fd):
+            if self.mode == "classification":
+              feed_dict[label] = to_one_hot(y_b[:, index])
+            if self.mode == "regression":
+              feed_dict[label] = y_b[:, index:index + 1]
+        if w_b is not None and not predict:
+          feed_dict[self.weights] = w_b
+
+        atom_feat = []
+        pair_feat = []
+        atom_split = []
+        atom_to_pair = []
+        pair_split = []
+        start = 0
+        for im, mol in enumerate(X_b):
+          n_atoms = mol.get_num_atoms()
+          # number of atoms in each molecule
+          atom_split.extend([im] * n_atoms)
+          # index of pair features
+          C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+          atom_to_pair.append(
+              np.transpose(
+                  np.array([C1.flatten() + start,
+                            C0.flatten() + start])))
+          # number of pairs for each atom
+          pair_split.extend(C1.flatten() + start)
+          start = start + n_atoms
+
+          # atom features
+          atom_feat.append(mol.get_atom_features())
+          # pair features
+          pair_feat.append(
+              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                                   self.n_pair_feat)))
+
+        feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
+        feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
+        feed_dict[self.pair_split] = np.array(pair_split)
+        feed_dict[self.atom_split] = np.array(atom_split)
+        feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
+        yield feed_dict
