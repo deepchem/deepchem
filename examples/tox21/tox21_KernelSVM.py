@@ -26,10 +26,12 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
+
 def model_builder(model_dir):
-  sklearn_model = SVC(
-      C=1.0, class_weight="balanced", probability=True)
+  sklearn_model = SVC(C=1.0, class_weight="balanced", probability=True)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
+
 model_dir = tempfile.mkdtemp()
 model = dc.models.SingletaskToMultitask(tox21_tasks, model_builder, model_dir)
 
