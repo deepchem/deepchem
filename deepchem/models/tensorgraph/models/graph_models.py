@@ -6,7 +6,7 @@ from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
-    DAGGather, DTNNExtract, MessagePassing
+    DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
     SoftMaxCrossEntropy, GraphConv, BatchNorm, \
     GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
@@ -684,10 +684,12 @@ class MPNNTensorGraph(TensorGraph):
 
   def __init__(self,
                n_tasks,
+               batch_size,
                n_atom_feat=70,
                n_pair_feat=8,
                n_hidden=100,
                T=5,
+               M=10,
                **kwargs):
     """
         Parameters
@@ -705,20 +707,18 @@ class MPNNTensorGraph(TensorGraph):
 
         """
     self.n_tasks = n_tasks
+    self.batch_size = batch_size
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     self.n_hidden = n_hidden
     self.T = T
+    self.M = M
     super(MPNNTensorGraph, self).__init__(**kwargs)
     self.build_graph()
 
   def build_graph(self):
-    """Building graph structures:
-        Features => WeaveLayer => WeaveLayer => Dense => WeaveGather => Classification or Regression
-        """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
-    self.pair_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
 
@@ -730,15 +730,20 @@ class MPNNTensorGraph(TensorGraph):
                                                 self.pair_features,
                                                 self.atom_to_pair])
     atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
-
-
-
+    mol_embeddings = SetGather(self.M, 
+                               self.batch_size, 
+                               n_hidden=self.n_hidden,
+                               in_layers=[atom_embeddings, self.atom_split])
+    
+    dense1 = Dense(out_channels=2*self.n_hidden, 
+                   activation_fn=tf.nn.relu, 
+                   in_layers=[mol_embeddings])
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[])
+            out_channels=2, activation_fn=None, in_layers=[dense1])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
 
@@ -748,7 +753,7 @@ class MPNNTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == "regression":
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[])
+            out_channels=1, activation_fn=None, in_layers=[dense1])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -818,7 +823,6 @@ class MPNNTensorGraph(TensorGraph):
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
-        feed_dict[self.pair_split] = np.array(pair_split)
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict

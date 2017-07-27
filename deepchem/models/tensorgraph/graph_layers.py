@@ -918,6 +918,7 @@ class SetGather(Layer):
                M,
                batch_size,
                n_hidden=100,
+               init='orthogonal',
                **kwargs):
     """
         Parameters
@@ -935,32 +936,55 @@ class SetGather(Layer):
     self.M = M
     self.batch_size = batch_size
     self.n_hidden = n_hidden
+    self.init = initializations.get(init)
     super(SetGather, self).__init__(**kwargs)
 
   def build(self, pair_features, n_pair_features):
-    self.state = tf.zeros((self.batch_size, self.n_hidden))
-    self.lstm_cell = tf.contrib.rnn.BasicLSTMCell(self.n_hidden,
-                                                  state_is_tuple=False)
+    self.U = self.init((2*self.n_hidden, 4*self.n_hidden))
+    self.b = tf.Variable(
+        np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
+                        np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
+        dtype=tf.float32)
+    
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Perform T steps of message passing """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-
+    
+    self.build()
     # Extract atom_features
     atom_features = in_layers[0].out_tensor
     atom_split = in_layers[1].out_tensor
 
+    c = tf.zeros((self.batch_size, self.n_hidden))
+    h = tf.zeros((self.batch_size, self.n_hidden))
+    
     for i in range(self.M):
-      q_expanded = tf.gather(self.state, atom_split)
+      q_expanded = tf.gather(h, atom_split)
       e = tf.reduce_sum(atom_features * q_expanded, 1)
       e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
-      a = [tf.nn.softmax(e_mol) for e_mol in e_mols]
+      a = tf.concat([tf.nn.softmax(e_mol) for e_mol in e_mols], 0)
+      r = tf.segment_sum(tf.reshape(a, [-1,1]) * atom_features, atom_split)
+      q_star = tf.concat([h, r], axis=1)
+      h, c = self.LSTMStep(q_star, c)
 
-
-
+    out_tensor = q_star
     if set_tensors:
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
+
+  def LSTMStep(self, h, c, x=None):
+
+    # Taken from Keras code [citation needed]
+    z = tf.nn.xw_plus_b(h, self.U, self.b)
+    i = tf.nn.sigmoid(z[:, :self.n_hidden])
+    f = tf.nn.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
+    o = tf.nn.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])
+    z3 = z[:, 3 * self.n_hidden:]
+    c_out = f * c + i * tf.nn.tanh(z3)
+    h_out = o * tf.nn.tanh(c_out)
+
+    return h_out, c_out
