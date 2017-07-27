@@ -5,6 +5,7 @@ from deepchem.models.tensorgraph import TFWrapper
 from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
+import collections
 import copy
 import multiprocessing
 import os
@@ -119,6 +120,7 @@ class A3C(object):
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
     self.use_hindsight = use_hindsight
+    self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
     if optimizer is None:
       self._optimizer = TFWrapper(
           tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
@@ -133,7 +135,10 @@ class A3C(object):
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
-    features = [Feature(shape=[None] + list(s)) for s in self._env.state_shape]
+    state_shape = self._env.state_shape
+    if not self._state_is_list:
+      state_shape = [state_shape]
+    features = [Feature(shape=[None] + list(s)) for s in state_shape]
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
@@ -235,6 +240,8 @@ class A3C(object):
     -------
     the array of action probabilities, and the estimated value function
     """
+    if not self._state_is_list:
+      state = [state]
     with self._graph._get_tf("Graph").as_default():
       feed_dict = self._create_feed_dict(state, use_saved_states)
       tensors = [self._action_prob.out_tensor, self._value.out_tensor]
@@ -277,6 +284,8 @@ class A3C(object):
     -------
     the index of the selected action
     """
+    if not self._state_is_list:
+      state = [state]
     with self._graph._get_tf("Graph").as_default():
       feed_dict = self._create_feed_dict(state, use_saved_states)
       tensors = [self._action_prob.out_tensor]
@@ -424,10 +433,13 @@ class _Worker(object):
 
     # Rearrange the states into the proper set of arrays.
 
-    state_arrays = [[] for i in range(len(self.features))]
-    for state in states:
-      for j in range(len(state)):
-        state_arrays[j].append(state[j])
+    if self.a3c._state_is_list:
+      state_arrays = [[] for i in range(len(self.features))]
+      for state in states:
+        for j in range(len(state)):
+          state_arrays[j].append(state[j])
+    else:
+      state_arrays = [states]
 
     # Build the feed dict and apply gradients.
 
@@ -446,23 +458,29 @@ class _Worker(object):
     """Create a new rollout by applying hindsight to an existing one, then train the network."""
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
-    rnn_states = initial_rnn_states
-    values = []
-    session = self.a3c._session
-    for state in hindsight_states:
-      feed_dict = self.create_feed_dict(state)
-      results = session.run(
-          [self.value.out_tensor] + self.graph.rnn_final_states,
-          feed_dict=feed_dict)
-      values.append(float(results[0]))
-      rnn_states = results[1:]
-    values.append(0.0)
+    if self.a3c._state_is_list:
+      state_arrays = [[] for i in range(len(self.features))]
+      for state in hindsight_states:
+        for j in range(len(state)):
+          state_arrays[j].append(state[j])
+    else:
+      state_arrays = [hindsight_states]
+    feed_dict = {}
+    for placeholder, value in zip(self.graph.rnn_initial_states,
+                                  initial_rnn_states):
+      feed_dict[placeholder] = value
+    for f, s in zip(self.features, state_arrays):
+      feed_dict[f.out_tensor] = s
+    values = self.a3c._session.run(self.value.out_tensor, feed_dict=feed_dict)
+    values = np.append(values.flatten(), 0.0)
     self.process_rollout(hindsight_states, actions,
                          np.array(rewards), np.array(values),
                          initial_rnn_states)
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""
+    if not self.a3c._state_is_list:
+      state = [state]
     feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
                      for f, s in zip(self.features, state))
     for (placeholder, value) in zip(self.graph.rnn_initial_states,
