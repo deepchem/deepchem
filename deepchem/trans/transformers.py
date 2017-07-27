@@ -155,7 +155,16 @@ class NormalizationTransformer(Transformer):
     if self.transform_X:
       return z * self.X_stds + self.X_means
     elif self.transform_y:
-      return z * self.y_stds + self.y_means
+      y_stds = self.y_stds
+      y_means = self.y_means
+      n_tasks = self.y_stds.shape[0]
+      z_shape = list(z.shape)
+      z_shape.reverse()
+      for dim in z_shape:
+        if dim != n_tasks and dim == 1:
+          y_stds = np.expand_dims(y_stds, -1)
+          y_means = np.expand_dims(y_means, -1)
+      return z * y_stds + y_means
 
   def untransform_grad(self, grad, tasks):
     """
