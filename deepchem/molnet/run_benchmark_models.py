@@ -315,11 +315,11 @@ def benchmark_classification(train_dataset,
     def model_builder(model_dir_rf):
       sklearn_model = RandomForestClassifier(
           class_weight="balanced", n_estimators=n_estimators, n_jobs=-1)
-      return deepchem.models.sklearn_models.SklearnModel(sklearn_model,
-                                                         model_dir_rf)
+      return deepchem.models.sklearn_models.SklearnModel(
+          sklearn_model, model_dir_rf)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   elif model_name == 'kernelsvm':
     # Loading hyper parameters
@@ -329,14 +329,12 @@ def benchmark_classification(train_dataset,
 
     # Building scikit learn Kernel SVM model
     def model_builder(model_dir_kernelsvm):
-      sklearn_model = SVC(C=C,
-                          gamma=gamma,
-                          class_weight="balanced",
-                          probability=True)
+      sklearn_model = SVC(
+          C=C, gamma=gamma, class_weight="balanced", probability=True)
       return deepchem.models.SklearnModel(sklearn_model, model_dir_kernelsvm)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   elif model_name == 'xgb':
     # Loading hyper parameters
@@ -376,11 +374,11 @@ def benchmark_classification(train_dataset,
           scale_pos_weight=scale_pos_weight,
           base_score=base_score,
           seed=seed)
-      return deepchem.models.xgboost_models.XGBoostModel(xgboost_model,
-                                                         model_dir_xgb, **esr)
+      return deepchem.models.xgboost_models.XGBoostModel(
+          xgboost_model, model_dir_xgb, **esr)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   if nb_epoch is None:
     model.fit(train_dataset)
@@ -711,8 +709,8 @@ def benchmark_regression(train_dataset,
       return deepchem.models.sklearn_models.SklearnModel(
           sklearn_model, model_dir_rf_regression)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
   elif model_name == 'krr':
     # Loading hyper parameters
     alpha = hyper_parameters['alpha']
@@ -724,8 +722,8 @@ def benchmark_regression(train_dataset,
       sklearn_model = KernelRidge(kernel="rbf", alpha=alpha, gamma=gamma)
       return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   elif model_name == 'xgb_regression':
     # Loading hyper parameters
@@ -765,11 +763,11 @@ def benchmark_regression(train_dataset,
           scale_pos_weight=scale_pos_weight,
           base_score=base_score,
           seed=seed)
-      return deepchem.models.xgboost_models.XGBoostModel(xgboost_model,
-                                                         model_dir_xgb, **esr)
+      return deepchem.models.xgboost_models.XGBoostModel(
+          xgboost_model, model_dir_xgb, **esr)
 
-    model = deepchem.models.multitask.SingletaskToMultitask(tasks,
-                                                            model_builder)
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
 
   print('-----------------------------')
   print('Start fitting: %s' % model_name)

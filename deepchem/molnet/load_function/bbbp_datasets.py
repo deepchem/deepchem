@@ -47,7 +47,7 @@ def load_bbbp(featurizer='ECFP', split='random', reload=True):
   loader = deepchem.data.CSVLoader(
       tasks=bbbp_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]

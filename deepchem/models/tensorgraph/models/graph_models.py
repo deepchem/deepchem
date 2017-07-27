@@ -154,7 +154,8 @@ class WeaveTensorGraph(TensorGraph):
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
               np.transpose(
-                  np.array([C1.flatten() + start, C0.flatten() + start])))
+                  np.array([C1.flatten() + start,
+                            C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
@@ -483,8 +484,7 @@ class GraphConvTensorGraph(TensorGraph):
 
     """
     self.n_tasks = n_tasks
-    self.error_bars = True if 'error_bars' in kwargs and kwargs[
-        'error_bars'] else False
+    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     kwargs['use_queue'] = False
     super(GraphConvTensorGraph, self).__init__(**kwargs)
     self.build_graph()
