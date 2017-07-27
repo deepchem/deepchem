@@ -585,8 +585,8 @@ class Stack(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
-    
-    
+
+
 class Constant(Layer):
   """Output a constant value."""
 
@@ -1436,8 +1436,8 @@ class NeighborList(Layer):
     # List of length N_atoms each of shape (M_nbrs)
     padded_dists = [
         tf.reduce_sum((atom_coord - padded_nbr_coord)**2, axis=1)
-        for (atom_coord,
-             padded_nbr_coord) in zip(atom_coords, padded_nbr_coords)
+        for (atom_coord, padded_nbr_coord
+            ) in zip(atom_coords, padded_nbr_coords)
     ]
 
     padded_closest_nbrs = [
@@ -1448,8 +1448,8 @@ class NeighborList(Layer):
     # N_atoms elts of size (M_nbrs,) each
     padded_neighbor_list = [
         tf.gather(padded_atom_nbrs, padded_closest_nbr)
-        for (padded_atom_nbrs,
-             padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
+        for (padded_atom_nbrs, padded_closest_nbr
+            ) in zip(padded_nbrs, padded_closest_nbrs)
     ]
 
     neighbor_list = tf.stack(padded_neighbor_list)

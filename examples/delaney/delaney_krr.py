@@ -27,9 +27,10 @@ metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
 
 def model_builder(model_dir):
-  sklearn_model = KernelRidge(
-      kernel="rbf", alpha=1e-3, gamma=0.05)
+  sklearn_model = KernelRidge(kernel="rbf", alpha=1e-3, gamma=0.05)
   return dc.models.SklearnModel(sklearn_model, model_dir)
+
+
 model_dir = tempfile.mkdtemp()
 model = dc.models.SingletaskToMultitask(delaney_tasks, model_builder, model_dir)
 

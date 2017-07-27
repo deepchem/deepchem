@@ -19,6 +19,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVC
 from sklearn.kernel_ridge import KernelRidge
 
+
 def benchmark_classification(train_dataset,
                              valid_dataset,
                              test_dataset,
@@ -326,11 +327,14 @@ def benchmark_classification(train_dataset,
     gamma = hyper_parameters['gamma']
     nb_epoch = None
 
-    # Building scikit random forest model
+    # Building scikit learn Kernel SVM model
     def model_builder(model_dir_kernelsvm):
-      sklearn_model = SVC(
-          C=C, gamma=gamma, class_weight="balanced", probability=True)
+      sklearn_model = SVC(C=C,
+                          gamma=gamma,
+                          class_weight="balanced",
+                          probability=True)
       return deepchem.models.SklearnModel(sklearn_model, model_dir_kernelsvm)
+
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)
 
@@ -660,13 +664,15 @@ def benchmark_regression(train_dataset,
     nb_epoch = hyper_parameters['nb_epoch']
     learning_rate = hyper_parameters['learning_rate']
     layer_structures = hyper_parameters['layer_structures']
-    
-    assert len(n_features) == 2, 'DTNN is only applicable to qm datasets'
+
+    assert len(n_features) == 2, 'ANI is only applicable to qm datasets'
     max_atoms = n_features[0]
-    atom_number_cases = np.unique(np.concatenate([train_dataset.X[:,:,0], 
-                                                  valid_dataset.X[:,:,0], 
-                                                  test_dataset.X[:,:,0]]))
-    
+    atom_number_cases = np.unique(
+        np.concatenate([
+            train_dataset.X[:, :, 0], valid_dataset.X[:, :, 0],
+            test_dataset.X[:, :, 0]
+        ]))
+
     atom_number_cases = atom_number_cases.astype(int).tolist()
     try:
       # Remove token for paddings
@@ -692,7 +698,7 @@ def benchmark_regression(train_dataset,
         use_queue=False,
         mode="regression",
         random_seed=seed)
-    
+
   elif model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -713,10 +719,11 @@ def benchmark_regression(train_dataset,
     gamma = hyper_parameters['gamma']
     nb_epoch = None
 
-    # Building scikit random forest model
+    # Building scikit learn Kernel Ridge Regression model
     def model_builder(model_dir_krr):
       sklearn_model = KernelRidge(kernel="rbf", alpha=alpha, gamma=gamma)
       return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
+
     model = deepchem.models.multitask.SingletaskToMultitask(tasks,
                                                             model_builder)
 
