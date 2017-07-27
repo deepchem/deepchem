@@ -113,11 +113,6 @@ class NormalizationTransformer(Transformer):
                dataset=None,
                transform_gradients=False):
     """Initialize normalization transformation."""
-    super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means
@@ -134,6 +129,12 @@ class NormalizationTransformer(Transformer):
       true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
       self.ydely_means = ydely_means
+
+    super(NormalizationTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
 
   def transform(self, dataset, parallel=False):
     return super(NormalizationTransformer, self).transform(
