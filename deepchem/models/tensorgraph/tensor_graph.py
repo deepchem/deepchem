@@ -15,6 +15,8 @@ from deepchem.models.models import Model
 from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
+from deepchem.feat.graph_features import ConvMolFeaturizer
+from deepchem.data.data_loader import featurize_smiles_np
 
 
 class TensorGraph(Model):
@@ -279,6 +281,40 @@ class TensorGraph(Model):
           result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
+
+  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
+    """
+    Returns:
+      mu: numpy ndarray of shape (n_samples, n_tasks)
+      sigma: numpy ndarray of shape (n_samples, n_tasks)
+    """
+    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
+    y_ = []
+    for i in range(n_passes):
+      generator = self.default_generator(
+          dataset, predict=True, pad_batches=True)
+      y_.append(self.predict_on_generator(generator, transformers))
+
+    y_ = np.concatenate(y_, axis=2)
+    mu = np.mean(y_, axis=2)
+    sigma = np.std(y_, axis=2)
+
+    return mu, sigma
+
+  def predict_on_smiles_batch(self,
+                              smiles,
+                              featurizer,
+                              n_tasks,
+                              transformers=[]):
+    """
+    # Returns:
+      A numpy ndarray of shape (n_samples, n_tasks)
+    """
+    convmols = featurize_smiles_np(smiles, featurizer)
+
+    dataset = NumpyDataset(X=convmols, y=None, n_tasks=len(self.outputs))
+    generator = self.default_generator(dataset, predict=True, pad_batches=True)
+    return self.predict_on_generator(generator, transformers)
 
   def predict_on_batch(self, X, sess=None, transformers=[]):
     """Generates output predictions for the input samples,
