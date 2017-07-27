@@ -5,8 +5,10 @@ import tensorflow as tf
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather, DTNNExtract
-from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, SoftMaxCrossEntropy, GraphConv, BatchNorm, \
+    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+    DAGGather, DTNNExtract, MessagePassing
+from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
+    SoftMaxCrossEntropy, GraphConv, BatchNorm, \
     GraphPool, GraphGather, WeightedError, BatchNormalization, Stack
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
@@ -674,23 +676,24 @@ class MPNNTensorGraph(TensorGraph):
     self.pair_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
-    
-    message_passing = MessagePassing(self.T, 
-                                     message_fn='enn', 
+
+    message_passing = MessagePassing(self.T,
+                                     message_fn='enn',
                                      update_fn='gru',
-                                     self.n_hidden,
+                                     n_hidden=self.n_hidden,
                                      in_layers=[self.atom_features,
                                                 self.pair_features,
                                                 self.atom_to_pair])
-    
-    
+    atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
+
+
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[weave_gather])
+            out_channels=2, activation_fn=None, in_layers=[])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
 
@@ -700,7 +703,7 @@ class MPNNTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == "regression":
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[weave_gather])
+            out_channels=1, activation_fn=None, in_layers=[])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))

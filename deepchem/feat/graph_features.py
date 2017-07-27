@@ -183,7 +183,7 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
               Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
               SP3D, Chem.rdchem.HybridizationType.SP3D2
           ]) + [atom.GetIsAromatic()]
-    
+
     return np.array(results)
 
 
@@ -287,18 +287,24 @@ class WeaveFeaturizer(Featurizer):
 
   name = ['weave_mol']
 
-  def __init__(self, graph_distance=True):
+  def __init__(self, graph_distance=True, explicit_H=None):
     # Set dtype
     self.graph_distance = graph_distance
     self.dtype = object
+    self.check_H = False
+    if explicit_H is None:
+      self.explicit_H = False
+      self.check_H = True
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""
     # Atom features
-    if self.graph_distance:
-      idx_nodes = [(a.GetIdx(), atom_features(a)) for a in mol.GetAtoms()]
-    else:
-      idx_nodes = [(a.GetIdx(), atom_features(a, explicit_H=False)) for a in mol.GetAtoms()]
+    if self.check_H and not self.explicit_H:
+      for a in mol.GetAtoms():
+        if a.GetSymbol() == 'H':
+          self.explicit_H = True
+          break
+    idx_nodes = [(a.GetIdx(), atom_features(a, explicit_H=self.explicit_H)) for a in mol.GetAtoms()]
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
 
