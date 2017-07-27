@@ -1091,7 +1091,7 @@ class GraphGather(Layer):
 
     # Perform the mol gather
 
-    assert (self.batch_size > 1, "graph_gather requires batches larger than 1")
+    assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
     # Obtain the partitions for each of the molecules
     activated_par = tf.dynamic_partition(atom_features, membership,
