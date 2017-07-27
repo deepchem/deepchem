@@ -131,11 +131,11 @@ class NormalizationTransformer(Transformer):
       self.ydely_means = ydely_means
 
     super(NormalizationTransformer, self).__init__(
-              transform_X=transform_X,
-              transform_y=transform_y,
-              transform_w=transform_w,
-              dataset=dataset)
-      
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
+
   def transform(self, dataset, parallel=False):
     return super(NormalizationTransformer, self).transform(
         dataset, parallel=parallel)
