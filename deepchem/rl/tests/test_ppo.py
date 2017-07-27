@@ -8,7 +8,7 @@ import unittest
 from nose.plugins.attrib import attr
 
 
-class TestA3C(unittest.TestCase):
+class TestPPO(unittest.TestCase):
 
   @flaky
   def test_roulette(self):
@@ -56,35 +56,35 @@ class TestA3C(unittest.TestCase):
 
     # Optimize it.
 
-    a3c = dc.rl.A3C(
+    ppo = dc.rl.PPO(
         env,
         TestPolicy(),
         max_rollout_length=20,
         optimizer=dc.models.tensorgraph.TFWrapper(
             tf.train.AdamOptimizer, learning_rate=0.001))
-    a3c.fit(100000)
+    ppo.fit(30000)
 
     # It should have learned that the expected value is very close to zero, and that the best
     # action is to walk away.
 
-    action_prob, value = a3c.predict([[0]])
+    action_prob, value = ppo.predict([[0]])
     assert -0.5 < value[0] < 0.5
     assert action_prob.argmax() == 37
-    assert a3c.select_action([[0]], deterministic=True) == 37
+    assert ppo.select_action([[0]], deterministic=True) == 37
 
-    # Verify that we can create a new A3C object, reload the parameters from the first one, and
+    # Verify that we can create a new PPO object, reload the parameters from the first one, and
     # get the same result.
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
-    new_a3c.restore()
-    action_prob2, value2 = new_a3c.predict([[0]])
+    new_ppo = dc.rl.PPO(env, TestPolicy(), model_dir=ppo._graph.model_dir)
+    new_ppo.restore()
+    action_prob2, value2 = new_ppo.predict([[0]])
     assert value2 == value
 
     # Do the same thing, only using the "restore" argument to fit().
 
-    new_a3c = dc.rl.A3C(env, TestPolicy(), model_dir=a3c._graph.model_dir)
-    new_a3c.fit(0, restore=True)
-    action_prob2, value2 = new_a3c.predict([[0]])
+    new_ppo = dc.rl.PPO(env, TestPolicy(), model_dir=ppo._graph.model_dir)
+    new_ppo.fit(0, restore=True)
+    action_prob2, value2 = new_ppo.predict([[0]])
     assert value2 == value
 
   def test_recurrent_states(self):
@@ -122,22 +122,22 @@ class TestA3C(unittest.TestCase):
     # sure fit() doesn't crash, then check the behavior of the GRU state.
 
     env = TestEnvironment()
-    a3c = dc.rl.A3C(env, TestPolicy())
-    a3c.fit(100)
+    ppo = dc.rl.PPO(env, TestPolicy())
+    ppo.fit(100)
     # On the first call, the initial state should be all zeros.
-    prob1, value1 = a3c.predict(
+    prob1, value1 = ppo.predict(
         env.state, use_saved_states=True, save_states=False)
     # It should still be zeros since we didn't save it last time.
-    prob2, value2 = a3c.predict(
+    prob2, value2 = ppo.predict(
         env.state, use_saved_states=True, save_states=True)
     # It should be different now.
-    prob3, value3 = a3c.predict(
+    prob3, value3 = ppo.predict(
         env.state, use_saved_states=True, save_states=False)
     # This should be the same as the previous one.
-    prob4, value4 = a3c.predict(
+    prob4, value4 = ppo.predict(
         env.state, use_saved_states=True, save_states=False)
     # Now we reset it, so we should get the same result as initially.
-    prob5, value5 = a3c.predict(
+    prob5, value5 = ppo.predict(
         env.state, use_saved_states=False, save_states=True)
     assert np.array_equal(prob1, prob2)
     assert np.array_equal(prob1, prob5)
@@ -211,13 +211,13 @@ class TestA3C(unittest.TestCase):
     # Optimize it.
 
     env = TestEnvironment()
-    a3c = dc.rl.A3C(
+    ppo = dc.rl.PPO(
         env,
         TestPolicy(),
         use_hindsight=True,
         optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.0005))
-    a3c.fit(2000000)
+            tf.train.AdamOptimizer, learning_rate=0.0003))
+    ppo.fit(1500000)
 
     # Try running it a few times and see if it succeeds.
 
@@ -225,7 +225,7 @@ class TestA3C(unittest.TestCase):
     for i in range(5):
       env.reset()
       while not env.terminated:
-        env.step(a3c.select_action(env.state))
+        env.step(ppo.select_action(env.state))
       if np.array_equal(env.state[:2], env.state[2:]):
         pass_count += 1
     assert pass_count >= 3
