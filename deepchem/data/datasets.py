@@ -44,7 +44,7 @@ def densify_features(X_sparse, num_features):
 
 def pad_features(batch_size, X_b):
   """Pads a batch of features to have precisely batch_size elements.
-  
+
   Version of pad_batch for use at prediction time.
   """
   num_samples = len(X_b)
@@ -96,6 +96,7 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
 
     # Fill in batch arrays
     start = 0
+    w_out[start:start + num_samples] = w_b[:]
     while start < batch_size:
       num_left = batch_size - start
       if num_left < num_samples:
@@ -104,9 +105,9 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
         increment = num_samples
       X_out[start:start + increment] = X_b[:increment]
       y_out[start:start + increment] = y_b[:increment]
-      w_out[start:start + increment] = w_b[:increment]
       ids_out[start:start + increment] = ids_b[:increment]
       start += increment
+
     return (X_out, y_out, w_out, ids_out)
 
 
@@ -124,7 +125,7 @@ class Dataset(object):
 
   def get_shape(self):
     """Get the shape of the dataset.
-    
+
     Returns four tuples, giving the shape of the X, y, w, and ids arrays.
     """
     raise NotImplementedError()
@@ -160,10 +161,10 @@ class Dataset(object):
                   deterministic=False,
                   pad_batches=False):
     """
-    
+
     Parameters
     ----------
-   
+
 
     Returns
     -------
@@ -275,7 +276,7 @@ class NumpyDataset(Dataset):
 
   def get_shape(self):
     """Get the shape of the dataset.
-    
+
     Returns four tuples, giving the shape of the X, y, w, and ids arrays.
     """
     return self._X.shape, self._y.shape, self._w.shape, self._ids.shape
@@ -451,7 +452,7 @@ class DiskDataset(Dataset):
   @staticmethod
   def _construct_metadata(metadata_entries):
     """Construct a dataframe containing metadata.
-  
+
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
