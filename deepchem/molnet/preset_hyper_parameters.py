@@ -75,6 +75,7 @@ hps['weave'] = {
     'seed': 123
 }
 hps['rf'] = {'n_estimators': 500}
+hps['kernelsvm'] = {'C': 1.0, 'gamma': 0.05}
 hps['xgb'] = {
     'max_depth': 5,
     'learning_rate': 0.05,
@@ -117,6 +118,7 @@ hps['tf_regression_ft'] = {
     'fit_transformers': deepchem.trans.CoulombFitTransformer
 }
 hps['rf_regression'] = {'n_estimators': 500}
+hps['krr'] = {'alpha': 1e-3, 'gamma': 0.05}
 hps['graphconvreg'] = {
     'batch_size': 128,
     'nb_epoch': 20,
@@ -147,6 +149,13 @@ hps['weave_regression'] = {
     'learning_rate': 0.001,
     'n_graph_feat': 128,
     'n_pair_feat': 14,
+    'seed': 123
+}
+hps['ani'] = {
+    'batch_size': 128,
+    'nb_epoch': 300,
+    'learning_rate': 0.001,
+    'layer_structures': [128, 128, 64],
     'seed': 123
 }
 hps['xgb_regression'] = {

@@ -7,7 +7,7 @@ from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
     Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, DAGGather, DTNNExtract
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-    GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization
+    GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -106,7 +106,10 @@ class WeaveTensorGraph(TensorGraph):
         self.labels_fd.append(label)
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
-    all_cost = Concat(in_layers=costs, axis=1)
+    if self.mode == "classification":
+      all_cost = Concat(in_layers=costs, axis=1)
+    elif self.mode == "regression":
+      all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -259,7 +262,7 @@ class DTNNTensorGraph(TensorGraph):
       cost = L2Loss(in_layers=[label, regression])
       costs.append(cost)
 
-    all_cost = Concat(in_layers=costs, axis=1)
+    all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -404,8 +407,10 @@ class DAGTensorGraph(TensorGraph):
         self.labels_fd.append(label)
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
-
-    all_cost = Concat(in_layers=costs, axis=1)
+    if self.mode == "classification":
+      all_cost = Concat(in_layers=costs, axis=1)
+    elif self.mode == "regression":
+      all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -545,8 +550,10 @@ class GraphConvTensorGraph(TensorGraph):
         self.my_labels.append(label)
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
-
-    entropy = Concat(in_layers=costs, axis=-1)
+    if self.mode == "classification":
+      entropy = Concat(in_layers=costs, axis=-1)
+    elif self.mode == "regression":
+      entropy = Stack(in_layers=costs, axis=1)
     self.my_task_weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[entropy, self.my_task_weights])
     self.set_loss(loss)
@@ -604,7 +611,7 @@ class GraphConvTensorGraph(TensorGraph):
     if not self.built:
       self.build()
     return self.evaluate_generator(
-        self.default_generator(dataset),
+        self.default_generator(dataset, predict=True),
         metrics,
         labels=self.my_labels,
         weights=[self.my_task_weights])
