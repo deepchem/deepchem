@@ -18,6 +18,7 @@ import shutil
 import tensorflow as tf
 import deepchem as dc
 import scipy.io
+from deepchem.models.tensorgraph.optimizers import Adam
 from tensorflow.python.framework import test_util
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -167,10 +168,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.003, beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -234,12 +232,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[.1],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer,
-            learning_rate=0.0003,
-            beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -305,10 +298,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         batch_size=n_samples,
         fit_transformers=fit_transformers,
         n_evals=1)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.003, beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -378,10 +368,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[.1],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.003, beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -471,10 +458,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[1.],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.003, beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -573,12 +557,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[.1],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer,
-            learning_rate=0.0003,
-            beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset)
@@ -775,12 +754,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
         dropouts=[0.],
         weight_init_stddevs=[.1],
         batch_size=n_samples)
-    model.set_optimizer(
-        dc.models.tensorgraph.tensor_graph.TFWrapper(
-            tf.train.AdamOptimizer,
-            learning_rate=0.0003,
-            beta1=0.9,
-            beta2=0.999))
+    model.set_optimizer(Adam(learning_rate=0.0003, beta1=0.9, beta2=0.999))
 
     # Fit trained model
     model.fit(dataset, nb_epoch=50)
