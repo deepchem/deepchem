@@ -664,7 +664,7 @@ class GraphConvTensorGraph(TensorGraph):
     n_tasks = len(self.outputs)
     num_batches = (max_index // self.batch_size) + 1
     featurizer = ConvMolFeaturizer()
-    
+
     y_ = []
     for i in range(num_batches):
       start = i * self.batch_size
@@ -684,7 +684,6 @@ class MPNNTensorGraph(TensorGraph):
 
   def __init__(self,
                n_tasks,
-               batch_size,
                n_atom_feat=70,
                n_pair_feat=8,
                n_hidden=100,
@@ -707,7 +706,6 @@ class MPNNTensorGraph(TensorGraph):
 
         """
     self.n_tasks = n_tasks
-    self.batch_size = batch_size
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     self.n_hidden = n_hidden
@@ -730,13 +728,13 @@ class MPNNTensorGraph(TensorGraph):
                                                 self.pair_features,
                                                 self.atom_to_pair])
     atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
-    mol_embeddings = SetGather(self.M, 
-                               self.batch_size, 
+    mol_embeddings = SetGather(self.M,
+                               self.batch_size,
                                n_hidden=self.n_hidden,
                                in_layers=[atom_embeddings, self.atom_split])
-    
-    dense1 = Dense(out_channels=2*self.n_hidden, 
-                   activation_fn=tf.nn.relu, 
+
+    dense1 = Dense(out_channels=2*self.n_hidden,
+                   activation_fn=tf.nn.relu,
                    in_layers=[mol_embeddings])
     costs = []
     self.labels_fd = []
@@ -826,3 +824,15 @@ class MPNNTensorGraph(TensorGraph):
         feed_dict[self.atom_split] = np.array(atom_split)
         feed_dict[self.atom_to_pair] = np.concatenate(atom_to_pair, axis=0)
         yield feed_dict
+
+  def predict(self, dataset, transformers=[], batch_size=None):
+    length_dataset = dataset.y.shape[0]
+    generator = self.default_generator(dataset, predict=True, pad_batches=True)
+    y_pred = self.predict_on_generator(generator, transformers)
+    return y_pred[:length_dataset]
+
+  def predict_proba(self, dataset, transformers=[], batch_size=None):
+    length_dataset = dataset.y.shape[0]
+    generator = self.default_generator(dataset, predict=True, pad_batches=True)
+    y_pred = self.predict_proba_on_generator(generator, transformers)
+    return y_pred[:length_dataset]

@@ -835,6 +835,8 @@ class MessagePassing(Layer):
                                           self.n_hidden)
     if self.update_fn == 'gru':
       self.update_function = GatedRecurrentUnit(self.n_hidden)
+    self.trainable_weights = self.message_function.trainable_weights + \
+        self.update_function.trainable_weights
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Perform T steps of message passing """
@@ -881,10 +883,14 @@ class EdgeNetwork(object):
     W = self.init([n_pair_features, n_hidden*n_hidden])
     b = model_ops.zeros(shape=(n_hidden*n_hidden,))
     self.A = tf.nn.xw_plus_b(pair_features, W, b)
-
+    self.A = tf.reshape(self.A, (-1, n_hidden, n_hidden))
+    self.trainable_weights = [W, b]
 
   def forward(self, atom_features, atom_to_pair):
-    return tf.gather(atom_features, atom_to_pair[:,1]) * self.A
+    out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:,1]), 2)
+    out = tf.reduce_sum(out * self.A, axis=1)
+    out = tf.segment_sum(out, atom_to_pair[:,0])
+    return  out
 
 class GatedRecurrentUnit(object):
   """ Submodule for Message Passing """
@@ -900,6 +906,9 @@ class GatedRecurrentUnit(object):
     self.bz = model_ops.zeros(shape=(n_hidden,))
     self.br = model_ops.zeros(shape=(n_hidden,))
     self.bh = model_ops.zeros(shape=(n_hidden,))
+    self.trainable_weights = [self.Wz, self.Wr, self.Wh,
+                              self.Uz, self.Ur, self.Uh,
+                              self.bz, self.br, self.bh]
 
   def forward(self, inputs, messages):
     z = tf.nn.sigmoid(tf.matmul(messages, self.Wz) + \
@@ -939,20 +948,20 @@ class SetGather(Layer):
     self.init = initializations.get(init)
     super(SetGather, self).__init__(**kwargs)
 
-  def build(self, pair_features, n_pair_features):
+  def build(self):
     self.U = self.init((2*self.n_hidden, 4*self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
                         np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
         dtype=tf.float32)
-    
+    self.trainable_weights = [self.U, self.b]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Perform T steps of message passing """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-    
+
     self.build()
     # Extract atom_features
     atom_features = in_layers[0].out_tensor
@@ -960,12 +969,14 @@ class SetGather(Layer):
 
     c = tf.zeros((self.batch_size, self.n_hidden))
     h = tf.zeros((self.batch_size, self.n_hidden))
-    
+
     for i in range(self.M):
       q_expanded = tf.gather(h, atom_split)
       e = tf.reduce_sum(atom_features * q_expanded, 1)
       e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
-      a = tf.concat([tf.nn.softmax(e_mol) for e_mol in e_mols], 0)
+      # Add another value(~-Inf) to prevent error in softmax
+      e_mols = [tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols]
+      a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
       r = tf.segment_sum(tf.reshape(a, [-1,1]) * atom_features, atom_split)
       q_star = tf.concat([h, r], axis=1)
       h, c = self.LSTMStep(q_star, c)
