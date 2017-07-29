@@ -8,7 +8,7 @@ Created on Thu Jul  6 20:31:47 2017
 import numpy as np
 import tensorflow as tf
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError
+from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
@@ -69,7 +69,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
       cost = L2Loss(in_layers=[label, output])
       costs.append(cost)
 
-    all_cost = Concat(in_layers=costs, axis=0)
+    all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
@@ -158,7 +158,7 @@ class ANIRegression(TensorGraph):
       cost = L2Loss(in_layers=[label, output])
       costs.append(cost)
 
-    all_cost = Concat(in_layers=costs, axis=0)
+    all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)

@@ -12,7 +12,8 @@ from deepchem.data.datasets import Databag
 from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
-from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
+from deepchem.models.tensorgraph.tensor_graph import TensorGraph
+from deepchem.models.tensorgraph.optimizers import GradientDescent, ExponentialDecay
 
 
 class TestTensorGraph(unittest.TestCase):
@@ -179,14 +180,9 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(output)
     tg.set_loss(loss)
     global_step = tg.get_global_step()
-
-    def optimizer_function():
-      starter_learning_rate = 0.1
-      learning_rate = tf.train.exponential_decay(
-          starter_learning_rate, global_step, 100000, 0.96, staircase=True)
-      return tf.train.GradientDescentOptimizer(learning_rate)
-
-    tg.set_optimizer(TFWrapper(optimizer_function))
+    learning_rate = ExponentialDecay(
+        initial_rate=0.1, decay_rate=0.96, decay_steps=100000)
+    tg.set_optimizer(GradientDescent(learning_rate=learning_rate))
     tg.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(tg.predict_proba_on_batch(X))
     tg.save()
