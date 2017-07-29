@@ -799,3 +799,203 @@ class DAGGather(Layer):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
     return outputs
+
+class MessagePassing(Layer):
+  """ General class for MPNN """
+
+  def __init__(self,
+               T,
+               message_fn='enn',
+               update_fn='gru',
+               n_hidden=100,
+               **kwargs):
+    """
+        Parameters
+        ----------
+        T: int
+          Number of message passing steps
+        message_fn: str, optional
+          message function in the model
+        update_fn: str, optional
+          update function in the model
+        n_hidden: int, optional
+          number of hidden units in the passing phase
+        """
+
+    self.T = T
+    self.message_fn = message_fn
+    self.update_fn = update_fn
+    self.n_hidden = n_hidden
+    super(MessagePassing, self).__init__(**kwargs)
+
+  def build(self, pair_features, n_pair_features):
+    if self.message_fn == 'enn':
+      self.message_function = EdgeNetwork(pair_features,
+                                          n_pair_features,
+                                          self.n_hidden)
+    if self.update_fn == 'gru':
+      self.update_function = GatedRecurrentUnit(self.n_hidden)
+    self.trainable_weights = self.message_function.trainable_weights + \
+        self.update_function.trainable_weights
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Perform T steps of message passing """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    # Extract atom_features
+    atom_features = in_layers[0].out_tensor
+    pair_features = in_layers[1].out_tensor
+    atom_to_pair = in_layers[2].out_tensor
+    n_atom_features = atom_features.get_shape().as_list()[-1]
+    n_pair_features = pair_features.get_shape().as_list()[-1]
+    # Add trainable weights
+    self.build(pair_features, n_pair_features)
+
+    if n_atom_features < self.n_hidden:
+      pad_length = self.n_hidden - n_atom_features
+      out = tf.pad(atom_features, ((0,0), (0, pad_length)), mode='CONSTANT')
+    elif n_atom_features > self.n_hidden:
+      raise ValueError("Too large initial feature vector")
+
+    for i in range(self.T):
+      message = self.message_function.forward(out, atom_to_pair)
+      out = self.update_function.forward(out, message)
+
+    out_tensor = out
+
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
+
+class EdgeNetwork(object):
+  """ Submodule for Message Passing """
+  def __init__(self,
+               pair_features,
+               n_pair_features=8,
+               n_hidden=100,
+               init='glorot_uniform'):
+    self.n_pair_features = n_pair_features
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    W = self.init([n_pair_features, n_hidden*n_hidden])
+    b = model_ops.zeros(shape=(n_hidden*n_hidden,))
+    self.A = tf.nn.xw_plus_b(pair_features, W, b)
+    self.A = tf.reshape(self.A, (-1, n_hidden, n_hidden))
+    self.trainable_weights = [W, b]
+
+  def forward(self, atom_features, atom_to_pair):
+    out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:,1]), 2)
+    out = tf.reduce_sum(out * self.A, axis=1)
+    out = tf.segment_sum(out, atom_to_pair[:,0])
+    return  out
+
+class GatedRecurrentUnit(object):
+  """ Submodule for Message Passing """
+  def __init__(self, n_hidden=100, init='glorot_uniform'):
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    self.Wz = self.init([n_hidden, n_hidden])
+    self.Wr = self.init([n_hidden, n_hidden])
+    self.Wh = self.init([n_hidden, n_hidden])
+    self.Uz = self.init([n_hidden, n_hidden])
+    self.Ur = self.init([n_hidden, n_hidden])
+    self.Uh = self.init([n_hidden, n_hidden])
+    self.bz = model_ops.zeros(shape=(n_hidden,))
+    self.br = model_ops.zeros(shape=(n_hidden,))
+    self.bh = model_ops.zeros(shape=(n_hidden,))
+    self.trainable_weights = [self.Wz, self.Wr, self.Wh,
+                              self.Uz, self.Ur, self.Uh,
+                              self.bz, self.br, self.bh]
+
+  def forward(self, inputs, messages):
+    z = tf.nn.sigmoid(tf.matmul(messages, self.Wz) + \
+                      tf.matmul(inputs, self.Uz) + self.bz)
+    r = tf.nn.sigmoid(tf.matmul(messages, self.Wr) + \
+                      tf.matmul(inputs, self.Ur) + self.br)
+    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.Wh) + \
+                           tf.matmul(inputs * r, self.Uh) + self.bh) + \
+         z * inputs
+    return h
+
+class SetGather(Layer):
+  """ General class for MPNN """
+
+  def __init__(self,
+               M,
+               batch_size,
+               n_hidden=100,
+               init='orthogonal',
+               **kwargs):
+    """
+        Parameters
+        ----------
+        T: int
+          Number of message passing steps
+        message_fn: str, optional
+          message function in the model
+        update_fn: str, optional
+          update function in the model
+        n_hidden: int, optional
+          number of hidden units in the passing phase
+        """
+
+    self.M = M
+    self.batch_size = batch_size
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    super(SetGather, self).__init__(**kwargs)
+
+  def build(self):
+    self.U = self.init((2*self.n_hidden, 4*self.n_hidden))
+    self.b = tf.Variable(
+        np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
+                        np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
+        dtype=tf.float32)
+    self.trainable_weights = [self.U, self.b]
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Perform T steps of message passing """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    self.build()
+    # Extract atom_features
+    atom_features = in_layers[0].out_tensor
+    atom_split = in_layers[1].out_tensor
+
+    c = tf.zeros((self.batch_size, self.n_hidden))
+    h = tf.zeros((self.batch_size, self.n_hidden))
+
+    for i in range(self.M):
+      q_expanded = tf.gather(h, atom_split)
+      e = tf.reduce_sum(atom_features * q_expanded, 1)
+      e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
+      # Add another value(~-Inf) to prevent error in softmax
+      e_mols = [tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols]
+      a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
+      r = tf.segment_sum(tf.reshape(a, [-1,1]) * atom_features, atom_split)
+      q_star = tf.concat([h, r], axis=1)
+      h, c = self.LSTMStep(q_star, c)
+
+    out_tensor = q_star
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
+
+  def LSTMStep(self, h, c, x=None):
+
+    # Taken from Keras code [citation needed]
+    z = tf.nn.xw_plus_b(h, self.U, self.b)
+    i = tf.nn.sigmoid(z[:, :self.n_hidden])
+    f = tf.nn.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
+    o = tf.nn.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])
+    z3 = z[:, 3 * self.n_hidden:]
+    c_out = f * c + i * tf.nn.tanh(z3)
+    h_out = o * tf.nn.tanh(c_out)
+
+    return h_out, c_out
