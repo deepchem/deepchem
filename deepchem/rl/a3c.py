@@ -1,7 +1,7 @@
 """Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning."""
 
 from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph import TFWrapper
+from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
@@ -108,8 +108,8 @@ class A3C(object):
       a scale factor for the value loss term in the loss function
     entropy_weight: float
       a scale factor for the entropy term in the loss function
-    optimizer: TFWrapper
-      a callable object that creates the optimizer to use.  If None, a default optimizer is used.
+    optimizer: Optimizer
+      the optimizer to use.  If None, a default optimizer is used.
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     use_hindsight: bool
@@ -125,8 +125,7 @@ class A3C(object):
     self.use_hindsight = use_hindsight
     self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
     if optimizer is None:
-      self._optimizer = TFWrapper(
-          tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+      self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
       self._optimizer = optimizer
     (self._graph, self._features, self._rewards, self._actions,
@@ -351,6 +350,7 @@ class _Worker(object):
           grads_and_vars)
       self.update_local_variables = tf.group(
           * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+      self.global_step = self.graph.get_global_step()
 
   def run(self, step_count, total_steps):
     with self.graph._get_tf("Graph").as_default():
@@ -359,10 +359,10 @@ class _Worker(object):
         initial_rnn_states = self.rnn_states
         states, actions, rewards, values = self.create_rollout()
         self.process_rollout(states, actions, rewards, values,
-                             initial_rnn_states)
+                             initial_rnn_states, step_count[0])
         if self.a3c.use_hindsight:
           self.process_rollout_with_hindsight(states, actions,
-                                              initial_rnn_states)
+                                              initial_rnn_states, step_count[0])
         step_count[0] += len(actions)
 
   def create_rollout(self):
@@ -408,7 +408,7 @@ class _Worker(object):
     return states, actions, np.array(rewards), np.array(values)
 
   def process_rollout(self, states, actions, rewards, values,
-                      initial_rnn_states):
+                      initial_rnn_states, step_count):
     """Train the network based on a rollout."""
 
     # Compute the discounted rewards and advantages.
@@ -455,9 +455,11 @@ class _Worker(object):
     feed_dict[self.rewards.out_tensor] = discounted_rewards
     feed_dict[self.actions.out_tensor] = actions_matrix
     feed_dict[self.advantages.out_tensor] = advantages
+    feed_dict[self.global_step] = step_count
     self.a3c._session.run(self.train_op, feed_dict=feed_dict)
 
-  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states):
+  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states,
+                                     step_count):
     """Create a new rollout by applying hindsight to an existing one, then train the network."""
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
@@ -477,8 +479,8 @@ class _Worker(object):
     values = self.a3c._session.run(self.value.out_tensor, feed_dict=feed_dict)
     values = np.append(values.flatten(), 0.0)
     self.process_rollout(hindsight_states, actions,
-                         np.array(rewards), np.array(values),
-                         initial_rnn_states)
+                         np.array(rewards),
+                         np.array(values), initial_rnn_states, step_count)
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""

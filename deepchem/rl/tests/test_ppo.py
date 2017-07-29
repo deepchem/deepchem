@@ -2,6 +2,7 @@ from flaky import flaky
 
 import deepchem as dc
 from deepchem.models.tensorgraph.layers import Reshape, Variable, SoftMax, GRU, Dense
+from deepchem.models.tensorgraph.optimizers import Adam, PolynomialDecay
 import numpy as np
 import tensorflow as tf
 import unittest
@@ -60,8 +61,7 @@ class TestPPO(unittest.TestCase):
         env,
         TestPolicy(),
         max_rollout_length=20,
-        optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.001))
+        optimizer=Adam(learning_rate=0.001))
     ppo.fit(30000)
 
     # It should have learned that the expected value is very close to zero, and that the best
@@ -211,12 +211,13 @@ class TestPPO(unittest.TestCase):
     # Optimize it.
 
     env = TestEnvironment()
+    learning_rate = PolynomialDecay(
+        initial_rate=0.0003, final_rate=0.0001, decay_steps=1500000)
     ppo = dc.rl.PPO(
         env,
         TestPolicy(),
         use_hindsight=True,
-        optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.0003))
+        optimizer=Adam(learning_rate=learning_rate))
     ppo.fit(1500000)
 
     # Try running it a few times and see if it succeeds.
