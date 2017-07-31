@@ -55,9 +55,28 @@ class Splitter(object):
 
   def k_fold_split(self, dataset, k, directories=None, **kwargs):
     """
-    :param dataset: Dataset to do a k-fold split
-    :param k: number of folds
-    :param directories: list of length 2*k to save the result disk-datasets
+    Parameters
+    ----------
+    dataset: Dataset
+    Dataset to do a k-fold split
+
+    k: int
+    number of folds
+
+    directories: list of str
+    list of length 2*k filepaths to save the result disk-datasets
+
+    kwargs
+
+    Returns
+    -------
+    list of length k tuples of (train, cv)
+
+    """
+    """
+    :param dataset: 
+    :param k: 
+    :param directories: 
     :param kwargs:
     :return: list of length k tuples of (train, cv)
     """
