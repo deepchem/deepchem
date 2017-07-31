@@ -40,8 +40,6 @@ class HyperparamOpt(object):
 
     number_combinations = reduce(mul, [len(vals) for vals in hyperparam_vals])
 
-    valid_csv_out = tempfile.NamedTemporaryFile()
-    valid_stats_out = tempfile.NamedTemporaryFile()
     if use_max:
       best_validation_score = -np.inf
     else:
@@ -75,8 +73,7 @@ class HyperparamOpt(object):
       model.save()
     
       evaluator = Evaluator(model, valid_dataset, output_transformers)
-      multitask_scores = evaluator.compute_model_performance(
-          [metric], valid_csv_out.name, valid_stats_out.name)
+      multitask_scores = evaluator.compute_model_performance([metric])
       valid_score = multitask_scores[metric.name]
       all_scores[str(hyperparameter_tuple)] = valid_score
     
@@ -101,11 +98,8 @@ class HyperparamOpt(object):
       # arbitrarily return last model
       best_model, best_hyperparams = model, hyperparameter_tuple
       return best_model, best_hyperparams, all_scores
-    train_csv_out = tempfile.NamedTemporaryFile()
-    train_stats_out = tempfile.NamedTemporaryFile()
     train_evaluator = Evaluator(best_model, train_dataset, output_transformers)
-    multitask_scores = train_evaluator.compute_model_performance(
-        [metric], train_csv_out.name, train_stats_out.name)
+    multitask_scores = train_evaluator.compute_model_performance( [metric])
     train_score = multitask_scores[metric.name]
     log("Best hyperparameters: %s" % str(best_hyperparams),
         self.verbose)
