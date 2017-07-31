@@ -800,8 +800,10 @@ class DAGGather(Layer):
       outputs = self.activation(outputs)
     return outputs
 
+
 class MessagePassing(Layer):
-  """ General class for MPNN """
+  """ General class for MPNN
+  default structures built according to https://arxiv.org/abs/1511.06391 """
 
   def __init__(self,
                T,
@@ -830,8 +832,9 @@ class MessagePassing(Layer):
 
   def build(self, pair_features, n_pair_features):
     if self.message_fn == 'enn':
-      self.message_function = EdgeNetwork(pair_features,
-                                          n_pair_features,
+      # Default message function: edge network, update function: GRU
+      # more options to be implemented
+      self.message_function = EdgeNetwork(pair_features, n_pair_features,
                                           self.n_hidden)
     if self.update_fn == 'gru':
       self.update_function = GatedRecurrentUnit(self.n_hidden)
@@ -855,7 +858,7 @@ class MessagePassing(Layer):
 
     if n_atom_features < self.n_hidden:
       pad_length = self.n_hidden - n_atom_features
-      out = tf.pad(atom_features, ((0,0), (0, pad_length)), mode='CONSTANT')
+      out = tf.pad(atom_features, ((0, 0), (0, pad_length)), mode='CONSTANT')
     elif n_atom_features > self.n_hidden:
       raise ValueError("Too large initial feature vector")
 
@@ -870,8 +873,10 @@ class MessagePassing(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class EdgeNetwork(object):
   """ Submodule for Message Passing """
+
   def __init__(self,
                pair_features,
                n_pair_features=8,
@@ -880,20 +885,22 @@ class EdgeNetwork(object):
     self.n_pair_features = n_pair_features
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
-    W = self.init([n_pair_features, n_hidden*n_hidden])
-    b = model_ops.zeros(shape=(n_hidden*n_hidden,))
+    W = self.init([n_pair_features, n_hidden * n_hidden])
+    b = model_ops.zeros(shape=(n_hidden * n_hidden,))
     self.A = tf.nn.xw_plus_b(pair_features, W, b)
     self.A = tf.reshape(self.A, (-1, n_hidden, n_hidden))
     self.trainable_weights = [W, b]
 
   def forward(self, atom_features, atom_to_pair):
-    out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:,1]), 2)
+    out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:, 1]), 2)
     out = tf.reduce_sum(out * self.A, axis=1)
-    out = tf.segment_sum(out, atom_to_pair[:,0])
-    return  out
+    out = tf.segment_sum(out, atom_to_pair[:, 0])
+    return out
+
 
 class GatedRecurrentUnit(object):
   """ Submodule for Message Passing """
+
   def __init__(self, n_hidden=100, init='glorot_uniform'):
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
@@ -906,9 +913,10 @@ class GatedRecurrentUnit(object):
     self.bz = model_ops.zeros(shape=(n_hidden,))
     self.br = model_ops.zeros(shape=(n_hidden,))
     self.bh = model_ops.zeros(shape=(n_hidden,))
-    self.trainable_weights = [self.Wz, self.Wr, self.Wh,
-                              self.Uz, self.Ur, self.Uh,
-                              self.bz, self.br, self.bh]
+    self.trainable_weights = [
+        self.Wz, self.Wr, self.Wh, self.Uz, self.Ur, self.Uh, self.bz, self.br,
+        self.bh
+    ]
 
   def forward(self, inputs, messages):
     z = tf.nn.sigmoid(tf.matmul(messages, self.Wz) + \
@@ -920,24 +928,19 @@ class GatedRecurrentUnit(object):
          z * inputs
     return h
 
-class SetGather(Layer):
-  """ General class for MPNN """
 
-  def __init__(self,
-               M,
-               batch_size,
-               n_hidden=100,
-               init='orthogonal',
-               **kwargs):
+class SetGather(Layer):
+  """ set2set gather layer for graph-based model 
+  model using this layer must set pad_batches=True """
+
+  def __init__(self, M, batch_size, n_hidden=100, init='orthogonal', **kwargs):
     """
         Parameters
         ----------
-        T: int
-          Number of message passing steps
-        message_fn: str, optional
-          message function in the model
-        update_fn: str, optional
-          update function in the model
+        M: int
+          Number of LSTM steps
+        batch_size: int
+          Number of samples in a batch(all batches must have same size)
         n_hidden: int, optional
           number of hidden units in the passing phase
         """
@@ -949,7 +952,7 @@ class SetGather(Layer):
     super(SetGather, self).__init__(**kwargs)
 
   def build(self):
-    self.U = self.init((2*self.n_hidden, 4*self.n_hidden))
+    self.U = self.init((2 * self.n_hidden, 4 * self.n_hidden))
     self.b = tf.Variable(
         np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
                         np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
@@ -957,7 +960,8 @@ class SetGather(Layer):
     self.trainable_weights = [self.U, self.b]
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    """ Perform T steps of message passing """
+    """ Perform M steps of set2set gather,
+        detailed descriptions in: https://arxiv.org/abs/1511.06391 """
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -975,9 +979,12 @@ class SetGather(Layer):
       e = tf.reduce_sum(atom_features * q_expanded, 1)
       e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
       # Add another value(~-Inf) to prevent error in softmax
-      e_mols = [tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols]
+      e_mols = [
+          tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols
+      ]
       a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
-      r = tf.segment_sum(tf.reshape(a, [-1,1]) * atom_features, atom_split)
+      r = tf.segment_sum(tf.reshape(a, [-1, 1]) * atom_features, atom_split)
+      # Model using this layer must set pad_batches=True
       q_star = tf.concat([h, r], axis=1)
       h, c = self.LSTMStep(q_star, c)
 
@@ -988,8 +995,7 @@ class SetGather(Layer):
     return out_tensor
 
   def LSTMStep(self, h, c, x=None):
-
-    # Taken from Keras code [citation needed]
+    # Perform one step of LSTM
     z = tf.nn.xw_plus_b(h, self.U, self.b)
     i = tf.nn.sigmoid(z[:, :self.n_hidden])
     f = tf.nn.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])

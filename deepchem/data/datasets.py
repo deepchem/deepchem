@@ -96,6 +96,7 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
 
     # Fill in batch arrays
     start = 0
+    # Only the first set of copy will be counted in training loss
     w_out[start:start + num_samples] = w_b[:]
     while start < batch_size:
       num_left = batch_size - start

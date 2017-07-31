@@ -45,7 +45,7 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
         save_dir)
     if loaded:
       return qm8_tasks, all_dataset, transformers
-      
+
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
       featurizer = deepchem.feat.CoulombMatrix(26)

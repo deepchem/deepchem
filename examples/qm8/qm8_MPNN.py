@@ -16,10 +16,7 @@ tasks, datasets, transformers = dc.molnet.load_qm8(featurizer='MP')
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Fit models
-metric = [
-    dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode="regression"),
-    dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean, mode="regression")
-]
+metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
 
 # Batch size of models
 batch_size = 32

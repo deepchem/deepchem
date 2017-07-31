@@ -680,7 +680,10 @@ class GraphConvTensorGraph(TensorGraph):
 
     return y_
 
+
 class MPNNTensorGraph(TensorGraph):
+  """ Message Passing Neural Network,
+  default structures built according to https://arxiv.org/abs/1511.06391 """
 
   def __init__(self,
                n_tasks,
@@ -703,7 +706,7 @@ class MPNNTensorGraph(TensorGraph):
           Number of units(convolution depths) in corresponding hidden layer
         n_graph_feat: int, optional
           Number of output features for each molecule(graph)
-
+          
         """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
@@ -715,27 +718,31 @@ class MPNNTensorGraph(TensorGraph):
     self.build_graph()
 
   def build_graph(self):
+    # Build placeholders
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
 
-    message_passing = MessagePassing(self.T,
-                                     message_fn='enn',
-                                     update_fn='gru',
-                                     n_hidden=self.n_hidden,
-                                     in_layers=[self.atom_features,
-                                                self.pair_features,
-                                                self.atom_to_pair])
-    atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
-    mol_embeddings = SetGather(self.M,
-                               self.batch_size,
-                               n_hidden=self.n_hidden,
-                               in_layers=[atom_embeddings, self.atom_split])
+    message_passing = MessagePassing(
+        self.T,
+        message_fn='enn',
+        update_fn='gru',
+        n_hidden=self.n_hidden,
+        in_layers=[self.atom_features, self.pair_features, self.atom_to_pair])
 
-    dense1 = Dense(out_channels=2*self.n_hidden,
-                   activation_fn=tf.nn.relu,
-                   in_layers=[mol_embeddings])
+    atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
+
+    mol_embeddings = SetGather(
+        self.M,
+        self.batch_size,
+        n_hidden=self.n_hidden,
+        in_layers=[atom_embeddings, self.atom_split])
+
+    dense1 = Dense(
+        out_channels=2 * self.n_hidden,
+        activation_fn=tf.nn.relu,
+        in_layers=[mol_embeddings])
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
@@ -771,9 +778,7 @@ class MPNNTensorGraph(TensorGraph):
                         epochs=1,
                         predict=False,
                         pad_batches=True):
-    """ TensorGraph style implementation
-        similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
-        """
+    """ Same generator as Weave models """
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -789,6 +794,7 @@ class MPNNTensorGraph(TensorGraph):
               feed_dict[label] = to_one_hot(y_b[:, index])
             if self.mode == "regression":
               feed_dict[label] = y_b[:, index:index + 1]
+        # w_b act as the indicator of unique samples in the batch
         if w_b is not None:
           feed_dict[self.weights] = w_b
 
@@ -826,10 +832,12 @@ class MPNNTensorGraph(TensorGraph):
         yield feed_dict
 
   def predict(self, dataset, transformers=[], batch_size=None):
+    # MPNN only accept padded input
     generator = self.default_generator(dataset, predict=True, pad_batches=True)
     return self.predict_on_generator(generator, transformers)
 
   def predict_proba(self, dataset, transformers=[], batch_size=None):
+    # MPNN only accept padded input
     generator = self.default_generator(dataset, predict=True, pad_batches=True)
     return self.predict_proba_on_generator(generator, transformers)
 
@@ -847,7 +855,8 @@ class MPNNTensorGraph(TensorGraph):
         out_tensors = [x.out_tensor for x in self.outputs]
         results = []
         for feed_dict in generator:
-          n_valid_samples = len(np.nonzero(feed_dict[self.weights][:,0])[0])
+          # Extract number of unique samples in the batch from w_b
+          n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
           feed_dict = {
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
@@ -857,5 +866,6 @@ class MPNNTensorGraph(TensorGraph):
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
           result = undo_transforms(result, transformers)
+          # Only fetch the first set of unique samples
           results.append(result[:n_valid_samples])
         return np.concatenate(results, axis=0)
