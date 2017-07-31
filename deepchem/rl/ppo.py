@@ -1,4 +1,4 @@
-"""Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning."""
+"""Proximal Policy Optimization (PPO) algorithm for reinforcement learning."""
 
 from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.optimizers import Adam
@@ -8,41 +8,48 @@ import tensorflow as tf
 import collections
 import copy
 import multiprocessing
+from multiprocessing.dummy import Pool
 import os
 import re
-import threading
+import time
 
 
-class A3CLoss(Layer):
-  """This layer computes the loss function for A3C."""
+class PPOLoss(Layer):
+  """This layer computes the loss function for PPO."""
 
-  def __init__(self, value_weight, entropy_weight, **kwargs):
-    super(A3CLoss, self).__init__(**kwargs)
+  def __init__(self, value_weight, entropy_weight, clipping_width, **kwargs):
+    super(PPOLoss, self).__init__(**kwargs)
     self.value_weight = value_weight
     self.entropy_weight = entropy_weight
+    self.clipping_width = clipping_width
 
   def create_tensor(self, **kwargs):
-    reward, action, prob, value, advantage = [
+    reward, action, prob, value, advantage, old_prob = [
         layer.out_tensor for layer in self.in_layers
     ]
-    prob = prob + np.finfo(np.float32).eps
-    log_prob = tf.log(prob)
+    machine_eps = np.finfo(np.float32).eps
+    prob += machine_eps
+    old_prob += machine_eps
+    ratio = tf.reduce_sum(action * prob, axis=1) / old_prob
+    clipped_ratio = tf.clip_by_value(ratio, 1 - self.clipping_width,
+                                     1 + self.clipping_width)
     policy_loss = -tf.reduce_mean(
-        advantage * tf.reduce_sum(action * log_prob, axis=1))
+        tf.minimum(ratio * advantage, clipped_ratio * advantage))
     value_loss = tf.reduce_mean(tf.square(reward - value))
-    entropy = -tf.reduce_mean(tf.reduce_sum(prob * log_prob, axis=1))
+    entropy = -tf.reduce_mean(tf.reduce_sum(prob * tf.log(prob), axis=1))
     self.out_tensor = policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
     return self.out_tensor
 
 
-class A3C(object):
+class PPO(object):
   """
-  Implements the Asynchronous Advantage Actor-Critic (A3C) algorithm for reinforcement learning.
+  Implements the Proximal Policy Optimization (PPO) algorithm for reinforcement learning.
 
-  The algorithm is described in Mnih et al, "Asynchronous Methods for Deep Reinforcement Learning"
-  (https://arxiv.org/abs/1602.01783).  This class requires the policy to output two quantities:
-  a vector giving the probability of taking each action, and an estimate of the value function for
-  the current state.  It optimizes both outputs at once using a loss that is the sum of three terms:
+  The algorithm is described in Schulman et al, "Proximal Policy Optimization Algorithms"
+  (https://openai-public.s3-us-west-2.amazonaws.com/blog/2017-07/ppo/ppo-arxiv.pdf).
+  This class requires the policy to output two quantities: a vector giving the probability of
+  taking each action, and an estimate of the value function for the current state.  It
+  optimizes both outputs at once using a loss that is the sum of three terms:
 
   1. The policy loss, which seeks to maximize the discounted reward for each action.
   2. The value loss, which tries to make the value estimate match the actual discounted reward
@@ -82,6 +89,9 @@ class A3C(object):
                env,
                policy,
                max_rollout_length=20,
+               optimization_rollouts=8,
+               optimization_epochs=4,
+               clipping_width=0.2,
                discount_factor=0.99,
                advantage_lambda=0.98,
                value_weight=1.0,
@@ -100,6 +110,13 @@ class A3C(object):
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_rollout_length: int
       the maximum length of rollouts to generate
+    optimization_rollouts: int
+      the number of rollouts to generate for each iteration of optimization
+    optimization_epochs: int
+      the number of epochs of optimization to perform within each iteration
+    clipping_width: float
+      in computing the PPO loss function, the probability ratio is clipped to the range
+      (1-clipping_width, 1+clipping_width)
     discount_factor: float
       the discount factor to use when computing rewards
     advantage_lambda: float
@@ -118,6 +135,9 @@ class A3C(object):
     self._env = env
     self._policy = policy
     self.max_rollout_length = max_rollout_length
+    self.optimization_rollouts = optimization_rollouts
+    self.optimization_epochs = optimization_epochs
+    self.clipping_width = clipping_width
     self.discount_factor = discount_factor
     self.advantage_lambda = advantage_lambda
     self.value_weight = value_weight
@@ -129,10 +149,12 @@ class A3C(object):
     else:
       self._optimizer = optimizer
     (self._graph, self._features, self._rewards, self._actions,
-     self._action_prob, self._value, self._advantages) = self._build_graph(
-         None, 'global', model_dir)
+     self._action_prob, self._value, self._advantages,
+     self._old_action_prob) = self._build_graph(None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
+      self._train_op = self._graph._get_tf('Optimizer').minimize(
+          self._graph.loss.out_tensor)
     self._rnn_states = self._graph.rnn_zero_states
 
   def _build_graph(self, tf_graph, scope, model_dir):
@@ -146,11 +168,15 @@ class A3C(object):
     value = policy_layers['value']
     rewards = Weights(shape=(None,))
     advantages = Weights(shape=(None,))
+    old_action_prob = Weights(shape=(None,))
     actions = Label(shape=(None, self._env.n_actions))
-    loss = A3CLoss(
+    loss = PPOLoss(
         self.value_weight,
         self.entropy_weight,
-        in_layers=[rewards, actions, action_prob, value, advantages])
+        self.clipping_width,
+        in_layers=[
+            rewards, actions, action_prob, value, advantages, old_action_prob
+        ])
     graph = TensorGraph(
         batch_size=self.max_rollout_length,
         use_queue=False,
@@ -165,7 +191,7 @@ class A3C(object):
     with graph._get_tf("Graph").as_default():
       with tf.variable_scope(scope):
         graph.build()
-    return graph, features, rewards, actions, action_prob, value, advantages
+    return graph, features, rewards, actions, action_prob, value, advantages, old_action_prob
 
   def fit(self,
           total_steps,
@@ -189,33 +215,61 @@ class A3C(object):
       from there.  If False, retrain the model from scratch.
     """
     with self._graph._get_tf("Graph").as_default():
-      step_count = [0]
+      step_count = 0
       workers = []
       threads = []
-      for i in range(multiprocessing.cpu_count()):
+      for i in range(self.optimization_rollouts):
         workers.append(_Worker(self, i))
       self._session.run(tf.global_variables_initializer())
       if restore:
         self.restore()
-      for worker in workers:
-        thread = threading.Thread(
-            name=worker.scope,
-            target=lambda: worker.run(step_count, total_steps))
-        threads.append(thread)
-        thread.start()
+      pool = Pool()
       variables = tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
       saver = tf.train.Saver(variables, max_to_keep=max_checkpoints_to_keep)
       checkpoint_index = 0
-      while True:
-        threads = [t for t in threads if t.isAlive()]
-        if len(threads) > 0:
-          threads[0].join(checkpoint_interval)
-        checkpoint_index += 1
-        saver.save(
-            self._session, self._graph.save_file, global_step=checkpoint_index)
-        if len(threads) == 0:
-          break
+      checkpoint_time = time.time()
+      while step_count < total_steps:
+        # Have the worker threads generate the rollouts for this iteration.
+
+        rollouts = []
+        pool.map(lambda x: rollouts.extend(x.run()), workers)
+
+        # Perform optimization.
+
+        for epoch in range(self.optimization_epochs):
+          for rollout in rollouts:
+            initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = rollout
+
+            # Build the feed dict and run the optimizer.
+
+            feed_dict = {}
+            for placeholder, value in zip(self._graph.rnn_initial_states,
+                                          initial_rnn_states):
+              feed_dict[placeholder] = value
+            for f, s in zip(self._features, state_arrays):
+              feed_dict[f.out_tensor] = s
+            feed_dict[self._rewards.out_tensor] = discounted_rewards
+            feed_dict[self._actions.out_tensor] = actions_matrix
+            feed_dict[self._advantages.out_tensor] = advantages
+            feed_dict[self._old_action_prob.out_tensor] = action_prob
+            feed_dict[self._graph.get_global_step()] = step_count
+            self._session.run(self._train_op, feed_dict=feed_dict)
+
+        # Update the number of steps taken so far and perform checkpointing.
+
+        new_steps = sum(len(r[3]) for r in rollouts)
+        if self.use_hindsight:
+          new_steps /= 2
+        step_count += new_steps
+        if step_count >= total_steps or time.time(
+        ) >= checkpoint_time + checkpoint_interval:
+          saver.save(
+              self._session,
+              self._graph.save_file,
+              global_step=checkpoint_index)
+          checkpoint_index += 1
+          checkpoint_time = time.time()
 
   def predict(self, state, use_saved_states=True, save_states=True):
     """Compute the policy's output predictions for a state.
@@ -336,7 +390,7 @@ class _Worker(object):
     self.scope = 'worker%d' % index
     self.env = copy.deepcopy(a3c._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages = a3c._build_graph(
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages, self.old_action_prob = a3c._build_graph(
         a3c._graph._get_tf('Graph'), self.scope, None)
     self.rnn_states = self.graph.rnn_zero_states
     with a3c._graph._get_tf("Graph").as_default():
@@ -344,32 +398,30 @@ class _Worker(object):
                                      self.scope)
       global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                       'global')
-      gradients = tf.gradients(self.graph.loss.out_tensor, local_vars)
-      grads_and_vars = list(zip(gradients, global_vars))
-      self.train_op = a3c._graph._get_tf('Optimizer').apply_gradients(
-          grads_and_vars)
       self.update_local_variables = tf.group(
           * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
-      self.global_step = self.graph.get_global_step()
 
-  def run(self, step_count, total_steps):
+  def run(self):
+    rollouts = []
     with self.graph._get_tf("Graph").as_default():
-      while step_count[0] < total_steps:
-        self.a3c._session.run(self.update_local_variables)
-        initial_rnn_states = self.rnn_states
-        states, actions, rewards, values = self.create_rollout()
-        self.process_rollout(states, actions, rewards, values,
-                             initial_rnn_states, step_count[0])
-        if self.a3c.use_hindsight:
-          self.process_rollout_with_hindsight(states, actions,
-                                              initial_rnn_states, step_count[0])
-        step_count[0] += len(actions)
+      self.a3c._session.run(self.update_local_variables)
+      initial_rnn_states = self.rnn_states
+      states, actions, action_prob, rewards, values = self.create_rollout()
+      rollouts.append(
+          self.process_rollout(states, actions, action_prob, rewards, values,
+                               initial_rnn_states))
+      if self.a3c.use_hindsight:
+        rollouts.append(
+            self.process_rollout_with_hindsight(states, actions,
+                                                initial_rnn_states))
+    return rollouts
 
   def create_rollout(self):
     """Generate a rollout."""
     n_actions = self.env.n_actions
     session = self.a3c._session
     states = []
+    action_prob = []
     actions = []
     rewards = []
     values = []
@@ -387,9 +439,11 @@ class _Worker(object):
           self.graph.rnn_final_states,
           feed_dict=feed_dict)
       probabilities, value = results[:2]
+
       self.rnn_states = results[2:]
       action = np.random.choice(np.arange(n_actions), p=probabilities[0])
       actions.append(action)
+      action_prob.append(probabilities[0][action])
       values.append(float(value))
       rewards.append(self.env.step(action))
 
@@ -405,11 +459,13 @@ class _Worker(object):
     if self.env.terminated:
       self.env.reset()
       self.rnn_states = self.graph.rnn_zero_states
-    return states, actions, np.array(rewards), np.array(values)
+    return states, np.array(
+        actions, dtype=np.int32), np.array(action_prob), np.array(
+            rewards), np.array(values)
 
-  def process_rollout(self, states, actions, rewards, values,
-                      initial_rnn_states, step_count):
-    """Train the network based on a rollout."""
+  def process_rollout(self, states, actions, action_prob, rewards, values,
+                      initial_rnn_states):
+    """Construct the arrays needed for training."""
 
     # Compute the discounted rewards and advantages.
 
@@ -444,23 +500,13 @@ class _Worker(object):
     else:
       state_arrays = [states]
 
-    # Build the feed dict and apply gradients.
+    # Return the processed arrays.
 
-    feed_dict = {}
-    for placeholder, value in zip(self.graph.rnn_initial_states,
-                                  initial_rnn_states):
-      feed_dict[placeholder] = value
-    for f, s in zip(self.features, state_arrays):
-      feed_dict[f.out_tensor] = s
-    feed_dict[self.rewards.out_tensor] = discounted_rewards
-    feed_dict[self.actions.out_tensor] = actions_matrix
-    feed_dict[self.advantages.out_tensor] = advantages
-    feed_dict[self.global_step] = step_count
-    self.a3c._session.run(self.train_op, feed_dict=feed_dict)
+    return (initial_rnn_states, state_arrays, discounted_rewards,
+            actions_matrix, action_prob, advantages)
 
-  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states,
-                                     step_count):
-    """Create a new rollout by applying hindsight to an existing one, then train the network."""
+  def process_rollout_with_hindsight(self, states, actions, initial_rnn_states):
+    """Create a new rollout by applying hindsight to an existing one, then process it."""
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
     if self.a3c._state_is_list:
@@ -476,11 +522,14 @@ class _Worker(object):
       feed_dict[placeholder] = value
     for f, s in zip(self.features, state_arrays):
       feed_dict[f.out_tensor] = s
-    values = self.a3c._session.run(self.value.out_tensor, feed_dict=feed_dict)
+    values, probabilities = self.a3c._session.run(
+        [self.value.out_tensor, self.action_prob.out_tensor],
+        feed_dict=feed_dict)
     values = np.append(values.flatten(), 0.0)
-    self.process_rollout(hindsight_states, actions,
-                         np.array(rewards),
-                         np.array(values), initial_rnn_states, step_count)
+    action_prob = probabilities[np.arange(len(actions)), actions]
+    return self.process_rollout(hindsight_states, actions, action_prob,
+                                np.array(rewards),
+                                np.array(values), initial_rnn_states)
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""

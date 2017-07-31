@@ -1,17 +1,18 @@
 """Interface for reinforcement learning."""
 
 from deepchem.rl.a3c import A3C
+from deepchem.rl.ppo import PPO
 
 
 class Environment(object):
   """An environment in which an actor performs actions to accomplish a task.
 
-  An environment has a current state, which is represented as a list of NumPy
-  arrays.  When an action is taken, that causes the state to be updated.  Exactly
-  what is meant by an "action" is defined by each subclass.  As far as this interface
-  is concerned, it is simply an arbitrary object.  The environment also computes
-  a reward for each action, and reports when the task has been terminated
-  (meaning that no more actions may be taken).
+  An environment has a current state, which is represented as either a single NumPy
+  array, or optionally a list of NumPy arrays.  When an action is taken, that causes
+  the state to be updated.  Exactly what is meant by an "action" is defined by each
+  subclass.  As far as this interface is concerned, it is simply an arbitrary object.
+  The environment also computes a reward for each action, and reports when the task
+  has been terminated (meaning that no more actions may be taken).
 
   Environment objects should be written to support pickle and deepcopy operations.
   Many algorithms involve creating multiple copies of the Environment, possibly
@@ -27,7 +28,7 @@ class Environment(object):
 
   @property
   def state(self):
-    """The current state of the environment, represented as a list of NumPy arrays.
+    """The current state of the environment, represented as either a NumPy array or list of arrays.
 
     If reset() has not yet been called at least once, this is undefined.
     """
@@ -45,7 +46,9 @@ class Environment(object):
   def state_shape(self):
     """The shape of the arrays that describe a state.
 
-    This returns a list of tuples, where each tuple is the shape of one array.
+    If the state is a single array, this returns a tuple giving the shape of that array.
+    If the state is a list of arrays, this returns a list of tuples where each tuple is
+    the shape of one array.
     """
     return self._state_shape
 
@@ -74,7 +77,7 @@ class Environment(object):
 
     Returns
     -------
-    the reward earned by taking the action, represented as a float point number
+    the reward earned by taking the action, represented as a floating point number
     (higher values are better)
     """
     raise NotImplemented("Subclasses must implement this")
@@ -88,17 +91,15 @@ class GymEnvironment(Environment):
     import gym
     self.env = gym.make(name)
     self.name = name
-    super(GymEnvironment, self).__init__([self.env.observation_space.shape],
+    super(GymEnvironment, self).__init__(self.env.observation_space.shape,
                                          self.env.action_space.n)
 
   def reset(self):
-    state = self.env.reset()
-    self._state = [state]
+    self._state = self.env.reset()
     self._terminated = False
 
   def step(self, action):
-    state, reward, self._terminated, info = self.env.step(action)
-    self._state = [state]
+    self._state, reward, self._terminated, info = self.env.step(action)
     return reward
 
   def __deepcopy__(self, memo):

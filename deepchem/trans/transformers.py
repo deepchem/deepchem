@@ -113,11 +113,6 @@ class NormalizationTransformer(Transformer):
                dataset=None,
                transform_gradients=False):
     """Initialize normalization transformation."""
-    super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
     if transform_X:
       X_means, X_stds = dataset.get_statistics(X_stats=True, y_stats=False)
       self.X_means = X_means
@@ -134,6 +129,12 @@ class NormalizationTransformer(Transformer):
       true_grad, ydely_means = get_grad_statistics(dataset)
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
       self.ydely_means = ydely_means
+
+    super(NormalizationTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
 
   def transform(self, dataset, parallel=False):
     return super(NormalizationTransformer, self).transform(
@@ -154,7 +155,19 @@ class NormalizationTransformer(Transformer):
     if self.transform_X:
       return z * self.X_stds + self.X_means
     elif self.transform_y:
-      return z * self.y_stds + self.y_means
+      y_stds = self.y_stds
+      y_means = self.y_means
+      n_tasks = self.y_stds.shape[0]
+      z_shape = list(z.shape)
+      # Get the reversed shape of z: (..., n_tasks, batch_size)
+      z_shape.reverse()
+      # Find the task dimension of z
+      for dim in z_shape:
+        if dim != n_tasks and dim == 1:
+          # Prevent broadcasting on wrong dimension
+          y_stds = np.expand_dims(y_stds, -1)
+          y_means = np.expand_dims(y_means, -1)
+      return z * y_stds + y_means
 
   def untransform_grad(self, grad, tasks):
     """
@@ -1038,13 +1051,14 @@ class ANITransformer(Transformer):
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    d_cutoff = tf.stack([d_cutoff] * self.radial_length, axis=3)
-    d = tf.stack([d] * self.radial_length, axis=3)
-
     Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 1.25 / (Rs[1] - Rs[0])**2
+    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
     ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+    length = ita.get_shape().as_list()[-1]
+
+    d_cutoff = tf.stack([d_cutoff] * length, axis=3)
+    d = tf.stack([d] * length, axis=3)
 
     out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
     if self.atomic_number_differentiated:
@@ -1066,7 +1080,7 @@ class ANITransformer(Transformer):
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
     Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 1.25 / (Rs[1] - Rs[0])**2
+    ita = 3 / (Rs[1] - Rs[0])**2
     thetas = np.linspace(0., np.pi, self.angular_length)
     zeta = float(self.angular_length**2)
 
@@ -1097,7 +1111,7 @@ class ANITransformer(Transformer):
     theta = tf.stack([theta] * length, axis=4)
 
     out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik
+        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []
