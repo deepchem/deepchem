@@ -948,8 +948,8 @@ class DiskDataset(Dataset):
           if indices_count + num_shard_elts >= len(indices):
             break
         # Need to offset indices to fit within shard_size
-        shard_inds = indices[indices_count:indices_count +
-                             num_shard_elts] - count
+        shard_inds = indices[indices_count:
+                             indices_count + num_shard_elts] - count
         X_sel = X[shard_inds]
         # Handle the case of datasets with y/w missing
         if y is not None:
