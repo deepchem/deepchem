@@ -395,6 +395,23 @@ class NumpyDataset(Dataset):
     ids = self.ids[indices]
     return NumpyDataset(X, y, w, ids)
 
+  @staticmethod
+  def from_DiskDataset(ds):
+    """
+
+    Parameters
+    ----------
+    ds : DiskDataset
+    DiskDataset to transorm to NumpyDataset
+
+    Returns
+    -------
+    NumpyDataset
+      Data of ds as NumpyDataset
+
+    """
+    return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
+
 
 class DiskDataset(Dataset):
   """
