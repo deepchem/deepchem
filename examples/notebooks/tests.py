@@ -26,7 +26,6 @@ def _notebook_read(path):
 
     fout.seek(0)
     nb = nbformat.read(fout, nbformat.current_nbformat)
-  # nb = nbformat.read(fout, nbformat.current_nbformat)
 
   errors = [output for cell in nb.cells if "outputs" in cell
             for output in cell["outputs"] \
