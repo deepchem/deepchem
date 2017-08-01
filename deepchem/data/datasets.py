@@ -80,36 +80,35 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
   num_samples = len(X_b)
   if num_samples == batch_size:
     return (X_b, y_b, w_b, ids_b)
+  # By invariant of when this is called, can assume num_samples > 0
+  # and num_samples < batch_size
+  if len(X_b.shape) > 1:
+    feature_shape = X_b.shape[1:]
+    X_out = np.zeros((batch_size,) + feature_shape, dtype=X_b.dtype)
   else:
-    # By invariant of when this is called, can assume num_samples > 0
-    # and num_samples < batch_size
-    if len(X_b.shape) > 1:
-      feature_shape = X_b.shape[1:]
-      X_out = np.zeros((batch_size,) + feature_shape, dtype=X_b.dtype)
+    X_out = np.zeros((batch_size,), dtype=X_b.dtype)
+
+  num_tasks = y_b.shape[1]
+  y_out = np.zeros((batch_size, num_tasks), dtype=y_b.dtype)
+  w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
+  ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
+
+  # Fill in batch arrays
+  start = 0
+  # Only the first set of copy will be counted in training loss
+  w_out[start:start + num_samples] = w_b[:]
+  while start < batch_size:
+    num_left = batch_size - start
+    if num_left < num_samples:
+      increment = num_left
     else:
-      X_out = np.zeros((batch_size,), dtype=X_b.dtype)
+      increment = num_samples
+    X_out[start:start + increment] = X_b[:increment]
+    y_out[start:start + increment] = y_b[:increment]
+    ids_out[start:start + increment] = ids_b[:increment]
+    start += increment
 
-    num_tasks = y_b.shape[1]
-    y_out = np.zeros((batch_size, num_tasks), dtype=y_b.dtype)
-    w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
-    ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
-
-    # Fill in batch arrays
-    start = 0
-    # Only the first set of copy will be counted in training loss
-    w_out[start:start + num_samples] = w_b[:]
-    while start < batch_size:
-      num_left = batch_size - start
-      if num_left < num_samples:
-        increment = num_left
-      else:
-        increment = num_samples
-      X_out[start:start + increment] = X_b[:increment]
-      y_out[start:start + increment] = y_b[:increment]
-      ids_out[start:start + increment] = ids_b[:increment]
-      start += increment
-
-    return (X_out, y_out, w_out, ids_out)
+  return (X_out, y_out, w_out, ids_out)
 
 
 class Dataset(object):

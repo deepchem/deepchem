@@ -163,10 +163,7 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
             'Pb',
             'Unknown'
         ]) + one_of_k_encoding(atom.GetDegree(),
-                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    # In case of explicit hydrogen(QM8, QM9), avoid calling `GetTotalNumHs`
-    if explicit_H:
-      results = results + \
+                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
         one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
         [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
         one_of_k_encoding_unk(atom.GetHybridization(), [
@@ -174,15 +171,9 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
             Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
             SP3D, Chem.rdchem.HybridizationType.SP3D2
         ]) + [atom.GetIsAromatic()]
-    else:
-      results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) + \
-          one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
-          [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
-          one_of_k_encoding_unk(atom.GetHybridization(), [
-              Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
-              Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
-              SP3D, Chem.rdchem.HybridizationType.SP3D2
-          ]) + [atom.GetIsAromatic()]
+    # In case of explicit hydrogen(QM8, QM9), avoid calling `GetTotalNumHs`
+    if not explicit_H:
+      results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
 
     return np.array(results)
 
@@ -290,27 +281,17 @@ class WeaveFeaturizer(Featurizer):
 
   name = ['weave_mol']
 
-  def __init__(self, graph_distance=True, explicit_H=None):
+  def __init__(self, graph_distance=True, explicit_H=False):
     # Distance is either graph distance(True) or Euclidean distance(False,
     # only support datasets providing Cartesian coordinates)
     self.graph_distance = graph_distance
     # Set dtype
     self.dtype = object
-    # Check if there are explicit hydrogens, default to be False
-    self.check_H = False
-    if explicit_H is None:
-      self.explicit_H = False
-      # Set to True if explicit hydrogen is not specified
-      self.check_H = True
+    # If includes explicit hydrogens
+    self.explicit_H = explicit_H
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""
-    # Check hydrogen in the molecule
-    if self.check_H and not self.explicit_H:
-      for a in mol.GetAtoms():
-        if a.GetSymbol() == 'H':
-          self.explicit_H = True
-          break
     # Atom features
     idx_nodes = [(a.GetIdx(), atom_features(a, explicit_H=self.explicit_H))
                  for a in mol.GetAtoms()]

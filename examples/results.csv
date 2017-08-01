@@ -1,5 +1,0 @@
-qm7b,random,regression,dtnn,mean-pearson_r2_score,train,0.93149678885630138,valid,0.9070831996898977,time_for_running,628.2365071773529
-sampl,random,regression,krr,mean-pearson_r2_score,train,0.99985273293498711,valid,0.81413385193207155,time_for_running,0.484935998916626
-ppb,random,regression,krr,mean-pearson_r2_score,train,0.99436827538907779,valid,0.36149235755484083,time_for_running,1.822425127029419
-qm7,random,regression,ani,mean-pearson_r2_score,train,0.90124742726047558,valid,0.86827080462582273,time_for_running,1619.0067789554596
-qm7,random,regression,ani,mean-pearson_r2_score,train,0.96049723833152711,valid,0.9318116152192033,time_for_running,1144.9879438877106

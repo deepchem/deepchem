@@ -873,7 +873,6 @@ class MessagePassing(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-
 class EdgeNetwork(object):
   """ Submodule for Message Passing """
 
@@ -930,7 +929,7 @@ class GatedRecurrentUnit(object):
 
 
 class SetGather(Layer):
-  """ set2set gather layer for graph-based model 
+  """ set2set gather layer for graph-based model
   model using this layer must set pad_batches=True """
 
   def __init__(self, M, batch_size, n_hidden=100, init='orthogonal', **kwargs):
@@ -971,11 +970,11 @@ class SetGather(Layer):
     atom_features = in_layers[0].out_tensor
     atom_split = in_layers[1].out_tensor
 
-    c = tf.zeros((self.batch_size, self.n_hidden))
-    h = tf.zeros((self.batch_size, self.n_hidden))
+    self.c = tf.zeros((self.batch_size, self.n_hidden))
+    self.h = tf.zeros((self.batch_size, self.n_hidden))
 
     for i in range(self.M):
-      q_expanded = tf.gather(h, atom_split)
+      q_expanded = tf.gather(self.h, atom_split)
       e = tf.reduce_sum(atom_features * q_expanded, 1)
       e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
       # Add another value(~-Inf) to prevent error in softmax
@@ -985,8 +984,8 @@ class SetGather(Layer):
       a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
       r = tf.segment_sum(tf.reshape(a, [-1, 1]) * atom_features, atom_split)
       # Model using this layer must set pad_batches=True
-      q_star = tf.concat([h, r], axis=1)
-      h, c = self.LSTMStep(q_star, c)
+      q_star = tf.concat([self.h, r], axis=1)
+      self.h, self.c = self.LSTMStep(q_star, self.c)
 
     out_tensor = q_star
     if set_tensors:
@@ -1005,3 +1004,14 @@ class SetGather(Layer):
     h_out = o * tf.nn.tanh(c_out)
 
     return h_out, c_out
+
+
+  def none_tensors(self):
+    self.out_tensor = None
+    self.h = None
+    self.c = None
+    saved_tensors = [self.out_tensor, self.h, self.c]
+    return saved_tensors
+
+  def set_tensors(self, tensors):
+    self.out_tensor, self.h, self.c = tensors
