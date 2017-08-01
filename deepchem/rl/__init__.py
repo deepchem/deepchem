@@ -30,7 +30,7 @@ class Environment(object):
       import numpy
       import collections
       if isinstance(state_shape[0], collections.Sequence):
-        self._state_dtype = [numpy.float32]*len(state_shape)
+        self._state_dtype = [numpy.float32] * len(state_shape)
       else:
         self._state_dtype = numpy.float32
     else:
