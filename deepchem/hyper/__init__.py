@@ -12,6 +12,7 @@ from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
 
+
 class HyperparamOpt(object):
   """
   Provides simple hyperparameter search capabilities.
@@ -23,8 +24,13 @@ class HyperparamOpt(object):
 
   # TODO(rbharath): This function is complicated and monolithic. Is there a nice
   # way to refactor this?
-  def hyperparam_search(self, params_dict, train_dataset, valid_dataset,
-                        output_transformers, metric, use_max=True,
+  def hyperparam_search(self,
+                        params_dict,
+                        train_dataset,
+                        valid_dataset,
+                        output_transformers,
+                        metric,
+                        use_max=True,
                         logdir=None):
     """Perform hyperparams search according to params_dict.
     
@@ -32,9 +38,9 @@ class HyperparamOpt(object):
     of potential values for that hyperparam. 
 
     TODO(rbharath): This shouldn't be stored in a temporary directory.
-    """ 
+    """
     hyperparams = params_dict.keys()
-    hyperparam_vals = params_dict.values() 
+    hyperparam_vals = params_dict.values()
     for hyperparam_list in params_dict.values():
       assert isinstance(hyperparam_list, collections.Iterable)
 
@@ -49,10 +55,10 @@ class HyperparamOpt(object):
     best_hyperparams = None
     best_model, best_model_dir = None, None
     all_scores = {}
-    for ind, hyperparameter_tuple in enumerate(itertools.product(*hyperparam_vals)):
+    for ind, hyperparameter_tuple in enumerate(
+        itertools.product(*hyperparam_vals)):
       model_params = {}
-      log("Fitting model %d/%d" % (ind+1, number_combinations),
-          self.verbose)
+      log("Fitting model %d/%d" % (ind + 1, number_combinations), self.verbose)
       for hyperparam, hyperparam_val in zip(hyperparams, hyperparameter_tuple):
         model_params[hyperparam] = hyperparam_val
       log("hyperparameters: %s" % str(model_params), self.verbose)
@@ -60,7 +66,7 @@ class HyperparamOpt(object):
       if logdir is not None:
         model_dir = os.path.join(logdir, str(ind))
         log("model_dir is %s" % model_dir, self.verbose)
-        try: 
+        try:
           os.makedirs(model_dir)
         except OSError:
           if not os.path.isdir(model_dir):
@@ -73,13 +79,13 @@ class HyperparamOpt(object):
       model = self.model_class(model_params, model_dir)
       model.fit(train_dataset, **model_params)
       model.save()
-    
+
       evaluator = Evaluator(model, valid_dataset, output_transformers)
       multitask_scores = evaluator.compute_model_performance(
           [metric], valid_csv_out.name, valid_stats_out.name)
       valid_score = multitask_scores[metric.name]
       all_scores[str(hyperparameter_tuple)] = valid_score
-    
+
       if (use_max and valid_score >= best_validation_score) or (
           not use_max and valid_score <= best_validation_score):
         best_validation_score = valid_score
@@ -90,10 +96,10 @@ class HyperparamOpt(object):
         best_model = model
       else:
         shutil.rmtree(model_dir)
-  
+
       log("Model %d/%d, Metric %s, Validation set %s: %f" %
-          (ind+1, number_combinations, metric.name, ind, valid_score),
-          self.verbose)
+          (ind + 1, number_combinations, metric.name, ind,
+           valid_score), self.verbose)
       log("\tbest_validation_score so far: %f" % best_validation_score,
           self.verbose)
     if best_model is None:
@@ -107,8 +113,7 @@ class HyperparamOpt(object):
     multitask_scores = train_evaluator.compute_model_performance(
         [metric], train_csv_out.name, train_stats_out.name)
     train_score = multitask_scores[metric.name]
-    log("Best hyperparameters: %s" % str(best_hyperparams),
-        self.verbose)
+    log("Best hyperparameters: %s" % str(best_hyperparams), self.verbose)
     log("train_score: %f" % train_score, self.verbose)
     log("validation_score: %f" % best_validation_score, self.verbose)
     return best_model, best_hyperparams, all_scores
