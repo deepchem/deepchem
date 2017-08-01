@@ -83,7 +83,7 @@ class WeaveTensorGraph(TensorGraph):
     weave_gather = WeaveGather(
         self.batch_size,
         n_input=self.n_graph_feat,
-        guassian_expand=True,
+        gaussian_expand=True,
         in_layers=[batch_norm1, self.atom_split])
 
     costs = []
@@ -706,7 +706,7 @@ class MPNNTensorGraph(TensorGraph):
           Number of units(convolution depths) in corresponding hidden layer
         n_graph_feat: int, optional
           Number of output features for each molecule(graph)
-          
+
         """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat

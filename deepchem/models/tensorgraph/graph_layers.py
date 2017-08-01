@@ -309,11 +309,11 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(mu=p[0], sigma=p[1])
+        tf.contrib.distributions.Normal(loc=p[0], scale=p[1])
         for p in gaussian_memberships
     ]
-    dist_max = [dist[i].pdf(gaussian_memberships[i][0]) for i in range(11)]
-    outputs = [dist[i].pdf(x) / dist_max[i] for i in range(11)]
+    dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
+    outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
@@ -373,7 +373,19 @@ class DTNNEmbedding(Layer):
     self.build()
     atom_number = in_layers[0].out_tensor
     atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
-    self.out_tensor = atom_features
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = atom_features
+
+  def none_tensors(self):
+    embedding_list = self.embedding_list
+    self.embedding_list = None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return embedding_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.embedding_list, self.out_tensor, self.trainable_weights, self.variables = tensor
 
 
 class DTNNStep(Layer):
@@ -462,6 +474,16 @@ class DTNNStep(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+  def none_tensors(self):
+    W_cf, W_df, W_fc, b_cf, b_df = self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
+    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df = None, None, None, None, None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_cf, W_df, W_fc, b_cf, b_df, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df, self.out_tensor, self.trainable_weights, self.variables = tensor
+
 
 class DTNNGather(Layer):
   """ TensorGraph style implementation
@@ -540,6 +562,16 @@ class DTNNGather(Layer):
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
+
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
 
 
 class DTNNExtract(Layer):
@@ -706,6 +738,16 @@ class DAGLayer(Layer):
       outputs = self.activation(outputs)
     return outputs
 
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+
 
 class DAGGather(Layer):
   """ TensorGraph style implementation
@@ -800,6 +842,16 @@ class DAGGather(Layer):
       outputs = self.activation(outputs)
     return outputs
 
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+
 
 class MessagePassing(Layer):
   """ General class for MPNN
@@ -873,6 +925,19 @@ class MessagePassing(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+  def none_tensors(self):
+    message_tensors = self.message_function.none_tensors()
+    update_tensors = self.update_function.none_tensors()
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return message_tensors, update_tensors, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    message_tensors, update_tensors, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.message_function.set_tensors(message_tensors)
+    self.update_function.set_tensors(update_tensors)
+
+
 class EdgeNetwork(object):
   """ Submodule for Message Passing """
 
@@ -896,6 +961,16 @@ class EdgeNetwork(object):
     out = tf.segment_sum(out, atom_to_pair[:, 0])
     return out
 
+  def none_tensors(self):
+    A = self.A
+    self.A = None,
+    trainable_weights = self.trainable_weights
+    self.trainable_weights = []
+    return A, trainable_weights
+
+  def set_tensors(self, tensor):
+    self.A, self.trainable_weights = tensor
+
 
 class GatedRecurrentUnit(object):
   """ Submodule for Message Passing """
@@ -903,29 +978,36 @@ class GatedRecurrentUnit(object):
   def __init__(self, n_hidden=100, init='glorot_uniform'):
     self.n_hidden = n_hidden
     self.init = initializations.get(init)
-    self.Wz = self.init([n_hidden, n_hidden])
-    self.Wr = self.init([n_hidden, n_hidden])
-    self.Wh = self.init([n_hidden, n_hidden])
-    self.Uz = self.init([n_hidden, n_hidden])
-    self.Ur = self.init([n_hidden, n_hidden])
-    self.Uh = self.init([n_hidden, n_hidden])
-    self.bz = model_ops.zeros(shape=(n_hidden,))
-    self.br = model_ops.zeros(shape=(n_hidden,))
-    self.bh = model_ops.zeros(shape=(n_hidden,))
-    self.trainable_weights = [
-        self.Wz, self.Wr, self.Wh, self.Uz, self.Ur, self.Uh, self.bz, self.br,
-        self.bh
-    ]
+    Wz = self.init([n_hidden, n_hidden])
+    Wr = self.init([n_hidden, n_hidden])
+    Wh = self.init([n_hidden, n_hidden])
+    Uz = self.init([n_hidden, n_hidden])
+    Ur = self.init([n_hidden, n_hidden])
+    Uh = self.init([n_hidden, n_hidden])
+    bz = model_ops.zeros(shape=(n_hidden,))
+    br = model_ops.zeros(shape=(n_hidden,))
+    bh = model_ops.zeros(shape=(n_hidden,))
+    self.trainable_weights = [Wz, Wr, Wh, Uz, Ur, Uh, bz, br, bh]
 
   def forward(self, inputs, messages):
-    z = tf.nn.sigmoid(tf.matmul(messages, self.Wz) + \
-                      tf.matmul(inputs, self.Uz) + self.bz)
-    r = tf.nn.sigmoid(tf.matmul(messages, self.Wr) + \
-                      tf.matmul(inputs, self.Ur) + self.br)
-    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.Wh) + \
-                           tf.matmul(inputs * r, self.Uh) + self.bh) + \
-         z * inputs
+    z = tf.nn.sigmoid(tf.matmul(messages, self.trainable_weights[0]) + \
+                      tf.matmul(inputs, self.trainable_weights[3]) + \
+                      self.trainable_weights[6])
+    r = tf.nn.sigmoid(tf.matmul(messages, self.trainable_weights[1]) + \
+                      tf.matmul(inputs, self.trainable_weights[4]) + \
+                      self.trainable_weights[7])
+    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.trainable_weights[2]) + \
+                           tf.matmul(inputs * r, self.trainable_weights[5]) + \
+                           self.trainable_weights[8]) + z * inputs
     return h
+
+  def none_tensors(self):
+    trainable_weights = self.trainable_weights
+    self.trainable_weights = []
+    return trainable_weights
+
+  def set_tensors(self, tensor):
+    self.trainable_weights = tensor
 
 
 class SetGather(Layer):
@@ -1005,13 +1087,12 @@ class SetGather(Layer):
 
     return h_out, c_out
 
-
   def none_tensors(self):
-    self.out_tensor = None
-    self.h = None
-    self.c = None
-    saved_tensors = [self.out_tensor, self.h, self.c]
-    return saved_tensors
+    U, b, c, h = self.U, self.b, self.c, self.h
+    self.U, self.b, self.c, self.h = None, None, None, None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return U, b, c, h, out_tensor, trainable_weights, variables
 
-  def set_tensors(self, tensors):
-    self.out_tensor, self.h, self.c = tensors
+  def set_tensors(self, tensor):
+    self.U, self.b, self.c, self.h, self.out_tensor, self.trainable_weights, self.variables = tensor
