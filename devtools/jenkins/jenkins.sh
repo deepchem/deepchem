@@ -13,7 +13,7 @@ export retval1=$?
 cd ..
 nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
 export retval2=$?
-nosetests -a 'slow' --with-timer deepchem --with-xunit -unit-file=slow_tests.xml|| true
+nosetests -a 'slow' --with-timer deepchem --with-xunit --xunit-file=slow_tests.xml|| true
 export retval3=$?
 
 source deactivate
