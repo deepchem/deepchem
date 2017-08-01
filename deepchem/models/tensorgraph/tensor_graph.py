@@ -233,8 +233,8 @@ class TensorGraph(Model):
           feed_dict[self.features[0]] = X_b
         if len(self.task_weights) == 1 and w_b is not None and not predict:
           feed_dict[self.task_weights[0]] = w_b
-        for (inital_state, zero_state) in zip(self.rnn_initial_states,
-                                              self.rnn_zero_states):
+        for (initial_state, zero_state) in zip(self.rnn_initial_states,
+                                               self.rnn_zero_states):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
