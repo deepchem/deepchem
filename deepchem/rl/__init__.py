@@ -19,12 +19,22 @@ class Environment(object):
   running in different processes or even on different computers.
   """
 
-  def __init__(self, state_shape, n_actions):
+  def __init__(self, state_shape, n_actions, state_dtype=None):
     """Subclasses should call the superclass constructor in addition to doing their own initialization."""
     self._state_shape = state_shape
     self._n_actions = n_actions
     self._state = None
     self._terminated = None
+    if state_dtype is None:
+      # Assume all arrays are float32.
+      import numpy
+      import collections
+      if isinstance(state_shape[0], collections.Sequence):
+        self._state_dtype = [numpy.float32]*len(state_shape)
+      else:
+        self._state_dtype = numpy.float32
+    else:
+      self._state_dtype = state_dtype
 
   @property
   def state(self):
@@ -51,6 +61,15 @@ class Environment(object):
     the shape of one array.
     """
     return self._state_shape
+
+  @property
+  def state_dtype(self):
+    """The dtypes of the arrays that describe a state.
+
+    If the state is a single array, this returns the dtype of that array.  If the state
+    is a list of arrays, this returns a list containing the dtypes of the arrays.
+    """
+    return self._state_dtype
 
   @property
   def n_actions(self):
