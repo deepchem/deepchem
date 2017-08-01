@@ -696,6 +696,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] > .7
 
+  @flaky
   def test_tf_multitask_regression_overfit(self):
     """Test tf multitask overfits tiny data."""
     n_tasks = 10
