@@ -112,10 +112,7 @@ class Layer(object):
     else:
       self.variable_scope = local_scope
 
-  def set_summary(self,
-                  summary_op,
-                  summary_description=None,
-                  collections=None):
+  def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
     Collects data from self.out_tensor by default but can be changed by setting 
     self.tb_input to another tensor in create_tensor
