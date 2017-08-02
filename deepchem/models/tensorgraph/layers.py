@@ -114,6 +114,45 @@ class Layer(object):
     else:
       self.variable_scope = local_scope
 
+  def set_summary(self,
+                  summary_op,
+                  name=None,
+                  summary_description=None,
+                  collections=None):
+    """Annotates a tensor with a tf.summary operation
+    Collects data from self.out_tensor by default but can be changed by setting self.tb_input to another tensor in create_tensor
+
+
+    Parameters
+    ----------
+    summary_op: summary operation to annotate node
+    name: name for node. Required if self.name was not previously set
+    summary_description: Optional summary_pb2.SummaryDescription()
+    collections: Optional list of graph collections keys. Defaults to [GraphKeys.SUMMARIES]
+    """
+    supported_ops = {'tensor_summary', 'scalar', 'histogram'}
+    if summary_op not in supported_ops:
+      raise ValueError("Invalid summary_op arg")
+    if self.name == None and name == None:
+      raise ValueError("Name not previously set. Name param is required")
+    self.summary_op = summary_op
+    self.name = name
+    self.summary_description = summary_description
+    self.collections = collections
+    self.tensorboard = True
+
+  def add_summary_to_tg(self):
+    if self.tensorboard == False:
+      return
+    if self.tb_input == None:
+      self.tb_input = self.out_tensor
+    if self.summary_op == "tensor_summary":
+      tf.summary.tensor_summary(self.name, self.tb_input,
+                                self.summary_description, self.collections)
+    elif self.summary_op == 'scalar':
+      tf.summary.scalar(self.name, self.tb_input, self.collections)
+    elif self.summary_op == 'histogram':
+      tf.summary.histogram(self.name, self.tb_input, self.collections)
 
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
