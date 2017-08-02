@@ -114,7 +114,6 @@ class Layer(object):
 
   def set_summary(self,
                   summary_op,
-                  name=None,
                   summary_description=None,
                   collections=None):
     """Annotates a tensor with a tf.summary operation
@@ -126,8 +125,6 @@ class Layer(object):
     ----------
     summary_op: str
       summary operation to annotate node
-    name: str, optional
-      name for node
     summary_description: object, optional
       Optional summary_pb2.SummaryDescription()
     collections: list of graph collections keys, optional
@@ -139,7 +136,6 @@ class Layer(object):
           "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
       )
     self.summary_op = summary_op
-    self.name = name
     self.summary_description = summary_description
     self.collections = collections
     self.tensorboard = True
