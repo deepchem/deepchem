@@ -20,7 +20,7 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
-  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction']:
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
@@ -49,15 +49,15 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
     if loaded:
       return qm9_tasks, all_dataset, transformers
 
-  if featurizer == 'CoulombMatrix':
-    featurizer = deepchem.feat.CoulombMatrix(29)
-    loader = deepchem.data.SDFLoader(
-        tasks=qm9_tasks,
-        smiles_field="smiles",
-        mol_field="mol",
-        featurizer=featurizer)
-  elif featurizer == 'BPSymmetryFunction':
-    featurizer = deepchem.feat.BPSymmetryFunction(29)
+  if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
+    if featurizer == 'CoulombMatrix':
+      featurizer = deepchem.feat.CoulombMatrix(26)
+    elif featurizer == 'BPSymmetryFunction':
+      featurizer = deepchem.feat.BPSymmetryFunction(26)
+    elif featurizer == 'Raw':
+      featurizer = deepchem.feat.RawFeaturizer()
+    elif featurizer == 'MP':
+      featurizer = deepchem.feat.WeaveFeaturizer(graph_distance=False)
     loader = deepchem.data.SDFLoader(
         tasks=qm9_tasks,
         smiles_field="smiles",
@@ -70,8 +70,6 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
       featurizer = deepchem.feat.ConvMolFeaturizer()
     elif featurizer == 'Weave':
       featurizer = deepchem.feat.WeaveFeaturizer()
-    elif featurizer == 'Raw':
-      featurizer = deepchem.feat.RawFeaturizer()
     loader = deepchem.data.CSVLoader(
         tasks=qm9_tasks, smiles_field="smiles", featurizer=featurizer)
 

@@ -20,12 +20,12 @@ from deepchem.nn.copy import Layer
 
 class WeaveLayer(Layer):
   """" Main layer of Weave model
-  For each molecule, atom features and pair features are recombined to 
+  For each molecule, atom features and pair features are recombined to
   generate new atom(pair) features
-  
+
   Detailed structure and explanations:
   https://arxiv.org/abs/1603.00856
-  
+
   """
 
   def __init__(self,
@@ -59,7 +59,7 @@ class WeaveLayer(Layer):
     n_hidden_XX: int, optional
       Number of units(convolution depths) in corresponding hidden layer
     update_pair: bool, optional
-      Whether to calculate for pair features, 
+      Whether to calculate for pair features,
       could be turned off for last layer
     init: str, optional
       Weight initialization for filters.
@@ -131,7 +131,7 @@ class WeaveLayer(Layer):
     """Execute this layer on input tensors.
 
     x = [atom_features, pair_features, atom_mask, pair_mask]
-    
+
     Parameters
     ----------
     x: list
@@ -171,8 +171,8 @@ class WeaveLayer(Layer):
           tf.stack([atom_features] * max_atoms, axis=1)
       ], 3)
       AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
-      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
-                        [[3], [0]]) + self.b_AP
+      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP, [[3], [0]
+                                                              ]) + self.b_AP
       AP = self.activation(AP)
       PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
       PP = self.activation(PP)
@@ -194,7 +194,7 @@ class AlternateWeaveLayer(WeaveLayer):
     """Execute this layer on input tensors.
 
     x = [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
-    
+
     Parameters
     ----------
     x: list
@@ -295,9 +295,9 @@ class WeaveConcat(Layer):
 
   def call(self, x, mask=None):
     """Execute this layer on input tensors.
-    
+
     x = [atom_features, atom_mask]
-    
+
     Parameters
     ----------
     x: list
@@ -325,7 +325,7 @@ class WeaveConcat(Layer):
 
 class WeaveGather(Layer):
   """" Gather layer of Weave model
-  a batch of normalized atom features go through a hidden layer, 
+  a batch of normalized atom features go through a hidden layer,
   then summed to form molecular features
   """
 
@@ -376,7 +376,7 @@ class WeaveGather(Layer):
     """Execute this layer on input tensors.
 
     x = [atom_features, membership]
-    
+
     Parameters
     ----------
     x: list
@@ -413,11 +413,11 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(mu=p[0], sigma=p[1])
+        tf.contrib.distributions.Normal(p[0], p[1])
         for p in gaussian_memberships
     ]
-    dist_max = [dist[i].pdf(gaussian_memberships[i][0]) for i in range(11)]
-    outputs = [dist[i].pdf(x) / dist_max[i] for i in range(11)]
+    dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
+    outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
@@ -433,7 +433,7 @@ class AlternateWeaveGather(WeaveGather):
     """Execute this layer on input tensors.
 
     x = [atom_features, atom_split]
-    
+
     Parameters
     ----------
     x: list

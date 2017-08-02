@@ -111,68 +111,72 @@ def atom_to_id(atom):
   return features_to_id(features, intervals)
 
 
-def atom_features(atom, bool_id_feat=False):
+def atom_features(atom, bool_id_feat=False, explicit_H=False):
   if bool_id_feat:
     return np.array([atom_to_id(atom)])
   else:
-    return np.array(
-        one_of_k_encoding_unk(
-            atom.GetSymbol(),
-            [
-                'C',
-                'N',
-                'O',
-                'S',
-                'F',
-                'Si',
-                'P',
-                'Cl',
-                'Br',
-                'Mg',
-                'Na',
-                'Ca',
-                'Fe',
-                'As',
-                'Al',
-                'I',
-                'B',
-                'V',
-                'K',
-                'Tl',
-                'Yb',
-                'Sb',
-                'Sn',
-                'Ag',
-                'Pd',
-                'Co',
-                'Se',
-                'Ti',
-                'Zn',
-                'H',  # H?
-                'Li',
-                'Ge',
-                'Cu',
-                'Au',
-                'Ni',
-                'Cd',
-                'In',
-                'Mn',
-                'Zr',
-                'Cr',
-                'Pt',
-                'Hg',
-                'Pb',
-                'Unknown'
-            ]) + one_of_k_encoding(atom.GetDegree(), [
-                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-            ]) + one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4]) +
-        one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6])
-        + [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] +
+    results = one_of_k_encoding_unk(
+        atom.GetSymbol(),
+        [
+            'C',
+            'N',
+            'O',
+            'S',
+            'F',
+            'Si',
+            'P',
+            'Cl',
+            'Br',
+            'Mg',
+            'Na',
+            'Ca',
+            'Fe',
+            'As',
+            'Al',
+            'I',
+            'B',
+            'V',
+            'K',
+            'Tl',
+            'Yb',
+            'Sb',
+            'Sn',
+            'Ag',
+            'Pd',
+            'Co',
+            'Se',
+            'Ti',
+            'Zn',
+            'H',  # H?
+            'Li',
+            'Ge',
+            'Cu',
+            'Au',
+            'Ni',
+            'Cd',
+            'In',
+            'Mn',
+            'Zr',
+            'Cr',
+            'Pt',
+            'Hg',
+            'Pb',
+            'Unknown'
+        ]) + one_of_k_encoding(atom.GetDegree(),
+                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
+        one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
+        [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
         one_of_k_encoding_unk(atom.GetHybridization(), [
             Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
             Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
             SP3D, Chem.rdchem.HybridizationType.SP3D2
-        ]) + [atom.GetIsAromatic()])
+        ]) + [atom.GetIsAromatic()]
+    # In case of explicit hydrogen(QM8, QM9), avoid calling `GetTotalNumHs`
+    if not explicit_H:
+      results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(),
+                                                [0, 1, 2, 3, 4])
+
+    return np.array(results)
 
 
 def bond_features(bond):
@@ -180,14 +184,19 @@ def bond_features(bond):
   return np.array([
       bt == Chem.rdchem.BondType.SINGLE, bt == Chem.rdchem.BondType.DOUBLE,
       bt == Chem.rdchem.BondType.TRIPLE, bt == Chem.rdchem.BondType.AROMATIC,
-      bond.GetIsConjugated(), bond.IsInRing()
+      bond.GetIsConjugated(),
+      bond.IsInRing()
   ])
 
 
-def pair_features(mol, edge_list, canon_adj_list, bt_len=6):
-  max_distance = 7
-  features = np.zeros(
-      (mol.GetNumAtoms(), mol.GetNumAtoms(), bt_len + max_distance + 1))
+def pair_features(mol, edge_list, canon_adj_list, bt_len=6,
+                  graph_distance=True):
+  if graph_distance:
+    max_distance = 7
+  else:
+    max_distance = 1
+  N = mol.GetNumAtoms()
+  features = np.zeros((N, N, bt_len + max_distance + 1))
   num_atoms = mol.GetNumAtoms()
   rings = mol.GetRingInfo().AtomRings()
   for a1 in range(num_atoms):
@@ -201,9 +210,19 @@ def pair_features(mol, edge_list, canon_adj_list, bt_len=6):
         features[a1, ring, bt_len] = 1
         features[a1, a1, bt_len] = 0.
     # graph distance between two atoms
-    distance = find_distance(
-        a1, num_atoms, canon_adj_list, max_distance=max_distance)
-    features[a1, :, bt_len + 1:] = distance
+    if graph_distance:
+      distance = find_distance(
+          a1, num_atoms, canon_adj_list, max_distance=max_distance)
+      features[a1, :, bt_len + 1:] = distance
+  # Euclidean distance between atoms
+  if not graph_distance:
+    coords = np.zeros((N, 3))
+    for atom in range(N):
+      pos = mol.GetConformer(0).GetAtomPosition(atom)
+      coords[atom, :] = [pos.x, pos.y, pos.z]
+    features[:,:,-1] = np.sqrt(np.sum(np.square(
+        np.stack([coords] * N, axis=1) - \
+        np.stack([coords] * N, axis=0)), axis=2))
 
   return features
 
@@ -263,14 +282,20 @@ class WeaveFeaturizer(Featurizer):
 
   name = ['weave_mol']
 
-  def __init__(self):
+  def __init__(self, graph_distance=True, explicit_H=False):
+    # Distance is either graph distance(True) or Euclidean distance(False,
+    # only support datasets providing Cartesian coordinates)
+    self.graph_distance = graph_distance
     # Set dtype
     self.dtype = object
+    # If includes explicit hydrogens
+    self.explicit_H = explicit_H
 
   def _featurize(self, mol):
     """Encodes mol as a WeaveMol object."""
     # Atom features
-    idx_nodes = [(a.GetIdx(), atom_features(a)) for a in mol.GetAtoms()]
+    idx_nodes = [(a.GetIdx(), atom_features(a, explicit_H=self.explicit_H))
+                 for a in mol.GetAtoms()]
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
 
@@ -280,8 +305,8 @@ class WeaveFeaturizer(Featurizer):
     # Get bond lists
     edge_list = {}
     for b in mol.GetBonds():
-      edge_list[tuple(sorted([b.GetBeginAtomIdx(), b.GetEndAtomIdx()
-                             ]))] = bond_features(b)
+      edge_list[tuple(sorted([b.GetBeginAtomIdx(),
+                              b.GetEndAtomIdx()]))] = bond_features(b)
 
     # Get canonical adjacency list
     canon_adj_list = [[] for mol_id in range(len(nodes))]
@@ -290,6 +315,11 @@ class WeaveFeaturizer(Featurizer):
       canon_adj_list[edge[1]].append(edge[0])
 
     # Calculate pair features
-    pairs = pair_features(mol, edge_list, canon_adj_list, bt_len=6)
+    pairs = pair_features(
+        mol,
+        edge_list,
+        canon_adj_list,
+        bt_len=6,
+        graph_distance=self.graph_distance)
 
     return WeaveMol(nodes, pairs)
