@@ -171,8 +171,8 @@ class WeaveLayer(Layer):
           tf.stack([atom_features] * max_atoms, axis=1)
       ], 3)
       AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
-      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
-                        [[3], [0]]) + self.b_AP
+      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP, [[3], [0]
+                                                              ]) + self.b_AP
       AP = self.activation(AP)
       PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
       PP = self.activation(PP)
@@ -413,7 +413,7 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(loc=p[0], scale=p[1])
+        tf.contrib.distributions.Normal(p[0], p[1])
         for p in gaussian_memberships
     ]
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]

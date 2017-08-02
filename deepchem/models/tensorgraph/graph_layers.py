@@ -309,7 +309,7 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(loc=p[0], scale=p[1])
+        tf.contrib.distributions.Normal(p[0], p[1])
         for p in gaussian_memberships
     ]
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
@@ -864,17 +864,17 @@ class MessagePassing(Layer):
                n_hidden=100,
                **kwargs):
     """
-        Parameters
-        ----------
-        T: int
-          Number of message passing steps
-        message_fn: str, optional
-          message function in the model
-        update_fn: str, optional
-          update function in the model
-        n_hidden: int, optional
-          number of hidden units in the passing phase
-        """
+    Parameters
+    ----------
+    T: int
+      Number of message passing steps
+    message_fn: str, optional
+      message function in the model
+    update_fn: str, optional
+      update function in the model
+    n_hidden: int, optional
+      number of hidden units in the passing phase
+    """
 
     self.T = T
     self.message_fn = message_fn

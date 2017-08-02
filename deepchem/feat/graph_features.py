@@ -173,7 +173,8 @@ def atom_features(atom, bool_id_feat=False, explicit_H=False):
         ]) + [atom.GetIsAromatic()]
     # In case of explicit hydrogen(QM8, QM9), avoid calling `GetTotalNumHs`
     if not explicit_H:
-      results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(), [0, 1, 2, 3, 4])
+      results = results + one_of_k_encoding_unk(atom.GetTotalNumHs(),
+                                                [0, 1, 2, 3, 4])
 
     return np.array(results)
 
