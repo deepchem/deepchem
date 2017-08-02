@@ -5,13 +5,14 @@ export python_version=2.7
 bash scripts/install_deepchem_conda.sh $envname
 source activate $envname
 python setup.py install
-conda install jupyter
-conda install nbconvert
-conda install jupyter_client
-conda install ipykernel
-conda install matplotlib
-pip install nglview
-conda install ipywidgets
+conda install -y jupyter
+conda install -y nbconvert
+conda install -y jupyter_client
+conda install -y ipykernel
+conda install -y matplotlib
+yes | pip install nglview
+conda install -y ipywidgets
+yes | pip uninstall tensorflow
 
 cd examples/notebooks
 nosetests --with-timer tests.py --with-xunit --xunit-file=notebook_tests.xml|| true
