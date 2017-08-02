@@ -21,7 +21,7 @@ def _notebook_read(path):
   with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
     args = [
         "jupyter-nbconvert", "--to", "notebook", "--execute",
-        "--ExecutePreprocessor.timeout=60", "--output", fout.name, path
+        "--ExecutePreprocessor.timeout=300", "--output", fout.name, path
     ]
     subprocess.check_call(args)
 
@@ -37,4 +37,19 @@ def _notebook_read(path):
 
 def test_protein_ligand_complex_notebook():
   nb, errors = _notebook_read("protein_ligand_complex_notebook.ipynb")
+  assert errors == []
+
+
+def test_bace():
+  nb, errors = _notebook_read("BACE.ipynb")
+  assert errors == []
+
+
+def test_multitask_networks_on_muv():
+  nb, errors = _notebook_read("Multitask_Networks_on_MUV.ipynb")
+  assert errors == []
+
+
+def test_mnist():
+  nb, errors = _notebook_read("mnist.ipynb")
   assert errors == []
