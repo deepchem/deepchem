@@ -16,10 +16,6 @@ class Layer(object):
       self.name = kwargs['name']
     else:
       self.name = None
-    if "tensorboard" not in kwargs:
-      self.tensorboard = False
-    else:
-      self.tensorboard = kwargs['tensorboard']
     if in_layers is None:
       in_layers = list()
     if not isinstance(in_layers, Sequence):
@@ -30,6 +26,8 @@ class Layer(object):
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    self.tensorboard = False
+    self.tb_input = None
 
   def _get_layer_number(self):
     class_name = self.__class__.__name__
@@ -120,21 +118,26 @@ class Layer(object):
                   summary_description=None,
                   collections=None):
     """Annotates a tensor with a tf.summary operation
-    Collects data from self.out_tensor by default but can be changed by setting self.tb_input to another tensor in create_tensor
+    Collects data from self.out_tensor by default but can be changed by setting 
+    self.tb_input to another tensor in create_tensor
 
 
     Parameters
     ----------
-    summary_op: summary operation to annotate node
-    name: name for node. Required if self.name was not previously set
-    summary_description: Optional summary_pb2.SummaryDescription()
-    collections: Optional list of graph collections keys. Defaults to [GraphKeys.SUMMARIES]
+    summary_op: str
+      summary operation to annotate node
+    name: str, optional
+      name for node
+    summary_description: object, optional
+      Optional summary_pb2.SummaryDescription()
+    collections: list of graph collections keys, optional
+      New summary op is added to these collections. Defaults to [GraphKeys.SUMMARIES]
     """
     supported_ops = {'tensor_summary', 'scalar', 'histogram'}
     if summary_op not in supported_ops:
-      raise ValueError("Invalid summary_op arg")
-    if self.name == None and name == None:
-      raise ValueError("Name not previously set. Name param is required")
+      raise ValueError(
+          "Invalid summary_op arg. Only 'tensor_summary', 'scalar', 'histogram' supported"
+      )
     self.summary_op = summary_op
     self.name = name
     self.summary_description = summary_description
@@ -142,6 +145,9 @@ class Layer(object):
     self.tensorboard = True
 
   def add_summary_to_tg(self):
+    """
+    Can only be called after self.create_layer to gaurentee that name is not none
+    """
     if self.tensorboard == False:
       return
     if self.tb_input == None:
