@@ -38,11 +38,11 @@ def parse_test_results(test_results):
   for line in test_results:
     vars = line.split(',')
     retval.append({
-        "split": BENCHMARK_TO_DESIRED_KEY_MAP[vars[2]],
-        "data_set": vars[1],
-        "model": BENCHMARK_TO_DESIRED_KEY_MAP[vars[5]],
+        "split": BENCHMARK_TO_DESIRED_KEY_MAP[vars[1]],
+        "data_set": vars[0],
+        "model": BENCHMARK_TO_DESIRED_KEY_MAP[vars[3]],
         "train_score": float(vars[6]),
-        "test_score": float(vars[9])
+        "test_score": float(vars[8])
     })
   return retval
 
