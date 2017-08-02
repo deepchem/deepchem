@@ -413,7 +413,7 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(loc=p[0], scale=p[1])
+        tf.contrib.distributions.Normal(p[0], p[1])
         for p in gaussian_memberships
     ]
     dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
