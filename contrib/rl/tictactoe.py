@@ -9,6 +9,7 @@ import deepchem as dc
 import deepchem.rl.envs.tictactoe
 from deepchem.models.tensorgraph.layers import Flatten, Dense, SoftMax, \
     BatchNorm, Squeeze
+from deepchem.models.tensorgraph.optimizers import Adam
 
 
 class TicTacToePolicy(dc.rl.Policy):
@@ -66,8 +67,7 @@ def eval_tic_tac_toe(value_weight,
         entropy_weight=0.01,
         value_weight=value_weight,
         model_dir=model_dir,
-        optimizer=dc.models.tensorgraph.TFWrapper(
-            tf.train.AdamOptimizer, learning_rate=0.001))
+        optimizer=Adam(learning_rate=0.001))
     try:
       a3c.restore()
     except:

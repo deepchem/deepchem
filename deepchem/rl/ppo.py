@@ -1,7 +1,7 @@
 """Proximal Policy Optimization (PPO) algorithm for reinforcement learning."""
 
 from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph import TFWrapper
+from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
@@ -125,8 +125,8 @@ class PPO(object):
       a scale factor for the value loss term in the loss function
     entropy_weight: float
       a scale factor for the entropy term in the loss function
-    optimizer: TFWrapper
-      a callable object that creates the optimizer to use.  If None, a default optimizer is used.
+    optimizer: Optimizer
+      the optimizer to use.  If None, a default optimizer is used.
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     use_hindsight: bool
@@ -145,8 +145,7 @@ class PPO(object):
     self.use_hindsight = use_hindsight
     self._state_is_list = isinstance(env.state_shape[0], collections.Sequence)
     if optimizer is None:
-      self._optimizer = TFWrapper(
-          tf.train.AdamOptimizer, learning_rate=0.001, beta1=0.9, beta2=0.999)
+      self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
     else:
       self._optimizer = optimizer
     (self._graph, self._features, self._rewards, self._actions,
@@ -154,14 +153,20 @@ class PPO(object):
      self._old_action_prob) = self._build_graph(None, 'global', model_dir)
     with self._graph._get_tf("Graph").as_default():
       self._session = tf.Session()
+      self._train_op = self._graph._get_tf('Optimizer').minimize(
+          self._graph.loss.out_tensor)
     self._rnn_states = self._graph.rnn_zero_states
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
     state_shape = self._env.state_shape
+    state_dtype = self._env.state_dtype
     if not self._state_is_list:
       state_shape = [state_shape]
-    features = [Feature(shape=[None] + list(s)) for s in state_shape]
+      state_dtype = [state_dtype]
+    features = []
+    for s, d in zip(state_shape, state_dtype):
+      features.append(Feature(shape=[None] + list(s), dtype=tf.as_dtype(d)))
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']
@@ -214,7 +219,6 @@ class PPO(object):
       from there.  If False, retrain the model from scratch.
     """
     with self._graph._get_tf("Graph").as_default():
-      train_op = self._graph._get_tf('train_op')
       step_count = 0
       workers = []
       threads = []
@@ -253,7 +257,8 @@ class PPO(object):
             feed_dict[self._actions.out_tensor] = actions_matrix
             feed_dict[self._advantages.out_tensor] = advantages
             feed_dict[self._old_action_prob.out_tensor] = action_prob
-            self._session.run(train_op, feed_dict=feed_dict)
+            feed_dict[self._graph.get_global_step()] = step_count
+            self._session.run(self._train_op, feed_dict=feed_dict)
 
         # Update the number of steps taken so far and perform checkpointing.
 
