@@ -171,8 +171,8 @@ class WeaveLayer(Layer):
           tf.stack([atom_features] * max_atoms, axis=1)
       ], 3)
       AP_combine_t = tf.transpose(AP_combine, perm=[0, 2, 1, 3])
-      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP,
-                        [[3], [0]]) + self.b_AP
+      AP = tf.tensordot(AP_combine + AP_combine_t, self.W_AP, [[3], [0]
+                                                              ]) + self.b_AP
       AP = self.activation(AP)
       PP = tf.tensordot(pair_features, self.W_PP, [[3], [0]]) + self.b_PP
       PP = self.activation(PP)
