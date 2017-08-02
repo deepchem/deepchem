@@ -154,6 +154,7 @@ class Layer(object):
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
+
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
 
