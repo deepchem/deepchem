@@ -738,6 +738,8 @@ class Constant(Layer):
     dtype: tf.DType
       the data type of the output value.
     """
+    if not isinstance(value, np.ndarray):
+      value = np.array(value)
     self.value = value
     self.dtype = dtype
     self._shape = tuple(value.shape)
@@ -763,6 +765,8 @@ class Variable(Layer):
     dtype: tf.DType
       the data type of the output value.
     """
+    if not isinstance(initial_value, np.ndarray):
+      initial_value = np.array(initial_value)
     self.initial_value = initial_value
     self.dtype = dtype
     self._shape = tuple(initial_value.shape)
