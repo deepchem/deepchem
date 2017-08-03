@@ -186,7 +186,8 @@ def run_benchmark(datasets,
       model_name = list(train_score.keys())[0]
       for i in train_score[model_name]:
         output_line = [
-            dataset, str(split), mode, model_name, i, 'train',
+            dataset,
+            str(split), mode, model_name, i, 'train',
             train_score[model_name][i], 'valid', valid_score[model_name][i]
         ]
         if test:
