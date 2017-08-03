@@ -59,10 +59,18 @@ class Layer(object):
     -------
     Layer
     """
-    raise ValueError("Each Layer must implement shared for itself")
+    raise NotImplementedError("Each Layer must implement shared for itself")
 
   def __call__(self, *in_layers):
     return self.create_tensor(in_layers=in_layers, set_tensors=False)
+
+  @property
+  def shape(self):
+    """Get the shape of this Layer's output."""
+    if '_shape' not in dir(self):
+      raise NotImplementedError(
+          "%s: shape is not known" % self.__class__.__name__)
+    return self._shape
 
   def _get_input_tensors(self, in_layers, reshape=False):
     """Get the input tensors to his layer.
@@ -159,6 +167,7 @@ class TensorWrapper(Layer):
 
   def __init__(self, out_tensor, **kwargs):
     self.out_tensor = out_tensor
+    self._shape = out_tensor.get_shape().as_list()
     super(TensorWrapper, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, **kwargs):
@@ -214,6 +223,11 @@ class Conv1D(Layer):
     self.activation_fn = activation_fn
     self.out_tensor = None
     super(Conv1D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (parent_shape[0], parent_shape[1] // stride, out_channels)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -274,6 +288,11 @@ class Dense(Layer):
     self.biases_initializer = biases_initializer
     self.weights_initializer = weights_initializer
     self.time_series = time_series
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (parent_shape[0], out_channels)
+    except:
+      pass
     self._reuse = False
     self._shared_with = None
 
@@ -337,6 +356,13 @@ class Flatten(Layer):
 
   def __init__(self, **kwargs):
     super(Flatten, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = parent_shape[:2]
+      for s in parent_shape[2:]:
+        self._shape[1] *= s
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -357,13 +383,29 @@ class Flatten(Layer):
 class Reshape(Layer):
 
   def __init__(self, shape, **kwargs):
-    self.shape = shape
     super(Reshape, self).__init__(**kwargs)
+    self._new_shape = tuple(-1 if x is None else x for x in shape)
+    try:
+      parent_shape = self.in_layers[0].shape
+      s = tuple(None if x == -1 else x for x in shape)
+      if None in parent_shape or None not in s:
+        self._shape = s
+      else:
+        # Calculate what the new shape will be.
+        t = 1
+        for x in parent_shape:
+          t *= x
+        for x in s:
+          if x is not None:
+            t //= x
+        self._shape = tuple(t if x is None else x for x in s)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = tf.reshape(parent_tensor, self.shape)
+    out_tensor = tf.reshape(parent_tensor, self._new_shape)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -371,9 +413,20 @@ class Reshape(Layer):
 
 class Squeeze(Layer):
 
-  def __init__(self, squeeze_dims, **kwargs):
+  def __init__(self, squeeze_dims=None, **kwargs):
     self.squeeze_dims = squeeze_dims
     super(Squeeze, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      if squeeze_dims is None:
+        self._shape = [i for i in parent_shape if i != 1]
+      else:
+        self._shape = [
+            parent_shape[i] for i in range(len(parent_shape))
+            if i not in squeeze_dims
+        ]
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -389,6 +442,11 @@ class Transpose(Layer):
   def __init__(self, perm, **kwargs):
     super(Transpose, self).__init__(**kwargs)
     self.perm = perm
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(parent_shape[i] for i in perm)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -404,6 +462,10 @@ class CombineMeanStd(Layer):
 
   def __init__(self, **kwargs):
     super(CombineMeanStd, self).__init__(**kwargs)
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -423,6 +485,12 @@ class Repeat(Layer):
   def __init__(self, n_times, **kwargs):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
+    try:
+      s = list(self.in_layers[0].shape)
+      s.insert(1, n_times)
+      self._shape = tuple(s)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -458,6 +526,11 @@ class GRU(Layer):
     self.n_hidden = n_hidden
     self.batch_size = batch_size
     super(GRU, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (batch_size, parent_shape[1], n_hidden)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -518,7 +591,7 @@ class TimeSeriesDense(Layer):
 class Input(Layer):
 
   def __init__(self, shape, dtype=tf.float32, **kwargs):
-    self.shape = shape
+    self._shape = tuple(shape)
     self.dtype = dtype
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
@@ -530,15 +603,15 @@ class Input(Layer):
     if len(in_layers) > 0:
       queue = in_layers[0]
       placeholder = queue.out_tensors[self.get_pre_q_name()]
-      self.out_tensor = tf.placeholder_with_default(placeholder, self.shape)
+      self.out_tensor = tf.placeholder_with_default(placeholder, self._shape)
       return self.out_tensor
-    out_tensor = tf.placeholder(dtype=self.dtype, shape=self.shape)
+    out_tensor = tf.placeholder(dtype=self.dtype, shape=self._shape)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
   def create_pre_q(self, batch_size):
-    q_shape = (batch_size,) + self.shape[1:]
+    q_shape = (batch_size,) + self._shape[1:]
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -567,12 +640,21 @@ class L2Loss(Layer):
 
   def __init__(self, **kwargs):
     super(L2Loss, self).__init__(**kwargs)
+    try:
+      shape1 = self.in_layers[0].shape
+      shape2 = self.in_layers[1].shape
+      if shape1[0] is None:
+        self._shape = (parent_shape[1],)
+      else:
+        self._shape = (parent_shape[0],)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
     out_tensor = tf.reduce_mean(
-        tf.square(guess - label), axis=list(range(1, len(label.shape))))
+        tf.square(guess - label), axis=list(range(1, len(label._shape))))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -582,6 +664,10 @@ class SoftMax(Layer):
 
   def __init__(self, **kwargs):
     super(SoftMax, self).__init__(**kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -599,6 +685,13 @@ class Concat(Layer):
   def __init__(self, axis=1, **kwargs):
     self.axis = axis
     super(Concat, self).__init__(**kwargs)
+    try:
+      s = list(self.in_layers[0].shape)
+      for parent in self.in_layers[1:]:
+        s[axis] += parent.shape[axis]
+      self._shape = tuple(s)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -617,6 +710,12 @@ class Stack(Layer):
   def __init__(self, axis=1, **kwargs):
     self.axis = axis
     super(Stack, self).__init__(**kwargs)
+    try:
+      s = list(self.in_layers[0].shape)
+      s.insert(axis, len(self.in_layers))
+      self._shape = tuple(s)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -641,6 +740,7 @@ class Constant(Layer):
     """
     self.value = value
     self.dtype = dtype
+    self._shape = tuple(value.shape)
     super(Constant, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -665,6 +765,7 @@ class Variable(Layer):
     """
     self.initial_value = initial_value
     self.dtype = dtype
+    self._shape = tuple(initial_value.shape)
     super(Variable, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -689,9 +790,20 @@ class Add(Layer):
     """
     super(Add, self).__init__(**kwargs)
     self.weights = weights
+    try:
+      shape1 = list(self.in_layers[0].shape)
+      shape2 = list(self.in_layers[1].shape)
+      if len(shape1) < len(shape2):
+        shape2, shape1 = shape1, shape2
+      offset = len(shape1) - len(shape2)
+      for i in range(len(shape2)):
+        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+      self._shape = tuple(shape1)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers, True)
+    inputs = self._get_input_tensors(in_layers)
     weights = self.weights
     if weights is None:
       weights = [1] * len(inputs)
@@ -713,9 +825,20 @@ class Multiply(Layer):
 
   def __init__(self, **kwargs):
     super(Multiply, self).__init__(**kwargs)
+    try:
+      shape1 = list(self.in_layers[0].shape)
+      shape2 = list(self.in_layers[1].shape)
+      if len(shape1) < len(shape2):
+        shape2, shape1 = shape1, shape2
+      offset = len(shape1) - len(shape2)
+      for i in range(len(shape2)):
+        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+      self._shape = tuple(shape1)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers, True)
+    inputs = self._get_input_tensors(in_layers)
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
@@ -756,6 +879,10 @@ class SoftMaxCrossEntropy(Layer):
 
   def __init__(self, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(**kwargs)
+    try:
+      self._shape = (self.in_layers[1].shape[0], 1)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -775,6 +902,16 @@ class ReduceMean(Layer):
   def __init__(self, axis=None, **kwargs):
     self.axis = axis
     super(ReduceMean, self).__init__(**kwargs)
+    if axis is None:
+      self._shape = tuple()
+    else:
+      try:
+        parent_shape = self.in_layers[0].shape
+        self._shape = [
+            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+        ]
+      except:
+        pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -791,6 +928,13 @@ class ReduceMean(Layer):
 
 class ToFloat(Layer):
 
+  def __init__(self, **kwargs):
+    super(ToFloat, self).__init__(**kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) > 1:
@@ -806,6 +950,16 @@ class ReduceSum(Layer):
   def __init__(self, axis=None, **kwargs):
     self.axis = axis
     super(ReduceSum, self).__init__(**kwargs)
+    if axis is None:
+      self._shape = tuple()
+    else:
+      try:
+        parent_shape = self.in_layers[0].shape
+        self._shape = [
+            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+        ]
+      except:
+        pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -825,6 +979,16 @@ class ReduceSquareDifference(Layer):
   def __init__(self, axis=None, **kwargs):
     self.axis = axis
     super(ReduceSquareDifference, self).__init__(**kwargs)
+    if axis is None:
+      self._shape = tuple()
+    else:
+      try:
+        parent_shape = self.in_layers[0].shape
+        self._shape = [
+            parent_shape[i] for i in range(len(parent_shape)) if i not in axis
+        ]
+      except:
+        pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -882,6 +1046,15 @@ class Conv2D(Layer):
     if scope_name is None:
       scope_name = self.name
     self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] // strides[0],
+                     parent_shape[2] // strides[1], num_outputs)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -913,6 +1086,12 @@ class MaxPool(Layer):
     self.strides = strides
     self.padding = padding
     super(MaxPool, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -1175,6 +1354,14 @@ class GraphGather(Layer):
 
 class BatchNorm(Layer):
 
+  def __init__(self, **kwargs):
+    super(BatchNorm, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
@@ -1229,6 +1416,10 @@ class BatchNormalization(Layer):
 
 
 class WeightedError(Layer):
+
+  def __init__(self, **kwargs):
+    super(WeightedError, self).__init__(**kwargs)
+    self._shape = tuple()
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -1365,6 +1556,10 @@ class WeightedLinearCombo(Layer):
   def __init__(self, std=.3, **kwargs):
     self.std = std
     super(WeightedLinearCombo, self).__init__(**kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -1675,6 +1870,10 @@ class Dropout(Layer):
   def __init__(self, dropout_prob, **kwargs):
     self.dropout_prob = dropout_prob
     super(Dropout, self).__init__(**kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -1706,6 +1905,10 @@ class WeightDecay(Layer):
     self.penalty = penalty
     self.penalty_type = penalty_type
     super(WeightDecay, self).__init__(**kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
