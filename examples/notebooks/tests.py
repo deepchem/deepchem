@@ -53,3 +53,8 @@ def test_multitask_networks_on_muv():
 def test_mnist():
   nb, errors = _notebook_read("mnist.ipynb")
   assert errors == []
+
+
+def test_solubility():
+  nb, errors = _notebook_read("solubility.ipynb")
+  assert errors == []
