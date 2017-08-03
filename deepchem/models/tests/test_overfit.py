@@ -696,6 +696,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] > .7
 
+  @flaky
   def test_tf_multitask_regression_overfit(self):
     """Test tf multitask overfits tiny data."""
     n_tasks = 10
@@ -1350,6 +1351,45 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     # Fit trained model
     model.fit(dataset, nb_epoch=120)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .8
+
+  def test_MPNN_singletask_regression_overfit(self):
+    """Test MPNN overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.WeaveFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+    n_atom_feat = 75
+    n_pair_feat = 14
+    batch_size = 10
+    model = dc.models.MPNNTensorGraph(
+        n_tasks,
+        n_atom_feat=n_atom_feat,
+        n_pair_feat=n_pair_feat,
+        T=2,
+        M=3,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=50)
 
     # Eval model on train
     scores = model.evaluate(dataset, [regression_metric])

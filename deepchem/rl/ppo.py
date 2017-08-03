@@ -160,9 +160,13 @@ class PPO(object):
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
     state_shape = self._env.state_shape
+    state_dtype = self._env.state_dtype
     if not self._state_is_list:
       state_shape = [state_shape]
-    features = [Feature(shape=[None] + list(s)) for s in state_shape]
+      state_dtype = [state_dtype]
+    features = []
+    for s, d in zip(state_shape, state_dtype):
+      features.append(Feature(shape=[None] + list(s), dtype=tf.as_dtype(d)))
     policy_layers = self._policy.create_layers(features)
     action_prob = policy_layers['action_prob']
     value = policy_layers['value']

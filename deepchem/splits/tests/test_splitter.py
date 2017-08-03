@@ -15,6 +15,8 @@ import tempfile
 import unittest
 import numpy as np
 import deepchem as dc
+from deepchem.data import NumpyDataset
+from deepchem.splits import IndexSplitter
 from rdkit import Chem, DataStructs
 
 
@@ -30,8 +32,8 @@ class TestSplitters(unittest.TestCase):
     solubility_dataset = dc.data.tests.load_solubility_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
-        random_splitter.train_valid_test_split(
-            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      random_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -47,8 +49,8 @@ class TestSplitters(unittest.TestCase):
     solubility_dataset = dc.data.tests.load_solubility_data()
     random_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
-        random_splitter.train_valid_test_split(
-            solubility_dataset)
+      random_splitter.train_valid_test_split(
+        solubility_dataset)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -68,8 +70,8 @@ class TestSplitters(unittest.TestCase):
     solubility_dataset = dc.data.tests.load_solubility_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
-        scaffold_splitter.train_valid_test_split(
-            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      scaffold_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -82,8 +84,8 @@ class TestSplitters(unittest.TestCase):
     assert (len(solubility_dataset.X) == 10)
     scaffold_splitter = dc.splits.FingerprintSplitter()
     train_data, valid_data, test_data = \
-        scaffold_splitter.train_valid_test_split(
-            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      scaffold_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -98,8 +100,8 @@ class TestSplitters(unittest.TestCase):
     solubility_dataset = dc.data.tests.load_solubility_data()
     stratified_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
-        stratified_splitter.train_valid_test_split(
-            solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      stratified_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -115,12 +117,28 @@ class TestSplitters(unittest.TestCase):
     solubility_dataset = dc.data.tests.load_butina_data()
     scaffold_splitter = dc.splits.ButinaSplitter()
     train_data, valid_data, test_data = \
-        scaffold_splitter.train_valid_test_split(
-            solubility_dataset)
+      scaffold_splitter.train_valid_test_split(
+        solubility_dataset)
     print(len(train_data), len(valid_data))
     assert len(train_data) == 7
     assert len(valid_data) == 3
     assert len(test_data) == 0
+
+  def test_k_fold_splitter(self):
+    """
+    Test that we can 5 fold index wise over 5 points
+    """
+    ds = NumpyDataset(np.array(range(5)), np.array(range(5)))
+    index_splitter = IndexSplitter()
+
+    K = 5
+    fold_datasets = index_splitter.k_fold_split(ds, K)
+
+    for fold in range(K):
+      self.assertTrue(fold_datasets[fold][1].X[0] == fold)
+      train_data = set(list(fold_datasets[fold][0].X))
+      self.assertFalse(fold in train_data)
+      self.assertEqual(K - 1, len(train_data))
 
   def test_singletask_random_k_fold_split(self):
     """
@@ -133,7 +151,7 @@ class TestSplitters(unittest.TestCase):
     K = 5
     fold_datasets = random_splitter.k_fold_split(solubility_dataset, K)
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -143,13 +161,9 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
-
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
-    assert len(merged_dataset) == len(solubility_dataset)
-    assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
   def test_singletask_index_k_fold_split(self):
     """
@@ -163,7 +177,7 @@ class TestSplitters(unittest.TestCase):
     fold_datasets = index_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -173,11 +187,11 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge([x[1] for x in fold_datasets])
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
@@ -193,7 +207,7 @@ class TestSplitters(unittest.TestCase):
     fold_datasets = scaffold_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
-      fold_dataset = fold_datasets[fold]
+      fold_dataset = fold_datasets[fold][1]
       # Verify lengths is 10/k == 2
       assert len(fold_dataset) == 2
       # Verify that compounds in this fold are subset of original compounds
@@ -203,11 +217,11 @@ class TestSplitters(unittest.TestCase):
       for other_fold in range(K):
         if fold == other_fold:
           continue
-        other_fold_dataset = fold_datasets[other_fold]
+        other_fold_dataset = fold_datasets[other_fold][1]
         other_fold_ids_set = set(other_fold_dataset.ids)
         assert fold_ids_set.isdisjoint(other_fold_ids_set)
 
-    merged_dataset = dc.data.DiskDataset.merge(fold_datasets)
+    merged_dataset = dc.data.DiskDataset.merge([x[1] for x in fold_datasets])
     assert len(merged_dataset) == len(solubility_dataset)
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
@@ -215,7 +229,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test RandomStratifiedSplitter's split method on simple singletas.
     """
-    # Test singletask case. 
+    # Test singletask case.
     n_samples = 100
     n_positives = 20
     n_features = 10
@@ -238,7 +252,7 @@ class TestSplitters(unittest.TestCase):
     """
     Test RandomStratifiedSplitter's split method on dataset with mask.
     """
-    # Test singletask case. 
+    # Test singletask case.
     n_samples = 100
     n_positives = 20
     n_features = 10
@@ -318,7 +332,7 @@ class TestSplitters(unittest.TestCase):
     Test RandomStratifiedSplitter on a singletask split.
     """
     np.random.seed(2314)
-    # Test singletask case. 
+    # Test singletask case.
     n_samples = 20
     n_positives = 10
     n_features = 10
@@ -398,8 +412,8 @@ class TestSplitters(unittest.TestCase):
     multitask_dataset = dc.data.tests.load_multitask_data()
     random_splitter = dc.splits.RandomSplitter()
     train_data, valid_data, test_data = \
-        random_splitter.train_valid_test_split(
-            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      random_splitter.train_valid_test_split(
+        multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -411,8 +425,8 @@ class TestSplitters(unittest.TestCase):
     multitask_dataset = dc.data.tests.load_multitask_data()
     index_splitter = dc.splits.IndexSplitter()
     train_data, valid_data, test_data = \
-        index_splitter.train_valid_test_split(
-            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      index_splitter.train_valid_test_split(
+        multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -424,8 +438,8 @@ class TestSplitters(unittest.TestCase):
     multitask_dataset = dc.data.tests.load_multitask_data()
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     train_data, valid_data, test_data = \
-        scaffold_splitter.train_valid_test_split(
-            multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+      scaffold_splitter.train_valid_test_split(
+        multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
@@ -453,4 +467,5 @@ class TestSplitters(unittest.TestCase):
 
 if __name__ == "__main__":
   import nose
+
   nose.run(defaultTest=__name__)

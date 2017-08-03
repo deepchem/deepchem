@@ -5,6 +5,9 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
     CombineMeanStd, Repeat, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
     SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
     GraphGather, BatchNorm, WeightedError
+from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
+    WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
+    DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 
 
 def test_Conv1D_pickle():
@@ -311,5 +314,139 @@ def test_WeightedError_pickle():
   layer = WeightedError(in_layers=[feature, feature])
   tg.add_output(layer)
   tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Combine_Separate_AP_pickle():
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, 10))
+  pair_feature = Feature(shape=(None, 5))
+  C_AP = Combine_AP(in_layers=[atom_feature, pair_feature])
+  S_AP = Separate_AP(in_layers=[C_AP])
+  tg.add_output(S_AP)
+  tg.set_loss(S_AP)
+  tg.build()
+  tg.save()
+
+
+def test_Weave_pickle():
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, 75))
+  pair_feature = Feature(shape=(None, 14))
+  pair_split = Feature(shape=(None,), dtype=tf.int32)
+  atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
+  C_AP = Combine_AP(in_layers=[atom_feature, pair_feature])
+  weave = WeaveLayer(in_layers=[C_AP, pair_split, atom_to_pair])
+  tg.add_output(weave)
+  tg.set_loss(weave)
+  tg.build()
+  tg.save()
+
+
+def test_WeaveGather_pickle():
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, 75))
+  atom_split = Feature(shape=(None,), dtype=tf.int32)
+  weave_gather = WeaveGather(
+      32, gaussian_expand=True, in_layers=[atom_feature, atom_split])
+  tg.add_output(weave_gather)
+  tg.set_loss(weave_gather)
+  tg.build()
+  tg.save()
+
+
+def test_DTNNEmbedding_pickle():
+  tg = TensorGraph()
+  atom_numbers = Feature(shape=(None, 23), dtype=tf.int32)
+  Embedding = DTNNEmbedding(in_layers=[atom_numbers])
+  tg.add_output(Embedding)
+  tg.set_loss(Embedding)
+  tg.build()
+  tg.save()
+
+
+def test_DTNNStep_pickle():
+  tg = TensorGraph()
+  atom_features = Feature(shape=(None, 30))
+  distance = Feature(shape=(None, 100))
+  distance_membership_i = Feature(shape=(None,), dtype=tf.int32)
+  distance_membership_j = Feature(shape=(None,), dtype=tf.int32)
+  DTNN = DTNNStep(in_layers=[
+      atom_features, distance, distance_membership_i, distance_membership_j
+  ])
+  tg.add_output(DTNN)
+  tg.set_loss(DTNN)
+  tg.build()
+  tg.save()
+
+
+def test_DTNNGather_pickle():
+  tg = TensorGraph()
+  atom_features = Feature(shape=(None, 30))
+  atom_membership = Feature(shape=(None,), dtype=tf.int32)
+  Gather = DTNNGather(in_layers=[atom_features, atom_membership])
+  tg.add_output(Gather)
+  tg.set_loss(Gather)
+  tg.build()
+  tg.save()
+
+
+def test_DTNNExtract_pickle():
+  tg = TensorGraph()
+  atom_features = Feature(shape=(None, 30))
+  Ext = DTNNExtract(0, in_layers=[atom_features])
+  tg.add_output(Ext)
+  tg.set_loss(Ext)
+  tg.build()
+  tg.save()
+
+
+def test_DAGLayer_pickle():
+  tg = TensorGraph(use_queue=False)
+  atom_features = Feature(shape=(None, 75))
+  parents = Feature(shape=(None, 50, 50), dtype=tf.int32)
+  calculation_orders = Feature(shape=(None, 50), dtype=tf.int32)
+  calculation_masks = Feature(shape=(None, 50), dtype=tf.bool)
+  n_atoms = Feature(shape=(), dtype=tf.int32)
+  DAG = DAGLayer(in_layers=[
+      atom_features, parents, calculation_orders, calculation_masks, n_atoms
+  ])
+  tg.add_output(DAG)
+  tg.set_loss(DAG)
+  tg.build()
+  tg.save()
+
+
+def test_DAGGather_pickle():
+  tg = TensorGraph()
+  atom_features = Feature(shape=(None, 30))
+  membership = Feature(shape=(None,), dtype=tf.int32)
+  Gather = DAGGather(in_layers=[atom_features, membership])
+  tg.add_output(Gather)
+  tg.set_loss(Gather)
+  tg.build()
+  tg.save()
+
+
+def test_MP_pickle():
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, 75))
+  pair_feature = Feature(shape=(None, 14))
+  atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
+  MP = MessagePassing(5, in_layers=[atom_feature, pair_feature, atom_to_pair])
+  tg.add_output(MP)
+  tg.set_loss(MP)
+  tg.build()
+  tg.save()
+
+
+def test_SetGather_pickle():
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, 100))
+  atom_split = Feature(shape=(None,), dtype=tf.int32)
+  Gather = SetGather(5, 16, in_layers=[atom_feature, atom_split])
+  tg.add_output(Gather)
+  tg.set_loss(Gather)
   tg.build()
   tg.save()

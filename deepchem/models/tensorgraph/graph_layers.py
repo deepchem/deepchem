@@ -309,11 +309,11 @@ class WeaveGather(Layer):
                             (0.228, 0.114), (0.468, 0.118), (0.739, 0.134),
                             (1.080, 0.170), (1.645, 0.283)]
     dist = [
-        tf.contrib.distributions.Normal(mu=p[0], sigma=p[1])
+        tf.contrib.distributions.Normal(p[0], p[1])
         for p in gaussian_memberships
     ]
-    dist_max = [dist[i].pdf(gaussian_memberships[i][0]) for i in range(11)]
-    outputs = [dist[i].pdf(x) / dist_max[i] for i in range(11)]
+    dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
+    outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
     outputs = tf.stack(outputs, axis=2)
     outputs = outputs / tf.reduce_sum(outputs, axis=2, keep_dims=True)
     outputs = tf.reshape(outputs, [-1, self.n_input * 11])
@@ -373,7 +373,19 @@ class DTNNEmbedding(Layer):
     self.build()
     atom_number = in_layers[0].out_tensor
     atom_features = tf.nn.embedding_lookup(self.embedding_list, atom_number)
-    self.out_tensor = atom_features
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = atom_features
+
+  def none_tensors(self):
+    embedding_list = self.embedding_list
+    self.embedding_list = None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return embedding_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.embedding_list, self.out_tensor, self.trainable_weights, self.variables = tensor
 
 
 class DTNNStep(Layer):
@@ -462,6 +474,16 @@ class DTNNStep(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+  def none_tensors(self):
+    W_cf, W_df, W_fc, b_cf, b_df = self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df
+    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df = None, None, None, None, None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_cf, W_df, W_fc, b_cf, b_df, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_cf, self.W_df, self.W_fc, self.b_cf, self.b_df, self.out_tensor, self.trainable_weights, self.variables = tensor
+
 
 class DTNNGather(Layer):
   """ TensorGraph style implementation
@@ -540,6 +562,16 @@ class DTNNGather(Layer):
       self.variables = self.trainable_weights
       self.out_tensor = out_tensor
     return out_tensor
+
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
 
 
 class DTNNExtract(Layer):
@@ -706,6 +738,16 @@ class DAGLayer(Layer):
       outputs = self.activation(outputs)
     return outputs
 
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+
 
 class DAGGather(Layer):
   """ TensorGraph style implementation
@@ -799,3 +841,258 @@ class DAGGather(Layer):
       outputs = tf.nn.xw_plus_b(outputs, W, b_list[idw])
       outputs = self.activation(outputs)
     return outputs
+
+  def none_tensors(self):
+    W_list, b_list = self.W_list, self.b_list
+    self.W_list, self.b_list = [], []
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return W_list, b_list, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.W_list, self.b_list, self.out_tensor, self.trainable_weights, self.variables = tensor
+
+
+class MessagePassing(Layer):
+  """ General class for MPNN
+  default structures built according to https://arxiv.org/abs/1511.06391 """
+
+  def __init__(self,
+               T,
+               message_fn='enn',
+               update_fn='gru',
+               n_hidden=100,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    T: int
+      Number of message passing steps
+    message_fn: str, optional
+      message function in the model
+    update_fn: str, optional
+      update function in the model
+    n_hidden: int, optional
+      number of hidden units in the passing phase
+    """
+
+    self.T = T
+    self.message_fn = message_fn
+    self.update_fn = update_fn
+    self.n_hidden = n_hidden
+    super(MessagePassing, self).__init__(**kwargs)
+
+  def build(self, pair_features, n_pair_features):
+    if self.message_fn == 'enn':
+      # Default message function: edge network, update function: GRU
+      # more options to be implemented
+      self.message_function = EdgeNetwork(pair_features, n_pair_features,
+                                          self.n_hidden)
+    if self.update_fn == 'gru':
+      self.update_function = GatedRecurrentUnit(self.n_hidden)
+    self.trainable_weights = self.message_function.trainable_weights + \
+        self.update_function.trainable_weights
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Perform T steps of message passing """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    # Extract atom_features
+    atom_features = in_layers[0].out_tensor
+    pair_features = in_layers[1].out_tensor
+    atom_to_pair = in_layers[2].out_tensor
+    n_atom_features = atom_features.get_shape().as_list()[-1]
+    n_pair_features = pair_features.get_shape().as_list()[-1]
+    # Add trainable weights
+    self.build(pair_features, n_pair_features)
+
+    if n_atom_features < self.n_hidden:
+      pad_length = self.n_hidden - n_atom_features
+      out = tf.pad(atom_features, ((0, 0), (0, pad_length)), mode='CONSTANT')
+    elif n_atom_features > self.n_hidden:
+      raise ValueError("Too large initial feature vector")
+
+    for i in range(self.T):
+      message = self.message_function.forward(out, atom_to_pair)
+      out = self.update_function.forward(out, message)
+
+    out_tensor = out
+
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
+
+  def none_tensors(self):
+    message_tensors = self.message_function.none_tensors()
+    update_tensors = self.update_function.none_tensors()
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return message_tensors, update_tensors, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    message_tensors, update_tensors, self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.message_function.set_tensors(message_tensors)
+    self.update_function.set_tensors(update_tensors)
+
+
+class EdgeNetwork(object):
+  """ Submodule for Message Passing """
+
+  def __init__(self,
+               pair_features,
+               n_pair_features=8,
+               n_hidden=100,
+               init='glorot_uniform'):
+    self.n_pair_features = n_pair_features
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    W = self.init([n_pair_features, n_hidden * n_hidden])
+    b = model_ops.zeros(shape=(n_hidden * n_hidden,))
+    self.A = tf.nn.xw_plus_b(pair_features, W, b)
+    self.A = tf.reshape(self.A, (-1, n_hidden, n_hidden))
+    self.trainable_weights = [W, b]
+
+  def forward(self, atom_features, atom_to_pair):
+    out = tf.expand_dims(tf.gather(atom_features, atom_to_pair[:, 1]), 2)
+    out = tf.reduce_sum(out * self.A, axis=1)
+    out = tf.segment_sum(out, atom_to_pair[:, 0])
+    return out
+
+  def none_tensors(self):
+    A = self.A
+    self.A = None,
+    trainable_weights = self.trainable_weights
+    self.trainable_weights = []
+    return A, trainable_weights
+
+  def set_tensors(self, tensor):
+    self.A, self.trainable_weights = tensor
+
+
+class GatedRecurrentUnit(object):
+  """ Submodule for Message Passing """
+
+  def __init__(self, n_hidden=100, init='glorot_uniform'):
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    Wz = self.init([n_hidden, n_hidden])
+    Wr = self.init([n_hidden, n_hidden])
+    Wh = self.init([n_hidden, n_hidden])
+    Uz = self.init([n_hidden, n_hidden])
+    Ur = self.init([n_hidden, n_hidden])
+    Uh = self.init([n_hidden, n_hidden])
+    bz = model_ops.zeros(shape=(n_hidden,))
+    br = model_ops.zeros(shape=(n_hidden,))
+    bh = model_ops.zeros(shape=(n_hidden,))
+    self.trainable_weights = [Wz, Wr, Wh, Uz, Ur, Uh, bz, br, bh]
+
+  def forward(self, inputs, messages):
+    z = tf.nn.sigmoid(tf.matmul(messages, self.trainable_weights[0]) + \
+                      tf.matmul(inputs, self.trainable_weights[3]) + \
+                      self.trainable_weights[6])
+    r = tf.nn.sigmoid(tf.matmul(messages, self.trainable_weights[1]) + \
+                      tf.matmul(inputs, self.trainable_weights[4]) + \
+                      self.trainable_weights[7])
+    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.trainable_weights[2]) + \
+                           tf.matmul(inputs * r, self.trainable_weights[5]) + \
+                           self.trainable_weights[8]) + z * inputs
+    return h
+
+  def none_tensors(self):
+    trainable_weights = self.trainable_weights
+    self.trainable_weights = []
+    return trainable_weights
+
+  def set_tensors(self, tensor):
+    self.trainable_weights = tensor
+
+
+class SetGather(Layer):
+  """ set2set gather layer for graph-based model
+  model using this layer must set pad_batches=True """
+
+  def __init__(self, M, batch_size, n_hidden=100, init='orthogonal', **kwargs):
+    """
+        Parameters
+        ----------
+        M: int
+          Number of LSTM steps
+        batch_size: int
+          Number of samples in a batch(all batches must have same size)
+        n_hidden: int, optional
+          number of hidden units in the passing phase
+        """
+
+    self.M = M
+    self.batch_size = batch_size
+    self.n_hidden = n_hidden
+    self.init = initializations.get(init)
+    super(SetGather, self).__init__(**kwargs)
+
+  def build(self):
+    self.U = self.init((2 * self.n_hidden, 4 * self.n_hidden))
+    self.b = tf.Variable(
+        np.concatenate((np.zeros(self.n_hidden), np.ones(self.n_hidden),
+                        np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
+        dtype=tf.float32)
+    self.trainable_weights = [self.U, self.b]
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Perform M steps of set2set gather,
+        detailed descriptions in: https://arxiv.org/abs/1511.06391 """
+    if in_layers is None:
+      in_layers = self.in_layers
+    in_layers = convert_to_layers(in_layers)
+
+    self.build()
+    # Extract atom_features
+    atom_features = in_layers[0].out_tensor
+    atom_split = in_layers[1].out_tensor
+
+    self.c = tf.zeros((self.batch_size, self.n_hidden))
+    self.h = tf.zeros((self.batch_size, self.n_hidden))
+
+    for i in range(self.M):
+      q_expanded = tf.gather(self.h, atom_split)
+      e = tf.reduce_sum(atom_features * q_expanded, 1)
+      e_mols = tf.dynamic_partition(e, atom_split, self.batch_size)
+      # Add another value(~-Inf) to prevent error in softmax
+      e_mols = [
+          tf.concat([e_mol, tf.constant([-1000.])], 0) for e_mol in e_mols
+      ]
+      a = tf.concat([tf.nn.softmax(e_mol)[:-1] for e_mol in e_mols], 0)
+      r = tf.segment_sum(tf.reshape(a, [-1, 1]) * atom_features, atom_split)
+      # Model using this layer must set pad_batches=True
+      q_star = tf.concat([self.h, r], axis=1)
+      self.h, self.c = self.LSTMStep(q_star, self.c)
+
+    out_tensor = q_star
+    if set_tensors:
+      self.variables = self.trainable_weights
+      self.out_tensor = out_tensor
+    return out_tensor
+
+  def LSTMStep(self, h, c, x=None):
+    # Perform one step of LSTM
+    z = tf.nn.xw_plus_b(h, self.U, self.b)
+    i = tf.nn.sigmoid(z[:, :self.n_hidden])
+    f = tf.nn.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
+    o = tf.nn.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])
+    z3 = z[:, 3 * self.n_hidden:]
+    c_out = f * c + i * tf.nn.tanh(z3)
+    h_out = o * tf.nn.tanh(c_out)
+
+    return h_out, c_out
+
+  def none_tensors(self):
+    U, b, c, h = self.U, self.b, self.c, self.h
+    self.U, self.b, self.c, self.h = None, None, None, None
+    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
+    self.out_tensor, self.trainable_weights, self.variables = None, [], []
+    return U, b, c, h, out_tensor, trainable_weights, variables
+
+  def set_tensors(self, tensor):
+    self.U, self.b, self.c, self.h, self.out_tensor, self.trainable_weights, self.variables = tensor
