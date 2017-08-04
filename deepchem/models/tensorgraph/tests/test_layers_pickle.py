@@ -43,7 +43,7 @@ def test_Flatten_pickle():
 def test_Reshape_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Reshape(shape=(-1, 2), in_layers=feature)
+  layer = Reshape(shape=(None, 2), in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -53,7 +53,7 @@ def test_Reshape_pickle():
 def test_Squeeze_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Squeeze(squeeze_dims=-1, in_layers=feature)
+  layer = Squeeze(in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -133,7 +133,7 @@ def test_Concat_pickle():
 def test_Constant_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Constant(np.expand_dims([17] * tg.batch_size, -1))
+  layer = Constant(np.array([15.0]))
   output = Add(in_layers=[feature, layer])
   tg.add_output(output)
   tg.set_loss(output)
@@ -144,7 +144,7 @@ def test_Constant_pickle():
 def test_Variable_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Variable(np.expand_dims([17] * tg.batch_size, -1))
+  layer = Variable(np.array([15.0]))
   output = Multiply(in_layers=[feature, layer])
   tg.add_output(output)
   tg.set_loss(output)
@@ -226,7 +226,7 @@ def test_ReduceSquareDifference_pickle():
 
 def test_Conv2D_pickle():
   tg = TensorGraph()
-  feature = Feature(shape=(tg.batch_size, 10, 10))
+  feature = Feature(shape=(tg.batch_size, 10, 10, 1))
   layer = Conv2D(num_outputs=3, in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)

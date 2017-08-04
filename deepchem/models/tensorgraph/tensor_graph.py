@@ -391,6 +391,16 @@ class TensorGraph(Model):
       writer.add_graph(self._get_tf("Graph"))
       writer.close()
 
+    # As a sanity check, make sure all tensors have the correct shape.
+
+    for layer in self.layers.values():
+      try:
+        assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
+        ), '%s: Expected shape %s does not match actual shape %s' % (
+            layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
+      except NotImplementedError:
+        pass
+
   def _install_queue(self):
     """
     """
