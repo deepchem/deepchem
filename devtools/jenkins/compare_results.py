@@ -38,11 +38,11 @@ def parse_test_results(test_results):
   for line in test_results:
     vars = line.split(',')
     retval.append({
-        "split": BENCHMARK_TO_DESIRED_KEY_MAP[vars[2]],
-        "data_set": vars[1],
-        "model": BENCHMARK_TO_DESIRED_KEY_MAP[vars[5]],
+        "split": BENCHMARK_TO_DESIRED_KEY_MAP[vars[1]],
+        "data_set": vars[0],
+        "model": BENCHMARK_TO_DESIRED_KEY_MAP[vars[3]],
         "train_score": float(vars[6]),
-        "test_score": float(vars[9])
+        "test_score": float(vars[8])
     })
   return retval
 
@@ -63,9 +63,10 @@ def is_good_result(my_result, desired_result):
     # Higher is Better
     desired_value = desired_result[key] - CUSHION_PERCENT
     if my_result[key] < desired_value or LOG_ALL_RESULTS:
-      message_part = "%s,%s,%s,%s,%s,%s" % (
-          my_result['data_set'], my_result['model'], my_result['split'], key,
-          my_result[key], desired_result[key])
+      message_part = "%s,%s,%s,%s,%s,%s" % (my_result['data_set'],
+                                            my_result['model'],
+                                            my_result['split'], key,
+                                            my_result[key], desired_result[key])
       message.append(message_part)
       retval = False
   return retval, message

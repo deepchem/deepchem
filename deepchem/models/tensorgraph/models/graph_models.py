@@ -139,7 +139,7 @@ class WeaveTensorGraph(TensorGraph):
               feed_dict[label] = to_one_hot(y_b[:, index])
             if self.mode == "regression":
               feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None and not predict:
+        if w_b is not None:
           feed_dict[self.weights] = w_b
 
         atom_feat = []
@@ -289,7 +289,7 @@ class DTNNTensorGraph(TensorGraph):
         if y_b is not None and not predict:
           for index, label in enumerate(self.labels_fd):
             feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None and not predict:
+        if w_b is not None:
           feed_dict[self.weights] = w_b
         distance = []
         atom_membership = []
@@ -440,7 +440,7 @@ class DAGTensorGraph(TensorGraph):
               feed_dict[label] = to_one_hot(y_b[:, index])
             if self.mode == "regression":
               feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None and not predict:
+        if w_b is not None:
           feed_dict[self.weights] = w_b
 
         atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
