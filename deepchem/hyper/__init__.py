@@ -11,6 +11,7 @@ from functools import reduce
 from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
+from deepchem.hyper.GP_hyperparameter_optimization import GaussianProcessHyperparamOpt
 
 
 class HyperparamOpt(object):
@@ -33,9 +34,9 @@ class HyperparamOpt(object):
                         use_max=True,
                         logdir=None):
     """Perform hyperparams search according to params_dict.
-    
+
     Each key to hyperparams_dict is a model_param. The values should be a list
-    of potential values for that hyperparam. 
+    of potential values for that hyperparam.
 
     TODO(rbharath): This shouldn't be stored in a temporary directory.
     """
