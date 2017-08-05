@@ -251,7 +251,11 @@ class PPO(object):
         # Perform optimization.
 
         for epoch in range(self.optimization_epochs):
-          for batch in self._iter_batches(rollouts):
+          if self.batch_size == 0:
+            batches = rollouts
+          else:
+            batches = self._iter_batches(rollouts)
+          for batch in batches:
             initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = batch
 
             # Build the feed dict and run the optimizer.
@@ -286,8 +290,6 @@ class PPO(object):
 
   def _iter_batches(self, rollouts):
     """Given a set of rollouts, merge them into batches for optimization."""
-    if self.batch_size == 0:
-      return rollouts
 
     # Merge all the rollouts into a single set of arrays.
 
