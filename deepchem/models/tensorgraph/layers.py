@@ -192,6 +192,7 @@ class Conv1D(Layer):
   """A 1D convolution on the input.
 
   This layer expects its input to be a three dimensional tensor of shape (batch size, width, # channels).
+  If there is only one channel, the third dimension may optionally be omitted.
   """
 
   def __init__(self,
@@ -234,7 +235,9 @@ class Conv1D(Layer):
     if len(inputs) != 1:
       raise ValueError("Conv1D layer must have exactly one parent")
     parent = inputs[0]
-    if len(parent.get_shape()) != 3:
+    if len(parent.get_shape()) == 2:
+      parent = tf.expand_dims(parent, 2)
+    elif len(parent.get_shape()) != 3:
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.get_shape()
     parent_channel_size = parent_shape[2].value
@@ -1008,6 +1011,7 @@ class Conv2D(Layer):
   """A 2D convolution on the input.
 
   This layer expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
+  If there is only one channel, the fourth dimension may optionally be omitted.
   """
 
   def __init__(self,
@@ -1063,6 +1067,8 @@ class Conv2D(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 3:
+      parent_tensor = tf.expand_dims(parent_tensor, 3)
     out_tensor = tf.contrib.layers.conv2d(
         parent_tensor,
         num_outputs=self.num_outputs,
