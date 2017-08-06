@@ -122,7 +122,7 @@ class TestPPO(unittest.TestCase):
     # sure fit() doesn't crash, then check the behavior of the GRU state.
 
     env = TestEnvironment()
-    ppo = dc.rl.PPO(env, TestPolicy())
+    ppo = dc.rl.PPO(env, TestPolicy(), batch_size=0)
     ppo.fit(100)
     # On the first call, the initial state should be all zeros.
     prob1, value1 = ppo.predict(
@@ -212,11 +212,12 @@ class TestPPO(unittest.TestCase):
 
     env = TestEnvironment()
     learning_rate = PolynomialDecay(
-        initial_rate=0.0003, final_rate=0.0001, decay_steps=1500000)
+        initial_rate=0.0001, final_rate=0.00005, decay_steps=1500000)
     ppo = dc.rl.PPO(
         env,
         TestPolicy(),
         use_hindsight=True,
+        optimization_epochs=8,
         optimizer=Adam(learning_rate=learning_rate))
     ppo.fit(1500000)
 
