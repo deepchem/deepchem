@@ -361,9 +361,10 @@ class Flatten(Layer):
     super(Flatten, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = parent_shape[:2]
-      for s in parent_shape[2:]:
-        self._shape[1] *= s
+      s = list(parent_shape[:2])
+      for x in parent_shape[2:]:
+        s[1] *= x
+      self._shape = tuple(s)
     except:
       pass
 
