@@ -10,7 +10,7 @@ def import_lazy(module_name):
     return module
   except:
     print("Warning: No %s installed on your system" % module_name)
-    print("Attempting to run %s will throw runtime errors")
+    print("Attempting to run %s will throw runtime errors" % module_name)
     return None
 
 
