@@ -13,6 +13,8 @@ from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
 from deepchem.hyper import HyperparamOpt
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
+from deepchem.utils.dependencies import pyGPGO_covfunc, pyGPGO_acquisition, \
+    pyGPGO_surrogates_GaussianProcess, pyGPGO_GPGO
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
@@ -124,14 +126,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         try:
           train_scores, valid_scores, _ = benchmark_classification(
               train_dataset, valid_dataset, None, ['task_placeholder']*n_tasks,
-              output_transformers, n_features, metric, model, 
+              output_transformers, n_features, metric, self.model_class, 
               hyper_parameters=hyper_parameters)
         except AssertionError:
           train_scores, valid_scores, _ = benchmark_regression(
               train_dataset, valid_dataset, None, ['task_placeholder']*n_tasks,
-              output_transformers, n_features, metric, model, 
+              output_transformers, n_features, metric, self.model_class, 
               hyper_parameters=hyper_parameters)
-        return valid_scores[model][metric[0].name]
+        return valid_scores[self.model_class][metric[0].name]
       else:
         model_dir = tempfile.mkdtemp()
         model = self.model_class(hyper_parameters, model_dir)
