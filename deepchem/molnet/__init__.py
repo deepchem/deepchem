@@ -17,6 +17,7 @@ from deepchem.molnet.load_function.nci_datasets import load_nci
 from deepchem.molnet.load_function.pcba_datasets import load_pcba
 from deepchem.molnet.load_function.pdbbind_datasets import load_pdbbind_grid
 from deepchem.molnet.load_function.ppb_datasets import load_ppb
+from deepchem.molnet.load_function.qm7_datasets import load_qm7
 from deepchem.molnet.load_function.qm7_datasets import load_qm7_from_mat, load_qm7b_from_mat
 from deepchem.molnet.load_function.qm8_datasets import load_qm8
 from deepchem.molnet.load_function.qm9_datasets import load_qm9
