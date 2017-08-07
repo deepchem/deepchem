@@ -11,8 +11,6 @@ from functools import reduce
 from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
-from deepchem.hyper.GP_hyperparameter_optimization import GaussianProcessHyperparamOpt
-
 
 class HyperparamOpt(object):
   """
@@ -112,3 +110,6 @@ class HyperparamOpt(object):
     log("train_score: %f" % train_score, self.verbose)
     log("validation_score: %f" % best_validation_score, self.verbose)
     return best_model, best_hyperparams, all_scores
+
+
+from deepchem.hyper.gaussian_process import GaussianProcessHyperparamOpt
