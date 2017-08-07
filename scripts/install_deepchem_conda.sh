@@ -32,7 +32,7 @@ conda install -y -c anaconda networkx=1.11
 conda install -y -c conda-forge xgboost=0.6a2
 conda install -y -c anaconda pillow=4.2.1
 conda install -y -c anaconda pandas=0.19.2
-conda install -y $tensorflow=1.2.0
+conda install -y $tensorflow=1.2.1
 conda install -y -c anaconda nose
 conda install -c omnia nose-timer
 conda install -c spyder-ide flaky=3.3.0
