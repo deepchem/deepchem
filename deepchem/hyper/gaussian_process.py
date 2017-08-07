@@ -2,24 +2,19 @@
 Contains basic hyperparameter optimizations.
 """
 import numpy as np
-import os
-import itertools
 import tempfile
-import shutil
-import collections
-from functools import reduce
-from operator import mul
 from deepchem.utils.evaluate import Evaluator
-from deepchem.utils.save import log
 from deepchem.hyper import HyperparamOpt
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 from deepchem.utils.dependencies import pyGPGO_covfunc, pyGPGO_acquisition, \
     pyGPGO_surrogates_GaussianProcess, pyGPGO_GPGO
 
+
 class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
   """
+
   def hyperparam_search(self,
                         params_dict,
                         train_dataset,
@@ -31,11 +26,21 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         max_iter=20,
                         search_range=4,
                         hp_invalid_list=[
-                            'seed', 'nb_epoch', 'penalty_type',
-                            'dropouts', 'bypass_dropouts',
-                            'n_pair_feat'
+                            'seed', 'nb_epoch', 'penalty_type', 'dropouts',
+                            'bypass_dropouts', 'n_pair_feat'
                         ],
                         logdir=None):
+    """Perform hyperparams search using a gaussian process assumption
+
+    params_dict include single-valued parameters being optimized,
+    which should only contain int, float and list of int(float)
+
+    parameters with names in hp_invalid_list will not be changed.
+
+    For Molnet models, self.model_class is model name in string,
+    params_dict = dc.molnet.preset_hyper_parameters.hps[self.model_class]
+    """
+
     assert len(metric) == 1, 'Only use one metric'
     hyper_parameters = params_dict
     hp_list = hyper_parameters.keys()
@@ -122,16 +127,27 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       print(hyper_parameters)
       # Run benchmark
-      if isinstance(self.model_class, str) or isinstance(self.model_class, unicode):
+      if isinstance(self.model_class, str) or isinstance(
+          self.model_class, unicode):
         try:
           train_scores, valid_scores, _ = benchmark_classification(
-              train_dataset, valid_dataset, None, ['task_placeholder']*n_tasks,
-              output_transformers, n_features, metric, self.model_class, 
+              train_dataset,
+              valid_dataset,
+              valid_dataset, ['task_placeholder'] * n_tasks,
+              output_transformers,
+              n_features,
+              metric,
+              self.model_class,
               hyper_parameters=hyper_parameters)
         except AssertionError:
           train_scores, valid_scores, _ = benchmark_regression(
-              train_dataset, valid_dataset, None, ['task_placeholder']*n_tasks,
-              output_transformers, n_features, metric, self.model_class, 
+              train_dataset,
+              valid_dataset,
+              valid_dataset, ['task_placeholder'] * n_tasks,
+              output_transformers,
+              n_features,
+              metric,
+              self.model_class,
               hyper_parameters=hyper_parameters)
         return valid_scores[self.model_class][metric[0].name]
       else:

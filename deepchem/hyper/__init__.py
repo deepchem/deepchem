@@ -12,6 +12,7 @@ from operator import mul
 from deepchem.utils.evaluate import Evaluator
 from deepchem.utils.save import log
 
+
 class HyperparamOpt(object):
   """
   Provides simple hyperparameter search capabilities.
