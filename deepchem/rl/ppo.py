@@ -91,6 +91,7 @@ class PPO(object):
                max_rollout_length=20,
                optimization_rollouts=8,
                optimization_epochs=4,
+               batch_size=64,
                clipping_width=0.2,
                discount_factor=0.99,
                advantage_lambda=0.98,
@@ -114,6 +115,9 @@ class PPO(object):
       the number of rollouts to generate for each iteration of optimization
     optimization_epochs: int
       the number of epochs of optimization to perform within each iteration
+    batch_size: int
+      the batch size to use during optimization.  If this is 0, each rollout will be used as a
+      separate batch.
     clipping_width: float
       in computing the PPO loss function, the probability ratio is clipped to the range
       (1-clipping_width, 1+clipping_width)
@@ -137,6 +141,7 @@ class PPO(object):
     self.max_rollout_length = max_rollout_length
     self.optimization_rollouts = optimization_rollouts
     self.optimization_epochs = optimization_epochs
+    self.batch_size = batch_size
     self.clipping_width = clipping_width
     self.discount_factor = discount_factor
     self.advantage_lambda = advantage_lambda
@@ -156,6 +161,10 @@ class PPO(object):
       self._train_op = self._graph._get_tf('Optimizer').minimize(
           self._graph.loss.out_tensor)
     self._rnn_states = self._graph.rnn_zero_states
+    if len(self._rnn_states) > 0 and batch_size != 0:
+      raise ValueError(
+          'Cannot batch rollouts when the policy contains a recurrent layer.  Set batch_size to 0.'
+      )
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -242,8 +251,12 @@ class PPO(object):
         # Perform optimization.
 
         for epoch in range(self.optimization_epochs):
-          for rollout in rollouts:
-            initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = rollout
+          if self.batch_size == 0:
+            batches = rollouts
+          else:
+            batches = self._iter_batches(rollouts)
+          for batch in batches:
+            initial_rnn_states, state_arrays, discounted_rewards, actions_matrix, action_prob, advantages = batch
 
             # Build the feed dict and run the optimizer.
 
@@ -274,6 +287,34 @@ class PPO(object):
               global_step=checkpoint_index)
           checkpoint_index += 1
           checkpoint_time = time.time()
+
+  def _iter_batches(self, rollouts):
+    """Given a set of rollouts, merge them into batches for optimization."""
+
+    # Merge all the rollouts into a single set of arrays.
+
+    state_arrays = []
+    for i in range(len(rollouts[0][1])):
+      state_arrays.append(np.concatenate([r[1][i] for r in rollouts]))
+    discounted_rewards = np.concatenate([r[2] for r in rollouts])
+    actions_matrix = np.concatenate([r[3] for r in rollouts])
+    action_prob = np.concatenate([r[4] for r in rollouts])
+    advantages = np.concatenate([r[5] for r in rollouts])
+    total_length = len(discounted_rewards)
+
+    # Iterate slices.
+
+    start = 0
+    while start < total_length:
+      end = min(start + self.batch_size, total_length)
+      batch = [[]]
+      batch.append([s[start:end] for s in state_arrays])
+      batch.append(discounted_rewards[start:end])
+      batch.append(actions_matrix[start:end])
+      batch.append(action_prob[start:end])
+      batch.append(advantages[start:end])
+      start = end
+      yield batch
 
   def predict(self, state, use_saved_states=True, save_states=True):
     """Compute the policy's output predictions for a state.
@@ -388,16 +429,16 @@ class PPO(object):
 class _Worker(object):
   """A Worker object is created for each training thread."""
 
-  def __init__(self, a3c, index):
-    self.a3c = a3c
+  def __init__(self, ppo, index):
+    self.ppo = ppo
     self.index = index
     self.scope = 'worker%d' % index
-    self.env = copy.deepcopy(a3c._env)
+    self.env = copy.deepcopy(ppo._env)
     self.env.reset()
-    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages, self.old_action_prob = a3c._build_graph(
-        a3c._graph._get_tf('Graph'), self.scope, None)
+    self.graph, self.features, self.rewards, self.actions, self.action_prob, self.value, self.advantages, self.old_action_prob = ppo._build_graph(
+        ppo._graph._get_tf('Graph'), self.scope, None)
     self.rnn_states = self.graph.rnn_zero_states
-    with a3c._graph._get_tf("Graph").as_default():
+    with ppo._graph._get_tf("Graph").as_default():
       local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                      self.scope)
       global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
@@ -408,13 +449,13 @@ class _Worker(object):
   def run(self):
     rollouts = []
     with self.graph._get_tf("Graph").as_default():
-      self.a3c._session.run(self.update_local_variables)
+      self.ppo._session.run(self.update_local_variables)
       initial_rnn_states = self.rnn_states
       states, actions, action_prob, rewards, values = self.create_rollout()
       rollouts.append(
           self.process_rollout(states, actions, action_prob, rewards, values,
                                initial_rnn_states))
-      if self.a3c.use_hindsight:
+      if self.ppo.use_hindsight:
         rollouts.append(
             self.process_rollout_with_hindsight(states, actions,
                                                 initial_rnn_states))
@@ -423,7 +464,7 @@ class _Worker(object):
   def create_rollout(self):
     """Generate a rollout."""
     n_actions = self.env.n_actions
-    session = self.a3c._session
+    session = self.ppo._session
     states = []
     action_prob = []
     actions = []
@@ -432,7 +473,7 @@ class _Worker(object):
 
     # Generate the rollout.
 
-    for i in range(self.a3c.max_rollout_length):
+    for i in range(self.ppo.max_rollout_length):
       if self.env.terminated:
         break
       state = self.env.state
@@ -455,7 +496,7 @@ class _Worker(object):
 
     if not self.env.terminated:
       feed_dict = self.create_feed_dict(self.env.state)
-      final_value = self.a3c.discount_factor * float(
+      final_value = self.ppo.discount_factor * float(
           session.run(self.value.out_tensor, feed_dict))
     else:
       final_value = 0.0
@@ -475,14 +516,14 @@ class _Worker(object):
 
     discounted_rewards = rewards.copy()
     discounted_rewards[-1] += values[-1]
-    advantages = rewards - values[:-1] + self.a3c.discount_factor * np.array(
+    advantages = rewards - values[:-1] + self.ppo.discount_factor * np.array(
         values[1:])
     for j in range(len(rewards) - 1, 0, -1):
       discounted_rewards[j -
-                         1] += self.a3c.discount_factor * discounted_rewards[j]
+                         1] += self.ppo.discount_factor * discounted_rewards[j]
       advantages[
           j -
-          1] += self.a3c.discount_factor * self.a3c.advantage_lambda * advantages[
+          1] += self.ppo.discount_factor * self.ppo.advantage_lambda * advantages[
               j]
 
     # Convert the actions to one-hot.
@@ -496,7 +537,7 @@ class _Worker(object):
 
     # Rearrange the states into the proper set of arrays.
 
-    if self.a3c._state_is_list:
+    if self.ppo._state_is_list:
       state_arrays = [[] for i in range(len(self.features))]
       for state in states:
         for j in range(len(state)):
@@ -513,7 +554,7 @@ class _Worker(object):
     """Create a new rollout by applying hindsight to an existing one, then process it."""
     hindsight_states, rewards = self.env.apply_hindsight(
         states, actions, states[-1])
-    if self.a3c._state_is_list:
+    if self.ppo._state_is_list:
       state_arrays = [[] for i in range(len(self.features))]
       for state in hindsight_states:
         for j in range(len(state)):
@@ -526,7 +567,7 @@ class _Worker(object):
       feed_dict[placeholder] = value
     for f, s in zip(self.features, state_arrays):
       feed_dict[f.out_tensor] = s
-    values, probabilities = self.a3c._session.run(
+    values, probabilities = self.ppo._session.run(
         [self.value.out_tensor, self.action_prob.out_tensor],
         feed_dict=feed_dict)
     values = np.append(values.flatten(), 0.0)
@@ -537,7 +578,7 @@ class _Worker(object):
 
   def create_feed_dict(self, state):
     """Create a feed dict for use during a rollout."""
-    if not self.a3c._state_is_list:
+    if not self.ppo._state_is_list:
       state = [state]
     feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
                      for f, s in zip(self.features, state))

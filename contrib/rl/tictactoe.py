@@ -47,7 +47,7 @@ def eval_tic_tac_toe(value_weight,
                      games=10**4,
                      rollouts=10**5):
   """
-    Returns the average reward over 1k games after 10k rollouts
+    Returns the average reward over 1k games after 100k rollouts
     :param value_weight:
     :return:
     """
