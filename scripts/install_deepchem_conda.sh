@@ -30,7 +30,7 @@ source activate $envname
 conda install -y -c omnia pdbfixer=1.4
 conda install -y -c rdkit rdkit
 conda install -y joblib
-yes | pip install six
+conda install -c anaconda six
 conda install -y -c omnia mdtraj
 conda install -y scikit-learn=0.18.1
 conda install -y setuptools
@@ -39,9 +39,9 @@ yes | pip install --upgrade $protobuf_url
 yes | pip install --upgrade $protobuf_url
 conda install -y -c anaconda networkx=1.11
 conda install -y -c conda-forge xgboost=0.6a2
-conda install -y -c pillow
+conda install -y -c anaconda pillow=4.2.1
 conda install -y -c anaconda pandas=0.19.2
-yes | pip install $tensorflow==1.0.1
-yes | pip install nose
-yes | pip install nose-timer
-yes | pip install flaky==3.3.0
+conda install -y $tensorflow=1.0.1
+conda install -y -c anaconda nose
+conda install -c omnia nose-timer
+conda install -c spyder-ide flaky=3.3.0
