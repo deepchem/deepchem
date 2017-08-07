@@ -17,31 +17,22 @@ then
     export python_version=3.5
 fi
 
-if [ "$python_version" == "3.5" ]
-then
-    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.1.0-cp35-none-linux_x86_64.whl
-else
-    export protobuf_url=https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.1.0-cp27-none-linux_x86_64.whl
-fi
-
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
 conda install -y -c omnia pdbfixer=1.4
 conda install -y -c rdkit rdkit
-conda install -y joblib
-yes | pip install six
-conda install -y -c omnia mdtraj
-conda install -y scikit-learn=0.18.1
-conda install -y setuptools
+conda install -y -c conda-forge joblib=0.11
+conda install -y -c conda-forge six
+conda install -y -c conda-forge mdtraj
+conda install -y -c conda-forge scikit-learn=0.18.1
+conda install -y -c conda-forge setuptools
 conda install -y -c conda-forge keras=1.2.2
-yes | pip install --upgrade $protobuf_url
-yes | pip install --upgrade $protobuf_url
-conda install -y -c anaconda networkx=1.11
+conda install -y -c conda-forge networkx=1.11
 conda install -y -c conda-forge xgboost=0.6a2
-conda install -y -c pillow
-conda install -y -c anaconda pandas=0.19.2
-yes | pip install $tensorflow==1.0.1
-yes | pip install nose
-yes | pip install nose-timer
-yes | pip install flaky==3.3.0
+conda install -y -c conda-forge pillow=4.2.1
+conda install -y -c conda-forge pandas=0.19.2
+conda install -y -c conda-forge $tensorflow=1.2.1
+conda install -y -c conda-forge nose=1.3.7
+conda install -y -c conda-forge nose-timer=0.7.0
+conda install -y -c conda-forge flaky=3.3.0

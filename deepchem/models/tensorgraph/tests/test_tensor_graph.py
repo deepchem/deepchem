@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 import os
-from nose.tools import assert_true
+from nose.tools import assert_true, nottest
 from flaky import flaky
 import tensorflow as tf
 
@@ -191,6 +191,7 @@ class TestTensorGraph(unittest.TestCase):
     prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
+  @nottest
   def test_tensorboard(self):
     n_data_points = 20
     n_features = 2
