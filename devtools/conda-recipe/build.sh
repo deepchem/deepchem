@@ -1,2 +1,0 @@
-#!/bin/bash
-pip install .
