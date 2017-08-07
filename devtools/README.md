@@ -27,4 +27,9 @@ How to do a release
 
   - sudo docker tag \<IMAGE ID\> deepchemio/deepchem:<version>
   - sudo docker push deepchemio/deepchem:<version>
+- Update conda installs
+  - edit version in devtools/conda-recipes/deepchem/meta.yml
+  - update requirements to be inline with scripts/install_deepchem_conda.sh
+  - set deepchem anaconda org token
+  - bash devtools/jenkins/conda_build.sh
 - Post on Gitter
