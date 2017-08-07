@@ -1,0 +1,48 @@
+package:
+  name: {{ environ.get('package_name', 'deepchem') }}
+  version: "1.2.0"
+
+source:
+    git_url: https://github.com/deepchem/deepchem.git
+    git_tag: 1.2.0
+
+build:
+  number: 0
+  skip: True  # [osx or win]
+
+
+requirements:
+  build:
+    - python {{ environ.get('python_version', '3.5') }}
+    - setuptools
+    - pbr
+    - numpy
+
+  run:
+    - python {{ environ.get('python_version', '3.5') }}
+    - pdbfixer ==1.4
+    - rdkit ==2017.03.1
+    - mdtraj
+    - joblib
+    - scikit-learn ==0.18.1
+    - keras ==1.2.2
+    - networkx ==1.11
+    - xgboost ==0.6a2
+    - pillow ==4.2.1
+    - pandas ==0.19.2
+    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.2.1
+    - nose
+    - nose-timer
+    - flaky ==3.3.0
+
+
+test:
+
+  imports:
+    - deepchem
+
+
+about:
+  home: https://github.com/deepchem/deepchem
+  license: MIT
+  summary: 'Deep-learning models for Drug Discovery and Quantum Chemistry '
