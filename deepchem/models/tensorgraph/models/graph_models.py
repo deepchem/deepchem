@@ -618,9 +618,7 @@ class GraphConvTensorGraph(TensorGraph):
     return self.evaluate_generator(
         self.default_generator(dataset, predict=True),
         metrics,
-        transformers=transformers,
         labels=self.my_labels,
-        outputs=outputs,
         weights=[self.my_task_weights],
         per_task_metrics=per_task_metrics)
 
