@@ -1,16 +1,20 @@
 """
-Contains basic hyperparameter optimizations.
+Contains class for gaussian process hyperparameter optimizations.
 """
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+
 import numpy as np
 import tempfile
+import deepchem
 from deepchem.utils.evaluate import Evaluator
-from deepchem.hyper import HyperparamOpt
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 from deepchem.utils.dependencies import pyGPGO_covfunc, pyGPGO_acquisition, \
     pyGPGO_surrogates_GaussianProcess, pyGPGO_GPGO
 
 
-class GaussianProcessHyperparamOpt(HyperparamOpt):
+class GaussianProcessHyperparamOpt(deepchem.hyper.HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
   """
@@ -39,6 +43,39 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     For Molnet models, self.model_class is model name in string,
     params_dict = dc.molnet.preset_hyper_parameters.hps[self.model_class]
+
+    Parameters
+    ----------
+    params_dict: dict
+      dict including parameters and their initial values
+      parameters not suitable for optimization can be added to hp_invalid_list
+    train_dataset: dc.data.Dataset struct
+      dataset used for training
+    valid_dataset: dc.data.Dataset struct
+      dataset used for validation(optimization on valid scores)
+    output_transformers: list of dc.trans.Transformer
+      transformers for evaluation
+    metric: list of dc.metrics.Metric
+      metric used for evaluation
+    n_features: int
+      number of input features
+    n_tasks: int
+      number of tasks
+    max_iter: int
+      number of optimization trials
+    search_range: int(float)
+      optimization on [initial values / search_range,
+                       initial values * search_range]
+    hp_invalid_list: list
+      names of parameters that should not be optimized
+
+    Returns
+    -------
+    hyper_parameters: dict
+      params_dict with all optimized values
+    valid_performance_opt: float
+      best performance on valid dataset
+
     """
 
     assert len(metric) == 1, 'Only use one metric'
@@ -51,21 +88,22 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     hp_list_class = [hyper_parameters[hp].__class__ for hp in hp_list]
     assert set(hp_list_class) <= set([list, int, float])
     # Float or int hyper parameters(ex. batch_size, learning_rate)
-    hp_list1 = [
+    hp_list_single = [
         hp_list[i] for i in range(len(hp_list)) if not hp_list_class[i] is list
     ]
     # List of float or int hyper parameters(ex. layer_sizes)
-    hp_list2 = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
-                for i in range(len(hp_list)) if hp_list_class[i] is list]
+    hp_list_multiple = [(hp_list[i], len(hyper_parameters[hp_list[i]]))
+                        for i in range(len(hp_list))
+                        if hp_list_class[i] is list]
 
     # Number of parameters
-    n_param = len(hp_list1) + sum([hp[1] for hp in hp_list2])
+    n_param = len(hp_list_single + sum([hp[1] for hp in hp_list_multiple]))
     # Range of optimization
     param_range = []
-    for hp in hp_list1:
+    for hp in hp_list_single:
       if hyper_parameters[hp].__class__ is int:
         param_range.append((('int'), [
-            hyper_parameters[hp] / search_range,
+            hyper_parameters[hp] // search_range,
             hyper_parameters[hp] * search_range
         ]))
       else:
@@ -73,10 +111,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             hyper_parameters[hp] / search_range,
             hyper_parameters[hp] * search_range
         ]))
-    for hp in hp_list2:
+    for hp in hp_list_multiple:
       if hyper_parameters[hp[0]][0].__class__ is int:
         param_range.extend([(('int'), [
-            hyper_parameters[hp[0]][i] / search_range,
+            hyper_parameters[hp[0]][i] // search_range,
             hyper_parameters[hp[0]][i] * search_range
         ]) for i in range(hp[1])])
       else:
@@ -109,15 +147,29 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
           l17=0,
           l18=0,
           l19=0):
+      """ Optimizing function
+      Take in hyper parameter values and return valid set performances
+
+      Parameters
+      ----------
+      l00~l19: int or float
+        placeholders for hyperparameters being optimized,
+        hyper_parameters dict is rebuilt based on input values of placeholders
+
+      Returns:
+      --------
+      valid_scores: float
+        valid set performances
+      """
       args = locals()
       # Input hyper parameters
       i = 0
-      for hp in hp_list1:
+      for hp in hp_list_single:
         hyper_parameters[hp] = float(args[param_name[i]])
         if param_range[i][0] == 'int':
           hyper_parameters[hp] = int(hyper_parameters[hp])
         i = i + 1
-      for hp in hp_list2:
+      for hp in hp_list_multiple:
         hyper_parameters[hp[0]] = [
             float(args[param_name[j]]) for j in range(i, i + hp[1])
         ]
@@ -169,12 +221,12 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     # Readout best hyper parameters
     i = 0
-    for hp in hp_list1:
+    for hp in hp_list_single:
       hyper_parameters[hp] = float(hp_opt[param_name[i]])
       if param_range[i][0] == 'int':
         hyper_parameters[hp] = int(hyper_parameters[hp])
       i = i + 1
-    for hp in hp_list2:
+    for hp in hp_list_multiple:
       hyper_parameters[hp[0]] = [
           float(hp_opt[param_name[j]]) for j in range(i, i + hp[1])
       ]
