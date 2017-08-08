@@ -62,7 +62,7 @@ class TensorflowMoleculeEncoder(Model):
     weights_file = os.path.join(current_dir, weights_filename)
 
     if not os.path.exists(weights_file):
-      wget_command = "wget -c http://karlleswing.com/misc/keras-molecule/model.h5"
+      wget_command = "wget -nv -c http://karlleswing.com/misc/keras-molecule/model.h5"
       call(wget_command.split())
       mv_cmd = "mv model.h5 %s" % weights_file
       call(mv_cmd.split())
@@ -132,7 +132,7 @@ class TensorflowMoleculeDecoder(Model):
     weights_file = os.path.join(current_dir, weights_filename)
 
     if not os.path.exists(weights_file):
-      wget_command = "wget -c http://karlleswing.com/misc/keras-molecule/model.h5"
+      wget_command = "wget -nv -c http://karlleswing.com/misc/keras-molecule/model.h5"
       call(wget_command.split())
       mv_cmd = "mv model.h5 %s" % weights_file
       call(mv_cmd.split())
