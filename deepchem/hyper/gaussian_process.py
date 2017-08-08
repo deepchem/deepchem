@@ -7,14 +7,14 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tempfile
-import deepchem
+from deepchem.hyper.grid_search import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 from deepchem.utils.dependencies import pyGPGO_covfunc, pyGPGO_acquisition, \
     pyGPGO_surrogates_GaussianProcess, pyGPGO_GPGO
 
 
-class GaussianProcessHyperparamOpt(deepchem.hyper.HyperparamOpt):
+class GaussianProcessHyperparamOpt(HyperparamOpt):
   """
   Gaussian Process Global Optimization(GPGO)
   """
