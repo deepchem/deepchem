@@ -21,7 +21,7 @@ export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
 conda install -y -q -c omnia pdbfixer=1.4
-conda install -y -q-c rdkit rdkit
+conda install -y -q -c rdkit rdkit
 conda install -y -q -c conda-forge joblib=0.11
 conda install -y -q -c conda-forge six
 conda install -y -q -c conda-forge mdtraj
