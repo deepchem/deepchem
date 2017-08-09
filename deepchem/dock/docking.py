@@ -41,7 +41,7 @@ class VinaGridRFDocker(Docker):
     self.base_dir = tempfile.mkdtemp()
     print("About to download trained model.")
     call((
-        "wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_RF.tar.gz"
+        "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_RF.tar.gz"
     ).split())
     call(("tar -zxvf random_full_RF.tar.gz").split())
     call(("mv random_full_RF %s" % (self.base_dir)).split())
@@ -79,7 +79,7 @@ class VinaGridDNNDocker(object):
     self.base_dir = tempfile.mkdtemp()
     print("About to download trained model.")
     call((
-        "wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_DNN.tar.gz"
+        "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/random_full_DNN.tar.gz"
     ).split())
     call(("tar -zxvf random_full_DNN.tar.gz").split())
     call(("mv random_full_DNN %s" % (self.base_dir)).split())

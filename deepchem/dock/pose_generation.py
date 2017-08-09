@@ -66,7 +66,7 @@ class VinaPoseGenerator(PoseGenerator):
       print("Vina not available. Downloading")
       # TODO(rbharath): May want to move this file to S3 so we can ensure it's
       # always available.
-      wget_cmd = "wget -c http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
+      wget_cmd = "wget -nv -c http://vina.scripps.edu/download/autodock_vina_1_1_2_linux_x86.tgz"
       call(wget_cmd.split())
       print("Downloaded Vina. Extracting")
       download_cmd = "tar xzvf autodock_vina_1_1_2_linux_x86.tgz"
@@ -90,7 +90,7 @@ class VinaPoseGenerator(PoseGenerator):
     if out_dir is None:
       out_dir = tempfile.mkdtemp()
 
-    # Prepare receptor 
+    # Prepare receptor
     receptor_name = os.path.basename(protein_file).split(".")[0]
     protein_hyd = os.path.join(out_dir, "%s.pdb" % receptor_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % receptor_name)
@@ -117,7 +117,7 @@ class VinaPoseGenerator(PoseGenerator):
         pockets, pocket_atoms_maps, pocket_coords = self.pocket_finder.find_pockets(
             protein_file, ligand_file)
         # TODO(rbharath): Handle multiple pockets instead of arbitrarily selecting
-        # first pocket. 
+        # first pocket.
         print("Computing centroid and size of proposed pocket.")
         pocket_coord = pocket_coords[0]
         protein_centroid = np.mean(pocket_coord, axis=1)
@@ -157,10 +157,10 @@ class VinaPoseGenerator(PoseGenerator):
     if not dry_run:
       print("About to call Vina")
       call(
-          "%s --config %s --log %s --out %s" %
-          (self.vina_cmd, conf_file, log_file, out_pdbqt),
+          "%s --config %s --log %s --out %s" % (self.vina_cmd, conf_file,
+                                                log_file, out_pdbqt),
           shell=True)
     # TODO(rbharath): Convert the output pdbqt to a pdb file.
 
-    # Return docked files 
+    # Return docked files
     return protein_hyd, out_pdbqt

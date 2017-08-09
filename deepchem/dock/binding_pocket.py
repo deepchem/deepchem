@@ -224,7 +224,7 @@ class RFConvexHullPocketFinder(BindingPocketFinder):
     print("About to download trained model.")
     # TODO(rbharath): Shift refined to full once trained.
     call((
-        "wget -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/pocket_random_refined_RF.tar.gz"
+        "wget -nv -c http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/pocket_random_refined_RF.tar.gz"
     ).split())
     call(("tar -zxvf pocket_random_refined_RF.tar.gz").split())
     call(("mv pocket_random_refined_RF %s" % (self.base_dir)).split())

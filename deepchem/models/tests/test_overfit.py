@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+from nose.plugins.attrib import attr
+
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
@@ -1357,6 +1359,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .8
 
+  @attr("slow")
   def test_MPNN_singletask_regression_overfit(self):
     """Test MPNN overfits tiny data."""
     np.random.seed(123)
