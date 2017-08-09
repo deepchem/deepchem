@@ -63,3 +63,8 @@ def test_solubility():
 def test_quantum():
   nb, errors = _notebook_read("quantum_machine_gdb1k.ipynb")
   assert errors == []
+
+
+def test_pong():
+  nb, errors = _notebook_read("pong.ipynb")
+  assert errors == []
