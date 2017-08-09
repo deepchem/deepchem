@@ -611,7 +611,6 @@ class GraphConvTensorGraph(TensorGraph):
                dataset,
                metrics,
                transformers=[],
-               outputs=None,
                per_task_metrics=False):
     if not self.built:
       self.build()
