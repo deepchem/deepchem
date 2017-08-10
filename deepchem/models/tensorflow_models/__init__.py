@@ -482,11 +482,15 @@ class TensorflowGraphModel(Model):
     if train:
       if not self.train_graph.session:
         config = tf.ConfigProto(allow_soft_placement=True)
+        #gpu memory growth option
+        config.gpu_options.allow_growth = True
         self.train_graph.session = tf.Session(config=config)
       return self.train_graph.session
     else:
       if not self.eval_graph.session:
         config = tf.ConfigProto(allow_soft_placement=True)
+        #gpu memory growth option
+        config.gpu_options.allow_growth = True
         self.eval_graph.session = tf.Session(config=config)
       return self.eval_graph.session
 
