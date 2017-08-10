@@ -438,8 +438,8 @@ class TensorflowGraphModel(Model):
     feeding and fetching the same tensor.
     """
     weights = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
         weights.append(
@@ -639,8 +639,8 @@ class TensorflowClassifier(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       n_classes = self.n_classes
@@ -792,8 +792,8 @@ class TensorflowRegressor(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       labels = []
