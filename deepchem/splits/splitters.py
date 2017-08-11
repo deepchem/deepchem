@@ -89,18 +89,21 @@ class Splitter(object):
     train_ds_base = None
     train_datasets = []
     # rem_dataset is remaining portion of dataset
-    rem_dataset = dataset
+    if isinstance(dataset, DiskDataset):
+      rem_dataset = dataset
+    else:
+      rem_dataset = DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w, dataset.ids)
     for fold in range(k):
       # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
       # to k-1.
       frac_fold = 1. / (k - fold)
       train_dir, cv_dir = directories[2 * fold], directories[2 * fold + 1]
       fold_inds, rem_inds, _ = self.split(
-          rem_dataset,
-          frac_train=frac_fold,
-          frac_valid=1 - frac_fold,
-          frac_test=0)
-      cv_dataset = rem_dataset.select(fold_inds)
+        rem_dataset,
+        frac_train=frac_fold,
+        frac_valid=1 - frac_fold,
+        frac_test=0)
+      cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
       cv_datasets.append(cv_dataset)
       rem_dataset = rem_dataset.select(rem_inds)
 
@@ -112,8 +115,7 @@ class Splitter(object):
 
       update_train_base_merge = filter(lambda x: x is not None,
                                        [train_ds_base, cv_dataset])
-      train_ds_base = DiskDataset.merge(
-          update_train_base_merge, merge_dir=cv_dir)
+      train_ds_base = DiskDataset.merge(update_train_base_merge)
     return list(zip(train_datasets, cv_datasets))
 
   def train_valid_test_split(self,
@@ -134,11 +136,11 @@ class Splitter(object):
         """
     log("Computing train/valid/test indices", self.verbose)
     train_inds, valid_inds, test_inds = self.split(
-        dataset,
-        frac_train=frac_train,
-        frac_test=frac_test,
-        frac_valid=frac_valid,
-        log_every_n=log_every_n)
+      dataset,
+      frac_train=frac_train,
+      frac_test=frac_test,
+      frac_valid=frac_valid,
+      log_every_n=log_every_n)
     if train_dir is None:
       train_dir = tempfile.mkdtemp()
     if valid_dir is None:
@@ -167,14 +169,14 @@ class Splitter(object):
         """
     valid_dir = tempfile.mkdtemp()
     train_dataset, _, test_dataset = self.train_valid_test_split(
-        dataset,
-        train_dir,
-        valid_dir,
-        test_dir,
-        frac_train=frac_train,
-        frac_test=1 - frac_train,
-        frac_valid=0.,
-        verbose=verbose)
+      dataset,
+      train_dir,
+      valid_dir,
+      test_dir,
+      frac_train=frac_train,
+      frac_test=1 - frac_train,
+      frac_valid=0.,
+      verbose=verbose)
     return train_dataset, test_dataset
 
   def split(self,
@@ -471,7 +473,7 @@ class SingletaskStratifiedSplitter(Splitter):
       shuffled = np.random.permutation(range(split_cd))
       train_idx = np.hstack([train_idx, sortidx_split[shuffled[:train_cutoff]]])
       valid_idx = np.hstack(
-          [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
+        [valid_idx, sortidx_split[shuffled[train_cutoff:valid_cutoff]]])
       test_idx = np.hstack([test_idx, sortidx_split[shuffled[valid_cutoff:]]])
 
     # Append remaining examples to train
@@ -710,9 +712,9 @@ class ScaffoldSplitter(Splitter):
     # Sort from largest to smallest scaffold sets
     scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
     scaffold_sets = [
-        scaffold_set
-        for (scaffold, scaffold_set) in sorted(
-            scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
+      scaffold_set
+      for (scaffold, scaffold_set) in sorted(
+        scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
     ]
     train_cutoff = frac_train * len(dataset)
     valid_cutoff = (frac_train + frac_valid) * len(dataset)
@@ -758,7 +760,7 @@ class FingerprintSplitter(Splitter):
     for i in range(data_len):
       for j in range(data_len):
         distances[i][j] = 1 - DataStructs.FingerprintSimilarity(
-            fingerprints[i], fingerprints[j])
+          fingerprints[i], fingerprints[j])
 
     train_cutoff = int(frac_train * len(dataset))
     valid_cutoff = int(frac_valid * len(dataset))
