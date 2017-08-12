@@ -86,8 +86,7 @@ class MultitaskGraphClassifier(Model):
                verbose=True):
 
     warnings.warn("MultitaskGraphClassifier is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     super(MultitaskGraphClassifier, self).__init__(
         model_dir=logdir, verbose=verbose)
     self.n_tasks = n_tasks
@@ -96,7 +95,7 @@ class MultitaskGraphClassifier(Model):
     self.sess = tf.Session(graph=self.model.graph)
 
     with self.model.graph.as_default():
-      # Extract model info 
+      # Extract model info
       self.batch_size = batch_size
       self.pad_batches = pad_batches
       # Get graph topology for x

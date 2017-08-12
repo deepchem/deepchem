@@ -31,8 +31,7 @@ class SequentialGraph(object):
       Number of features per atom.
     """
     warnings.warn("SequentialGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = GraphTopology(n_feat)
@@ -43,7 +42,7 @@ class SequentialGraph(object):
   def add(self, layer):
     """Adds a new layer to model."""
     with self.graph.as_default():
-      # For graphical layers, add connectivity placeholders 
+      # For graphical layers, add connectivity placeholders
       if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
         if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
           assert self.layers[-1].__name__ != "GraphGather", \
@@ -93,8 +92,7 @@ class SequentialDTNNGraph(SequentialGraph):
       maximum distance of atom pairs, default = 18 Angstorm
     """
     warnings.warn("SequentialDTNNGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DTNNGraphTopology(
@@ -131,8 +129,7 @@ class SequentialDAGGraph(SequentialGraph):
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
     warnings.warn("SequentialDAGGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DAGGraphTopology(
@@ -170,8 +167,7 @@ class SequentialWeaveGraph(SequentialGraph):
       Number of features per pair of atoms.
     """
     warnings.warn("SequentialWeaveGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -219,8 +215,7 @@ class AlternateSequentialWeaveGraph(SequentialGraph):
       Number of features per pair of atoms.
     """
     warnings.warn("AlternateSequentialWeaveGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     self.batch_size = batch_size
     self.max_atoms = max_atoms
@@ -259,8 +254,7 @@ class SequentialSupportGraph(object):
       Number of atomic features.
     """
     warnings.warn("SequentialSupportWeaveGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       # Create graph topology and x

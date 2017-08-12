@@ -52,8 +52,7 @@ class TensorflowGraph(object):
   def __init__(self, graph, session, name_scopes, output, labels, weights,
                loss):
     warnings.warn("TensorflowGraph is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = graph
     self.session = session
     self.name_scopes = name_scopes
@@ -180,8 +179,7 @@ class TensorflowGraphModel(Model):
       If not none, is used as random seed for tensorflow.
     """
     warnings.warn("TensorflowGraphModel is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     # Save hyperparameters
     self.n_tasks = n_tasks

@@ -29,8 +29,7 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
                bypass_dropouts=[.5],
                **kwargs):
     warnings.warn("RobustMultiTaskClassifier is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.bypass_layer_sizes = bypass_layer_sizes
     self.bypass_weight_init_stddevs = bypass_weight_init_stddevs
     self.bypass_bias_init_consts = bypass_bias_init_consts
@@ -46,8 +45,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
         batch_size x num_features.
     """
     num_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       with placeholder_scope:
         mol_features = tf.placeholder(
@@ -84,8 +83,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
       num_bypass_layers = bypass_lengths_set.pop()
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph,
-                                                                 name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(
+          graph, name_scopes)
       if training:
         graph.queue = tf.FIFOQueue(
             capacity=5,
@@ -106,8 +105,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
       prev_layer_size = num_features
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        print("Adding weights of shape %s" %
-              str([prev_layer_size, layer_sizes[i]]))
+        print("Adding weights of shape %s" % str(
+            [prev_layer_size, layer_sizes[i]]))
         layer = tf.nn.relu(
             model_ops.fully_connected_layer(
                 tensor=prev_layer,
@@ -132,8 +131,8 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
         prev_bypass_layer_size = num_features
         for i in range(num_bypass_layers):
           # bypass_layer has shape [None, bypass_layer_sizes[i]]
-          print("Adding bypass weights of shape %s" %
-                str([prev_bypass_layer_size, bypass_layer_sizes[i]]))
+          print("Adding bypass weights of shape %s" % str(
+              [prev_bypass_layer_size, bypass_layer_sizes[i]]))
           bypass_layer = tf.nn.relu(
               model_ops.fully_connected_layer(
                   tensor=prev_bypass_layer,
@@ -190,8 +189,7 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
                bypass_dropouts=[.5],
                **kwargs):
     warnings.warn("RobustMultiTaskRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.bypass_layer_sizes = bypass_layer_sizes
     self.bypass_weight_init_stddevs = bypass_weight_init_stddevs
     self.bypass_bias_init_consts = bypass_bias_init_consts
@@ -207,8 +205,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
         batch_size x num_features.
     """
     num_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       with placeholder_scope:
         mol_features = tf.placeholder(
@@ -245,8 +243,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
       num_bypass_layers = bypass_lengths_set.pop()
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph,
-                                                                 name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(
+          graph, name_scopes)
       if training:
         graph.queue = tf.FIFOQueue(
             capacity=5,
@@ -267,8 +265,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
       prev_layer_size = num_features
       for i in range(num_layers):
         # layer has shape [None, layer_sizes[i]]
-        print("Adding weights of shape %s" %
-              str([prev_layer_size, layer_sizes[i]]))
+        print("Adding weights of shape %s" % str(
+            [prev_layer_size, layer_sizes[i]]))
         layer = tf.nn.relu(
             model_ops.fully_connected_layer(
                 tensor=prev_layer,
@@ -293,8 +291,8 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
         prev_bypass_layer_size = num_features
         for i in range(num_bypass_layers):
           # bypass_layer has shape [None, bypass_layer_sizes[i]]
-          print("Adding bypass weights of shape %s" %
-                str([prev_bypass_layer_size, bypass_layer_sizes[i]]))
+          print("Adding bypass weights of shape %s" % str(
+              [prev_bypass_layer_size, bypass_layer_sizes[i]]))
           bypass_layer = tf.nn.relu(
               model_ops.fully_connected_layer(
                   tensor=prev_bypass_layer,

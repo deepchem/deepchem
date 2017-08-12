@@ -51,10 +51,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         batch_size x n_features.
     """
     warnings.warn("TensorLogisticRegression is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     n_features = self.n_features
     with graph.as_default():
       with placeholder_scope:
@@ -66,8 +65,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       lg_list = []
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph,
-                                                                 name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(
+          graph, name_scopes)
       if training:
         graph.queue = tf.FIFOQueue(
             capacity=5,
@@ -98,8 +97,8 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
   def add_label_placeholders(self, graph, name_scopes):
     #label placeholders with size batch_size * 1
     labels = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
         labels.append(
@@ -194,7 +193,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
         batch_outputs = np.asarray(data[:n_tasks], dtype=float)
-        # transfer 2D prediction tensor to 2D x n_classes(=2) 
+        # transfer 2D prediction tensor to 2D x n_classes(=2)
         complimentary = np.ones(np.shape(batch_outputs))
         complimentary = complimentary - batch_outputs
         batch_outputs = np.concatenate(
@@ -230,7 +229,7 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
         data = self._get_shared_session(train=False).run(
             self.eval_graph.output, feed_dict=feed_dict)
         batch_output = np.asarray(data[:n_tasks], dtype=float)
-        # transfer 2D prediction tensor to 2D x n_classes(=2) 
+        # transfer 2D prediction tensor to 2D x n_classes(=2)
         complimentary = np.ones(np.shape(batch_output))
         complimentary = complimentary - batch_output
         batch_output = np.concatenate(

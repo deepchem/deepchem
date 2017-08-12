@@ -45,8 +45,7 @@ class MultitaskGraphRegressor(Model):
                verbose=True):
 
     warnings.warn("MultitaskGraphRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     super(MultitaskGraphRegressor, self).__init__(
         model_dir=logdir, verbose=verbose)
@@ -224,8 +223,7 @@ class DTNNMultitaskGraphRegressor(MultitaskGraphRegressor):
   def build(self):
     # Create target inputs
     warnings.warn("DTNNMultitaskGraphRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.label_placeholder = tf.placeholder(
         dtype='float32', shape=(None, self.n_tasks), name="label_placeholder")
     self.weight_placeholder = tf.placeholder(

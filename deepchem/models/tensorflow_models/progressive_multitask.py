@@ -44,8 +44,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       List of standard-deviations for alpha in adapter layers.
     """
     warnings.warn("ProgressiveMultitaskRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.alpha_init_stddevs = alpha_init_stddevs
     super(ProgressiveMultitaskRegressor, self).__init__(n_tasks, n_features,
                                                         **kwargs)
@@ -95,8 +94,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
   def add_placeholders(self, graph, name_scopes):
     """Adds all placeholders for this model."""
     # Create placeholders
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     labels, weights = [], []
     n_features = self.n_features
     with placeholder_scope:
@@ -125,8 +124,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         batch_size x n_features.
     """
     n_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       layer_sizes = self.layer_sizes
       weight_init_stddevs = self.weight_init_stddevs
@@ -147,8 +146,8 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
       all_layers = {}
       for i in range(n_layers):
         for task in range(self.n_tasks):
-          task_scope = TensorflowGraph.shared_name_scope("task%d_ops" % task,
-                                                         graph, name_scopes)
+          task_scope = TensorflowGraph.shared_name_scope(
+              "task%d_ops" % task, graph, name_scopes)
           print("Adding weights for task %d, layer %d" % (task, i))
           with task_scope as scope:
             if i == 0:
@@ -529,7 +528,7 @@ class ProgressiveMultitaskRegressor(TensorflowMultiTaskRegressor):
         orig_dict["weights_%d" % task] = np.reshape(w_b[:, task], (n_samples,))
       else:
         # Dummy placeholders
-        #orig_dict["weights_%d" % task] = np.zeros((n_samples, 1)) 
+        #orig_dict["weights_%d" % task] = np.zeros((n_samples, 1))
         orig_dict["weights_%d" % task] = np.zeros((n_samples,))
     return TensorflowGraph.get_feed_dict(orig_dict)
 

@@ -91,8 +91,8 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
        
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     K = self.K
     with graph.as_default():
       output = []
@@ -106,8 +106,8 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
         b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph,
-                                                                 name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(
+          graph, name_scopes)
       if training:
         graph.queue = tf.FIFOQueue(
             capacity=5,

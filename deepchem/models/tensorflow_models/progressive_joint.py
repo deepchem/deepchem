@@ -44,8 +44,7 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
       List of standard-deviations for alpha in adapter layers.
     """
     warnings.warn("ProgressiveJointRegressor is deprecated. "
-                  "Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.alpha_init_stddevs = alpha_init_stddevs
     super(ProgressiveJointRegressor, self).__init__(n_tasks, n_features,
                                                     **kwargs)
@@ -68,8 +67,8 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
         batch_size x n_features.
     """
     n_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       with placeholder_scope:
         self.mol_features = tf.placeholder(
@@ -94,8 +93,8 @@ class ProgressiveJointRegressor(TensorflowMultiTaskRegressor):
       all_layers = {}
       for i in range(n_layers):
         for task in range(self.n_tasks):
-          task_scope = TensorflowGraph.shared_name_scope("task%d" % task, graph,
-                                                         name_scopes)
+          task_scope = TensorflowGraph.shared_name_scope(
+              "task%d" % task, graph, name_scopes)
           print("Adding weights for task %d, layer %d" % (task, i))
           with task_scope as scope:
             if i == 0:
