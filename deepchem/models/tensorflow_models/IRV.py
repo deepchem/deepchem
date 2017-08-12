@@ -58,7 +58,9 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
       If not none, is used as random seed for tensorflow.        
 
     """
-
+    warnings.warn("The TensorflowMultiTaskIRVClassifier is "
+                  "deprecated. Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.n_tasks = n_tasks
     self.K = K
     self.n_features = 2 * self.K * self.n_tasks

@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import numpy as np
 import tensorflow as tf
 
@@ -27,6 +28,9 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
                bypass_bias_init_consts=[1.],
                bypass_dropouts=[.5],
                **kwargs):
+    warnings.warn("RobustMultiTaskClassifier is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.bypass_layer_sizes = bypass_layer_sizes
     self.bypass_weight_init_stddevs = bypass_weight_init_stddevs
     self.bypass_bias_init_consts = bypass_bias_init_consts
@@ -185,6 +189,9 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
                bypass_bias_init_consts=[1.],
                bypass_dropouts=[.5],
                **kwargs):
+    warnings.warn("RobustMultiTaskRegressor is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.bypass_layer_sizes = bypass_layer_sizes
     self.bypass_weight_init_stddevs = bypass_weight_init_stddevs
     self.bypass_bias_init_consts = bypass_bias_init_consts

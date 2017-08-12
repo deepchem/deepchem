@@ -4,6 +4,7 @@ Created on Tue Nov 08 14:10:02 2016
 
 @author: Zhenqin Wu
 """
+import warnings
 import tensorflow as tf
 import numpy as np
 import os
@@ -49,6 +50,9 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
+    warnings.warn("TensorLogisticRegression is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
                                                               name_scopes)
     n_features = self.n_features

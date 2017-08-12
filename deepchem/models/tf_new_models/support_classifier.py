@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import numpy as np
 import tensorflow as tf
 import sys
@@ -48,6 +49,9 @@ class SupportGraphClassifier(Model):
     n_neg: int
       Number of negative examples in support.
     """
+    warnings.warn("SupportGraphClassifier is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.similarity = similarity
     self.model = model
     self.sess = tf.Session(graph=self.model.graph)

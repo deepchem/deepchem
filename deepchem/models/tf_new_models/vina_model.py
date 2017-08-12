@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import numpy as np
 import tensorflow as tf
 from deepchem.models import Model
@@ -480,6 +481,9 @@ class VinaModel(Model):
     pass
 
   def __init__(self, max_local_steps=10, max_mutations=10):
+    warnings.warn("VinaModel is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.max_local_steps = max_local_steps
     self.max_mutations = max_mutations
     self.graph, self.input_placeholders, self.output_placeholder = self.construct_graph(

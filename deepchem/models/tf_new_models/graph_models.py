@@ -9,6 +9,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import tensorflow as tf
 from deepchem.nn.layers import GraphGather
 from deepchem.models.tf_new_models.graph_topology import GraphTopology, DTNNGraphTopology, DAGGraphTopology, WeaveGraphTopology, AlternateWeaveGraphTopology
@@ -29,6 +30,9 @@ class SequentialGraph(object):
     n_feat: int
       Number of features per atom.
     """
+    warnings.warn("SequentialGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = GraphTopology(n_feat)
@@ -39,11 +43,6 @@ class SequentialGraph(object):
   def add(self, layer):
     """Adds a new layer to model."""
     with self.graph.as_default():
-      ############################################# DEBUG
-      #print("start - add()")
-      #print("self.output")
-      #print(self.output)
-      ############################################# DEBUG
       # For graphical layers, add connectivity placeholders 
       if type(layer).__name__ in ['GraphConv', 'GraphGather', 'GraphPool']:
         if (len(self.layers) > 0 and hasattr(self.layers[-1], "__name__")):
@@ -54,11 +53,6 @@ class SequentialGraph(object):
                             self.graph_topology.get_topology_placeholders())
       else:
         self.output = layer(self.output)
-      ############################################# DEBUG
-      #print("end- add()")
-      #print("self.output")
-      #print(self.output)
-      ############################################# DEBUG
 
       # Add layer to the layer list
       self.layers.append(layer)
@@ -98,6 +92,9 @@ class SequentialDTNNGraph(SequentialGraph):
     distance_max: float, optional
       maximum distance of atom pairs, default = 18 Angstorm
     """
+    warnings.warn("SequentialDTNNGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DTNNGraphTopology(
@@ -133,6 +130,9 @@ class SequentialDAGGraph(SequentialGraph):
     max_atoms: int, optional
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
+    warnings.warn("SequentialDAGGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       self.graph_topology = DAGGraphTopology(
@@ -169,6 +169,9 @@ class SequentialWeaveGraph(SequentialGraph):
     n_pair_feat: int, optional
       Number of features per pair of atoms.
     """
+    warnings.warn("SequentialWeaveGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
@@ -215,6 +218,9 @@ class AlternateSequentialWeaveGraph(SequentialGraph):
     n_pair_feat: int, optional
       Number of features per pair of atoms.
     """
+    warnings.warn("AlternateSequentialWeaveGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     self.batch_size = batch_size
     self.max_atoms = max_atoms
@@ -252,6 +258,9 @@ class SequentialSupportGraph(object):
     n_feat: int
       Number of atomic features.
     """
+    warnings.warn("SequentialSupportWeaveGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.graph = tf.Graph()
     with self.graph.as_default():
       # Create graph topology and x

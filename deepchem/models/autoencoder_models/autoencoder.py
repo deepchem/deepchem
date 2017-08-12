@@ -2,7 +2,7 @@
 TODO(LESWING) Remove h5py dependency
 TODO(LESWING) Remove keras dependency and replace with functional keras API
 """
-
+import warnings
 from deepchem.models import Model
 from deepchem.models.autoencoder_models.model import MoleculeVAE
 from deepchem.feat.one_hot import zinc_charset
@@ -38,6 +38,8 @@ class TensorflowMoleculeEncoder(Model):
     latent_rep_size: int
       How large a 1D Vector for latent representation
     """
+    warnings.warn("Deprecated. Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     super(TensorflowMoleculeEncoder, self).__init__(
         model_dir=model_dir, verbose=verbose)
     weights_file = os.path.join(model_dir, weights_file)

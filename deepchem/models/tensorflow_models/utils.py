@@ -15,6 +15,7 @@
 # limitations under the License.
 """Utils for graph convolution models."""
 
+import warnings
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
@@ -35,6 +36,9 @@ def ParseCheckpoint(checkpoint):
   Returns:
     The path to an actual checkpoint file.
   """
+  warnings.warn("ParseCheckpoint is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   with open(checkpoint) as f:
     try:
       cp = checkpoint_state_pb2.CheckpointState()
@@ -59,6 +63,9 @@ def Mask(t, mask):
   Raises:
     ValueError: If shapes do not match.
   """
+  warnings.warn("Mask is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   if mask is None:
     return t
   if not t.get_shape()[:-1].is_compatible_with(mask.get_shape()):
@@ -80,6 +87,9 @@ def Mean(tensor, reduction_indices=None, mask=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
+  warnings.warn("Mean is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   return Moment(
       1,
       tensor,
@@ -99,6 +109,9 @@ def Variance(tensor, reduction_indices=None, mask=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
+  warnings.warn("Variance is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   return Moment(
       2,
       tensor,
@@ -117,6 +130,9 @@ def Skewness(tensor, reduction_indices=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
+  warnings.warn("Skewness is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   return Moment(
       3, tensor, standardize=True, reduction_indices=reduction_indices)[1]
 
@@ -131,6 +147,9 @@ def Kurtosis(tensor, reduction_indices=None):
   Returns:
     A tensor with the same type as the input tensor.
   """
+  warnings.warn("Kurtosis is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   return Moment(
       4, tensor, standardize=True, reduction_indices=reduction_indices)[1] - 3
 
@@ -149,6 +168,9 @@ def Moment(k, tensor, standardize=False, reduction_indices=None, mask=None):
   Returns:
     The mean and the requested moment.
   """
+  warnings.warn("Moment is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   if reduction_indices is not None:
     reduction_indices = np.atleast_1d(reduction_indices).tolist()
 
@@ -201,6 +223,9 @@ def StringToOp(string):
   Raises:
     NotImplementedError: If string does not match a supported operation.
   """
+  warnings.warn("StringToOp is deprecated. "
+                "Will be removed in DeepChem 1.4.",
+                DeprecationWarning)
   # TODO(user): median is not implemented yet in TensorFlow
   op_map = {
       'max': tf.reduce_max,

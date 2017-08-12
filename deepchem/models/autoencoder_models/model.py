@@ -1,3 +1,4 @@
+import warnings
 from keras import backend as K
 from keras import objectives
 from keras.layers import Input, Lambda
@@ -11,6 +12,10 @@ from keras.models import Model
 class MoleculeVAE():
 
   autoencoder = None
+
+  def __init__(self):
+    warnings.warn("Deprecated. Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
 
   def create(self,
              charset_length,
