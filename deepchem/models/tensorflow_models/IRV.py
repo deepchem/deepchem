@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import time
 import numpy as np
 import tensorflow as tf

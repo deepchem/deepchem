@@ -38,8 +38,8 @@ class TensorflowMoleculeEncoder(Model):
     latent_rep_size: int
       How large a 1D Vector for latent representation
     """
-    warnings.warn("Deprecated. Will be removed in DeepChem 1.4.",
-                  DeprecationWarning)
+    warnings.warn("TensorflowMoleculeEncoder Deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     super(TensorflowMoleculeEncoder, self).__init__(
         model_dir=model_dir, verbose=verbose)
     weights_file = os.path.join(model_dir, weights_file)
@@ -107,6 +107,8 @@ class TensorflowMoleculeDecoder(Model):
     latent_rep_size: int
       How large a 1D Vector for latent representation
     """
+    warnings.warn("TensorflowMoleculeDecoder Deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     super(TensorflowMoleculeDecoder, self).__init__(
         model_dir=model_dir, verbose=verbose)
     weights_file = os.path.join(model_dir, weights_file)
