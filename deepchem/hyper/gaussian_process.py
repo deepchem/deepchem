@@ -31,7 +31,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         search_range=4,
                         hp_invalid_list=[
                             'seed', 'nb_epoch', 'penalty_type', 'dropouts',
-                            'bypass_dropouts', 'n_pair_feat'
+                            'bypass_dropouts', 'n_pair_feat', 'fit_transformers'
                         ],
                         logdir=None):
     """Perform hyperparams search using a gaussian process assumption
@@ -97,7 +97,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         if hp_list_class[i] is list]
 
     # Number of parameters
-    n_param = len(hp_list_single + sum([hp[1] for hp in hp_list_multiple]))
+    n_param = len(hp_list_single)
+    if len(hp_list_multiple) > 0:
+      n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
     # Range of optimization
     param_range = []
     for hp in hp_list_single:
