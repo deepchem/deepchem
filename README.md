@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/deepchem/deepchem/badge.svg?branch=master)](https://coveralls.io/github/deepchem/deepchem?branch=master)
 
 DeepChem aims to provide a high quality open-source toolchain that
-democratizes the use of deep-learning in drug discovery, materials science, and quantum chemistry.
+democratizes the use of deep-learning in drug discovery, materials science, quantum chemistry, and biology.
 
 ### Table of contents:
 
