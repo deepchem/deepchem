@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import time
 import numpy as np
 import tensorflow as tf
@@ -58,7 +59,9 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
       If not none, is used as random seed for tensorflow.        
 
     """
-
+    warnings.warn("The TensorflowMultiTaskIRVClassifier is "
+                  "deprecated. Will be removed in DeepChem 1.4.",
+                  DeprecationWarning)
     self.n_tasks = n_tasks
     self.K = K
     self.n_features = 2 * self.K * self.n_tasks
@@ -89,8 +92,8 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
        
        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     K = self.K
     with graph.as_default():
       output = []
@@ -104,8 +107,8 @@ class TensorflowMultiTaskIRVClassifier(TensorflowLogisticRegression):
         b2 = tf.Variable(tf.constant([0.01]), name="b2", dtype=tf.float32)
 
       label_placeholders = self.add_label_placeholders(graph, name_scopes)
-      weight_placeholders = self.add_example_weight_placeholders(graph,
-                                                                 name_scopes)
+      weight_placeholders = self.add_example_weight_placeholders(
+          graph, name_scopes)
       if training:
         graph.queue = tf.FIFOQueue(
             capacity=5,

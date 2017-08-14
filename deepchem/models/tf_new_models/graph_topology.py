@@ -8,6 +8,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import numpy as np
 import tensorflow as tf
 from deepchem.nn.copy import Input
@@ -48,6 +49,8 @@ class GraphTopology(object):
     min_deg: int, optional
       Minimum #bonds for atoms in molecules.
     """
+    warnings.warn("GraphTopology is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     #self.n_atoms = n_atoms
     self.n_feat = n_feat
@@ -161,8 +164,9 @@ class DTNNGraphTopology(GraphTopology):
     distance_max: float, optional
       maximum distance of atom pairs, default = 18 Angstorm
     """
+    warnings.warn("DTNNGraphTopology is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
-    #self.n_atoms = n_atoms
     self.name = name
     self.n_distance = n_distance
     self.distance_min = distance_min
@@ -273,6 +277,8 @@ class DAGGraphTopology(GraphTopology):
     max_atoms: int, optional
       Maximum number of atoms in a molecule, should be defined based on dataset
     """
+    warnings.warn("DAGGraphTopology is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.n_atom_feat = n_atom_feat
     self.max_atoms = max_atoms
     self.name = name
@@ -395,6 +401,8 @@ class WeaveGraphTopology(GraphTopology):
     n_pair_feat: int, optional
       number of basic features of each pair
     """
+    warnings.warn("WeaveGraphTopology is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     #self.n_atoms = n_atoms
     self.name = name
@@ -501,6 +509,8 @@ class AlternateWeaveGraphTopology(GraphTopology):
     n_pair_feat: int, optional
       number of basic features of each pair
     """
+    warnings.warn("AlternateWeaveGraphTopology is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     #self.n_atoms = n_atoms
     self.name = name
@@ -566,7 +576,8 @@ class AlternateWeaveGraphTopology(GraphTopology):
       # index of pair features
       C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
       atom_to_pair.append(
-          np.transpose(np.array([C1.flatten() + start, C0.flatten() + start])))
+          np.transpose(np.array([C1.flatten() + start,
+                                 C0.flatten() + start])))
       # number of pairs for each atom
       pair_split.extend(C1.flatten() + start)
       start = start + n_atoms

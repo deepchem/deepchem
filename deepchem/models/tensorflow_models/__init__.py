@@ -4,6 +4,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import collections
 import pickle
 import os
@@ -50,6 +51,8 @@ class TensorflowGraph(object):
 
   def __init__(self, graph, session, name_scopes, output, labels, weights,
                loss):
+    warnings.warn("TensorflowGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = graph
     self.session = session
     self.name_scopes = name_scopes
@@ -175,6 +178,9 @@ class TensorflowGraphModel(Model):
     seed: int
       If not none, is used as random seed for tensorflow.
     """
+    warnings.warn("TensorflowGraphModel is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+
     # Save hyperparameters
     self.n_tasks = n_tasks
     self.n_features = n_features

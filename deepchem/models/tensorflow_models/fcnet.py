@@ -4,6 +4,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import time
 import numpy as np
 import tensorflow as tf
@@ -388,6 +389,8 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
+    warnings.warn("TensorflowMultiTaskClassifier is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
     n_features = self.n_features
@@ -485,6 +488,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
       mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
         batch_size x n_features.
     """
+    warnings.warn("TensorflowMultiTaskRegressor is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     n_features = self.n_features
     placeholder_scope = TensorflowGraph.get_placeholder_scope(
         graph, name_scopes)
@@ -662,6 +667,9 @@ class TensorflowMultiTaskFitTransformRegressor(TensorflowMultiTaskRegressor):
       If not none, is used as random seed for tensorflow.
 
     """
+    warnings.warn("TensorflowMultiTaskFitTransformRegressor "
+                  "is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     self.fit_transformers = fit_transformers
     self.n_evals = n_evals

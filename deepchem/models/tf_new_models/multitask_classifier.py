@@ -9,6 +9,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import os
 import sys
 import numpy as np
@@ -84,6 +85,8 @@ class MultitaskGraphClassifier(Model):
                pad_batches=True,
                verbose=True):
 
+    warnings.warn("MultitaskGraphClassifier is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     super(MultitaskGraphClassifier, self).__init__(
         model_dir=logdir, verbose=verbose)
     self.n_tasks = n_tasks
@@ -92,15 +95,12 @@ class MultitaskGraphClassifier(Model):
     self.sess = tf.Session(graph=self.model.graph)
 
     with self.model.graph.as_default():
-      # Extract model info 
+      # Extract model info
       self.batch_size = batch_size
       self.pad_batches = pad_batches
       # Get graph topology for x
       self.graph_topology = self.model.get_graph_topology()
-      ############################################################# DEBUG
-      #self.feat_dim = self.model.get_num_output_features()
       self.feat_dim = n_feat
-      ############################################################# DEBUG
 
       # Raw logit outputs
       self.logits = self.build()

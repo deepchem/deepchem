@@ -9,6 +9,7 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import numpy as np
 import tensorflow as tf
 from deepchem.models import Model
@@ -46,8 +47,8 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   # Shape (N, 1)
   cells_for_atoms = get_cells_for_atoms(coords, cells, N, n_cells, ndim)
 
-  # Associate each cell with its neighbor cells. Assumes periodic boundary   
-  # conditions, so does wrapround. O(constant)    
+  # Associate each cell with its neighbor cells. Assumes periodic boundary
+  # conditions, so does wrapround. O(constant)
   # Shape (n_cells, 26)
   neighbor_cells = compute_neighbor_cells(cells, ndim, n_cells)
 
@@ -71,8 +72,8 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   # result in neighboring cells being seen multiple times. Maybe use tf.unique to
   # make sure duplicate neighbors are ignored?
 
-  # TODO(rbharath): How does distance need to be modified here to   
-  # account for periodic boundary conditions?   
+  # TODO(rbharath): How does distance need to be modified here to
+  # account for periodic boundary conditions?
   # Shape (N, 26, k)
   dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=3)
 
@@ -94,11 +95,11 @@ def compute_neighbor_list(coords, nbr_cutoff, N, M, n_cells, ndim=3, k=5):
   # N elts of size (26*k,) each
   split_nbr_inds = [tf.squeeze(split) for split in tf.split(nbr_inds, N)]
 
-  # N elts of size (M,) each 
+  # N elts of size (M,) each
   neighbor_list = [
       tf.gather(nbr_inds, closest_nbr_locs)
-      for (nbr_inds, closest_nbr_locs
-          ) in zip(split_nbr_inds, split_closest_nbr_locs)
+      for (nbr_inds,
+           closest_nbr_locs) in zip(split_nbr_inds, split_closest_nbr_locs)
   ]
 
   # Shape (N, M)
@@ -132,7 +133,7 @@ def get_cells_for_atoms(coords, cells, N, n_cells, ndim=3):
   # List of N tensors of shape (n_cells, 1)
   tiled_coords = tf.split(tiled_coords, N)
 
-  # Lists of length N 
+  # Lists of length N
   coords_rel = [
       tf.to_float(coords) - tf.to_float(cells)
       for (coords, cells) in zip(tiled_coords, tiled_cells)
@@ -480,6 +481,8 @@ class VinaModel(Model):
     pass
 
   def __init__(self, max_local_steps=10, max_mutations=10):
+    warnings.warn("VinaModel is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.max_local_steps = max_local_steps
     self.max_mutations = max_mutations
     self.graph, self.input_placeholders, self.output_placeholder = self.construct_graph(
@@ -548,7 +551,7 @@ class VinaModel(Model):
       # TODO(rbharath): Use RDKit to compute number of rotatable bonds in ligand.
       Nrot = 1
 
-      # TODO(rbharath): Autodock Vina only uses protein-ligand interactions in 
+      # TODO(rbharath): Autodock Vina only uses protein-ligand interactions in
       # computing free-energy. This implementation currently uses all interaction
       # terms. Not sure if this makes a difference.
 
