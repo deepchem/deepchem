@@ -5,13 +5,6 @@ export python_version=2.7
 bash scripts/install_deepchem_conda.sh $envname
 source activate $envname
 python setup.py install
-conda install -y jupyter
-conda install -y nbconvert
-conda install -y jupyter_client
-conda install -y ipykernel
-conda install -y matplotlib
-yes | pip install nglview
-conda install -y ipywidgets
 
 # Run adme test
 cd examples/
