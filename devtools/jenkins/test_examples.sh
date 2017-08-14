@@ -15,7 +15,7 @@ conda install -y ipywidgets
 
 # Run adme test
 cd examples/
-nosetests --with-timer tests.py --with-xunit --xunit-file=adme_tests.xml|| true
+nosetests --with-timer tests.py --with-xunit --xunit-file=example_tests.xml|| true
 
 source deactivate
 conda remove --name $envname --all
