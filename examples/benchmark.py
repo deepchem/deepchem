@@ -7,13 +7,13 @@ Created on Tue Oct 18 15:53:27 2016
 
 Benchmark test:
 
-Giving classification performances of: 
-    Random forest(rf), MultitaskDNN(tf), 
+Giving classification performances of:
+    Random forest(rf), MultitaskDNN(tf),
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
     Graph convolution(graphconv), xgboost(xgb),
-    Directed acyclic graph(dag), Weave(weave) 
-on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast  
+    Directed acyclic graph(dag), Weave(weave)
+on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
@@ -25,7 +25,7 @@ Giving regression performances of:
     Weave(weave_regression)
 on datasets: bace_r, chembl, clearance, delaney(ESOL), hopv, kaggle, lipo,
              nci, pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl(FreeSolv)
-                
+
 
 time estimation listed in README file
 
@@ -88,23 +88,42 @@ else:
   seed = 123
 
 if len(splitters) == 0:
-  splitters = ['index', 'random', 'scaffold']
+  splitters = ['random']
 if len(models) == 0:
   models = [
-      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
-      'tf_regression_ft', 'graphconvreg'
+      'tf', 'tf_robust', 'logreg', 'graphconv', 'irv', 'tf_regression',
+      'tf_regression_ft', 'graphconvreg', 'weave', 'weave_regression', 'dtnn'
   ]
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:
   datasets = [
-      'bace_c', 'bace_r', 'bbbp', 'clearance', 'clintox', 'delaney', 'hiv',
-      'hopv', 'lipo', 'muv', 'pdbbind', 'ppb', 'qm7b', 'qm8', 'qm9', 'sampl',
-      'sider', 'tox21', 'toxcast'
+      'clintox', 'delaney', 'lipo', 'qm7b', 'qm8', 'sampl',
+      'sider', 'tox21', 'toxcast', 'muv'
   ]
 
+metrics = {
+    'qm7': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
+    'qm7b': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
+    'qm8': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
+    'qm9': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
+    'delaney': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
+    'sampl': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
+    'lipo': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
+    'pdbbind': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
+    'pcba': [dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')],
+    'muv': [dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')],
+    'hiv': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'tox21': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'toxcast': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'sider': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'clintox': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'bace_c': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
+    'bbbp': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')]
+    }
 for dataset in datasets:
   for split in splitters:
     for model in models:
       np.random.seed(seed)
       dc.molnet.run_benchmark(
-          [dataset], str(model), split=split, test=test, seed=seed)
+          [dataset], str(model), split=split, metric=metrics[dataset],
+          hyper_param_search=True, test=False, seed=seed)
