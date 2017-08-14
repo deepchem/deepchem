@@ -161,6 +161,16 @@ class Layer(object):
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
+  def _as_graph_element(self):
+    return self.out_tensor._as_graph_element()
+
+
+def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
+  return tf.convert_to_tensor(value.out_tensor, dtype=dtype, name=name)
+
+
+tf.register_tensor_conversion_function(Layer, _convert_layer_to_tensor)
+
 
 class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
