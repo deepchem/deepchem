@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import deepchem.data
 import deepchem.feat
 import deepchem.hyper
+import deepchem.metalearning
 import deepchem.metrics
 import deepchem.models
 import deepchem.nn

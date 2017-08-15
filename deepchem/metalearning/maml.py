@@ -8,6 +8,7 @@ import tempfile
 import tensorflow as tf
 import time
 
+
 class MetaLearner(object):
   """Model and data to which the MAML algorithm can be applied.
   
@@ -15,22 +16,6 @@ class MetaLearner(object):
   It consists of a model that can be trained to perform many different tasks, and
   data for training it on a large (possibly infinite) set of different tasks.
   """
-
-  def __init__(self):
-    self.batch_size = 10
-    self.tg = dc.models.TensorGraph(use_queue=False)
-    self.features = layers.Feature(shape=(None, 1))
-    self.labels = layers.Label(shape=(None, 1))
-    hidden1 = layers.Dense(in_layers=self.features, out_channels=40, activation_fn=tf.nn.relu)
-    hidden2 = layers.Dense(in_layers=hidden1, out_channels=40, activation_fn=tf.nn.relu)
-    output = layers.Dense(in_layers=hidden2, out_channels=1)
-    loss = layers.L2Loss(in_layers=[output, self.labels])
-    self.tg.add_output(output)
-    self.tg.set_loss(loss)
-    with self.tg._get_tf("Graph").as_default():
-      self.tg.build()
-      self._variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-      self._loss = self._variables[0]+self._variables[1]
 
   @property
   def loss(self):
@@ -46,9 +31,9 @@ class MetaLearner(object):
     """
     loss = self.loss
     if isinstance(loss, Layer):
-        loss = loss.out_tensor
+      loss = loss.out_tensor
     with loss.graph.as_default():
-        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+      return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
   def select_task(self):
     """Select a new task to train on.
@@ -85,7 +70,12 @@ class MAML(object):
   and data for your learning problem.  Pass it to a MAML object and call fit().
   """
 
-  def __init__(self, learner, learning_rate=0.001, optimization_steps=1, optimizer=Adam(), model_dir=None):
+  def __init__(self,
+               learner,
+               learning_rate=0.001,
+               optimization_steps=1,
+               optimizer=Adam(),
+               model_dir=None):
     """Create an object for performing meta-optimization.
 
     Parameters
@@ -105,7 +95,7 @@ class MAML(object):
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     """
     # Record inputs.
-    
+
     self.learner = learner
     if isinstance(learner.loss, Layer):
       self._loss = learner.loss.out_tensor
@@ -119,7 +109,7 @@ class MAML(object):
     self._graph = self._loss.graph
 
     # Create the output directory if necessary.
-    
+
     self._model_dir_is_temp = False
     if model_dir is not None:
       if not os.path.exists(model_dir):
@@ -135,26 +125,32 @@ class MAML(object):
       learner.select_task()
       self._meta_placeholders = {}
       for p in learner.get_batch().keys():
-        name = 'meta/'+p.name.split(':')[0]
+        name = 'meta/' + p.name.split(':')[0]
         self._meta_placeholders[p] = tf.placeholder(p.dtype, p.shape, name)
-    
+
       # Create the loss function for meta-optimization.
-      
+
       updated_loss = self._loss
       updated_variables = learner.variables
       for i in range(optimization_steps):
         gradients = tf.gradients(updated_loss, updated_variables)
-        updated_variables = [v if g is None else v-self._learning_rate*g for v,g in zip(updated_variables, gradients)]
-        replacements = dict((tf.convert_to_tensor(v1), v2) for v1,v2 in zip(learner.variables, updated_variables))
-        if i == optimization_steps-1:
+        updated_variables = [
+            v if g is None else v - self._learning_rate * g
+            for v, g in zip(updated_variables, gradients)
+        ]
+        replacements = dict(
+            (tf.convert_to_tensor(v1), v2)
+            for v1, v2 in zip(learner.variables, updated_variables))
+        if i == optimization_steps - 1:
           # In the final loss, use different placeholders for all inputs so the loss will be
           # computed from a different batch.
-          
+
           for p in self._meta_placeholders:
             replacements[p] = self._meta_placeholders[p]
-        updated_loss = tf.contrib.graph_editor.graph_replace(self._loss, replacements)
+        updated_loss = tf.contrib.graph_editor.graph_replace(
+            self._loss, replacements)
       self._meta_loss = updated_loss
-      
+
       # Create the optimizer for meta-optimization.
 
       self._global_step = tf.placeholder(tf.int32, [])
@@ -190,29 +186,27 @@ class MAML(object):
       self._session.run(tf.global_variables_initializer())
       if restore:
         self.restore()
-      saver = tf.train.Saver(self.learner.variables, max_to_keep=max_checkpoints_to_keep)
+      saver = tf.train.Saver(
+          self.learner.variables, max_to_keep=max_checkpoints_to_keep)
       checkpoint_index = 0
       checkpoint_time = time.time()
-      
+
       # Main optimization loop.
-      
+
       for i in range(steps):
         self.learner.select_task()
         feed_dict = self.learner.get_batch()
         feed_dict[self._global_step] = i
         for key, value in self.learner.get_batch().items():
           feed_dict[self._meta_placeholders[key]] = value
-        #if i%100 == 0:
-        #  print(i, sum(self._session.run(self._loss, feed_dict=feed_dict)), sum(self._session.run(self._meta_loss, feed_dict=feed_dict)))
         self._session.run(self._train_op, feed_dict=feed_dict)
-        
+
         # Do checkpointing.
-        
-        if i == steps-1 or time.time() >= checkpoint_time + checkpoint_interval:
+
+        if i == steps - 1 or time.time(
+        ) >= checkpoint_time + checkpoint_interval:
           saver.save(
-              self._session,
-              self.save_file,
-              global_step=checkpoint_index)
+              self._session, self.save_file, global_step=checkpoint_index)
           checkpoint_index += 1
           checkpoint_time = time.time()
 
