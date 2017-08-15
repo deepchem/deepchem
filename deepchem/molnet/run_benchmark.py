@@ -24,6 +24,7 @@ def run_benchmark(datasets,
                   model,
                   split=None,
                   metric=None,
+                  direction=True,
                   featurizer=None,
                   n_features=0,
                   out_path='.',
@@ -50,8 +51,11 @@ def run_benchmark(datasets,
       for user define model, it should include function: fit, evaluate
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
-  metric: string,  optional (default=None)
+  metric: string, optional (default=None)
       choice of evaluation metrics, None = using the default metrics(AUC & R2)
+  direction: bool, optional(default=True)
+      Optimization direction when doing hyperparameter search
+      Maximization(True) or minimization(False)
   featurizer: string or dc.feat.Featurizer,  optional (default=None)
       choice of featurization, None = using the default corresponding to model
       (string only applicable to deepchem models)
@@ -164,6 +168,7 @@ def run_benchmark(datasets,
           valid_dataset,
           transformers,
           metric,
+          direction=direction,
           n_features=n_features,
           n_tasks=len(tasks),
           max_iter=max_iter,
