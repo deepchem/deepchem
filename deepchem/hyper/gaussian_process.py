@@ -25,6 +25,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         valid_dataset,
                         output_transformers,
                         metric,
+                        direction=True,
                         n_features=1024,
                         n_tasks=1,
                         max_iter=20,
@@ -57,6 +58,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       transformers for evaluation
     metric: list of dc.metrics.Metric
       metric used for evaluation
+    direction: bool
+      maximization(True) or minimization(False)
     n_features: int
       number of input features
     n_tasks: int

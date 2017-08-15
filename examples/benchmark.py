@@ -102,28 +102,28 @@ if len(datasets) == 0:
   ]
 
 metrics = {
-    'qm7': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
-    'qm7b': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
-    'qm8': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
-    'qm9': [dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')],
-    'delaney': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
-    'sampl': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
-    'lipo': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
-    'pdbbind': [dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')],
-    'pcba': [dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')],
-    'muv': [dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')],
-    'hiv': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'tox21': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'toxcast': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'sider': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'clintox': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'bace_c': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')],
-    'bbbp': [dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')]
+    'qm7': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
+    'qm7b': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
+    'qm8': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
+    'qm9': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
+    'delaney': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
+    'sampl': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
+    'lipo': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
+    'pdbbind': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
+    'pcba': [[dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')], True],
+    'muv': [[dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')], True],
+    'hiv': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'tox21': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'toxcast': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'sider': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'clintox': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'bace_c': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
+    'bbbp': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True]
     }
 for dataset in datasets:
   for split in splitters:
     for model in models:
       np.random.seed(seed)
       dc.molnet.run_benchmark(
-          [dataset], str(model), split=split, metric=metrics[dataset],
-          hyper_param_search=True, test=False, seed=seed)
+          [dataset], str(model), split=split, metric=metrics[dataset][0],
+          direction=metrics[dataset][1], hyper_param_search=True, test=False, seed=seed)
