@@ -21,8 +21,13 @@ train_dataset, valid_dataset, test_dataset = tox21_datasets
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
 model = dc.models.TensorGraphMultiTaskClassifier(
-    len(tox21_tasks), n_features, layer_sizes=[1000], dropouts=[.25],
-    learning_rate=0.001, batch_size=50, use_queue=False)
+    len(tox21_tasks),
+    n_features,
+    layer_sizes=[1000],
+    dropouts=[.25],
+    learning_rate=0.001,
+    batch_size=50,
+    use_queue=False)
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=1)
