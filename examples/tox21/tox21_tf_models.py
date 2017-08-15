@@ -14,18 +14,18 @@ np.random.seed(123)
 
 # Load Tox21 dataset
 n_features = 1024
-tox21_tasks, tox21_datasets, transformers = load_tox21()
+tox21_tasks, tox21_datasets, transformers = dc.molnet.load_tox21()
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorflowMultiTaskClassifier(
+model = dc.models.TensorGraphMultiTaskClassifier(
     len(tox21_tasks), n_features, layer_sizes=[1000], dropouts=[.25],
-    learning_rate=0.001, batch_size=50)
+    learning_rate=0.001, batch_size=50, use_queue=False)
 
 # Fit trained model
-model.fit(train_dataset)
+model.fit(train_dataset, nb_epoch=1)
 model.save()
 
 print("Evaluating model")

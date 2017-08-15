@@ -277,6 +277,13 @@ class TensorGraph(Model):
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
           if len(result.shape) == 3:
             result = np.transpose(result, axes=[1, 0, 2])
+          elif len(result.shape) == 4:
+            # Shape is (n_output_tensors, n_samples, n_tasks, n_classes)
+
+            # Support having only one output if we call predict_proba_on_generator()
+            # TODO: Might want to generalize by having an explicit output argument.
+            assert result.shape[0] == 1
+            result = np.squeeze(result, axis=0)
           result = undo_transforms(result, transformers)
           results.append(result)
         return np.concatenate(results, axis=0)
