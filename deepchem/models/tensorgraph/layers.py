@@ -162,7 +162,10 @@ class Layer(object):
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
   def _as_graph_element(self):
-    return self.out_tensor._as_graph_element()
+    if '_as_graph_element' in dir(self.out_tensor):
+      return self.out_tensor._as_graph_element()
+    else:
+      return self.out_tensor
 
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
