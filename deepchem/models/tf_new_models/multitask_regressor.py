@@ -9,6 +9,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "GPL"
 
+import warnings
 import os
 import sys
 import numpy as np
@@ -42,6 +43,9 @@ class MultitaskGraphRegressor(Model):
                beta2=.999,
                pad_batches=True,
                verbose=True):
+
+    warnings.warn("MultitaskGraphRegressor is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
 
     super(MultitaskGraphRegressor, self).__init__(
         model_dir=logdir, verbose=verbose)
@@ -218,6 +222,8 @@ class DTNNMultitaskGraphRegressor(MultitaskGraphRegressor):
 
   def build(self):
     # Create target inputs
+    warnings.warn("DTNNMultitaskGraphRegressor is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.label_placeholder = tf.placeholder(
         dtype='float32', shape=(None, self.n_tasks), name="label_placeholder")
     self.weight_placeholder = tf.placeholder(

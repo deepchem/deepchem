@@ -73,3 +73,8 @@ def test_pong():
 def test_graph_conv():
   nb, errors = _notebook_read("graph_convolutional_networks_for_tox21.ipynb")
   assert errors == []
+
+
+def test_tg_mechanics():
+  nb, errors = _notebook_read("TensorGraph_Mechanics.ipynb")
+  assert errors == []

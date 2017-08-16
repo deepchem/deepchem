@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import numpy as np
 import tensorflow as tf
 import sys
@@ -48,6 +49,8 @@ class SupportGraphClassifier(Model):
     n_neg: int
       Number of negative examples in support.
     """
+    warnings.warn("SupportGraphClassifier is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.similarity = similarity
     self.model = model
     self.sess = tf.Session(graph=self.model.graph)
@@ -102,11 +105,11 @@ class SupportGraphClassifier(Model):
 
   def construct_feed_dict(self, test, support, training=True, add_phase=False):
     """Constructs tensorflow feed from test/support sets."""
-    # Generate dictionary elements for support 
+    # Generate dictionary elements for support
     feed_dict = (
         self.model.support_graph_topology.batch_to_feed_dict(support.X))
     feed_dict[self.support_label_placeholder] = np.squeeze(support.y)
-    # Get graph information for test 
+    # Get graph information for test
     batch_topo_dict = (
         self.model.test_graph_topology.batch_to_feed_dict(test.X))
     feed_dict = merge_dicts([batch_topo_dict, feed_dict])
@@ -205,7 +208,7 @@ class SupportGraphClassifier(Model):
     Computes prediction yhat (eqn (1) in Matching networks) of class for test
     compounds.
     """
-    # Get featurization for test 
+    # Get featurization for test
     # Shape (n_test, n_feat)
     test_feat = self.model.get_test_output()
     # Get featurization for support
@@ -213,7 +216,7 @@ class SupportGraphClassifier(Model):
     support_feat = self.model.get_support_output()
 
     # Computes the inner part c() of the kernel
-    # (the inset equation in section 2.1.1 of Matching networks paper). 
+    # (the inset equation in section 2.1.1 of Matching networks paper).
     # Normalize
     if self.similarity == 'cosine':
       g = model_ops.cosine_distances(test_feat, support_feat)
@@ -224,7 +227,7 @@ class SupportGraphClassifier(Model):
     #  g = model_ops.euclidean_distance(test_feat, support_feat)
     # Note that gram matrix g has shape (n_test, n_support)
 
-    # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper 
+    # soft corresponds to a(xhat, x_i) in eqn (1) of Matching Networks paper
     # https://arxiv.org/pdf/1606.04080v1.pdf
     # Computes softmax across axis 1, (so sums distances to support set for
     # each test entry) to get attention vector
@@ -312,7 +315,7 @@ class SupportGraphClassifier(Model):
     # Get scores
     pred, scores = self.sess.run(
         [self.pred_op, self.scores_op], feed_dict=feed_dict)
-    # pred corresponds to prob(example == 1) 
+    # pred corresponds to prob(example == 1)
     y_pred_batch = np.zeros((n_samples, 2))
     # Remove padded elements
     pred = pred[:n_samples]

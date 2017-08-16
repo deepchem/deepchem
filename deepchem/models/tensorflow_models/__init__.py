@@ -4,6 +4,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import warnings
 import collections
 import pickle
 import os
@@ -50,6 +51,8 @@ class TensorflowGraph(object):
 
   def __init__(self, graph, session, name_scopes, output, labels, weights,
                loss):
+    warnings.warn("TensorflowGraph is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
     self.graph = graph
     self.session = session
     self.name_scopes = name_scopes
@@ -175,6 +178,9 @@ class TensorflowGraphModel(Model):
     seed: int
       If not none, is used as random seed for tensorflow.
     """
+    warnings.warn("TensorflowGraphModel is deprecated. "
+                  "Will be removed in DeepChem 1.4.", DeprecationWarning)
+
     # Save hyperparameters
     self.n_tasks = n_tasks
     self.n_features = n_features
@@ -438,8 +444,8 @@ class TensorflowGraphModel(Model):
     feeding and fetching the same tensor.
     """
     weights = []
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with placeholder_scope:
       for task in range(self.n_tasks):
         weights.append(
@@ -482,11 +488,15 @@ class TensorflowGraphModel(Model):
     if train:
       if not self.train_graph.session:
         config = tf.ConfigProto(allow_soft_placement=True)
+        #gpu memory growth option
+        config.gpu_options.allow_growth = True
         self.train_graph.session = tf.Session(config=config)
       return self.train_graph.session
     else:
       if not self.eval_graph.session:
         config = tf.ConfigProto(allow_soft_placement=True)
+        #gpu memory growth option
+        config.gpu_options.allow_growth = True
         self.eval_graph.session = tf.Session(config=config)
       return self.eval_graph.session
 
@@ -639,8 +649,8 @@ class TensorflowClassifier(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       n_classes = self.n_classes
@@ -792,8 +802,8 @@ class TensorflowRegressor(TensorflowGraphModel):
     Placeholders are wrapped in identity ops to avoid the error caused by
     feeding and fetching the same tensor.
     """
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(graph,
-                                                              name_scopes)
+    placeholder_scope = TensorflowGraph.get_placeholder_scope(
+        graph, name_scopes)
     with graph.as_default():
       batch_size = self.batch_size
       labels = []

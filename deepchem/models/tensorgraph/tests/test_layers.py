@@ -530,3 +530,14 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Squeeze(squeeze_dims=1)(tf.constant(value1))
       result = out_tensor.eval()
       assert result.shape == (2,)
+
+  def test_convert_to_tensor(self):
+    """Test implicit conversion of Layers to Tensors."""
+    v = Variable(np.array([1.5]))
+    v.create_tensor()
+    with self.test_session() as sess:
+      sess.run(tf.global_variables_initializer())
+      result = sess.run(v)
+      assert result == 1.5
+      result = sess.run(tf.gradients(v, v))
+      assert result[0] == 1.0
