@@ -28,7 +28,6 @@ class TensorGraph(Model):
                batch_size=100,
                random_seed=None,
                use_queue=True,
-               mode="regression",
                graph=None,
                learning_rate=0.001,
                **kwargs):
@@ -48,10 +47,6 @@ class TensorGraph(Model):
       queue in batches of self.batch_size in a separate thread from the
       thread training the model.  You cannot use a queue when
       batches are not of consistent size
-    mode: str
-      "regression" or "classification".  "classification" models on
-      predict will do an argmax(axis=2) to determine the class of the
-      prediction.
     graph: tensorflow.Graph
       the Graph in which to create Tensorflow objects.  If None, a new Graph
       is created.
@@ -287,7 +282,11 @@ class TensorGraph(Model):
           result = sess.run(out_tensors, feed_dict=feed_dict)
           result = undo_transforms(result, transformers)
           results.append(result)
-        return np.concatenate(results, axis=0)
+        if len(results) == 1:
+          return results[0]
+        else:
+          return results
+        #return np.concatenate(results, axis=0)
 
 #  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
 #    """
@@ -361,7 +360,7 @@ class TensorGraph(Model):
 
     Returns
     -------
-    y_pred: numpy ndarray or list of numpy ndarrays
+    results: numpy ndarray or list of numpy ndarrays
     """
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
