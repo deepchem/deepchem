@@ -1,7 +1,7 @@
 """Model-Agnostic Meta-Learning (MAML) algorithm for low data learning."""
 
 from deepchem.models.tensorgraph.layers import Layer
-from deepchem.models.tensorgraph.optimizers import Adam
+from deepchem.models.tensorgraph.optimizers import Adam, GradientDescent
 import os
 import shutil
 import tempfile
@@ -68,6 +68,8 @@ class MAML(object):
 
   To use this class, create a subclass of MetaLearner that encapsulates the model
   and data for your learning problem.  Pass it to a MAML object and call fit().
+  You can then use train_on_current_task() to fine tune the model for a particular
+  task.
   """
 
   def __init__(self,
@@ -151,11 +153,14 @@ class MAML(object):
             self._loss, replacements)
       self._meta_loss = updated_loss
 
-      # Create the optimizer for meta-optimization.
+      # Create the optimizers for meta-optimization and task optimization.
 
       self._global_step = tf.placeholder(tf.int32, [])
-      self._tf_optimizer = optimizer._create_optimizer(self._global_step)
-      self._train_op = self._tf_optimizer.minimize(self._meta_loss)
+      self._meta_train_op = optimizer._create_optimizer(
+          self._global_step).minimize(self._meta_loss)
+      task_optimizer = GradientDescent(learning_rate=self._learning_rate)
+      self._task_train_op = task_optimizer._create_optimizer(
+          self._global_step).minimize(self._loss)
       self._session = tf.Session()
 
   def __del__(self):
@@ -199,7 +204,7 @@ class MAML(object):
         feed_dict[self._global_step] = i
         for key, value in self.learner.get_batch().items():
           feed_dict[self._meta_placeholders[key]] = value
-        self._session.run(self._train_op, feed_dict=feed_dict)
+        self._session.run(self._meta_train_op, feed_dict=feed_dict)
 
         # Do checkpointing.
 
@@ -218,3 +223,20 @@ class MAML(object):
     with self._graph.as_default():
       saver = tf.train.Saver(self.learner.variables)
       saver.restore(self._session, last_checkpoint)
+
+  def train_on_current_task(self, optimization_steps=1, restore=True):
+    """Perform a few steps of gradient descent to fine tune the model on the current task.
+
+    Parameters
+    ----------
+    optimization_steps: int
+      the number of steps of gradient descent to perform
+    restore: bool
+      if True, restore the model from the most recent checkpoint before optimizing
+    """
+    if restore:
+      self.restore()
+    with self._graph.as_default():
+      feed_dict = self.learner.get_batch()
+      for i in range(optimization_steps):
+        self._session.run(self._task_train_op, feed_dict=feed_dict)
