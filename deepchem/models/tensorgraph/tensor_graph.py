@@ -32,7 +32,6 @@ class TensorGraph(Model):
                learning_rate=0.001,
                **kwargs):
     """
-    TODO(LESWING) allow a model to change its learning rate
     Parameters
     ----------
     tensorboard: bool
@@ -80,7 +79,6 @@ class TensorGraph(Model):
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
     self.tensorboard_step = 0
-    #self.mode = mode
     self.global_step = 0
     self.last_checkpoint = None
     self.use_queue = use_queue
@@ -260,6 +258,17 @@ class TensorGraph(Model):
 
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
+    Parameters
+    ----------
+    generator: Generator
+      Generator that constructs feed dictionaries for TensorGraph.
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object
+      If outputs is None, then will assume outputs = self.outputs.
+      If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
@@ -267,11 +276,14 @@ class TensorGraph(Model):
       self.build()
     if outputs is None:
       outputs = self.outputs
+    elif not isinstance(outputs, list):
+      outputs = [outputs]
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
         self._initialize_weights(sess, saver)
         out_tensors = [x.out_tensor for x in self.outputs]
+        # Gather results for each output
         results = [[] for out in out_tensors]
         for feed_dict in generator:
           feed_dict = {
@@ -293,6 +305,7 @@ class TensorGraph(Model):
         final_results = []
         for result_list in results:
           final_results.append(np.concatenate(result_list, axis=0))
+        # If only one output, just return array
         if len(final_results) == 1:
           return final_results[0]
         else:
@@ -305,40 +318,6 @@ class TensorGraph(Model):
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
     return self.predict_on_generator(generator, transformers, outputs)
-
-#  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
-#    """
-#    Returns:
-#      mu: numpy ndarray of shape (n_samples, n_tasks)
-#      sigma: numpy ndarray of shape (n_samples, n_tasks)
-#    """
-#    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
-#    y_ = []
-#    for i in range(n_passes):
-#      generator = self.default_generator(
-#          dataset, predict=True, pad_batches=True)
-#      y_.append(self.predict_on_generator(generator, transformers))
-#
-#    y_ = np.concatenate(y_, axis=2)
-#    mu = np.mean(y_, axis=2)
-#    sigma = np.std(y_, axis=2)
-#
-#    return mu, sigma
-
-#  def predict_on_smiles_batch(self,
-#                              smiles,
-#                              featurizer,
-#                              n_tasks,
-#                              transformers=[]):
-#    """
-#    # Returns:
-#      A numpy ndarray of shape (n_samples, n_tasks)
-#    """
-#    convmols = featurize_smiles_np(smiles, featurizer)
-#
-#    dataset = NumpyDataset(X=convmols, y=None, n_tasks=len(self.outputs))
-#    generator = self.default_generator(dataset, predict=True, pad_batches=True)
-#    return self.predict_on_generator(generator, transformers)
 
   def predict_on_batch(self, X, transformers=[]):
     """Generates predictions for input samples, processing samples in a batch.
@@ -373,11 +352,6 @@ class TensorGraph(Model):
     A Numpy array of predictions.
     """
     return self.predict_on_batch(X, transformers)
-
-#  def predict_proba_on_batch(self, X, sess=None, transformers=[]):
-#    dataset = NumpyDataset(X=X, y=None)
-#    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-#    return self.predict_proba_on_generator(generator, transformers)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -617,12 +591,15 @@ class TensorGraph(Model):
     return self._get_tf("GlobalStep")
 
   def _get_tf(self, obj):
-    """
-    TODO(LESWING) REALLY NEED TO DOCUMENT THIS
+    """Fetches underlying TensorFlow primitives.
+
     Parameters
     ----------
-    obj
-
+    obj: str
+      If "Graph", returns tf.Graph instance. If "FileWriter", returns
+      tf.summary.FileWriter. If "Optimizer", returns the optimizer. If
+      "train_op", returns the train operation. If "summary_op", returns the
+      merged summary. If "GlobalStep" returns the global step.
     Returns
     -------
     TensorFlow Object
