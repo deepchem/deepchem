@@ -3,6 +3,7 @@ import threading
 import time
 
 import networkx as nx
+import collections
 import numpy as np
 import os
 import six
@@ -249,7 +250,7 @@ class TensorGraph(Model):
       self.build()
     if outputs is None:
       outputs = self.outputs
-    elif not isinstance(outputs, list):
+    elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:

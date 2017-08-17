@@ -42,7 +42,8 @@ class WeaveTensorGraph(TensorGraph):
       Number of units(convolution depths) in corresponding hidden layer
     n_graph_feat: int, optional
       Number of output features for each molecule(graph)
-
+    mode: str
+      Either "classification" or "regression" for type of model.
     """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
@@ -207,7 +208,8 @@ class DTNNTensorGraph(TensorGraph):
       minimum distance of atom pairs, default = -1 Angstorm
     distance_max: float, optional
       maximum distance of atom pairs, default = 18 Angstorm
-
+    mode: str
+      Either "classification" or "regression" for type of model.
     """
     self.n_tasks = n_tasks
     self.n_embedding = n_embedding
@@ -354,6 +356,8 @@ class DAGTensorGraph(TensorGraph):
       Number of features for atom in the graph
     n_outputs: int, optional
       Number of features for each molecule
+    mode: str
+      Either "classification" or "regression" for type of model.
     """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
