@@ -14,14 +14,19 @@ n_features = x.shape[1]
 n_molecules = y.shape[0]
 n_tasks = y.shape[1]
 
-# For each task, create a list of the molecules for which we have data.
-# Since we are interested in low data learning, we will only use the first
-# 20 molecules with data for each task, even though most tasks have much
-# more than that.
+# Toxcast has data on 6874 molecules and 617 tasks.  However, the data is very
+# sparse: most tasks do not include data for most molecules.  It also is very
+# unbalanced: there are many more negatives than positives.  For every task,
+# select 20 molecules (two batches of 10), where each batch has equal numbers
+# of positives and negatives.
 
 task_molecules = []
 for i in range(n_tasks):
-  task_molecules.append(w[:, i].nonzero()[0])
+  positives = [j for j in range(n_molecules) if w[j, i] > 0 and y[j, i] == 1]
+  negatives = [j for j in range(n_molecules) if w[j, i] > 0 and y[j, i] == 0]
+  task_molecules.append(
+      np.concatenate(
+          [positives[:5], negatives[:5], positives[5:10], negatives[5:10]]))
 
 # Create the model to train.
 
@@ -56,7 +61,7 @@ class ToxcastLearner(dc.metalearning.MetaLearner):
     labels = np.zeros((self.batch_size, 1, 2))
     labels[np.arange(self.batch_size), 0, y[mols, self.task].astype(
         np.int64)] = 1
-    weights = w[mols, self.task].reshape((-1, 1))
+    weights = np.ones((self.batch_size, 1))
     feed_dict = {}
     feed_dict[model.features[0].out_tensor] = x[mols, :]
     feed_dict[model.labels[0].out_tensor] = labels
@@ -76,22 +81,22 @@ maml.fit(steps)
 # Validate on the remaining tasks.
 
 
-def compute_loss(steps):
+def compute_auc(steps):
   maml.restore()
   y_true = []
   y_pred = []
   for task in range(learner.n_training_tasks, n_tasks):
     learner.set_task_index(task)
-    if steps > 0:
-      maml.train_on_current_task(optimization_steps=steps)
+    maml.train_on_current_task(optimization_steps=steps)
     with model._get_tf("Graph").as_default():
       feed_dict = learner.get_batch()
-      y_true.append(feed_dict[model.labels[0].out_tensor][0])
-      y_pred.append(maml._session.run(model.outputs[0], feed_dict=feed_dict)[0])
+      y_true.append(feed_dict[model.labels[0].out_tensor][:, 0, :])
+      y_pred.append(
+          maml._session.run(model.outputs[0], feed_dict=feed_dict)[:, 0, :])
   y_true = np.concatenate(y_true)
   y_pred = np.concatenate(y_pred)
   return dc.metrics.compute_roc_auc_scores(y_true, y_pred)
 
 
-print('AUC before fine tuning:', compute_loss(0))
-print('AUC after fine tuning:', compute_loss(1))
+print('AUC before fine tuning:', compute_auc(0))
+print('AUC after fine tuning:', compute_auc(1))
