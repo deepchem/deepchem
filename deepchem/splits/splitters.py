@@ -89,7 +89,11 @@ class Splitter(object):
     train_ds_base = None
     train_datasets = []
     # rem_dataset is remaining portion of dataset
-    rem_dataset = dataset
+    if isinstance(dataset, DiskDataset):
+      rem_dataset = dataset
+    else:
+      rem_dataset = DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w,
+                                           dataset.ids)
     for fold in range(k):
       # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
       # to k-1.
@@ -100,7 +104,7 @@ class Splitter(object):
           frac_train=frac_fold,
           frac_valid=1 - frac_fold,
           frac_test=0)
-      cv_dataset = rem_dataset.select(fold_inds)
+      cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
       cv_datasets.append(cv_dataset)
       rem_dataset = rem_dataset.select(rem_inds)
 
@@ -112,8 +116,7 @@ class Splitter(object):
 
       update_train_base_merge = filter(lambda x: x is not None,
                                        [train_ds_base, cv_dataset])
-      train_ds_base = DiskDataset.merge(
-          update_train_base_merge, merge_dir=cv_dir)
+      train_ds_base = DiskDataset.merge(update_train_base_merge)
     return list(zip(train_datasets, cv_datasets))
 
   def train_valid_test_split(self,
