@@ -151,8 +151,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
         yield feed_dict
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
-    return self.run(dataset, transformers, outputs)
-
+    return super(TensorGraphMultiTaskClassifier, self).predict(
+        dataset, transformers, outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -175,7 +175,8 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
     y_pred: numpy ndarray or list of numpy ndarrays
     """
     # Results is of shape (n_samples, n_tasks, n_classes)
-    results = self.run(dataset, transformers, outputs)
+    retval = super(TensorGraphMultiTaskClassifier, self).predict(
+        dataset, transformers, outputs)
     # retval is of shape (n_samples, n_tasks)
     return np.argmax(retval, axis=2)
 
@@ -306,29 +307,6 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  def predict(self, dataset, transformers=[], outputs=None):
-    """
-    Uses self to make predictions on provided Dataset object.
-
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset to make prediction on
-    transformers: list
-      List of dc.trans.Transformers.
-    outputs: object 
-      If outputs is None, then will assume outputs = self.outputs[0] (single
-      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-      of ndarrays.
-
-    Returns
-    -------
-    y_pred: numpy ndarray or list of numpy ndarrays
-    """
-    # Results is of shape (n_samples, n_tasks)
-    return self.run(dataset, transformers, outputs)
-
 
 class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
   """Implements a TensorGraphMultiTaskRegressor that performs on-the-fly transformation during fit/predict.
@@ -414,7 +392,7 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
         yield feed_dict
 
   #def predict_proba_on_generator(self, generator, transformers=[]):
-  def run_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
 
     def transform_generator():
       for feed_dict in generator:
@@ -427,7 +405,8 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
         yield feed_dict
 
     return super(TensorGraphMultiTaskFitTransformRegressor,
-                 self).run_on_generator(transform_generator(), transformers, output)
+                 self).predict_on_generator(transform_generator(), transformers,
+                                            outputs)
 
 
 class TensorflowMultiTaskClassifier(TensorflowClassifier):

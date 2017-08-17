@@ -237,11 +237,11 @@ class TensorGraph(Model):
 #
 #    Parameters
 #    ----------
-#    generator: Generator 
-#      Generator that constructs feed dictionaries for TensorGraph. 
+#    generator: Generator
+#      Generator that constructs feed dictionaries for TensorGraph.
 #    transformers: list
 #      List of dc.trans.Transformers.
-#    outputs: object 
+#    outputs: object
 #      If outputs is None, then will assume outputs = self.outputs[0] (single
 #      output). If outputs is a Layer/Tensor, then will evaluate and return as a
 #      single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -256,7 +256,8 @@ class TensorGraph(Model):
 #      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
 #    return retval
 
-  #def predict_proba_on_generator(self, generator, transformers=[]):
+#def predict_proba_on_generator(self, generator, transformers=[]):
+
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
     Returns:
@@ -265,28 +266,45 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     if outputs is None:
-      assert len(self.outputs) == 1
       outputs = self.outputs
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
         self._initialize_weights(sess, saver)
         out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
+        results = [[] for out in out_tensors]
         for feed_dict in generator:
           feed_dict = {
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
           feed_dict[self._training_placeholder] = 0.0
-          result = sess.run(out_tensors, feed_dict=feed_dict)
-          result = undo_transforms(result, transformers)
-          results.append(result)
-        if len(results) == 1:
-          return results[0]
+          feed_results = sess.run(out_tensors, feed_dict=feed_dict)
+          if len(feed_results) > 1:
+            if len(transformers):
+              raise ValueError("Does not support transformations "
+                               "for multiple outputs.")
+          elif len(feed_results) == 1:
+            result = undo_transforms(feed_results[0], transformers)
+            feed_results = [result]
+          for ind, result in enumerate(feed_results):
+            results[ind].append(result)
+
+        final_results = []
+        for result_list in results:
+          final_results.append(np.concatenate(result_list, axis=0))
+        if len(final_results) == 1:
+          return final_results[0]
         else:
-          return results
-        #return np.concatenate(results, axis=0)
+          return final_results
+
+  def predict_proba_on_generator(self, generator, transformers=[],
+                                 outputs=None):
+    """
+    Returns:
+      y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
+    """
+    return self.predict_on_generator(generator, transformers, outputs)
 
 #  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
 #    """
@@ -322,20 +340,39 @@ class TensorGraph(Model):
 #    generator = self.default_generator(dataset, predict=True, pad_batches=True)
 #    return self.predict_on_generator(generator, transformers)
 
-#  def predict_on_batch(self, X, sess=None, transformers=[]):
-#    """Generates output predictions for the input samples,
-#      processing the samples in a batched way.
-#
-#    # Arguments
-#        x: the input data, as a Numpy array.
-#        verbose: verbosity mode, 0 or 1.
-#
-#    # Returns
-#        A Numpy array of predictions.
-#    """
-#    dataset = NumpyDataset(X=X, y=None)
-#    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-#    return self.predict_on_generator(generator, transformers)
+  def predict_on_batch(self, X, transformers=[]):
+    """Generates predictions for input samples, processing samples in a batch.
+
+    Parameters
+    ---------- 
+    X: ndarray
+      the input data, as a Numpy array.
+    transformers: List
+      List of dc.trans.Transformers 
+
+    Returns
+    -------
+    A Numpy array of predictions.
+    """
+    dataset = NumpyDataset(X=X, y=None)
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_on_generator(generator, transformers)
+
+  def predict_proba_on_batch(self, X, transformers=[]):
+    """Generates predictions for input samples, processing samples in a batch.
+
+    Parameters
+    ---------- 
+    X: ndarray
+      the input data, as a Numpy array.
+    transformers: List
+      List of dc.trans.Transformers 
+
+    Returns
+    -------
+    A Numpy array of predictions.
+    """
+    return self.predict_on_batch(X, transformers)
 
 #  def predict_proba_on_batch(self, X, sess=None, transformers=[]):
 #    dataset = NumpyDataset(X=X, y=None)
@@ -365,26 +402,26 @@ class TensorGraph(Model):
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
     return self.predict_on_generator(generator, transformers, outputs)
 
-#  def predict_proba(self, dataset, transformers=[], outputs=None):
-#    """
-#    Parameters
-#    ----------
-#    dataset: dc.data.Dataset
-#      Dataset to make prediction on
-#    transformers: list
-#      List of dc.trans.Transformers.
-#    outputs: object 
-#      If outputs is None, then will assume outputs = self.outputs[0] (single
-#      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-#      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-#      of ndarrays.
-#
-#    Returns
-#    -------
-#    y_pred: numpy ndarray or list of numpy ndarrays
-#    """
-#    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-#    return self.predict_proba_on_generator(generator, transformers, output)
+  def predict_proba(self, dataset, transformers=[], outputs=None):
+    """
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object 
+      If outputs is None, then will assume outputs = self.outputs[0] (single
+      output). If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
+
+    Returns
+    -------
+    y_pred: numpy ndarray or list of numpy ndarrays
+    """
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_proba_on_generator(generator, transformers, outputs)
 
   def topsort(self):
     return nx.topological_sort(self.nxgraph)
