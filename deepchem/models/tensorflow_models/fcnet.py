@@ -391,7 +391,6 @@ class TensorGraphMultiTaskFitTransformRegressor(TensorGraphMultiTaskRegressor):
           feed_dict[self.task_weights[0]] = w_b
         yield feed_dict
 
-  #def predict_proba_on_generator(self, generator, transformers=[]):
   def predict_on_generator(self, generator, transformers=[], outputs=None):
 
     def transform_generator():
