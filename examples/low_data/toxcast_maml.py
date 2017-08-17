@@ -62,10 +62,11 @@ class ToxcastLearner(dc.metalearning.MetaLearner):
 
 # Run meta-learning on 80% of the tasks.
 
-n_epochs = 30
+n_epochs = 40
 learner = ToxcastLearner()
 maml = dc.metalearning.MAML(learner)
-maml.fit(n_epochs*learner.n_training_tasks)
+steps = n_epochs*learner.n_training_tasks//maml.meta_batch_size
+maml.fit(steps)
 
 # Validate on the remaining tasks.
 

@@ -50,8 +50,8 @@ class TestMAML(unittest.TestCase):
     # Optimize it.
 
     learner = SineLearner()
-    maml = dc.metalearning.MAML(learner)
-    maml.fit(25000)
+    maml = dc.metalearning.MAML(learner, meta_batch_size=4)
+    maml.fit(12000)
 
     # Test it out on some new tasks and see how it works.
 

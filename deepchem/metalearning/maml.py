@@ -76,6 +76,7 @@ class MAML(object):
                learner,
                learning_rate=0.001,
                optimization_steps=1,
+               meta_batch_size=10,
                optimizer=Adam(),
                model_dir=None):
     """Create an object for performing meta-optimization.
@@ -90,6 +91,8 @@ class MAML(object):
       Tensor), in which case the learning rate will itself be learnable.
     optimization_steps: int
       the number of steps of gradient descent to perform for each task
+    meta_batch_size: int
+      the number of tasks to use for each step of meta-learning
     optimizer: Optimizer
       the optimizer to use for meta-learning (not to be confused with the gradient descent
       optimization performed for each task)
@@ -107,6 +110,7 @@ class MAML(object):
       self._learning_rate = learning_rate.out_tensor
     else:
       self._learning_rate = learning_rate
+    self.meta_batch_size = meta_batch_size
     self.optimizer = optimizer
     self._graph = self._loss.graph
 
@@ -153,11 +157,24 @@ class MAML(object):
             self._loss, replacements)
       self._meta_loss = updated_loss
 
+      # Create variables for accumulating the gradients.
+
+      gradients = tf.gradients(self._meta_loss, learner.variables)
+      zero_gradients = [tf.zeros(g.shape, g.dtype) for g in gradients]
+      summed_gradients = [
+          tf.Variable(z, trainable=False) for z in zero_gradients
+      ]
+      self._clear_gradients = tf.group(
+          * [s.assign(z) for s, z in zip(summed_gradients, zero_gradients)])
+      self._add_gradients = tf.group(
+          * [s.assign_add(g) for s, g in zip(summed_gradients, gradients)])
+
       # Create the optimizers for meta-optimization and task optimization.
 
       self._global_step = tf.placeholder(tf.int32, [])
+      grads_and_vars = list(zip(summed_gradients, learner.variables))
       self._meta_train_op = optimizer._create_optimizer(
-          self._global_step).minimize(self._meta_loss)
+          self._global_step).apply_gradients(grads_and_vars)
       task_optimizer = GradientDescent(learning_rate=self._learning_rate)
       self._task_train_op = task_optimizer._create_optimizer(
           self._global_step).minimize(self._loss)
@@ -199,12 +216,15 @@ class MAML(object):
       # Main optimization loop.
 
       for i in range(steps):
-        self.learner.select_task()
-        feed_dict = self.learner.get_batch()
-        feed_dict[self._global_step] = i
-        for key, value in self.learner.get_batch().items():
-          feed_dict[self._meta_placeholders[key]] = value
-        self._session.run(self._meta_train_op, feed_dict=feed_dict)
+        self._session.run(self._clear_gradients)
+        for j in range(self.meta_batch_size):
+          self.learner.select_task()
+          feed_dict = self.learner.get_batch()
+          feed_dict[self._global_step] = i
+          for key, value in self.learner.get_batch().items():
+            feed_dict[self._meta_placeholders[key]] = value
+          self._session.run(self._add_gradients, feed_dict=feed_dict)
+        self._session.run(self._meta_train_op)
 
         # Do checkpointing.
 
