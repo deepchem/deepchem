@@ -229,33 +229,6 @@ class TensorGraph(Model):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
-#  def predict_on_generator(self, generator, transformers=[], outputs=None):
-#    """Generates output predictions for the input samples,
-#      processing the samples in a batched way.
-#
-#    Parameters
-#    ----------
-#    generator: Generator
-#      Generator that constructs feed dictionaries for TensorGraph.
-#    transformers: list
-#      List of dc.trans.Transformers.
-#    outputs: object
-#      If outputs is None, then will assume outputs = self.outputs[0] (single
-#      output). If outputs is a Layer/Tensor, then will evaluate and return as a
-#      single ndarray. If outputs is a list of Layers/Tensors, will return a list
-#      of ndarrays.
-#
-#    Returns
-#    -------
-#    A Numpy array of predictions.
-#    """
-#    retval = self.predict_proba_on_generator(generator, transformers)
-#    if self.mode == 'classification':
-#      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-#    return retval
-
-#def predict_proba_on_generator(self, generator, transformers=[]):
-
   def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
     Parameters
