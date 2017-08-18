@@ -21,7 +21,6 @@ from deepchem.data.data_loader import featurize_smiles_np
 
 
 class TensorGraph(Model):
-
   def __init__(self,
                tensorboard=False,
                tensorboard_log_frequency=100,
@@ -71,16 +70,16 @@ class TensorGraph(Model):
     self.built = False
     self.queue_installed = False
     self.optimizer = Adam(
-        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+      learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
     # See TensorGraph._get_tf() for more details on lazy construction
     self.tensor_objects = {
-        "FileWriter": None,
-        "Graph": graph,
-        "train_op": None,
-        "summary_op": None,
+      "FileWriter": None,
+      "Graph": graph,
+      "train_op": None,
+      "summary_op": None,
     }
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
@@ -123,8 +122,8 @@ class TensorGraph(Model):
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000):
     return self.fit_generator(
-        self.default_generator(dataset, epochs=nb_epoch),
-        max_checkpoints_to_keep, checkpoint_interval)
+      self.default_generator(dataset, epochs=nb_epoch, deterministic=False),
+      max_checkpoints_to_keep, checkpoint_interval)
 
   def fit_generator(self,
                     feed_dict_generator,
@@ -153,9 +152,9 @@ class TensorGraph(Model):
         n_samples = 0
         if self.use_queue:
           enqueue_thread = threading.Thread(
-              target=_enqueue_batch,
-              args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
-                    coord))
+            target=_enqueue_batch,
+            args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
+                  coord))
           enqueue_thread.start()
         output_tensors = [x.out_tensor for x in self.outputs]
         fetches = output_tensors + [train_op, self.loss.out_tensor]
@@ -169,7 +168,7 @@ class TensorGraph(Model):
             n_samples += 1
             if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
               summary = sess.run(
-                  self._get_tf("summary_op"), feed_dict=feed_dict)
+                self._get_tf("summary_op"), feed_dict=feed_dict)
               self._log_tensorboard(summary)
           except OutOfRangeError:
             break
@@ -214,6 +213,7 @@ class TensorGraph(Model):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     if len(self.features) > 1:
       raise ValueError("More than one Feature, must use generator")
@@ -224,7 +224,7 @@ class TensorGraph(Model):
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
         if len(self.labels) == 1 and y_b is not None and not predict:
@@ -270,8 +270,8 @@ class TensorGraph(Model):
         results = []
         for feed_dict in generator:
           feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
           }
           feed_dict[self._training_placeholder] = 0.0
           result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
@@ -291,7 +291,7 @@ class TensorGraph(Model):
     y_ = []
     for i in range(n_passes):
       generator = self.default_generator(
-          dataset, predict=True, pad_batches=True)
+        dataset, predict=True, pad_batches=True)
       y_.append(self.predict_on_generator(generator, transformers))
 
     y_ = np.concatenate(y_, axis=2)
@@ -397,7 +397,7 @@ class TensorGraph(Model):
       try:
         assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
         ), '%s: Expected shape %s does not match actual shape %s' % (
-            layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
+          layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
       except NotImplementedError:
         pass
 
@@ -522,20 +522,20 @@ class TensorGraph(Model):
     n_tasks = len(self.outputs)
     n_classes = self.outputs[0].out_tensor.get_shape()[-1].value
     evaluator = GeneratorEvaluator(
-        self,
-        feed_dict_generator,
-        transformers,
-        labels=labels,
-        outputs=outputs,
-        weights=weights,
-        n_tasks=n_tasks,
-        n_classes=n_classes)
+      self,
+      feed_dict_generator,
+      transformers,
+      labels=labels,
+      outputs=outputs,
+      weights=weights,
+      n_tasks=n_tasks,
+      n_classes=n_classes)
     if not per_task_metrics:
       scores = evaluator.compute_model_performance(metrics)
       return scores
     else:
       scores, per_task_scores = evaluator.compute_model_performance(
-          metrics, per_task_metrics=per_task_metrics)
+        metrics, per_task_metrics=per_task_metrics)
       return scores, per_task_scores
 
   def get_layer_variables(self, layer):
@@ -544,7 +544,7 @@ class TensorGraph(Model):
       self.build()
     with self._get_tf("Graph").as_default():
       return tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
+        tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
 
   def get_global_step(self):
     return self._get_tf("GlobalStep")
@@ -570,13 +570,13 @@ class TensorGraph(Model):
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'Optimizer':
       self.tensor_objects['Optimizer'] = self.optimizer._create_optimizer(
-          self._get_tf('GlobalStep'))
+        self._get_tf('GlobalStep'))
     elif obj == 'train_op':
       self.tensor_objects['train_op'] = self._get_tf('Optimizer').minimize(
-          self.loss.out_tensor, global_step=self._get_tf('GlobalStep'))
+        self.loss.out_tensor, global_step=self._get_tf('GlobalStep'))
     elif obj == 'summary_op':
       self.tensor_objects['summary_op'] = tf.summary.merge_all(
-          key=tf.GraphKeys.SUMMARIES)
+        key=tf.GraphKeys.SUMMARIES)
     elif obj == 'GlobalStep':
       with self._get_tf("Graph").as_default():
         self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
