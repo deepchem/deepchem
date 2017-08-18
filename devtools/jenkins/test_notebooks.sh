@@ -13,6 +13,7 @@ conda install -y matplotlib
 yes | pip install nglview
 conda install -y ipywidgets
 conda install -y zlib
+conda install -y cmake
 yes | pip install gym[atari]
 
 cd examples/notebooks
