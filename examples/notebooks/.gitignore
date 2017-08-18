@@ -2,3 +2,4 @@ model
 MNIST_data
 *.xml
 *.png
+.ipynb_checkpoints

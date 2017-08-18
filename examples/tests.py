@@ -1,28 +1,17 @@
 import os
+import sys
 import subprocess
 import tempfile
 
-
-def _example_run(path):
-  """Checks that the example at the specified path runs corrently.
-
-  Parameters
-  ----------
-  path: str
-    Path to example file.
-  Returns
-  -------
-  result: int 
-    Return code. 0 for success, failure otherwise.
-  """
-  cmd = ["python", path]
-  return subprocess.check_output(cmd)
+from nose.tools import nottest
 
 
 def test_adme():
-  result, output = _example_run("./adme/run_benchmarks.py")
-  print(output)
-  assert result == 0
+  sys.path.append(0, './adme')
+  import run_benchmarks
+  run_benchmarks.main()
+  del run_benchmarks
+  sys.path.remove('./adme')
 
 
 if __name__ == "__main__":
