@@ -1,0 +1,4 @@
+model
+MNIST_data
+*.xml
+*.png
