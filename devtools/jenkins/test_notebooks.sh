@@ -12,6 +12,7 @@ conda install -y ipykernel
 conda install -y matplotlib
 yes | pip install nglview
 conda install -y ipywidgets
+yes | pip install gym[atari]
 
 cd examples/notebooks
 nosetests --with-timer tests.py --with-xunit --xunit-file=notebook_tests.xml|| true
