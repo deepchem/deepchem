@@ -5,11 +5,11 @@ import tensorflow as tf
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-    Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
-    DAGGather, DTNNExtract, MessagePassing, SetGather
+  Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+  DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
-    SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-    GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
+  SoftMaxCrossEntropy, GraphConv, BatchNorm, \
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -123,6 +123,7 @@ class WeaveTensorGraph(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     """ TensorGraph style implementation
     similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
@@ -132,7 +133,7 @@ class WeaveTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
@@ -279,6 +280,7 @@ class DTNNTensorGraph(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     """ TensorGraph style implementation
         similar to deepchem.models.tf_new_models.graph_topology.DTNNGraphTopology.batch_to_feed_dict
@@ -288,7 +290,7 @@ class DTNNTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
@@ -430,6 +432,7 @@ class DAGTensorGraph(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     """ TensorGraph style implementation
         similar to deepchem.models.tf_new_models.graph_topology.DAGGraphTopology.batch_to_feed_dict
@@ -439,7 +442,7 @@ class DAGTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
@@ -575,13 +578,14 @@ class GraphConvTensorGraph(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
-              self.batch_size, pad_batches=True, deterministic=True)):
+              self.batch_size, pad_batches=True, deterministic=deterministic)):
         d = {}
         for index, label in enumerate(self.my_labels):
           if self.mode == 'classification':
@@ -789,6 +793,7 @@ class MPNNTensorGraph(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     """ Same generator as Weave models """
     for epoch in range(epochs):
@@ -796,7 +801,7 @@ class MPNNTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
 
         feed_dict = dict()
