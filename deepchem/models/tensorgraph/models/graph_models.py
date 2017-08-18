@@ -27,27 +27,30 @@ class WeaveTensorGraph(TensorGraph):
                n_pair_feat=14,
                n_hidden=50,
                n_graph_feat=128,
+               mode="classification",
                **kwargs):
     """
-        Parameters
-        ----------
-        n_tasks: int
-          Number of tasks
-        n_atom_feat: int, optional
-          Number of features per atom.
-        n_pair_feat: int, optional
-          Number of features per pair of atoms.
-        n_hidden: int, optional
-          Number of units(convolution depths) in corresponding hidden layer
-        n_graph_feat: int, optional
-          Number of output features for each molecule(graph)
-
-        """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    n_hidden: int, optional
+      Number of units(convolution depths) in corresponding hidden layer
+    n_graph_feat: int, optional
+      Number of output features for each molecule(graph)
+    mode: str
+      Either "classification" or "regression" for type of model.
+    """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat
     self.n_hidden = n_hidden
     self.n_graph_feat = n_graph_feat
+    self.mode = mode
     super(WeaveTensorGraph, self).__init__(**kwargs)
     self.build_graph()
 
@@ -122,8 +125,8 @@ class WeaveTensorGraph(TensorGraph):
                         predict=False,
                         pad_batches=True):
     """ TensorGraph style implementation
-        similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
-        """
+    similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
+    """
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -187,25 +190,27 @@ class DTNNTensorGraph(TensorGraph):
                distance_min=-1,
                distance_max=18,
                output_activation=True,
+               mode="classification",
                **kwargs):
     """
-        Parameters
-        ----------
-        n_tasks: int
-          Number of tasks
-        n_embedding: int, optional
-          Number of features per atom.
-        n_hidden: int, optional
-          Number of features for each molecule after DTNNStep
-        n_distance: int, optional
-          granularity of distance matrix
-          step size will be (distance_max-distance_min)/n_distance
-        distance_min: float, optional
-          minimum distance of atom pairs, default = -1 Angstorm
-        distance_max: float, optional
-          maximum distance of atom pairs, default = 18 Angstorm
-
-        """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_embedding: int, optional
+      Number of features per atom.
+    n_hidden: int, optional
+      Number of features for each molecule after DTNNStep
+    n_distance: int, optional
+      granularity of distance matrix
+      step size will be (distance_max-distance_min)/n_distance
+    distance_min: float, optional
+      minimum distance of atom pairs, default = -1 Angstorm
+    distance_max: float, optional
+      maximum distance of atom pairs, default = 18 Angstorm
+    mode: str
+      Either "classification" or "regression" for type of model.
+    """
     self.n_tasks = n_tasks
     self.n_embedding = n_embedding
     self.n_hidden = n_hidden
@@ -217,14 +222,15 @@ class DTNNTensorGraph(TensorGraph):
         [distance_min + i * self.step_size for i in range(n_distance)])
     self.steps = np.expand_dims(self.steps, 0)
     self.output_activation = output_activation
+    self.mode = mode
     super(DTNNTensorGraph, self).__init__(**kwargs)
     assert self.mode == "regression"
     self.build_graph()
 
   def build_graph(self):
     """Building graph structures:
-        Features => DTNNEmbedding => DTNNStep => DTNNStep => DTNNGather => Regression
-        """
+    Features => DTNNEmbedding => DTNNStep => DTNNStep => DTNNGather => Regression
+    """
     self.atom_number = Feature(shape=(None,), dtype=tf.int32)
     self.distance = Feature(shape=(None, self.n_distance))
     self.atom_membership = Feature(shape=(None,), dtype=tf.int32)
@@ -335,27 +341,30 @@ class DAGTensorGraph(TensorGraph):
                n_atom_feat=75,
                n_graph_feat=30,
                n_outputs=30,
+               mode="classification",
                **kwargs):
     """
-        Parameters
-        ----------
-        n_tasks: int
-          Number of tasks
-        max_atoms: int, optional
-          Maximum number of atoms in a molecule, should be defined based on dataset
-        n_atom_feat: int, optional
-          Number of features per atom.
-        n_graph_feat: int, optional
-          Number of features for atom in the graph
-        n_outputs: int, optional
-          Number of features for each molecule
-
-        """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    max_atoms: int, optional
+      Maximum number of atoms in a molecule, should be defined based on dataset
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_graph_feat: int, optional
+      Number of features for atom in the graph
+    n_outputs: int, optional
+      Number of features for each molecule
+    mode: str
+      Either "classification" or "regression" for type of model.
+    """
     self.n_tasks = n_tasks
     self.max_atoms = max_atoms
     self.n_atom_feat = n_atom_feat
     self.n_graph_feat = n_graph_feat
     self.n_outputs = n_outputs
+    self.mode = mode
     super(DAGTensorGraph, self).__init__(**kwargs)
     self.build_graph()
 
@@ -477,15 +486,17 @@ class DAGTensorGraph(TensorGraph):
 
 class GraphConvTensorGraph(TensorGraph):
 
-  def __init__(self, n_tasks, **kwargs):
+  def __init__(self, n_tasks, mode="classification", **kwargs):
     """
-        Parameters
-        ----------
-        n_tasks: int
-          Number of tasks
-
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    mode: str
+      Either "classification" or "regression"
     """
     self.n_tasks = n_tasks
+    self.mode = mode
     self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
     kwargs['use_queue'] = False
     super(GraphConvTensorGraph, self).__init__(**kwargs)
@@ -695,20 +706,20 @@ class MPNNTensorGraph(TensorGraph):
                M=10,
                **kwargs):
     """
-        Parameters
-        ----------
-        n_tasks: int
-          Number of tasks
-        n_atom_feat: int, optional
-          Number of features per atom.
-        n_pair_feat: int, optional
-          Number of features per pair of atoms.
-        n_hidden: int, optional
-          Number of units(convolution depths) in corresponding hidden layer
-        n_graph_feat: int, optional
-          Number of output features for each molecule(graph)
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    n_atom_feat: int, optional
+      Number of features per atom.
+    n_pair_feat: int, optional
+      Number of features per pair of atoms.
+    n_hidden: int, optional
+      Number of units(convolution depths) in corresponding hidden layer
+    n_graph_feat: int, optional
+      Number of output features for each molecule(graph)
 
-        """
+    """
     self.n_tasks = n_tasks
     self.n_atom_feat = n_atom_feat
     self.n_pair_feat = n_pair_feat

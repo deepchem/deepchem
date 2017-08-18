@@ -37,7 +37,7 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
-    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    prediction = np.squeeze(tg.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
   @flaky
@@ -78,10 +78,10 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit_generator(
         databag.iterbatches(
             epochs=1000, batch_size=tg.batch_size, pad_batches=True))
-    prediction = tg.predict_proba_on_generator(databag.iterbatches())
+    predictions = tg.predict_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
-      y_pred = prediction[:, i, :]
+      y_pred = predictions[i]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=0.6)))
 
   def test_single_task_regressor(self):
@@ -98,7 +98,7 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(dense)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
-    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    prediction = np.squeeze(tg.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=3.0)))
 
   def test_multi_task_regressor(self):
@@ -137,10 +137,10 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit_generator(
         databag.iterbatches(
             epochs=1000, batch_size=tg.batch_size, pad_batches=True))
-    prediction = tg.predict_proba_on_generator(databag.iterbatches())
+    predictions = tg.predict_on_generator(databag.iterbatches())
     for i in range(2):
       y_real = ys[i].X
-      y_pred = prediction[:, i, :]
+      y_pred = predictions[i]
       assert_true(np.all(np.isclose(y_pred, y_real, atol=1.5)))
 
   @flaky
@@ -160,7 +160,7 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1000)
-    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    prediction = np.squeeze(tg.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, y, atol=0.4)))
 
   @flaky
@@ -184,11 +184,11 @@ class TestTensorGraph(unittest.TestCase):
         initial_rate=0.1, decay_rate=0.96, decay_steps=100000)
     tg.set_optimizer(GradientDescent(learning_rate=learning_rate))
     tg.fit(dataset, nb_epoch=1000)
-    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()
 
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
-    prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
+    prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   @nottest
@@ -235,11 +235,11 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(output)
     tg.set_loss(loss)
     tg.fit(dataset, nb_epoch=1)
-    prediction = np.squeeze(tg.predict_proba_on_batch(X))
+    prediction = np.squeeze(tg.predict_on_batch(X))
     tg.save()
 
     tg1 = TensorGraph.load_from_dir(tg.model_dir)
-    prediction2 = np.squeeze(tg1.predict_proba_on_batch(X))
+    prediction2 = np.squeeze(tg1.predict_on_batch(X))
     assert_true(np.all(np.isclose(prediction, prediction2, atol=0.01)))
 
   def test_shared_layer(self):
@@ -279,6 +279,5 @@ class TestTensorGraph(unittest.TestCase):
     tg.fit_generator(
         databag.iterbatches(
             epochs=1, batch_size=tg.batch_size, pad_batches=True))
-    prediction = tg.predict_proba_on_generator(databag.iterbatches())
-    assert_true(
-        np.all(np.isclose(prediction[:, 0], prediction[:, 1], atol=0.01)))
+    prediction = tg.predict_on_generator(databag.iterbatches())
+    assert_true(np.all(np.isclose(prediction[0], prediction[1], atol=0.01)))
