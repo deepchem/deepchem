@@ -51,9 +51,9 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     if featurizer == 'CoulombMatrix':
-      featurizer = deepchem.feat.CoulombMatrix(26)
+      featurizer = deepchem.feat.CoulombMatrix(29)
     elif featurizer == 'BPSymmetryFunction':
-      featurizer = deepchem.feat.BPSymmetryFunction(26)
+      featurizer = deepchem.feat.BPSymmetryFunction(29)
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
     elif featurizer == 'MP':

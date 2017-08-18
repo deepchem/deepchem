@@ -135,10 +135,12 @@ class TestSplitters(unittest.TestCase):
     fold_datasets = index_splitter.k_fold_split(ds, K)
 
     for fold in range(K):
-      self.assertTrue(fold_datasets[fold][1].X[0] == fold)
-      train_data = set(list(fold_datasets[fold][0].X))
+      train, cv = fold_datasets[fold][0], fold_datasets[fold][1]
+      self.assertTrue(cv.X[0] == fold)
+      train_data = set(list(train.X))
       self.assertFalse(fold in train_data)
-      self.assertEqual(K - 1, len(train_data))
+      self.assertEqual(K - 1, len(train))
+      self.assertEqual(1, len(cv))
 
   def test_singletask_random_k_fold_split(self):
     """
