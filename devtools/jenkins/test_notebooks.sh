@@ -18,4 +18,4 @@ cd examples/notebooks
 nosetests --with-timer tests.py --with-xunit --xunit-file=notebook_tests.xml|| true
 
 source deactivate
-conda remove --name $envname --all
+# conda remove --name $envname --all
