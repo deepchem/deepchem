@@ -65,8 +65,8 @@ class TensorGraph(Model):
     self.loss = None
     self.built = False
     self.queue_installed = False
-    self.optimizer = Adam(
-        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+    self.optimizer = None
+    self.learning_rate = learning_rate
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -115,9 +115,11 @@ class TensorGraph(Model):
           dataset,
           nb_epoch=10,
           max_checkpoints_to_keep=5,
-          checkpoint_interval=1000):
+          checkpoint_interval=1000,
+          deterministic=False):
     return self.fit_generator(
-        self.default_generator(dataset, epochs=nb_epoch, deterministic=False),
+        self.default_generator(
+            dataset, epochs=nb_epoch, deterministic=deterministic),
         max_checkpoints_to_keep, checkpoint_interval)
 
   def fit_generator(self,
@@ -588,6 +590,12 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'Optimizer':
+      if self.optimizer is None:
+        self.optimizer = Adam(
+            learning_rate=self.learning_rate,
+            beta1=0.9,
+            beta2=0.999,
+            epsilon=1e-7)
       self.tensor_objects['Optimizer'] = self.optimizer._create_optimizer(
           self._get_tf('GlobalStep'))
     elif obj == 'train_op':
