@@ -132,11 +132,12 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
         if y_b is not None and not predict:
@@ -292,11 +293,12 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
         if y_b is not None and not predict:
