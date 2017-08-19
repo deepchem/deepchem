@@ -96,38 +96,42 @@ def experiment(dataset_file, method='GraphConv', split='scaffold'):
 
 #======================================================================
 # Run Benchmarks {GC-DNN, SVR, RF}
+def main():
+  print("About to retrieve datasets")
+  retrieve_datasets()
 
-print("About to retrieve datasets")
-retrieve_datasets()
+  MODEL = "GraphConv"
+  SPLIT = "scaffold"
+  DATASET = "az_hppb.csv"
 
-MODEL = "GraphConv"
-SPLIT = "scaffold"
-DATASET = "az_hppb.csv"
+  metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
-metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
-
-print("About to build model")
-model, train, val, test, transformers = experiment(
-    DATASET, method=MODEL, split=SPLIT)
-if MODEL == 'GraphConv':
-  print("running GraphConv search")
-  best_val_score = 0.0
-  train_score = 0.0
-  for l in range(0, MAX_EPOCH):
-    print("epoch %d" % l)
-    model.fit(train, nb_epoch=1)
-    latest_train_score = model.evaluate(train, [metric],
+  print("About to build model")
+  model, train, val, test, transformers = experiment(
+      DATASET, method=MODEL, split=SPLIT)
+  if MODEL == 'GraphConv':
+    print("running GraphConv search")
+    best_val_score = 0.0
+    train_score = 0.0
+    for l in range(0, MAX_EPOCH):
+      print("epoch %d" % l)
+      model.fit(train, nb_epoch=1)
+      latest_train_score = model.evaluate(train, [metric],
+                                          transformers)['mean-pearson_r2_score']
+      latest_val_score = model.evaluate(val, [metric],
                                         transformers)['mean-pearson_r2_score']
-    latest_val_score = model.evaluate(val, [metric],
-                                      transformers)['mean-pearson_r2_score']
-    if latest_val_score > best_val_score:
-      best_val_score = latest_val_score
-      train_score = latest_train_score
-  print((MODEL, SPLIT, DATASET, train_score, best_val_score))
-else:
-  model.fit(train)
-  train_score = model.evaluate(train, [metric],
+      if latest_val_score > best_val_score:
+        best_val_score = latest_val_score
+        train_score = latest_train_score
+    print((MODEL, SPLIT, DATASET, train_score, best_val_score))
+  else:
+    model.fit(train)
+    train_score = model.evaluate(train, [metric],
+                                 transformers)['mean-pearson_r2_score']
+    val_score = model.evaluate(val, [metric],
                                transformers)['mean-pearson_r2_score']
-  val_score = model.evaluate(val, [metric],
-                             transformers)['mean-pearson_r2_score']
-  print((MODEL, SPLIT, DATASET, train_score, val_score))
+    print((MODEL, SPLIT, DATASET, train_score, val_score))
+
+
+if __name__ == "__main__":
+  main()
