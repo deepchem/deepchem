@@ -708,6 +708,7 @@ class MPNNTensorGraph(TensorGraph):
                n_hidden=100,
                T=5,
                M=10,
+               mode="regression",
                **kwargs):
     """
     Parameters
