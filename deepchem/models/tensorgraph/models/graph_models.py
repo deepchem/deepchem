@@ -731,6 +731,7 @@ class MPNNTensorGraph(TensorGraph):
     self.n_hidden = n_hidden
     self.T = T
     self.M = M
+    self.mode = mode
     super(MPNNTensorGraph, self).__init__(**kwargs)
     self.build_graph()
 
