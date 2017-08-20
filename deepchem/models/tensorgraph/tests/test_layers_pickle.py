@@ -4,7 +4,8 @@ from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
     CombineMeanStd, Repeat, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
     SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
-    GraphGather, BatchNorm, WeightedError
+    GraphGather, BatchNorm, WeightedError, \
+    LSTMStep
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
     WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
     DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
@@ -437,6 +438,20 @@ def test_MP_pickle():
   MP = MessagePassing(5, in_layers=[atom_feature, pair_feature, atom_to_pair])
   tg.add_output(MP)
   tg.set_loss(MP)
+  tg.build()
+  tg.save()
+
+
+def test_LSTMStep_pickle():
+  """Tests that LSTMStep can be pickled."""
+  n_test = 100
+  n_feat = 20
+  tg = TensorGraph()
+  y = Feature(shape=(n_test, n_feat))
+  state_zero = Feature(shape=(n_test, n_feat))
+  state_one = Feature(shape=(n_test, n_feat))
+  lstm = LSTMStep(n_feat, 2*n_feat, in_layers=[y, state_zero, state_one])
+  tg.add_output(lstm)
   tg.build()
   tg.save()
 

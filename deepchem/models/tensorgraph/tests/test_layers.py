@@ -43,6 +43,9 @@ from deepchem.models.tensorgraph.layers import WeightedError
 from deepchem.models.tensorgraph.layers import VinaFreeEnergy
 from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 from deepchem.models.tensorgraph.layers import TensorWrapper
+from deepchem.models.tensorgraph.layers import LSTMStep 
+from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
+from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
 
 import deepchem as dc
 
@@ -395,6 +398,72 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (n_atoms, out_channels)
+
+  def test_lstm_step(self):
+    """Test that LSTMStep computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_feat = 10
+
+    y = np.random.rand(n_test, 2*n_feat)
+    state_zero = np.random.rand(n_test, n_feat)
+    state_one = np.random.rand(n_test, n_feat)
+    with self.test_session() as sess:
+      y = tf.convert_to_tensor(y, dtype=tf.float32)
+      state_zero = tf.convert_to_tensor(state_zero, dtype=tf.float32)
+      state_one = tf.convert_to_tensor(state_one, dtype=tf.float32)
+
+      lstm = LSTMStep(n_feat, 2*n_feat)
+      out_tensor = lstm(y, state_zero, state_one)
+      sess.run(tf.global_variables_initializer())
+      h_out, h_copy_out, c_out = (
+        out_tensor[0].eval(), out_tensor[1][0].eval(), out_tensor[1][1].eval())
+      assert h_out.shape == (n_test, n_feat)
+      assert h_copy_out.shape == (n_test, n_feat)
+      assert c_out.shape == (n_test, n_feat)
+
+
+  def test_attn_lstm_embedding(self):
+    """Test that attention LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+
+    test = np.random.rand(n_test, n_feat)
+    support = np.random.rand(n_support, n_feat)
+    with self.test_session() as sess:
+      test = tf.convert_to_tensor(test, dtype=tf.float32)
+      support = tf.convert_to_tensor(support, dtype=tf.float32)
+
+      attn_embedding_layer = AttnLSTMEmbedding(n_test, n_support, n_feat,
+                                               max_depth)
+      out_tensor = attn_embedding_layer(test, support)
+      sess.run(tf.global_variables_initializer())
+      test_out, support_out = out_tensor[0].eval(), out_tensor[1].eval()
+      assert test_out.shape == (n_test, n_feat)
+      assert support_out.shape == (n_support, n_feat)
+
+  def test_iter_ref_lstm_embedding(self):
+    """Test that IterRef LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+
+    test = np.random.rand(n_test, n_feat)
+    support = np.random.rand(n_support, n_feat)
+    with self.test_session() as sess:
+      test = tf.convert_to_tensor(test, dtype=tf.float32)
+      support = tf.convert_to_tensor(support, dtype=tf.float32)
+
+      iter_ref_embedding_layer = IterRefLSTMEmbedding(
+          n_test, n_support, n_feat, max_depth)
+      out_tensor = iter_ref_embedding_layer(test, support)
+      sess.run(tf.global_variables_initializer())
+      test_out, support_out = out_tensor[0].eval(), out_tensor[1].eval()
+      assert test_out.shape == (n_test, n_feat)
+      assert support_out.shape == (n_support, n_feat)
 
   # TODO(rbharath): This test should pass. Fix it!
   #def test_graph_pool(self):
