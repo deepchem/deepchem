@@ -1388,30 +1388,34 @@ class LSTMStep(Layer):
                input_dim,
                init='glorot_uniform',
                inner_init='orthogonal',
-               forget_bias_init='one',
                activation='tanh',
                inner_activation='hard_sigmoid',
                **kwargs):
 
     super(LSTMStep, self).__init__(**kwargs)
 
+    self.init = init
+    self.inner_init = inner_init
     self.output_dim = output_dim
 
-    self.init = initializations.get(init)
-    self.inner_init = initializations.get(inner_init)
     # No other forget biases supported right now.
-    assert forget_bias_init == "one"
-    self.forget_bias_init = initializations.get(forget_bias_init)
-    self.activation = activations.get(activation)
-    self.inner_activation = activations.get(inner_activation)
+    self.activation = activation
+    self.inner_activation = inner_activation
     self.input_dim = input_dim
 
   def get_initial_states(self, input_shape):
     return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
 
   def build(self):
-    self.W = self.init((self.input_dim, 4 * self.output_dim))
-    self.U = self.inner_init((self.output_dim, 4 * self.output_dim))
+    init = initializations.get(self.init)
+    inner_init = initializations.get(self.inner_init)
+    ########################################################## DEBUG
+    print("build()")
+    print("self.input_dim")
+    print(self.input_dim)
+    ########################################################## DEBUG
+    self.W = init((self.input_dim, 4 * self.output_dim))
+    self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
     self.b = tf.Variable(
         np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
@@ -1440,6 +1444,9 @@ class LSTMStep(Layer):
     list
       Returns h, [h + c] 
     """
+    activation = activations.get(self.activation)
+    inner_activation = activations.get(self.inner_activation)
+
     self.build()
     if in_layers is None:
       in_layers = self.in_layers
@@ -1447,6 +1454,12 @@ class LSTMStep(Layer):
     x, h_tm1, c_tm1 = inputs 
 
     # Taken from Keras code [citation needed]
+    ########################################################## DEBUG
+    print("x")
+    print(x)
+    print("self.W")
+    print(self.W)
+    ########################################################## DEBUG
     z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]
@@ -1454,15 +1467,16 @@ class LSTMStep(Layer):
     z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
     z3 = z[:, 3 * self.output_dim:]
 
-    i = self.inner_activation(z0)
-    f = self.inner_activation(z1)
-    c = f * c_tm1 + i * self.activation(z2)
-    o = self.inner_activation(z3)
+    i = inner_activation(z0)
+    f = inner_activation(z1)
+    c = f * c_tm1 + i * activation(z2)
+    o = inner_activation(z3)
 
-    h = o * self.activation(c)
+    h = o * activation(c)
 
-    self.out_tensor = h, [h, c]
-    return self.out_tensor
+    # TODO(rbharath): Is this correct?
+    self.out_tensor = h
+    return h, [h, c] 
 
 def cos(x, y):
   """Computes the inner preduct (cosine distance) between two tensors.
@@ -1636,21 +1650,6 @@ class IterRefLSTMEmbedding(Layer):
         [self.n_test, n_feat])
 
     self.trainable_weights = []
-
-  #def get_output_shape_for(self, input_shape):
-  #  """Returns the output shape. Same as input_shape.
-
-  #  Parameters
-  #  ----------
-  #  input_shape: list
-  #    Will be of form [(n_test, n_feat), (n_support, n_feat)]
-
-  #  Returns
-  #  -------
-  #  list
-  #    Of same shape as input [(n_test, n_feat), (n_support, n_feat)]
-  #  """
-  #  return input_shape
 
   def create_tensor(self, in_layers=None, set_tensors=True):
     """Execute this layer on input tensors.

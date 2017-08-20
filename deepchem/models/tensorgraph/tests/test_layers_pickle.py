@@ -444,14 +444,14 @@ def test_MP_pickle():
 
 def test_LSTMStep_pickle():
   """Tests that LSTMStep can be pickled."""
-  n_test = 100
-  n_feat = 20
-  tg = TensorGraph()
-  y = Feature(shape=(n_test, n_feat))
-  state_zero = Feature(shape=(n_test, n_feat))
-  state_one = Feature(shape=(n_test, n_feat))
+  n_feat = 10
+  tg = TensorGraph(use_queue=False)
+  y = Feature(shape=(None, 2*n_feat))
+  state_zero = Feature(shape=(None, n_feat))
+  state_one = Feature(shape=(None, n_feat))
   lstm = LSTMStep(n_feat, 2*n_feat, in_layers=[y, state_zero, state_one])
   tg.add_output(lstm)
+  tg.set_loss(lstm)
   tg.build()
   tg.save()
 
