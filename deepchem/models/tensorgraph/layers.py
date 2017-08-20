@@ -91,6 +91,8 @@ class Layer(object):
     for input in in_layers:
       if isinstance(input, tf.Tensor):
         tensors.append(input)
+      elif isinstance(input, tf.Variable):
+        tensors.append(input)
       elif isinstance(input, Layer):
         tensors.append(input.out_tensor)
       else:
@@ -1445,8 +1447,8 @@ class LSTMStep(Layer):
     inner_activation = activations.get(self.inner_activation)
 
     self.build()
-    if in_layers is None:
-      in_layers = self.in_layers
+    #if in_layers is None:
+    #  in_layers = self.in_layers
     inputs = self._get_input_tensors(in_layers)
     x, h_tm1, c_tm1 = inputs 
 
@@ -1465,7 +1467,7 @@ class LSTMStep(Layer):
 
     h = o * activation(c)
 
-    # TODO(rbharath): Is this correct?
+    # TODO(rbharath): This is wrong!!
     self.out_tensor = h
     return h, [h, c] 
 
@@ -1520,7 +1522,7 @@ class AttnLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
-  def create_tensor(self, in_layers=None, set_tensors=True):
+  def create_tensor(self, in_layers=None, **kwargs):
     """Execute this layer on input tensors.
 
     Parameters
@@ -1546,10 +1548,10 @@ class AttnLSTMEmbedding(Layer):
     ## Initializes trainable weights.
     n_feat = self.n_feat
 
-    self.lstm = LSTMStep(n_feat, 2 * n_feat)
+    lstm = LSTMStep(n_feat, 2 * n_feat)
     self.q_init = model_ops.zeros([self.n_test, n_feat])
     self.r_init = model_ops.zeros([self.n_test, n_feat])
-    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+    self.states_init = lstm.get_initial_states([self.n_test, n_feat])
 
     self.trainable_weights = [self.q_init, self.r_init]
 
@@ -1568,9 +1570,24 @@ class AttnLSTMEmbedding(Layer):
 
       # Generate new aattention states
       y = model_ops.concatenate([q, r], axis=1)
-      q, states = self.lstm(y, *states)  #+ self.lstm.get_constants(x)
+      q, states = lstm(y, *states)
 
+    # TODO(rbharath): This is wrong!!
+    self.out_tensor = xp
     return [x + q, xp]
+
+  def none_tensors(self):
+    q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    self.q_init, self.r_init, self.states_init = None, None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return q_init, r_init, states_init, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    self.q_init, self.r_init, self.states_init, self.out_tensor, self.trainable_weights = tensor
+
 
 class IterRefLSTMEmbedding(Layer):
   """Embeds its inputs using an LSTM layer."""
@@ -1631,7 +1648,7 @@ class IterRefLSTMEmbedding(Layer):
 
     self.trainable_weights = []
 
-  def create_tensor(self, in_layers=None, set_tensors=True):
+  def create_tensor(self, in_layers=None, **kwargs):
     """Execute this layer on input tensors.
 
     Parameters
@@ -1686,6 +1703,18 @@ class IterRefLSTMEmbedding(Layer):
       z = r
 
     return [x + p, xp + q]
+
+  def none_tensors(self):
+    q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    self.q_init, self.r_init, self.states_init = None, None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return q_init, r_init, states_init, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    self.q_init, self.r_init, self.states_init, self.out_tensor, self.trainable_weights = tensor
 
 
 class BatchNorm(Layer):

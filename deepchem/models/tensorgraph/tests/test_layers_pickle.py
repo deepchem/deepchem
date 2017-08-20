@@ -5,7 +5,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
     CombineMeanStd, Repeat, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
     SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
     GraphGather, BatchNorm, WeightedError, \
-    LSTMStep
+    LSTMStep, AttnLSTMEmbedding
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
     WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
     DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
@@ -438,6 +438,24 @@ def test_MP_pickle():
   MP = MessagePassing(5, in_layers=[atom_feature, pair_feature, atom_to_pair])
   tg.add_output(MP)
   tg.set_loss(MP)
+  tg.build()
+  tg.save()
+
+
+def test_AttnLSTM_pickle():
+  """Tests that AttnLSTM can be pickled."""
+  max_depth = 5
+  n_test = 5
+  n_support = 5
+  n_feat = 10
+
+  tg = TensorGraph(batch_size=n_test)
+  test = Feature(shape=(None, n_feat))
+  support = Feature(shape=(None, n_feat))
+  out = AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth,
+                          in_layers=[test, support])
+  tg.add_output(out)
+  tg.set_loss(out)
   tg.build()
   tg.save()
 
