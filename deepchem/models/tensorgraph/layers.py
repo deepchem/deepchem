@@ -1409,11 +1409,6 @@ class LSTMStep(Layer):
   def build(self):
     init = initializations.get(self.init)
     inner_init = initializations.get(self.inner_init)
-    ########################################################## DEBUG
-    print("build()")
-    print("self.input_dim")
-    print(self.input_dim)
-    ########################################################## DEBUG
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
@@ -1424,12 +1419,14 @@ class LSTMStep(Layer):
     self.trainable_weights = [self.W, self.U, self.b]
 
   def none_tensors(self):
-    W, U, b = self.W, self.U, self.b
+    W, U, b, out_tensor = self.W, self.U, self.b, self.out_tensor
     trainable_weights = self.trainable_weights
-    return W, U, b, trainable_weights
+    self.W, self.U, self.b, self.out_tensor = None, None, None, None
+    self.trainable_weights = []
+    return W, U, b, out_tensor, trainable_weights
 
   def set_tensors(self, tensor):
-    self.W, self.U, self.b, self.trainable_weights = tensor
+    self.W, self.U, self.b, self.out_tensor, self.trainable_weights = tensor
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Execute this layer on input tensors.
@@ -1454,12 +1451,6 @@ class LSTMStep(Layer):
     x, h_tm1, c_tm1 = inputs 
 
     # Taken from Keras code [citation needed]
-    ########################################################## DEBUG
-    print("x")
-    print(x)
-    print("self.W")
-    print(self.W)
-    ########################################################## DEBUG
     z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
 
     z0 = z[:, :self.output_dim]
@@ -1509,9 +1500,6 @@ class AttnLSTMEmbedding(Layer):
                n_support,
                n_feat,
                max_depth,
-               init='glorot_uniform',
-               activation='linear',
-               dropout=None,
                **kwargs):
     """
     Parameters
@@ -1524,17 +1512,9 @@ class AttnLSTMEmbedding(Layer):
       Number of features per atom
     max_depth: int
       Number of "processing steps" used by sequence-to-sequence for sets model.
-    init: str, optional
-      Type of initialization of weights
-    activation: str, optional
-      Activation for layers.
-    dropout: float, optional
-      Dropout probability
     """
     super(AttnLSTMEmbedding, self).__init__(**kwargs)
 
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
     self.max_depth = max_depth
     self.n_test = n_test
     self.n_support = n_support
