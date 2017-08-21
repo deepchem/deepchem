@@ -898,6 +898,28 @@ class InteratomicL2Distances(Layer):
     return out_tensor
 
 
+class SparseSoftMaxCrossEntropy(Layer):
+
+  def __init__(self, **kwargs):
+    super(SparseSoftMaxCrossEntropy, self).__init__(**kwargs)
+    try:
+      self._shape = (self.in_layers[1].shape[0], 1)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, False)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    self.out_tensor = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=logits, labels=labels)
+    out_tensor = tf.reshape(self.out_tensor, [-1, 1])
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class SoftMaxCrossEntropy(Layer):
 
   def __init__(self, **kwargs):
