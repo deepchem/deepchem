@@ -25,6 +25,32 @@ class TestSplitters(unittest.TestCase):
   Test some basic splitters.
   """
 
+  def test_random_group_split(self):
+    solubility_dataset = dc.data.tests.load_solubility_data()
+
+    groups = [0, 4, 1, 2, 3, 7, 0, 3, 1, 0]
+    # 0 1 2 3 4 5 6 7 8 9
+
+    group_splitter = dc.splits.RandomGroupSplitter(groups)
+
+    train_idxs, valid_idxs, test_idxs = group_splitter.split(
+        solubility_dataset, frac_train=0.5, frac_valid=0.25, frac_test=0.25)
+
+    class_ind = [-1] * 10
+
+    all_idxs = []
+    for s in train_idxs + valid_idxs + test_idxs:
+      all_idxs.append(s)
+
+    assert sorted(all_idxs) == list(range(10))
+
+    for split_idx, split in enumerate([train_idxs, valid_idxs, test_idxs]):
+      for s in split:
+        if class_ind[s] == -1:
+          class_ind[s] = split_idx
+        else:
+          assert class_ind[s] == split_idx
+
   def test_singletask_random_split(self):
     """
     Test singletask RandomSplitter class.
