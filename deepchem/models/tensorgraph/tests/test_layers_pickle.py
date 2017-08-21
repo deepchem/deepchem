@@ -5,7 +5,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
     CombineMeanStd, Repeat, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
     SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
     GraphGather, BatchNorm, WeightedError, \
-    LSTMStep, AttnLSTMEmbedding
+    LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
     WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
     DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
@@ -452,8 +452,8 @@ def test_AttnLSTM_pickle():
   tg = TensorGraph(batch_size=n_test)
   test = Feature(shape=(None, n_feat))
   support = Feature(shape=(None, n_feat))
-  out = AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth,
-                          in_layers=[test, support])
+  out = AttnLSTMEmbedding(
+      n_test, n_support, n_feat, max_depth, in_layers=[test, support])
   tg.add_output(out)
   tg.set_loss(out)
   tg.build()
@@ -464,10 +464,27 @@ def test_LSTMStep_pickle():
   """Tests that LSTMStep can be pickled."""
   n_feat = 10
   tg = TensorGraph()
-  y = Feature(shape=(None, 2*n_feat))
+  y = Feature(shape=(None, 2 * n_feat))
   state_zero = Feature(shape=(None, n_feat))
   state_one = Feature(shape=(None, n_feat))
-  lstm = LSTMStep(n_feat, 2*n_feat, in_layers=[y, state_zero, state_one])
+  lstm = LSTMStep(n_feat, 2 * n_feat, in_layers=[y, state_zero, state_one])
+  tg.add_output(lstm)
+  tg.set_loss(lstm)
+  tg.build()
+  tg.save()
+
+
+def test_IterRefLSTM_pickle():
+  """Tests that IterRefLSTM can be pickled."""
+  n_feat = 10
+  max_depth = 5
+  n_test = 5
+  n_support = 5
+  tg = TensorGraph()
+  test = Feature(shape=(None, n_feat))
+  support = Feature(shape=(None, n_feat))
+  lstm = IterRefLSTMEmbedding(
+      n_test, n_support, n_feat, max_depth, in_layers=[test, support])
   tg.add_output(lstm)
   tg.set_loss(lstm)
   tg.build()

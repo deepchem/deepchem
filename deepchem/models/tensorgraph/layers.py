@@ -1352,6 +1352,7 @@ class GraphPool(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class GraphGather(Layer):
 
   def __init__(self, batch_size, activation_fn=None, **kwargs):
@@ -1399,7 +1400,6 @@ class GraphGather(Layer):
     return out_tensor
 
 
-
 class LSTMStep(Layer):
   """ LSTM whose call is a single step in the LSTM.
 
@@ -1444,15 +1444,18 @@ class LSTMStep(Layer):
 
   def none_tensors(self):
     W, U, b, out_tensor = self.W, self.U, self.b, self.out_tensor
+    h, c = self.h, self.c
     trainable_weights = self.trainable_weights
     self.W, self.U, self.b, self.out_tensor = None, None, None, None
+    self.h, self.c = None, None
     self.trainable_weights = []
-    return W, U, b, out_tensor, trainable_weights
+    return W, U, b, h, c, out_tensor, trainable_weights
 
   def set_tensors(self, tensor):
-    self.W, self.U, self.b, self.out_tensor, self.trainable_weights = tensor
+    (self.W, self.U, self.b, self.h, self.c, self.out_tensor,
+     self.trainable_weights) = tensor
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
 
     Parameters
@@ -1472,7 +1475,7 @@ class LSTMStep(Layer):
     #if in_layers is None:
     #  in_layers = self.in_layers
     inputs = self._get_input_tensors(in_layers)
-    x, h_tm1, c_tm1 = inputs 
+    x, h_tm1, c_tm1 = inputs
 
     # Taken from Keras code [citation needed]
     z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
@@ -1489,9 +1492,12 @@ class LSTMStep(Layer):
 
     h = o * activation(c)
 
-    # TODO(rbharath): This is wrong!!
-    self.out_tensor = h
-    return h, [h, c] 
+    if set_tensors:
+      self.h = h
+      self.c = c
+      self.out_tensor = h
+    return h, [h, c]
+
 
 def cos(x, y):
   """Computes the inner preduct (cosine distance) between two tensors.
@@ -1508,6 +1514,7 @@ def cos(x, y):
       + model_ops.epsilon())
   return model_ops.dot(x, tf.transpose(y)) / denom
 
+
 class AttnLSTMEmbedding(Layer):
   """Implements AttnLSTM as in matching networks paper.
 
@@ -1519,12 +1526,7 @@ class AttnLSTMEmbedding(Layer):
   https://arxiv.org/abs/1511.06391
   """
 
-  def __init__(self,
-               n_test,
-               n_support,
-               n_feat,
-               max_depth,
-               **kwargs):
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
     """
     Parameters
     ----------
@@ -1544,7 +1546,7 @@ class AttnLSTMEmbedding(Layer):
     self.n_support = n_support
     self.n_feat = n_feat
 
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
 
     Parameters
@@ -1594,21 +1596,26 @@ class AttnLSTMEmbedding(Layer):
       y = model_ops.concatenate([q, r], axis=1)
       q, states = lstm(y, *states)
 
-    # TODO(rbharath): This is wrong!!
-    self.out_tensor = xp
+    if set_tensors:
+      self.out_tensor = xp
+      self.xq = x + q
+      self.xp = xp
     return [x + q, xp]
 
   def none_tensors(self):
     q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    xq, xp = self.xq, self.xp
     out_tensor = self.out_tensor
     trainable_weights = self.trainable_weights
     self.q_init, self.r_init, self.states_init = None, None, None
+    self.xq, self.xp = None, None
     self.out_tensor = None
     self.trainable_weights = []
-    return q_init, r_init, states_init, out_tensor, trainable_weights
+    return q_init, r_init, states_init, xq, xp, out_tensor, trainable_weights
 
   def set_tensors(self, tensor):
-    self.q_init, self.r_init, self.states_init, self.out_tensor, self.trainable_weights = tensor
+    (self.q_init, self.r_init, self.states_init, self.xq, self.xp,
+     self.out_tensor, self.trainable_weights) = tensor
 
 
 class IterRefLSTMEmbedding(Layer):
@@ -1644,33 +1651,16 @@ class IterRefLSTMEmbedding(Layer):
     """
     super(IterRefLSTMEmbedding, self).__init__(**kwargs)
 
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
     self.max_depth = max_depth
     self.n_test = n_test
     self.n_support = n_support
     self.n_feat = n_feat
 
-  def build(self):
-    """Builds this layer.
-    """
-    n_feat = self.n_feat
+  #def build(self):
+  #  """Builds this layer.
+  #  """
 
-    # Support set lstm
-    self.support_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.q_init = model_ops.zeros([self.n_support, n_feat])
-    self.support_states_init = self.support_lstm.get_initial_states(
-        [self.n_support, n_feat])
-
-    # Test lstm
-    self.test_lstm = LSTMStep(n_feat, 2 * n_feat)
-    self.p_init = model_ops.zeros([self.n_test, n_feat])
-    self.test_states_init = self.test_lstm.get_initial_states(
-        [self.n_test, n_feat])
-
-    self.trainable_weights = []
-
-  def create_tensor(self, in_layers=None, **kwargs):
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
 
     Parameters
@@ -1687,10 +1677,26 @@ class IterRefLSTMEmbedding(Layer):
       Returns two tensors of same shape as input. Namely the output shape will
       be [(n_test, n_feat), (n_support, n_feat)]
     """
-    self.build()
+    n_feat = self.n_feat
+
+    # Support set lstm
+    support_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.support_states_init = support_lstm.get_initial_states(
+        [self.n_support, n_feat])
+
+    # Test lstm
+    test_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
+
+    self.trainable_weights = []
+
+    #self.build()
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
-      raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
+      raise ValueError(
+          "IterRefLSTMEmbedding layer must have exactly two parents")
     x, xp = inputs
 
     # Get initializations
@@ -1715,28 +1721,40 @@ class IterRefLSTMEmbedding(Layer):
 
       # Generate new support attention states
       qr = model_ops.concatenate([q, r], axis=1)
-      q, states = self.support_lstm(qr, *states)
+      q, states = support_lstm(qr, *states)
 
       # Generate new test attention states
       ps = model_ops.concatenate([p, s], axis=1)
-      p, x_states = self.test_lstm(ps, *x_states)
+      p, x_states = test_lstm(ps, *x_states)
 
       # Redefine
       z = r
 
+    if set_tensors:
+      self.xp = x + p
+      self.xpq = xp + q
+      self.out_tensor = self.xp
+
     return [x + p, xp + q]
 
   def none_tensors(self):
-    q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    p_init, q_init = self.p_init, self.q_init,
+    support_states_init, test_states_init = (self.support_states_init,
+                                             self.test_states_init)
+    xp, xpq = self.xp, self.xpq
     out_tensor = self.out_tensor
     trainable_weights = self.trainable_weights
-    self.q_init, self.r_init, self.states_init = None, None, None
+    (self.p_init, self.q_init, self.support_states_init,
+     self.test_states_init) = (None, None, None, None)
+    self.xp, self.xpq = None, None
     self.out_tensor = None
     self.trainable_weights = []
-    return q_init, r_init, states_init, out_tensor, trainable_weights
+    return (p_init, q_init, support_states_init, test_states_init, xp, xpq,
+            out_tensor, trainable_weights)
 
   def set_tensors(self, tensor):
-    self.q_init, self.r_init, self.states_init, self.out_tensor, self.trainable_weights = tensor
+    (self.p_init, self.q_init, self.support_states_init, self.test_states_init,
+     self.xp, self.xpq, self.out_tensor, self.trainable_weights) = tensor
 
 
 class BatchNorm(Layer):

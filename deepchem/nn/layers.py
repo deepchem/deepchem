@@ -355,10 +355,11 @@ class GraphGather(Layer):
     batch_size: int
       Number of elements in batch of data.
     """
-    warnings.warn("The dc.nn.GraphGather is "
-                  "deprecated. Will be removed in DeepChem 1.4. "
-                  "Will be replaced by dc.models.tensorgraph.layers.GraphGather",
-                  DeprecationWarning)
+    warnings.warn(
+        "The dc.nn.GraphGather is "
+        "deprecated. Will be removed in DeepChem 1.4. "
+        "Will be replaced by dc.models.tensorgraph.layers.GraphGather",
+        DeprecationWarning)
     super(GraphGather, self).__init__(**kwargs)
 
     self.activation = activations.get(activation)  # Get activations

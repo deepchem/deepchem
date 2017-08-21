@@ -389,10 +389,6 @@ class TensorGraph(Model):
       for node in order:
         with tf.name_scope(node):
           node_layer = self.layers[node]
-          ############################################################ DEBUG
-          #print("node_layer")
-          #print(node_layer)
-          ############################################################ DEBUG
           node_layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += node_layer.rnn_initial_states
           self.rnn_final_states += node_layer.rnn_final_states
@@ -510,28 +506,7 @@ class TensorGraph(Model):
 
     # Pickle itself
     pickle_name = os.path.join(self.model_dir, "model.pickle")
-    ########################################################## DEBUG
-    #print("self")
-    #print(self)
 
-    #def debug_pickle(instance):
-    #  attribute = None
-
-    #  for k, v in instance.__dict__.iteritems():
-    #    print("checking: %s" % k)
-    #    print("type(v)")
-    #    print(type(v))
-    #    try:
-    #      pickle.dumps(v)
-    #    except:
-    #      attribute = k
-    #      break
-
-    #  return attribute  
-    #debug_pickle(self)
-    ##pickle.dumps(self)
-
-    ########################################################## DEBUG
     with open(pickle_name, 'wb') as fout:
       try:
         pickle.dump(self, fout)
