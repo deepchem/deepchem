@@ -36,16 +36,11 @@ class TestSplitters(unittest.TestCase):
     train_idxs, valid_idxs, test_idxs = group_splitter.split(
         solubility_dataset, frac_train=0.5, frac_valid=0.25, frac_test=0.25)
 
-    print(train_idxs, valid_idxs, test_idxs)
-    print(len(train_idxs), len(valid_idxs), len(test_idxs))
-
     class_ind = [-1] * 10
 
     all_idxs = []
     for s in train_idxs + valid_idxs + test_idxs:
       all_idxs.append(s)
-
-    print(sorted(all_idxs))
 
     assert sorted(all_idxs) == list(range(10))
 

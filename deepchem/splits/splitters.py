@@ -259,8 +259,6 @@ class RandomGroupSplitter(Splitter):
     valid_groups = shuffled_group_idxs[train_cutoff:valid_cutoff]
     test_groups = shuffled_group_idxs[valid_cutoff:]
 
-    print(train_groups, valid_groups, test_groups)
-
     train_idxs = list(itertools.chain(*group_idxs[train_groups]))
     valid_idxs = list(itertools.chain(*group_idxs[valid_groups]))
     test_idxs = list(itertools.chain(*group_idxs[test_groups]))
