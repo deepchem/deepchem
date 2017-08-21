@@ -193,6 +193,81 @@ class Splitter(object):
     raise NotImplementedError
 
 
+class RandomGroupSplitter(Splitter):
+
+  def __init__(self, groups):
+    """
+    A splitter class that splits on groupings. An example use case is when there
+    are multiple conformations of the same molecule that share the same topology.
+    This splitter subsequently guarantees that resulting splits preserve groupings.
+
+    Note that it doesn't do any dynamic programming or something fancy to try to
+    maximize the choice such that frac_train, frac_valid, or frac_test is maximized.
+    It simply permutes the groups themselves. As such, use with caution if the number
+    of elements per group varies significantly.
+
+    Parameters
+    ----------
+    groups: array like list of hashables
+      An auxiliary array indicating the group of each item.
+
+    Eg:
+    g: 3 2 2 0 1 1 2 4 3
+    X: 0 1 2 3 4 5 6 7 8
+
+    Eg:
+    g: a b b e q x a a r
+    X: 0 1 2 3 4 5 6 7 8
+
+    """
+    self.groups = groups
+
+  def split(self,
+            dataset,
+            seed=None,
+            frac_train=.8,
+            frac_valid=.1,
+            frac_test=.1,
+            log_every_n=None):
+
+    assert len(self.groups) == dataset.X.shape[0]
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+
+    if not seed is None:
+      np.random.seed(seed)
+
+    # dict is needed in case groups aren't strictly flattened or
+    # hashed by something non-integer like
+    group_dict = {}
+    for idx, g in enumerate(self.groups):
+      if g not in group_dict:
+        group_dict[g] = []
+      group_dict[g].append(idx)
+
+    group_idxs = []
+    for g in group_dict.values():
+      group_idxs.append(g)
+
+    group_idxs = np.array(group_idxs)
+
+    num_groups = len(group_idxs)
+    train_cutoff = int(frac_train * num_groups)
+    valid_cutoff = int((frac_train + frac_valid) * num_groups)
+    shuffled_group_idxs = np.random.permutation(range(num_groups))
+
+    train_groups = shuffled_group_idxs[:train_cutoff]
+    valid_groups = shuffled_group_idxs[train_cutoff:valid_cutoff]
+    test_groups = shuffled_group_idxs[valid_cutoff:]
+
+    print(train_groups, valid_groups, test_groups)
+
+    train_idxs = list(itertools.chain(*group_idxs[train_groups]))
+    valid_idxs = list(itertools.chain(*group_idxs[valid_groups]))
+    test_idxs = list(itertools.chain(*group_idxs[test_groups]))
+
+    return train_idxs, valid_idxs, test_idxs
+
+
 class RandomStratifiedSplitter(Splitter):
   """
     RandomStratified Splitter class.
