@@ -988,9 +988,10 @@ class ANITransformer(Transformer):
       batch_size = self.transform_batch_size
 
       while True:
-        end = min((start+1)*batch_size, X.shape[0])
-        X_batch = X[(start*batch_size):end]
-        output = self.sess.run([self.outputs], feed_dict={self.inputs: X_batch})[0]
+        end = min((start + 1) * batch_size, X.shape[0])
+        X_batch = X[(start * batch_size):end]
+        output = self.sess.run(
+            [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
         print('%i samples transformed' % num_transformed)
