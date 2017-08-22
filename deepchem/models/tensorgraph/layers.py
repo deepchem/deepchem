@@ -89,14 +89,7 @@ class Layer(object):
       in_layers = [in_layers]
     tensors = []
     for input in in_layers:
-      if isinstance(input, tf.Tensor):
-        tensors.append(input)
-      elif isinstance(input, tf.Variable):
-        tensors.append(input)
-      elif isinstance(input, Layer):
-        tensors.append(input.out_tensor)
-      else:
-        raise ValueError('Unexpected input: ' + str(input))
+      tensors.append(tf.convert_to_tensor(input))
     if reshape and len(tensors) > 1:
       shapes = [t.get_shape() for t in tensors]
       if any(s != shapes[0] for s in shapes[1:]):
