@@ -91,7 +91,6 @@ class Transformer(object):
     """
     _, y_shape, w_shape, _ = dataset.get_shape()
     if y_shape == tuple() and self.transform_y:
-      print(y_shape, "Y_SHAPE")
       raise ValueError("Cannot transform y when y_values are not present")
     if w_shape == tuple() and self.transform_w:
       raise ValueError("Cannot transform w when w_values are not present")

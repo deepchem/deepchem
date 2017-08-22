@@ -24,6 +24,8 @@ def load_roiterberg_ANI(relative=False):
 
   base_dir = os.environ["ROITBERG_ANI"]
 
+  # Number of conformations in each file increases exponentially.
+  # Start with a smaller dataset before continuing.
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
