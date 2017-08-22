@@ -1394,19 +1394,21 @@ class GraphGather(Layer):
 
 
 class LSTMStep(Layer):
-  """ LSTM whose call is a single step in the LSTM.
+  """Layer that performs a single step LSTM update.
 
-  We generate a sequence of inputs using the intermediate outputs of the
-  LSTM, and so allow step by step operation of the lstm
+  This layer performs a single step LSTM update. Note that it is *not*
+  a full LSTM recurrent network. The LSTMStep layer is useful as a
+  primitive for designing layers such as the AttnLSTMEmbedding or the
+  IterRefLSTMEmbedding below.
   """
 
   def __init__(self,
                output_dim,
                input_dim,
-               init='glorot_uniform',
-               inner_init='orthogonal',
-               activation='tanh',
-               inner_activation='hard_sigmoid',
+               init=initializations.glorot_uniform,
+               inner_init=initializations.orthogonal,
+               activation=activations.tanh,
+               inner_activation=activations.hard_sigmoid,
                **kwargs):
 
     super(LSTMStep, self).__init__(**kwargs)
@@ -1424,8 +1426,9 @@ class LSTMStep(Layer):
     return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
 
   def build(self):
-    init = initializations.get(self.init)
-    inner_init = initializations.get(self.inner_init)
+    """Constructs learnable weights for this layer."""
+    init = self.init
+    inner_init = self.inner_init
     self.W = init((self.input_dim, 4 * self.output_dim))
     self.U = inner_init((self.output_dim, 4 * self.output_dim))
 
@@ -1436,6 +1439,7 @@ class LSTMStep(Layer):
     self.trainable_weights = [self.W, self.U, self.b]
 
   def none_tensors(self):
+    """Zeros out stored tensors for pickling."""
     W, U, b, out_tensor = self.W, self.U, self.b, self.out_tensor
     h, c = self.h, self.c
     trainable_weights = self.trainable_weights
@@ -1445,6 +1449,7 @@ class LSTMStep(Layer):
     return W, U, b, h, c, out_tensor, trainable_weights
 
   def set_tensors(self, tensor):
+    """Sets all stored tensors."""
     (self.W, self.U, self.b, self.h, self.c, self.out_tensor,
      self.trainable_weights) = tensor
 
@@ -1454,19 +1459,17 @@ class LSTMStep(Layer):
     Parameters
     ----------
     in_layers: list
-      List of three tensors (x, h_tm1, c_tm1).
+      List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
 
     Returns
     -------
     list
       Returns h, [h + c] 
     """
-    activation = activations.get(self.activation)
-    inner_activation = activations.get(self.inner_activation)
+    activation = self.activation
+    inner_activation = self.inner_activation
 
     self.build()
-    #if in_layers is None:
-    #  in_layers = self.in_layers
     inputs = self._get_input_tensors(in_layers)
     x, h_tm1, c_tm1 = inputs
 
@@ -1492,8 +1495,8 @@ class LSTMStep(Layer):
     return h, [h, c]
 
 
-def cos(x, y):
-  """Computes the inner preduct (cosine distance) between two tensors.
+def _cosine_dist(x, y):
+  """Computes the inner product (cosine distance) between two tensors.
 
   Parameters
   ----------
@@ -1510,6 +1513,16 @@ def cos(x, y):
 
 class AttnLSTMEmbedding(Layer):
   """Implements AttnLSTM as in matching networks paper.
+
+  The AttnLSTM embedding adjusts two sets of vectors, the "test" and
+  "support" sets. The "support" consists of a set of evidence vectors.
+  Think of these as the small training set for low-data machine
+  learning.  The "test" consists of the queries we wish to answer with
+  the small amounts ofavailable data. The AttnLSTMEmbdding allows us to
+  modify the embedding of the "test" set depending on the contents of
+  the "support".  The AttnLSTMEmbedding is thus a type of learnable
+  metric that allows a network to modify its internal notion of
+  distance.
 
   References:
   Matching Networks for One Shot Learning
@@ -1545,16 +1558,16 @@ class AttnLSTMEmbedding(Layer):
     Parameters
     ----------
     in_layers: list
-      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
-      Xp should be of shape (n_support, n_feat) where n_test is the size of
-      the test set, n_support that of the support set, and n_feat is the number
-      of per-atom features.
+      List of two tensors (X, Xp). X should be of shape (n_test,
+      n_feat) and Xp should be of shape (n_support, n_feat) where
+      n_test is the size of the test set, n_support that of the support
+      set, and n_feat is the number of per-atom features.
 
     Returns
     -------
     list
-      Returns two tensors of same shape as input. Namely the output shape will
-      be [(n_test, n_feat), (n_support, n_feat)]
+      Returns two tensors of same shape as input. Namely the output
+      shape will be [(n_test, n_feat), (n_support, n_feat)]
     """
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
@@ -1581,11 +1594,11 @@ class AttnLSTMEmbedding(Layer):
     for d in range(self.max_depth):
       # Process using attention
       # Eqn (4), appendix A.1 of Matching Networks paper
-      e = cos(x + q, xp)
+      e = _cosine_dist(x + q, xp)
       a = tf.nn.softmax(e)
       r = model_ops.dot(a, xp)
 
-      # Generate new aattention states
+      # Generate new attention states
       y = model_ops.concatenate([q, r], axis=1)
       q, states = lstm(y, *states)
 
@@ -1612,7 +1625,17 @@ class AttnLSTMEmbedding(Layer):
 
 
 class IterRefLSTMEmbedding(Layer):
-  """Embeds its inputs using an LSTM layer."""
+  """Implements the Iterative Refinement LSTM.
+
+  Much like AttnLSTMEmbedding, the IterRefLSTMEmbedding is another type
+  of learnable metric which adjusts "test" and "support." Recall that
+  "support" is the small amount of data available in a low data machine
+  learning problem, and that "test" is the query. The AttnLSTMEmbedding
+  only modifies the "test" based on the contents of the support.
+  However, the IterRefLSTM modifies both the "support" and "test" based
+  on each other. This allows the learnable metric to be more malleable
+  than that from AttnLSTMEmbeding.
+  """
 
   def __init__(self,
                n_test,
@@ -1623,9 +1646,10 @@ class IterRefLSTMEmbedding(Layer):
                activation='linear',
                **kwargs):
     """
-    Unlike the AttnLSTM model which only modifies the test vectors additively,
-    this model allows for an additive update to be performed to both test and
-    support using information from each other.
+    Unlike the AttnLSTM model which only modifies the test vectors
+    additively, this model allows for an additive update to be
+    performed to both test and support using information from each
+    other.
 
     Parameters
     ----------
@@ -1648,10 +1672,6 @@ class IterRefLSTMEmbedding(Layer):
     self.n_test = n_test
     self.n_support = n_support
     self.n_feat = n_feat
-
-  #def build(self):
-  #  """Builds this layer.
-  #  """
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """Execute this layer on input tensors.
@@ -1702,13 +1722,13 @@ class IterRefLSTMEmbedding(Layer):
 
     for d in range(self.max_depth):
       # Process support xp using attention
-      e = cos(z + q, xp)
+      e = _cosine_dist(z + q, xp)
       a = tf.nn.softmax(e)
       # Get linear combination of support set
       r = model_ops.dot(a, xp)
 
       # Process test x using attention
-      x_e = cos(x + p, z)
+      x_e = _cosine_dist(x + p, z)
       x_a = tf.nn.softmax(x_e)
       s = model_ops.dot(x_a, z)
 

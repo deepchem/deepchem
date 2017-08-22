@@ -42,9 +42,6 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       input_layer = dc.nn.Input(shape=(32,))
 
-  #def test_batch_normalization(self):
-  #  """Tests that batch normalization layers can be created."""
-
   def test_graph_convolution(self):
     """Tests that Graph Convolution transforms shapes correctly."""
     n_atoms = 5
