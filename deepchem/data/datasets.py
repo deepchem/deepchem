@@ -768,12 +768,12 @@ class DiskDataset(Dataset):
       y = np.reshape(y, (n_samples, -1))
       if w is not None:
         w = np.reshape(w, (n_samples, -1))
-    n_tasks = y.shape[1]
     if ids is None:
       ids = np.arange(n_samples)
     if w is None:
       w = np.ones_like(y)
     if tasks is None:
+      n_tasks = y.shape[1]
       tasks = np.arange(n_tasks)
     # raw_data = (X, y, w, ids)
     return DiskDataset.create_dataset(

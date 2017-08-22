@@ -3,6 +3,7 @@ import threading
 import time
 
 import networkx as nx
+import collections
 import numpy as np
 import os
 import six
@@ -28,12 +29,10 @@ class TensorGraph(Model):
                batch_size=100,
                random_seed=None,
                use_queue=True,
-               mode="regression",
                graph=None,
                learning_rate=0.001,
                **kwargs):
     """
-    TODO(LESWING) allow a model to change its learning rate
     Parameters
     ----------
     tensorboard: bool
@@ -48,10 +47,6 @@ class TensorGraph(Model):
       queue in batches of self.batch_size in a separate thread from the
       thread training the model.  You cannot use a queue when
       batches are not of consistent size
-    mode: str
-      "regression" or "classification".  "classification" models on
-      predict will do an argmax(axis=2) to determine the class of the
-      prediction.
     graph: tensorflow.Graph
       the Graph in which to create Tensorflow objects.  If None, a new Graph
       is created.
@@ -70,8 +65,8 @@ class TensorGraph(Model):
     self.loss = None
     self.built = False
     self.queue_installed = False
-    self.optimizer = Adam(
-        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+    self.optimizer = None
+    self.learning_rate = learning_rate
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -85,7 +80,6 @@ class TensorGraph(Model):
     self.tensorboard = tensorboard
     self.tensorboard_log_frequency = tensorboard_log_frequency
     self.tensorboard_step = 0
-    self.mode = mode
     self.global_step = 0
     self.last_checkpoint = None
     self.use_queue = use_queue
@@ -121,9 +115,11 @@ class TensorGraph(Model):
           dataset,
           nb_epoch=10,
           max_checkpoints_to_keep=5,
-          checkpoint_interval=1000):
+          checkpoint_interval=1000,
+          deterministic=False):
     return self.fit_generator(
-        self.default_generator(dataset, epochs=nb_epoch),
+        self.default_generator(
+            dataset, epochs=nb_epoch, deterministic=deterministic),
         max_checkpoints_to_keep, checkpoint_interval)
 
   def fit_generator(self,
@@ -185,10 +181,8 @@ class TensorGraph(Model):
                                                           avg_loss))
         saver.save(sess, self.save_file, global_step=self.global_step)
         self.last_checkpoint = saver.last_checkpoints[-1]
-      ############################################################## TIMING
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
-      ############################################################## TIMING
 
   def _log_tensorboard(self, summary):
     """
@@ -214,6 +208,7 @@ class TensorGraph(Model):
                         dataset,
                         epochs=1,
                         predict=False,
+                        deterministic=True,
                         pad_batches=True):
     if len(self.features) > 1:
       raise ValueError("More than one Feature, must use generator")
@@ -224,7 +219,7 @@ class TensorGraph(Model):
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
-          deterministic=True,
+          deterministic=deterministic,
           pad_batches=pad_batches):
         feed_dict = dict()
         if len(self.labels) == 1 and y_b is not None and not predict:
@@ -238,123 +233,146 @@ class TensorGraph(Model):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
-  def predict_on_generator(self, generator, transformers=[]):
-    """Generates output predictions for the input samples,
-      processing the samples in a batched way.
-
-    # Arguments
-        x: the input data, as a Numpy array.
-        batch_size: integer.
-        verbose: verbosity mode, 0 or 1.
-
-    # Returns
-        A Numpy array of predictions.
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
     """
-    retval = self.predict_proba_on_generator(generator, transformers)
-    if self.mode == 'classification':
-      retval = np.expand_dims(from_one_hot(retval, axis=2), axis=1)
-    return retval
-
-  def predict_proba_on_generator(self, generator, transformers=[]):
-    """
+    Parameters
+    ----------
+    generator: Generator
+      Generator that constructs feed dictionaries for TensorGraph.
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object
+      If outputs is None, then will assume outputs = self.outputs.
+      If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
     if not self.built:
       self.build()
+    if outputs is None:
+      outputs = self.outputs
+    elif not isinstance(outputs, collections.Sequence):
+      outputs = [outputs]
     with self._get_tf("Graph").as_default():
       with tf.Session() as sess:
         saver = tf.train.Saver()
         self._initialize_weights(sess, saver)
         out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
+        # Gather results for each output
+        results = [[] for out in out_tensors]
         for feed_dict in generator:
           feed_dict = {
               self.layers[k.name].out_tensor: v
               for k, v in six.iteritems(feed_dict)
           }
           feed_dict[self._training_placeholder] = 0.0
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
+          feed_results = sess.run(out_tensors, feed_dict=feed_dict)
+          if len(feed_results) > 1:
+            if len(transformers):
+              raise ValueError("Does not support transformations "
+                               "for multiple outputs.")
+          elif len(feed_results) == 1:
+            result = undo_transforms(feed_results[0], transformers)
+            feed_results = [result]
+          for ind, result in enumerate(feed_results):
+            results[ind].append(result)
 
-  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
+        final_results = []
+        for result_list in results:
+          final_results.append(np.concatenate(result_list, axis=0))
+        # If only one output, just return array
+        if len(final_results) == 1:
+          return final_results[0]
+        else:
+          return final_results
+
+  def predict_proba_on_generator(self, generator, transformers=[],
+                                 outputs=None):
     """
-    Returns:
-      mu: numpy ndarray of shape (n_samples, n_tasks)
-      sigma: numpy ndarray of shape (n_samples, n_tasks)
-    """
-    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
-    y_ = []
-    for i in range(n_passes):
-      generator = self.default_generator(
-          dataset, predict=True, pad_batches=True)
-      y_.append(self.predict_on_generator(generator, transformers))
-
-    y_ = np.concatenate(y_, axis=2)
-    mu = np.mean(y_, axis=2)
-    sigma = np.std(y_, axis=2)
-
-    return mu, sigma
-
-  def predict_on_smiles_batch(self,
-                              smiles,
-                              featurizer,
-                              n_tasks,
-                              transformers=[]):
-    """
-    # Returns:
-      A numpy ndarray of shape (n_samples, n_tasks)
-    """
-    convmols = featurize_smiles_np(smiles, featurizer)
-
-    dataset = NumpyDataset(X=convmols, y=None, n_tasks=len(self.outputs))
-    generator = self.default_generator(dataset, predict=True, pad_batches=True)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_on_batch(self, X, sess=None, transformers=[]):
-    """Generates output predictions for the input samples,
-      processing the samples in a batched way.
-
-    # Arguments
-        x: the input data, as a Numpy array.
-        batch_size: integer.
-        verbose: verbosity mode, 0 or 1.
-
-    # Returns
-        A Numpy array of predictions.
-    """
-    dataset = NumpyDataset(X=X, y=None)
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba_on_batch(self, X, sess=None, transformers=[]):
-    dataset = NumpyDataset(X=X, y=None)
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
-
-  def predict(self, dataset, transformers=[], batch_size=None):
-    """
-    Uses self to make predictions on provided Dataset object.
-
-    Returns:
-      y_pred: numpy ndarray of shape (n_samples,)
-    """
-    generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
-
-  def predict_proba(self, dataset, transformers=[], batch_size=None):
-    """
-    TODO: Do transformers even make sense here?
-
     Returns:
       y_pred: numpy ndarray of shape (n_samples, n_classes*n_tasks)
     """
+    return self.predict_on_generator(generator, transformers, outputs)
+
+  def predict_on_batch(self, X, transformers=[]):
+    """Generates predictions for input samples, processing samples in a batch.
+
+    Parameters
+    ---------- 
+    X: ndarray
+      the input data, as a Numpy array.
+    transformers: List
+      List of dc.trans.Transformers 
+
+    Returns
+    -------
+    A Numpy array of predictions.
+    """
+    dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_proba_on_generator(generator, transformers)
+    return self.predict_on_generator(generator, transformers)
+
+  def predict_proba_on_batch(self, X, transformers=[]):
+    """Generates predictions for input samples, processing samples in a batch.
+
+    Parameters
+    ---------- 
+    X: ndarray
+      the input data, as a Numpy array.
+    transformers: List
+      List of dc.trans.Transformers 
+
+    Returns
+    -------
+    A Numpy array of predictions.
+    """
+    return self.predict_on_batch(X, transformers)
+
+  def predict(self, dataset, transformers=[], outputs=None):
+    """
+    Uses self to make predictions on provided Dataset object.
+
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object 
+      If outputs is None, then will assume outputs = self.outputs[0] (single
+      output). If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
+
+    Returns
+    -------
+    results: numpy ndarray or list of numpy ndarrays
+    """
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_on_generator(generator, transformers, outputs)
+
+  def predict_proba(self, dataset, transformers=[], outputs=None):
+    """
+    Parameters
+    ----------
+    dataset: dc.data.Dataset
+      Dataset to make prediction on
+    transformers: list
+      List of dc.trans.Transformers.
+    outputs: object 
+      If outputs is None, then will assume outputs = self.outputs[0] (single
+      output). If outputs is a Layer/Tensor, then will evaluate and return as a
+      single ndarray. If outputs is a list of Layers/Tensors, will return a list
+      of ndarrays.
+
+    Returns
+    -------
+    y_pred: numpy ndarray or list of numpy ndarrays
+    """
+    generator = self.default_generator(dataset, predict=True, pad_batches=False)
+    return self.predict_proba_on_generator(generator, transformers, outputs)
 
   def topsort(self):
     return nx.topological_sort(self.nxgraph)
@@ -550,12 +568,15 @@ class TensorGraph(Model):
     return self._get_tf("GlobalStep")
 
   def _get_tf(self, obj):
-    """
-    TODO(LESWING) REALLY NEED TO DOCUMENT THIS
+    """Fetches underlying TensorFlow primitives.
+
     Parameters
     ----------
-    obj
-
+    obj: str
+      If "Graph", returns tf.Graph instance. If "FileWriter", returns
+      tf.summary.FileWriter. If "Optimizer", returns the optimizer. If
+      "train_op", returns the train operation. If "summary_op", returns the
+      merged summary. If "GlobalStep" returns the global step.
     Returns
     -------
     TensorFlow Object
@@ -569,6 +590,12 @@ class TensorGraph(Model):
     elif obj == "FileWriter":
       self.tensor_objects['FileWriter'] = tf.summary.FileWriter(self.model_dir)
     elif obj == 'Optimizer':
+      if self.optimizer is None:
+        self.optimizer = Adam(
+            learning_rate=self.learning_rate,
+            beta1=0.9,
+            beta2=0.999,
+            epsilon=1e-7)
       self.tensor_objects['Optimizer'] = self.optimizer._create_optimizer(
           self._get_tf('GlobalStep'))
     elif obj == 'train_op':

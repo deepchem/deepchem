@@ -162,7 +162,10 @@ class Layer(object):
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
   def _as_graph_element(self):
-    return self.out_tensor._as_graph_element()
+    if '_as_graph_element' in dir(self.out_tensor):
+      return self.out_tensor._as_graph_element()
+    else:
+      return self.out_tensor
 
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
@@ -650,6 +653,21 @@ class Weights(Input):
     super(Weights, self).__init__(**kwargs)
 
 
+class L1Loss(Layer):
+
+  def __init__(self, **kwargs):
+    super(L1Loss, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, True)
+    guess, label = inputs[0], inputs[1]
+    out_tensor = tf.reduce_mean(
+        tf.abs(guess - label), axis=list(range(1, len(label.shape))))
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class L2Loss(Layer):
 
   def __init__(self, **kwargs):
@@ -888,6 +906,28 @@ class InteratomicL2Distances(Layer):
     # Shape (N_atoms, M_nbrs)
     dists = tf.reduce_sum((tiled_coords - nbr_coords)**2, axis=2)
     out_tensor = dists
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class SparseSoftMaxCrossEntropy(Layer):
+
+  def __init__(self, **kwargs):
+    super(SparseSoftMaxCrossEntropy, self).__init__(**kwargs)
+    try:
+      self._shape = (self.in_layers[1].shape[0], 1)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, False)
+    if len(inputs) != 2:
+      raise ValueError()
+    labels, logits = inputs[0], inputs[1]
+    self.out_tensor = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=logits, labels=labels)
+    out_tensor = tf.reshape(self.out_tensor, [-1, 1])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
