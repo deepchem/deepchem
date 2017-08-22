@@ -221,6 +221,7 @@ class RandomGroupSplitter(Splitter):
 
     """
     self.groups = groups
+    super(RandomGroupSplitter, self).__init__()
 
   def split(self,
             dataset,

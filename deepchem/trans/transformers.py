@@ -91,6 +91,7 @@ class Transformer(object):
     """
     _, y_shape, w_shape, _ = dataset.get_shape()
     if y_shape == tuple() and self.transform_y:
+      print(y_shape, "Y_SHAPE")
       raise ValueError("Cannot transform y when y_values are not present")
     if w_shape == tuple() and self.transform_w:
       raise ValueError("Cannot transform w when w_values are not present")
@@ -994,7 +995,7 @@ class ANITransformer(Transformer):
             [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
-        print('%i samples transformed' % num_transformed)
+        # print('%i samples transformed' % num_transformed)
         start += 1
         if end >= len(X):
           break
