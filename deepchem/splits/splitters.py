@@ -458,9 +458,9 @@ class SingletaskStratifiedSplitter(Splitter):
     sortidx = np.argsort(y_s)
 
     split_cd = 10
-    train_cutoff = int(frac_train * split_cd)
-    valid_cutoff = int(frac_valid * split_cd) + train_cutoff
-    test_cutoff = int(frac_test * split_cd) + valid_cutoff
+    train_cutoff = int(np.round(frac_train * split_cd))
+    valid_cutoff = int(np.round(frac_valid * split_cd)) + train_cutoff
+    test_cutoff = int(np.round(frac_test * split_cd)) + valid_cutoff
 
     train_idx = np.array([])
     valid_idx = np.array([])

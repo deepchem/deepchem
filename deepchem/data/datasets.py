@@ -793,7 +793,7 @@ class DiskDataset(Dataset):
         X, y, w, ids = (dataset.X, dataset.y, dataset.w, dataset.ids)
         yield (X, y, w, ids)
 
-    return DiskDataset.create_dataset(generator(), data_dir=merge_dir)
+    return DiskDataset.create_dataset(generator(), data_dir=merge_dir, tasks=datasets[0].tasks)
 
   def subset(self, shard_nums, subset_dir=None):
     """Creates a subset of the original dataset on disk."""

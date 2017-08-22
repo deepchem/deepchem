@@ -7,14 +7,14 @@ p2
 I14
 sS'batch_size'
 p3
-I37
+I100
 sS'n_graph_feat'
 p4
-I163
+I69
 sS'seed'
 p5
 I123
 sS'learning_rate'
 p6
-F0.002
+F0.000973374658421467
 s.

@@ -11,9 +11,9 @@ aF0.0
 asS'weight_init_stddevs'
 p4
 (lp5
-F0.056710114899178876
-aF0.17319815824948853
-aF0.14256414086639593
+F0.04302089128877567
+aF0.061684705216884864
+aF0.09310186108953719
 asS'penalty_type'
 p6
 S'l2'
@@ -21,9 +21,9 @@ p7
 sS'layer_sizes'
 p8
 (lp9
-I255
-aI123
-aI61
+I466
+aI50
+aI171
 asS'fit_transformers'
 p10
 cdeepchem.trans.transformers
@@ -40,8 +40,8 @@ aF0.01
 aF0.01
 asS'learning_rate'
 p15
-F0.001840922860928017
+F0.0011830096894090698
 sS'batch_size'
 p16
-I21
+I42
 s.

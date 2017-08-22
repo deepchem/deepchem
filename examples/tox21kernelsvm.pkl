@@ -1,0 +1,8 @@
+(dp0
+S'C'
+p1
+F0.5
+sS'gamma'
+p2
+F0.1
+s.

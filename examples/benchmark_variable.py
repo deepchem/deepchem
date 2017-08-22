@@ -81,6 +81,7 @@ for dataset in datasets:
     for model in models:
       with open(os.path.join(out_path, dataset + model + '.pkl'), 'r') as f:
         hyper_parameters = pickle.load(f)
+      #hyper_parameters = None
 
       metric = metrics[dataset]
       if dataset in ['bace_c', 'tox21']:
@@ -103,39 +104,42 @@ for dataset in datasets:
       }
 
       tasks, all_dataset, transformers = loading_functions[dataset](
-          featurizer=featurizer, reload=reload)
+          featurizer=featurizer, reload=reload, split='index')
       all_dataset = dc.data.DiskDataset.merge(all_dataset)
-
-      for frac_train in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-        splitters = {
+      for seed in [1,2,3,4,5]:
+        for frac_train in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+          splitters = {
             'index': dc.splits.IndexSplitter(),
             'random': dc.splits.RandomSplitter(),
-            'scaffold': dc.splits.ScaffoldSplitter()
-        }
-        splitter = splitters[split]
-        train, valid, test = splitter.train_valid_test_split(all_dataset,
-                                                             frac_train=frac_train,
-                                                             frac_valid=1-frac_train,
-                                                             frac_test=0.)
-        if mode == 'classification':
-          train_score, valid_score, test_score = benchmark_classification(
-              train, valid, test, tasks, transformers, n_features, metric,
-              model, test=False, hyper_parameters=hyper_parameters, seed=seed)
-        elif mode == 'regression':
-          train_score, valid_score, test_score = benchmark_regression(
-              train, valid, test, tasks, transformers, n_features, metric,
-              model, test=False, hyper_parameters=hyper_parameters, seed=seed)
-        with open(os.path.join(out_path, 'results_variable.csv'), 'a') as f:
-          writer = csv.writer(f)
-          model_name = list(train_score.keys())[0]
-          for i in train_score[model_name]:
-            output_line = [
+            'scaffold': dc.splits.ScaffoldSplitter(),
+            'stratified': dc.splits.SingletaskStratifiedSplitter(task_number=0)
+          }
+          splitter = splitters[split]
+          np.random.seed(seed)
+          train, valid, test = splitter.train_valid_test_split(all_dataset,
+                                                               frac_train=frac_train,
+                                                               frac_valid=1-frac_train,
+                                                               frac_test=0.)
+          test = valid
+          if mode == 'classification':
+            train_score, valid_score, test_score = benchmark_classification(
+                train, valid, test, tasks, transformers, n_features, metric,
+                model, test=False, hyper_parameters=hyper_parameters, seed=seed)
+          elif mode == 'regression':
+            train_score, valid_score, test_score = benchmark_regression(
+                train, valid, test, tasks, transformers, n_features, metric,
+                model, test=False, hyper_parameters=hyper_parameters, seed=seed)
+          with open(os.path.join(out_path, 'results_variable.csv'), 'a') as f:
+            writer = csv.writer(f)
+            model_name = list(train_score.keys())[0]
+            for i in train_score[model_name]:
+              output_line = [
                 dataset, str(split), mode, model_name, i, 'train',
                 train_score[model_name][i], 'valid', valid_score[model_name][i]
-            ]
-            output_line.extend([
-                'frac_train', frac_train])
-            writer.writerow(output_line)
+              ]
+              output_line.extend([
+                  'frac_train', frac_train])
+              writer.writerow(output_line)
 
 
 

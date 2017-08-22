@@ -206,7 +206,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
               metric,
               self.model_class,
               hyper_parameters=hyper_parameters)
-        return valid_scores[self.model_class][metric[0].name]
+        score = valid_scores[self.model_class][metric[0].name]
       else:
         model_dir = tempfile.mkdtemp()
         model = self.model_class(hyper_parameters, model_dir)
@@ -214,7 +214,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model.save()
         evaluator = Evaluator(model, valid_dataset, output_transformers)
         multitask_scores = evaluator.compute_model_performance([metric])
-        return multitask_scores[metric.name]
+        score = multitask_scores[metric.name]
+      if direction:
+        return score
+      else:
+        return -score
 
     cov = pyGPGO_covfunc.matern32()
     gp = pyGPGO_surrogates_GaussianProcess.GaussianProcess(cov)
@@ -223,7 +227,6 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
-
     # Readout best hyper parameters
     i = 0
     for hp in hp_list_single:
@@ -239,4 +242,32 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
       i = i + hp[1]
 
+    if isinstance(self.model_class, str) or isinstance(
+        self.model_class, unicode):
+      try:
+        train_scores, valid_scores, _ = benchmark_classification(
+            train_dataset,
+            valid_dataset,
+            valid_dataset, ['task_placeholder'] * n_tasks,
+            output_transformers,
+            n_features,
+            metric,
+            self.model_class,
+            hyper_parameters=params_dict)
+      except AssertionError:
+        train_scores, valid_scores, _ = benchmark_regression(
+            train_dataset,
+            valid_dataset,
+            valid_dataset, ['task_placeholder'] * n_tasks,
+            output_transformers,
+            n_features,
+            metric,
+            self.model_class,
+            hyper_parameters=params_dict)
+      score = valid_scores[self.model_class][metric[0].name]
+      if not direction:
+        score = -score
+      if score > valid_performance_opt:
+        return params_dict, score 
+ 
     return hyper_parameters, valid_performance_opt

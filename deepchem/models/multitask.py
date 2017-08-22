@@ -56,6 +56,8 @@ class SingletaskToMultitask(Model):
   def _to_singletask(dataset, task_dirs):
     """Transforms a multitask dataset to a collection of singletask datasets."""
     tasks = dataset.get_task_names()
+    print(tasks)
+    print(task_dirs)
     assert len(tasks) == len(task_dirs)
     log("Splitting multitask dataset into singletask datasets", dataset.verbose)
     task_datasets = [
