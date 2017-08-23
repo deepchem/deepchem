@@ -29,7 +29,7 @@ def load_roiterberg_ANI(relative=False):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      # 'ani_gdb_s03.h5',
+      'ani_gdb_s03.h5',
       # 'ani_gdb_s04.h5',
       # 'ani_gdb_s05.h5',
       # 'ani_gdb_s06.h5',
@@ -138,9 +138,11 @@ def load_roiterberg_ANI(relative=False):
   tasks = ["ani"]
   dataset = dc.data.DiskDataset.create_dataset(shard_generator(), tasks=tasks)
   ANItransformer.sess.close()
+  # dataset = dc.data.DiskDataset("/tmp/tmpb8apgtbl")
+ 
 
-  print("Number of groups", np.amax(groups))
-  print("dataset_shape", dataset.X.shape)
+  print("Number of groups:", np.amax(groups))
+  print("dataset_shape, X, y, w, ids:", dataset.get_shape())
   splitter = dc.splits.RandomGroupSplitter(groups)
   train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
       dataset,

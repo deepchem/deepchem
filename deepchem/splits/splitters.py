@@ -231,7 +231,8 @@ class RandomGroupSplitter(Splitter):
             frac_test=.1,
             log_every_n=None):
 
-    assert len(self.groups) == dataset.X.shape[0]
+    assert len(self.groups) == dataset.get_shape()[0][0]
+
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
 
     if not seed is None:
