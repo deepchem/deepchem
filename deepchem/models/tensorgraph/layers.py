@@ -1405,21 +1405,37 @@ class LSTMStep(Layer):
   def __init__(self,
                output_dim,
                input_dim,
-               init=initializations.glorot_uniform,
-               inner_init=initializations.orthogonal,
-               activation=activations.tanh,
-               inner_activation=activations.hard_sigmoid,
+               init_fn=initializations.glorot_uniform,
+               inner_init_fn=initializations.orthogonal,
+               activation_fn=activations.tanh,
+               inner_activation_fn=activations.hard_sigmoid,
                **kwargs):
+    """
+    Parameters
+    ----------
+    output_dim: int
+      Dimensionality of output vectors.
+    input_dim: int
+      Dimensionality of input vectors.
+    init_fn: object 
+      TensorFlow initialization to use for W. 
+    inner_init_fn: object 
+      TensorFlow initialization to use for U. 
+    activation_fn: object 
+      TensorFlow activation to use for output. 
+    inner_activation_fn: object 
+      TensorFlow activation to use for inner steps. 
+    """
 
     super(LSTMStep, self).__init__(**kwargs)
 
-    self.init = init
-    self.inner_init = inner_init
+    self.init = init_fn
+    self.inner_init = inner_init_fn
     self.output_dim = output_dim
 
     # No other forget biases supported right now.
-    self.activation = activation
-    self.inner_activation = inner_activation
+    self.activation = activation_fn
+    self.inner_activation = inner_activation_fn
     self.input_dim = input_dim
 
   def get_initial_states(self, input_shape):
@@ -1637,14 +1653,7 @@ class IterRefLSTMEmbedding(Layer):
   than that from AttnLSTMEmbeding.
   """
 
-  def __init__(self,
-               n_test,
-               n_support,
-               n_feat,
-               max_depth,
-               init='glorot_uniform',
-               activation='linear',
-               **kwargs):
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
     """
     Unlike the AttnLSTM model which only modifies the test vectors
     additively, this model allows for an additive update to be
@@ -1661,10 +1670,6 @@ class IterRefLSTMEmbedding(Layer):
       Number of input atom features
     max_depth: int
       Number of LSTM Embedding layers.
-    init: string
-      Type of weight initialization (from Keras)
-    activation: string
-      Activation type (ReLu/Linear/etc.)
     """
     super(IterRefLSTMEmbedding, self).__init__(**kwargs)
 
