@@ -506,6 +506,7 @@ class TensorGraph(Model):
 
     # Pickle itself
     pickle_name = os.path.join(self.model_dir, "model.pickle")
+
     with open(pickle_name, 'wb') as fout:
       try:
         pickle.dump(self, fout)

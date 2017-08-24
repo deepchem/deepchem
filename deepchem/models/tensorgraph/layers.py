@@ -89,12 +89,7 @@ class Layer(object):
       in_layers = [in_layers]
     tensors = []
     for input in in_layers:
-      if isinstance(input, tf.Tensor):
-        tensors.append(input)
-      elif isinstance(input, Layer):
-        tensors.append(input.out_tensor)
-      else:
-        raise ValueError('Unexpected input: ' + str(input))
+      tensors.append(tf.convert_to_tensor(input))
     if reshape and len(tensors) > 1:
       shapes = [t.get_shape() for t in tensors]
       if any(s != shapes[0] for s in shapes[1:]):
@@ -1411,6 +1406,388 @@ class GraphGather(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+
+
+class LSTMStep(Layer):
+  """Layer that performs a single step LSTM update.
+
+  This layer performs a single step LSTM update. Note that it is *not*
+  a full LSTM recurrent network. The LSTMStep layer is useful as a
+  primitive for designing layers such as the AttnLSTMEmbedding or the
+  IterRefLSTMEmbedding below.
+  """
+
+  def __init__(self,
+               output_dim,
+               input_dim,
+               init_fn=initializations.glorot_uniform,
+               inner_init_fn=initializations.orthogonal,
+               activation_fn=activations.tanh,
+               inner_activation_fn=activations.hard_sigmoid,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    output_dim: int
+      Dimensionality of output vectors.
+    input_dim: int
+      Dimensionality of input vectors.
+    init_fn: object 
+      TensorFlow initialization to use for W. 
+    inner_init_fn: object 
+      TensorFlow initialization to use for U. 
+    activation_fn: object 
+      TensorFlow activation to use for output. 
+    inner_activation_fn: object 
+      TensorFlow activation to use for inner steps. 
+    """
+
+    super(LSTMStep, self).__init__(**kwargs)
+
+    self.init = init_fn
+    self.inner_init = inner_init_fn
+    self.output_dim = output_dim
+
+    # No other forget biases supported right now.
+    self.activation = activation_fn
+    self.inner_activation = inner_activation_fn
+    self.input_dim = input_dim
+
+  def get_initial_states(self, input_shape):
+    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
+
+  def build(self):
+    """Constructs learnable weights for this layer."""
+    init = self.init
+    inner_init = self.inner_init
+    self.W = init((self.input_dim, 4 * self.output_dim))
+    self.U = inner_init((self.output_dim, 4 * self.output_dim))
+
+    self.b = tf.Variable(
+        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
+                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
+        dtype=tf.float32)
+    self.trainable_weights = [self.W, self.U, self.b]
+
+  def none_tensors(self):
+    """Zeros out stored tensors for pickling."""
+    W, U, b, out_tensor = self.W, self.U, self.b, self.out_tensor
+    h, c = self.h, self.c
+    trainable_weights = self.trainable_weights
+    self.W, self.U, self.b, self.out_tensor = None, None, None, None
+    self.h, self.c = None, None
+    self.trainable_weights = []
+    return W, U, b, h, c, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    """Sets all stored tensors."""
+    (self.W, self.U, self.b, self.h, self.c, self.out_tensor,
+     self.trainable_weights) = tensor
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
+
+    Returns
+    -------
+    list
+      Returns h, [h + c] 
+    """
+    activation = self.activation
+    inner_activation = self.inner_activation
+
+    self.build()
+    inputs = self._get_input_tensors(in_layers)
+    x, h_tm1, c_tm1 = inputs
+
+    # Taken from Keras code [citation needed]
+    z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
+
+    z0 = z[:, :self.output_dim]
+    z1 = z[:, self.output_dim:2 * self.output_dim]
+    z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
+    z3 = z[:, 3 * self.output_dim:]
+
+    i = inner_activation(z0)
+    f = inner_activation(z1)
+    c = f * c_tm1 + i * activation(z2)
+    o = inner_activation(z3)
+
+    h = o * activation(c)
+
+    if set_tensors:
+      self.h = h
+      self.c = c
+      self.out_tensor = h
+    return h, [h, c]
+
+
+def _cosine_dist(x, y):
+  """Computes the inner product (cosine distance) between two tensors.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input Tensor
+  y: tf.Tensor
+    Input Tensor 
+  """
+  denom = (
+      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
+      + model_ops.epsilon())
+  return model_ops.dot(x, tf.transpose(y)) / denom
+
+
+class AttnLSTMEmbedding(Layer):
+  """Implements AttnLSTM as in matching networks paper.
+
+  The AttnLSTM embedding adjusts two sets of vectors, the "test" and
+  "support" sets. The "support" consists of a set of evidence vectors.
+  Think of these as the small training set for low-data machine
+  learning.  The "test" consists of the queries we wish to answer with
+  the small amounts ofavailable data. The AttnLSTMEmbdding allows us to
+  modify the embedding of the "test" set depending on the contents of
+  the "support".  The AttnLSTMEmbedding is thus a type of learnable
+  metric that allows a network to modify its internal notion of
+  distance.
+
+  References:
+  Matching Networks for One Shot Learning
+  https://arxiv.org/pdf/1606.04080v1.pdf
+
+  Order Matters: Sequence to sequence for sets
+  https://arxiv.org/abs/1511.06391
+  """
+
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    """
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    n_feat: int
+      Number of features per atom
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    """
+    super(AttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.n_feat = n_feat
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of two tensors (X, Xp). X should be of shape (n_test,
+      n_feat) and Xp should be of shape (n_support, n_feat) where
+      n_test is the size of the test set, n_support that of the support
+      set, and n_feat is the number of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output
+      shape will be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
+    # x is test set, xp is support set.
+    x, xp = inputs
+
+    ## Initializes trainable weights.
+    n_feat = self.n_feat
+
+    lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.r_init = model_ops.zeros([self.n_test, n_feat])
+    self.states_init = lstm.get_initial_states([self.n_test, n_feat])
+
+    self.trainable_weights = [self.q_init, self.r_init]
+
+    ### Performs computations
+
+    # Get initializations
+    q = self.q_init
+    states = self.states_init
+
+    for d in range(self.max_depth):
+      # Process using attention
+      # Eqn (4), appendix A.1 of Matching Networks paper
+      e = _cosine_dist(x + q, xp)
+      a = tf.nn.softmax(e)
+      r = model_ops.dot(a, xp)
+
+      # Generate new attention states
+      y = model_ops.concatenate([q, r], axis=1)
+      q, states = lstm(y, *states)
+
+    if set_tensors:
+      self.out_tensor = xp
+      self.xq = x + q
+      self.xp = xp
+    return [x + q, xp]
+
+  def none_tensors(self):
+    q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    xq, xp = self.xq, self.xp
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    self.q_init, self.r_init, self.states_init = None, None, None
+    self.xq, self.xp = None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return q_init, r_init, states_init, xq, xp, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    (self.q_init, self.r_init, self.states_init, self.xq, self.xp,
+     self.out_tensor, self.trainable_weights) = tensor
+
+
+class IterRefLSTMEmbedding(Layer):
+  """Implements the Iterative Refinement LSTM.
+
+  Much like AttnLSTMEmbedding, the IterRefLSTMEmbedding is another type
+  of learnable metric which adjusts "test" and "support." Recall that
+  "support" is the small amount of data available in a low data machine
+  learning problem, and that "test" is the query. The AttnLSTMEmbedding
+  only modifies the "test" based on the contents of the support.
+  However, the IterRefLSTM modifies both the "support" and "test" based
+  on each other. This allows the learnable metric to be more malleable
+  than that from AttnLSTMEmbeding.
+  """
+
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    """
+    Unlike the AttnLSTM model which only modifies the test vectors
+    additively, this model allows for an additive update to be
+    performed to both test and support using information from each
+    other.
+
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    n_feat: int
+      Number of input atom features
+    max_depth: int
+      Number of LSTM Embedding layers.
+    """
+    super(IterRefLSTMEmbedding, self).__init__(**kwargs)
+
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.n_feat = n_feat
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    n_feat = self.n_feat
+
+    # Support set lstm
+    support_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.support_states_init = support_lstm.get_initial_states(
+        [self.n_support, n_feat])
+
+    # Test lstm
+    test_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
+
+    self.trainable_weights = []
+
+    #self.build()
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError(
+          "IterRefLSTMEmbedding layer must have exactly two parents")
+    x, xp = inputs
+
+    # Get initializations
+    p = self.p_init
+    q = self.q_init
+    # Rename support
+    z = xp
+    states = self.support_states_init
+    x_states = self.test_states_init
+
+    for d in range(self.max_depth):
+      # Process support xp using attention
+      e = _cosine_dist(z + q, xp)
+      a = tf.nn.softmax(e)
+      # Get linear combination of support set
+      r = model_ops.dot(a, xp)
+
+      # Process test x using attention
+      x_e = _cosine_dist(x + p, z)
+      x_a = tf.nn.softmax(x_e)
+      s = model_ops.dot(x_a, z)
+
+      # Generate new support attention states
+      qr = model_ops.concatenate([q, r], axis=1)
+      q, states = support_lstm(qr, *states)
+
+      # Generate new test attention states
+      ps = model_ops.concatenate([p, s], axis=1)
+      p, x_states = test_lstm(ps, *x_states)
+
+      # Redefine
+      z = r
+
+    if set_tensors:
+      self.xp = x + p
+      self.xpq = xp + q
+      self.out_tensor = self.xp
+
+    return [x + p, xp + q]
+
+  def none_tensors(self):
+    p_init, q_init = self.p_init, self.q_init,
+    support_states_init, test_states_init = (self.support_states_init,
+                                             self.test_states_init)
+    xp, xpq = self.xp, self.xpq
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    (self.p_init, self.q_init, self.support_states_init,
+     self.test_states_init) = (None, None, None, None)
+    self.xp, self.xpq = None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return (p_init, q_init, support_states_init, test_states_init, xp, xpq,
+            out_tensor, trainable_weights)
+
+  def set_tensors(self, tensor):
+    (self.p_init, self.q_init, self.support_states_init, self.test_states_init,
+     self.xp, self.xpq, self.out_tensor, self.trainable_weights) = tensor
 
 
 class BatchNorm(Layer):
