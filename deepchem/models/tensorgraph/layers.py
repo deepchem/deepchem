@@ -1164,6 +1164,43 @@ class MaxPool(Layer):
     return out_tensor
 
 
+# class InputFifoQueue(Layer):
+#   """
+#   This Queue Is used to allow asynchronous batching of inputs
+#   During the fitting process
+#   """
+
+#   def __init__(self, shapes, names, capacity=5, **kwargs):
+#     self.shapes = shapes
+#     self.names = names
+#     self.capacity = capacity
+#     super(InputFifoQueue, self).__init__(**kwargs)
+
+#   def create_tensor(self, in_layers=None, **kwargs):
+#     # TODO(rbharath): Note sure if this layer can be called with __call__
+#     # meaningfully, so not going to support that functionality for now.
+#     if in_layers is None:
+#       in_layers = self.in_layers
+#     in_layers = convert_to_layers(in_layers)
+#     self.dtypes = [x.out_tensor.dtype for x in in_layers]
+#     self.queue = tf.FIFOQueue(
+#         self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+#     feed_dict = {x.name: x.out_tensor for x in in_layers}
+#     self.out_tensor = self.queue.enqueue(feed_dict)
+#     self.close_op = self.queue.close()
+#     self.out_tensors = self.queue.dequeue()
+
+#   def none_tensors(self):
+#     queue, out_tensors, out_tensor, close_op = self.queue, self.out_tensor, self.out_tensor, self.close_op
+#     self.queue, self.out_tensor, self.out_tensors, self.close_op = None, None, None, None
+#     return queue, out_tensors, out_tensor, close_op
+
+#   def set_tensors(self, tensors):
+#     self.queue, self.out_tensor, self.out_tensors, self.close_op = tensors
+
+#   def close(self):
+#     self.queue.close()
+
 class InputFifoQueue(Layer):
   """
   This Queue Is used to allow asynchronous batching of inputs
@@ -1177,18 +1214,19 @@ class InputFifoQueue(Layer):
     super(InputFifoQueue, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, **kwargs):
-    # TODO(rbharath): Note sure if this layer can be called with __call__
-    # meaningfully, so not going to support that functionality for now.
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    self.queue = tf.contrib.staging.StagingArea(
+        self.dtypes,
+        capacity=self.capacity,
+        shapes=self.shapes,
+        names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
-    self.out_tensor = self.queue.enqueue(feed_dict)
-    self.close_op = self.queue.close()
-    self.out_tensors = self.queue.dequeue()
+    self.out_tensor = self.queue.put(feed_dict)
+    self.close_op = self.queue.clear()
+    self.out_tensors = self.queue.get()
 
   def none_tensors(self):
     queue, out_tensors, out_tensor, close_op = self.queue, self.out_tensor, self.out_tensor, self.close_op
@@ -1199,7 +1237,7 @@ class InputFifoQueue(Layer):
     self.queue, self.out_tensor, self.out_tensors, self.close_op = tensors
 
   def close(self):
-    self.queue.close()
+    self.queue.clear()
 
 
 class GraphConv(Layer):

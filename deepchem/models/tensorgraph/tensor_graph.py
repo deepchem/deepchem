@@ -1,6 +1,7 @@
 import pickle
 import threading
 import time
+from tensorflow.python.client import timeline
 
 import networkx as nx
 import collections
@@ -155,9 +156,20 @@ class TensorGraph(Model):
           enqueue_thread.start()
         output_tensors = [x.out_tensor for x in self.outputs]
         fetches = output_tensors + [train_op, self.loss.out_tensor]
+        options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
         for feed_dict in create_feed_dict():
           try:
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
+
+            # sess.run(res, options=options, run_metadata=run_metadata)
+
+
+            fetched_values = sess.run(
+              fetches,
+              options=options,
+              run_metadata=run_metadata,
+              feed_dict=feed_dict)
+
             loss = fetched_values[-1]
             avg_loss += loss
             n_batches += 1
@@ -176,6 +188,13 @@ class TensorGraph(Model):
             print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                               avg_loss))
             avg_loss, n_batches = 0.0, 0.0
+
+        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+        chrome_trace = fetched_timeline.generate_chrome_trace_format()
+
+        with open('new_opt_total_timeline_'+str(self.global_step)+'.json', 'w') as f:
+          f.write(chrome_trace)
+
         avg_loss = float(avg_loss) / n_batches
         print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                           avg_loss))
