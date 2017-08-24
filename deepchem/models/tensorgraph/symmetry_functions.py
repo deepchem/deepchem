@@ -422,11 +422,27 @@ class AtomicDifferentiatedDense(Layer):
     in_channels = inputs.get_shape().as_list()[-1]
     self.W = self.init(
         [len(self.atom_number_cases), in_channels, self.out_channels])
+
     self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
     outputs = []
     for i, atom_case in enumerate(self.atom_number_cases):
+
+      # optimization to allow for tensorcontraction/broadcasted mmul
+      # using a reshape trick. Note that the np and tf matmul behavior
+      # differs when dealing with broadcasts
+
+      a = inputs  # (i,j,k)
+      b = self.W[i, :, :]  # (k, l)
+
+      ai = tf.shape(a)[0]
+      aj = tf.shape(a)[1]
+      ak = tf.shape(a)[2]
+      bl = tf.shape(b)[1]
+
       output = self.activation(
-          tf.tensordot(inputs, self.W[i, :, :], [[2], [0]]) + self.b[i, :])
+          tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
+          self.b[i, :])
+
       mask = 1 - tf.to_float(tf.cast(atom_numbers - atom_case, tf.bool))
       output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
                                                              self.out_channels))
