@@ -290,7 +290,6 @@ class TensorGraph(Model):
     elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
     with self._get_tf("Graph").as_default():
-      saver = tf.train.Saver()
       out_tensors = [x.out_tensor for x in self.outputs]
       # Gather results for each output
       results = [[] for out in out_tensors]
