@@ -365,8 +365,8 @@ class Dense(Layer):
 class Flatten(Layer):
   """Flatten every dimension except the first"""
 
-  def __init__(self, **kwargs):
-    super(Flatten, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(Flatten, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       s = list(parent_shape[:2])
@@ -425,9 +425,9 @@ class Reshape(Layer):
 
 class Squeeze(Layer):
 
-  def __init__(self, squeeze_dims=None, **kwargs):
+  def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
     self.squeeze_dims = squeeze_dims
-    super(Squeeze, self).__init__(**kwargs)
+    super(Squeeze, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       if squeeze_dims is None:
@@ -472,8 +472,8 @@ class Transpose(Layer):
 
 class CombineMeanStd(Layer):
 
-  def __init__(self, **kwargs):
-    super(CombineMeanStd, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(CombineMeanStd, self).__init__(in_layers, **kwargs)
     try:
       self._shape = self.in_layers[0].shape
     except:
@@ -650,8 +650,8 @@ class Weights(Input):
 
 class L1Loss(Layer):
 
-  def __init__(self, **kwargs):
-    super(L1Loss, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(L1Loss, self).__init__(in_layers, **kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -665,8 +665,8 @@ class L1Loss(Layer):
 
 class L2Loss(Layer):
 
-  def __init__(self, **kwargs):
-    super(L2Loss, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(L2Loss, self).__init__(in_layers, **kwargs)
     try:
       shape1 = self.in_layers[0].shape
       shape2 = self.in_layers[1].shape
@@ -689,8 +689,8 @@ class L2Loss(Layer):
 
 class SoftMax(Layer):
 
-  def __init__(self, **kwargs):
-    super(SoftMax, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SoftMax, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
@@ -709,9 +709,9 @@ class SoftMax(Layer):
 
 class Concat(Layer):
 
-  def __init__(self, axis=1, **kwargs):
+  def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
-    super(Concat, self).__init__(**kwargs)
+    super(Concat, self).__init__(in_layers, **kwargs)
     try:
       s = list(self.in_layers[0].shape)
       for parent in self.in_layers[1:]:
@@ -734,9 +734,9 @@ class Concat(Layer):
 
 class Stack(Layer):
 
-  def __init__(self, axis=1, **kwargs):
+  def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
-    super(Stack, self).__init__(**kwargs)
+    super(Stack, self).__init__(in_layers, **kwargs)
     try:
       s = list(self.in_layers[0].shape)
       s.insert(axis, len(self.in_layers))
@@ -810,7 +810,7 @@ class Variable(Layer):
 class Add(Layer):
   """Compute the (optionally weighted) sum of the input layers."""
 
-  def __init__(self, weights=None, **kwargs):
+  def __init__(self, in_layers=None, weights=None, **kwargs):
     """Create an Add layer.
 
     Parameters
@@ -819,7 +819,7 @@ class Add(Layer):
       an array of length equal to the number of input layers, giving the weight
       to multiply each input by.  If None, all weights are set to 1.
     """
-    super(Add, self).__init__(**kwargs)
+    super(Add, self).__init__(in_layers, **kwargs)
     self.weights = weights
     try:
       shape1 = list(self.in_layers[0].shape)
@@ -854,8 +854,8 @@ class Add(Layer):
 class Multiply(Layer):
   """Compute the product of the input layers."""
 
-  def __init__(self, **kwargs):
-    super(Multiply, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(Multiply, self).__init__(in_layers, **kwargs)
     try:
       shape1 = list(self.in_layers[0].shape)
       shape2 = list(self.in_layers[1].shape)
@@ -908,8 +908,8 @@ class InteratomicL2Distances(Layer):
 
 class SparseSoftMaxCrossEntropy(Layer):
 
-  def __init__(self, **kwargs):
-    super(SparseSoftMaxCrossEntropy, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
       self._shape = (self.in_layers[1].shape[0], 1)
     except:
@@ -930,8 +930,8 @@ class SparseSoftMaxCrossEntropy(Layer):
 
 class SoftMaxCrossEntropy(Layer):
 
-  def __init__(self, **kwargs):
-    super(SoftMaxCrossEntropy, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
       self._shape = (self.in_layers[1].shape[0], 1)
     except:
@@ -952,9 +952,9 @@ class SoftMaxCrossEntropy(Layer):
 
 class ReduceMean(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
-    super(ReduceMean, self).__init__(**kwargs)
+    super(ReduceMean, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -981,8 +981,8 @@ class ReduceMean(Layer):
 
 class ToFloat(Layer):
 
-  def __init__(self, **kwargs):
-    super(ToFloat, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(ToFloat, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
@@ -1000,9 +1000,9 @@ class ToFloat(Layer):
 
 class ReduceSum(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
-    super(ReduceSum, self).__init__(**kwargs)
+    super(ReduceSum, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -1029,9 +1029,9 @@ class ReduceSum(Layer):
 
 class ReduceSquareDifference(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
-    super(ReduceSquareDifference, self).__init__(**kwargs)
+    super(ReduceSquareDifference, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -1792,8 +1792,8 @@ class IterRefLSTMEmbedding(Layer):
 
 class BatchNorm(Layer):
 
-  def __init__(self, **kwargs):
-    super(BatchNorm, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(BatchNorm, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(self.in_layers[0].shape)
@@ -1855,8 +1855,8 @@ class BatchNormalization(Layer):
 
 class WeightedError(Layer):
 
-  def __init__(self, **kwargs):
-    super(WeightedError, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(WeightedError, self).__init__(in_layers, **kwargs)
     self._shape = tuple()
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -1991,9 +1991,9 @@ class VinaFreeEnergy(Layer):
 class WeightedLinearCombo(Layer):
   """Computes a weighted linear combination of input layers, with the weights defined by trainable variables."""
 
-  def __init__(self, std=.3, **kwargs):
+  def __init__(self, in_layers=None, std=.3, **kwargs):
     self.std = std
-    super(WeightedLinearCombo, self).__init__(**kwargs)
+    super(WeightedLinearCombo, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
