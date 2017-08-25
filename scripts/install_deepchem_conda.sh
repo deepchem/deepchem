@@ -36,3 +36,4 @@ conda install -y -q -c conda-forge $tensorflow=1.2.1
 conda install -y -q -c conda-forge nose=1.3.7
 conda install -y -q -c conda-forge nose-timer=0.7.0
 conda install -y -q -c conda-forge flaky=3.3.0
+conda install -y -q -c conda-forge zlib=1.2.11
