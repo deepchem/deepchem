@@ -5,8 +5,9 @@ DeepChem
 
 What is DeepChem?
 -----------------
-DeepChem is a python library that aims to make the use of machine-learning in
-drug discovery straightforward and convenient. 
+DeepChem is a python library that provides a high quality open-source toolchain
+for deep-learning in drug discovery, materials science, quantum chemistry, and
+biology.
 
 About Us
 --------
