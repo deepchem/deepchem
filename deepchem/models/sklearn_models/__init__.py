@@ -17,8 +17,8 @@ from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 
 NON_WEIGHTED_MODELS = {
-    LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,
-    LassoCV, BayesianRidge
+  LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,
+  LassoCV, BayesianRidge
 }
 
 
@@ -26,6 +26,13 @@ class SklearnModel(Model):
   """
   Abstract base class for different ML models.
   """
+
+  def __init__(self, use_weights=True, **kwargs):
+    super(SklearnModel, self).__init__(**kwargs)
+    self.use_weights = use_weights
+    for model_instance in NON_WEIGHTED_MODELS:
+      if isinstance(self.model_instance, model_instance):
+        self.use_weights = False
 
   def fit(self, dataset, **kwargs):
     """
@@ -35,12 +42,10 @@ class SklearnModel(Model):
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
     # Logistic regression doesn't support weights
-    for model_instance in NON_WEIGHTED_MODELS:
-      if not isinstance(self.model_instance, model_instance):
-        continue
-      self.model_instance.fit(X, y)
+    if self.use_weights:
+      self.model_instance.fit(X, y, w)
       return
-    self.model_instance.fit(X, y, w)
+    self.model_instance.fit(X, y)
 
   def predict_on_batch(self, X, pad_batch=False):
     """
@@ -83,7 +88,7 @@ class SklearnModel(Model):
   def reload(self):
     """Loads sklearn model from joblib file on disk."""
     self.model_instance = load_from_disk(
-        Model.get_model_filename(self.model_dir))
+      Model.get_model_filename(self.model_dir))
 
   def get_num_tasks(self):
     """Number of tasks for this model. Defaults to 1"""
