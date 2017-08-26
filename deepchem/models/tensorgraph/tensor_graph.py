@@ -93,6 +93,8 @@ class TensorGraph(Model):
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    if self.use_queue and self.tensorboard:
+      raise ValueError("Currently TensorGraph cannot both use a queue and tensorboard")
 
   def _add_layer(self, layer):
     if layer.name is None:
