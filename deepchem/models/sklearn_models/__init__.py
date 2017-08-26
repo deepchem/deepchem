@@ -6,7 +6,7 @@ from sklearn.cross_decomposition import PLSRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, BayesianRidge
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import RidgeCV
 from sklearn.linear_model import LassoCV
@@ -16,7 +16,10 @@ from deepchem.models import Model
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import save_to_disk
 
-NON_WEIGHTED_MODELS = {LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV, LassoCV}
+NON_WEIGHTED_MODELS = {
+    LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,
+    LassoCV, BayesianRidge
+}
 
 
 class SklearnModel(Model):
@@ -79,7 +82,8 @@ class SklearnModel(Model):
 
   def reload(self):
     """Loads sklearn model from joblib file on disk."""
-    self.model_instance = load_from_disk(Model.get_model_filename(self.model_dir))
+    self.model_instance = load_from_disk(
+        Model.get_model_filename(self.model_dir))
 
   def get_num_tasks(self):
     """Number of tasks for this model. Defaults to 1"""
