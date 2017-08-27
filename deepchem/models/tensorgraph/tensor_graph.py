@@ -601,6 +601,8 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
+      if layer.variable_scope == '':
+        return []
       return tf.get_collection(
           tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
 
