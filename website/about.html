@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>PyTorch | About</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:200,300,400,600,700">
+    <link rel="stylesheet" 
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" 
+        integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" 
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="./static/css/main.css">
+</head>
+<body id="about">
+
+    <header>
+
+    
+    <div class="container">
+    
+
+    <div class="logo"><a href="./index.html" class="pull-left"><img src="./static/img/deepchem_logo.png" height="100"></a></a></div>
+ 
+    <ul class="primary-nav">
+    <li><a  href="/">Get Started</a></li>
+    <li><a class="active" href="./about.html">About</a></li>
+    <li><a  href="/support/">Support</a></li>
+    <li><a class="btn" href="./docs/index.html">Docs</a></li>
+</ul>
+
+
+    
+    </div>
+    
+    
+</header>
+    
+    <section class="content wrap">
+        <div class="container">
+            <p>DeepChem is a Python package that provides a tool chain for applying deep-learning to problems in drug-discovery, materials science, quantum chemistry, biology, and more.</p>
+
+<ul>
+  <li>Tensor computation (like numpy) with strong GPU acceleration</li>
+  <li>Deep Neural Networks built on a tape-based autograd system</li>
+</ul>
+
+<p>You can reuse your favorite python packages such as numpy, scipy and Cython to extend PyTorch when needed.</p>
+
+<p>At a granular level, PyTorch is a library that consists of the following components:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Package</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>deepchem</td>
+      <td>a deep learning library for scientific applications.</td>
+    </tr>
+    <tr>
+      <td>torch.autograd</td>
+      <td>a tape based automatic differentiation library that supports all differentiable Tensor operations in torch</td>
+    </tr>
+    <tr>
+      <td>torch.nn</td>
+      <td>a neural networks library deeply integrated with autograd designed for maximum flexibility</td>
+    </tr>
+    <tr>
+      <td>torch.optim</td>
+      <td>an optimization package to be used with torch.nn with standard optimization methods such as SGD, RMSProp, LBFGS, Adam etc.</td>
+    </tr>
+    <tr>
+      <td>torch.multiprocessing</td>
+      <td>python multiprocessing, but with magical memory sharing of torch Tensors across processes. Useful for data loading and hogwild training.</td>
+    </tr>
+    <tr>
+      <td>torch.utils</td>
+      <td>DataLoader, Trainer and other utility functions for convenience</td>
+    </tr>
+    <tr>
+      <td>torch.legacy(.nn/.optim)</td>
+      <td>legacy code that has been ported over from torch for backward compatibility reasons</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Usually one uses PyTorch either as:</p>
+
+<ul>
+  <li>A replacement for numpy to use the power of GPUs.</li>
+  <li>a deep learning research platform that provides maximum flexibility and speed</li>
+</ul>
+
+<p>Elaborating further:</p>
+
+<h3 id="a-gpu-ready-tensor-library">A GPU-ready Tensor library</h3>
+
+<p>If you use numpy, then you have used Tensors (a.k.a ndarray).</p>
+
+<p><img src="./static/img/tensor_illustration.png" alt="tensor_illustration" /></p>
+
+<p>PyTorch provides Tensors that can live either on the CPU or the GPU, and accelerate
+compute by a huge amount.</p>
+
+<p>We provide a wide variety of tensor routines to accelerate and fit your scientific computation needs
+such as slicing, indexing, math operations, linear algebra, reductions.
+And they are fast!</p>
+
+<h3 id="dynamic-neural-networks-tape-based-autograd">Dynamic Neural Networks: Tape based Autograd</h3>
+
+<p>PyTorch has a unique way of building neural networks: using and replaying a tape recorder.</p>
+
+<p>Most frameworks such as <code class="highlighter-rouge">TensorFlow</code>, <code class="highlighter-rouge">Theano</code>, <code class="highlighter-rouge">Caffe</code> and <code class="highlighter-rouge">CNTK</code> have a static view of the world.
+One has to build a neural network, and reuse the same structure again and again.
+Changing the way the network behaves means that one has to start from scratch.</p>
+
+<p>With PyTorch, we use a technique called Reverse-mode auto-differentiation, which allows you to
+change the way your network behaves arbitrarily with zero lag or overhead. Our inspiration comes
+from several research papers on this topic, as well as current and past work such as
+<a href="https://github.com/twitter/torch-autograd">autograd</a>,
+<a href="https://github.com/HIPS/autograd">autograd</a>,
+<a href="http://chainer.org">Chainer</a>, etc.</p>
+
+
+<p>While this technique is not unique to PyTorch, it’s one of the fastest implementations of it to date.
+You get the best of speed and flexibility for your crazy research.</p>
+
+<p><img src="./static/img/dynamic_graph.gif" alt="dynamic_graph" /></p>
+
+<h3 id="python-first">Python first</h3>
+
+<p>PyTorch is not a Python binding into a monolothic C++ framework.
+It is built to be deeply integrated into Python.
+You can use it naturally like you would use numpy / scipy / scikit-learn etc.
+You can write your new neural network layers in Python itself, using your favorite libraries
+and use packages such as Cython and Numba.
+Our goal is to not reinvent the wheel where appropriate.</p>
+
+<h3 id="imperative-experiences">Imperative experiences</h3>
+
+<p>PyTorch is designed to be intuitive, linear in thought and easy to use.
+When you execute a line of code, it gets executed. There isn’t an asynchronous view of the world.
+When you drop into a debugger, or receive error messages and stack traces, understanding them is straight-forward.
+The stack-trace points to exactly where your code was defined.
+We hope you never spend hours debugging your code because of bad stack traces or asynchronous and opaque execution engines.</p>
+
+<h3 id="fast-and-lean">Fast and Lean</h3>
+
+<p>PyTorch has minimal framework overhead. We integrate acceleration libraries 
+such as Intel MKL and NVIDIA (CuDNN, NCCL) to maximize speed. 
+At the core, it’s CPU and GPU Tensor and Neural Network backends 
+(TH, THC, THNN, THCUNN) are written as independent libraries with a C99 API.<br />
+They are mature and have been tested for years.</p>
+
+<p>Hence, PyTorch is quite fast – whether you run small or large neural networks.</p>
+
+<p>The memory usage in PyTorch is extremely efficient compared to Torch or some of the alternatives.
+We’ve written custom memory allocators for the GPU to make sure that
+your deep learning models are maximally memory efficient.
+This enables you to train bigger deep learning models than before.</p>
+
+<h3 id="extensions-without-pain">Extensions without pain</h3>
+
+<p>Writing new neural network modules, or interfacing with PyTorch’s Tensor API was designed to be straight-forward
+and with minimal abstractions.</p>
+
+<p>You can write new neural network layers in Python using the torch API
+<a href="http://pytorch.org/tutorials/advanced/numpy_extensions_tutorial.html">or your favorite numpy based libraries such as SciPy</a></p>
+
+<p>If you want to write your layers in C/C++, we provide an extension API based on
+<a href="http://cffi.readthedocs.io/en/latest/">cffi</a> that is efficient and with minimal boilerplate.<br />
+There is no wrapper code that needs to be written. <a href="https://github.com/pytorch/extension-ffi">You can see an example here</a>.</p>
+
+
+        </div>
+    </section>
+
+    <footer>
+
+    
+    <div class="container">
+    
+
+    <div class="left">
+        <div class="logo"><a href="/"></a></div>
+        <p>
+            Maintained by the PyTorch core team. <br>
+            &copy;2017 PyTorch
+        </p>
+    </div>
+    
+    <ul class="primary-nav">
+    <li><a  href="/">Get Started</a></li>
+    <li><a class="active" href="/about/">About</a></li>
+    <li><a  href="/blog/">Blog</a></li>
+    <li><a  href="/support/">Support</a></li>
+    <li><a  href="https://discuss.pytorch.org">Discuss</a></li>
+</ul>
+
+
+    
+    </div>
+    
+
+</footer>
+
+
+</body>
+</html>
