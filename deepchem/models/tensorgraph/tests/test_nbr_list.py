@@ -74,6 +74,7 @@ class TestNbrList(test_util.TensorFlowTestCase):
     tg.set_loss(loss)
     tg.fit_generator(databag.iterbatches(epochs=1))
     assert len(tg.get_layer_variables(combo)) >= 2
+    assert len(tg.get_layer_variables(out)) == 0
 
   def test_neighbor_list_shape(self):
     """Test that NeighborList works."""

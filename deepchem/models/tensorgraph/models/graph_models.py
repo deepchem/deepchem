@@ -605,24 +605,21 @@ class GraphConvTensorGraph(TensorGraph):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        saver.restore(sess, self.last_checkpoint)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          feed_dict[self._training_placeholder] = 1.0  ##
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          if len(transformers) > 0:
-            result = undo_transforms(result, transformers)
-          results.append(result)
-        return np.concatenate(results, axis=0)
+      out_tensors = [x.out_tensor for x in self.outputs]
+      results = []
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        feed_dict[self._training_placeholder] = 1.0  ##
+        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
+        if len(result.shape) == 3:
+          result = np.transpose(result, axes=[1, 0, 2])
+        if len(transformers) > 0:
+          result = undo_transforms(result, transformers)
+        results.append(result)
+      return np.concatenate(results, axis=0)
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
     if not self.built:
@@ -868,23 +865,20 @@ class MPNNTensorGraph(TensorGraph):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        self._initialize_weights(sess, saver)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        results = []
-        for feed_dict in generator:
-          # Extract number of unique samples in the batch from w_b
-          n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          feed_dict[self._training_placeholder] = 0.0
-          result = np.array(sess.run(out_tensors, feed_dict=feed_dict))
-          if len(result.shape) == 3:
-            result = np.transpose(result, axes=[1, 0, 2])
-          result = undo_transforms(result, transformers)
-          # Only fetch the first set of unique samples
-          results.append(result[:n_valid_samples])
-        return np.concatenate(results, axis=0)
+      out_tensors = [x.out_tensor for x in self.outputs]
+      results = []
+      for feed_dict in generator:
+        # Extract number of unique samples in the batch from w_b
+        n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        feed_dict[self._training_placeholder] = 0.0
+        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
+        if len(result.shape) == 3:
+          result = np.transpose(result, axes=[1, 0, 2])
+        result = undo_transforms(result, transformers)
+        # Only fetch the first set of unique samples
+        results.append(result[:n_valid_samples])
+      return np.concatenate(results, axis=0)
