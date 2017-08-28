@@ -14,10 +14,7 @@ import scipy.io
 def load_qm7_from_mat(featurizer='CoulombMatrix',
                       split='stratified',
                       reload=True):
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "qm7/" + featurizer + "/" + split)
 
@@ -33,9 +30,8 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
       )
     dataset = scipy.io.loadmat(dataset_file)
     X = dataset['X']
@@ -46,9 +42,8 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
     dataset_file = os.path.join(data_dir, "qm7.mat")
 
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.mat'
       )
     dataset = scipy.io.loadmat(dataset_file)
     X = np.concatenate([np.expand_dims(dataset['Z'], 2), dataset['R']], axis=2)
@@ -58,9 +53,8 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
   else:
     dataset_file = os.path.join(data_dir, "qm7.csv")
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv '
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7.csv'
       )
     if featurizer == 'ECFP':
       featurizer = deepchem.feat.CircularFingerprint(size=1024)
@@ -103,17 +97,12 @@ def load_qm7_from_mat(featurizer='CoulombMatrix',
 def load_qm7b_from_mat(featurizer='CoulombMatrix',
                        split='stratified',
                        reload=True):
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
-
+  data_dir = deepchem.utils.get_data_dir()
   dataset_file = os.path.join(data_dir, "qm7b.mat")
 
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm7b.mat'
     )
   dataset = scipy.io.loadmat(dataset_file)
 
@@ -149,17 +138,12 @@ def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
   """Load qm7 datasets."""
   # Featurize qm7 dataset
   print("About to featurize qm7 dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
-
+  data_dir = deepchem.utils.get_data_dir()
   dataset_file = os.path.join(data_dir, "gdb7.sdf")
 
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz '
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz'
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb7.tar.gz') + ' -C ' +
               data_dir)

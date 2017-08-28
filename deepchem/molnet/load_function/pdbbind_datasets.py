@@ -20,25 +20,19 @@ import pandas as pd
 def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   """Featurizes pdbbind according to provided featurization"""
   tasks = ["-logKd/Ki"]
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   data_dir = os.path.join(data_dir, "pdbbind")
   dataset_dir = os.path.join(data_dir, "%s_%s" % (subset, feat))
 
   if not os.path.exists(dataset_dir):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.tar.gz'
     )
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/full_grid.tar.gz'
     )
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz'
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'core_grid.tar.gz') + ' -C '
               + data_dir)
@@ -73,10 +67,7 @@ def load_pdbbind_grid(split="random",
     for transformer in transformers:
       test = transformer.transform(test)
   else:
-    if "DEEPCHEM_DATA_DIR" in os.environ:
-      data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-    else:
-      data_dir = "/tmp"
+    data_dir = deepchem.utils.get_data_dir()
     if reload:
       save_dir = os.path.join(
           data_dir, "pdbbind_" + subset + "/" + featurizer + "/" + split)
@@ -84,9 +75,8 @@ def load_pdbbind_grid(split="random",
     dataset_file = os.path.join(data_dir, subset + "_smiles_labels.csv")
 
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/' +
           subset + "_smiles_labels.csv")
 
     tasks = ["-logKd/Ki"]

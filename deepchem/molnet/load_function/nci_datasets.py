@@ -15,18 +15,14 @@ def load_nci(featurizer='ECFP', shard_size=1000, split='random', reload=True):
 
   # Load nci dataset
   print("About to load NCI dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "nci/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "nci_unique.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/nci_unique.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/nci_unique.csv'
     )
 
   all_nci_tasks = ([
