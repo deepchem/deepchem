@@ -10,7 +10,6 @@ __copyright__ = "Copyright 2017, Stanford University"
 __license__ = "MIT"
 
 import numpy as np
-from deepchem.utils.dependencies import mdtraj as md
 from deepchem.utils.save import log
 from deepchem.feat import Featurizer
 
@@ -37,7 +36,8 @@ class BindingPocketFeaturizer(Featurizer):
     """
     Calculate atomic coodinates.
     """
-    protein = md.load(protein_file)
+    import mdtraj
+    protein = mdtraj.load(protein_file)
     n_pockets = len(pockets)
     n_residues = len(BindingPocketFeaturizer.residues)
     res_map = dict(zip(BindingPocketFeaturizer.residues, range(n_residues)))

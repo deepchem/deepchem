@@ -12,7 +12,6 @@ from __future__ import unicode_literals
 import numpy as np
 import tensorflow as tf
 import deepchem
-from deepchem.utils.dependencies import xgboost
 from deepchem.molnet.preset_hyper_parameters import hps
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -81,6 +80,7 @@ def benchmark_classification(train_dataset,
   if hyper_parameters is None:
     hyper_parameters = hps[model]
   model_name = model
+  import xgboost
 
   if model_name == 'tf':
     # Loading hyper parameters
