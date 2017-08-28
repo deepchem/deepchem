@@ -1,3 +1,5 @@
+from flaky import flaky
+
 import deepchem as dc
 from deepchem.models.tensorgraph.layers import Feature, Label, Dense, L2Loss
 import numpy as np
@@ -7,6 +9,7 @@ import unittest
 
 class TestMAML(unittest.TestCase):
 
+  @flaky
   def test_sine(self):
     """Test meta-learning for sine function."""
 

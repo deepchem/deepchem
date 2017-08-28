@@ -92,6 +92,10 @@ class TensorGraph(Model):
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    if self.use_queue and self.tensorboard:
+      raise ValueError(
+          "Currently TensorGraph cannot both use_queue and tensorboard at the same time"
+      )
 
   def _add_layer(self, layer):
     if layer.name is None:
@@ -597,6 +601,8 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
+      if layer.variable_scope == '':
+        return []
       return tf.get_collection(
           tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
 
