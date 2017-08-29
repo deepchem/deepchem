@@ -12,10 +12,7 @@ import deepchem
 def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
   """Load Tox21 datasets. Does not do train/test split"""
   # Featurize Tox21 dataset
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "tox21/" + featurizer + "/" + split)
 
@@ -32,9 +29,8 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
 
   dataset_file = os.path.join(data_dir, "tox21.csv.gz")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/tox21.csv.gz'
     )
 
   if featurizer == 'ECFP':

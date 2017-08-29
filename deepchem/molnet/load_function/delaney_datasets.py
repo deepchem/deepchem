@@ -13,19 +13,15 @@ def load_delaney(featurizer='ECFP', split='index', reload=True):
   """Load delaney datasets."""
   # Featurize Delaney dataset
   print("About to featurize Delaney dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "delaney/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "delaney-processed.csv")
 
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/delaney-processed.csv'
     )
 
   delaney_tasks = ['measured log solubility in mols per litre']
@@ -48,7 +44,7 @@ def load_delaney(featurizer='ECFP', split='index', reload=True):
       tasks=delaney_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)

@@ -13,18 +13,14 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
   """Load hiv datasets. Does not do train/test split"""
   # Featurize hiv dataset
   print("About to featurize hiv dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "hiv/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "HIV.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/HIV.csv'
     )
 
   hiv_tasks = ["HIV_active"]
@@ -47,7 +43,7 @@ def load_hiv(featurizer='ECFP', split='index', reload=True):
   loader = deepchem.data.CSVLoader(
       tasks=hiv_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]
