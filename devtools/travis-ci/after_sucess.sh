@@ -21,6 +21,5 @@ sphinx-apidoc -f -o docs/source deepchem
 sphinx-build -b html docs/source docs/_build
 # Copy 
 cp -r docs/_build/ website/docs/
-# Can't seem to get this copied over, so doing manually for now.
 echo "About to push docs to s3"
 python devtools/travis-ci/push-docs-to-s3.py
