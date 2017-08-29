@@ -2614,3 +2614,158 @@ class AtomicConvolution(Layer):
     R = tf.reduce_sum(tf.multiply(D, D), 3)
     R = tf.sqrt(R)
     return R
+
+
+class AlphaShares(Layer):
+    """
+    Part of a sluice network. Adds alpha parameters to control
+    sharing between the main and auxillary tasks
+    """
+
+    def __init__(self, **kwargs):
+        super(AlphaShares, self).__init__(**kwargs)
+    
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)
+        # check that there isnt just one or zero inputs
+        if len(inputs) <= 1:
+            raise ValueError("AlphaShare must have more than one input")
+        self.num_outputs = len(inputs)
+        # create subspaces
+        subspaces = []
+        original_cols = int(inputs[0].get_shape()[-1].value)
+        subspace_size = int(original_cols / 2)
+        for input_tensor in inputs:
+            subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
+            subspaces.append(tf.reshape(input_tensor[:, subspace_size:], [-1]))
+        n_alphas = len(subspaces)
+        subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
+
+        # create the alpha learnable parameters
+        alphas = tf.Variable(tf.random_normal(
+            [n_alphas, n_alphas]), name='alphas')
+
+        subspaces = tf.matmul(alphas, subspaces)
+
+        # concatenate subspaces, reshape to size of original input, then stack
+        # such that out_tensor has shape (2,?,original_cols)
+        count = 0
+        out_tensor = []
+        tmp_tensor = []
+        for row in range(n_alphas):
+            tmp_tensor.append(tf.reshape(
+                subspaces[row, ], [-1, subspace_size]))
+            count += 1
+            if(count == 2):
+                out_tensor.append(tf.concat(tmp_tensor, 1))
+                tmp_tensor = []
+                count = 0
+
+        out_tensor = tf.stack(out_tensor)
+
+        self.alphas = alphas
+        if set_tensors:
+            self.out_tensor = out_tensor
+        return out_tensor
+
+    def none_tensors(self):
+      num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
+      self.num_outputs = None
+      self.out_tensor = None
+      self.alphas = None
+      return num_outputs, out_tensor, alphas
+
+    def set_tensors(self, tensor):
+      self.num_outputs, self.out_tensor, self.alphas = tensor
+
+def AlphaShare(**kwargs):
+  output_layers = []
+  alpha_share = AlphaShares(**kwargs)
+  num_outputs = len(kwargs['in_layers'])
+  for num_layer in range(0, num_outputs):
+    output_layers.append(LayerSplitter(in_layers = alpha_share, output_num=num_layer))
+    
+  return output_layers
+
+
+class LayerSplitter(Layer): 
+    """
+    Returns the nth output of a layer
+    """
+
+    def __init__(self, output_num, **kwargs):
+        """
+        Parameters
+        ----------
+        output_num: int
+            returns the out_tensor[output_num, :] of a layer
+        """
+        self.output_num = output_num
+        super(LayerSplitter, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)[0]
+        self.out_tensor = inputs[self.output_num, :]
+        return self.out_tensor
+
+
+class SluiceLoss(Layer):
+    """
+    Calculates the loss in a Sluice Network
+    """
+
+    def __init__(self, **kwargs):
+        super(SluiceLoss, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        inputs = self._get_input_tensors(in_layers)
+        temp = []
+        subspaces = []
+        # creates subspaces the same way it was done in AlphaShare
+        for input_tensor in inputs:
+            subspace_size = int(input_tensor.get_shape()[-1].value / 2)
+            subspaces.append(input_tensor[:, :subspace_size])
+            subspaces.append(input_tensor[:, subspace_size:])
+            product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
+            # calculate squared Frobenius norm
+            temp.append(tf.reduce_sum(tf.pow(product, 2)))
+        out_tensor = tf.reduce_sum(temp)
+        self.out_tensor = out_tensor
+        return out_tensor
+
+
+class BetaShare(Layer):
+    """
+    Part of a sluice network. Adds beta params to control which layer
+    outputs are used for prediction
+    """
+
+    def __init__(self, **kwargs):
+        super(BetaShare, self).__init__(**kwargs)
+
+    def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+        """
+        Size of input layers must all be the same
+        """
+        inputs = self._get_input_tensors(in_layers)
+        subspaces = []
+        original_cols = int(inputs[0].get_shape()[-1].value)
+        for input_tensor in inputs:
+            subspaces.append(tf.reshape(input_tensor, [-1]))
+        n_betas = len(inputs)
+        subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
+
+        betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+        out_tensor = tf.matmul(betas, subspaces)
+        self.betas = betas
+        self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
+        return out_tensor
+
+    def none_tensors(self):
+      out_tensor, betas = self.out_tensor, self.betas
+      self.out_tensor = None
+      self.betas = None
+      return out_tensor,betas
+
+    def set_tensors(self, tensor):
+      self.out_tensor, self.betas = tensor
