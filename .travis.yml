@@ -29,7 +29,7 @@ install:
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
-- conda create -y name deepchem python=$python_version
+- conda create -y --name deepchem python=$python_version
 - source activate deepchem
 - conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem-deps=1.2.1
 - pip install yapf==0.16.2
