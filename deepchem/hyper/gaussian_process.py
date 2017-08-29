@@ -10,8 +10,6 @@ import tempfile
 from deepchem.hyper.grid_search import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
-from deepchem.utils.dependencies import pyGPGO_covfunc, pyGPGO_acquisition, \
-    pyGPGO_surrogates_GaussianProcess, pyGPGO_GPGO
 
 
 class GaussianProcessHyperparamOpt(HyperparamOpt):
@@ -211,10 +209,11 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         multitask_scores = evaluator.compute_model_performance([metric])
         return multitask_scores[metric.name]
 
-    cov = pyGPGO_covfunc.matern32()
-    gp = pyGPGO_surrogates_GaussianProcess.GaussianProcess(cov)
-    acq = pyGPGO_acquisition.Acquisition(mode='ExpectedImprovement')
-    gpgo = pyGPGO_GPGO.GPGO(gp, acq, f, param)
+    import pyGPGO
+    cov = pyGPGO.covfunc.matern32()
+    gp = pyGPGO.surrogates.GaussianProcess.GaussianProcess(cov)
+    acq = pyGPGO.acquisition.Acquisition(mode='ExpectedImprovement')
+    gpgo = pyGPGO.GPGO.GPGO(gp, acq, f, param)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
