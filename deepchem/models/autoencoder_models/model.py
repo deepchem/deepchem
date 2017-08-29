@@ -1,12 +1,15 @@
 import warnings
-from keras import backend as K
-from keras import objectives
-from keras.layers import Input, Lambda
-from keras.layers.convolutional import Convolution1D
-from keras.layers.core import Dense, Flatten, RepeatVector
-from keras.layers.recurrent import GRU
-from keras.layers.wrappers import TimeDistributed
-from keras.models import Model
+try:
+  from keras import backend as K
+  from keras import objectives
+  from keras.layers import Input, Lambda
+  from keras.layers.convolutional import Convolution1D
+  from keras.layers.core import Dense, Flatten, RepeatVector
+  from keras.layers.recurrent import GRU
+  from keras.layers.wrappers import TimeDistributed
+  from keras.models import Model
+except:
+  print("WARNING: No Keras installed on your system")
 
 
 class MoleculeVAE():
