@@ -2719,6 +2719,7 @@ class LayerSplitter(Layer):
 class SluiceLoss(Layer):
   """
     Calculates the loss in a Sluice Network
+    Every input into an AlphaShare should be used in SluiceLoss
     """
 
   def __init__(self, **kwargs):
