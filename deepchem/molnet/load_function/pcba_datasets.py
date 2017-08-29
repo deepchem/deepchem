@@ -12,18 +12,14 @@ import deepchem
 def load_pcba(featurizer='ECFP', split='random', reload=True):
   """Load PCBA datasets. Does not do train/test split"""
 
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "pcba/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "pcba.csv.gz")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pcba.csv.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pcba.csv.gz'
     )
 
   # Featurize PCBA dataset
@@ -75,7 +71,7 @@ def load_pcba(featurizer='ECFP', split='random', reload=True):
       tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]

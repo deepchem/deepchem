@@ -14,18 +14,14 @@ def load_sampl(featurizer='ECFP', split='index', reload=True):
   # Featurize SAMPL dataset
   print("About to featurize SAMPL dataset.")
   print("About to load SAMPL dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "sampl/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "SAMPL.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/SAMPL.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/SAMPL.csv'
     )
 
   SAMPL_tasks = ['expt']
@@ -49,7 +45,7 @@ def load_sampl(featurizer='ECFP', split='index', reload=True):
       tasks=SAMPL_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)

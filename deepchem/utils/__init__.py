@@ -10,9 +10,16 @@ import gzip
 import numpy as np
 import os
 import pandas as pd
+import tempfile
 
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
+
+try:
+  from urllib.request import urlretrieve  # Python 3
+except:
+  from urllib import urlretrieve  # Python 2
+
 
 def pad_array(x, shape, fill=0, both=False):
   """
@@ -47,6 +54,35 @@ def pad_array(x, shape, fill=0, both=False):
   x = np.pad(x, pad, mode='constant', constant_values=fill)
   return x
 
+
+def get_data_dir():
+  """Get the DeepChem data directory."""
+  if 'DEEPCHEM_DATA_DIR' in os.environ:
+    return os.environ['DEEPCHEM_DATA_DIR']
+  return tempfile.gettempdir()
+
+
+def download_url(url, dest_dir=get_data_dir(), name=None):
+  """Download a file to disk.
+
+  Parameters
+  ----------
+  url: str
+    the URL to download from
+  dest_dir: str
+    the directory to save the file in
+  name: str
+    the file name to save it as.  If omitted, it will try to extract a file name from the URL
+  """
+  if name is None:
+    name = url
+    if '?' in name:
+      name = name[:name.find('?')]
+    if '/' in name:
+      name = name[name.rfind('/') + 1:]
+  urlretrieve(url, os.path.join(dest_dir, name))
+
+
 class ScaffoldGenerator(object):
   """
   Generate molecular scaffolds.
@@ -56,6 +92,7 @@ class ScaffoldGenerator(object):
   include_chirality : : bool, optional (default False)
       Include chirality in scaffolds.
   """
+
   def __init__(self, include_chirality=False):
     self.include_chirality = include_chirality
 
