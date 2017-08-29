@@ -14,7 +14,6 @@
 
 import sys
 import os
-import shlex
 import sphinx_bootstrap_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -135,9 +134,10 @@ html_theme = 'bootstrap'
 #html_theme_options = {}
 html_theme_options = {
     'source_link_position': "footer",
-    'bootswatch_theme': "flatly",
     'navbar_sidebarrel': False,
+    'navbar_fixed_top': "false",
     'bootstrap_version': "3",
+    'navbar_class': "navbar navbar-inverse",
     'navbar_links': [("Notebooks", "notebooks/index")],
 }
 
