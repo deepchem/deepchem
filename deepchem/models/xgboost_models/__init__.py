@@ -2,7 +2,6 @@
 Scikit-learn wrapper interface of xgboost
 """
 
-from deepchem.utils.dependencies import xgboost as xgb
 import numpy as np
 import os
 from deepchem.models import Model
@@ -54,6 +53,7 @@ class XGBoostModel(SklearnModel):
     y = np.squeeze(dataset.y)
     w = np.squeeze(dataset.w)
     seed = self.model_instance.seed
+    import xgboost as xgb
     if isinstance(self.model_instance, xgb.XGBClassifier):
       xgb_metric = "auc"
       sklearn_metric = "roc_auc"

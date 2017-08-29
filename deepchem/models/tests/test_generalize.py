@@ -19,7 +19,6 @@ import deepchem as dc
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
-from deepchem.utils.dependencies import xgboost
 
 
 class TestGeneralize(unittest.TestCase):
@@ -191,6 +190,7 @@ class TestGeneralize(unittest.TestCase):
   #    assert score > .5
 
   def test_xgboost_regression(self):
+    import xgboost
     np.random.seed(123)
 
     dataset = sklearn.datasets.load_diabetes()
@@ -206,6 +206,7 @@ class TestGeneralize(unittest.TestCase):
     regression_metric = dc.metrics.Metric(dc.metrics.mae_score)
     # Set early stopping round = n_estimators so that esr won't work
     esr = {'early_stopping_rounds': 50}
+
     xgb_model = xgboost.XGBRegressor(n_estimators=50, seed=123)
     model = dc.models.XGBoostModel(xgb_model, verbose=False, **esr)
 
@@ -219,6 +220,7 @@ class TestGeneralize(unittest.TestCase):
 
   def test_xgboost_multitask_regression(self):
     """Test that xgboost models can learn on simple multitask regression."""
+    import xgboost
     np.random.seed(123)
     n_tasks = 4
     tasks = range(n_tasks)
@@ -255,6 +257,7 @@ class TestGeneralize(unittest.TestCase):
 
   def test_xgboost_classification(self):
     """Test that sklearn models can learn on simple classification datasets."""
+    import xgboost
     np.random.seed(123)
     dataset = sklearn.datasets.load_digits(n_class=2)
     X, y = dataset.data, dataset.target
