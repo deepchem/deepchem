@@ -1,19 +1,28 @@
-os:
-- linux
-- osx
-language: python
-python:
-- '2.7'
-- '3.5'
-sudo: required
-dist: trusty
+matrix:
+  include:
+    - sudo: required
+      os: linux
+      env: PYTHON_VERSION=2.7
+
+    - sudo: required
+      os: linux
+      env: PYTHON_VERSION=3.5
+
+    - sudo: required
+      os: osx
+      env: PYTHON_VERSION=2.7
+
+    - sudo: required
+      os: osx
+      env: PYTHON_VERSION=3.5
+
+
 install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     wget https://repo.continuum.io/archive/Anaconda3-4.4.0-MacOSX-x86_64.sh -O anaconda.sh;
   else
     wget https://repo.continuum.io/archive/Anaconda3-4.4.0-Linux-x86_64.sh -O anaconda.sh;
   fi
-- export python_version=$TRAVIS_PYTHON_VERSION
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
 - hash -r
