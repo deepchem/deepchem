@@ -10,28 +10,23 @@ import deepchem
 
 
 def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "qm8/" + featurizer + "/" + split)
 
   if featurizer in ['CoulombMatrix', 'BPSymmetryFunction', 'MP', 'Raw']:
     dataset_file = os.path.join(data_dir, "qm8.sdf")
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz '
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz'
       )
       os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb8.tar.gz') + ' -C ' +
                 data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm8.csv")
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm8.csv '
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm8.csv'
       )
 
   qm8_tasks = [

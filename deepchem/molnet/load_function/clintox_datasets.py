@@ -14,18 +14,14 @@ import deepchem
 def load_clintox(featurizer='ECFP', split='index', reload=True):
   """Load clintox datasets."""
 
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "clintox/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "clintox.csv.gz")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/clintox.csv.gz'
     )
 
   print("About to load clintox dataset.")

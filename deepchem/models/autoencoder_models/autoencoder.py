@@ -6,6 +6,7 @@ import warnings
 from deepchem.models import Model
 from deepchem.models.autoencoder_models.model import MoleculeVAE
 from deepchem.feat.one_hot import zinc_charset
+from deepchem.utils import download_url
 import os
 from subprocess import call
 
@@ -64,8 +65,8 @@ class TensorflowMoleculeEncoder(Model):
     weights_file = os.path.join(current_dir, weights_filename)
 
     if not os.path.exists(weights_file):
-      wget_command = "wget -nv -c http://karlleswing.com/misc/keras-molecule/model.h5"
-      call(wget_command.split())
+      download_url("http://karlleswing.com/misc/keras-molecule/model.h5",
+                   current_dir)
       mv_cmd = "mv model.h5 %s" % weights_file
       call(mv_cmd.split())
     return TensorflowMoleculeEncoder(
@@ -136,8 +137,8 @@ class TensorflowMoleculeDecoder(Model):
     weights_file = os.path.join(current_dir, weights_filename)
 
     if not os.path.exists(weights_file):
-      wget_command = "wget -nv -c http://karlleswing.com/misc/keras-molecule/model.h5"
-      call(wget_command.split())
+      download_url("http://karlleswing.com/misc/keras-molecule/model.h5",
+                   current_dir)
       mv_cmd = "mv model.h5 %s" % weights_file
       call(mv_cmd.split())
     return TensorflowMoleculeDecoder(

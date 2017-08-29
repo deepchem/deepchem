@@ -14,19 +14,15 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bace_r/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv '
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv'
     )
 
   bace_tasks = ["pIC50"]
@@ -52,7 +48,7 @@ def load_bace_regression(featurizer='ECFP', split='random', reload=True):
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)
@@ -80,19 +76,15 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
   """Load bace datasets."""
   # Featurize bace dataset
   print("About to featurize bace dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bace_c/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "bace.csv")
 
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv '
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/bace.csv'
     )
 
   bace_tasks = ["Class"]
@@ -118,7 +110,7 @@ def load_bace_classification(featurizer='ECFP', split='random', reload=True):
       tasks=bace_tasks, smiles_field="mol", featurizer=featurizer)
 
   dataset = loader.featurize(dataset_file, shard_size=8192)
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.BalancingTransformer(transform_w=True, dataset=dataset)
   ]

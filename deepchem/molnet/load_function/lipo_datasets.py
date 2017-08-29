@@ -14,18 +14,14 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
   # Featurize Lipophilicity dataset
   print("About to featurize Lipophilicity dataset.")
   print("About to load Lipophilicity dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "lipo/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "Lipophilicity.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/Lipophilicity.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/Lipophilicity.csv'
     )
 
   Lipo_tasks = ['exp']
@@ -49,7 +45,7 @@ def load_lipo(featurizer='ECFP', split='index', reload=True):
       tasks=Lipo_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)
