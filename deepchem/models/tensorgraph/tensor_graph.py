@@ -2,7 +2,6 @@ import pickle
 import threading
 import time
 
-import networkx as nx
 import collections
 import numpy as np
 import os
@@ -56,7 +55,6 @@ class TensorGraph(Model):
     """
 
     # Layer Management
-    self.nxgraph = nx.DiGraph()
     self.layers = dict()
     self.features = list()
     self.labels = list()
@@ -108,11 +106,9 @@ class TensorGraph(Model):
       self.labels.append(layer)
     if isinstance(layer, Weights):
       self.task_weights.append(layer)
-    self.nxgraph.add_node(layer.name)
     self.layers[layer.name] = layer
     for in_layer in layer.in_layers:
       self._add_layer(in_layer)
-      self.nxgraph.add_edge(in_layer.name, layer.name)
 
   def fit(self,
           dataset,
@@ -410,7 +406,19 @@ class TensorGraph(Model):
     return self.predict_proba_on_generator(generator, transformers, outputs)
 
   def topsort(self):
-    return nx.topological_sort(self.nxgraph)
+
+    def add_layers_to_list(layer, sorted_layers):
+      if layer in sorted_layers:
+        return
+      for in_layer in layer.in_layers:
+        add_layers_to_list(in_layer, sorted_layers)
+      sorted_layers.append(layer)
+
+    sorted_layers = []
+    for l in self.features + self.labels + self.task_weights + self.outputs:
+      add_layers_to_list(l, sorted_layers)
+    add_layers_to_list(self.loss, sorted_layers)
+    return sorted_layers
 
   def build(self):
     if self.built:
@@ -420,15 +428,13 @@ class TensorGraph(Model):
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
-      order = self.topsort()
-      for node in order:
-        with tf.name_scope(node):
-          node_layer = self.layers[node]
-          node_layer.create_tensor(training=self._training_placeholder)
-          self.rnn_initial_states += node_layer.rnn_initial_states
-          self.rnn_final_states += node_layer.rnn_final_states
-          self.rnn_zero_states += node_layer.rnn_zero_states
-          node_layer.add_summary_to_tg()
+      for layer in self.topsort():
+        with tf.name_scope(layer.name):
+          layer.create_tensor(training=self._training_placeholder)
+          self.rnn_initial_states += layer.rnn_initial_states
+          self.rnn_final_states += layer.rnn_final_states
+          self.rnn_zero_states += layer.rnn_zero_states
+          layer.add_summary_to_tg()
       self.session = tf.Session()
 
       self.built = True
@@ -475,7 +481,6 @@ class TensorGraph(Model):
       pre_q_inputs.append(pre_q_input)
 
       layer.in_layers.append(q)
-      self.nxgraph.add_edge(q.name, layer.name)
 
     self._add_layer(q)
     self.input_queue = q
@@ -533,9 +538,8 @@ class TensorGraph(Model):
     out_tensors = []
     if self.built:
       must_restore = True
-      for node in self.topsort():
-        node_layer = self.layers[node]
-        out_tensors.append(node_layer.none_tensors())
+      for layer in self.topsort():
+        out_tensors.append(layer.none_tensors())
       optimizer = self.optimizer
       self.optimizer = None
       training_placeholder = self._training_placeholder
@@ -554,9 +558,8 @@ class TensorGraph(Model):
 
     # add out_tensor back to everyone
     if must_restore:
-      for index, node in enumerate(self.topsort()):
-        node_layer = self.layers[node]
-        node_layer.set_tensors(out_tensors[index])
+      for index, layer in enumerate(self.topsort()):
+        layer.set_tensors(out_tensors[index])
       self._training_placeholder = training_placeholder
       self.optimizer = optimizer
       self.built = True
