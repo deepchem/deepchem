@@ -11,10 +11,13 @@ matrix:
     - sudo: required
       os: osx
       env: python_version=2.7
+      language: objective-c
 
     - sudo: required
       os: osx
       env: python_version=3.5
+      language: objective-c
+
 
 
 install:
