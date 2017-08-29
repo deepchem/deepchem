@@ -415,9 +415,9 @@ class TensorGraph(Model):
       sorted_layers.append(layer)
 
     sorted_layers = []
+    for l in self.features + self.labels + self.task_weights + self.outputs:
+      add_layers_to_list(l, sorted_layers)
     add_layers_to_list(self.loss, sorted_layers)
-    for o in self.outputs:
-      add_layers_to_list(o, sorted_layers)
     return sorted_layers
 
   def build(self):
