@@ -39,7 +39,6 @@
     <div class="container">
         <div class="inner">
             <h1>DeepChem is a&nbsp;Python library democratizing deep&nbsp;learning for science.</h1> 
-            <a class="btn" href="./about.html">Learn More</a>
         </div>
     </div>
     <a href="https://github.com/deepchem/deepchem"><img style="position:absolute;top:0;right:0;border:0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
@@ -101,13 +100,13 @@
                 <img src="./static/img/projects.svg">
                 <h3>Example Projects</h3>
                 <h4>Browse projects built using DeepChem.</h4>
-                <a class="btn" href="https://github.com/deepchem/examples">Explore Examples</a>
+                <a class="btn" href="https://github.com/deepchem/deepchem/tree/master/examples">Explore Examples</a>
             </div>
             <div class="col-md-6 box tutorials">
                 <img src="./static/img/tutorials.svg">
                 <h3>Tutorials</h3>
                 <h4>Learn how to use the DeepChem library</h4>
-                <a class="btn" href="http://deepchem.io/tutorials/">Browse Tutorials</a>
+                <a class="btn" href="https://github.com/deepchem/deepchem/tree/master/examples/notebooks">Browse Tutorials</a>
             </div>
         </div>
     </div>
@@ -118,10 +117,10 @@
         <h3>Companies &amp; Universities developing DeepChem</h3>
         <div class="row">
             <div class="col-sm-3 col-xs-6">
-                <img src="./static/img/logos/stanford.png">
+                <a href="https://pande.stanford.edu/"><img src="./static/img/logos/stanford.png"></a>
             </div>
             <div class="col-sm-3 col-xs-6">
-                <img src="./static/img/logos/schrodinger.png" style="padding:15%">
+                <a href="https://www.schrodinger.com/"><img src="./static/img/logos/schrodinger.png" style="padding:15%"></a>
             </div>
         </div>
     </div>
@@ -170,23 +169,23 @@
 
     }(jQuery, {
         
-        'conda,linux,cuda7.5,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda7.5,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
         
-        'conda,linux,cuda8.0,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda8.0,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
         
-        'conda,linux,cudanone,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cudanone,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
         
-        'conda,linux,cuda7.5,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda7.5,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
         
-        'conda,linux,cuda8.0,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda8.0,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
         
-        'conda,linux,cudanone,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cudanone,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
         
-        'conda,linux,cuda7.5,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda7.5,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
         
-        'conda,linux,cuda8.0,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cuda8.0,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
         
-        'conda,linux,cudanone,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0',
+        'conda,linux,cudanone,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
         
         'conda,osx,cuda7.5,python2.7': 'DeepChem OSX coming soon!',
         
@@ -240,7 +239,7 @@
         
         'pip,linux,cudanone,python3.6': 'pip install for DeepChem coming soon!',
         
-        'pip,linux,cuda8.0,python3.6': 'pip install for DeepChem coming soon!',
+        'pip,linux,cuda8.0,python3.6': 'pip install for DeepChem coming soon!'
         
     }));
 
@@ -273,10 +272,9 @@
     
     <ul class="primary-nav">
     <li><a class="active" href="/">Get Started</a></li>
-    <li><a  href="./about.html">About</a></li>
-    <!-- <li><a  href="/blog/">Blog</a></li> -->
-    <li><a  href="/support/">Support</a></li>
-    <!-- <li><a  href="https://discuss.pytorch.org">Discuss</a></li> -->
+    <li><a  href="./docs/index.html">About</a></li>
+    <li><a  href="https://github.com/deepchem/deepchem">Support</a></li>
+    <li><a  href="https://gitter.im/deepchem/Lobby">Discuss</a></li>
 </ul>
 
 
