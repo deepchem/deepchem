@@ -8,9 +8,11 @@ python:
 sudo: required
 dist: trusty
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/archive/Anaconda2-4.3.0-Linux-x86_64.sh
-  -O anaconda.sh; else wget https://repo.continuum.io/archive/Anaconda3-4.3.0-Linux-x86_64.sh
-  -O anaconda.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    wget https://repo.continuum.io/archive/Anaconda3-4.4.0-MacOSX-x86_64.sh -O anaconda.sh;
+  else
+    wget https://repo.continuum.io/archive/Anaconda3-4.4.0-Linux-x86_64.sh -O anaconda.sh;
+  fi
 - export python_version=$TRAVIS_PYTHON_VERSION
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
