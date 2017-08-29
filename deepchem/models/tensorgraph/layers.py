@@ -2766,7 +2766,7 @@ class BetaShare(Layer):
     out_tensor = tf.matmul(betas, subspaces)
     self.betas = betas
     self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
-    return out_tensor
+    return self.out_tensor
 
   def none_tensors(self):
     out_tensor, betas = self.out_tensor, self.betas
