@@ -2,19 +2,19 @@ matrix:
   include:
     - sudo: required
       os: linux
-      env: PYTHON_VERSION=2.7
+      env: python_version=2.7
 
     - sudo: required
       os: linux
-      env: PYTHON_VERSION=3.5
+      env: python_version=3.5
 
     - sudo: required
       os: osx
-      env: PYTHON_VERSION=2.7
+      env: python_version=2.7
 
     - sudo: required
       os: osx
-      env: PYTHON_VERSION=3.5
+      env: python_version=3.5
 
 
 install:
