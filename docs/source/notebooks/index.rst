@@ -17,8 +17,12 @@ them in Jupyter::
 .. toctree::
    :maxdepth: 2
    :titlesonly:
+   :caption: DeepChem Tutorials
 
    BACE 
+   graph_convolutional_networks_for_tox21
+   mnist 
+   Multitask_Networks_on_MUV 
 
 
 Contributing tutorials 
