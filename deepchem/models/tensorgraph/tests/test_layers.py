@@ -616,7 +616,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert result[0] == 1.0
 
   def test_alpha_share_layer(self):
-    """test that alpha share works correctly"""
+    """Test that alpha share works correctly"""
     batch_size = 50
     length = 10
     test_1 = np.random.rand(batch_size, length)
@@ -634,7 +634,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert test_2.shape == test_2_out_tensor.shape
 
   def test_beta_share(self):
-    """test that alpha share works correctly"""
+    """Test that beta share works correctly"""
     batch_size = 50
     length = 10
     test_1 = np.random.rand(batch_size, length)
@@ -651,6 +651,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert test_2.shape == out_tensor.shape
 
   def test_layer_splitter(self):
+    """Test Layer Splitter"""
     input1 = np.arange(10).reshape(2, 5)
     input2 = np.arange(10, 20).reshape(2, 5)
 
@@ -665,6 +666,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       tf.assert_equal(input2, output2.eval())
 
   def test_sluice_loss(self):
+    """Test the sluice loss function"""
     input1 = np.ones((3, 4))
     input2 = np.ones((2, 2))
     with self.test_session() as sess:
