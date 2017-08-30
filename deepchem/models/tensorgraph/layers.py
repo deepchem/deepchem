@@ -115,8 +115,7 @@ class Layer(object):
     else:
       self.variable_scope = local_scope
 
-  def set_summary(self, summary_op, summary_description=None,
-                  collections=None):
+  def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
     Collects data from self.out_tensor by default but can be changed by setting 
     self.tb_input to another tensor in create_tensor
@@ -193,8 +192,7 @@ def convert_to_layers(in_layers):
     elif isinstance(in_layer, tf.Tensor):
       layers.append(TensorWrapper(in_layer))
     else:
-      raise ValueError(
-          "convert_to_layers must be invoked on layers or tensors")
+      raise ValueError("convert_to_layers must be invoked on layers or tensors")
   return layers
 
 
@@ -264,6 +262,7 @@ class Conv1D(Layer):
 
 
 class Dense(Layer):
+
   def __init__(
       self,
       out_channels,
@@ -394,6 +393,7 @@ class Flatten(Layer):
 
 
 class Reshape(Layer):
+
   def __init__(self, shape, **kwargs):
     super(Reshape, self).__init__(**kwargs)
     self._new_shape = tuple(-1 if x is None else x for x in shape)
@@ -424,6 +424,7 @@ class Reshape(Layer):
 
 
 class Squeeze(Layer):
+
   def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
     self.squeeze_dims = squeeze_dims
     super(Squeeze, self).__init__(in_layers, **kwargs)
@@ -449,6 +450,7 @@ class Squeeze(Layer):
 
 
 class Transpose(Layer):
+
   def __init__(self, perm, **kwargs):
     super(Transpose, self).__init__(**kwargs)
     self.perm = perm
@@ -469,6 +471,7 @@ class Transpose(Layer):
 
 
 class CombineMeanStd(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(CombineMeanStd, self).__init__(in_layers, **kwargs)
     try:
@@ -490,6 +493,7 @@ class CombineMeanStd(Layer):
 
 
 class Repeat(Layer):
+
   def __init__(self, n_times, **kwargs):
     self.n_times = n_times
     super(Repeat, self).__init__(**kwargs)
@@ -577,6 +581,7 @@ class GRU(Layer):
 
 
 class TimeSeriesDense(Layer):
+
   def __init__(self, out_channels, **kwargs):
     self.out_channels = out_channels
     super(TimeSeriesDense, self).__init__(**kwargs)
@@ -596,6 +601,7 @@ class TimeSeriesDense(Layer):
 
 
 class Input(Layer):
+
   def __init__(self, shape, dtype=tf.float32, **kwargs):
     self._shape = tuple(shape)
     self.dtype = dtype
@@ -617,7 +623,7 @@ class Input(Layer):
     return out_tensor
 
   def create_pre_q(self, batch_size):
-    q_shape = (batch_size, ) + self._shape[1:]
+    q_shape = (batch_size,) + self._shape[1:]
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -625,21 +631,25 @@ class Input(Layer):
 
 
 class Feature(Input):
+
   def __init__(self, **kwargs):
     super(Feature, self).__init__(**kwargs)
 
 
 class Label(Input):
+
   def __init__(self, **kwargs):
     super(Label, self).__init__(**kwargs)
 
 
 class Weights(Input):
+
   def __init__(self, **kwargs):
     super(Weights, self).__init__(**kwargs)
 
 
 class L1Loss(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(L1Loss, self).__init__(in_layers, **kwargs)
 
@@ -654,15 +664,16 @@ class L1Loss(Layer):
 
 
 class L2Loss(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(L2Loss, self).__init__(in_layers, **kwargs)
     try:
       shape1 = self.in_layers[0].shape
       shape2 = self.in_layers[1].shape
       if shape1[0] is None:
-        self._shape = (parent_shape[1], )
+        self._shape = (parent_shape[1],)
       else:
-        self._shape = (parent_shape[0], )
+        self._shape = (parent_shape[0],)
     except:
       pass
 
@@ -677,6 +688,7 @@ class L2Loss(Layer):
 
 
 class SoftMax(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(SoftMax, self).__init__(in_layers, **kwargs)
     try:
@@ -696,6 +708,7 @@ class SoftMax(Layer):
 
 
 class Concat(Layer):
+
   def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
     super(Concat, self).__init__(in_layers, **kwargs)
@@ -720,6 +733,7 @@ class Concat(Layer):
 
 
 class Stack(Layer):
+
   def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
     super(Stack, self).__init__(in_layers, **kwargs)
@@ -893,6 +907,7 @@ class InteratomicL2Distances(Layer):
 
 
 class SparseSoftMaxCrossEntropy(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
@@ -914,6 +929,7 @@ class SparseSoftMaxCrossEntropy(Layer):
 
 
 class SoftMaxCrossEntropy(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(SoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
@@ -935,6 +951,7 @@ class SoftMaxCrossEntropy(Layer):
 
 
 class ReduceMean(Layer):
+
   def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
     super(ReduceMean, self).__init__(in_layers, **kwargs)
@@ -963,6 +980,7 @@ class ReduceMean(Layer):
 
 
 class ToFloat(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(ToFloat, self).__init__(in_layers, **kwargs)
     try:
@@ -981,6 +999,7 @@ class ToFloat(Layer):
 
 
 class ReduceSum(Layer):
+
   def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
     super(ReduceSum, self).__init__(in_layers, **kwargs)
@@ -1009,6 +1028,7 @@ class ReduceSum(Layer):
 
 
 class ReduceSquareDifference(Layer):
+
   def __init__(self, in_layers=None, axis=None, **kwargs):
     self.axis = axis
     super(ReduceSquareDifference, self).__init__(in_layers, **kwargs)
@@ -1112,6 +1132,7 @@ class Conv2D(Layer):
 
 
 class MaxPool(Layer):
+
   def __init__(self,
                ksize=[1, 2, 2, 1],
                strides=[1, 2, 2, 1],
@@ -1132,10 +1153,7 @@ class MaxPool(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.max_pool(
-        in_tensor,
-        ksize=self.ksize,
-        strides=self.strides,
-        padding=self.padding)
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1180,6 +1198,7 @@ class InputFifoQueue(Layer):
 
 
 class GraphConv(Layer):
+
   def __init__(self,
                out_channel,
                min_deg=0,
@@ -1294,6 +1313,7 @@ class GraphConv(Layer):
 
 
 class GraphPool(Layer):
+
   def __init__(self, min_degree=0, max_degree=10, **kwargs):
     self.min_degree = min_degree
     self.max_degree = max_degree
@@ -1342,6 +1362,7 @@ class GraphPool(Layer):
 
 
 class GraphGather(Layer):
+
   def __init__(self, batch_size, activation_fn=None, **kwargs):
     self.batch_size = batch_size
     self.activation_fn = activation_fn
@@ -1515,9 +1536,9 @@ def _cosine_dist(x, y):
   y: tf.Tensor
     Input Tensor 
   """
-  denom = (model_ops.sqrt(
-      model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y))) +
-           model_ops.epsilon())
+  denom = (
+      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
+      + model_ops.epsilon())
   return model_ops.dot(x, tf.transpose(y)) / denom
 
 
@@ -1770,6 +1791,7 @@ class IterRefLSTMEmbedding(Layer):
 
 
 class BatchNorm(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(BatchNorm, self).__init__(in_layers, **kwargs)
     try:
@@ -1788,6 +1810,7 @@ class BatchNorm(Layer):
 
 
 class BatchNormalization(Layer):
+
   def __init__(self,
                epsilon=1e-5,
                axis=-1,
@@ -1808,7 +1831,7 @@ class BatchNormalization(Layer):
     return weight
 
   def build(self, input_shape):
-    shape = (input_shape[self.axis], )
+    shape = (input_shape[self.axis],)
     self.gamma = self.add_weight(
         shape, initializer=self.gamma_init, name='{}_gamma'.format(self.name))
     self.beta = self.add_weight(
@@ -1831,6 +1854,7 @@ class BatchNormalization(Layer):
 
 
 class WeightedError(Layer):
+
   def __init__(self, in_layers=None, **kwargs):
     super(WeightedError, self).__init__(in_layers, **kwargs)
     self._shape = tuple()
@@ -1879,7 +1903,7 @@ class VinaFreeEnergy(Layer):
 
   def nonlinearity(self, c):
     """Computes non-linearity used in Vina."""
-    w = tf.Variable(tf.random_normal((1, ), stddev=self.stddev))
+    w = tf.Variable(tf.random_normal((1,), stddev=self.stddev))
     out_tensor = c / (1 + w * self.Nrot)
     return w, out_tensor
 
@@ -2062,10 +2086,8 @@ class NeighborList(Layer):
 
     # List of length N_atoms, each element of different length uniques_i
     nbrs = self.get_atoms_in_nbrs(coords, cells)
-    padding = tf.fill((self.M_nbrs, ), -1)
-    padded_nbrs = [
-        tf.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs
-    ]
+    padding = tf.fill((self.M_nbrs,), -1)
+    padded_nbrs = [tf.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs]
 
     # List of length N_atoms, each element of different length uniques_i
     # List of length N_atoms, each a tensor of shape
@@ -2282,6 +2304,7 @@ class NeighborList(Layer):
 
 
 class Dropout(Layer):
+
   def __init__(self, dropout_prob, **kwargs):
     self.dropout_prob = dropout_prob
     super(Dropout, self).__init__(**kwargs)
@@ -2328,14 +2351,15 @@ class WeightDecay(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     parent_tensor = inputs[0]
-    out_tensor = parent_tensor + model_ops.weight_decay(
-        self.penalty_type, self.penalty)
+    out_tensor = parent_tensor + model_ops.weight_decay(self.penalty_type,
+                                                        self.penalty)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
 
 class AtomicConvolution(Layer):
+
   def __init__(self,
                atom_types=None,
                radial_params=list(),
@@ -2563,9 +2587,8 @@ class AtomicConvolution(Layer):
     example_tensors = tf.unstack(X, axis=0)
     example_nbrs = tf.unstack(nbr_indices, axis=0)
     all_nbr_coords = []
-    for example, (
-        example_tensor,
-        example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
+    for example, (example_tensor,
+                  example_nbr) in enumerate(zip(example_tensors, example_nbrs)):
       nbr_coords = tf.gather(example_tensor, example_nbr)
       all_nbr_coords.append(nbr_coords)
     neighbors = tf.stack(all_nbr_coords)
@@ -2615,7 +2638,7 @@ def AlphaShare(in_layers=None, **kwargs):
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
   num_outputs = len(in_layers)
   for num_layer in range(0, num_outputs):
-    ls = LayerSplitter(output_num = num_layer, in_layers=alpha_share) 
+    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
     output_layers.append(ls)
   return output_layers
 
@@ -2669,7 +2692,7 @@ class AlphaShareLayer(Layer):
     out_tensor = []
     tmp_tensor = []
     for row in range(n_alphas):
-      tmp_tensor.append(tf.reshape(subspaces[row, ], [-1, subspace_size]))
+      tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
         out_tensor.append(tf.concat(tmp_tensor, 1))
@@ -2744,6 +2767,7 @@ class SluiceLoss(Layer):
       subspaces.append(input_tensor[:, :subspace_size])
       subspaces.append(input_tensor[:, subspace_size:])
       product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
+      subspaces = []
       # calculate squared Frobenius norm
       temp.append(tf.reduce_sum(tf.pow(product, 2)))
     out_tensor = tf.reduce_sum(temp)
