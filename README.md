@@ -784,4 +784,4 @@ DeepChem is supported by a number of corporate partners who use DeepChem to solv
 
 
 ## Version
-1.1.0
+1.2.0
