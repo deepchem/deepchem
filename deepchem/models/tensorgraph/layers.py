@@ -2613,10 +2613,10 @@ def AlphaShare(in_layers=None, **kwargs):
   """
   output_layers = []
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
-  num_outputs = len(kwargs['in_layers'])
+  num_outputs = len(in_layers)
   for num_layer in range(0, num_outputs):
-    output_layers.append(
-        LayerSplitter(in_layers=alpha_share, output_num=num_layer))
+    ls = LayerSplitter(output_num = num_layer, in_layers=alpha_share) 
+    output_layers.append(ls)
   return output_layers
 
 
@@ -2713,7 +2713,16 @@ class LayerSplitter(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)[0]
     self.out_tensor = inputs[self.output_num, :]
+    out_tensor = self.out_tensor
     return self.out_tensor
+
+  def none_tensors(self):
+    out_tensor = self.out_tensor
+    self.out_tensor = None
+    return out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensor = tensor
 
 
 class SluiceLoss(Layer):

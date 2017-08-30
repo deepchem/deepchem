@@ -46,9 +46,11 @@ from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import LSTMStep
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
-from deepchem.models.tensorgraph.layers import AlphaShare
-#from deepchem.models.tensorgraph.layers import BetaShare
+from deepchem.models.tensorgraph.layers import Stack
+from deepchem.models.tensorgraph.layers import AlphaShareLayer
+from deepchem.models.tensorgraph.layers import BetaShare
 #from deepchem.models.tensorgraph.layers import SluiceLoss
+from deepchem.models.tensorgraph.layers import LayerSplitter
 
 import deepchem as dc
 
@@ -468,23 +470,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert test_out.shape == (n_test, n_feat)
       assert support_out.shape == (n_support, n_feat)
 
-  def test_alpha_share(self):
-    """test that alpha share works correctly"""
-    batch_size = 50
-    length = 10
-    test_1 = np.random.rand(batch_size, length)
-    test_2 = np.random.rand(batch_size, length)
 
-    with self.test_session() as sess:
-      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
-      test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
-
-      out_tensor = AlphaShare(in_layers=[test_1, test_2])
-      sess.run(tf.global_variables_initializer())
-      test_1_out_tensor = out_tensor[0].eval
-      test_2_out_tensor = out_tensor[1].eval
-      assert test_1.shape == test_1_out_tensor.shape
-      assert test_2.shape == test_2_out_tensor.shape
 
   # TODO(rbharath): This test should pass. Fix it!
   #def test_graph_pool(self):
@@ -632,4 +618,52 @@ class TestLayers(test_util.TensorFlowTestCase):
       result = sess.run(tf.gradients(v, v))
       assert result[0] == 1.0
 
-TestLayers.test_alpha_share()
+
+  def test_alpha_share_layer(self):
+    """test that alpha share works correctly"""
+    batch_size = 50
+    length = 10
+    test_1 = np.random.rand(batch_size, length)
+    test_2 = np.random.rand(batch_size, length)
+
+    with self.test_session() as sess:
+      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
+      test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
+
+      out_tensor = AlphaShareLayer()(test_1, test_2)
+      sess.run(tf.global_variables_initializer())
+      test_1_out_tensor = out_tensor[0].eval()
+      test_2_out_tensor = out_tensor[1].eval()
+      assert test_1.shape == test_1_out_tensor.shape
+      assert test_2.shape == test_2_out_tensor.shape
+
+  def test_beta_share(self):
+    """test that alpha share works correctly"""
+    batch_size = 50
+    length = 10
+    test_1 = np.random.rand(batch_size, length)
+    test_2 = np.random.rand(batch_size, length)
+
+    with self.test_session() as sess:
+      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
+      test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
+
+      out_tensor = BetaShare()(test_1, test_2)
+      sess.run(tf.global_variables_initializer())
+      out_tensor.eval()
+      assert test_1.shape == out_tensor.shape
+      assert test_2.shape == out_tensor.shape
+
+  def test_layer_splitter(self):
+    input1 = np.arange(10).reshape(2,5)
+    input2 = np.arange(10,20).reshape(2,5)
+
+    with self.test_session() as sess:
+      input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
+      input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
+      input_tensor = Stack()(input1, input2)
+      output1 = LayerSplitter(0)(input_tensor)
+      output2 = LayerSplitter(1)(input_tensor)
+      sess.run(tf.global_variables_initializer())
+      tf.assert_equal(input1, output1.eval())
+      tf.assert_equal(input2, output2.eval())
