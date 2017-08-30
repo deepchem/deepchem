@@ -81,7 +81,8 @@ class NotebookDirective(Directive):
     # 2. Python
     export_python(nb, f['py'])
     # 3. HTML (execute first)
-    executer = ExecutePreprocessor()
+    # Set per-cell timeout to 60 seconds
+    executer = ExecutePreprocessor(timeout=60)
     executer.preprocess(nb, {})
     html = export_html(nb, f)
     # 4. Eval'd notebook

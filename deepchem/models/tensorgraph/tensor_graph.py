@@ -211,9 +211,10 @@ class TensorGraph(Model):
           print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                             avg_loss))
           avg_loss, n_batches = 0.0, 0.0
-      avg_loss = float(avg_loss) / n_batches
-      print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                        avg_loss))
+      if n_batches > 0:
+        avg_loss = float(avg_loss) / n_batches
+        print('Ending global_step %d: Average loss %g' % (self.global_step,
+                                                          avg_loss))
       saver.save(self.session, self.save_file, global_step=self.global_step)
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
