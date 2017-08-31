@@ -658,7 +658,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
       input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
-      input_tensor = Stack()(input1, input2)
+      input_tensor = tf.stack([input1, input2])
       output1 = LayerSplitter(0)(input_tensor)
       output2 = LayerSplitter(1)(input_tensor)
       sess.run(tf.global_variables_initializer())
