@@ -660,8 +660,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       output1 = LayerSplitter(0)(input_tensor)
       output2 = LayerSplitter(1)(input_tensor)
       sess.run(tf.global_variables_initializer())
-      tf.assert_equal(input1, output1.eval())
-      tf.assert_equal(input2, output2.eval())
+      sess.run(tf.assert_equal(input1, output1.eval()))
+      sess.run(tf.assert_equal(input2, output2.eval()))
 
   def test_sluice_loss(self):
     """Test the sluice loss function"""
