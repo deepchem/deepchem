@@ -130,13 +130,13 @@ class TestLayers(test_util.TensorFlowTestCase):
     dim = 2
     batch_size = 10
     mean_tensor = np.random.rand(dim)
-    std_tensor = np.random.rand(1,)
+    std_tensor = np.random.rand(1, )
     with self.test_session() as sess:
       mean_tensor = tf.convert_to_tensor(mean_tensor, dtype=tf.float32)
       std_tensor = tf.convert_to_tensor(std_tensor, dtype=tf.float32)
       out_tensor = CombineMeanStd()(mean_tensor, std_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (dim,)
+      assert out_tensor.shape == (dim, )
 
   def test_repeat(self):
     """Test that Repeat can be invoked."""
@@ -196,7 +196,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = L2Loss()(guess_tensor, label_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size,)
+      assert out_tensor.shape == (batch_size, )
 
   def test_softmax(self):
     """Test that Softmax can be invoked."""
@@ -270,8 +270,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       coords_tensor = tf.convert_to_tensor(coords)
       nbr_list_tensor = tf.convert_to_tensor(nbr_list)
 
-      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs,
-                                           ndim)(coords_tensor, nbr_list_tensor)
+      dist_tensor = InteratomicL2Distances(N_atoms, M_nbrs, ndim)(
+          coords_tensor, nbr_list_tensor)
 
       dists = dist_tensor.eval()
       assert dists.shape == (N_atoms, M_nbrs)
@@ -419,7 +419,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       lstm = LSTMStep(n_feat, 2 * n_feat)
       out_tensor = lstm(y, state_zero, state_one)
       sess.run(tf.global_variables_initializer())
-      h_out, h_copy_out, c_out = (out_tensor[0].eval(), out_tensor[1][0].eval(),
+      h_out, h_copy_out, c_out = (out_tensor[0].eval(),
+                                  out_tensor[1][0].eval(),
                                   out_tensor[1][1].eval())
       assert h_out.shape == (n_test, n_feat)
       assert h_copy_out.shape == (n_test, n_feat)
@@ -459,8 +460,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       test = tf.convert_to_tensor(test, dtype=tf.float32)
       support = tf.convert_to_tensor(support, dtype=tf.float32)
 
-      iter_ref_embedding_layer = IterRefLSTMEmbedding(n_test, n_support, n_feat,
-                                                      max_depth)
+      iter_ref_embedding_layer = IterRefLSTMEmbedding(n_test, n_support,
+                                                      n_feat, max_depth)
       out_tensor = iter_ref_embedding_layer(test, support)
       sess.run(tf.global_variables_initializer())
       test_out, support_out = out_tensor[0].eval(), out_tensor[1].eval()
@@ -600,7 +601,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       out_tensor = Squeeze(squeeze_dims=1)(tf.constant(value1))
       result = out_tensor.eval()
-      assert result.shape == (2,)
+      assert result.shape == (2, )
 
   def test_convert_to_tensor(self):
     """Test implicit conversion of Layers to Tensors."""
