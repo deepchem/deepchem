@@ -94,7 +94,7 @@ def test_Repeat_pickle():
 def test_Gather_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
-  layer = Gather(indices=[0, 2, 3], in_layers=feature)
+  layer = Gather(indices=[[0], [2], [3]], in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()

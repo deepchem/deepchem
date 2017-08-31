@@ -153,10 +153,10 @@ class TestLayers(test_util.TensorFlowTestCase):
     """Test that Gather can be invoked."""
     in_tensor = np.random.uniform(size=(5, 4)).astype(np.float32)
     with self.test_session() as sess:
-      out_tensor = Gather(indices=[2, 3], axis=0)(in_tensor).eval()
-      assert np.array_equal(in_tensor[[2, 3]], out_tensor)
-      out_tensor = Gather(axis=1)(in_tensor, np.array([1, 3])).eval()
-      assert np.array_equal(in_tensor[:, [1, 3]], out_tensor)
+      out_tensor = Gather(indices=[[2], [3]])(in_tensor).eval()
+      assert np.array_equal([in_tensor[2], in_tensor[3]], out_tensor)
+      out_tensor = Gather()(in_tensor, np.array([[1, 1], [0, 3]])).eval()
+      assert np.array_equal([in_tensor[1, 1], in_tensor[0, 3]], out_tensor)
 
   def test_gru(self):
     """Test that GRU can be invoked."""
