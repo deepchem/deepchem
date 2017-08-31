@@ -16,6 +16,7 @@ from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import Transpose
 from deepchem.models.tensorgraph.layers import CombineMeanStd
 from deepchem.models.tensorgraph.layers import Repeat
+from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
 from deepchem.models.tensorgraph.layers import Input
@@ -146,6 +147,15 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Repeat(n_repeat)(in_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, n_repeat, in_dim)
+
+  def test_gather(self):
+    """Test that Gather can be invoked."""
+    in_tensor = np.random.uniform(size=(5, 4)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Gather(indices=[2, 3], axis=0)(in_tensor).eval()
+      assert np.array_equal(in_tensor[[2, 3]], out_tensor)
+      out_tensor = Gather(axis=1)(in_tensor, np.array([1, 3])).eval()
+      assert np.array_equal(in_tensor[:, [1, 3]], out_tensor)
 
   def test_gru(self):
     """Test that GRU can be invoked."""

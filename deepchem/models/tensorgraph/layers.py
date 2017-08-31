@@ -517,6 +517,59 @@ class Repeat(Layer):
     return out_tensor
 
 
+class Gather(Layer):
+  """Gather slices from the input."""
+
+  def __init__(self, in_layers=None, indices=None, axis=0, **kwargs):
+    """Create a Gather layer.
+
+    The slice indices may be specified in two ways.  If the indices are constants,
+    you can pass them to this constructor as a list or array.  Alternatively, the
+    indices can be calculated by another layer.  In that case, pass None for indices,
+    and instead provide them as the second input layer.
+
+    Parameters
+    ----------
+    in_layers: list
+      the input layers.  If indices is not None, this should be of length 1.  If indices
+      is None, this should be of length 2, with the first entry calculating the tensor
+      from which to take slices, and the second entry calculating the slice indices.
+    indices: array
+      the slice indices (if they are constants) or None (if the indices are provided by
+      an input)
+    axis: int
+      the axis along which to select slices.  The indices refer to positions along this axis.
+    """
+    self.indices = indices
+    self.axis = axis
+    super(Gather, self).__init__(in_layers, **kwargs)
+    try:
+      s = list(self.in_layers[0].shape)
+      if indices is None:
+        s[axis] = None
+      else:
+        s[axis] = len(indices)
+      self._shape = tuple(s)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if self.indices is None:
+      if len(inputs) != 2:
+        raise ValueError("Must have two parents")
+      indices = inputs[1]
+    if self.indices is not None:
+      if len(inputs) != 1:
+        raise ValueError("Must have one parent")
+      indices = self.indices
+    parent_tensor = inputs[0]
+    out_tensor = tf.gather(parent_tensor, indices, axis=self.axis)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class GRU(Layer):
   """A Gated Recurrent Unit.
 
