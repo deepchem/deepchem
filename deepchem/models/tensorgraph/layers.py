@@ -301,7 +301,7 @@ class Dense(Layer):
     self.time_series = time_series
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = (parent_shape[0], out_channels)
+      self._shape = tuple(parent_shape[:-1] + [out_channels])
     except:
       pass
     self._reuse = False
@@ -926,6 +926,26 @@ class Multiply(Layer):
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Log(Layer):
+  """Compute the natural log of the input."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Log, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = in_layers[0].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError('Log must have a single parent')
+    out_tensor = tf.log(inputs[0])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor

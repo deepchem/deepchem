@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-    CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
+    CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, Log, InteratomicL2Distances, \
     SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
     GraphGather, BatchNorm, WeightedError, \
     LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
@@ -159,6 +159,16 @@ def test_Variable_pickle():
   output = Multiply(in_layers=[feature, layer])
   tg.add_output(output)
   tg.set_loss(output)
+  tg.build()
+  tg.save()
+
+
+def test_Log_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Log(feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
   tg.build()
   tg.save()
 

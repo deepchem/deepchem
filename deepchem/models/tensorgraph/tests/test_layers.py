@@ -26,6 +26,7 @@ from deepchem.models.tensorgraph.layers import Constant
 from deepchem.models.tensorgraph.layers import Variable
 from deepchem.models.tensorgraph.layers import Add
 from deepchem.models.tensorgraph.layers import Multiply
+from deepchem.models.tensorgraph.layers import Log
 from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import ReduceMean
@@ -263,6 +264,13 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Multiply()(tf.constant(value1), tf.constant(value2),
                               tf.constant(value3))
       assert np.array_equal(value1 * value2 * value3, out_tensor.eval())
+
+  def test_log(self):
+    """Test that Log can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      result = Log()(value).eval()
+      assert np.array_equal(np.log(value), result)
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
