@@ -398,7 +398,6 @@ class TestLayers(test_util.TensorFlowTestCase):
       for deg_adj in deg_adjs:
         deg_adjs_tf.append(tf.convert_to_tensor(deg_adj, dtype=tf.int32))
       args = [atom_features, degree_slice, membership] + deg_adjs_tf
-      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
       out_tensor = GraphConv(out_channels)(*args)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
