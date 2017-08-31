@@ -1,15 +1,15 @@
 # Using TensorGraph
 
 Tensorgraph is the newest version of DeepChem's Tensorflow model building framework.
-Tensorgraph is designed to be incredibly fexible for users attempting research, but also easy to use for Deep Learning begginners.
+Tensorgraph is designed to be incredibly flexible for users attempting research as well as being easy to learn for Deep Learning beginners.
 
 ## Vocabulary
 
 ### TensorGraph
-A TensorGraph model is pipeing around a series of layers.  Placing your Tensorflow code in a Tensorgraph means you don't have to worry about code to fit, train, batch data, write pickling function, write restoring functions, and enable beautiful tensorboard visualizations.
+A TensorGraph model is pipeing around a series of layers.  Placing your Tensorflow code into a Tensorgraph means you don't have to worry about coding methods for fitting, training, and batching data, nor do you need to worry about writing picking and restoring functions. It also enables beautiful Tensorboard visualizations. 
 
 ### Layer
-A Layer is a node in a graph.  A Layer class has a "name" and a __call__ function.  __call__ takes in a list of parent Layers, and returns a tf.Tensor object, and sets the tf.Tensor object as self.out_tensor.  Below is an example layer which will reverse the order of the parent Tensor 0th axis.
+A Layer is a node in a graph.  A Layer class has a "name" and a __call__ function.  __call__ takes in a list of parent Layers, returns a tf.Tensor object, and sets the tf.Tensor object as self.out_tensor.  Below is an example layer which will reverse the order of the parent Tensor 0th axis.
 
 ``` python
 class Reverse(Layer):
@@ -18,7 +18,7 @@ class Reverse(Layer):
     out_tensor = tf.reverse(parent_out, axis=0)
     return out_tensor
 ```
-You can combine these layers to form Graph of computation by combining these layers on a tensorgraph.
+You can combine these layers to form a Graph of computation by combining these layers on a tensorgraph.
 ``` python
 tg = TensorGraph()
 feature = Input(shape=(None, 5))
@@ -26,10 +26,10 @@ tg.add_layer(feature, parents=list())
 reverse = Reverse() # From Above
 tg.add_layer(Reverse(), parentes=[feature])
 ```
-Now during computation the reverse layer will reverse the feature layer.
+Now during computation, the reverse layer will reverse the feature layer.
 
 ### Features
-Features are how we feed input data into our model.  During training or predicting Tensorgraph will set the values of feature layers from Dataset.X.  We have to manually tell TensorGraph which layers we want to feed data into.
+Features are how we feed input data into our model.  During training or predicting, Tensorgraph will set the values of feature layers from Dataset.X.  We have to manually tell TensorGraph which layers we want to feed data into.
 
 ``` python
 tg = TensorGraph()
@@ -66,8 +66,8 @@ Here in our classification problem we are attempting to reduce the mean of a Sof
 
 ### Outputs
 Outputs are your predictions for tasks.  A TensorGraph can have multiple outputs!  An example is a multi-task regression problem.
-By convention for regression problems outputs are single values. Classification problems outputs are a probability vector,
-where each entry represents the probability of the input beint in each of the classes.
+By convention for regression problems outputs are single values. Classification problem outputs are a probability vector,
+where each entry represents the probability of the input being in each of the classes.
 
 ``` python
 tg = TensorGraph()
@@ -77,7 +77,7 @@ tg.add_output(a)
 ```
 
 ## Creating your own TensorGraph Model
-In order to create a a TensorGraph model we have to
+In order to create a TensorGraph model, we have to:
 1. Create the TensorGraph model object
 2. Add Layers
 3. Add Features
