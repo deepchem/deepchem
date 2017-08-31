@@ -9,7 +9,7 @@ Tensorgraph is designed to be incredibly flexible for users attempting research 
 A TensorGraph model is pipeing around a series of layers.  Placing your Tensorflow code into a Tensorgraph means you don't have to worry about coding methods for fitting, training, and batching data, nor do you need to worry about writing picking and restoring functions. It also enables beautiful Tensorboard visualizations. 
 
 ### Layer
-A Layer is a node in a graph.  A Layer class has a "name" and a __call__ function.  __call__ takes in a list of parent Layers, returns a tf.Tensor object, and sets the tf.Tensor object as self.out_tensor.  Below is an example layer which will reverse the order of the parent Tensor 0th axis.
+A Layer is a node in a graph.  A Layer class has a "name" and a __call__ function.  __call__ takes in a list of parent Layers, returns a tf.Tensor object, and sets the tf.Tensor object as self.out_tensor.  Below is an example layer which will reverse the order of the parent Tensor's 0th axis.
 
 ``` python
 class Reverse(Layer):
@@ -41,7 +41,7 @@ tg.add_feature(feature)
 ```
 
 ### Labels
-Labels are the results we expect to get for each feature.  This is what we feed Dataset.y into when "fit"ing a model.
+Labels are the results we expect to get for each feature.  We feed Dataset.y into a label when "fit"ing a model.
 ```
 tf = TensorGraph()
 label = Input(shape=(None, 2)) # Example Binary Classification label
@@ -50,7 +50,7 @@ tf.add_label(label)
 ```
 
 ### Loss
-Loss is a scalar we wish to minimize for our network.  When training we will use tensorflow to intelligently minimize this value via gradient descent.
+Loss is a scalar we wish to minimize for our network.  When training, we will use tensorflow to intelligently minimize this value via gradient descent.
 
 ``` python
 tg = TensorGraph()
@@ -62,11 +62,11 @@ redmean = ReduceMean()
 tg.add_layer(redmean, parents=[smce])
 tg.set_loss(redmean)
 ```
-Here in our classification problem we are attempting to reduce the mean of a SoftMaxCrossEntropy for a classification problem.
+Here in our classification problem, we are attempting to reduce the mean of a SoftMaxCrossEntropy.
 
 ### Outputs
 Outputs are your predictions for tasks.  A TensorGraph can have multiple outputs!  An example is a multi-task regression problem.
-By convention for regression problems outputs are single values. Classification problem outputs are a probability vector,
+By convention, regression problems' outputs are single values, while classification problems' outputs are probability vectors,
 where each entry represents the probability of the input being in each of the classes.
 
 ``` python
@@ -84,14 +84,29 @@ In order to create a TensorGraph model, we have to:
 4. Add Labels
 5. Set Loss
 
+## Using TensorBoard with TensorGraph
+Visualizing layers is extremely easy with Tensorboard. After creating a layer, simply call the set_summary method. 
+Tensorgraph currently supports the following summary ops: [histogram](https://www.tensorflow.org/api_docs/python/tf/summary/histogram), [scalar](https://www.tensorflow.org/api_docs/python/tf/summary/scalar), and [tensor_summary](https://www.tensorflow.org/api_docs/python/tf/summary/tensor_summary)
+
+``` python
+model_dir='example_dir'
+tg = TensorGraph(model_dir=model_dir)
+# a is Input tensor
+dense = Dense(in_layers=[a])
+dense.set_summary(summary_op='histogram')
+```
+Then after the model has finished training, simply run
+``` bash
+tensorboard --logdir=example_dir
+```
+Navigate to: [localhost:6006](localhost:6006) to view your visualizations. Tensorgraph will also have automatically constructed the graph visualization.
+
 ## Examples
 TensorGraph on the MNIST
 
 TensorGraph for Bypass MultiTask Classification
 
 ## Further Reading
-Using Tensorboard with TensorGraph
-
 Saving and Restoring TensorGraph
 
 Experimenting on new architectures with TensorGraph
