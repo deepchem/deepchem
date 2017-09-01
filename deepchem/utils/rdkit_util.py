@@ -1,6 +1,5 @@
 import logging
 
-import networkx as nx
 import numpy as np
 import os
 
@@ -223,6 +222,7 @@ class PdbqtLigandWriter(object):
     The single public function of this class.
     It converts a molecule and a pdb file into a pdbqt file stored in outfile
     """
+    import networkx as nx
     self._create_pdb_map()
     self._mol_to_graph()
     self._get_rotatable_bonds()
@@ -347,6 +347,7 @@ class PdbqtLigandWriter(object):
     atoms are nodes, and bonds are vertices
     store as self.graph
     """
+    import networkx as nx
     G = nx.Graph()
     num_atoms = self.mol.GetNumAtoms()
     G.add_nodes_from(range(num_atoms))

@@ -46,10 +46,6 @@ from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import LSTMStep
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
-from deepchem.models.tensorgraph.layers import AlphaShareLayer
-from deepchem.models.tensorgraph.layers import BetaShare
-from deepchem.models.tensorgraph.layers import SluiceLoss
-from deepchem.models.tensorgraph.layers import LayerSplitter
 
 import deepchem as dc
 
@@ -613,7 +609,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert result == 1.5
       result = sess.run(tf.gradients(v, v))
       assert result[0] == 1.0
-
+      
   def test_alpha_share_layer(self):
     """Test that alpha share works correctly"""
     batch_size = 50
