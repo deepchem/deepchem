@@ -26,10 +26,13 @@ from tox21_datasets import load_tox21
 
 def sluice_model(batch_size, tasks):
   model = TensorGraph(
-      model_dir=model_dir, batch_size=batch_size, use_queue=False, tensorboard=True)
+      model_dir=model_dir,
+      batch_size=batch_size,
+      use_queue=False,
+      tensorboard=True)
   atom_features = Feature(shape=(None, 75))
   degree_slice = Feature(shape=(None, 2), dtype=tf.int32)
-  membership = Feature(shape=(None, ), dtype=tf.int32)
+  membership = Feature(shape=(None,), dtype=tf.int32)
 
   sluice_loss = []
   deg_adjs = []
@@ -48,8 +51,10 @@ def sluice_model(batch_size, tasks):
   batch_norm1a = BatchNorm(in_layers=[as1[0]])
   batch_norm1b = BatchNorm(in_layers=[as1[1]])
 
-  gp1a = GraphPool(in_layers=[batch_norm1a, degree_slice, membership] + deg_adjs)
-  gp1b = GraphPool(in_layers=[batch_norm1b, degree_slice, membership] + deg_adjs)
+  gp1a = GraphPool(
+      in_layers=[batch_norm1a, degree_slice, membership] + deg_adjs)
+  gp1b = GraphPool(
+      in_layers=[batch_norm1b, degree_slice, membership] + deg_adjs)
 
   gc2a = GraphConv(
       64,
@@ -120,7 +125,7 @@ def sluice_model(batch_size, tasks):
   task_loss = WeightedError(in_layers=[entropy, task_weights])
 
   s_cost = SluiceLoss(in_layers=sluice_loss)
-  
+
   total_loss = Add(in_layers=[task_loss, s_cost])
   model.set_loss(total_loss)
 
@@ -142,6 +147,7 @@ def sluice_model(batch_size, tasks):
 
   return model, feed_dict_generator, labels, task_weights
 
+
 model_dir = "tmp/graphconv"
 
 # Load Tox21 dataset
@@ -149,7 +155,6 @@ tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='GraphConv')
 train_dataset, valid_dataset, test_dataset = tox21_datasets
 print(train_dataset.data_dir)
 print(valid_dataset.data_dir)
-
 
 # Fit models
 metric = dc.metrics.Metric(
@@ -160,24 +165,25 @@ batch_size = 100
 
 num_epochs = 10
 
-model, generator, labels, task_weights = sluice_model(
-    batch_size, tox21_tasks)
+model, generator, labels, task_weights = sluice_model(batch_size, tox21_tasks)
 
-model.fit_generator(generator(train_dataset, batch_size, epochs=num_epochs), checkpoint_interval=1000)
+model.fit_generator(
+    generator(train_dataset, batch_size, epochs=num_epochs),
+    checkpoint_interval=1000)
 
 print("Evaluating model")
 train_scores = model.evaluate_generator(
-    generator(train_dataset, batch_size),
-    [metric],
+    generator(train_dataset, batch_size), [metric],
     transformers,
     labels,
-    weights = [task_weights],
-    per_task_metrics = True)
+    weights=[task_weights],
+    per_task_metrics=True)
 valid_scores = model.evaluate_generator(
     generator(valid_dataset, batch_size), [metric],
     transformers,
     labels,
-    weights=[task_weights], per_task_metrics = True)
+    weights=[task_weights],
+    per_task_metrics=True)
 
 print("Train scores")
 print(train_scores)

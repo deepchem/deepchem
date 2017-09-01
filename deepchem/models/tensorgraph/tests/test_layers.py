@@ -126,8 +126,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     dim = 2
     batch_size = 10
     mean_tensor = np.random.rand(dim)
-    std_tensor = np.random.rand(
-        1,)
+    std_tensor = np.random.rand(1,)
     with self.test_session() as sess:
       mean_tensor = tf.convert_to_tensor(mean_tensor, dtype=tf.float32)
       std_tensor = tf.convert_to_tensor(std_tensor, dtype=tf.float32)
@@ -609,7 +608,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert result == 1.5
       result = sess.run(tf.gradients(v, v))
       assert result[0] == 1.0
-      
+
   def test_alpha_share_layer(self):
     """Test that alpha share works correctly"""
     batch_size = 50
