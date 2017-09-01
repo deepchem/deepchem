@@ -12,8 +12,7 @@ import deepchem as dc
 
 
 def load_pcba(featurizer='ECFP', split='random'):
-  """Load PCBA datasets. Does not do train/test split"""
-
+  """Load PCBA datasets"""
   current_dir = os.path.dirname(os.path.realpath(__file__))
   print("About to load PCBA dataset.")
   dataset_file = os.path.join(current_dir, "../../datasets/pcba.csv.gz")
