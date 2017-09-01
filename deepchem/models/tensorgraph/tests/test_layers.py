@@ -46,6 +46,10 @@ from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import LSTMStep
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
+from deepchem.models.tensorgraph.layers import AlphaShareLayer
+from deepchem.models.tensorgraph.layers import BetaShare
+from deepchem.models.tensorgraph.layers import LayerSplitter
+from deepchem.models.tensorgraph.layers import SluiceLoss
 
 import deepchem as dc
 
