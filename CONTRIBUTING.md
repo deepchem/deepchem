@@ -22,7 +22,7 @@ DeepChem understands and agrees that Contributor retains copyright in its Contri
 DeepChem uses [yapf](https://github.com/google/yapf) to autoformat code.
 
 ``` bash
-pip install yapf==0.16.2
+pip install yapf==0.17.0
 cd <git_root>
 yapf -i <python_files changed>
 ```
