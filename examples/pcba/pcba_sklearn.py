@@ -47,13 +47,13 @@ model = SingletaskToMultitask(pcba_tasks, model_builder, model_dir)
 model.fit(train_dataset)
 model.save()
 
-train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=verbosity)
+train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=is_verbose)
 train_scores = train_evaluator.compute_model_performance([classification_metric])
 
 print("Train scores")
 print(train_scores)
 
-valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=verbosity)
+valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=is_verbose)
 valid_scores = valid_evaluator.compute_model_performance([classification_metric])
 
 print("Validation scores")
