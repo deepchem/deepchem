@@ -167,7 +167,7 @@ class TensorGraph(Model):
         while True:
           yield {self._training_placeholder: 1.0}
       for d in feed_dict_generator:
-        feed_dict = {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict = dict(d)
         feed_dict[self._training_placeholder] = 1.0
         yield feed_dict
 

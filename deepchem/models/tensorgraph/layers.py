@@ -301,7 +301,7 @@ class Dense(Layer):
     self.time_series = time_series
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = (parent_shape[0], out_channels)
+      self._shape = tuple(parent_shape[:-1]) + (out_channels,)
     except:
       pass
     self._reuse = False
@@ -512,6 +512,63 @@ class Repeat(Layer):
     t = tf.expand_dims(parent_tensor, 1)
     pattern = tf.stack([1, self.n_times, 1])
     out_tensor = tf.tile(t, pattern)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Gather(Layer):
+  """Gather elements or slices from the input."""
+
+  def __init__(self, in_layers=None, indices=None, **kwargs):
+    """Create a Gather layer.
+
+    The indices can be viewed as a list of element identifiers, where each
+    identifier is itself a length N array specifying the indices of the
+    first N dimensions of the input tensor.  Those elements (or slices, depending
+    on the shape of the input) are then stacked together.  For example,
+    indices=[[0],[2],[4]] will produce [input[0], input[2], input[4]], while
+    indices=[[1,2]] will produce [input[1,2]].
+
+    The indices may be specified in two ways.  If they are constants, you can pass
+    them to this constructor as a list or array.  Alternatively, the indices can
+    be calculated by another layer.  In that case, pass None for indices, and
+    instead provide them as the second input layer.
+
+    Parameters
+    ----------
+    in_layers: list
+      the input layers.  If indices is not None, this should be of length 1.  If indices
+      is None, this should be of length 2, with the first entry calculating the tensor
+      from which to take slices, and the second entry calculating the slice indices.
+    indices: array
+      the slice indices (if they are constants) or None (if the indices are provided by
+      an input)
+    """
+    self.indices = indices
+    super(Gather, self).__init__(in_layers, **kwargs)
+    try:
+      s = tuple(self.in_layers[0].shape)
+      if indices is None:
+        s2 = self.in_layers[1].shape
+        self._shape = (s2[0],) + s[s2[-1]:]
+      else:
+        self._shape = (len(indices),) + s[np.array(indices).shape[-1]:]
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if self.indices is None:
+      if len(inputs) != 2:
+        raise ValueError("Must have two parents")
+      indices = inputs[1]
+    if self.indices is not None:
+      if len(inputs) != 1:
+        raise ValueError("Must have one parent")
+      indices = self.indices
+    parent_tensor = inputs[0]
+    out_tensor = tf.gather_nd(parent_tensor, indices)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -807,6 +864,14 @@ class Variable(Layer):
     return out_tensor
 
 
+def _max_dimension(x, y):
+  if x is None:
+    return y
+  if y is None:
+    return x
+  return max(x, y)
+
+
 class Add(Layer):
   """Compute the (optionally weighted) sum of the input layers."""
 
@@ -828,7 +893,7 @@ class Add(Layer):
         shape2, shape1 = shape1, shape2
       offset = len(shape1) - len(shape2)
       for i in range(len(shape2)):
-        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
       self._shape = tuple(shape1)
     except:
       pass
@@ -863,7 +928,7 @@ class Multiply(Layer):
         shape2, shape1 = shape1, shape2
       offset = len(shape1) - len(shape2)
       for i in range(len(shape2)):
-        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
       self._shape = tuple(shape1)
     except:
       pass
@@ -873,6 +938,26 @@ class Multiply(Layer):
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Log(Layer):
+  """Compute the natural log of the input."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Log, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError('Log must have a single parent')
+    out_tensor = tf.log(inputs[0])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -953,6 +1038,8 @@ class SoftMaxCrossEntropy(Layer):
 class ReduceMean(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
     super(ReduceMean, self).__init__(in_layers, **kwargs)
     if axis is None:
@@ -1001,6 +1088,8 @@ class ToFloat(Layer):
 class ReduceSum(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
     super(ReduceSum, self).__init__(in_layers, **kwargs)
     if axis is None:
@@ -1030,6 +1119,8 @@ class ReduceSum(Layer):
 class ReduceSquareDifference(Layer):
 
   def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
     super(ReduceSquareDifference, self).__init__(in_layers, **kwargs)
     if axis is None:
