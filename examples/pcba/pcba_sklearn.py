@@ -16,7 +16,6 @@ from deepchem.metrics import Metric
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.utils.evaluate import Evaluator
 
-
 np.random.seed(123)
 
 # Set some global variables up top
@@ -32,29 +31,34 @@ os.makedirs(base_dir)
 pcba_tasks, pcba_datasets, transformers = load_pcba()
 (train_dataset, valid_dataset, test_dataset) = pcba_datasets
 
-classification_metric = Metric(metrics.roc_auc_score, np.mean,
-                               verbose=is_verbose,
-                               mode="classification")
+classification_metric = Metric(
+    metrics.roc_auc_score, np.mean, verbose=is_verbose, mode="classification")
+
 
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=500)
   return SklearnModel(sklearn_model, model_dir)
-model = SingletaskToMultitask(pcba_tasks, model_builder, model_dir)
 
+
+model = SingletaskToMultitask(pcba_tasks, model_builder, model_dir)
 
 # Fit trained model
 model.fit(train_dataset)
 model.save()
 
-train_evaluator = Evaluator(model, train_dataset, transformers, verbosity=is_verbose)
-train_scores = train_evaluator.compute_model_performance([classification_metric])
+train_evaluator = Evaluator(
+    model, train_dataset, transformers, verbosity=is_verbose)
+train_scores = train_evaluator.compute_model_performance(
+    [classification_metric])
 
 print("Train scores")
 print(train_scores)
 
-valid_evaluator = Evaluator(model, valid_dataset, transformers, verbosity=is_verbose)
-valid_scores = valid_evaluator.compute_model_performance([classification_metric])
+valid_evaluator = Evaluator(
+    model, valid_dataset, transformers, verbosity=is_verbose)
+valid_scores = valid_evaluator.compute_model_performance(
+    [classification_metric])
 
 print("Validation scores")
 print(valid_scores)
