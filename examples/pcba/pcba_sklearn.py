@@ -21,7 +21,7 @@ np.random.seed(123)
 
 # Set some global variables up top
 reload = True
-verbosity = "high"
+is_verbose = False
 
 base_dir = "/tmp/pcba_sklearn"
 model_dir = os.path.join(base_dir, "model")
@@ -29,19 +29,18 @@ if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 os.makedirs(base_dir)
 
-pcba_tasks, pcba_datasets, transformers = load_pcba(
-    base_dir, reload=reload)
-(train_dataset, valid_dataset) = pcba_datasets
+pcba_tasks, pcba_datasets, transformers = load_pcba()
+(train_dataset, valid_dataset, test_dataset) = pcba_datasets
 
 classification_metric = Metric(metrics.roc_auc_score, np.mean,
-                               verbosity=verbosity,
+                               verbose=is_verbose,
                                mode="classification")
 
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
       class_weight="balanced", n_estimators=500)
   return SklearnModel(sklearn_model, model_dir)
-model = SingletaskToMultitask(muv_tasks, model_builder, model_dir)
+model = SingletaskToMultitask(pcba_tasks, model_builder, model_dir)
 
 
 # Fit trained model
