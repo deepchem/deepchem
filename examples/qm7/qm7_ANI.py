@@ -6,14 +6,18 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
+
+from models import TensorGraph
+
 np.random.seed(123)
 import tensorflow as tf
+
 tf.set_random_seed(123)
 import deepchem as dc
 
 # Load Tox21 dataset
 tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
-    featurizer='BPSymmetryFunction')
+  featurizer='BPSymmetryFunction')
 train_dataset, valid_dataset, test_dataset = datasets
 
 # Batch size of models
@@ -31,8 +35,8 @@ n_feat = ANItransformer.get_num_feats() - 1
 
 # Fit models
 metric = [
-    dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
-    dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
+  dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
+  dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
 ]
 
 model = dc.models.ANIRegression(
@@ -52,9 +56,15 @@ model.fit(train_dataset, nb_epoch=300, checkpoint_interval=100)
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
 valid_scores = model.evaluate(valid_dataset, metric, transformers)
+model.save()
 
+model = TensorGraph.load_from_dir(model.model_dir)
+train_scores2 = model.evaluate(train_dataset, metric, transformers)
+valid_scores2 = model.evaluate(valid_dataset, metric, transformers)
 print("Train scores")
 print(train_scores)
+print(train_scores2)
 
 print("Validation scores")
 print(valid_scores)
+print(valid_scores2)
