@@ -34,7 +34,7 @@ from deepchem.models.tensorgraph.layers import ToFloat
 from deepchem.models.tensorgraph.layers import ReduceSum
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.layers import Conv2D
-from deepchem.models.tensorgraph.layers import MaxPool
+from deepchem.models.tensorgraph.layers import MaxPool2D
 from deepchem.models.tensorgraph.layers import InputFifoQueue
 from deepchem.models.tensorgraph.layers import GraphConv
 from deepchem.models.tensorgraph.layers import GraphPool
@@ -368,8 +368,8 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, length, width, out_channels)
 
-  def test_max_pool(self):
-    """Test that MaxPool can be invoked."""
+  def test_maxpool2D(self):
+    """Test that MaxPool2D can be invoked."""
     length = 2
     width = 2
     in_channels = 2
@@ -377,7 +377,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
     with self.test_session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
-      out_tensor = MaxPool()(in_tensor)
+      out_tensor = MaxPool2D()(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, 1, 1, in_channels)

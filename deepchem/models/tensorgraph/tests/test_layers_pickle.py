@@ -3,7 +3,7 @@ import tensorflow as tf
 from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
     CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, Log, InteratomicL2Distances, \
-    SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
+    SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
     GraphGather, BatchNorm, WeightedError, \
     LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
@@ -255,10 +255,10 @@ def test_Conv2D_pickle():
   tg.save()
 
 
-def test_MaxPool_pickle():
+def test_MaxPool2D_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10, 10))
-  layer = MaxPool(in_layers=feature)
+  layer = MaxPool2D(in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
