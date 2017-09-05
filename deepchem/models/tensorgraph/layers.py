@@ -1222,6 +1222,86 @@ class Conv2D(Layer):
     return out_tensor
 
 
+class Conv3D(Layer):
+  """A 3D convolution on the input.
+
+  This layer expects its input to be a five dimensional tensor of shape
+  (batch size, height, width, depth, # channels).
+  If there is only one channel, the fifth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv3D layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a three element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a three
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    super(Conv3D, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] // strides[0],
+                     parent_shape[2] // strides[1],
+                     parent_shape[3] // strides[2], num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 4:
+      parent_tensor = tf.expand_dims(parent_tensor, 4)
+    out_tensor = tf.layers.conv3d(
+        parent_tensor,
+        filters=self.num_outputs,
+        kernel_size=self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        activity_regularizer=self.normalizer_fn,
+        name=self.scope_name)
+    out_tensor = out_tensor
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class MaxPool2D(Layer):
 
   def __init__(self,
@@ -1244,6 +1324,53 @@ class MaxPool2D(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.max_pool(
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class MaxPool3D(Layer):
+  """A 3D max pooling on the input.
+
+  This layer expects its input to be a five dimensional tensor of shape
+  (batch size, height, width, depth, # channels).
+  """
+
+  def __init__(self,
+               ksize=[1, 2, 2, 2, 1],
+               strides=[1, 2, 2, 2, 1],
+               padding='SAME',
+               **kwargs):
+    """Create a MaxPool3D layer.
+
+    Parameters
+    ----------
+    ksize: list
+      size of the window for each dimension of the input tensor. Must have
+      length of 5 and ksize[0] = ksize[4] = 1.
+    strides: list
+      stride of the sliding window for each dimension of input. Must have
+      length of 5 and strides[0] = strides[4] = 1.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    """
+
+    self.ksize = ksize
+    self.strides = strides
+    self.padding = padding
+    super(MaxPool3D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.max_pool3d(
         in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     if set_tensors:
       self.out_tensor = out_tensor

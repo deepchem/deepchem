@@ -1,59 +1,51 @@
-import unittest
-
 import numpy as np
-import os
 import rdkit
 import tensorflow as tf
-from nose.tools import assert_true
 from tensorflow.python.framework import test_util
-from deepchem.feat.mol_graphs import ConvMol
-from deepchem.feat.mol_graphs import MultiConvMol
+
 from deepchem.feat.graph_features import ConvMolFeaturizer
-from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
-from deepchem.models.tensorgraph.layers import Dense
-from deepchem.models.tensorgraph.layers import Flatten
-from deepchem.models.tensorgraph.layers import Reshape
-from deepchem.models.tensorgraph.layers import Transpose
+from deepchem.feat.mol_graphs import ConvMol
+from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D
+from deepchem.models.tensorgraph.layers import AlphaShareLayer
+from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
+from deepchem.models.tensorgraph.layers import BatchNorm
+from deepchem.models.tensorgraph.layers import BetaShare
 from deepchem.models.tensorgraph.layers import CombineMeanStd
-from deepchem.models.tensorgraph.layers import Repeat
-from deepchem.models.tensorgraph.layers import Gather
-from deepchem.models.tensorgraph.layers import GRU
-from deepchem.models.tensorgraph.layers import TimeSeriesDense
-from deepchem.models.tensorgraph.layers import Input
-from deepchem.models.tensorgraph.layers import L2Loss
 from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import Constant
-from deepchem.models.tensorgraph.layers import Variable
-from deepchem.models.tensorgraph.layers import Add
-from deepchem.models.tensorgraph.layers import Multiply
-from deepchem.models.tensorgraph.layers import Log
-from deepchem.models.tensorgraph.layers import InteratomicL2Distances
-from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
-from deepchem.models.tensorgraph.layers import ReduceMean
-from deepchem.models.tensorgraph.layers import ToFloat
-from deepchem.models.tensorgraph.layers import ReduceSum
-from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
 from deepchem.models.tensorgraph.layers import Conv2D
-from deepchem.models.tensorgraph.layers import MaxPool2D
-from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import Dense
+from deepchem.models.tensorgraph.layers import Flatten
+from deepchem.models.tensorgraph.layers import GRU
+from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
-from deepchem.models.tensorgraph.layers import GraphPool
 from deepchem.models.tensorgraph.layers import GraphGather
-from deepchem.models.tensorgraph.layers import BatchNorm
-from deepchem.models.tensorgraph.layers import SoftMax
-from deepchem.models.tensorgraph.layers import WeightedError
-from deepchem.models.tensorgraph.layers import VinaFreeEnergy
-from deepchem.models.tensorgraph.layers import WeightedLinearCombo
-from deepchem.models.tensorgraph.layers import TensorWrapper
-from deepchem.models.tensorgraph.layers import LSTMStep
-from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
+from deepchem.models.tensorgraph.layers import Input
+from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
-from deepchem.models.tensorgraph.layers import AlphaShareLayer
-from deepchem.models.tensorgraph.layers import BetaShare
+from deepchem.models.tensorgraph.layers import L2Loss
+from deepchem.models.tensorgraph.layers import LSTMStep
 from deepchem.models.tensorgraph.layers import LayerSplitter
+from deepchem.models.tensorgraph.layers import Log
+from deepchem.models.tensorgraph.layers import Multiply
+from deepchem.models.tensorgraph.layers import ReduceMean
+from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.layers import ReduceSum
+from deepchem.models.tensorgraph.layers import Repeat
+from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
-
-import deepchem as dc
+from deepchem.models.tensorgraph.layers import SoftMax
+from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import TensorWrapper
+from deepchem.models.tensorgraph.layers import TimeSeriesDense
+from deepchem.models.tensorgraph.layers import ToFloat
+from deepchem.models.tensorgraph.layers import Transpose
+from deepchem.models.tensorgraph.layers import Variable
+from deepchem.models.tensorgraph.layers import VinaFreeEnergy
+from deepchem.models.tensorgraph.layers import WeightedError
+from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -368,6 +360,23 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, length, width, out_channels)
 
+  def test_conv_3D(self):
+    """Test that Conv3D can be invoked."""
+    length = 4
+    width = 5
+    depth = 6
+    in_channels = 2
+    out_channels = 3
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = Conv3D(out_channels, kernel_size=1)(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, length, width, depth,
+                                  out_channels)
+
   def test_maxpool2D(self):
     """Test that MaxPool2D can be invoked."""
     length = 2
@@ -381,6 +390,21 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, 1, 1, in_channels)
+
+  def test_max_pool_3D(self):
+    """Test that MaxPool3D can be invoked."""
+    length = 2
+    width = 2
+    depth = 2
+    in_channels = 2
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = MaxPool3D()(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, 1, 1, 1, in_channels)
 
   def test_input_fifo_queue(self):
     """Test InputFifoQueue can be invoked."""
