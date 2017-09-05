@@ -11,7 +11,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
   WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
-from models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
+from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
 
 def test_Conv1D_pickle():
