@@ -5,7 +5,7 @@ from tensorflow.python.framework import test_util
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D
+from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D
 from deepchem.models.tensorgraph.layers import AlphaShareLayer
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import BatchNorm
