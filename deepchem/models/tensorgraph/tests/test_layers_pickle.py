@@ -1,16 +1,17 @@
 import numpy as np
 import tensorflow as tf
+
 from deepchem.models import TensorGraph
+from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
+  WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
+  DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
   CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, Log, \
   InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
   LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
-from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
-  WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
-  DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
-from models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
+from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
 
 def test_Conv1D_pickle():
