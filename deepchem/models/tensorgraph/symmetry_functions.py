@@ -21,6 +21,7 @@ from deepchem.metrics import to_one_hot
 
 
 class DistanceMatrix(Layer):
+
   def __init__(self, max_atoms, **kwargs):
     """
     Parameters
@@ -41,9 +42,9 @@ class DistanceMatrix(Layer):
     atom_coordinates = in_layers[0].out_tensor
     atom_flags = in_layers[1].out_tensor
     tensor1 = tf.tile(
-      tf.expand_dims(atom_coordinates, axis=2), (1, 1, max_atoms, 1))
+        tf.expand_dims(atom_coordinates, axis=2), (1, 1, max_atoms, 1))
     tensor2 = tf.tile(
-      tf.expand_dims(atom_coordinates, axis=1), (1, max_atoms, 1, 1))
+        tf.expand_dims(atom_coordinates, axis=1), (1, max_atoms, 1, 1))
     # Calculate pairwise distance
     d = tf.sqrt(tf.reduce_sum(tf.square(tensor1 - tensor2), axis=3))
     # Masking for valid atom index
@@ -51,6 +52,7 @@ class DistanceMatrix(Layer):
 
 
 class DistanceCutoff(Layer):
+
   def __init__(self, max_atoms, cutoff=6 / 0.52917721092, **kwargs):
     """
     Parameters
@@ -139,8 +141,8 @@ class RadialSymmetry(Layer):
       out_tensors = []
       for atom_type in self.atom_number_cases:
         selected_atoms = tf.expand_dims(
-          tf.expand_dims(atom_number_embedded[:, :, atom_type], axis=1),
-          axis=3)
+            tf.expand_dims(atom_number_embedded[:, :, atom_type], axis=1),
+            axis=3)
         out_tensors.append(tf.reduce_sum(out_tensor * selected_atoms, axis=2))
       self.out_tensor = tf.concat(out_tensors, axis=2)
     else:
@@ -342,15 +344,16 @@ class AngularSymmetryMod(Layer):
           selected_atoms = tf.stack([atom_number_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
                            tf.stack([atom_number_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
           selected_atoms = tf.expand_dims(
-            tf.expand_dims(selected_atoms, axis=1), axis=4)
+              tf.expand_dims(selected_atoms, axis=1), axis=4)
           out_tensors.append(
-            tf.reduce_sum(out_tensor * selected_atoms, axis=[2, 3]))
+              tf.reduce_sum(out_tensor * selected_atoms, axis=[2, 3]))
       self.out_tensor = tf.concat(out_tensors, axis=2)
     else:
       self.out_tensor = tf.reduce_sum(out_tensor, axis=[2, 3])
 
 
 class BPFeatureMerge(Layer):
+
   def __init__(self, max_atoms, **kwargs):
     self.max_atoms = max_atoms
     super(BPFeatureMerge, self).__init__(**kwargs)
@@ -367,11 +370,12 @@ class BPFeatureMerge(Layer):
     atom_flags = in_layers[3].out_tensor
 
     out_tensor = tf.concat(
-      [atom_embedding, radial_symmetry, angular_symmetry], axis=2)
+        [atom_embedding, radial_symmetry, angular_symmetry], axis=2)
     self.out_tensor = out_tensor * atom_flags[:, :, 0:1]
 
 
 class BPGather(Layer):
+
   def __init__(self, max_atoms, **kwargs):
     self.max_atoms = max_atoms
     super(BPGather, self).__init__(**kwargs)
@@ -419,7 +423,7 @@ class AtomicDifferentiatedDense(Layer):
     atom_numbers = in_layers[1].out_tensor
     in_channels = inputs.get_shape().as_list()[-1]
     self.W = init_fn(
-      [len(self.atom_number_cases), in_channels, self.out_channels])
+        [len(self.atom_number_cases), in_channels, self.out_channels])
 
     self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
     outputs = []
@@ -437,8 +441,8 @@ class AtomicDifferentiatedDense(Layer):
       bl = tf.shape(b)[1]
 
       output = activation_fn(
-        tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
-        self.b[i, :])
+          tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
+          self.b[i, :])
 
       mask = 1 - tf.to_float(tf.cast(atom_numbers - atom_case, tf.bool))
       output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
