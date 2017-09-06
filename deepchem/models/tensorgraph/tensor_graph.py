@@ -291,16 +291,15 @@ class TensorGraph(Model):
     elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
     with self._get_tf("Graph").as_default():
-      out_tensors = [x.out_tensor for x in self.outputs]
       # Gather results for each output
-      results = [[] for out in out_tensors]
+      results = [[] for out in outputs]
       for feed_dict in generator:
         feed_dict = {
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
         }
         feed_dict[self._training_placeholder] = 0.0
-        feed_results = self.session.run(out_tensors, feed_dict=feed_dict)
+        feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
           if len(transformers):
             raise ValueError("Does not support transformations "
@@ -328,7 +327,7 @@ class TensorGraph(Model):
     """
     return self.predict_on_generator(generator, transformers, outputs)
 
-  def predict_on_batch(self, X, transformers=[]):
+  def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -344,9 +343,9 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
+    return self.predict_on_generator(generator, transformers, outputs)
 
-  def predict_proba_on_batch(self, X, transformers=[]):
+  def predict_proba_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -360,7 +359,7 @@ class TensorGraph(Model):
     -------
     A Numpy array of predictions.
     """
-    return self.predict_on_batch(X, transformers)
+    return self.predict_on_batch(X, transformers, outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
