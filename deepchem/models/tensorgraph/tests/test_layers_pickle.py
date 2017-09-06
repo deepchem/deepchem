@@ -189,10 +189,10 @@ def testInteratomicL2Distances():
   feature = Feature(shape=(tg.batch_size, 3))
   neighbors = Feature(shape=(tg.batch_size, M_nbrs), dtype=tf.int32)
   layer = InteratomicL2Distances(
-    N_atoms=n_atoms,
-    M_nbrs=M_nbrs,
-    ndim=n_dim,
-    in_layers=[feature, neighbors])
+      N_atoms=n_atoms,
+      M_nbrs=M_nbrs,
+      ndim=n_dim,
+      in_layers=[feature, neighbors])
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -300,9 +300,9 @@ def test_GraphConv_pickle():
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
     deg_adjs.append(deg_adj)
   layer = GraphConv(
-    64,
-    activation_fn=tf.nn.relu,
-    in_layers=[atom_features, degree_slice, membership] + deg_adjs)
+      64,
+      activation_fn=tf.nn.relu,
+      in_layers=[atom_features, degree_slice, membership] + deg_adjs)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -319,7 +319,7 @@ def test_GraphPool_Pickle():
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
     deg_adjs.append(deg_adj)
   layer = GraphPool(
-    in_layers=[atom_features, degree_slice, membership] + deg_adjs)
+      in_layers=[atom_features, degree_slice, membership] + deg_adjs)
   tg.set_loss(layer)
   tg.build()
   tg.save()
@@ -335,9 +335,9 @@ def test_GraphGather_Pickle():
     deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
     deg_adjs.append(deg_adj)
   layer = GraphGather(
-    batch_size=tg.batch_size,
-    activation_fn=tf.nn.tanh,
-    in_layers=[atom_features, degree_slice, membership] + deg_adjs)
+      batch_size=tg.batch_size,
+      activation_fn=tf.nn.tanh,
+      in_layers=[atom_features, degree_slice, membership] + deg_adjs)
   tg.set_loss(layer)
   tg.build()
   tg.save()
@@ -394,7 +394,7 @@ def test_WeaveGather_pickle():
   atom_feature = Feature(shape=(None, 75))
   atom_split = Feature(shape=(None,), dtype=tf.int32)
   weave_gather = WeaveGather(
-    32, gaussian_expand=True, in_layers=[atom_feature, atom_split])
+      32, gaussian_expand=True, in_layers=[atom_feature, atom_split])
   tg.add_output(weave_gather)
   tg.set_loss(weave_gather)
   tg.build()
@@ -418,7 +418,7 @@ def test_DTNNStep_pickle():
   distance_membership_i = Feature(shape=(None,), dtype=tf.int32)
   distance_membership_j = Feature(shape=(None,), dtype=tf.int32)
   DTNN = DTNNStep(in_layers=[
-    atom_features, distance, distance_membership_i, distance_membership_j
+      atom_features, distance, distance_membership_i, distance_membership_j
   ])
   tg.add_output(DTNN)
   tg.set_loss(DTNN)
@@ -455,7 +455,7 @@ def test_DAGLayer_pickle():
   calculation_masks = Feature(shape=(None, 50), dtype=tf.bool)
   n_atoms = Feature(shape=(), dtype=tf.int32)
   DAG = DAGLayer(in_layers=[
-    atom_features, parents, calculation_orders, calculation_masks, n_atoms
+      atom_features, parents, calculation_orders, calculation_masks, n_atoms
   ])
   tg.add_output(DAG)
   tg.set_loss(DAG)
@@ -497,7 +497,7 @@ def test_AttnLSTM_pickle():
   test = Feature(shape=(None, n_feat))
   support = Feature(shape=(None, n_feat))
   out = AttnLSTMEmbedding(
-    n_test, n_support, n_feat, max_depth, in_layers=[test, support])
+      n_test, n_support, n_feat, max_depth, in_layers=[test, support])
   tg.add_output(out)
   tg.set_loss(out)
   tg.build()
@@ -528,7 +528,7 @@ def test_IterRefLSTM_pickle():
   test = Feature(shape=(None, n_feat))
   support = Feature(shape=(None, n_feat))
   lstm = IterRefLSTMEmbedding(
-    n_test, n_support, n_feat, max_depth, in_layers=[test, support])
+      n_test, n_support, n_feat, max_depth, in_layers=[test, support])
   tg.add_output(lstm)
   tg.set_loss(lstm)
   tg.build()
@@ -553,7 +553,7 @@ def test_AtomicDifferentialDense_pickle():
   atom_feature = Feature(shape=(None, max_atoms, atom_features))
   atom_numbers = Feature(shape=(None, max_atoms))
   atomic_differential_dense = AtomicDifferentiatedDense(
-    max_atoms=23, out_channels=5, in_layers=[atom_feature, atom_numbers])
+      max_atoms=23, out_channels=5, in_layers=[atom_feature, atom_numbers])
   tg.add_output(atomic_differential_dense)
   tg.set_loss(atomic_differential_dense)
   tg.build()
