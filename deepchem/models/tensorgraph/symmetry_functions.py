@@ -199,8 +199,8 @@ class AngularSymmetry(Layer):
     d_cutoff = in_layers[0].out_tensor
     d = in_layers[1].out_tensor
     atom_coordinates = in_layers[2].out_tensor
-    vector_distances = tf.tile(tf.expand_dims(atom_coordinates, axis=2), (1,1,max_atoms,1)) - \
-        tf.tile(tf.expand_dims(atom_coordinates, axis=1), (1,max_atoms,1,1))
+    vector_distances = tf.tile(tf.expand_dims(atom_coordinates, axis=2), (1, 1, max_atoms, 1)) - \
+                       tf.tile(tf.expand_dims(atom_coordinates, axis=1), (1, max_atoms, 1, 1))
     R_ij = tf.tile(tf.expand_dims(d, axis=3), (1, 1, 1, max_atoms))
     R_ik = tf.tile(tf.expand_dims(d, axis=2), (1, 1, max_atoms, 1))
     R_jk = tf.tile(tf.expand_dims(d, axis=1), (1, max_atoms, 1, 1))
@@ -209,8 +209,8 @@ class AngularSymmetry(Layer):
     f_R_jk = tf.tile(tf.expand_dims(d_cutoff, axis=1), (1, max_atoms, 1, 1))
 
     # Define angle theta = R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance)
-    theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1,1,1,max_atoms,1)) * \
-        tf.tile(tf.expand_dims(vector_distances, axis=2), (1,1,max_atoms,1,1)), axis=4)
+    theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1, 1, 1, max_atoms, 1)) * \
+                          tf.tile(tf.expand_dims(vector_distances, axis=2), (1, 1, max_atoms, 1, 1)), axis=4)
 
     theta = tf.div(theta, R_ij * R_ik + 1e-5)
 
@@ -226,11 +226,11 @@ class AngularSymmetry(Layer):
     zeta = tf.reshape(self.zeta, (1, 1, 1, 1, -1))
     ita = tf.reshape(self.ita, (1, 1, 1, 1, -1))
 
-    out_tensor = tf.pow(1+lambd*tf.cos(theta), zeta) * \
-        tf.exp(-ita*(tf.square(R_ij)+tf.square(R_ik)+tf.square(R_jk))) * \
-        f_R_ij * f_R_ik * f_R_jk
+    out_tensor = tf.pow(1 + lambd * tf.cos(theta), zeta) * \
+                 tf.exp(-ita * (tf.square(R_ij) + tf.square(R_ik) + tf.square(R_jk))) * \
+                 f_R_ij * f_R_ik * f_R_jk
     self.out_tensor = tf.reduce_sum(out_tensor, axis=[2, 3]) * \
-        tf.pow(tf.constant(2.), 1-tf.reshape(self.zeta, (1,1,-1)))
+                      tf.pow(tf.constant(2.), 1 - tf.reshape(self.zeta, (1, 1, -1)))
 
 
 class AngularSymmetryMod(Layer):
@@ -285,7 +285,7 @@ class AngularSymmetryMod(Layer):
     self.length = len_lambd * len_ita * len_zeta * len_Rs * len_thetas
 
     lambd_init, ita_init, zeta_init, Rs_init, thetas_init = \
-        np.meshgrid(self.lambd_init, self.ita_init, self.zeta_init, self.Rs_init, self.thetas_init)
+      np.meshgrid(self.lambd_init, self.ita_init, self.zeta_init, self.Rs_init, self.thetas_init)
     self.lambd = tf.constant(lambd_init.flatten(), dtype=tf.float32)
     self.ita = tf.constant(ita_init.flatten(), dtype=tf.float32)
     self.zeta = tf.constant(zeta_init.flatten(), dtype=tf.float32)
@@ -309,16 +309,16 @@ class AngularSymmetryMod(Layer):
       atom_number_embedded = tf.nn.embedding_lookup(self.atom_number_embedding,
                                                     atom_numbers)
 
-    vector_distances = tf.tile(tf.expand_dims(atom_coordinates, axis=2), (1,1,max_atoms,1)) - \
-        tf.tile(tf.expand_dims(atom_coordinates, axis=1), (1,max_atoms,1,1))
+    vector_distances = tf.tile(tf.expand_dims(atom_coordinates, axis=2), (1, 1, max_atoms, 1)) - \
+                       tf.tile(tf.expand_dims(atom_coordinates, axis=1), (1, max_atoms, 1, 1))
     R_ij = tf.tile(tf.expand_dims(d, axis=3), (1, 1, 1, max_atoms))
     R_ik = tf.tile(tf.expand_dims(d, axis=2), (1, 1, max_atoms, 1))
     f_R_ij = tf.tile(tf.expand_dims(d_cutoff, axis=3), (1, 1, 1, max_atoms))
     f_R_ik = tf.tile(tf.expand_dims(d_cutoff, axis=2), (1, 1, max_atoms, 1))
 
     # Define angle theta = R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance)
-    theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1,1,1,max_atoms,1)) * \
-        tf.tile(tf.expand_dims(vector_distances, axis=2), (1,1,max_atoms,1,1)), axis=4)
+    theta = tf.reduce_sum(tf.tile(tf.expand_dims(vector_distances, axis=3), (1, 1, 1, max_atoms, 1)) * \
+                          tf.tile(tf.expand_dims(vector_distances, axis=2), (1, 1, max_atoms, 1, 1)), axis=4)
 
     theta = tf.div(theta, R_ij * R_ik + 1e-5)
 
@@ -334,9 +334,9 @@ class AngularSymmetryMod(Layer):
     Rs = tf.reshape(self.Rs, (1, 1, 1, 1, -1))
     thetas = tf.reshape(self.thetas, (1, 1, 1, 1, -1))
 
-    out_tensor = tf.pow(1+lambd*tf.cos(theta - thetas), zeta) * \
-        tf.exp(-ita*tf.square((R_ij+R_ik)/2-Rs)) * \
-        f_R_ij * f_R_ik * tf.pow(tf.constant(2.), 1 - zeta)
+    out_tensor = tf.pow(1 + lambd * tf.cos(theta - thetas), zeta) * \
+                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2 - Rs)) * \
+                 f_R_ij * f_R_ik * tf.pow(tf.constant(2.), 1 - zeta)
     if self.atomic_number_differentiated:
       out_tensors = []
       for atom_type_j in self.atom_number_cases:
@@ -403,8 +403,8 @@ class AtomicDifferentiatedDense(Layer):
                init='glorot_uniform',
                activation='relu',
                **kwargs):
-    self.init = initializations.get(init)  # Set weight initialization
-    self.activation = activations.get(activation)  # Get activations
+    self.init = init  # Set weight initialization
+    self.activation = activation  # Get activations
     self.max_atoms = max_atoms
     self.out_channels = out_channels
     self.atom_number_cases = atom_number_cases
@@ -413,6 +413,8 @@ class AtomicDifferentiatedDense(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
+    init_fn = initializations.get(self.init)  # Set weight initialization
+    activation_fn = activations.get(self.activation)
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
@@ -420,13 +422,12 @@ class AtomicDifferentiatedDense(Layer):
     inputs = in_layers[0].out_tensor
     atom_numbers = in_layers[1].out_tensor
     in_channels = inputs.get_shape().as_list()[-1]
-    self.W = self.init(
+    self.W = init_fn(
         [len(self.atom_number_cases), in_channels, self.out_channels])
 
     self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
     outputs = []
     for i, atom_case in enumerate(self.atom_number_cases):
-
       # optimization to allow for tensorcontraction/broadcasted mmul
       # using a reshape trick. Note that the np and tf matmul behavior
       # differs when dealing with broadcasts
@@ -439,7 +440,7 @@ class AtomicDifferentiatedDense(Layer):
       ak = tf.shape(a)[2]
       bl = tf.shape(b)[1]
 
-      output = self.activation(
+      output = activation_fn(
           tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
           self.b[i, :])
 
@@ -448,3 +449,11 @@ class AtomicDifferentiatedDense(Layer):
                                                              self.out_channels))
       outputs.append(output)
     self.out_tensor = tf.add_n(outputs)
+
+  def none_tensors(self):
+    w, b, out_tensor = self.W, self.b, self.out_tensor
+    self.W, self.b, self.out_tensor = None, None, None
+    return w, b, out_tensor
+
+  def set_tensors(self, tensor):
+    self.W, self.b, self.out_tensor = tensor

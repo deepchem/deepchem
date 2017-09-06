@@ -9,7 +9,7 @@ import tensorflow as tf
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.data.datasets import Databag
-from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax
+from deepchem.models.tensorgraph.layers import Dense, SoftMaxCrossEntropy, ReduceMean, SoftMax, Constant
 from deepchem.models.tensorgraph.layers import Feature, Label
 from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
@@ -281,3 +281,36 @@ class TestTensorGraph(unittest.TestCase):
             epochs=1, batch_size=tg.batch_size, pad_batches=True))
     prediction = tg.predict_on_generator(databag.iterbatches())
     assert_true(np.all(np.isclose(prediction[0], prediction[1], atol=0.01)))
+
+  def test_operators(self):
+    """Test math operators on Layers."""
+    v1 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    v2 = np.random.uniform(size=(2, 3)).astype(np.float32)
+    c1 = Constant(v1)
+    c2 = Constant(v2)
+    tg = dc.models.TensorGraph()
+    tg.set_loss(c1)
+    expected = []
+    tg.add_output(c1 + c2)
+    expected.append(v1 + v2)
+    tg.add_output(c1 + v2)
+    expected.append(v1 + v2)
+    tg.add_output(1 + c2)
+    expected.append(1 + v2)
+    tg.add_output(c1 - c2)
+    expected.append(v1 - v2)
+    tg.add_output(c1 - v2)
+    expected.append(v1 - v2)
+    tg.add_output(1 - c2)
+    expected.append(1 - v2)
+    tg.add_output(c1 * c2)
+    expected.append(v1 * v2)
+    tg.add_output(c1 * v2)
+    expected.append(v1 * v2)
+    tg.add_output(2 * c2)
+    expected.append(2 * v2)
+    tg.add_output(-c1)
+    expected.append(-v1)
+    for o, e in zip(tg.outputs, expected):
+      value = tg.predict_on_batch(np.array([0]), outputs=o)
+      assert np.array_equal(e, value)

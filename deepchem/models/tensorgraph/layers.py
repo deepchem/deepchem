@@ -162,6 +162,39 @@ class Layer(object):
     else:
       return self.out_tensor
 
+  def __add__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([self, other])
+
+  def __radd__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([other, self])
+
+  def __sub__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([self, other], weights=[1.0, -1.0])
+
+  def __rsub__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([other, self], weights=[1.0, -1.0])
+
+  def __mul__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Multiply([self, other])
+
+  def __rmul__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Multiply([other, self])
+
+  def __neg__(self):
+    return Multiply([self, Constant(-1.0)])
+
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
   return tf.convert_to_tensor(value.out_tensor, dtype=dtype, name=name)
@@ -1302,7 +1335,7 @@ class Conv3D(Layer):
     return out_tensor
 
 
-class MaxPool(Layer):
+class MaxPool2D(Layer):
 
   def __init__(self,
                ksize=[1, 2, 2, 1],
@@ -1312,7 +1345,7 @@ class MaxPool(Layer):
     self.ksize = ksize
     self.strides = strides
     self.padding = padding
-    super(MaxPool, self).__init__(**kwargs)
+    super(MaxPool2D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(None if p is None else p // s

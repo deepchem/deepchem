@@ -1,15 +1,18 @@
 import numpy as np
 import tensorflow as tf
+
 from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-    CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, Log, InteratomicL2Distances, \
-    SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
-    GraphGather, BatchNorm, WeightedError, \
-    Conv3D, MaxPool3D, \
-    LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
-    WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
-    DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
+  WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
+  DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
+from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
+  CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
+  Constant, Variable, Add, Multiply, Log, InteratomicL2Distances, \
+  SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
+  GraphGather, BatchNorm, WeightedError, \
+  Conv3D, MaxPool3D, \
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
+from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
 
 def test_Conv1D_pickle():
@@ -266,10 +269,10 @@ def test_Conv3D_pickle():
   tg.save()
 
 
-def test_MaxPool_pickle():
+def test_MaxPool2D_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10, 10))
-  layer = MaxPool(in_layers=feature)
+  layer = MaxPool2D(in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -539,5 +542,19 @@ def test_SetGather_pickle():
   Gather = SetGather(5, 16, in_layers=[atom_feature, atom_split])
   tg.add_output(Gather)
   tg.set_loss(Gather)
+  tg.build()
+  tg.save()
+
+
+def test_AtomicDifferentialDense_pickle():
+  max_atoms = 23
+  atom_features = 100
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, max_atoms, atom_features))
+  atom_numbers = Feature(shape=(None, max_atoms))
+  atomic_differential_dense = AtomicDifferentiatedDense(
+      max_atoms=23, out_channels=5, in_layers=[atom_feature, atom_numbers])
+  tg.add_output(atomic_differential_dense)
+  tg.set_loss(atomic_differential_dense)
   tg.build()
   tg.save()
