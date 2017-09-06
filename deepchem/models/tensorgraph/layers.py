@@ -1302,7 +1302,7 @@ class Conv3D(Layer):
     return out_tensor
 
 
-class MaxPool(Layer):
+class MaxPool2D(Layer):
 
   def __init__(self,
                ksize=[1, 2, 2, 1],
@@ -1312,7 +1312,7 @@ class MaxPool(Layer):
     self.ksize = ksize
     self.strides = strides
     self.padding = padding
-    super(MaxPool, self).__init__(**kwargs)
+    super(MaxPool2D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(None if p is None else p // s
