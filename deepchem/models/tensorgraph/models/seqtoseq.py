@@ -8,7 +8,53 @@ import tensorflow as tf
 
 
 class SeqToSeq(TensorGraph):
-  """Implements sequence to sequence translation models."""
+  """Implements sequence to sequence translation models.
+
+  The model is based on the description in Sutskever et al., "Sequence to
+  Sequence Learning with Neural Networks" (https://arxiv.org/abs/1409.3215),
+  although this implementation uses GRUs instead of LSTMs.  The goal is to
+  take sequences of tokens as input, and translate each one into a different
+  output sequence.  The input and output sequences can both be of variable
+  length, and an output sequence need not have the same length as the input
+  sequence it was generated from.  For example, these models were originally
+  developed for use in natural language processing.  In that context, the
+  input might be a sequence of English words, and the output might be a
+  sequence of French words.  The goal would be to train the model to translate
+  sentences from English to French.
+
+  The model consists of two parts called the "encoder" and "decoder".  Each one
+  consists of a stack of recurrent layers.  The job of the encoder is to
+  transform the input sequence into a single, fixed length vector called the
+  "embedding".  That vector contains all relevant information from the input
+  sequence.  The decoder then transforms the embedding vector into the output
+  sequence.
+
+  These models can be used for various purposes.  First and most obviously,
+  they can be used for sequence to sequence translation.  In any case where you
+  have sequences of tokens, and you want to translate each one into a different
+  sequence, a SeqToSeq model can be trained to perform the translation.
+
+  Another possible use case is transforming variable length sequences into
+  fixed length vectors.  Many types of models require their inputs to have a
+  fixed shape, which makes it difficult to use them with variable sized inputs
+  (for example, when the input is a molecule, and different molecules have
+  different numbers of atoms).  In that case, you can train a SeqToSeq model as
+  an autoencoder, so that it tries to make the output sequence identical to the
+  input one.  That forces the embedding vector to contain all information from
+  the original sequence.  You can then use the encoder for transforming
+  sequences into fixed length embedding vectors, suitable to use as inputs to
+  other types of models.
+
+  Another use case is to train the decoder for use as a generative model.  Here
+  again you begin by training the SeqToSeq model as an autoencoder.  Once
+  training is complete, you can supply arbitrary embedding vectors, and
+  transform each one into an output sequence.  When used in this way, you
+  typically train it as a variational autoencoder.  This adds random noise to
+  the encoder, and also adds a constraint term to the loss that forces the
+  embedding vector to have a unit Gaussian distribution.  You can then pick
+  random vectors from a Gaussian distribution, and the output sequences should
+  follow the same distribution as the training data.
+  """
 
   sequence_end = object()
 
@@ -20,6 +66,7 @@ class SeqToSeq(TensorGraph):
                decoder_layers=4,
                embedding_dimension=512,
                dropout=0.0,
+               reverse_input=True,
                **kwargs):
     """Construct a SeqToSeq model.
 
@@ -43,6 +90,9 @@ class SeqToSeq(TensorGraph):
       recurrent layers.
     dropout: float
       the dropout probability to use during training
+    reverse_input: bool
+      if True, reverse the order of input sequences before sending them into
+      the encoder.  This can improve performance when working with long sequences.
     """
     super(SeqToSeq, self).__init__(
         use_queue=False, **kwargs)  # TODO can we make it work with the queue?
@@ -58,6 +108,7 @@ class SeqToSeq(TensorGraph):
     self._features = layers.Feature(shape=(None, None, len(input_tokens)))
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
     self._gather_indices = layers.Feature(shape=(None, 2), dtype=tf.int32)
+    self._reverse_input = reverse_input
     prev_layer = self._features
     for i in range(encoder_layers):
       if dropout > 0.0:
@@ -75,12 +126,9 @@ class SeqToSeq(TensorGraph):
     output_layer = layers.Dense(
         len(output_tokens), in_layers=prev_layer, activation_fn=tf.nn.softmax)
     self.add_output(output_layer)
-    prob = layers.ReduceSum(
-        layers.Multiply([output_layer, self._labels]), axis=2)
-    log_prob = layers.Log(
-        layers.Add([prob, layers.Constant(np.finfo(np.float32).eps)]))
-    objective = layers.ReduceMean(layers.ReduceSum(log_prob, axis=1))
-    loss = layers.Multiply([objective, layers.Constant(-1)])
+    prob = layers.ReduceSum(output_layer * self._labels, axis=2)
+    log_prob = layers.Log(prob + np.finfo(np.float32).eps)
+    loss = -layers.ReduceMean(layers.ReduceSum(log_prob, axis=1))
     self.set_loss(loss)
     self.output = output_layer
 
@@ -215,6 +263,8 @@ class SeqToSeq(TensorGraph):
   def _create_input_array(self, sequences):
     """Create the array describing the input sequences for a batch."""
     lengths = [len(x) for x in sequences]
+    if self._reverse_input:
+      sequences = [reversed(s) for s in sequences]
     features = np.zeros(
         (self.batch_size, max(lengths) + 1, len(self._input_tokens)),
         dtype=np.float32)
