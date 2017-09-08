@@ -79,7 +79,7 @@ def test_tg_mechanics():
   nb, errors = _notebook_read("TensorGraph_Mechanics.ipynb")
   assert errors == []
 
-  
+
 def test_dataset_preparation():
   nb, errors = _notebook_read("dataset_preparation.ipynb")
   assert errors == []
