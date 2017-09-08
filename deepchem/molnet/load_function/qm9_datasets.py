@@ -13,10 +13,7 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
   """Load qm9 datasets."""
   # Featurize qm9 dataset
   print("About to featurize qm9 dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "qm9/" + featurizer + "/" + split)
 
@@ -24,18 +21,16 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
     dataset_file = os.path.join(data_dir, "gdb9.sdf")
 
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz '
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz'
       )
       os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
                 data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm9.csv")
     if not os.path.exists(dataset_file):
-      os.system(
-          'wget -P ' + data_dir +
-          ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm9.csv '
+      deepchem.utils.download_url(
+          'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/qm9.csv'
       )
 
   qm9_tasks = [

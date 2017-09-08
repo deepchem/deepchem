@@ -89,12 +89,7 @@ class Layer(object):
       in_layers = [in_layers]
     tensors = []
     for input in in_layers:
-      if isinstance(input, tf.Tensor):
-        tensors.append(input)
-      elif isinstance(input, Layer):
-        tensors.append(input.out_tensor)
-      else:
-        raise ValueError('Unexpected input: ' + str(input))
+      tensors.append(tf.convert_to_tensor(input))
     if reshape and len(tensors) > 1:
       shapes = [t.get_shape() for t in tensors]
       if any(s != shapes[0] for s in shapes[1:]):
@@ -166,6 +161,39 @@ class Layer(object):
       return self.out_tensor._as_graph_element()
     else:
       return self.out_tensor
+
+  def __add__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([self, other])
+
+  def __radd__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([other, self])
+
+  def __sub__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([self, other], weights=[1.0, -1.0])
+
+  def __rsub__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Add([other, self], weights=[1.0, -1.0])
+
+  def __mul__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Multiply([self, other])
+
+  def __rmul__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Multiply([other, self])
+
+  def __neg__(self):
+    return Multiply([self, Constant(-1.0)])
 
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
@@ -306,7 +334,7 @@ class Dense(Layer):
     self.time_series = time_series
     try:
       parent_shape = self.in_layers[0].shape
-      self._shape = (parent_shape[0], out_channels)
+      self._shape = tuple(parent_shape[:-1]) + (out_channels,)
     except:
       pass
     self._reuse = False
@@ -370,8 +398,8 @@ class Dense(Layer):
 class Flatten(Layer):
   """Flatten every dimension except the first"""
 
-  def __init__(self, **kwargs):
-    super(Flatten, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(Flatten, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       s = list(parent_shape[:2])
@@ -430,9 +458,9 @@ class Reshape(Layer):
 
 class Squeeze(Layer):
 
-  def __init__(self, squeeze_dims=None, **kwargs):
+  def __init__(self, in_layers=None, squeeze_dims=None, **kwargs):
     self.squeeze_dims = squeeze_dims
-    super(Squeeze, self).__init__(**kwargs)
+    super(Squeeze, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       if squeeze_dims is None:
@@ -477,8 +505,8 @@ class Transpose(Layer):
 
 class CombineMeanStd(Layer):
 
-  def __init__(self, **kwargs):
-    super(CombineMeanStd, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(CombineMeanStd, self).__init__(in_layers, **kwargs)
     try:
       self._shape = self.in_layers[0].shape
     except:
@@ -517,6 +545,63 @@ class Repeat(Layer):
     t = tf.expand_dims(parent_tensor, 1)
     pattern = tf.stack([1, self.n_times, 1])
     out_tensor = tf.tile(t, pattern)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Gather(Layer):
+  """Gather elements or slices from the input."""
+
+  def __init__(self, in_layers=None, indices=None, **kwargs):
+    """Create a Gather layer.
+
+    The indices can be viewed as a list of element identifiers, where each
+    identifier is itself a length N array specifying the indices of the
+    first N dimensions of the input tensor.  Those elements (or slices, depending
+    on the shape of the input) are then stacked together.  For example,
+    indices=[[0],[2],[4]] will produce [input[0], input[2], input[4]], while
+    indices=[[1,2]] will produce [input[1,2]].
+
+    The indices may be specified in two ways.  If they are constants, you can pass
+    them to this constructor as a list or array.  Alternatively, the indices can
+    be calculated by another layer.  In that case, pass None for indices, and
+    instead provide them as the second input layer.
+
+    Parameters
+    ----------
+    in_layers: list
+      the input layers.  If indices is not None, this should be of length 1.  If indices
+      is None, this should be of length 2, with the first entry calculating the tensor
+      from which to take slices, and the second entry calculating the slice indices.
+    indices: array
+      the slice indices (if they are constants) or None (if the indices are provided by
+      an input)
+    """
+    self.indices = indices
+    super(Gather, self).__init__(in_layers, **kwargs)
+    try:
+      s = tuple(self.in_layers[0].shape)
+      if indices is None:
+        s2 = self.in_layers[1].shape
+        self._shape = (s2[0],) + s[s2[-1]:]
+      else:
+        self._shape = (len(indices),) + s[np.array(indices).shape[-1]:]
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if self.indices is None:
+      if len(inputs) != 2:
+        raise ValueError("Must have two parents")
+      indices = inputs[1]
+    if self.indices is not None:
+      if len(inputs) != 1:
+        raise ValueError("Must have one parent")
+      indices = self.indices
+    parent_tensor = inputs[0]
+    out_tensor = tf.gather_nd(parent_tensor, indices)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -655,8 +740,8 @@ class Weights(Input):
 
 class L1Loss(Layer):
 
-  def __init__(self, **kwargs):
-    super(L1Loss, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(L1Loss, self).__init__(in_layers, **kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
@@ -670,8 +755,8 @@ class L1Loss(Layer):
 
 class L2Loss(Layer):
 
-  def __init__(self, **kwargs):
-    super(L2Loss, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(L2Loss, self).__init__(in_layers, **kwargs)
     try:
       shape1 = self.in_layers[0].shape
       shape2 = self.in_layers[1].shape
@@ -694,8 +779,8 @@ class L2Loss(Layer):
 
 class SoftMax(Layer):
 
-  def __init__(self, **kwargs):
-    super(SoftMax, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SoftMax, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
@@ -714,9 +799,9 @@ class SoftMax(Layer):
 
 class Concat(Layer):
 
-  def __init__(self, axis=1, **kwargs):
+  def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
-    super(Concat, self).__init__(**kwargs)
+    super(Concat, self).__init__(in_layers, **kwargs)
     try:
       s = list(self.in_layers[0].shape)
       for parent in self.in_layers[1:]:
@@ -739,9 +824,9 @@ class Concat(Layer):
 
 class Stack(Layer):
 
-  def __init__(self, axis=1, **kwargs):
+  def __init__(self, in_layers=None, axis=1, **kwargs):
     self.axis = axis
-    super(Stack, self).__init__(**kwargs)
+    super(Stack, self).__init__(in_layers, **kwargs)
     try:
       s = list(self.in_layers[0].shape)
       s.insert(axis, len(self.in_layers))
@@ -812,10 +897,18 @@ class Variable(Layer):
     return out_tensor
 
 
+def _max_dimension(x, y):
+  if x is None:
+    return y
+  if y is None:
+    return x
+  return max(x, y)
+
+
 class Add(Layer):
   """Compute the (optionally weighted) sum of the input layers."""
 
-  def __init__(self, weights=None, **kwargs):
+  def __init__(self, in_layers=None, weights=None, **kwargs):
     """Create an Add layer.
 
     Parameters
@@ -824,7 +917,7 @@ class Add(Layer):
       an array of length equal to the number of input layers, giving the weight
       to multiply each input by.  If None, all weights are set to 1.
     """
-    super(Add, self).__init__(**kwargs)
+    super(Add, self).__init__(in_layers, **kwargs)
     self.weights = weights
     try:
       shape1 = list(self.in_layers[0].shape)
@@ -833,7 +926,7 @@ class Add(Layer):
         shape2, shape1 = shape1, shape2
       offset = len(shape1) - len(shape2)
       for i in range(len(shape2)):
-        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
       self._shape = tuple(shape1)
     except:
       pass
@@ -859,8 +952,8 @@ class Add(Layer):
 class Multiply(Layer):
   """Compute the product of the input layers."""
 
-  def __init__(self, **kwargs):
-    super(Multiply, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(Multiply, self).__init__(in_layers, **kwargs)
     try:
       shape1 = list(self.in_layers[0].shape)
       shape2 = list(self.in_layers[1].shape)
@@ -868,7 +961,7 @@ class Multiply(Layer):
         shape2, shape1 = shape1, shape2
       offset = len(shape1) - len(shape2)
       for i in range(len(shape2)):
-        shape1[i + offset] = max(shape1[i + offset], shape2[i])
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
       self._shape = tuple(shape1)
     except:
       pass
@@ -878,6 +971,26 @@ class Multiply(Layer):
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Log(Layer):
+  """Compute the natural log of the input."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Log, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError('Log must have a single parent')
+    out_tensor = tf.log(inputs[0])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -913,8 +1026,8 @@ class InteratomicL2Distances(Layer):
 
 class SparseSoftMaxCrossEntropy(Layer):
 
-  def __init__(self, **kwargs):
-    super(SparseSoftMaxCrossEntropy, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SparseSoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
       self._shape = (self.in_layers[1].shape[0], 1)
     except:
@@ -935,8 +1048,8 @@ class SparseSoftMaxCrossEntropy(Layer):
 
 class SoftMaxCrossEntropy(Layer):
 
-  def __init__(self, **kwargs):
-    super(SoftMaxCrossEntropy, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(SoftMaxCrossEntropy, self).__init__(in_layers, **kwargs)
     try:
       self._shape = (self.in_layers[1].shape[0], 1)
     except:
@@ -957,9 +1070,11 @@ class SoftMaxCrossEntropy(Layer):
 
 class ReduceMean(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
-    super(ReduceMean, self).__init__(**kwargs)
+    super(ReduceMean, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -986,8 +1101,8 @@ class ReduceMean(Layer):
 
 class ToFloat(Layer):
 
-  def __init__(self, **kwargs):
-    super(ToFloat, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(ToFloat, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
@@ -1005,9 +1120,11 @@ class ToFloat(Layer):
 
 class ReduceSum(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
-    super(ReduceSum, self).__init__(**kwargs)
+    super(ReduceSum, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -1034,9 +1151,11 @@ class ReduceSum(Layer):
 
 class ReduceSquareDifference(Layer):
 
-  def __init__(self, axis=None, **kwargs):
+  def __init__(self, in_layers=None, axis=None, **kwargs):
+    if axis is not None and not isinstance(axis, Sequence):
+      axis = [axis]
     self.axis = axis
-    super(ReduceSquareDifference, self).__init__(**kwargs)
+    super(ReduceSquareDifference, self).__init__(in_layers, **kwargs)
     if axis is None:
       self._shape = tuple()
     else:
@@ -1136,7 +1255,87 @@ class Conv2D(Layer):
     return out_tensor
 
 
-class MaxPool(Layer):
+class Conv3D(Layer):
+  """A 3D convolution on the input.
+
+  This layer expects its input to be a five dimensional tensor of shape
+  (batch size, height, width, depth, # channels).
+  If there is only one channel, the fifth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv3D layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a three element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a three
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    super(Conv3D, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] // strides[0],
+                     parent_shape[2] // strides[1],
+                     parent_shape[3] // strides[2], num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 4:
+      parent_tensor = tf.expand_dims(parent_tensor, 4)
+    out_tensor = tf.layers.conv3d(
+        parent_tensor,
+        filters=self.num_outputs,
+        kernel_size=self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        activity_regularizer=self.normalizer_fn,
+        name=self.scope_name)
+    out_tensor = out_tensor
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class MaxPool2D(Layer):
 
   def __init__(self,
                ksize=[1, 2, 2, 1],
@@ -1146,7 +1345,7 @@ class MaxPool(Layer):
     self.ksize = ksize
     self.strides = strides
     self.padding = padding
-    super(MaxPool, self).__init__(**kwargs)
+    super(MaxPool2D, self).__init__(**kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(None if p is None else p // s
@@ -1158,6 +1357,53 @@ class MaxPool(Layer):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
     out_tensor = tf.nn.max_pool(
+        in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class MaxPool3D(Layer):
+  """A 3D max pooling on the input.
+
+  This layer expects its input to be a five dimensional tensor of shape
+  (batch size, height, width, depth, # channels).
+  """
+
+  def __init__(self,
+               ksize=[1, 2, 2, 2, 1],
+               strides=[1, 2, 2, 2, 1],
+               padding='SAME',
+               **kwargs):
+    """Create a MaxPool3D layer.
+
+    Parameters
+    ----------
+    ksize: list
+      size of the window for each dimension of the input tensor. Must have
+      length of 5 and ksize[0] = ksize[4] = 1.
+    strides: list
+      stride of the sliding window for each dimension of input. Must have
+      length of 5 and strides[0] = strides[4] = 1.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    """
+
+    self.ksize = ksize
+    self.strides = strides
+    self.padding = padding
+    super(MaxPool3D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.max_pool3d(
         in_tensor, ksize=self.ksize, strides=self.strides, padding=self.padding)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -1413,10 +1659,392 @@ class GraphGather(Layer):
     return out_tensor
 
 
+class LSTMStep(Layer):
+  """Layer that performs a single step LSTM update.
+
+  This layer performs a single step LSTM update. Note that it is *not*
+  a full LSTM recurrent network. The LSTMStep layer is useful as a
+  primitive for designing layers such as the AttnLSTMEmbedding or the
+  IterRefLSTMEmbedding below.
+  """
+
+  def __init__(self,
+               output_dim,
+               input_dim,
+               init_fn=initializations.glorot_uniform,
+               inner_init_fn=initializations.orthogonal,
+               activation_fn=activations.tanh,
+               inner_activation_fn=activations.hard_sigmoid,
+               **kwargs):
+    """
+    Parameters
+    ----------
+    output_dim: int
+      Dimensionality of output vectors.
+    input_dim: int
+      Dimensionality of input vectors.
+    init_fn: object 
+      TensorFlow initialization to use for W. 
+    inner_init_fn: object 
+      TensorFlow initialization to use for U. 
+    activation_fn: object 
+      TensorFlow activation to use for output. 
+    inner_activation_fn: object 
+      TensorFlow activation to use for inner steps. 
+    """
+
+    super(LSTMStep, self).__init__(**kwargs)
+
+    self.init = init_fn
+    self.inner_init = inner_init_fn
+    self.output_dim = output_dim
+
+    # No other forget biases supported right now.
+    self.activation = activation_fn
+    self.inner_activation = inner_activation_fn
+    self.input_dim = input_dim
+
+  def get_initial_states(self, input_shape):
+    return [model_ops.zeros(input_shape), model_ops.zeros(input_shape)]
+
+  def build(self):
+    """Constructs learnable weights for this layer."""
+    init = self.init
+    inner_init = self.inner_init
+    self.W = init((self.input_dim, 4 * self.output_dim))
+    self.U = inner_init((self.output_dim, 4 * self.output_dim))
+
+    self.b = tf.Variable(
+        np.hstack((np.zeros(self.output_dim), np.ones(self.output_dim),
+                   np.zeros(self.output_dim), np.zeros(self.output_dim))),
+        dtype=tf.float32)
+    self.trainable_weights = [self.W, self.U, self.b]
+
+  def none_tensors(self):
+    """Zeros out stored tensors for pickling."""
+    W, U, b, out_tensor = self.W, self.U, self.b, self.out_tensor
+    h, c = self.h, self.c
+    trainable_weights = self.trainable_weights
+    self.W, self.U, self.b, self.out_tensor = None, None, None, None
+    self.h, self.c = None, None
+    self.trainable_weights = []
+    return W, U, b, h, c, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    """Sets all stored tensors."""
+    (self.W, self.U, self.b, self.h, self.c, self.out_tensor,
+     self.trainable_weights) = tensor
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
+
+    Returns
+    -------
+    list
+      Returns h, [h + c] 
+    """
+    activation = self.activation
+    inner_activation = self.inner_activation
+
+    self.build()
+    inputs = self._get_input_tensors(in_layers)
+    x, h_tm1, c_tm1 = inputs
+
+    # Taken from Keras code [citation needed]
+    z = model_ops.dot(x, self.W) + model_ops.dot(h_tm1, self.U) + self.b
+
+    z0 = z[:, :self.output_dim]
+    z1 = z[:, self.output_dim:2 * self.output_dim]
+    z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
+    z3 = z[:, 3 * self.output_dim:]
+
+    i = inner_activation(z0)
+    f = inner_activation(z1)
+    c = f * c_tm1 + i * activation(z2)
+    o = inner_activation(z3)
+
+    h = o * activation(c)
+
+    if set_tensors:
+      self.h = h
+      self.c = c
+      self.out_tensor = h
+    return h, [h, c]
+
+
+def _cosine_dist(x, y):
+  """Computes the inner product (cosine distance) between two tensors.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input Tensor
+  y: tf.Tensor
+    Input Tensor 
+  """
+  denom = (
+      model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
+      + model_ops.epsilon())
+  return model_ops.dot(x, tf.transpose(y)) / denom
+
+
+class AttnLSTMEmbedding(Layer):
+  """Implements AttnLSTM as in matching networks paper.
+
+  The AttnLSTM embedding adjusts two sets of vectors, the "test" and
+  "support" sets. The "support" consists of a set of evidence vectors.
+  Think of these as the small training set for low-data machine
+  learning.  The "test" consists of the queries we wish to answer with
+  the small amounts ofavailable data. The AttnLSTMEmbdding allows us to
+  modify the embedding of the "test" set depending on the contents of
+  the "support".  The AttnLSTMEmbedding is thus a type of learnable
+  metric that allows a network to modify its internal notion of
+  distance.
+
+  References:
+  Matching Networks for One Shot Learning
+  https://arxiv.org/pdf/1606.04080v1.pdf
+
+  Order Matters: Sequence to sequence for sets
+  https://arxiv.org/abs/1511.06391
+  """
+
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    """
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    n_feat: int
+      Number of features per atom
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    """
+    super(AttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.n_feat = n_feat
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of two tensors (X, Xp). X should be of shape (n_test,
+      n_feat) and Xp should be of shape (n_support, n_feat) where
+      n_test is the size of the test set, n_support that of the support
+      set, and n_feat is the number of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output
+      shape will be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
+    # x is test set, xp is support set.
+    x, xp = inputs
+
+    ## Initializes trainable weights.
+    n_feat = self.n_feat
+
+    lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_test, n_feat])
+    self.r_init = model_ops.zeros([self.n_test, n_feat])
+    self.states_init = lstm.get_initial_states([self.n_test, n_feat])
+
+    self.trainable_weights = [self.q_init, self.r_init]
+
+    ### Performs computations
+
+    # Get initializations
+    q = self.q_init
+    states = self.states_init
+
+    for d in range(self.max_depth):
+      # Process using attention
+      # Eqn (4), appendix A.1 of Matching Networks paper
+      e = _cosine_dist(x + q, xp)
+      a = tf.nn.softmax(e)
+      r = model_ops.dot(a, xp)
+
+      # Generate new attention states
+      y = model_ops.concatenate([q, r], axis=1)
+      q, states = lstm(y, *states)
+
+    if set_tensors:
+      self.out_tensor = xp
+      self.xq = x + q
+      self.xp = xp
+    return [x + q, xp]
+
+  def none_tensors(self):
+    q_init, r_init, states_init = self.q_init, self.r_init, self.states_init
+    xq, xp = self.xq, self.xp
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    self.q_init, self.r_init, self.states_init = None, None, None
+    self.xq, self.xp = None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return q_init, r_init, states_init, xq, xp, out_tensor, trainable_weights
+
+  def set_tensors(self, tensor):
+    (self.q_init, self.r_init, self.states_init, self.xq, self.xp,
+     self.out_tensor, self.trainable_weights) = tensor
+
+
+class IterRefLSTMEmbedding(Layer):
+  """Implements the Iterative Refinement LSTM.
+
+  Much like AttnLSTMEmbedding, the IterRefLSTMEmbedding is another type
+  of learnable metric which adjusts "test" and "support." Recall that
+  "support" is the small amount of data available in a low data machine
+  learning problem, and that "test" is the query. The AttnLSTMEmbedding
+  only modifies the "test" based on the contents of the support.
+  However, the IterRefLSTM modifies both the "support" and "test" based
+  on each other. This allows the learnable metric to be more malleable
+  than that from AttnLSTMEmbeding.
+  """
+
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    """
+    Unlike the AttnLSTM model which only modifies the test vectors
+    additively, this model allows for an additive update to be
+    performed to both test and support using information from each
+    other.
+
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    n_feat: int
+      Number of input atom features
+    max_depth: int
+      Number of LSTM Embedding layers.
+    """
+    super(IterRefLSTMEmbedding, self).__init__(**kwargs)
+
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.n_feat = n_feat
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    in_layers: list
+      List of two tensors (X, Xp). X should be of shape (n_test, n_feat) and
+      Xp should be of shape (n_support, n_feat) where n_test is the size of
+      the test set, n_support that of the support set, and n_feat is the number
+      of per-atom features.
+
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output shape will
+      be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    n_feat = self.n_feat
+
+    # Support set lstm
+    support_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = model_ops.zeros([self.n_support, n_feat])
+    self.support_states_init = support_lstm.get_initial_states(
+        [self.n_support, n_feat])
+
+    # Test lstm
+    test_lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.p_init = model_ops.zeros([self.n_test, n_feat])
+    self.test_states_init = test_lstm.get_initial_states([self.n_test, n_feat])
+
+    self.trainable_weights = []
+
+    #self.build()
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 2:
+      raise ValueError(
+          "IterRefLSTMEmbedding layer must have exactly two parents")
+    x, xp = inputs
+
+    # Get initializations
+    p = self.p_init
+    q = self.q_init
+    # Rename support
+    z = xp
+    states = self.support_states_init
+    x_states = self.test_states_init
+
+    for d in range(self.max_depth):
+      # Process support xp using attention
+      e = _cosine_dist(z + q, xp)
+      a = tf.nn.softmax(e)
+      # Get linear combination of support set
+      r = model_ops.dot(a, xp)
+
+      # Process test x using attention
+      x_e = _cosine_dist(x + p, z)
+      x_a = tf.nn.softmax(x_e)
+      s = model_ops.dot(x_a, z)
+
+      # Generate new support attention states
+      qr = model_ops.concatenate([q, r], axis=1)
+      q, states = support_lstm(qr, *states)
+
+      # Generate new test attention states
+      ps = model_ops.concatenate([p, s], axis=1)
+      p, x_states = test_lstm(ps, *x_states)
+
+      # Redefine
+      z = r
+
+    if set_tensors:
+      self.xp = x + p
+      self.xpq = xp + q
+      self.out_tensor = self.xp
+
+    return [x + p, xp + q]
+
+  def none_tensors(self):
+    p_init, q_init = self.p_init, self.q_init,
+    support_states_init, test_states_init = (self.support_states_init,
+                                             self.test_states_init)
+    xp, xpq = self.xp, self.xpq
+    out_tensor = self.out_tensor
+    trainable_weights = self.trainable_weights
+    (self.p_init, self.q_init, self.support_states_init,
+     self.test_states_init) = (None, None, None, None)
+    self.xp, self.xpq = None, None
+    self.out_tensor = None
+    self.trainable_weights = []
+    return (p_init, q_init, support_states_init, test_states_init, xp, xpq,
+            out_tensor, trainable_weights)
+
+  def set_tensors(self, tensor):
+    (self.p_init, self.q_init, self.support_states_init, self.test_states_init,
+     self.xp, self.xpq, self.out_tensor, self.trainable_weights) = tensor
+
+
 class BatchNorm(Layer):
 
-  def __init__(self, **kwargs):
-    super(BatchNorm, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(BatchNorm, self).__init__(in_layers, **kwargs)
     try:
       parent_shape = self.in_layers[0].shape
       self._shape = tuple(self.in_layers[0].shape)
@@ -1478,8 +2106,8 @@ class BatchNormalization(Layer):
 
 class WeightedError(Layer):
 
-  def __init__(self, **kwargs):
-    super(WeightedError, self).__init__(**kwargs)
+  def __init__(self, in_layers=None, **kwargs):
+    super(WeightedError, self).__init__(in_layers, **kwargs)
     self._shape = tuple()
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
@@ -1614,9 +2242,9 @@ class VinaFreeEnergy(Layer):
 class WeightedLinearCombo(Layer):
   """Computes a weighted linear combination of input layers, with the weights defined by trainable variables."""
 
-  def __init__(self, std=.3, **kwargs):
+  def __init__(self, in_layers=None, std=.3, **kwargs):
     self.std = std
-    super(WeightedLinearCombo, self).__init__(**kwargs)
+    super(WeightedLinearCombo, self).__init__(in_layers, **kwargs)
     try:
       self._shape = tuple(self.in_layers[0].shape)
     except:
@@ -2237,3 +2865,209 @@ class AtomicConvolution(Layer):
     R = tf.reduce_sum(tf.multiply(D, D), 3)
     R = tf.sqrt(R)
     return R
+
+
+def AlphaShare(in_layers=None, **kwargs):
+  """
+  This method should be used when constructing AlphaShare layers from Sluice Networks
+  
+  Parameters
+  ----------
+  in_layers: list of Layers or tensors
+    tensors in list must be the same size and list must include two or more tensors
+
+  Returns
+  -------
+  output_layers: list of Layers or tensors with same size as in_layers
+    Distance matrix.
+
+  References:
+  Sluice networks: Learning what to share between loosely related tasks
+  https://arxiv.org/abs/1705.08142
+  """
+  output_layers = []
+  alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
+  num_outputs = len(in_layers)
+  for num_layer in range(0, num_outputs):
+    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
+    output_layers.append(ls)
+  return output_layers
+
+
+class AlphaShareLayer(Layer):
+  """
+  Part of a sluice network. Adds alpha parameters to control
+  sharing between the main and auxillary tasks
+
+  Factory method AlphaShare should be used for construction
+
+  Parameters
+  ----------
+  in_layers: list of Layers or tensors
+    tensors in list must be the same size and list must include two or more tensors
+
+  Returns
+  -------
+  out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
+    out_tensor should be fed into LayerSplitter 
+  Distance matrix.
+  """
+
+  def __init__(self, **kwargs):
+    super(AlphaShareLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    # check that there isnt just one or zero inputs
+    if len(inputs) <= 1:
+      raise ValueError("AlphaShare must have more than one input")
+    self.num_outputs = len(inputs)
+    # create subspaces
+    subspaces = []
+    original_cols = int(inputs[0].get_shape()[-1].value)
+    subspace_size = int(original_cols / 2)
+    for input_tensor in inputs:
+      subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
+      subspaces.append(tf.reshape(input_tensor[:, subspace_size:], [-1]))
+    n_alphas = len(subspaces)
+    subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
+
+    # create the alpha learnable parameters
+    alphas = tf.Variable(tf.random_normal([n_alphas, n_alphas]), name='alphas')
+
+    subspaces = tf.matmul(alphas, subspaces)
+
+    # concatenate subspaces, reshape to size of original input, then stack
+    # such that out_tensor has shape (2,?,original_cols)
+    count = 0
+    out_tensor = []
+    tmp_tensor = []
+    for row in range(n_alphas):
+      tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
+      count += 1
+      if (count == 2):
+        out_tensor.append(tf.concat(tmp_tensor, 1))
+        tmp_tensor = []
+        count = 0
+
+    out_tensor = tf.stack(out_tensor)
+
+    self.alphas = alphas
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+  def none_tensors(self):
+    num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
+    self.num_outputs = None
+    self.out_tensor = None
+    self.alphas = None
+    return num_outputs, out_tensor, alphas
+
+  def set_tensors(self, tensor):
+    self.num_outputs, self.out_tensor, self.alphas = tensor
+
+
+class LayerSplitter(Layer):
+  """
+  Returns the nth output of a layer
+  Assumes out_tensor has shape [x, :] where x is the total number of intended output tensors
+  """
+
+  def __init__(self, output_num, **kwargs):
+    """
+    Parameters
+    ----------
+    output_num: int
+        returns the out_tensor[output_num, :] of a layer
+    """
+    self.output_num = output_num
+    super(LayerSplitter, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)[0]
+    self.out_tensor = inputs[self.output_num, :]
+    out_tensor = self.out_tensor
+    return self.out_tensor
+
+  def none_tensors(self):
+    out_tensor = self.out_tensor
+    self.out_tensor = None
+    return out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensor = tensor
+
+
+class SluiceLoss(Layer):
+  """
+  Calculates the loss in a Sluice Network
+  Every input into an AlphaShare should be used in SluiceLoss
+  """
+
+  def __init__(self, **kwargs):
+    super(SluiceLoss, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    temp = []
+    subspaces = []
+    # creates subspaces the same way it was done in AlphaShare
+    for input_tensor in inputs:
+      subspace_size = int(input_tensor.get_shape()[-1].value / 2)
+      subspaces.append(input_tensor[:, :subspace_size])
+      subspaces.append(input_tensor[:, subspace_size:])
+      product = tf.matmul(tf.transpose(subspaces[0]), subspaces[1])
+      subspaces = []
+      # calculate squared Frobenius norm
+      temp.append(tf.reduce_sum(tf.pow(product, 2)))
+    out_tensor = tf.reduce_sum(temp)
+    self.out_tensor = out_tensor
+    return out_tensor
+
+
+class BetaShare(Layer):
+  """
+  Part of a sluice network. Adds beta params to control which layer
+  outputs are used for prediction
+
+  Parameters
+  ----------
+  in_layers: list of Layers or tensors
+    tensors in list must be the same size and list must include two or more tensors
+
+  Returns
+  -------
+  output_layers: list of Layers or tensors with same size as in_layers
+    Distance matrix.
+  """
+
+  def __init__(self, **kwargs):
+    super(BetaShare, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+        Size of input layers must all be the same
+        """
+    inputs = self._get_input_tensors(in_layers)
+    subspaces = []
+    original_cols = int(inputs[0].get_shape()[-1].value)
+    for input_tensor in inputs:
+      subspaces.append(tf.reshape(input_tensor, [-1]))
+    n_betas = len(inputs)
+    subspaces = tf.reshape(tf.stack(subspaces), [n_betas, -1])
+
+    betas = tf.Variable(tf.random_normal([1, n_betas]), name='betas')
+    out_tensor = tf.matmul(betas, subspaces)
+    self.betas = betas
+    self.out_tensor = tf.reshape(out_tensor, [-1, original_cols])
+    return self.out_tensor
+
+  def none_tensors(self):
+    out_tensor, betas = self.out_tensor, self.betas
+    self.out_tensor = None
+    self.betas = None
+    return out_tensor, betas
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.betas = tensor

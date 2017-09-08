@@ -1,50 +1,51 @@
-import unittest
-
 import numpy as np
-import os
 import rdkit
 import tensorflow as tf
-from nose.tools import assert_true
 from tensorflow.python.framework import test_util
-from deepchem.feat.mol_graphs import ConvMol
-from deepchem.feat.mol_graphs import MultiConvMol
+
 from deepchem.feat.graph_features import ConvMolFeaturizer
-from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
-from deepchem.models.tensorgraph.layers import Dense
-from deepchem.models.tensorgraph.layers import Flatten
-from deepchem.models.tensorgraph.layers import Reshape
-from deepchem.models.tensorgraph.layers import Transpose
+from deepchem.feat.mol_graphs import ConvMol
+from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D
+from deepchem.models.tensorgraph.layers import AlphaShareLayer
+from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
+from deepchem.models.tensorgraph.layers import BatchNorm
+from deepchem.models.tensorgraph.layers import BetaShare
 from deepchem.models.tensorgraph.layers import CombineMeanStd
-from deepchem.models.tensorgraph.layers import Repeat
-from deepchem.models.tensorgraph.layers import GRU
-from deepchem.models.tensorgraph.layers import TimeSeriesDense
-from deepchem.models.tensorgraph.layers import Input
-from deepchem.models.tensorgraph.layers import L2Loss
 from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import Constant
-from deepchem.models.tensorgraph.layers import Variable
-from deepchem.models.tensorgraph.layers import Add
-from deepchem.models.tensorgraph.layers import Multiply
-from deepchem.models.tensorgraph.layers import InteratomicL2Distances
-from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
-from deepchem.models.tensorgraph.layers import ReduceMean
-from deepchem.models.tensorgraph.layers import ToFloat
-from deepchem.models.tensorgraph.layers import ReduceSum
-from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
 from deepchem.models.tensorgraph.layers import Conv2D
-from deepchem.models.tensorgraph.layers import MaxPool
-from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import Dense
+from deepchem.models.tensorgraph.layers import Flatten
+from deepchem.models.tensorgraph.layers import GRU
+from deepchem.models.tensorgraph.layers import Gather
 from deepchem.models.tensorgraph.layers import GraphConv
-from deepchem.models.tensorgraph.layers import GraphPool
 from deepchem.models.tensorgraph.layers import GraphGather
-from deepchem.models.tensorgraph.layers import BatchNorm
+from deepchem.models.tensorgraph.layers import Input
+from deepchem.models.tensorgraph.layers import InputFifoQueue
+from deepchem.models.tensorgraph.layers import InteratomicL2Distances
+from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
+from deepchem.models.tensorgraph.layers import L2Loss
+from deepchem.models.tensorgraph.layers import LSTMStep
+from deepchem.models.tensorgraph.layers import LayerSplitter
+from deepchem.models.tensorgraph.layers import Log
+from deepchem.models.tensorgraph.layers import Multiply
+from deepchem.models.tensorgraph.layers import ReduceMean
+from deepchem.models.tensorgraph.layers import ReduceSquareDifference
+from deepchem.models.tensorgraph.layers import ReduceSum
+from deepchem.models.tensorgraph.layers import Repeat
+from deepchem.models.tensorgraph.layers import Reshape
+from deepchem.models.tensorgraph.layers import SluiceLoss
 from deepchem.models.tensorgraph.layers import SoftMax
-from deepchem.models.tensorgraph.layers import WeightedError
-from deepchem.models.tensorgraph.layers import VinaFreeEnergy
-from deepchem.models.tensorgraph.layers import WeightedLinearCombo
+from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import TensorWrapper
-
-import deepchem as dc
+from deepchem.models.tensorgraph.layers import TimeSeriesDense
+from deepchem.models.tensorgraph.layers import ToFloat
+from deepchem.models.tensorgraph.layers import Transpose
+from deepchem.models.tensorgraph.layers import Variable
+from deepchem.models.tensorgraph.layers import VinaFreeEnergy
+from deepchem.models.tensorgraph.layers import WeightedError
+from deepchem.models.tensorgraph.layers import WeightedLinearCombo
 
 
 class TestLayers(test_util.TensorFlowTestCase):
@@ -123,8 +124,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     dim = 2
     batch_size = 10
     mean_tensor = np.random.rand(dim)
-    std_tensor = np.random.rand(
-        1,)
+    std_tensor = np.random.rand(1,)
     with self.test_session() as sess:
       mean_tensor = tf.convert_to_tensor(mean_tensor, dtype=tf.float32)
       std_tensor = tf.convert_to_tensor(std_tensor, dtype=tf.float32)
@@ -143,6 +143,15 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Repeat(n_repeat)(in_tensor)
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, n_repeat, in_dim)
+
+  def test_gather(self):
+    """Test that Gather can be invoked."""
+    in_tensor = np.random.uniform(size=(5, 4)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = Gather(indices=[[2], [3]])(in_tensor).eval()
+      assert np.array_equal([in_tensor[2], in_tensor[3]], out_tensor)
+      out_tensor = Gather()(in_tensor, np.array([[1, 1], [0, 3]])).eval()
+      assert np.array_equal([in_tensor[1, 1], in_tensor[0, 3]], out_tensor)
 
   def test_gru(self):
     """Test that GRU can be invoked."""
@@ -251,6 +260,13 @@ class TestLayers(test_util.TensorFlowTestCase):
                               tf.constant(value3))
       assert np.array_equal(value1 * value2 * value3, out_tensor.eval())
 
+  def test_log(self):
+    """Test that Log can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      result = Log()(value).eval()
+      assert np.array_equal(np.log(value), result)
+
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""
     N_atoms = 5
@@ -344,8 +360,25 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, length, width, out_channels)
 
-  def test_max_pool(self):
-    """Test that MaxPool can be invoked."""
+  def test_conv_3D(self):
+    """Test that Conv3D can be invoked."""
+    length = 4
+    width = 5
+    depth = 6
+    in_channels = 2
+    out_channels = 3
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = Conv3D(out_channels, kernel_size=1)(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, length, width, depth,
+                                  out_channels)
+
+  def test_maxpool2D(self):
+    """Test that MaxPool2D can be invoked."""
     length = 2
     width = 2
     in_channels = 2
@@ -353,10 +386,25 @@ class TestLayers(test_util.TensorFlowTestCase):
     in_tensor = np.random.rand(batch_size, length, width, in_channels)
     with self.test_session() as sess:
       in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
-      out_tensor = MaxPool()(in_tensor)
+      out_tensor = MaxPool2D()(in_tensor)
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, 1, 1, in_channels)
+
+  def test_max_pool_3D(self):
+    """Test that MaxPool3D can be invoked."""
+    length = 2
+    width = 2
+    depth = 2
+    in_channels = 2
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = MaxPool3D()(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, 1, 1, 1, in_channels)
 
   def test_input_fifo_queue(self):
     """Test InputFifoQueue can be invoked."""
@@ -395,6 +443,71 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (n_atoms, out_channels)
+
+  def test_lstm_step(self):
+    """Test that LSTMStep computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_feat = 10
+
+    y = np.random.rand(n_test, 2 * n_feat)
+    state_zero = np.random.rand(n_test, n_feat)
+    state_one = np.random.rand(n_test, n_feat)
+    with self.test_session() as sess:
+      y = tf.convert_to_tensor(y, dtype=tf.float32)
+      state_zero = tf.convert_to_tensor(state_zero, dtype=tf.float32)
+      state_one = tf.convert_to_tensor(state_one, dtype=tf.float32)
+
+      lstm = LSTMStep(n_feat, 2 * n_feat)
+      out_tensor = lstm(y, state_zero, state_one)
+      sess.run(tf.global_variables_initializer())
+      h_out, h_copy_out, c_out = (out_tensor[0].eval(), out_tensor[1][0].eval(),
+                                  out_tensor[1][1].eval())
+      assert h_out.shape == (n_test, n_feat)
+      assert h_copy_out.shape == (n_test, n_feat)
+      assert c_out.shape == (n_test, n_feat)
+
+  def test_attn_lstm_embedding(self):
+    """Test that attention LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+
+    test = np.random.rand(n_test, n_feat)
+    support = np.random.rand(n_support, n_feat)
+    with self.test_session() as sess:
+      test = tf.convert_to_tensor(test, dtype=tf.float32)
+      support = tf.convert_to_tensor(support, dtype=tf.float32)
+
+      attn_embedding_layer = AttnLSTMEmbedding(n_test, n_support, n_feat,
+                                               max_depth)
+      out_tensor = attn_embedding_layer(test, support)
+      sess.run(tf.global_variables_initializer())
+      test_out, support_out = out_tensor[0].eval(), out_tensor[1].eval()
+      assert test_out.shape == (n_test, n_feat)
+      assert support_out.shape == (n_support, n_feat)
+
+  def test_iter_ref_lstm_embedding(self):
+    """Test that IterRef LSTM computation works properly."""
+    max_depth = 5
+    n_test = 5
+    n_support = 11
+    n_feat = 10
+
+    test = np.random.rand(n_test, n_feat)
+    support = np.random.rand(n_support, n_feat)
+    with self.test_session() as sess:
+      test = tf.convert_to_tensor(test, dtype=tf.float32)
+      support = tf.convert_to_tensor(support, dtype=tf.float32)
+
+      iter_ref_embedding_layer = IterRefLSTMEmbedding(n_test, n_support, n_feat,
+                                                      max_depth)
+      out_tensor = iter_ref_embedding_layer(test, support)
+      sess.run(tf.global_variables_initializer())
+      test_out, support_out = out_tensor[0].eval(), out_tensor[1].eval()
+      assert test_out.shape == (n_test, n_feat)
+      assert support_out.shape == (n_support, n_feat)
 
   # TODO(rbharath): This test should pass. Fix it!
   #def test_graph_pool(self):
@@ -541,3 +654,64 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert result == 1.5
       result = sess.run(tf.gradients(v, v))
       assert result[0] == 1.0
+
+  def test_alpha_share_layer(self):
+    """Test that alpha share works correctly"""
+    batch_size = 50
+    length = 10
+    test_1 = np.random.rand(batch_size, length)
+    test_2 = np.random.rand(batch_size, length)
+
+    with self.test_session() as sess:
+      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
+      test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
+
+      out_tensor = AlphaShareLayer()(test_1, test_2)
+      sess.run(tf.global_variables_initializer())
+      test_1_out_tensor = out_tensor[0].eval()
+      test_2_out_tensor = out_tensor[1].eval()
+      assert test_1.shape == test_1_out_tensor.shape
+      assert test_2.shape == test_2_out_tensor.shape
+
+  def test_beta_share(self):
+    """Test that beta share works correctly"""
+    batch_size = 50
+    length = 10
+    test_1 = np.random.rand(batch_size, length)
+    test_2 = np.random.rand(batch_size, length)
+
+    with self.test_session() as sess:
+      test_1 = tf.convert_to_tensor(test_1, dtype=tf.float32)
+      test_2 = tf.convert_to_tensor(test_2, dtype=tf.float32)
+
+      out_tensor = BetaShare()(test_1, test_2)
+      sess.run(tf.global_variables_initializer())
+      out_tensor.eval()
+      assert test_1.shape == out_tensor.shape
+      assert test_2.shape == out_tensor.shape
+
+  def test_layer_splitter(self):
+    """Test Layer Splitter"""
+    input1 = np.arange(10).reshape(2, 5)
+    input2 = np.arange(10, 20).reshape(2, 5)
+
+    with self.test_session() as sess:
+      input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
+      input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
+      input_tensor = tf.stack([input1, input2])
+      output1 = LayerSplitter(0)(input_tensor)
+      output2 = LayerSplitter(1)(input_tensor)
+      sess.run(tf.global_variables_initializer())
+      sess.run(tf.assert_equal(input1, output1.eval()))
+      sess.run(tf.assert_equal(input2, output2.eval()))
+
+  def test_sluice_loss(self):
+    """Test the sluice loss function"""
+    input1 = np.ones((3, 4))
+    input2 = np.ones((2, 2))
+    with self.test_session() as sess:
+      input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
+      input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
+      output_tensor = SluiceLoss()(input1, input2)
+      sess.run(tf.global_variables_initializer())
+      assert output_tensor.eval() == 40.0

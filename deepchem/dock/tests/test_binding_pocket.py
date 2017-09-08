@@ -10,7 +10,6 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import sys
-from deepchem.utils.dependencies import mdtraj as md
 import unittest
 import os
 import numpy as np
@@ -86,8 +85,8 @@ class TestBindingPocket(unittest.TestCase):
     box2 = ((1, 3), (1, 3), (1, 3))
     mapping = {box1: [1, 2, 3, 4], box2: [1, 2, 3, 4, 5]}
     boxes = [box1, box2]
-    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(mapping,
-                                                                     boxes)
+    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
+        mapping, boxes)
     print("merged_boxes")
     print(merged_boxes)
     assert len(merged_boxes) == 1
@@ -98,8 +97,8 @@ class TestBindingPocket(unittest.TestCase):
     box2 = ((1, 2), (1, 2), (1, 2))
     mapping = {box1: [1, 2, 3, 4, 5, 6], box2: [1, 2, 3, 4]}
     boxes = [box1, box2]
-    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(mapping,
-                                                                     boxes)
+    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
+        mapping, boxes)
     print("merged_boxes")
     print(merged_boxes)
     assert len(merged_boxes) == 1
@@ -114,8 +113,8 @@ class TestBindingPocket(unittest.TestCase):
         box2: [1, 2, 3, 4],
         box3: [1, 2, 3, 4, 5]
     }
-    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(mapping,
-                                                                     boxes)
+    merged_boxes, _ = dc.dock.binding_pocket.merge_overlapping_boxes(
+        mapping, boxes)
     print("merged_boxes")
     print(merged_boxes)
     assert len(merged_boxes) == 1
@@ -127,12 +126,13 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
+    import mdtraj as md
     protein = md.load(protein_file)
 
     finder = dc.dock.ConvexHullPocketFinder()
     all_pockets = finder.find_all_pockets(protein_file)
-    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(protein_file,
-                                                                   ligand_file)
+    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(
+        protein_file, ligand_file)
     # Test that every atom in pocket maps exists
     n_protein_atoms = protein.xyz.shape[1]
     print("protein.xyz.shape")
@@ -158,11 +158,12 @@ class TestBindingPocket(unittest.TestCase):
     protein_file = os.path.join(current_dir, "1jld_protein.pdb")
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
+    import mdtraj as md
     protein = md.load(protein_file)
 
     finder = dc.dock.RFConvexHullPocketFinder()
-    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(protein_file,
-                                                                   ligand_file)
+    pockets, pocket_atoms_map, pocket_coords = finder.find_pockets(
+        protein_file, ligand_file)
     # Test that every atom in pocket maps exists
     n_protein_atoms = protein.xyz.shape[1]
     print("protein.xyz.shape")

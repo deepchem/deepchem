@@ -8,6 +8,7 @@ __author__ = "Han Altae-Tran and Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import warnings
 import numpy as np
 import tensorflow as tf
 from deepchem.nn import activations
@@ -236,6 +237,10 @@ class GraphConv(Layer):
     min_deg: int, optional
       Minimum degree of atoms in molecules.
     """
+    warnings.warn("The dc.nn.GraphConv is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by dc.models.tensorgraph.layers.GraphConv",
+                  DeprecationWarning)
     super(GraphConv, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
@@ -350,6 +355,11 @@ class GraphGather(Layer):
     batch_size: int
       Number of elements in batch of data.
     """
+    warnings.warn(
+        "The dc.nn.GraphGather is "
+        "deprecated. Will be removed in DeepChem 1.4. "
+        "Will be replaced by dc.models.tensorgraph.layers.GraphGather",
+        DeprecationWarning)
     super(GraphGather, self).__init__(**kwargs)
 
     self.activation = activations.get(activation)  # Get activations
@@ -423,6 +433,10 @@ class GraphPool(Layer):
     min_deg: int, optional
       Minimum degree of atoms in molecules.
     """
+    warnings.warn("The dc.nn.GraphPool is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by dc.models.tensorgraph.layers.GraphPool",
+                  DeprecationWarning)
     self.max_deg = max_deg
     self.min_deg = min_deg
     super(GraphPool, self).__init__(**kwargs)
@@ -628,6 +642,11 @@ class ResiLSTMEmbedding(Layer):
     activation: string
       Activation type (ReLu/Linear/etc.)
     """
+    warnings.warn("The dc.nn.ResiLSTMEmbedding is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.layers.IterRefLSTM",
+                  DeprecationWarning)
     super(ResiLSTMEmbedding, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
@@ -764,6 +783,11 @@ class LSTMStep(Layer):
                inner_activation='hard_sigmoid',
                **kwargs):
 
+    warnings.warn("The dc.nn.LSTMStep is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by dc.models.tensorgraph.layers.LSTMStep",
+                  DeprecationWarning)
+
     super(LSTMStep, self).__init__(**kwargs)
 
     self.output_dim = output_dim
@@ -840,6 +864,12 @@ class DTNNEmbedding(Layer):
     init: str, optional
       Weight initialization for filters.
     """
+
+    warnings.warn("The dc.nn.DTNNEmbedding is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.graph_layers.DTNNEmbedding",
+                  DeprecationWarning)
     self.n_embedding = n_embedding
     self.periodic_table_length = periodic_table_length
     self.init = initializations.get(init)  # Set weight initialization
@@ -898,6 +928,11 @@ class DTNNStep(Layer):
     activation: str, optional
       Activation function applied
     """
+    warnings.warn("The dc.nn.DTNNStep is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.graph_layers.DTNNStep",
+                  DeprecationWarning)
     self.n_embedding = n_embedding
     self.n_distance = n_distance
     self.n_hidden = n_hidden
@@ -995,6 +1030,11 @@ class DTNNGather(Layer):
     activation: str, optional
       Activation function applied
     """
+    warnings.warn("The dc.nn.DTNNGather is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.graph_layers.DTNNGather",
+                  DeprecationWarning)
     self.n_embedding = n_embedding
     self.layer_sizes = layer_sizes
     self.n_outputs = n_outputs
@@ -1085,6 +1125,11 @@ class DAGLayer(Layer):
     batch_size: int, optional
       number of molecules in a batch
     """
+    warnings.warn("The dc.nn.DAGLayer is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.graph_layers.DAGLayer",
+                  DeprecationWarning)
     super(DAGLayer, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization
@@ -1242,6 +1287,11 @@ class DAGGather(Layer):
     dropout: float, optional
       Dropout probability, not supported
     """
+    warnings.warn("The dc.nn.DAGGather is "
+                  "deprecated. Will be removed in DeepChem 1.4. "
+                  "Will be replaced by "
+                  "dc.models.tensorgraph.graph_layers.DAGGather",
+                  DeprecationWarning)
     super(DAGGather, self).__init__(**kwargs)
 
     self.init = initializations.get(init)  # Set weight initialization

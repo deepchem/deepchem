@@ -2,7 +2,6 @@ import pickle
 import threading
 import time
 
-import networkx as nx
 import collections
 import numpy as np
 import os
@@ -56,7 +55,6 @@ class TensorGraph(Model):
     """
 
     # Layer Management
-    self.nxgraph = nx.DiGraph()
     self.layers = dict()
     self.features = list()
     self.labels = list()
@@ -81,7 +79,6 @@ class TensorGraph(Model):
     self.tensorboard_log_frequency = tensorboard_log_frequency
     self.tensorboard_step = 0
     self.global_step = 0
-    self.last_checkpoint = None
     self.use_queue = use_queue
 
     self.batch_size = batch_size
@@ -93,6 +90,10 @@ class TensorGraph(Model):
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    if self.use_queue and self.tensorboard:
+      raise ValueError(
+          "Currently TensorGraph cannot both use_queue and tensorboard at the same time"
+      )
 
   def _add_layer(self, layer):
     if layer.name is None:
@@ -105,34 +106,68 @@ class TensorGraph(Model):
       self.labels.append(layer)
     if isinstance(layer, Weights):
       self.task_weights.append(layer)
-    self.nxgraph.add_node(layer.name)
     self.layers[layer.name] = layer
     for in_layer in layer.in_layers:
       self._add_layer(in_layer)
-      self.nxgraph.add_edge(in_layer.name, layer.name)
 
   def fit(self,
           dataset,
           nb_epoch=10,
           max_checkpoints_to_keep=5,
           checkpoint_interval=1000,
-          deterministic=False):
+          deterministic=False,
+          restore=False):
+    """Train this model on a dataset.
+
+    Parameters
+    ----------
+    dataset: Dataset
+      the Dataset to train on
+    nb_epoch: int
+      the number of epochs to train for
+    max_checkpoints_to_keep: int
+      the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+    checkpoint_interval: int
+      the frequency at which to write checkpoints, measured in training steps.
+    deterministic: bool
+      if True, the samples are processed in order.  If False, a different random
+      order is used for each epoch.
+    restore: bool
+      if True, restore the model from the most recent checkpoint and continue training
+      from there.  If False, retrain the model from scratch.
+    """
     return self.fit_generator(
         self.default_generator(
             dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval)
+        max_checkpoints_to_keep, checkpoint_interval, restore)
 
   def fit_generator(self,
                     feed_dict_generator,
                     max_checkpoints_to_keep=5,
-                    checkpoint_interval=1000):
+                    checkpoint_interval=1000,
+                    restore=False):
+    """Train this model on data from a generator.
+
+    Parameters
+    ----------
+    feed_dict_generator: generator
+      this should generate batches, each represented as a dict that maps
+      Layers to values.
+    max_checkpoints_to_keep: int
+      the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+    checkpoint_interval: int
+      the frequency at which to write checkpoints, measured in training steps.
+    restore: bool
+      if True, restore the model from the most recent checkpoint and continue training
+      from there.  If False, retrain the model from scratch.
+    """
 
     def create_feed_dict():
       if self.use_queue:
         while True:
           yield {self._training_placeholder: 1.0}
       for d in feed_dict_generator:
-        feed_dict = {k.out_tensor: v for k, v in six.iteritems(d)}
+        feed_dict = dict(d)
         feed_dict[self._training_placeholder] = 1.0
         yield feed_dict
 
@@ -142,45 +177,45 @@ class TensorGraph(Model):
       time1 = time.time()
       train_op = self._get_tf('train_op')
       saver = tf.train.Saver(max_to_keep=max_checkpoints_to_keep)
-      with tf.Session() as sess:
-        self._initialize_weights(sess, saver)
-        avg_loss, n_batches = 0.0, 0.0
-        coord = tf.train.Coordinator()
-        n_samples = 0
-        if self.use_queue:
-          enqueue_thread = threading.Thread(
-              target=_enqueue_batch,
-              args=(self, feed_dict_generator, self._get_tf("Graph"), sess,
-                    coord))
-          enqueue_thread.start()
-        output_tensors = [x.out_tensor for x in self.outputs]
-        fetches = output_tensors + [train_op, self.loss.out_tensor]
-        for feed_dict in create_feed_dict():
-          try:
-            fetched_values = sess.run(fetches, feed_dict=feed_dict)
-            loss = fetched_values[-1]
-            avg_loss += loss
-            n_batches += 1
-            self.global_step += 1
-            n_samples += 1
-            if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
-              summary = sess.run(
-                  self._get_tf("summary_op"), feed_dict=feed_dict)
-              self._log_tensorboard(summary)
-          except OutOfRangeError:
-            break
-          if self.global_step % checkpoint_interval == checkpoint_interval - 1:
-            saver.save(sess, self.save_file, global_step=self.global_step)
-            self.last_checkpoint = saver.last_checkpoints[-1]
-            avg_loss = float(avg_loss) / n_batches
-            print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                              avg_loss))
-            avg_loss, n_batches = 0.0, 0.0
+      self.session.run(tf.global_variables_initializer())
+      if restore:
+        self.restore()
+      avg_loss, n_batches = 0.0, 0.0
+      coord = tf.train.Coordinator()
+      n_samples = 0
+      if self.use_queue:
+        enqueue_thread = threading.Thread(
+            target=_enqueue_batch,
+            args=(self, feed_dict_generator, self._get_tf("Graph"),
+                  self.session, coord))
+        enqueue_thread.start()
+      output_tensors = [x.out_tensor for x in self.outputs]
+      fetches = output_tensors + [train_op, self.loss.out_tensor]
+      for feed_dict in create_feed_dict():
+        try:
+          fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+          loss = fetched_values[-1]
+          avg_loss += loss
+          n_batches += 1
+          self.global_step += 1
+          n_samples += 1
+          if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
+            summary = self.session.run(
+                self._get_tf("summary_op"), feed_dict=feed_dict)
+            self._log_tensorboard(summary)
+        except OutOfRangeError:
+          break
+        if self.global_step % checkpoint_interval == checkpoint_interval - 1:
+          saver.save(self.session, self.save_file, global_step=self.global_step)
+          avg_loss = float(avg_loss) / n_batches
+          print('Ending global_step %d: Average loss %g' % (self.global_step,
+                                                            avg_loss))
+          avg_loss, n_batches = 0.0, 0.0
+      if n_batches > 0:
         avg_loss = float(avg_loss) / n_batches
         print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                           avg_loss))
-        saver.save(sess, self.save_file, global_step=self.global_step)
-        self.last_checkpoint = saver.last_checkpoints[-1]
+      saver.save(self.session, self.save_file, global_step=self.global_step)
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
 
@@ -256,37 +291,33 @@ class TensorGraph(Model):
     elif not isinstance(outputs, collections.Sequence):
       outputs = [outputs]
     with self._get_tf("Graph").as_default():
-      with tf.Session() as sess:
-        saver = tf.train.Saver()
-        self._initialize_weights(sess, saver)
-        out_tensors = [x.out_tensor for x in self.outputs]
-        # Gather results for each output
-        results = [[] for out in out_tensors]
-        for feed_dict in generator:
-          feed_dict = {
-              self.layers[k.name].out_tensor: v
-              for k, v in six.iteritems(feed_dict)
-          }
-          feed_dict[self._training_placeholder] = 0.0
-          feed_results = sess.run(out_tensors, feed_dict=feed_dict)
-          if len(feed_results) > 1:
-            if len(transformers):
-              raise ValueError("Does not support transformations "
-                               "for multiple outputs.")
-          elif len(feed_results) == 1:
-            result = undo_transforms(feed_results[0], transformers)
-            feed_results = [result]
-          for ind, result in enumerate(feed_results):
-            results[ind].append(result)
+      # Gather results for each output
+      results = [[] for out in outputs]
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        feed_dict[self._training_placeholder] = 0.0
+        feed_results = self.session.run(outputs, feed_dict=feed_dict)
+        if len(feed_results) > 1:
+          if len(transformers):
+            raise ValueError("Does not support transformations "
+                             "for multiple outputs.")
+        elif len(feed_results) == 1:
+          result = undo_transforms(feed_results[0], transformers)
+          feed_results = [result]
+        for ind, result in enumerate(feed_results):
+          results[ind].append(result)
 
-        final_results = []
-        for result_list in results:
-          final_results.append(np.concatenate(result_list, axis=0))
-        # If only one output, just return array
-        if len(final_results) == 1:
-          return final_results[0]
-        else:
-          return final_results
+      final_results = []
+      for result_list in results:
+        final_results.append(np.concatenate(result_list, axis=0))
+      # If only one output, just return array
+      if len(final_results) == 1:
+        return final_results[0]
+      else:
+        return final_results
 
   def predict_proba_on_generator(self, generator, transformers=[],
                                  outputs=None):
@@ -296,7 +327,7 @@ class TensorGraph(Model):
     """
     return self.predict_on_generator(generator, transformers, outputs)
 
-  def predict_on_batch(self, X, transformers=[]):
+  def predict_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -312,9 +343,9 @@ class TensorGraph(Model):
     """
     dataset = NumpyDataset(X=X, y=None)
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers)
+    return self.predict_on_generator(generator, transformers, outputs)
 
-  def predict_proba_on_batch(self, X, transformers=[]):
+  def predict_proba_on_batch(self, X, transformers=[], outputs=None):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -328,7 +359,7 @@ class TensorGraph(Model):
     -------
     A Numpy array of predictions.
     """
-    return self.predict_on_batch(X, transformers)
+    return self.predict_on_batch(X, transformers, outputs)
 
   def predict(self, dataset, transformers=[], outputs=None):
     """
@@ -375,7 +406,19 @@ class TensorGraph(Model):
     return self.predict_proba_on_generator(generator, transformers, outputs)
 
   def topsort(self):
-    return nx.topological_sort(self.nxgraph)
+
+    def add_layers_to_list(layer, sorted_layers):
+      if layer in sorted_layers:
+        return
+      for in_layer in layer.in_layers:
+        add_layers_to_list(in_layer, sorted_layers)
+      sorted_layers.append(layer)
+
+    sorted_layers = []
+    for l in self.features + self.labels + self.task_weights + self.outputs:
+      add_layers_to_list(l, sorted_layers)
+    add_layers_to_list(self.loss, sorted_layers)
+    return sorted_layers
 
   def build(self):
     if self.built:
@@ -385,15 +428,14 @@ class TensorGraph(Model):
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
       self._install_queue()
-      order = self.topsort()
-      for node in order:
-        with tf.name_scope(node):
-          node_layer = self.layers[node]
-          node_layer.create_tensor(training=self._training_placeholder)
-          self.rnn_initial_states += node_layer.rnn_initial_states
-          self.rnn_final_states += node_layer.rnn_final_states
-          self.rnn_zero_states += node_layer.rnn_zero_states
-          node_layer.add_summary_to_tg()
+      for layer in self.topsort():
+        with tf.name_scope(layer.name):
+          layer.create_tensor(training=self._training_placeholder)
+          self.rnn_initial_states += layer.rnn_initial_states
+          self.rnn_final_states += layer.rnn_final_states
+          self.rnn_zero_states += layer.rnn_zero_states
+          layer.add_summary_to_tg()
+      self.session = tf.Session()
 
       self.built = True
 
@@ -439,7 +481,6 @@ class TensorGraph(Model):
       pre_q_inputs.append(pre_q_input)
 
       layer.in_layers.append(q)
-      self.nxgraph.add_edge(q.name, layer.name)
 
     self._add_layer(q)
     self.input_queue = q
@@ -488,16 +529,17 @@ class TensorGraph(Model):
     rnn_initial_states = self.rnn_initial_states
     rnn_final_states = self.rnn_final_states
     rnn_zero_states = self.rnn_zero_states
+    session = self.session
     self.tensor_objects = {}
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
+    self.session = None
     out_tensors = []
     if self.built:
       must_restore = True
-      for node in self.topsort():
-        node_layer = self.layers[node]
-        out_tensors.append(node_layer.none_tensors())
+      for layer in self.topsort():
+        out_tensors.append(layer.none_tensors())
       optimizer = self.optimizer
       self.optimizer = None
       training_placeholder = self._training_placeholder
@@ -506,6 +548,7 @@ class TensorGraph(Model):
 
     # Pickle itself
     pickle_name = os.path.join(self.model_dir, "model.pickle")
+
     with open(pickle_name, 'wb') as fout:
       try:
         pickle.dump(self, fout)
@@ -515,9 +558,8 @@ class TensorGraph(Model):
 
     # add out_tensor back to everyone
     if must_restore:
-      for index, node in enumerate(self.topsort()):
-        node_layer = self.layers[node]
-        node_layer.set_tensors(out_tensors[index])
+      for index, layer in enumerate(self.topsort()):
+        layer.set_tensors(out_tensors[index])
       self._training_placeholder = training_placeholder
       self.optimizer = optimizer
       self.built = True
@@ -525,6 +567,7 @@ class TensorGraph(Model):
     self.rnn_initial_states = rnn_initial_states
     self.rnn_final_states = rnn_final_states
     self.rnn_zero_states = rnn_zero_states
+    self.session = session
 
   def evaluate_generator(self,
                          feed_dict_generator,
@@ -561,8 +604,10 @@ class TensorGraph(Model):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
+      if layer.variable_scope == '':
+        return []
       return tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope=layer.variable_scope)
+          tf.GraphKeys.TRAINABLE_VARIABLES, scope=layer.variable_scope)
 
   def get_global_step(self):
     return self._get_tf("GlobalStep")
@@ -609,25 +654,16 @@ class TensorGraph(Model):
         self.tensor_objects['GlobalStep'] = tf.Variable(0, trainable=False)
     return self._get_tf(obj)
 
-  def _initialize_weights(self, sess, saver):
-    """
-    Parameters
-    ----------
-    sess: tf.Session
-      The Session must be open
-    saver: tf.train.Saver
-      A saver object to save/restore checkpoints
-
-    Returns
-    -------
-
-    """
-    if self.last_checkpoint is None:
-      sess.run(tf.global_variables_initializer())
-      saver.save(sess, self.save_file, global_step=self.global_step)
-      self.last_checkpoint = saver.last_checkpoints[-1]
-    else:
-      saver.restore(sess, self.last_checkpoint)
+  def restore(self):
+    """Reload the values of all variables from the most recent checkpoint file."""
+    if not self.built:
+      self.build()
+    last_checkpoint = tf.train.latest_checkpoint(self.model_dir)
+    if last_checkpoint is None:
+      raise ValueError('No checkpoint found')
+    with self._get_tf("Graph").as_default():
+      saver = tf.train.Saver()
+      saver.restore(self.session, last_checkpoint)
 
   def get_num_tasks(self):
     return len(self.outputs)
@@ -643,6 +679,10 @@ class TensorGraph(Model):
     with open(pickle_name, 'rb') as fout:
       tensorgraph = pickle.load(fout)
       tensorgraph.built = False
+      try:
+        tensorgraph.restore()
+      except ValueError:
+        pass  # No checkpoint to load
       return tensorgraph
 
   def __del__(self):

@@ -13,18 +13,14 @@ def load_hopv(featurizer='ECFP', split='index', reload=True):
   """Load HOPV datasets. Does not do train/test split"""
   # Featurize HOPV dataset
   print("About to featurize HOPV dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "hopv/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "hopv.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/hopv.tar.gz'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/hopv.tar.gz'
     )
     os.system('tar -zxvf ' + os.path.join(data_dir, 'hopv.tar.gz') + ' -C ' +
               data_dir)
@@ -53,7 +49,7 @@ def load_hopv(featurizer='ECFP', split='index', reload=True):
       tasks=hopv_tasks, smiles_field="smiles", featurizer=featurizer)
   dataset = loader.featurize(dataset_file, shard_size=8192)
 
-  # Initialize transformers 
+  # Initialize transformers
   transformers = [
       deepchem.trans.NormalizationTransformer(
           transform_y=True, dataset=dataset)

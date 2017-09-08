@@ -5,9 +5,7 @@ python:
 sudo: required
 dist: trusty
 install:
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/archive/Anaconda2-4.3.0-Linux-x86_64.sh
-  -O anaconda.sh; else wget https://repo.continuum.io/archive/Anaconda3-4.3.0-Linux-x86_64.sh
-  -O anaconda.sh; fi
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda.sh;
 - export python_version=$TRAVIS_PYTHON_VERSION
 - bash anaconda.sh -b -p $HOME/anaconda
 - export PATH="$HOME/anaconda/bin:$PATH"
@@ -17,7 +15,7 @@ install:
 - conda config --add channels http://conda.binstar.org/omnia
 - bash scripts/install_deepchem_conda.sh deepchem
 - source activate deepchem
-- pip install yapf==0.16.2
+- pip install yapf==0.17.0
 - pip install coveralls
 - python setup.py install
 script:

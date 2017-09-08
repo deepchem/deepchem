@@ -1,11 +1,8 @@
 import logging
 
-import networkx as nx
 import numpy as np
 import os
 
-from deepchem.utils.dependencies import pdbfixer
-from deepchem.utils.dependencies import simtk
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import rdmolops
@@ -50,6 +47,7 @@ def add_hydrogens_to_mol(mol):
     pdb_stringio = StringIO()
     pdb_stringio.write(pdbblock)
     pdb_stringio.seek(0)
+    import pdbfixer
     fixer = pdbfixer.PDBFixer(pdbfile=pdb_stringio)
     fixer.findMissingResidues()
     fixer.findMissingAtoms()
@@ -57,6 +55,7 @@ def add_hydrogens_to_mol(mol):
     fixer.addMissingHydrogens(7.4)
 
     hydrogenated_io = StringIO()
+    import simtk
     simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
                                        hydrogenated_io)
     hydrogenated_io.seek(0)
@@ -223,6 +222,7 @@ class PdbqtLigandWriter(object):
     The single public function of this class.
     It converts a molecule and a pdb file into a pdbqt file stored in outfile
     """
+    import networkx as nx
     self._create_pdb_map()
     self._mol_to_graph()
     self._get_rotatable_bonds()
@@ -347,6 +347,7 @@ class PdbqtLigandWriter(object):
     atoms are nodes, and bonds are vertices
     store as self.graph
     """
+    import networkx as nx
     G = nx.Graph()
     num_atoms = self.mol.GetNumAtoms()
     G.add_nodes_from(range(num_atoms))

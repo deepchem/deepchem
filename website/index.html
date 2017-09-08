@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <title>DeepChem</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:200,300,400,600,700">
+    <link rel="stylesheet" 
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" 
+        integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" 
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="./static/css/main.css">
+</head>
+<body id="home">
+
+    <header>
+
+    
+
+    <div class="logo"><a href="#" class="pull-left"><img src="./static/img/deepchem_logo.png" height="100"></a></a></div>
+    
+
+    <ul class="primary-nav">
+      <li><a  href="https://github.com/deepchem/deepchem">Support</a></li>
+      <li><a  href="https://gitter.im/deepchem/Lobby">Discuss</a></li>
+      <li><a class="btn" href="./docs/index.html">Docs</a></li>
+ 
+    </ul>
+
+
+    
+    
+</header>
+    
+    <section class="hero wrap">
+    <div class="container">
+        <div class="inner">
+            <h1>DeepChem is a&nbsp;Python library democratizing deep&nbsp;learning for science.</h1> 
+        </div>
+    </div>
+    <a href="https://github.com/deepchem/deepchem"><img style="position:absolute;top:0;right:0;border:0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+</section>
+
+<section class="install-wizard wrap">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-5 title">
+                <h3>Get Started.</h3>
+                <h4>Select your preferences, then run the <br> DeepChem install command. <br /> <br /> <b>Please ensure that you are on the latest pip and numpy packages. <br /> Anaconda is our recommended package manager</b></h4>
+            </div>
+            <div class="col-md-7 options-sets">
+                <div class="option-row os" data-key="os">
+                    <div class="option-label">OS</div>
+                    <div class="option-set">
+                        <div class="btn selected">Linux</div>
+                        <div class="btn">OSX</div>
+                    </div>
+                </div>
+                <div class="option-row pm" data-key="pm">
+                    <div class="option-label">Package Manager</div>
+                    <div class="option-set">
+                        <div class="btn selected">conda</div>
+                        <div class="btn">pip</div>
+                        <div class="btn">Source</div>
+                    </div>
+                </div>
+                <div class="option-row python" data-key="python">
+                    <div class="option-label">Python</div>
+                    <div class="option-set">
+                        <div class="btn">2.7</div>
+                        <div class="btn selected">3.5</div>
+                        <div class="btn">3.6</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="command">
+            <div class="label">Run this command:</div>
+            <div class="text"></div>
+        </div>
+    </div>
+</section>
+
+<section class="projects-tutorials wrap">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 box projects">
+                <img src="./static/img/projects.svg">
+                <h3>Example Projects</h3>
+                <h4>Browse projects built using DeepChem.</h4>
+                <a class="btn" href="https://github.com/deepchem/deepchem/tree/master/examples">Explore Examples</a>
+            </div>
+            <div class="col-md-6 box tutorials">
+                <img src="./static/img/tutorials.svg">
+                <h3>Tutorials</h3>
+                <h4>Learn how to use the DeepChem library</h4>
+                <a class="btn" href="./docs/notebooks/index.html">Browse Tutorials</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="logos wrap">
+    <div class="container">
+        <h3>Companies &amp; Universities developing DeepChem</h3>
+        <div class="row">
+            <div class="col-sm-3 col-xs-6">
+                <a href="https://pande.stanford.edu/"><img src="./static/img/logos/stanford.png"></a>
+            </div>
+            <div class="col-sm-3 col-xs-6">
+                <a href="https://www.schrodinger.com/"><img src="./static/img/logos/schrodinger.png" style="padding:15%"></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script>
+
+    (function($, cmdMap) {
+        var cmdTxt = $('.command .text');
+        var opts = {
+            cuda: '8.0',
+            os: 'linux',
+            pm: 'conda',
+            python: '3.5'
+        };
+
+        function buildMatcher() {
+            return opts.pm.toLowerCase() + ',' + opts.os.toLowerCase() + ',cuda'
+                   + opts.cuda.toLowerCase() + ',python' + opts.python.toLowerCase();
+        }
+
+        function updateCommand() {
+            var match = cmdMap[buildMatcher(opts)];
+
+            if (typeof match === 'undefined') {
+                console.log(opts)
+                match = '# Follow instructions at this URL: <br/> https://github.com/deepchem/deepchem';
+            }
+
+            cmdTxt.html(match);
+        }
+
+        function selectOption(ev) {
+            var el = $(this);
+            el.siblings().removeClass('selected');
+            el.addClass('selected');
+            opts[el.parents('.option-row').data('key')] = el.text();
+            updateCommand();
+        }
+
+        $('.option-set').on('click', '.btn', selectOption);
+
+        updateCommand();
+
+    }(jQuery, {
+        
+        'conda,linux,cuda7.5,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
+        
+        'conda,linux,cuda8.0,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
+        
+        'conda,linux,cudanone,python2.7': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=2.7',
+        
+        'conda,linux,cuda7.5,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
+        
+        'conda,linux,cuda8.0,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
+        
+        'conda,linux,cudanone,python3.5': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.5',
+        
+        'conda,linux,cuda7.5,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
+        
+        'conda,linux,cuda8.0,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
+        
+        'conda,linux,cudanone,python3.6': 'conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0 python=3.6',
+        
+        'conda,osx,cuda7.5,python2.7': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cuda8.0,python2.7': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cudanone,python2.7': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cuda7.5,python3.5': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cuda8.0,python3.5': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cudanone,python3.5': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cuda7.5,python3.6': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cuda8.0,python3.6': 'conda install for DeepChem on OSX coming soon!',
+        
+        'conda,osx,cudanone,python3.6': 'conda install for DeepChem on OSX coming soon!',
+        
+        'pip,osx,cuda7.5,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cuda8.0,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cudanone,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cuda7.5,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cuda8.0,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cudanone,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cuda7.5,python3.6': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cuda8.0,python3.6': 'pip install for DeepChem coming soon!',
+        
+        'pip,osx,cudanone,python3.6': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda7.5,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cudanone,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda8.0,python2.7': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda7.5,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cudanone,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda8.0,python3.5': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda7.5,python3.6': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cudanone,python3.6': 'pip install for DeepChem coming soon!',
+        
+        'pip,linux,cuda8.0,python3.6': 'pip install for DeepChem coming soon!'
+        
+    }));
+
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-90545585-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+    <footer>
+
+    
+
+    <div class="left">
+        <div class="logo"><a href="/"></a></div>
+        <p>
+            Maintained by the DeepChem core team. <br>
+            Website core gratefully borrowed from https://pytorch.org. <br>
+            Graphic Design by @aanara <br>
+            &copy;2017 DeepChem 
+        </p>
+    </div>
+    
+    <ul class="primary-nav">
+    <li><a  href="https://github.com/deepchem/deepchem">Support</a></li>
+    <li><a  href="https://gitter.im/deepchem/Lobby">Discuss</a></li>
+    <li><a  href="./docs/index.html">Docs</a></li>
+</ul>
+
+
+    
+
+</footer>
+
+
+</body>
+</html>
+

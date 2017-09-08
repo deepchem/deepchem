@@ -13,18 +13,14 @@ def load_bbbp(featurizer='ECFP', split='random', reload=True):
   """Load blood-brain barrier penetration datasets """
   # Featurize bbb dataset
   print("About to featurize bbbp dataset.")
-  if "DEEPCHEM_DATA_DIR" in os.environ:
-    data_dir = os.environ["DEEPCHEM_DATA_DIR"]
-  else:
-    data_dir = "/tmp"
+  data_dir = deepchem.utils.get_data_dir()
   if reload:
     save_dir = os.path.join(data_dir, "bbbp/" + featurizer + "/" + split)
 
   dataset_file = os.path.join(data_dir, "BBBP.csv")
   if not os.path.exists(dataset_file):
-    os.system(
-        'wget -P ' + data_dir +
-        ' http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/BBBP.csv'
+    deepchem.utils.download_url(
+        'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/BBBP.csv'
     )
 
   bbbp_tasks = ["p_np"]
