@@ -18,8 +18,9 @@ from deepchem.utils.evaluate import Evaluator
 
 np.random.seed(123)
 
-# Set some global variables up top
-reload = True
+# If you wish to save a particular featurization to reduce future computation time, set save_featurized_to_disk to True; set load_featurized_from_disk to True to load a previously-featurized dataset
+save_featurized_to_disk = False
+load_featurized_from_disk = True
 is_verbose = False
 
 base_dir = "/tmp/pcba_sklearn"
@@ -28,7 +29,9 @@ if os.path.exists(base_dir):
   shutil.rmtree(base_dir)
 os.makedirs(base_dir)
 
-pcba_tasks, pcba_datasets, transformers = load_pcba()
+pcba_tasks, pcba_datasets, transformers = load_pcba(
+    save_to_disk=save_featurized_to_disk,
+    load_from_disk=load_featurized_from_disk)
 (train_dataset, valid_dataset, test_dataset) = pcba_datasets
 
 classification_metric = Metric(
@@ -37,7 +40,7 @@ classification_metric = Metric(
 
 def model_builder(model_dir):
   sklearn_model = RandomForestClassifier(
-      class_weight="balanced", n_estimators=500)
+      class_weight="balanced", n_estimators=500, n_jobs=-1)
   return SklearnModel(sklearn_model, model_dir)
 
 
