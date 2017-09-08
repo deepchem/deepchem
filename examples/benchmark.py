@@ -126,4 +126,4 @@ for dataset in datasets:
       np.random.seed(seed)
       dc.molnet.run_benchmark(
           [dataset], str(model), split=split, metric=metrics[dataset][0],
-          direction=metrics[dataset][1], hyper_param_search=True, test=test, seed=seed)
+          direction=metrics[dataset][1], hyper_param_search=True, max_iter=5, test=test, seed=seed)

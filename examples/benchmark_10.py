@@ -38,11 +38,6 @@ import os
 import numpy as np
 import deepchem as dc
 import argparse
-import pickle
-import csv
-from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
-from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
-from deepchem.molnet.preset_hyper_parameters import hps
 
 parser = argparse.ArgumentParser(
     description='Deepchem benchmark: ' +
@@ -70,6 +65,12 @@ parser.add_argument(
     'clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, ' +
     'pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast')
 parser.add_argument(
+    '-t',
+    action='store_true',
+    dest='test',
+    default=False,
+    help='Evalute performance on test set')
+parser.add_argument(
     '--seed',
     action='append',
     dest='seed_args',
@@ -80,6 +81,7 @@ args = parser.parse_args()
 splitters = args.splitter_args
 models = args.model_args
 datasets = args.dataset_args
+test = args.test
 if len(args.seed_args) > 0:
   seed = int(args.seed_args[0])
 else:
@@ -118,88 +120,10 @@ metrics = {
     'bace_c': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
     'bbbp': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True]
     }
-out_path = '.'
 for dataset in datasets:
   for split in splitters:
     for model in models:
-      with open(os.path.join(out_path, dataset + model + '.pkl'), 'r') as f:
-        hyper_parameters = pickle.load(f)
-      #hyper_parameters = None
-
-      metric = metrics[dataset][0]
-      if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
-        'toxcast'
-        ]:
-        mode = 'classification'
-      elif dataset in [
-        'bace_r', 'chembl', 'clearance', 'delaney', 'hopv', 'kaggle', 'lipo',
-        'nci', 'pdbbind', 'ppb', 'qm7', 'qm7b', 'qm8', 'qm9', 'sampl'
-      ]:
-        mode = 'regression'
-
-      pair = (dataset, model)
-      if pair in CheckFeaturizer:
-        featurizer = CheckFeaturizer[pair][0]
-        n_features = CheckFeaturizer[pair][1]
-
-      loading_functions = {
-        'bace_c': dc.molnet.load_bace_classification,
-        'bace_r': dc.molnet.load_bace_regression,
-        'bbbp': dc.molnet.load_bbbp,
-        'chembl': dc.molnet.load_chembl,
-        'clearance': dc.molnet.load_clearance,
-        'clintox': dc.molnet.load_clintox,
-        'delaney': dc.molnet.load_delaney,
-        'hiv': dc.molnet.load_hiv,
-        'hopv': dc.molnet.load_hopv,
-        'kaggle': dc.molnet.load_kaggle,
-        'lipo': dc.molnet.load_lipo,
-        'muv': dc.molnet.load_muv,
-        'nci': dc.molnet.load_nci,
-        'pcba': dc.molnet.load_pcba,
-        'pdbbind': dc.molnet.load_pdbbind_grid,
-        'ppb': dc.molnet.load_ppb,
-        'qm7': dc.molnet.load_qm7_from_mat,
-        'qm7b': dc.molnet.load_qm7b_from_mat,
-        'qm8': dc.molnet.load_qm8,
-        'qm9': dc.molnet.load_qm9,
-        'sampl': dc.molnet.load_sampl,
-        'sider': dc.molnet.load_sider,
-        'tox21': dc.molnet.load_tox21,
-        'toxcast': dc.molnet.load_toxcast
-        }
-
-      tasks, all_dataset, transformers = loading_functions[dataset](
-          featurizer=featurizer, reload=reload, split='index')
-      all_dataset = dc.data.DiskDataset.merge(all_dataset)
-      for seed in [122, 123, 124]:
-          splitters = {
-            'random': dc.splits.RandomSplitter(),
-            'scaffold': dc.splits.ScaffoldSplitter(),
-            'stratified': dc.splits.SingletaskStratifiedSplitter(task_number=0)
-          }
-          splitter = splitters[split]
-          np.random.seed(seed)
-          train, valid, test = splitter.train_valid_test_split(all_dataset,
-                                                               frac_train=0.8,
-                                                               frac_valid=0.1,
-                                                               frac_test=0.1)
-          if mode == 'classification':
-            train_score, valid_score, test_score = benchmark_classification(
-                train, valid, test, tasks, transformers, n_features, metric,
-                model, test=True, hyper_parameters=hyper_parameters, seed=seed)
-          elif mode == 'regression':
-            train_score, valid_score, test_score = benchmark_regression(
-                train, valid, test, tasks, transformers, n_features, metric,
-                model, test=True, hyper_parameters=hyper_parameters, seed=seed)
-          with open(os.path.join(out_path, 'final/results.csv'), 'a') as f:
-            writer = csv.writer(f)
-            model_name = list(train_score.keys())[0]
-            for i in train_score[model_name]:
-              output_line = [
-                dataset, str(split), mode, model_name, i, 'train',
-                train_score[model_name][i], 'valid', valid_score[model_name][i],
-                'test', test_score[model_name][i]
-              ]
-              writer.writerow(output_line)
+      np.random.seed(seed)
+      dc.molnet.run_benchmark(
+          [dataset], str(model), split=split, metric=metrics[dataset][0],
+          direction=metrics[dataset][1], hyper_param_search=True, max_iter=10, test=test, seed=seed)
