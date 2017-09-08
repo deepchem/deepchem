@@ -222,10 +222,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         return -score
 
     import pyGPGO
-    cov = pyGPGO.covfunc.matern32()
-    gp = pyGPGO.surrogates.GaussianProcess.GaussianProcess(cov)
-    acq = pyGPGO.acquisition.Acquisition(mode='ExpectedImprovement')
-    gpgo = pyGPGO.GPGO.GPGO(gp, acq, f, param)
+    from pyGPGO.covfunc import matern32
+    from pyGPGO.acquisition import Acquisition
+    from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+    from pyGPGO.GPGO import GPGO
+    cov = matern32()
+    gp = GaussianProcess(cov)
+    acq = Acquisition(mode='ExpectedImprovement')
+    gpgo = GPGO(gp, acq, f, param)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
