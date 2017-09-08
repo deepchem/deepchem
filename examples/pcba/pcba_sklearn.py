@@ -20,7 +20,7 @@ np.random.seed(123)
 
 # If you wish to save a particular featurization to reduce future computation time, set save_featurized_to_disk to True; set load_featurized_from_disk to True to load a previously-featurized dataset
 save_featurized_to_disk = False
-load_featurized_from_disk = True
+load_featurized_from_disk = False
 is_verbose = False
 
 base_dir = "/tmp/pcba_sklearn"
