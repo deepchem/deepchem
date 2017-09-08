@@ -9,7 +9,7 @@ from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
   DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Layer, Flatten
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -17,10 +17,10 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.data import NumpyDataset
 from deepchem.data.data_loader import featurize_smiles_np
 from deepchem.feat.graph_features import ConvMolFeaturizer
+import math
 
 
 class WeaveTensorGraph(TensorGraph):
-
   def __init__(self,
                n_tasks,
                n_atom_feat=75,
@@ -65,36 +65,36 @@ class WeaveTensorGraph(TensorGraph):
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
     weave_layer1 = WeaveLayer(
-        n_atom_input_feat=self.n_atom_feat,
-        n_pair_input_feat=self.n_pair_feat,
-        n_atom_output_feat=self.n_hidden,
-        n_pair_output_feat=self.n_hidden,
-        in_layers=[combined, self.pair_split, self.atom_to_pair])
+      n_atom_input_feat=self.n_atom_feat,
+      n_pair_input_feat=self.n_pair_feat,
+      n_atom_output_feat=self.n_hidden,
+      n_pair_output_feat=self.n_hidden,
+      in_layers=[combined, self.pair_split, self.atom_to_pair])
     weave_layer2 = WeaveLayer(
-        n_atom_input_feat=self.n_hidden,
-        n_pair_input_feat=self.n_hidden,
-        n_atom_output_feat=self.n_hidden,
-        n_pair_output_feat=self.n_hidden,
-        update_pair=False,
-        in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
+      n_atom_input_feat=self.n_hidden,
+      n_pair_input_feat=self.n_hidden,
+      n_atom_output_feat=self.n_hidden,
+      n_pair_output_feat=self.n_hidden,
+      update_pair=False,
+      in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
     separated = Separate_AP(in_layers=[weave_layer2])
     dense1 = Dense(
-        out_channels=self.n_graph_feat,
-        activation_fn=tf.nn.tanh,
-        in_layers=[separated])
+      out_channels=self.n_graph_feat,
+      activation_fn=tf.nn.tanh,
+      in_layers=[separated])
     batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
     weave_gather = WeaveGather(
-        self.batch_size,
-        n_input=self.n_graph_feat,
-        gaussian_expand=True,
-        in_layers=[batch_norm1, self.atom_split])
+      self.batch_size,
+      n_input=self.n_graph_feat,
+      gaussian_expand=True,
+      in_layers=[batch_norm1, self.atom_split])
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[weave_gather])
+          out_channels=2, activation_fn=None, in_layers=[weave_gather])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
 
@@ -104,7 +104,7 @@ class WeaveTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == "regression":
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[weave_gather])
+          out_channels=1, activation_fn=None, in_layers=[weave_gather])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -159,9 +159,9 @@ class WeaveTensorGraph(TensorGraph):
           # index of pair features
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
-              np.transpose(
-                  np.array([C1.flatten() + start,
-                            C0.flatten() + start])))
+            np.transpose(
+              np.array([C1.flatten() + start,
+                        C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
@@ -170,8 +170,8 @@ class WeaveTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+            np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                                 self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -182,7 +182,6 @@ class WeaveTensorGraph(TensorGraph):
 
 
 class DTNNTensorGraph(TensorGraph):
-
   def __init__(self,
                n_tasks,
                n_embedding=30,
@@ -220,7 +219,7 @@ class DTNNTensorGraph(TensorGraph):
     self.distance_max = distance_max
     self.step_size = (distance_max - distance_min) / n_distance
     self.steps = np.array(
-        [distance_min + i * self.step_size for i in range(n_distance)])
+      [distance_min + i * self.step_size for i in range(n_distance)])
     self.steps = np.expand_dims(self.steps, 0)
     self.output_activation = output_activation
     self.mode = mode
@@ -239,27 +238,27 @@ class DTNNTensorGraph(TensorGraph):
     self.distance_membership_j = Feature(shape=(None,), dtype=tf.int32)
 
     dtnn_embedding = DTNNEmbedding(
-        n_embedding=self.n_embedding, in_layers=[self.atom_number])
+      n_embedding=self.n_embedding, in_layers=[self.atom_number])
     dtnn_layer1 = DTNNStep(
-        n_embedding=self.n_embedding,
-        n_distance=self.n_distance,
-        in_layers=[
-            dtnn_embedding, self.distance, self.distance_membership_i,
-            self.distance_membership_j
-        ])
+      n_embedding=self.n_embedding,
+      n_distance=self.n_distance,
+      in_layers=[
+        dtnn_embedding, self.distance, self.distance_membership_i,
+        self.distance_membership_j
+      ])
     dtnn_layer2 = DTNNStep(
-        n_embedding=self.n_embedding,
-        n_distance=self.n_distance,
-        in_layers=[
-            dtnn_layer1, self.distance, self.distance_membership_i,
-            self.distance_membership_j
-        ])
+      n_embedding=self.n_embedding,
+      n_distance=self.n_distance,
+      in_layers=[
+        dtnn_layer1, self.distance, self.distance_membership_i,
+        self.distance_membership_j
+      ])
     dtnn_gather = DTNNGather(
-        n_embedding=self.n_embedding,
-        layer_sizes=[self.n_hidden],
-        n_outputs=self.n_tasks,
-        output_activation=self.output_activation,
-        in_layers=[dtnn_layer2, self.atom_membership])
+      n_embedding=self.n_embedding,
+      layer_sizes=[self.n_hidden],
+      n_outputs=self.n_tasks,
+      output_activation=self.output_activation,
+      in_layers=[dtnn_layer2, self.atom_membership])
 
     costs = []
     self.labels_fd = []
@@ -305,14 +304,14 @@ class DTNNTensorGraph(TensorGraph):
         distance_membership_j = []
         num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
         atom_number = [
-            np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]), 1 /
-                         2.4)).astype(int) for i in range(len(num_atoms))
+          np.round(
+            np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]), 1 /
+                     2.4)).astype(int) for i in range(len(num_atoms))
         ]
         start = 0
         for im, molecule in enumerate(atom_number):
           distance_matrix = np.outer(
-              molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
+            molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
           np.fill_diagonal(distance_matrix, -100)
           distance.append(np.expand_dims(distance_matrix.flatten(), 1))
           atom_membership.append([im] * num_atoms[im])
@@ -325,18 +324,17 @@ class DTNNTensorGraph(TensorGraph):
         feed_dict[self.atom_number] = np.concatenate(atom_number)
         distance = np.concatenate(distance, 0)
         feed_dict[self.distance] = np.exp(-np.square(distance - self.steps) /
-                                          (2 * self.step_size**2))
+                                          (2 * self.step_size ** 2))
         feed_dict[self.distance_membership_i] = np.concatenate(
-            distance_membership_i)
+          distance_membership_i)
         feed_dict[self.distance_membership_j] = np.concatenate(
-            distance_membership_j)
+          distance_membership_j)
         feed_dict[self.atom_membership] = np.concatenate(atom_membership)
 
         yield feed_dict
 
 
 class DAGTensorGraph(TensorGraph):
-
   def __init__(self,
                n_tasks,
                max_atoms=50,
@@ -376,34 +374,34 @@ class DAGTensorGraph(TensorGraph):
         """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.parents = Feature(
-        shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
+      shape=(None, self.max_atoms, self.max_atoms), dtype=tf.int32)
     self.calculation_orders = Feature(
-        shape=(None, self.max_atoms), dtype=tf.int32)
+      shape=(None, self.max_atoms), dtype=tf.int32)
     self.calculation_masks = Feature(
-        shape=(None, self.max_atoms), dtype=tf.bool)
+      shape=(None, self.max_atoms), dtype=tf.bool)
     self.membership = Feature(shape=(None,), dtype=tf.int32)
     self.n_atoms = Feature(shape=(), dtype=tf.int32)
     dag_layer1 = DAGLayer(
-        n_graph_feat=self.n_graph_feat,
-        n_atom_feat=self.n_atom_feat,
-        max_atoms=self.max_atoms,
-        batch_size=self.batch_size,
-        in_layers=[
-            self.atom_features, self.parents, self.calculation_orders,
-            self.calculation_masks, self.n_atoms
-        ])
+      n_graph_feat=self.n_graph_feat,
+      n_atom_feat=self.n_atom_feat,
+      max_atoms=self.max_atoms,
+      batch_size=self.batch_size,
+      in_layers=[
+        self.atom_features, self.parents, self.calculation_orders,
+        self.calculation_masks, self.n_atoms
+      ])
     dag_gather = DAGGather(
-        n_graph_feat=self.n_graph_feat,
-        n_outputs=self.n_outputs,
-        max_atoms=self.max_atoms,
-        in_layers=[dag_layer1, self.membership])
+      n_graph_feat=self.n_graph_feat,
+      n_outputs=self.n_outputs,
+      max_atoms=self.max_atoms,
+      in_layers=[dag_layer1, self.membership])
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[dag_gather])
+          out_channels=2, activation_fn=None, in_layers=[dag_gather])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
 
@@ -413,7 +411,7 @@ class DAGTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == "regression":
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[dag_gather])
+          out_channels=1, activation_fn=None, in_layers=[dag_gather])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -479,16 +477,334 @@ class DAGTensorGraph(TensorGraph):
         feed_dict[self.atom_features] = np.concatenate(atoms_all, axis=0)
         feed_dict[self.parents] = np.stack(parents_all, axis=0)
         feed_dict[self.calculation_orders] = np.concatenate(
-            calculation_orders, axis=0)
+          calculation_orders, axis=0)
         feed_dict[self.calculation_masks] = np.concatenate(
-            calculation_masks, axis=0)
+          calculation_masks, axis=0)
         feed_dict[self.membership] = np.array(membership)
         feed_dict[self.n_atoms] = n_atoms
         yield feed_dict
 
 
-class GraphConvTensorGraph(TensorGraph):
+def make_variable(name, shape, initializer=tf.truncated_normal_initializer(), regularizer=None):
+  dtype = tf.float32
+  var = tf.get_variable(name, shape, initializer=initializer, regularizer=regularizer, dtype=dtype)
+  return var
 
+
+def make_bias_variable(name, shape):
+  dtype = tf.float32
+  var = tf.get_variable(name, shape, initializer=tf.constant_initializer(0.1), dtype=dtype)
+  return var
+
+
+def make_variable_with_weight_decay(name, shape, stddev=0.01, wd=0.0005):
+  dtype = tf.float32
+  regularizer = None
+  if wd is not None and wd > 1e-7:
+    def regularizer(var):
+      return tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
+  var = make_variable(name, shape, initializer=tf.truncated_normal_initializer(stddev=stddev), regularizer=regularizer)
+  return var
+
+
+def batch_mat_mult(A, B):
+  A_shape = tf.shape(A)
+  A_reshape = tf.reshape(A, [-1, A_shape[-1]])
+
+  # So the Tensor has known dimensions
+  if B.get_shape()[1] == None:
+    axis_2 = -1
+  else:
+    axis_2 = B.get_shape()[1]
+  result = tf.matmul(A_reshape, B)
+  result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+  return result
+
+
+def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, name=None):
+  """
+  TODO(LESWING) hook up to layers and existing feed dick
+  Parameters
+  ----------
+  input
+  phase
+  axis
+  epsilon
+  mask
+  num_updates
+  name
+
+  Returns
+  -------
+
+  """
+  default_decay = 0.9
+  input_size = input.get_shape()[axis].value
+  if axis == -1:
+    axis = len(input.get_shape()) - 1
+  axis_arr = [i for i in range(len(input.get_shape())) if i != axis]
+  if mask == None:
+    batch_mean, batch_var = tf.nn.moments(input, axis_arr)
+  else:
+    batch_mean, batch_var = tf.nn.weighted_moments(input, axis_arr, mask)
+  gamma = make_variable('%s_gamma' % name, input_size, initializer=tf.constant_initializer(1))
+  beta = make_bias_variable('%s_bias' % name, input_size)
+  ema = tf.train.ExponentialMovingAverage(decay=default_decay, num_updates=num_updates)
+
+  def mean_var_with_update():
+    ema_apply_op = ema.apply([batch_mean, batch_var])
+    with tf.control_dependencies([ema_apply_op]):
+      return tf.identity(batch_mean), tf.identity(batch_var)
+
+  # mean, var = tf.cond(phase, mean_var_with_update, lambda: (ema.average(batch_mean), ema.average(batch_var)))
+  mean, var = mean_var_with_update()
+
+  return tf.nn.batch_normalization(input, mean, var, beta, gamma, 1e-3)
+
+
+def make_embedding_layer(V, no_filters, name="default"):
+  no_features = V.get_shape()[-1].value
+  W = make_variable_with_weight_decay('%s_weights' % name, [no_features, no_filters],
+                                      stddev=1.0 / math.sqrt(no_features))
+  b = make_bias_variable('%s_bias' % name, [no_filters])
+  V_reshape = tf.reshape(V, (-1, no_features))
+  s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
+  s = tf.concat([s, tf.stack([no_filters])], 0)
+  result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+  return result
+
+
+def make_softmax_layer(V, axis=1, name=None):
+  max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+  exp = tf.exp(tf.subtract(V, max_value))
+  prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+  return prob
+
+
+class PassThroughLayer(Layer):
+  def __init__(self, output_num, **kwargs):
+    self.output_num = output_num
+    super(PassThroughLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    self.out_tensor = self.in_layers[0].out_tensors[self.output_num]
+
+
+class GraphCNNPoolLayer(Layer):
+  def __init__(self, num_vertices, **kwargs):
+    self.num_vertices = num_vertices
+    super(GraphCNNPoolLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+    TODO(LESWING) self.num_vertices = 1
+    Parameters
+    ----------
+    in_layers
+    set_tensors
+    kwargs
+
+    Returns
+    -------
+
+    """
+    in_tensors = self._get_input_tensors(in_layers)
+    if len(in_tensors) == 3:
+      V, A, mask = in_tensors
+    else:
+      V, A = in_tensors
+      mask = None
+    factors = make_embedding_layer(V, self.num_vertices, name='%s_Factors' % self.name)
+
+    if mask is not None:
+      factors = tf.multiply(factors, mask)
+    factors = make_softmax_layer(factors)
+
+    result = tf.matmul(factors, V, transpose_a=True)
+
+    result_A = tf.reshape(A, (tf.shape(A)[0], -1, tf.shape(A)[-1]))
+    result_A = tf.matmul(result_A, factors)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
+    result_A = tf.matmul(factors, result_A, transpose_a=True)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices, A.get_shape()[2].value, self.num_vertices))
+    # We do not need the mask because every graph has self.num_vertices vertices now
+    # result = make_bn(result, True, mask=None, name="%s_bn" % self.name)
+    self.out_tensors = [result, result_A, factors]
+
+
+def GraphCNNPool(num_vertices, **kwargs):
+  gcnnpool_layer = GraphCNNPoolLayer(num_vertices, **kwargs)
+  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(3)]
+
+
+class GraphCNNLayer(Layer):
+  def __init__(self, num_filters, **kwargs):
+    self.num_filters = num_filters
+    super(GraphCNNLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) == 3:
+      V, A, mask = inputs
+    else:
+      V, A = inputs
+      mask = None
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+    W = make_variable_with_weight_decay('%s_weights' % self.name, [no_features * no_A, self.num_filters],
+                                        stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0)))
+    W_I = make_variable_with_weight_decay('%s_weights_I' % self.name, [no_features, self.num_filters],
+                                          stddev=math.sqrt(1.0 / (no_features * (no_A + 1) * 1.0)))
+    b = make_bias_variable('%s_bias' % self.name, [self.num_filters])
+
+    n = self.graphConvolution(V, A)
+    A_shape = tf.shape(A)
+    n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
+    result = batch_mat_mult(n, W) + batch_mat_mult(V, W_I) + b
+    # result = make_bn(result, True, mask=mask, name="%s_bn" % self.name)
+    if set_tensors:
+      self.out_tensor = result
+    return result
+
+  def graphConvolution(self, V, A):
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
+    n = tf.matmul(A_reshape, V)
+    return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
+
+
+class PetroskiSuchTensorGraph(TensorGraph):
+  def __init__(self, n_tasks, max_atoms=200, dropout=0.2, mode="classification", **kwargs):
+    """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    mode: str
+      Either "classification" or "regression"
+    """
+    self.n_tasks = n_tasks
+    self.mode = mode
+    self.max_atoms = max_atoms
+    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
+    self.dropout = dropout
+    kwargs['use_queue'] = False
+    super(PetroskiSuchTensorGraph, self).__init__(**kwargs)
+    self.build_graph()
+
+  def build_graph(self):
+    self.vertex_features = Feature(shape=(None, self.max_atoms, 75))
+    self.adj_matrix = Feature(shape=(None, self.max_atoms, 1, self.max_atoms))
+    self.mask = Feature(shape=(None, self.max_atoms, 1))
+
+    gcnn1 = BatchNorm(GraphCNNLayer(num_filters=64, in_layers=[self.vertex_features, self.adj_matrix, self.mask]))
+    gcnn1 = Dropout(self.dropout, in_layers=gcnn1)
+    gcnn2 = BatchNorm(GraphCNNLayer(num_filters=64, in_layers=[gcnn1, self.adj_matrix, self.mask]))
+    gcnn2 = Dropout(self.dropout, in_layers=gcnn2)
+    gc_pool, adj_matrix, factors = GraphCNNPool(num_vertices=32, in_layers=[gcnn2, self.adj_matrix, self.mask])
+    gc_pool = BatchNorm(gc_pool)
+    gc_pool = Dropout(self.dropout, in_layers=gc_pool)
+    gcnn3 = BatchNorm(GraphCNNLayer(num_filters=32, in_layers=[gc_pool, adj_matrix]))
+    gcnn3 = Dropout(self.dropout, in_layers=gcnn3)
+    gc_pool2, adj_matrix2, factors = GraphCNNPool(num_vertices=8, in_layers=[gcnn3, adj_matrix])
+    gc_pool2 = BatchNorm(gc_pool2)
+    gc_pool2 = Dropout(self.dropout, in_layers=gc_pool2)
+    flattened = Flatten(in_layers=gc_pool2)
+    readout = Dense(out_channels=256, activation_fn=tf.nn.relu, in_layers=flattened)
+    costs = []
+    self.my_labels = []
+    for task in range(self.n_tasks):
+      if self.mode == 'classification':
+        classification = Dense(
+          out_channels=2, activation_fn=None, in_layers=[readout])
+
+        softmax = SoftMax(in_layers=[classification])
+        self.add_output(softmax)
+
+        label = Label(shape=(None, 2))
+        self.my_labels.append(label)
+        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
+        costs.append(cost)
+      if self.mode == 'regression':
+        regression = Dense(
+          out_channels=1, activation_fn=None, in_layers=[readout])
+        self.add_output(regression)
+
+        label = Label(shape=(None, 1))
+        self.my_labels.append(label)
+        cost = L2Loss(in_layers=[label, regression])
+        costs.append(cost)
+    if self.mode == "classification":
+      entropy = Concat(in_layers=costs, axis=-1)
+    elif self.mode == "regression":
+      entropy = Stack(in_layers=costs, axis=1)
+    self.my_task_weights = Weights(shape=(None, self.n_tasks))
+    loss = WeightedError(in_layers=[entropy, self.my_task_weights])
+    self.set_loss(loss)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        deterministic=True,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      if not predict:
+        print('Starting epoch %i' % epoch)
+      for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+          dataset.iterbatches(
+            self.batch_size, pad_batches=True, deterministic=deterministic)):
+        d = {}
+        for index, label in enumerate(self.my_labels):
+          if self.mode == 'classification':
+            d[label] = to_one_hot(y_b[:, index])
+          if self.mode == 'regression':
+            d[label] = np.expand_dims(y_b[:, index], -1)
+        d[self.my_task_weights] = w_b
+        d[self.adj_matrix] = np.expand_dims(np.array([x[0] for x in X_b]), -2)
+        d[self.vertex_features] = np.array([x[1] for x in X_b])
+        mask = np.zeros(shape=(self.batch_size, self.max_atoms, 1))
+        for i in range(self.batch_size):
+          mask_size = X_b[i][2]
+          mask[i][:mask_size][0] = 1
+        d[self.mask] = mask
+        yield d
+
+  def predict_proba_on_generator(self, generator, transformers=[]):
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      out_tensors = [x.out_tensor for x in self.outputs]
+      results = []
+      for feed_dict in generator:
+        feed_dict = {
+          self.layers[k.name].out_tensor: v
+          for k, v in six.iteritems(feed_dict)
+        }
+        feed_dict[self._training_placeholder] = 1.0  ##
+        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
+        if len(result.shape) == 3:
+          result = np.transpose(result, axes=[1, 0, 2])
+        if len(transformers) > 0:
+          result = undo_transforms(result, transformers)
+        results.append(result)
+      return np.concatenate(results, axis=0)
+
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+    if not self.built:
+      self.build()
+    return self.evaluate_generator(
+      self.default_generator(dataset, predict=True),
+      metrics,
+      labels=self.my_labels,
+      weights=[self.my_task_weights],
+      per_task_metrics=per_task_metrics)
+
+
+class GraphConvTensorGraph(TensorGraph):
   def __init__(self, n_tasks, mode="classification", **kwargs):
     """
     Parameters
@@ -518,27 +834,27 @@ class GraphConvTensorGraph(TensorGraph):
       deg_adj = Feature(shape=(None, i + 1), dtype=tf.int32)
       self.deg_adjs.append(deg_adj)
     gc1 = GraphConv(
-        64,
-        activation_fn=tf.nn.relu,
-        in_layers=[self.atom_features, self.degree_slice, self.membership] +
-        self.deg_adjs)
+      64,
+      activation_fn=tf.nn.relu,
+      in_layers=[self.atom_features, self.degree_slice, self.membership] +
+                self.deg_adjs)
     batch_norm1 = BatchNorm(in_layers=[gc1])
     gp1 = GraphPool(in_layers=[batch_norm1, self.degree_slice, self.membership]
-                    + self.deg_adjs)
+                              + self.deg_adjs)
     gc2 = GraphConv(
-        64,
-        activation_fn=tf.nn.relu,
-        in_layers=[gp1, self.degree_slice, self.membership] + self.deg_adjs)
+      64,
+      activation_fn=tf.nn.relu,
+      in_layers=[gp1, self.degree_slice, self.membership] + self.deg_adjs)
     batch_norm2 = BatchNorm(in_layers=[gc2])
     gp2 = GraphPool(in_layers=[batch_norm2, self.degree_slice, self.membership]
-                    + self.deg_adjs)
+                              + self.deg_adjs)
     dense = Dense(out_channels=128, activation_fn=tf.nn.relu, in_layers=[gp2])
     batch_norm3 = BatchNorm(in_layers=[dense])
     readout = GraphGather(
-        batch_size=self.batch_size,
-        activation_fn=tf.nn.tanh,
-        in_layers=[batch_norm3, self.degree_slice, self.membership] +
-        self.deg_adjs)
+      batch_size=self.batch_size,
+      activation_fn=tf.nn.tanh,
+      in_layers=[batch_norm3, self.degree_slice, self.membership] +
+                self.deg_adjs)
 
     if self.error_bars == True:
       readout = Dropout(in_layers=[readout], dropout_prob=0.2)
@@ -548,7 +864,7 @@ class GraphConvTensorGraph(TensorGraph):
     for task in range(self.n_tasks):
       if self.mode == 'classification':
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[readout])
+          out_channels=2, activation_fn=None, in_layers=[readout])
 
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
@@ -559,7 +875,7 @@ class GraphConvTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == 'regression':
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[readout])
+          out_channels=1, activation_fn=None, in_layers=[readout])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -585,7 +901,7 @@ class GraphConvTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
-              self.batch_size, pad_batches=True, deterministic=deterministic)):
+            self.batch_size, pad_batches=True, deterministic=deterministic)):
         d = {}
         for index, label in enumerate(self.my_labels):
           if self.mode == 'classification':
@@ -609,8 +925,8 @@ class GraphConvTensorGraph(TensorGraph):
       results = []
       for feed_dict in generator:
         feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
+          self.layers[k.name].out_tensor: v
+          for k, v in six.iteritems(feed_dict)
         }
         feed_dict[self._training_placeholder] = 1.0  ##
         result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
@@ -625,11 +941,11 @@ class GraphConvTensorGraph(TensorGraph):
     if not self.built:
       self.build()
     return self.evaluate_generator(
-        self.default_generator(dataset, predict=True),
-        metrics,
-        labels=self.my_labels,
-        weights=[self.my_task_weights],
-        per_task_metrics=per_task_metrics)
+      self.default_generator(dataset, predict=True),
+      metrics,
+      labels=self.my_labels,
+      weights=[self.my_task_weights],
+      per_task_metrics=per_task_metrics)
 
   def bayesian_predict(self,
                        dataset,
@@ -654,7 +970,7 @@ class GraphConvTensorGraph(TensorGraph):
       end = min((i + 1) * self.batch_size, max_index + 1)
       batch = X[start:end]
       mu, sigma = self.bayesian_predict_on_batch(
-          batch, transformers=[], n_passes=n_passes)
+        batch, transformers=[], n_passes=n_passes)
       mus.append(mu)
       sigmas.append(sigma)
     mu = np.concatenate(mus, axis=0)
@@ -684,7 +1000,7 @@ class GraphConvTensorGraph(TensorGraph):
       end = min((i + 1) * self.batch_size, max_index + 1)
       smiles_batch = smiles[start:end]
       y_.append(
-          self.predict_on_smiles_batch(smiles_batch, featurizer, transformers))
+        self.predict_on_smiles_batch(smiles_batch, featurizer, transformers))
     y_ = np.concatenate(y_, axis=0)[:max_index + 1]
     y_ = y_.reshape(-1, n_tasks)
 
@@ -740,30 +1056,30 @@ class MPNNTensorGraph(TensorGraph):
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
 
     message_passing = MessagePassing(
-        self.T,
-        message_fn='enn',
-        update_fn='gru',
-        n_hidden=self.n_hidden,
-        in_layers=[self.atom_features, self.pair_features, self.atom_to_pair])
+      self.T,
+      message_fn='enn',
+      update_fn='gru',
+      n_hidden=self.n_hidden,
+      in_layers=[self.atom_features, self.pair_features, self.atom_to_pair])
 
     atom_embeddings = Dense(self.n_hidden, in_layers=[message_passing])
 
     mol_embeddings = SetGather(
-        self.M,
-        self.batch_size,
-        n_hidden=self.n_hidden,
-        in_layers=[atom_embeddings, self.atom_split])
+      self.M,
+      self.batch_size,
+      n_hidden=self.n_hidden,
+      in_layers=[atom_embeddings, self.atom_split])
 
     dense1 = Dense(
-        out_channels=2 * self.n_hidden,
-        activation_fn=tf.nn.relu,
-        in_layers=[mol_embeddings])
+      out_channels=2 * self.n_hidden,
+      activation_fn=tf.nn.relu,
+      in_layers=[mol_embeddings])
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
       if self.mode == "classification":
         classification = Dense(
-            out_channels=2, activation_fn=None, in_layers=[dense1])
+          out_channels=2, activation_fn=None, in_layers=[dense1])
         softmax = SoftMax(in_layers=[classification])
         self.add_output(softmax)
 
@@ -773,7 +1089,7 @@ class MPNNTensorGraph(TensorGraph):
         costs.append(cost)
       if self.mode == "regression":
         regression = Dense(
-            out_channels=1, activation_fn=None, in_layers=[dense1])
+          out_channels=1, activation_fn=None, in_layers=[dense1])
         self.add_output(regression)
 
         label = Label(shape=(None, 1))
@@ -827,9 +1143,9 @@ class MPNNTensorGraph(TensorGraph):
           # index of pair features
           C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
           atom_to_pair.append(
-              np.transpose(
-                  np.array([C1.flatten() + start,
-                            C0.flatten() + start])))
+            np.transpose(
+              np.array([C1.flatten() + start,
+                        C0.flatten() + start])))
           # number of pairs for each atom
           pair_split.extend(C1.flatten() + start)
           start = start + n_atoms
@@ -838,8 +1154,8 @@ class MPNNTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+            np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
+                                                 self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -871,8 +1187,8 @@ class MPNNTensorGraph(TensorGraph):
         # Extract number of unique samples in the batch from w_b
         n_valid_samples = len(np.nonzero(feed_dict[self.weights][:, 0])[0])
         feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
+          self.layers[k.name].out_tensor: v
+          for k, v in six.iteritems(feed_dict)
         }
         feed_dict[self._training_placeholder] = 0.0
         result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
