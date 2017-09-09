@@ -9,15 +9,21 @@ import os
 import numpy as np
 import shutil
 import deepchem as dc
-from deepchem.utils.save import save_dataset_to_disk, load_dataset_from_disk
 
 
-def load_pcba(featurizer='ECFP',
-              split='random',
-              save_to_disk=False,
-              load_from_disk=False):
+def load_pcba(featurizer='ECFP', split='random'):
   """Load PCBA datasets."""
 
+  current_dir = os.path.dirname(os.path.realpath(__file__))
+  print("About to load PCBA dataset.")
+  dataset_file = os.path.join(current_dir, "../../datasets/pcba.csv.gz")
+
+  # Featurize PCBA dataset
+  print("About to featurize PCBA dataset.")
+  if featurizer == 'ECFP':
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+  elif featurizer == 'GraphConv':
+    featurizer = dc.feat.ConvMolFeaturizer()
   PCBA_tasks = [
       'PCBA-1030', 'PCBA-1379', 'PCBA-1452', 'PCBA-1454', 'PCBA-1457',
       'PCBA-1458', 'PCBA-1460', 'PCBA-1461', 'PCBA-1468', 'PCBA-1469',
@@ -46,59 +52,26 @@ def load_pcba(featurizer='ECFP',
       'PCBA-924', 'PCBA-925', 'PCBA-926', 'PCBA-927', 'PCBA-938', 'PCBA-995'
   ]
 
-  dataset = None
-  train = None
-  valid = None
-  test = None
-  transformers = None
-  loaded_correctly = False
+  loader = dc.data.CSVLoader(
+      tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
 
-  current_dir = os.path.dirname(os.path.realpath(__file__))
-  serialization_dir = os.path.join(current_dir,
-                                   "../../datasets/pcba_featurized")
+  dataset = loader.featurize(dataset_file)
+  # Initialize transformers
+  transformers = [
+      dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
+  ]
 
-  if (load_from_disk):
-    loaded_correctly, dataset, transformers = load_dataset_from_disk(
-        serialization_dir)
-    (train, valid, test) = dataset
-    if not loaded_correctly:
-      raise Exception(
-          "Could not load saved featurized PCBA dataset from disk; did you remember to save one first?"
-      )
-  else:
-    dataset_file = os.path.join(current_dir, "../../datasets/pcba.csv.gz")
+  print("About to transform data")
+  for transformer in transformers:
+    dataset = transformer.transform(dataset)
 
-    # Featurize PCBA dataset
-    if featurizer == 'ECFP':
-      featurizer = dc.feat.CircularFingerprint(size=1024)
-    elif featurizer == 'GraphConv':
-      featurizer = dc.feat.ConvMolFeaturizer()
-
-    loader = dc.data.CSVLoader(
-        tasks=PCBA_tasks, smiles_field="smiles", featurizer=featurizer)
-
-    dataset = loader.featurize(dataset_file)
-    # Initialize transformers
-    transformers = [
-        dc.trans.BalancingTransformer(transform_w=True, dataset=dataset)
-    ]
-
-    for transformer in transformers:
-      dataset = transformer.transform(dataset)
-
-    splitters = {
-        'idex': dc.splits.IndexSplitter(),
-        'random': dc.splits.RandomSplitter(),
-        'scaffold': dc.splits.ScaffoldSplitter()
-    }
-    splitter = splitters[split]
-    print("Performing new split.")
-    train, valid, test = splitter.train_valid_test_split(dataset)
-
-    if (save_to_disk):
-      if os.path.exists(serialization_dir):
-        shutil.rmtree(serialization_dir)
-      os.makedirs(serialization_dir)
-      save_dataset_to_disk(serialization_dir, train, valid, test, transformers)
+  splitters = {
+      'index': dc.splits.IndexSplitter(),
+      'random': dc.splits.RandomSplitter(),
+      'scaffold': dc.splits.ScaffoldSplitter()
+  }
+  splitter = splitters[split]
+  print("Performing new split.")
+  train, valid, test = splitter.train_valid_test_split(dataset)
 
   return PCBA_tasks, (train, valid, test), transformers
