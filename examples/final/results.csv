@@ -173,3 +173,14 @@ tox21,scaffold,classification,xgb,mean-roc_auc_score,train,0.9102403205132279,va
 muv,random,classification,xgb,mean-prc_auc_score,train,0.17530555534965481,valid,0.12022966205909147,test,0.11199819080645905
 pcba,random,classification,logreg,mean-prc_auc_score,train,0.16739182922804474,valid,0.13432853133276521,test,0.1317512283291552
 muv,random,classification,xgb,mean-prc_auc_score,train,0.16228942877985453,valid,0.062738840432123313,test,0.095832224140624783
+tox21,scaffold,classification,xgb,mean-roc_auc_score,train,0.9102403205132279,valid,0.71748771107452314,test,0.71217949199172847
+muv,random,classification,xgb,mean-prc_auc_score,train,0.14007385554938884,valid,0.013995997507399438,test,0.048765243710436668
+hiv,scaffold,classification,weave,mean-roc_auc_score,train,0.72179054067227633,valid,0.69608177416119887,test,0.6588455857288944
+muv,random,classification,graphconv,mean-prc_auc_score,train,0.041412530682489512,valid,0.019303683662548997,test,0.010514491191597497
+pcba,random,classification,tf,mean-prc_auc_score,train,0.098597415731284055,valid,0.097440181562104433,test,0.099683790233899852
+hiv,scaffold,classification,weave,mean-roc_auc_score,train,0.72493949016986092,valid,0.75829202601644652,test,0.71507877892663707
+muv,random,classification,graphconv,mean-prc_auc_score,train,0.035597457668770371,valid,0.050561646426192181,test,0.020189276174490445
+pcba,random,classification,tf,mean-prc_auc_score,train,0.097816945741960232,valid,0.097804862520785282,test,0.094126692568718334
+muv,random,classification,graphconv,mean-prc_auc_score,train,0.035787379444670822,valid,0.069294788467618038,test,0.012684641449522346
+pcba,random,classification,tf,mean-prc_auc_score,train,0.10327113247052717,valid,0.097008017075852673,test,0.10533377907889387
+hiv,scaffold,classification,weave,mean-roc_auc_score,train,0.72911169151740829,valid,0.77105168906335064,test,0.73432801196833708
