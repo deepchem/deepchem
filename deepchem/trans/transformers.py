@@ -497,7 +497,7 @@ class PowerTransformer(Transformer):
     return z
 
 
-class CoulombFitTransformer():
+class CoulombFitTransformer(Transformer):
   """Performs randomization and binarization operations on batches of Coulomb Matrix features during fit.
 
      Example:
@@ -618,8 +618,12 @@ class CoulombFitTransformer():
     X = self.normalize(self.expand(self.realize(X)))
     return X
 
-  def transform(self, dataset):
-    raise NotImplementedError("Cannot transform datasets with FitTransformer")
+  #def transform(self, dataset):
+    # raise NotImplementedError("Cannot transform datasets with FitTransformer")
+
+  def transform_array(self, X, y, w):
+    X = self.X_transform(X)
+    return (X, y, w)
 
   def untransform(self, z):
     raise NotImplementedError(

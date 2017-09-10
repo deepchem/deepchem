@@ -118,7 +118,8 @@ hps['tf_regression_ft'] = {
     'fit_transformers': deepchem.trans.CoulombFitTransformer
 }
 hps['rf_regression'] = {'n_estimators': 500}
-hps['krr'] = {'alpha': 1e-3, 'gamma': 0.05}
+hps['krr'] = {'alpha': 1e-3}
+hps['krr_ft'] = {'alpha': 1e-3}
 hps['graphconvreg'] = {
     'batch_size': 128,
     'nb_epoch': 20,
