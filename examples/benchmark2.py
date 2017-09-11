@@ -77,7 +77,7 @@ parser.add_argument(
     help='Choice of random seed')
 args = parser.parse_args()
 #Datasets and models used in the benchmark test
-splitters = args.splitter_args
+splits = args.splitter_args
 models = args.model_args
 datasets = args.dataset_args
 if len(args.seed_args) > 0:
@@ -85,8 +85,8 @@ if len(args.seed_args) > 0:
 else:
   seed = 123
 
-if len(splitters) == 0:
-  splitters = ['random']
+if len(splits) == 0:
+  splits = ['random']
 if len(models) == 0:
   models = [
       'tf', 'tf_robust', 'logreg', 'graphconv', 'irv', 'tf_regression',
@@ -120,7 +120,7 @@ metrics = {
     }
 out_path = '.'
 for dataset in datasets:
-  for split in splitters:
+  for split in splits:
     for model in models:
       with open(os.path.join(out_path, dataset + model + '.pkl'), 'r') as f:
         hyper_parameters = pickle.load(f)

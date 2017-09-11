@@ -450,7 +450,7 @@ def benchmark_regression(train_dataset,
   assert model in [
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
       'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression', 'krr',
-      'ani'
+      'ani', 'krr_ft'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -711,15 +711,32 @@ def benchmark_regression(train_dataset,
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
+    
   elif model_name == 'krr':
     # Loading hyper parameters
     alpha = hyper_parameters['alpha']
-    gamma = hyper_parameters['gamma']
     nb_epoch = None
 
     # Building scikit learn Kernel Ridge Regression model
     def model_builder(model_dir_krr):
-      sklearn_model = KernelRidge(kernel="rbf", alpha=alpha, gamma=gamma)
+      sklearn_model = KernelRidge(kernel="rbf", alpha=alpha)
+      return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
+
+    model = deepchem.models.multitask.SingletaskToMultitask(
+        tasks, model_builder)
+    
+  elif model_name == 'krr_ft':
+    # Loading hyper parameters
+    alpha = hyper_parameters['alpha']
+    nb_epoch = None
+    
+    ft_transformer = deepchem.trans.CoulombFitTransformer(train_dataset)
+    train_dataset = ft_transformer.transform(train_dataset)
+    valid_dataset = ft_transformer.transform(valid_dataset)
+    test_dataset = ft_transformer.transform(test_dataset)
+    # Building scikit learn Kernel Ridge Regression model
+    def model_builder(model_dir_krr):
+      sklearn_model = KernelRidge(kernel="rbf", alpha=alpha)
       return deepchem.models.SklearnModel(sklearn_model, model_dir_krr)
 
     model = deepchem.models.multitask.SingletaskToMultitask(
