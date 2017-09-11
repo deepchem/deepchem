@@ -23,6 +23,7 @@ them in Jupyter::
    graph_convolutional_networks_for_tox21
    mnist 
    Multitask_Networks_on_MUV 
+   dataset_preparation
 
 
 Contributing tutorials 
