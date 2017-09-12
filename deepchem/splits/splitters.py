@@ -11,7 +11,9 @@ __license__ = "MIT"
 
 import tempfile
 import numpy as np
+import pandas as pd
 import itertools
+import os
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem import AllChem
@@ -74,9 +76,9 @@ class Splitter(object):
 
     """
     """
-    :param dataset: 
-    :param k: 
-    :param directories: 
+    :param dataset:
+    :param k:
+    :param directories:
     :param kwargs:
     :return: list of length k tuples of (train, cv)
     """
@@ -920,3 +922,44 @@ class SpecifiedSplitter(Splitter):
       else:
         raise ValueError("Missing required split information.")
     return train_inds, valid_inds, test_inds
+
+class TimeSplitterPDBbind(Splitter):
+
+  def __init__(self, year_file=None, verbose=False):
+    if year_file is None:
+      try:
+        data_dir = os.environ['DEEPCHEM_DATA_DIR']
+        year_file = os.path.join(data_dir, 'pdbbind_year.csv')
+        if not os.path.exists(year_file):
+          dc.utils.download_url(
+              'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/pdbbind_year.csv',
+              dest_dir = data_dir
+          )
+      except:
+        raise ValueError("Time description file should be specified")
+    df = pd.read_csv(year_file, header=None)
+    self.years = {}
+    for i in range(df.shape[0]):
+      self.years[df[0][i]] = int(df[1][i])
+    self.verbose = verbose
+
+  def split(self,
+            dataset,
+            seed=None,
+            frac_train=.8,
+            frac_valid=.1,
+            frac_test=.1,
+            log_every_n=None):
+    """
+        Splits internal compounds into train/validation/test in time order.
+        """
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+    num_datapoints = len(dataset)
+    train_cutoff = int(frac_train * num_datapoints)
+    valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
+    indices = range(num_datapoints)
+    data_year = [self.years[dataset.ids[i]] for i in indices]
+    new_indices = [pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])]
+
+    return (new_indices[:train_cutoff], new_indices[train_cutoff:valid_cutoff],
+            new_indices[valid_cutoff:])

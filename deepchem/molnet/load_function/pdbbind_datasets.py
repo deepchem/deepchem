@@ -21,8 +21,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   """Featurizes pdbbind according to provided featurization"""
   tasks = ["-logKd/Ki"]
   data_dir = deepchem.utils.get_data_dir()
-  data_dir = os.path.join(data_dir, "pdbbind")
-  dataset_dir = os.path.join(data_dir, "%s_%s" % (subset, feat))
+  pdbbind_dir = os.path.join(data_dir, "pdbbind")
+  dataset_dir = os.path.join(pdbbind_dir, "%s_%s" % (subset, feat))
 
   if not os.path.exists(dataset_dir):
     deepchem.utils.download_url(
@@ -34,12 +34,14 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     deepchem.utils.download_url(
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/refined_grid.tar.gz'
     )
+    if not os.path.exists(pdbbind_dir):
+      os.system('mkdir ' + pdbbind_dir)
     os.system('tar -zxvf ' + os.path.join(data_dir, 'core_grid.tar.gz') + ' -C '
-              + data_dir)
+              + pdbbind_dir)
     os.system('tar -zxvf ' + os.path.join(data_dir, 'full_grid.tar.gz') + ' -C '
-              + data_dir)
+              + pdbbind_dir)
     os.system('tar -zxvf ' + os.path.join(data_dir, 'refined_grid.tar.gz') +
-              ' -C ' + data_dir)
+              ' -C ' + pdbbind_dir)
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
 
@@ -54,7 +56,8 @@ def load_pdbbind_grid(split="random",
 
     splitters = {
         'index': deepchem.splits.IndexSplitter(),
-        'random': deepchem.splits.RandomSplitter()
+        'random': deepchem.splits.RandomSplitter(),
+        'time': deepchem.splits.TimeSplitterPDBbind()
     }
     splitter = splitters[split]
     train, valid, test = splitter.train_valid_test_split(dataset)
