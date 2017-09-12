@@ -301,9 +301,8 @@ class TensorGraph(Model):
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
-          if len(transformers):
-            raise ValueError("Does not support transformations "
-                             "for multiple outputs.")
+          result = undo_transforms(np.concatenate(feed_results, 1), transformers)
+          feed_results = [result[:, i:i+1] for i in range(result.shape[1])]
         elif len(feed_results) == 1:
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
@@ -331,11 +330,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -349,11 +348,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -371,7 +370,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -392,7 +391,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
