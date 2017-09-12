@@ -16,6 +16,7 @@ from deepchem.models.tensorgraph.layers import Constant
 from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
 from deepchem.models.tensorgraph.layers import Conv2D
 from deepchem.models.tensorgraph.layers import Dense
+from deepchem.models.tensorgraph.layers import Exp
 from deepchem.models.tensorgraph.layers import Flatten
 from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
@@ -266,6 +267,13 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
+
+  def test_exp(self):
+    """Test that Exp can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      result = Exp()(value).eval()
+      assert np.array_equal(np.exp(value), result)
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""

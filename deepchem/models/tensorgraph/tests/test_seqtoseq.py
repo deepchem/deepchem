@@ -3,6 +3,15 @@ import numpy as np
 import unittest
 
 
+def generate_sequences(sequence_length, num_sequences):
+  for i in range(num_sequences):
+    seq = [
+        np.random.randint(10)
+        for x in range(np.random.randint(1, sequence_length + 1))
+    ]
+    yield (seq, seq)
+
+
 class TestSeqToSeq(unittest.TestCase):
 
   def test_int_sequence(self):
@@ -24,21 +33,13 @@ class TestSeqToSeq(unittest.TestCase):
     # really make it reliable, but I want to keep this test fast, and it should
     # still be able to reproduce a reasonable fraction of input sequences.
 
-    def generate_sequences(num_sequences):
-      for i in range(num_sequences):
-        seq = [
-            np.random.randint(10)
-            for x in range(np.random.randint(1, sequence_length + 1))
-        ]
-        yield (seq, seq)
-
-    s.fit_sequences(generate_sequences(25000))
+    s.fit_sequences(generate_sequences(sequence_length, 25000))
 
     # Test it out.
 
     count1 = 0
     count4 = 0
-    for sequence, target in generate_sequences(50):
+    for sequence, target in generate_sequences(sequence_length, 50):
       pred1 = s.predict_from_sequence(sequence, beam_width=1)
       pred4 = s.predict_from_sequence(sequence, beam_width=4)
       if pred1 == sequence:
@@ -53,3 +54,27 @@ class TestSeqToSeq(unittest.TestCase):
 
     assert count1 >= 12
     assert count4 >= 12
+
+  def test_variational(self):
+    """Test using a SeqToSeq model as a variational autoenconder."""
+
+    sequence_length = 10
+    tokens = list(range(10))
+    s = dc.models.SeqToSeq(
+        tokens,
+        tokens,
+        sequence_length,
+        encoder_layers=2,
+        decoder_layers=2,
+        embedding_dimension=128,
+        learning_rate=0.01)
+
+    # Actually training a VAE takes far too long for a unit test.  Just run a
+    # few steps of training to make sure nothing crashes, then check that the
+    # results are at least internally consistent.
+
+    s.fit_sequences(generate_sequences(sequence_length, 1000))
+    for sequence, target in generate_sequences(sequence_length, 10):
+      pred1 = s.predict_from_sequence(sequence, beam_width=1)
+      embedding = s.predict_embedding(sequence)
+      assert pred1 == s.predict_from_embedding(embedding, beam_width=1)

@@ -67,6 +67,7 @@ class SeqToSeq(TensorGraph):
                embedding_dimension=512,
                dropout=0.0,
                reverse_input=True,
+               variational=False,
                **kwargs):
     """Construct a SeqToSeq model.
 
@@ -93,6 +94,10 @@ class SeqToSeq(TensorGraph):
     reverse_input: bool
       if True, reverse the order of input sequences before sending them into
       the encoder.  This can improve performance when working with long sequences.
+    variational: bool
+      if True, train the model as a variational autoencoder.  This adds random
+      noise to the encoder, and also constrains the embedding to follow a unit
+      Gaussian distribution.
     """
     super(SeqToSeq, self).__init__(
         use_queue=False, **kwargs)  # TODO can we make it work with the queue?
@@ -107,30 +112,61 @@ class SeqToSeq(TensorGraph):
     self._max_output_length = max_output_length
     self._features = layers.Feature(shape=(None, None, len(input_tokens)))
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
-    self._gather_indices = layers.Feature(shape=(None, 2), dtype=tf.int32)
+    self._gather_indices = layers.Feature(
+        shape=(self.batch_size, 2), dtype=tf.int32)
     self._reverse_input = reverse_input
+    self._variational = variational
+    self.embedding = self._create_encoder(encoder_layers, dropout,
+                                          embedding_dimension)
+    self.output = self._create_decoder(decoder_layers, dropout,
+                                       embedding_dimension)
+    self.set_loss(self._create_loss())
+    self.add_output(self.output)
+
+  def _create_encoder(self, n_layers, dropout, embedding_dimension):
+    """Create the encoder layers."""
     prev_layer = self._features
-    for i in range(encoder_layers):
+    for i in range(n_layers):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
           embedding_dimension, self.batch_size, in_layers=prev_layer)
     prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
-    self.embedding = prev_layer
-    prev_layer = layers.Repeat(max_output_length, in_layers=prev_layer)
-    for i in range(decoder_layers):
+    if self._variational:
+      self._embedding_mean = layers.Dense(
+          embedding_dimension, in_layers=prev_layer)
+      self._embedding_stddev = layers.Dense(
+          embedding_dimension, in_layers=prev_layer)
+      prev_layer = layers.CombineMeanStd(
+          [self._embedding_mean, self._embedding_stddev])
+    return prev_layer
+
+  def _create_decoder(self, n_layers, dropout, embedding_dimension):
+    """Create the decoder layers."""
+    prev_layer = layers.Repeat(
+        self._max_output_length, in_layers=self.embedding)
+    for i in range(n_layers):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
           embedding_dimension, self.batch_size, in_layers=prev_layer)
-    output_layer = layers.Dense(
-        len(output_tokens), in_layers=prev_layer, activation_fn=tf.nn.softmax)
-    self.add_output(output_layer)
-    prob = layers.ReduceSum(output_layer * self._labels, axis=2)
-    log_prob = layers.Log(prob + np.finfo(np.float32).eps)
+    return layers.Dense(
+        len(self._output_tokens),
+        in_layers=prev_layer,
+        activation_fn=tf.nn.softmax)
+
+  def _create_loss(self):
+    """Create the loss function."""
+    prob = layers.ReduceSum(self.output * self._labels, axis=2)
+    mask = layers.ReduceSum(self._labels, axis=2)
+    log_prob = layers.Log(prob + 1e-20) * mask
     loss = -layers.ReduceMean(layers.ReduceSum(log_prob, axis=1))
-    self.set_loss(loss)
-    self.output = output_layer
+    if self._variational:
+      mean_sq = self._embedding_mean * self._embedding_mean
+      stddev_sq = self._embedding_stddev * self._embedding_stddev
+      kl = mean_sq + stddev_sq - layers.Log(stddev_sq) - 1
+      loss += 0.5 * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
+    return loss
 
   def fit_sequences(self,
                     generator,
