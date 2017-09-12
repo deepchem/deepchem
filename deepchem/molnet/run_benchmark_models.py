@@ -703,13 +703,12 @@ def benchmark_regression(train_dataset,
     learning_rate = hyper_parameters['learning_rate']
     T = hyper_parameters['T']
     M = hyper_parameters['M']
-    n_hidden = hyper_parameters['n_hidden']
 
     model = deepchem.models.MPNNTensorGraph(
         len(tasks),
         n_atom_feat=n_features[0],
         n_pair_feat=n_features[1],
-        n_hidden=n_hidden,
+        n_hidden=n_features[0],
         T=T,
         M=M,
         batch_size=batch_size,

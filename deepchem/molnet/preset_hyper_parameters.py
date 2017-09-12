@@ -165,7 +165,6 @@ hps['mpnn'] = {
     'learning_rate': 0.001,
     'T': 5,
     'M': 10,
-    'n_hidden': 30,
     'seed': 123
 }
 
