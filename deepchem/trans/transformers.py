@@ -994,7 +994,7 @@ class ANITransformer(Transformer):
             [self.outputs], feed_dict={self.inputs: X_batch})[0]
         X_out.append(output)
         num_transformed = num_transformed + X_batch.shape[0]
-        print('%i samples transformed' % num_transformed)
+        # print('%i samples transformed' % num_transformed)
         start += 1
         if end >= len(X):
           break
