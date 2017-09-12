@@ -426,7 +426,7 @@ def benchmark_regression(train_dataset,
   model: string,  optional (default='tf_regression')
       choice of which model to use, should be: tf_regression, tf_regression_ft,
       graphconvreg, rf_regression, dtnn, dag_regression, xgb_regression,
-      weave_regression
+      weave_regression, krr, ani, krr_ft, mpnn
   test: boolean
       whether to calculate test_set performance
   hyper_parameters: dict, optional (default=None)
@@ -450,7 +450,7 @@ def benchmark_regression(train_dataset,
   assert model in [
       'tf_regression', 'tf_regression_ft', 'rf_regression', 'graphconvreg',
       'dtnn', 'dag_regression', 'xgb_regression', 'weave_regression', 'krr',
-      'ani', 'krr_ft'
+      'ani', 'krr_ft', 'mpnn'
   ]
   if hyper_parameters is None:
     hyper_parameters = hps[model]
@@ -697,6 +697,26 @@ def benchmark_regression(train_dataset,
         mode="regression",
         random_seed=seed)
 
+  elif model_name == 'mpnn':
+    batch_size = hyper_parameters['batch_size']
+    nb_epoch = hyper_parameters['nb_epoch']
+    learning_rate = hyper_parameters['learning_rate']
+    T = hyper_parameters['T']
+    M = hyper_parameters['M']
+    n_hidden = hyper_parameters['n_hidden']
+
+    model = deepchem.models.MPNNTensorGraph(
+        len(tasks),
+        n_atom_feat=n_features[0],
+        n_pair_feat=n_features[1],
+        n_hidden=n_hidden,
+        T=T,
+        M=M,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        use_queue=False,
+        mode="regression")
+
   elif model_name == 'rf_regression':
     # Loading hyper parameters
     n_estimators = hyper_parameters['n_estimators']
@@ -711,7 +731,7 @@ def benchmark_regression(train_dataset,
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
-    
+
   elif model_name == 'krr':
     # Loading hyper parameters
     alpha = hyper_parameters['alpha']
@@ -724,12 +744,12 @@ def benchmark_regression(train_dataset,
 
     model = deepchem.models.multitask.SingletaskToMultitask(
         tasks, model_builder)
-    
+
   elif model_name == 'krr_ft':
     # Loading hyper parameters
     alpha = hyper_parameters['alpha']
     nb_epoch = None
-    
+
     ft_transformer = deepchem.trans.CoulombFitTransformer(train_dataset)
     train_dataset = ft_transformer.transform(train_dataset)
     valid_dataset = ft_transformer.transform(valid_dataset)

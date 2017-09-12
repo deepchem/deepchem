@@ -178,6 +178,7 @@ CheckFeaturizer = {
     ('qm8', 'krr_ft'): ['CoulombMatrix', 1024],
     ('qm8', 'dtnn'): ['CoulombMatrix', [26, 26]],
     ('qm8', 'ani'): ['BPSymmetryFunction', [26, 4]],
+    ('qm8', 'mpnn'): ['MP', [70, 8]],
     ('qm9', 'tf_regression'): ['ECFP', 1024],
     ('qm9', 'rf_regression'): ['ECFP', 1024],
     ('qm9', 'krr'): ['ECFP', 1024],
@@ -185,7 +186,8 @@ CheckFeaturizer = {
     ('qm9', 'tf_regression_ft'): ['CoulombMatrix', [29, 29]],
     ('qm9', 'krr_ft'): ['CoulombMatrix', 1024],
     ('qm9', 'dtnn'): ['CoulombMatrix', [29, 29]],
-    ('qm9', 'ani'): ['BPSymmetryFunction', [29, 4]]
+    ('qm9', 'ani'): ['BPSymmetryFunction', [29, 4]],
+    ('qm9', 'mpnn'): ['MP', [70, 8]]
 }
 
 CheckSplit = {

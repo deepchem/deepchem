@@ -159,6 +159,16 @@ hps['ani'] = {
     'layer_structures': [128, 128, 64],
     'seed': 123
 }
+hps['mpnn'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'T': 5,
+    'M': 10,
+    'n_hidden': 30,
+    'seed': 123
+}
+
 hps['xgb_regression'] = {
     'max_depth': 5,
     'learning_rate': 0.05,
