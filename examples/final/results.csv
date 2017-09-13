@@ -292,5 +292,7 @@ qm7,stratified,regression,ani,mean-mean_absolute_error,train,23.4727,valid,26.62
 qm9,random,regression,tf_regression,mean-mean_absolute_error,train,19.571358480312554,valid,21.815120836109141,test,21.056820048679469
 qm9,random,regression,tf_regression,mean-mean_absolute_error,train,19.435233484606204,valid,19.731909803329515,test,20.074917427542243
 qm9,random,regression,tf_regression,mean-mean_absolute_error,train,21.451370544672457,valid,21.693380190808213,test,21.782669971883504
-qm8,random,regression,ani,mean-mean_absolute_error,train,0.12686993003228131,valid,0.1271496692598208,test,0.12731484703418217
 qm9,random,regression,graphconvreg,mean-mean_absolute_error,train,22.778437613479419,valid,22.394898970044846,test,22.75582527950959
+qm9,random,regression,graphconvreg,mean-mean_absolute_error,train,20.385637983533723,valid,20.349965291428571,test,20.055300923801067
+qm9,random,regression,dtnn,mean-mean_absolute_error,train,12.503386045510618,valid,12.464135646856592,test,12.571625999664471
+qm9,random,regression,graphconvreg,mean-mean_absolute_error,train,20.421864130683879,valid,20.179004540494045,test,20.403339135565673
