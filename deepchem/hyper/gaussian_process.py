@@ -241,6 +241,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
     gpgo = GPGO(gp, acq, f, param)
+    print("Max number of iteration: %i" % max_iter)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()

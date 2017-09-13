@@ -163,8 +163,8 @@ hps['mpnn'] = {
     'batch_size': 64,
     'nb_epoch': 50,
     'learning_rate': 0.001,
-    'T': 5,
-    'M': 10,
+    'T': 2,
+    'M': 5,
     'seed': 123
 }
 

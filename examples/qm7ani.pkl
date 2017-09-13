@@ -1,7 +1,7 @@
 (dp0
 S'nb_epoch'
 p1
-I300
+I50
 sS'seed'
 p2
 I123
