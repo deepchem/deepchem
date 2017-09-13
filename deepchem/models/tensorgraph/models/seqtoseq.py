@@ -138,7 +138,7 @@ class SeqToSeq(TensorGraph):
       self._embedding_stddev = layers.Dense(
           embedding_dimension, in_layers=prev_layer)
       prev_layer = layers.CombineMeanStd(
-          [self._embedding_mean, self._embedding_stddev])
+          [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
   def _create_decoder(self, n_layers, dropout, embedding_dimension):
