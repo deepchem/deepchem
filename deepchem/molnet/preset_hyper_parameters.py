@@ -153,8 +153,8 @@ hps['weave_regression'] = {
     'seed': 123
 }
 hps['ani'] = {
-    'batch_size': 128,
-    'nb_epoch': 300,
+    'batch_size': 32,
+    'nb_epoch': 50,
     'learning_rate': 0.001,
     'layer_structures': [128, 128, 64],
     'seed': 123

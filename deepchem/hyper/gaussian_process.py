@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tempfile
+import os
 from deepchem.hyper.grid_search import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
@@ -35,7 +36,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                             'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 
                             'reg_lambda', 'scale_pos_weight', 'base_score'
                         ],
-                        logdir=None):
+                        logdir=None,
+                        log_file='GPhypersearch.log')
     """Perform hyperparams search using a gaussian process assumption
 
     params_dict include single-valued parameters being optimized,
@@ -133,6 +135,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     param_name = ['l' + format(i, '02d') for i in range(20)]
     param = dict(zip(param_name[:n_param], param_range))
 
+    data_dir = os.environ['DEEPCHEM_DATA_DIR']
+    log_file = os.path.join(data_dir, log_file)
     def f(l00=0,
           l01=0,
           l02=0,
@@ -185,6 +189,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       print(hyper_parameters)
       # Run benchmark
+      with open(log_file, 'a') as f:
+        f.write(hyper_parameters)
       if isinstance(self.model_class, str) or isinstance(
           self.model_class, unicode):
         try:
@@ -216,6 +222,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         evaluator = Evaluator(model, valid_dataset, output_transformers)
         multitask_scores = evaluator.compute_model_performance([metric])
         score = multitask_scores[metric.name]
+      
+      with open(log_file, 'a') as f:
+        f.write(score)
       if direction:
         return score
       else:
@@ -248,6 +257,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
       i = i + hp[1]
 
+
+    with open(log_file, 'a') as f:
+      f.write(params_dict)
     if isinstance(self.model_class, str) or isinstance(
         self.model_class, unicode):
       try:
@@ -271,6 +283,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             self.model_class,
             hyper_parameters=params_dict)
       score = valid_scores[self.model_class][metric[0].name]
+      with open(log_file, 'a') as f:
+        f.write(score)
       if not direction:
         score = -score
       if score > valid_performance_opt:

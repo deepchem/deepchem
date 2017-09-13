@@ -976,7 +976,7 @@ class ANITransformer(Transformer):
     self.transform_w = transform_w
     self.compute_graph = self.build()
     self.sess = tf.Session(graph=self.compute_graph)
-    self.transform_batch_size = 128
+    self.transform_batch_size = 32
     assert self.transform_X
     assert not self.transform_y
     assert not self.transform_w
