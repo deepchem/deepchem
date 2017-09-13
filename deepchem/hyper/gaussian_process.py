@@ -37,7 +37,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                             'reg_lambda', 'scale_pos_weight', 'base_score'
                         ],
                         logdir=None,
-                        log_file='GPhypersearch.log')
+                        log_file='GPhypersearch.log'):
     """Perform hyperparams search using a gaussian process assumption
 
     params_dict include single-valued parameters being optimized,
@@ -190,7 +190,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       print(hyper_parameters)
       # Run benchmark
       with open(log_file, 'a') as f:
-        f.write(hyper_parameters)
+        f.write(str(hyper_parameters))
+        f.write('\n')
       if isinstance(self.model_class, str) or isinstance(
           self.model_class, unicode):
         try:
@@ -224,7 +225,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         score = multitask_scores[metric.name]
       
       with open(log_file, 'a') as f:
-        f.write(score)
+        f.write(str(score))
+        f.write('\n')
       if direction:
         return score
       else:
@@ -259,7 +261,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
 
     with open(log_file, 'a') as f:
-      f.write(params_dict)
+      f.write(str(params_dict))
+      f.write('\n')
     if isinstance(self.model_class, str) or isinstance(
         self.model_class, unicode):
       try:
@@ -284,7 +287,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             hyper_parameters=params_dict)
       score = valid_scores[self.model_class][metric[0].name]
       with open(log_file, 'a') as f:
-        f.write(score)
+        f.write(str(score))
+        f.write('\n')
       if not direction:
         score = -score
       if score > valid_performance_opt:
