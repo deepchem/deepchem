@@ -129,12 +129,20 @@ class ANIRegression(TensorGraph):
     self.build_graph()
     self.grad = None
 
+  def save(self):
+    self.grad = None # recompute grad on restore
+    super(ANIRegression, self).save()
+
+  def build_grad(self):
+    self.grad = tf.gradients(self.outputs, self.atom_feats)
+
   def compute_grad(self, dataset, batch_size=1):
     with self._get_tf("Graph").as_default():
       if not self.built:
         self.build()
       if not self.grad:
-        self.grad = tf.gradients(self.outputs, self.atom_feats)
+        self.build_grad()
+
       feed_dict = dict()
       X = dataset.X
       flags = np.sign(np.array(X[:batch_size, :, 0]))

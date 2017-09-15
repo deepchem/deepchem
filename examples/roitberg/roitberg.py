@@ -5,6 +5,8 @@ import deepchem as dc
 import pyanitools as pya
 import app
 
+import dill
+
 def convert_species_to_atomic_nums(s):
   PERIODIC_TABLE = {"H": 1, "C": 6, "N": 7, "O": 8}
   res = []
@@ -170,19 +172,29 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  model = dc.models.ANIRegression(
-      1,
-      max_atoms,
-      layer_structures=layer_structures,
-      atom_number_cases=atom_number_cases,
-      batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=False,
-      model_dir="/tmp/ani.pkl",
-      mode="regression")
+  model_dir = "/tmp/ani.pkl"
 
-  # For production, set nb_epoch to 100+
-  model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+  if os.path.exists(model_dir):
+    print("Restoring existing model...")
+    model = dc.models.ANIRegression.load_from_dir(model_dir=model_dir)
+  else:
+    print("Fitting new model...")
+    model = dc.models.ANIRegression(
+        1,
+        max_atoms,
+        layer_structures=layer_structures,
+        atom_number_cases=atom_number_cases,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        model_dir=model_dir,
+        mode="regression")
+
+    # For production, set nb_epoch to 100+
+    model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+
+    print("Saving model...")
+    model.save()
 
   print("Evaluating model")
   train_scores = model.evaluate(train_dataset, metric, transformers)
@@ -212,8 +224,7 @@ if __name__ == "__main__":
   print("Gradient of a single test set element:")
   print(model.grad_one(coords, atomic_nums))
 
-  # currently broken
-  # model.save()
+
 
   app.webapp.model = model
   app.webapp.run(host='0.0.0.0', debug=False)
