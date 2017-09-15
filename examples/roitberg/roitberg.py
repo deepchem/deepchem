@@ -5,8 +5,6 @@ import deepchem as dc
 import pyanitools as pya
 import app
 
-import dill
-
 def convert_species_to_atomic_nums(s):
   PERIODIC_TABLE = {"H": 1, "C": 6, "N": 7, "O": 8}
   res = []
