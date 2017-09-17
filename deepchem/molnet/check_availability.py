@@ -163,6 +163,7 @@ CheckFeaturizer = {
     ('pdbbind', 'tf_regression'): ['grid', 2052],
     ('pdbbind', 'rf_regression'): ['grid', 2052],
     ('pdbbind', 'krr'): ['grid', 2052],
+    ('pdbbind', 'graphconvreg'): ['GraphConv', 75],
     ('qm7', 'tf_regression'): ['ECFP', 1024],
     ('qm7', 'rf_regression'): ['ECFP', 1024],
     ('qm7', 'krr'): ['ECFP', 1024],

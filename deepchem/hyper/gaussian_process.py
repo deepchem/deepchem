@@ -34,7 +34,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                             'bypass_dropouts', 'n_pair_feat', 'fit_transformers',
                             'min_child_weight', 'max_delta_step','subsample',
                             'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 
-                            'reg_lambda', 'scale_pos_weight', 'base_score'
+                            'reg_lambda', 'scale_pos_weight', 'base_score', 'T', 'M'
                         ],
                         logdir=None,
                         log_file='GPhypersearch.log'):
