@@ -272,7 +272,7 @@ class SeqToSeq(TensorGraph):
         embeddings = self.session.run(self.embedding, feed_dict=feed_dict)
         for i in range(len(batch)):
           result.append(embeddings[i])
-    return result
+    return np.array(result, dtype=np.float32)
 
   def _beam_search(self, probs, beam_width):
     """Perform a beam search for the most likely output sequence."""
