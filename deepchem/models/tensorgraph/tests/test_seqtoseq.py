@@ -37,18 +37,21 @@ class TestSeqToSeq(unittest.TestCase):
 
     # Test it out.
 
+    tests = [s for s, t in generate_sequences(sequence_length, 50)]
+    pred1 = s.predict_from_sequences(tests, beam_width=1)
+    pred4 = s.predict_from_sequences(tests, beam_width=4)
+    embeddings = s.predict_embeddings(tests)
+    pred1e = s.predict_from_embeddings(embeddings, beam_width=1)
+    pred4e = s.predict_from_embeddings(embeddings, beam_width=4)
     count1 = 0
     count4 = 0
-    for sequence, target in generate_sequences(sequence_length, 50):
-      pred1 = s.predict_from_sequence(sequence, beam_width=1)
-      pred4 = s.predict_from_sequence(sequence, beam_width=4)
-      if pred1 == sequence:
+    for i in range(len(tests)):
+      if pred1[i] == tests[i]:
         count1 += 1
-      if pred4 == sequence:
+      if pred4[i] == tests[i]:
         count4 += 1
-      embedding = s.predict_embedding(sequence)
-      assert pred1 == s.predict_from_embedding(embedding, beam_width=1)
-      assert pred4 == s.predict_from_embedding(embedding, beam_width=4)
+      assert pred1[i] == pred1e[i]
+      assert pred4[i] == pred4e[i]
 
     # Check that it got at least a quarter of them correct.
 
@@ -75,6 +78,6 @@ class TestSeqToSeq(unittest.TestCase):
 
     s.fit_sequences(generate_sequences(sequence_length, 1000))
     for sequence, target in generate_sequences(sequence_length, 10):
-      pred1 = s.predict_from_sequence(sequence, beam_width=1)
-      embedding = s.predict_embedding(sequence)
-      assert pred1 == s.predict_from_embedding(embedding, beam_width=1)
+      pred1 = s.predict_from_sequences([sequence], beam_width=1)
+      embedding = s.predict_embeddings([sequence])
+      assert pred1 == s.predict_from_embeddings(embedding, beam_width=1)

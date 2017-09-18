@@ -110,38 +110,37 @@ class SeqToSeq(TensorGraph):
     self._input_dict = dict((x, i) for i, x in enumerate(input_tokens))
     self._output_dict = dict((x, i) for i, x in enumerate(output_tokens))
     self._max_output_length = max_output_length
+    self._embedding_dimension = embedding_dimension
     self._features = layers.Feature(shape=(None, None, len(input_tokens)))
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
     self._gather_indices = layers.Feature(
         shape=(self.batch_size, 2), dtype=tf.int32)
     self._reverse_input = reverse_input
     self._variational = variational
-    self.embedding = self._create_encoder(encoder_layers, dropout,
-                                          embedding_dimension)
-    self.output = self._create_decoder(decoder_layers, dropout,
-                                       embedding_dimension)
+    self.embedding = self._create_encoder(encoder_layers, dropout)
+    self.output = self._create_decoder(decoder_layers, dropout)
     self.set_loss(self._create_loss())
     self.add_output(self.output)
 
-  def _create_encoder(self, n_layers, dropout, embedding_dimension):
+  def _create_encoder(self, n_layers, dropout):
     """Create the encoder layers."""
     prev_layer = self._features
     for i in range(n_layers):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-          embedding_dimension, self.batch_size, in_layers=prev_layer)
+          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     prev_layer = layers.Gather(in_layers=[prev_layer, self._gather_indices])
     if self._variational:
       self._embedding_mean = layers.Dense(
-          embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       self._embedding_stddev = layers.Dense(
-          embedding_dimension, in_layers=prev_layer)
+          self._embedding_dimension, in_layers=prev_layer)
       prev_layer = layers.CombineMeanStd(
           [self._embedding_mean, self._embedding_stddev], training_only=True)
     return prev_layer
 
-  def _create_decoder(self, n_layers, dropout, embedding_dimension):
+  def _create_decoder(self, n_layers, dropout):
     """Create the decoder layers."""
     prev_layer = layers.Repeat(
         self._max_output_length, in_layers=self.embedding)
@@ -149,7 +148,7 @@ class SeqToSeq(TensorGraph):
       if dropout > 0.0:
         prev_layer = layers.Dropout(dropout, in_layers=prev_layer)
       prev_layer = layers.GRU(
-          embedding_dimension, self.batch_size, in_layers=prev_layer)
+          self._embedding_dimension, self.batch_size, in_layers=prev_layer)
     return layers.Dense(
         len(self._output_tokens),
         in_layers=prev_layer,
@@ -169,7 +168,7 @@ class SeqToSeq(TensorGraph):
     return loss
 
   def fit_sequences(self,
-                    generator,
+                    sequences,
                     max_checkpoints_to_keep=5,
                     checkpoint_interval=1000,
                     restore=False):
@@ -177,8 +176,8 @@ class SeqToSeq(TensorGraph):
 
     Parameters
     ----------
-    generator: generator
-      this should generate a series of training samples.  Each sample should be
+    sequences: iterable
+      the training samples to fit to.  Each sample should be
       represented as a tuple of the form (input_sequence, output_sequence).
     max_checkpoints_to_keep: int
       the maximum number of checkpoints to keep.  Older checkpoints are discarded.
@@ -189,72 +188,91 @@ class SeqToSeq(TensorGraph):
       from there.  If False, retrain the model from scratch.
     """
     self.fit_generator(
-        self._generate_batches(generator),
+        self._generate_batches(sequences),
         max_checkpoints_to_keep=max_checkpoints_to_keep,
         checkpoint_interval=checkpoint_interval,
         restore=restore)
 
-  def predict_from_sequence(self, sequence, beam_width=5):
-    """Given an input sequence, predict the output sequence.
+  def predict_from_sequences(self, sequences, beam_width=5):
+    """Given a set of input sequences, predict the output sequences.
 
     The prediction is done using a beam search with length normalization.
 
     Parameters
     ----------
-    sequence: sequence
-      the input sequence to generate a prediction for
+    sequences: iterable
+      the input sequences to generate a prediction for
     beam_width: int
       the beam width to use for searching.  Set to 1 to use a simple greedy search.
     """
-    feed_dict = {}
-    feed_dict[self._features] = self._create_input_array([sequence])
-    feed_dict[self._gather_indices] = [(i, len(sequence))
-                                       for i in range(self.batch_size)]
-    feed_dict[self._training_placeholder] = 0.0
-    for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
-      feed_dict[initial] = zero
+    result = []
     with self._get_tf("Graph").as_default():
-      probs = self.session.run(self.output, feed_dict=feed_dict)[0]
-    return self._beam_search(probs, beam_width)
+      for batch in self._batch_elements(sequences):
+        feed_dict = {}
+        feed_dict[self._features] = self._create_input_array(batch)
+        feed_dict[self._gather_indices] = [(i, len(batch[i])
+                                            if i < len(batch) else 0)
+                                           for i in range(self.batch_size)]
+        feed_dict[self._training_placeholder] = 0.0
+        for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+          feed_dict[initial] = zero
+        probs = self.session.run(self.output, feed_dict=feed_dict)
+        for i in range(len(batch)):
+          result.append(self._beam_search(probs[i], beam_width))
+    return result
 
-  def predict_from_embedding(self, embedding, beam_width=5):
-    """Given an embedding vector, predict the output sequence.
+  def predict_from_embeddings(self, embeddings, beam_width=5):
+    """Given a set of embedding vectors, predict the output sequences.
 
     The prediction is done using a beam search with length normalization.
 
     Parameters
     ----------
-    embedding: array
-      the embedding vector to generate a prediction for
+    embeddings: iterable
+      the embedding vectors to generate predictions for
     beam_width: int
       the beam width to use for searching.  Set to 1 to use a simple greedy search.
     """
-    feed_dict = {}
-    feed_dict[self.embedding] = embedding
-    feed_dict[self._training_placeholder] = 0.0
-    for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
-      feed_dict[initial] = zero
+    result = []
     with self._get_tf("Graph").as_default():
-      probs = self.session.run(self.output, feed_dict=feed_dict)[0]
-    return self._beam_search(probs, beam_width)
+      for batch in self._batch_elements(embeddings):
+        embedding_array = np.zeros(
+            (self.batch_size, self._embedding_dimension), dtype=np.float32)
+        for i, e in enumerate(batch):
+          embedding_array[i] = e
+        feed_dict = {}
+        feed_dict[self.embedding] = embedding_array
+        feed_dict[self._training_placeholder] = 0.0
+        for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+          feed_dict[initial] = zero
+        probs = self.session.run(self.output, feed_dict=feed_dict)
+        for i in range(len(batch)):
+          result.append(self._beam_search(probs[i], beam_width))
+    return result
 
-  def predict_embedding(self, sequence):
-    """Given an input sequence, compute the embedding vector.
+  def predict_embeddings(self, sequences):
+    """Given a set of input sequences, compute the embedding vectors.
 
     Parameters
     ----------
-    sequence: sequence
-      the input sequence to generate an embedding vector for
+    sequences: iterable
+      the input sequences to generate an embedding vector for
     """
-    feed_dict = {}
-    feed_dict[self._features] = self._create_input_array([sequence])
-    feed_dict[self._gather_indices] = [(i, len(sequence))
-                                       for i in range(self.batch_size)]
-    feed_dict[self._training_placeholder] = 0.0
-    for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
-      feed_dict[initial] = zero
+    result = []
     with self._get_tf("Graph").as_default():
-      return self.session.run(self.embedding, feed_dict=feed_dict)
+      for batch in self._batch_elements(sequences):
+        feed_dict = {}
+        feed_dict[self._features] = self._create_input_array(batch)
+        feed_dict[self._gather_indices] = [(i, len(batch[i])
+                                            if i < len(batch) else 0)
+                                           for i in range(self.batch_size)]
+        feed_dict[self._training_placeholder] = 0.0
+        for initial, zero in zip(self.rnn_initial_states, self.rnn_zero_states):
+          feed_dict[initial] = zero
+        embeddings = self.session.run(self.embedding, feed_dict=feed_dict)
+        for i in range(len(batch)):
+          result.append(embeddings[i])
+    return result
 
   def _beam_search(self, probs, beam_width):
     """Perform a beam search for the most likely output sequence."""
@@ -325,24 +343,28 @@ class SeqToSeq(TensorGraph):
         labels[i, lengths[i], end_marker_index] = 1
     return labels
 
-  def _generate_batches(self, generator):
-    """Combine sequences into batches."""
-    while True:
+  def _batch_elements(self, elements):
+    """Combine elements into batches."""
+    batch = []
+    for s in elements:
+      batch.append(s)
+      if len(batch) == self.batch_size:
+        yield batch
+        batch = []
+    if len(batch) > 0:
+      yield batch
+
+  def _generate_batches(self, sequences):
+    """Create feed_dicts for fitting."""
+    for batch in self._batch_elements(sequences):
       inputs = []
       outputs = []
-      weights = [1] * self.batch_size
-      try:
-        while len(inputs) < self.batch_size:
-          input, output = next(generator)
-          inputs.append(input)
-          outputs.append(output)
-      except StopIteration:
-        if len(inputs) == 0:
-          return
-        for i in range(len(inputs), self.batch_size):
-          inputs.append([])
-          outputs.append([])
-          weights[i] = 0
+      for input, output in batch:
+        inputs.append(input)
+        outputs.append(output)
+      for i in range(len(inputs), self.batch_size):
+        inputs.append([])
+        outputs.append([])
       feed_dict = {}
       feed_dict[self._features] = self._create_input_array(inputs)
       feed_dict[self._labels] = self._create_output_array(outputs)
