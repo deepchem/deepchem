@@ -585,7 +585,9 @@ class GraphConvTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
-              self.batch_size, pad_batches=True, deterministic=deterministic)):
+              self.batch_size,
+              pad_batches=pad_batches,
+              deterministic=deterministic)):
         d = {}
         for index, label in enumerate(self.my_labels):
           if self.mode == 'classification':
