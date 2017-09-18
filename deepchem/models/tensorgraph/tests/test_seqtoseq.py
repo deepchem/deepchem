@@ -37,7 +37,7 @@ class TestSeqToSeq(unittest.TestCase):
 
     # Test it out.
 
-    tests = [s for s, t in generate_sequences(sequence_length, 50)]
+    tests = [seq for seq, target in generate_sequences(sequence_length, 50)]
     pred1 = s.predict_from_sequences(tests, beam_width=1)
     pred4 = s.predict_from_sequences(tests, beam_width=4)
     embeddings = s.predict_embeddings(tests)
