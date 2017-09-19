@@ -167,7 +167,7 @@ class Model(BaseEstimator):
       y_pred = np.reshape(y_pred, (n_samples,))
     return y_pred
 
-  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=True):
     """
     Evaluates the performance of this model on specified dataset.
 

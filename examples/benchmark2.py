@@ -194,12 +194,13 @@ for dataset in datasets:
                 train, valid, test, tasks, transformers, n_features, metric,
                 model, test=True, hyper_parameters=hyper_parameters, seed=seed)
           with open(os.path.join(out_path, 'final/results.csv'), 'a') as f:
+            print(train_score)
+            print(valid_score)
             writer = csv.writer(f)
             model_name = list(train_score.keys())[0]
-            for i in train_score[model_name]:
-              output_line = [
-                dataset, str(split), mode, model_name, i, 'train',
-                str(train_score[model_name]), 'valid', str(valid_score[model_name]),
-                'test', str(test_score[model_name])
-              ]
-              writer.writerow(output_line)
+            output_line = [
+              dataset, str(split), mode, model_name, 'train',
+              str(train_score[model_name]), 'valid', str(valid_score[model_name]),
+              'test', str(test_score[model_name])
+            ]
+            writer.writerow(output_line)
