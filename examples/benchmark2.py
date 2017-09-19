@@ -199,7 +199,7 @@ for dataset in datasets:
             for i in train_score[model_name]:
               output_line = [
                 dataset, str(split), mode, model_name, i, 'train',
-                train_score[model_name][i], 'valid', valid_score[model_name][i],
-                'test', test_score[model_name][i]
+                str(train_score[model_name]), 'valid', str(valid_score[model_name]),
+                'test', str(test_score[model_name])
               ]
               writer.writerow(output_line)
