@@ -54,6 +54,13 @@ class SeqToSeq(TensorGraph):
   embedding vector to have a unit Gaussian distribution.  You can then pick
   random vectors from a Gaussian distribution, and the output sequences should
   follow the same distribution as the training data.
+
+  When training as a variational autoencoder, it is best to use KL cost
+  annealing, as described in https://arxiv.org/abs/1511.06349.  The constraint
+  term in the loss is initially set to 0, so the optimizer just tries to
+  minimize the reconstruction loss.  Once it has made reasonable progress
+  toward that, the constraint term can be gradually turned back on.  The range
+  of steps over which this happens is configurable.
   """
 
   sequence_end = object()
@@ -68,6 +75,8 @@ class SeqToSeq(TensorGraph):
                dropout=0.0,
                reverse_input=True,
                variational=False,
+               annealing_start_step=5000,
+               annealing_final_step=10000,
                **kwargs):
     """Construct a SeqToSeq model.
 
@@ -98,6 +107,12 @@ class SeqToSeq(TensorGraph):
       if True, train the model as a variational autoencoder.  This adds random
       noise to the encoder, and also constrains the embedding to follow a unit
       Gaussian distribution.
+    annealing_start_step: int
+      the step (that is, batch) at which to begin turning on the constraint term
+      for KL cost annealing
+    annealing_final_step: int
+      the step (that is, batch) at which to finish turning on the constraint term
+      for KL cost annealing
     """
     super(SeqToSeq, self).__init__(
         use_queue=False, **kwargs)  # TODO can we make it work with the queue?
@@ -111,6 +126,8 @@ class SeqToSeq(TensorGraph):
     self._output_dict = dict((x, i) for i, x in enumerate(output_tokens))
     self._max_output_length = max_output_length
     self._embedding_dimension = embedding_dimension
+    self._annealing_final_step = annealing_final_step
+    self._annealing_start_step = annealing_start_step
     self._features = layers.Feature(shape=(None, None, len(input_tokens)))
     self._labels = layers.Label(shape=(None, None, len(output_tokens)))
     self._gather_indices = layers.Feature(
@@ -164,7 +181,16 @@ class SeqToSeq(TensorGraph):
       mean_sq = self._embedding_mean * self._embedding_mean
       stddev_sq = self._embedding_stddev * self._embedding_stddev
       kl = mean_sq + stddev_sq - layers.Log(stddev_sq) - 1
-      loss += 0.5 * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
+      anneal_steps = self._annealing_final_step - self._annealing_start_step
+      if anneal_steps > 0:
+        current_step = tf.to_float(
+            self.get_global_step()) - self._annealing_start_step
+        anneal_frac = tf.maximum(0.0, current_step) / anneal_steps
+        kl_scale = layers.TensorWrapper(
+            tf.minimum(1.0, anneal_frac * anneal_frac))
+      else:
+        kl_scale = 1.0
+      loss += 0.5 * kl_scale * layers.ReduceMean(layers.ReduceSum(kl, axis=1))
     return loss
 
   def fit_sequences(self,
