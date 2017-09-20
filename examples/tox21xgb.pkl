@@ -10,7 +10,7 @@ p3
 I1
 sS'learning_rate'
 p4
-F0.07568674762648508
+F0.05
 sS'max_delta_step'
 p5
 I1
@@ -19,13 +19,13 @@ p6
 F0.5
 sS'n_estimators'
 p7
-I2587
+I3000
 sS'seed'
 p8
 I2016
 sS'early_stopping_rounds'
 p9
-I212
+I100
 sS'colsample_bytree'
 p10
 F0.66
@@ -40,7 +40,7 @@ p13
 I1
 sS'max_depth'
 p14
-I6
+I5
 sS'gamma'
 p15
 F0.0
