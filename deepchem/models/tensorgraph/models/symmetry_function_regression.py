@@ -136,7 +136,26 @@ class ANIRegression(TensorGraph):
   def build_grad(self):
     self.grad = tf.gradients(self.outputs, self.atom_feats)
 
-  def compute_grad(self, dataset, batch_size=1):
+  def compute_grad(self, dataset, upper_lim=1):
+    """
+    Computes a batched gradients given an input dataset.
+
+    Parameters
+    ----------
+    dataset: dc.Dataset
+      dataset-like object whose X values will be used to compute
+      gradients from
+    upper_lim: int
+      subset of dataset used.
+
+    Returns
+    -------
+    np.array
+      Gradients of the input of shape (max_atoms, 4). Note that it is up to
+      the end user to slice this matrix into the correct shape, since it's very
+      likely the derivatives with respect to the atomic numbers are zero.
+
+    """
     with self._get_tf("Graph").as_default():
       if not self.built:
         self.build()
@@ -145,41 +164,110 @@ class ANIRegression(TensorGraph):
 
       feed_dict = dict()
       X = dataset.X
-      flags = np.sign(np.array(X[:batch_size, :, 0]))
+      flags = np.sign(np.array(X[:upper_lim, :, 0]))
       feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
           np.stack([flags]*self.max_atoms, axis=1)
-      feed_dict[self.atom_numbers] = np.array(X[:batch_size, :, 0], dtype=int)
-      feed_dict[self.atom_feats] = np.array(X[:batch_size, :, :], dtype=float)
+      feed_dict[self.atom_numbers] = np.array(X[:upper_lim, :, 0], dtype=int)
+      feed_dict[self.atom_feats] = np.array(X[:upper_lim, :, :], dtype=float)
       return self.session.run([self.grad], feed_dict=feed_dict)
 
   def pred_one(self, X, atomic_nums):
+    """
+    Makes an energy prediction for a set of atomic coordinates.
+
+    Parameters
+    ----------
+    X: np.array
+      numpy array of shape (a, 3) where a <= max_atoms and
+      dtype is float-like
+    atomic_nums: np.array
+      numpy array of shape (a,) where a is the same as that of X. 
+
+    Returns
+    -------
+    float
+      Predicted energy. Note that the meaning of the returned value is
+      dependent on the training y-values both in semantics (relative vs absolute)
+      and units (kcal/mol vs Hartrees)
+
+    """
     num_atoms = atomic_nums.shape[0]
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
-    Z = np.zeros((23, 4))
+    Z = np.zeros((self.max_atoms, 4))
     Z[:X.shape[0], 1:X.shape[1]+1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
-    dd = dc.data.NumpyDataset(np.array(X).reshape((1, 23, 4)), np.array(0), np.array(1))
+    dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums):
-    y = self.pred_one(X, atomic_nums)
+    """
+    Computes gradients for that of a single structure.
+
+    Parameters
+    ----------
+    X: np.array
+      numpy array of shape (a, 3) where a <= max_atoms and
+      dtype is float-like
+    atomic_nums: np.array
+      numpy array of shape (a,) where a is the same as that of X. 
+
+    Returns
+    -------
+    np.array
+      derivatives of the same shape and type as input parameter X.
+
+    """
     num_atoms = atomic_nums.shape[0]
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
-    Z = np.zeros((23, 4))
+    Z = np.zeros((self.max_atoms, 4))
     Z[:X.shape[0], 1:X.shape[1]+1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
-    inp = np.array(X).reshape((1, 23, 4))
-    dd = dc.data.NumpyDataset(inp, np.array([y]), np.array([1]))
+    inp = np.array(X).reshape((1, self.max_atoms, 4))
+    dd = dc.data.NumpyDataset(inp, np.array([1]), np.array([1]))
     res = self.compute_grad(dd)[0][0][0]
     res = res[:num_atoms, 1:]
     return res.reshape((num_atoms*3,))
 
   def minimize_structure(self, X, atomic_nums):
+    """
+    Minimizes a structure, as defined by a set of coordinates and their atomic
+    numbers.
+
+    Parameters
+    ----------
+    X: np.array
+      numpy array of shape (a, 3) where a <= max_atoms and
+      dtype is float-like
+    atomic_nums: np.array
+      numpy array of shape (a,) where a is the same as that of X. 
+
+    Returns
+    -------
+    np.array
+      minimized coordinates of the same shape and type as input parameter X.
+
+    """
     num_atoms = atomic_nums.shape[0]
+
+    # minimizer_kwargs = {
+    #   "jac": self.grad_one,
+    #   "args": (atomic_nums,),
+    #   "method": "CG",
+    #   "options": {"disp": True},
+    # }
+
+    # res = scipy.optimize.basinhopping(
+    #   self.pred_one,
+    #   X,
+    #   niter=75,
+    #   T=0.015, # ~10kcal/mol
+    #   stepsize=0.17,
+    #   minimizer_kwargs=minimizer_kwargs)
+
     res = scipy.optimize.minimize(
       self.pred_one,
       X,
@@ -188,6 +276,7 @@ class ANIRegression(TensorGraph):
       method="BFGS",
       tol=1e-6,
       options={'disp': True})
+
     return res.x.reshape((num_atoms, 3))
 
   def build_graph(self):
@@ -196,7 +285,9 @@ class ANIRegression(TensorGraph):
     self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
     self.atom_feats = Feature(shape=(None, self.max_atoms, 4))
 
-    previous_layer = ANIFeat(self.atom_feats)
+    previous_layer = ANIFeat(
+      in_layers=self.atom_feats,
+      max_atoms=self.max_atoms)
 
     self.featurized = previous_layer
 

@@ -27,7 +27,7 @@ def load_roiterberg_ANI(relative=True):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      # 'ani_gdb_s03.h5',
+      'ani_gdb_s03.h5',
       # 'ani_gdb_s04.h5',
       # 'ani_gdb_s05.h5',
       # 'ani_gdb_s06.h5',
@@ -138,27 +138,6 @@ def broadcast(dataset, metadata):
 
 if __name__ == "__main__":
   
-  train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(relative=True)
-
-  splitter = dc.splits.RandomGroupSplitter(broadcast(train_valid_dataset, all_groups))
-
-  print("performing 1-fold split...")
-
-  # n_folds = 5
-
-  # for fold in range(n_folds):
-  print("Folding once....")
-  train_dataset, valid_dataset = splitter.train_test_split(train_valid_dataset)
-
-  transformers = [
-      dc.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
-  ]
-
-  for transformer in transformers:
-    train_dataset = transformer.transform(train_dataset)
-    valid_dataset = transformer.transform(valid_dataset)
-    test_dataset = transformer.transform(test_dataset)
 
   max_atoms = 23
   batch_size = 64  # CHANGED FROM 16
@@ -177,6 +156,27 @@ if __name__ == "__main__":
     model = dc.models.ANIRegression.load_from_dir(model_dir=model_dir)
   else:
     print("Fitting new model...")
+
+    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(relative=True)
+
+    splitter = dc.splits.RandomGroupSplitter(broadcast(train_valid_dataset, all_groups))
+
+    print("performing 1-fold split...")
+
+    # for fold in range(n_folds):
+    print("Folding once....")
+    train_dataset, valid_dataset = splitter.train_test_split(train_valid_dataset)
+
+    transformers = [
+        dc.trans.NormalizationTransformer(
+            transform_y=True, dataset=train_dataset)
+    ]
+
+    for transformer in transformers:
+      train_dataset = transformer.transform(train_dataset)
+      valid_dataset = transformer.transform(valid_dataset)
+      test_dataset = transformer.transform(test_dataset)
+
     model = dc.models.ANIRegression(
         1,
         max_atoms,
@@ -189,24 +189,26 @@ if __name__ == "__main__":
         mode="regression")
 
     # For production, set nb_epoch to 100+
-    model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+    for i in range(10):
+      model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
 
-    print("Saving model...")
-    model.save()
+      print("Saving model...")
+      model.save()
+      print("Done.")
 
-  print("Evaluating model")
-  train_scores = model.evaluate(train_dataset, metric, transformers)
-  valid_scores = model.evaluate(valid_dataset, metric, transformers)
-  test_scores = model.evaluate(test_dataset, metric, transformers)
+    print("Evaluating model")
+    train_scores = model.evaluate(train_dataset, metric, transformers)
+    valid_scores = model.evaluate(valid_dataset, metric, transformers)
+    test_scores = model.evaluate(test_dataset, metric, transformers)
 
-  print("Train scores")
-  print(train_scores)
+    print("Train scores")
+    print(train_scores)
 
-  print("Validation scores")
-  print(valid_scores)
+    print("Validation scores")
+    print(valid_scores)
 
-  print("Test scores")
-  print(test_scores)
+    print("Test scores")
+    print(test_scores)
 
   coords = np.array([
     [0.3, 0.4, 0.5],
@@ -216,13 +218,14 @@ if __name__ == "__main__":
 
   atomic_nums = np.array([1, 8, 1])
 
-  print("Prediction of a single test set element:")
+  print("Prediction of a single test set structure:")
   print(model.pred_one(coords, atomic_nums))
 
-  print("Gradient of a single test set element:")
+  print("Gradient of a single test set structure:")
   print(model.grad_one(coords, atomic_nums))
 
-
+  # print("Minimization of a single test set structure:")
+  # print(model.minimize_structure(coords, atomic_nums))
 
   app.webapp.model = model
   app.webapp.run(host='0.0.0.0', debug=False)
