@@ -15,6 +15,9 @@ conda install -y ipywidgets
 conda install -y zlib
 conda install -y cmake
 yes | pip install gym[atari]
+conda install -y -c auto pubchempy
+conda install -y xlrd
+conda install -y seaborn
 
 cd examples/notebooks
 nosetests --with-timer tests.py --with-xunit --xunit-file=notebook_tests.xml|| true
