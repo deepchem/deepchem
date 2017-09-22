@@ -189,8 +189,7 @@ class TensorGraph(Model):
             args=(self, feed_dict_generator, self._get_tf("Graph"),
                   self.session, coord))
         enqueue_thread.start()
-      output_tensors = [x.out_tensor for x in self.outputs]
-      fetches = output_tensors + [train_op, self.loss.out_tensor]
+      fetches = [train_op, self.loss.out_tensor]
       for feed_dict in create_feed_dict():
         try:
           fetched_values = self.session.run(fetches, feed_dict=feed_dict)
