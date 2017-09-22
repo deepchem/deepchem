@@ -504,9 +504,28 @@ class Transpose(Layer):
 
 
 class CombineMeanStd(Layer):
+  """Generate Gaussian nose."""
 
-  def __init__(self, in_layers=None, **kwargs):
+  def __init__(self, in_layers=None, training_only=False, **kwargs):
+    """Create a CombineMeanStd layer.
+
+    This layer should have two inputs with the same shape, and its output also has the
+    same shape.  Each element of the output is a Gaussian distributed random number
+    whose mean is the corresponding element of the first input, and whose standard
+    deviation is the corresponding element of the second input.
+
+    Parameters
+    ----------
+    in_layers: list
+      the input layers.  The first one specifies the mean, and the second one specifies
+      the standard deviation.
+    training_only: bool
+      if True, noise is only generated during training.  During prediction, the output
+      is simply equal to the first input (that is, the mean of the distribution used
+      during training).
+    """
     super(CombineMeanStd, self).__init__(in_layers, **kwargs)
+    self.training_only = training_only
     try:
       self._shape = self.in_layers[0].shape
     except:
@@ -519,6 +538,8 @@ class CombineMeanStd(Layer):
     mean_parent, std_parent = inputs[0], inputs[1]
     sample_noise = tf.random_normal(
         mean_parent.get_shape(), 0, 1, dtype=tf.float32)
+    if self.training_only:
+      sample_noise *= kwargs['training']
     out_tensor = mean_parent + (std_parent * sample_noise)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -991,6 +1012,26 @@ class Log(Layer):
     if len(inputs) != 1:
       raise ValueError('Log must have a single parent')
     out_tensor = tf.log(inputs[0])
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Exp(Layer):
+  """Compute the exponential of the input."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Exp, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = self.in_layers[0].shape
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError('Exp must have a single parent')
+    out_tensor = tf.exp(inputs[0])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
