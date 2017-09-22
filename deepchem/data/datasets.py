@@ -644,51 +644,51 @@ class DiskDataset(Dataset):
         shard_perm = np.random.permutation(num_shards)
       else:
         shard_perm = np.arange(num_shards)
-      with Pool(1) as pool:
-        next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
-        for i in range(num_shards):
-          X, y, w, ids = next_shard.get()
-          if i < num_shards - 1:
-            next_shard = pool.apply_async(dataset.get_shard,
-                                          (shard_perm[i + 1],))
-          n_samples = X.shape[0]
-          # TODO(rbharath): This happens in tests sometimes, but don't understand why?
-          # Handle edge case.
-          if n_samples == 0:
-            continue
-          if not deterministic:
-            sample_perm = np.random.permutation(n_samples)
+      pool = Pool(1)
+      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
+      for i in range(num_shards):
+        X, y, w, ids = next_shard.get()
+        if i < num_shards - 1:
+          next_shard = pool.apply_async(dataset.get_shard, (shard_perm[i + 1],))
+        n_samples = X.shape[0]
+        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
+        # Handle edge case.
+        if n_samples == 0:
+          continue
+        if not deterministic:
+          sample_perm = np.random.permutation(n_samples)
+        else:
+          sample_perm = np.arange(n_samples)
+        if batch_size is None:
+          shard_batch_size = n_samples
+        else:
+          shard_batch_size = batch_size
+        interval_points = np.linspace(
+            0,
+            n_samples,
+            np.ceil(float(n_samples) / shard_batch_size) + 1,
+            dtype=int)
+        for j in range(len(interval_points) - 1):
+          indices = range(interval_points[j], interval_points[j + 1])
+          perm_indices = sample_perm[indices]
+          X_batch = X[perm_indices]
+
+          if y is not None:
+            y_batch = y[perm_indices]
           else:
-            sample_perm = np.arange(n_samples)
-          if batch_size is None:
-            shard_batch_size = n_samples
+            y_batch = None
+
+          if w is not None:
+            w_batch = w[perm_indices]
           else:
-            shard_batch_size = batch_size
-          interval_points = np.linspace(
-              0,
-              n_samples,
-              np.ceil(float(n_samples) / shard_batch_size) + 1,
-              dtype=int)
-          for j in range(len(interval_points) - 1):
-            indices = range(interval_points[j], interval_points[j + 1])
-            perm_indices = sample_perm[indices]
-            X_batch = X[perm_indices]
+            w_batch = None
 
-            if y is not None:
-              y_batch = y[perm_indices]
-            else:
-              y_batch = None
-
-            if w is not None:
-              w_batch = w[perm_indices]
-            else:
-              w_batch = None
-
-            ids_batch = ids[perm_indices]
-            if pad_batches:
-              (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                  shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-            yield (X_batch, y_batch, w_batch, ids_batch)
+          ids_batch = ids[perm_indices]
+          if pad_batches:
+            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+          yield (X_batch, y_batch, w_batch, ids_batch)
+      pool.close()
 
     return iterate(self)
 
