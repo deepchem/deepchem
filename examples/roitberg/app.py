@@ -37,11 +37,22 @@ def minimize():
   if not content or not 'X' in content:
     abort(400)
   X = np.array(content['X'])
+
+  constraints = None
+
+  if 'constraints' in content:
+    constraints = content['constraints']
+    print('setting constraints')
+
+
   num_atoms = X.shape[0]
   x0 = X[:, 1:]
   a0 = X[:, :1]
 
-  res = webapp.model.minimize_structure(x0, a0)
-  res = res.reshape((num_atoms, 3))
 
-  return flask.jsonify({'X': res.tolist()}), 200
+
+  res = webapp.model.minimize_structure(x0, a0, constraints)
+  res = res.reshape((num_atoms, 3))
+  y = webapp.model.pred_one(res, a0).tolist()[0]
+
+  return flask.jsonify({'X': res.tolist(), 'y': y}), 200

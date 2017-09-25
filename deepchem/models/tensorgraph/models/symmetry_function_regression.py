@@ -171,7 +171,7 @@ class ANIRegression(TensorGraph):
       feed_dict[self.atom_feats] = np.array(X[:upper_lim, :, :], dtype=float)
       return self.session.run([self.grad], feed_dict=feed_dict)
 
-  def pred_one(self, X, atomic_nums):
+  def pred_one(self, X, atomic_nums, constraints=None):
     """
     Makes an energy prediction for a set of atomic coordinates.
 
@@ -182,6 +182,8 @@ class ANIRegression(TensorGraph):
       dtype is float-like
     atomic_nums: np.array
       numpy array of shape (a,) where a is the same as that of X. 
+    constraints: unused
+      This parameter is mainly for compatibility purposes for scipy optimize
 
     Returns
     -------
@@ -201,7 +203,7 @@ class ANIRegression(TensorGraph):
     dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
     return self.predict(dd)[0]
 
-  def grad_one(self, X, atomic_nums):
+  def grad_one(self, X, atomic_nums, constraints=None):
     """
     Computes gradients for that of a single structure.
 
@@ -212,6 +214,9 @@ class ANIRegression(TensorGraph):
       dtype is float-like
     atomic_nums: np.array
       numpy array of shape (a,) where a is the same as that of X. 
+    constraints: np.array
+      numpy array of indices of X used for constraining a subset
+      of the atoms of the molecule.
 
     Returns
     -------
@@ -230,9 +235,16 @@ class ANIRegression(TensorGraph):
     dd = dc.data.NumpyDataset(inp, np.array([1]), np.array([1]))
     res = self.compute_grad(dd)[0][0][0]
     res = res[:num_atoms, 1:]
+
+    if constraints is not None:
+      for idx in constraints:
+        res[idx][0] = 0
+        res[idx][1] = 0
+        res[idx][2] = 0
+
     return res.reshape((num_atoms*3,))
 
-  def minimize_structure(self, X, atomic_nums):
+  def minimize_structure(self, X, atomic_nums, constraints=None):
     """
     Minimizes a structure, as defined by a set of coordinates and their atomic
     numbers.
@@ -271,7 +283,7 @@ class ANIRegression(TensorGraph):
     res = scipy.optimize.minimize(
       self.pred_one,
       X,
-      args=(atomic_nums,),
+      args=(atomic_nums, constraints),
       jac=self.grad_one,
       method="BFGS",
       tol=1e-6,

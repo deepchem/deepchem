@@ -68,5 +68,34 @@ class TestANIRegression(unittest.TestCase):
 
     np.testing.assert_array_almost_equal(grad_approx, grad_exact, decimal=3)
 
+    grad_exact_constrained = model.grad_one(new_x, new_atomic_nums, constraints=[0, 2])
+
+    assert grad_exact_constrained[0] == 0
+    assert grad_exact_constrained[1] == 0
+    assert grad_exact_constrained[2] == 0
+
+    assert grad_exact_constrained[3] == grad_exact[3]
+    assert grad_exact_constrained[4] == grad_exact[4]
+    assert grad_exact_constrained[5] == grad_exact[5]
+
+    assert grad_exact_constrained[6] == 0
+    assert grad_exact_constrained[7] == 0
+    assert grad_exact_constrained[8] == 0
+
+    min_coords = model.minimize_structure(new_x, new_atomic_nums, constraints=[0,2])
+
+    assert min_coords[0][0] == new_x[0]
+    assert min_coords[0][1] == new_x[1]
+    assert min_coords[0][2] == new_x[2]
+
+    # assert min_coords[1][0] != new_x[3]
+    # assert min_coords[1][1] != new_x[4]
+    # assert min_coords[1][2] != new_x[5]
+
+    assert min_coords[2][0] == new_x[6]
+    assert min_coords[2][1] == new_x[7]
+    assert min_coords[2][2] == new_x[8]
+
+
 if __name__ == '__main__':
   unittest.main()

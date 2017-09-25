@@ -12,8 +12,26 @@ def convert_species_to_atomic_nums(s):
     res.append(PERIODIC_TABLE[k])
   return np.array(res, dtype=np.float32)
 
+def load_roiterberg_ANI(mode="atomization"):
+  """
+  Load the ANI dataset.
 
-def load_roiterberg_ANI(relative=True):
+  Parameters
+  ----------
+  mode: str
+    Accepted modes are "relative", "atomization", or "absolute". These settings are used
+    to adjust the dynamic range of the model, with absolute having the greatest and relative
+    having the lowest. Note that for atomization we approximate the single atom energy
+    using a different level of theory
+
+
+  Returns
+  -------
+  tuples
+    Elements returned are 3-tuple (a,b,c) where and b are the train and test datasets, respectively,
+    and c is an array of indices denoting the group of each 
+
+  """
   if "ROITBERG_ANI" not in os.environ:
     raise ValueError(
         "Please set environment variable ROITBERG_ANI to where the ani_dgb_s0x.h5 files are."
@@ -28,9 +46,9 @@ def load_roiterberg_ANI(relative=True):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
-      # 'ani_gdb_s05.h5',
-      # 'ani_gdb_s06.h5',
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
       # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
@@ -77,10 +95,29 @@ def load_roiterberg_ANI(relative=True):
         nonpadded = convert_species_to_atomic_nums(S)
         Z_padded[:nonpadded.shape[0]] = nonpadded
 
-        if relative:
+        if mode == "relative":
           offset = np.amin(E)
-        else:
+        elif mode == "atomization":
+
+          # approximation via B3LYP/6-31G* in Jaguar
+          # to shrink the dynamic range         
+          atomizationMapInHartrees = {
+              0: 0,
+              1: -0.50027278266,
+              6: -37.77568079030,
+              7: -54.47752723207,
+              8: -74.95668301867,
+              16: -398.04142581461
+          }
+
           offset = 0
+
+          for z in nonpadded:
+            offset -= atomizationMapInHartrees[z]
+        elif mode == "absolute":
+          offset = 0
+        else:
+          raise Exception("Unsupported mode: ", mode)
 
         for k in range(len(E)):
           R_padded = np.zeros((23, 3), dtype=np.float32)
@@ -88,7 +125,7 @@ def load_roiterberg_ANI(relative=True):
 
           X = np.concatenate([np.expand_dims(Z_padded, 1), R_padded], axis=1)
 
-          y = E[k] - offset  # offset is zero if we're not computing relative
+          y = E[k] - offset
 
           if len(X_cache) == shard_size:
 
@@ -149,7 +186,7 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  model_dir = "/tmp/ani.pkl"
+  model_dir = "/tmp/ani3.pkl"
 
   if os.path.exists(model_dir):
     print("Restoring existing model...")
@@ -157,7 +194,7 @@ if __name__ == "__main__":
   else:
     print("Fitting new model...")
 
-    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(relative=True)
+    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(mode="relative")
 
     splitter = dc.splits.RandomGroupSplitter(broadcast(train_valid_dataset, all_groups))
 
@@ -171,6 +208,9 @@ if __name__ == "__main__":
         dc.trans.NormalizationTransformer(
             transform_y=True, dataset=train_dataset)
     ]
+
+    print("Total training set shape: ", train_dataset.get_shape())
+
 
     for transformer in transformers:
       train_dataset = transformer.transform(train_dataset)
