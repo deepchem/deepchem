@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.nn import model_ops, initializations, regularizers, activations
+import math
 
 
 class Layer(object):
@@ -703,8 +704,8 @@ class TimeSeriesDense(Layer):
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
     dense_fn = lambda x: tf.contrib.layers.fully_connected(
-        x, num_outputs=self.out_channels,
-        activation_fn=tf.nn.sigmoid)
+      x, num_outputs=self.out_channels,
+      activation_fn=tf.nn.sigmoid)
     out_tensor = tf.map_fn(dense_fn, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -2017,7 +2018,7 @@ class IterRefLSTMEmbedding(Layer):
 
     self.trainable_weights = []
 
-    #self.build()
+    # self.build()
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
       raise ValueError(
@@ -3112,3 +3113,148 @@ class BetaShare(Layer):
 
   def set_tensors(self, tensor):
     self.out_tensor, self.betas = tensor
+
+
+class PassThroughLayer(Layer):
+
+  def __init__(self, output_num, **kwargs):
+    self.output_num = output_num
+    super(PassThroughLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    self.out_tensor = self.in_layers[0].out_tensors[self.output_num]
+
+
+class GraphCNNPoolLayer(Layer):
+
+  def __init__(self, num_vertices, **kwargs):
+    self.num_vertices = num_vertices
+    super(GraphCNNPoolLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+    TODO(LESWING) self.num_vertices = 1
+    Parameters
+    ----------
+    in_layers
+    set_tensors
+    kwargs
+
+    Returns
+    -------
+
+    """
+    in_tensors = self._get_input_tensors(in_layers)
+    if len(in_tensors) == 3:
+      V, A, mask = in_tensors
+    else:
+      V, A = in_tensors
+      mask = None
+    factors = self.embedding_factors(
+        V, self.num_vertices, name='%s_Factors' % self.name)
+
+    if mask is not None:
+      factors = tf.multiply(factors, mask)
+    factors = self.softmax_factors(factors)
+
+    result = tf.matmul(factors, V, transpose_a=True)
+
+    result_A = tf.reshape(A, (tf.shape(A)[0], -1, tf.shape(A)[-1]))
+    result_A = tf.matmul(result_A, factors)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
+    result_A = tf.matmul(factors, result_A, transpose_a=True)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
+                                     A.get_shape()[2].value, self.num_vertices))
+    # We do not need the mask because every graph has self.num_vertices vertices now
+    # result = make_bn(result, True, mask=None, name="%s_bn" % self.name)
+    self.out_tensors = [result, result_A, factors]
+
+  def embedding_factors(self, V, no_filters, name="default"):
+    no_features = V.get_shape()[-1].value
+    W = tf.get_variable(
+        '%s_weights' % name, [no_features, no_filters],
+        initializer=tf.truncated_normal_initializer(
+            stddev=1.0 / math.sqrt(no_features)),
+        dtype=tf.float32)
+    b = tf.get_variable(
+        '%s_bias' % self.name, [no_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+    V_reshape = tf.reshape(V, (-1, no_features))
+    s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
+    s = tf.concat([s, tf.stack([no_filters])], 0)
+    result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+    return result
+
+  def softmax_factors(self, V, axis=1, name=None):
+    max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+    exp = tf.exp(tf.subtract(V, max_value))
+    prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+    return prob
+
+
+def GraphCNNPool(num_vertices, **kwargs):
+  gcnnpool_layer = GraphCNNPoolLayer(num_vertices, **kwargs)
+  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(3)]
+
+
+class GraphCNNLayer(Layer):
+
+  def __init__(self, num_filters, **kwargs):
+    self.num_filters = num_filters
+    super(GraphCNNLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) == 3:
+      V, A, mask = inputs
+    else:
+      V, A = inputs
+      mask = None
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+    W = tf.get_variable(
+        '%s_weights' % self.name, [no_features * no_A, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+    W_I = tf.get_variable(
+        '%s_weights_I' % self.name, [no_features, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+
+    b = tf.get_variable(
+        '%s_bias' % self.name, [self.num_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+
+    n = self.graphConvolution(V, A)
+    A_shape = tf.shape(A)
+    n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
+    result = self.batch_mat_mult(n, W) + self.batch_mat_mult(V, W_I) + b
+    if set_tensors:
+      self.out_tensor = result
+    return result
+
+  def graphConvolution(self, V, A):
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
+    n = tf.matmul(A_reshape, V)
+    return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
+
+  def batch_mat_mult(self, A, B):
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, [-1, A_shape[-1]])
+
+    # So the Tensor has known dimensions
+    if B.get_shape()[1] == None:
+      axis_2 = -1
+    else:
+      axis_2 = B.get_shape()[1]
+    result = tf.matmul(A_reshape, B)
+    result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+    return result
