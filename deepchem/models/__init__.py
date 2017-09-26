@@ -30,3 +30,5 @@ from deepchem.models.tensorflow_models.IRV import TensorflowMultiTaskIRVClassifi
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
 from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSymmetryFunctionRegression, ANIRegression
+
+from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq

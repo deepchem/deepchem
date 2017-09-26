@@ -901,7 +901,9 @@ class GraphConvTensorGraph(TensorGraph):
         print('Starting epoch %i' % epoch)
       for ind, (X_b, y_b, w_b, ids_b) in enumerate(
           dataset.iterbatches(
-            self.batch_size, pad_batches=True, deterministic=deterministic)):
+              self.batch_size,
+              pad_batches=pad_batches,
+              deterministic=deterministic)):
         d = {}
         for index, label in enumerate(self.my_labels):
           if self.mode == 'classification':
@@ -982,6 +984,26 @@ class GraphConvTensorGraph(TensorGraph):
         sigma[:, i] = sigma[:, i] * transformers[0].y_stds[i]
 
     return mu[:max_index + 1], sigma[:max_index + 1]
+
+  def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
+    """
+    Returns:
+      mu: numpy ndarray of shape (n_samples, n_tasks)
+      sigma: numpy ndarray of shape (n_samples, n_tasks)
+    """
+    dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
+    y_ = []
+    for i in range(n_passes):
+      generator = self.default_generator(
+          dataset, predict=True, pad_batches=True)
+      y_.append(self.predict_on_generator(generator, transformers))
+
+    # Concatenates along 0-th dimension
+    y_ = np.array(y_)
+    mu = np.mean(y_, axis=0)
+    sigma = np.std(y_, axis=0)
+
+    return mu, sigma
 
   def predict_on_smiles(self, smiles, transformers=[], untransform=False):
     """Generates predictions on a numpy array of smile strings
