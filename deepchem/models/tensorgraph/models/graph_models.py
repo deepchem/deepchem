@@ -619,7 +619,7 @@ class GraphConvTensorGraph(TensorGraph):
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
         }
-        n_samples = feed_dict[self.labels[0].out_tensor].shape[0]
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
 
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
