@@ -37,31 +37,30 @@ model = PetroskiSuchTensorGraph(
 best_train = 0.0
 best_val = 0.0
 loop_num = 0
-while (True):
-  model.fit(train_dataset, nb_epoch=10)
+model.fit(train_dataset, nb_epoch=10)
 
-  print("Evaluating model")
-  train_scores = model.evaluate(train_dataset, [metric], transformers)
-  valid_scores = model.evaluate(valid_dataset, [metric], transformers)
+print("Evaluating model")
+train_scores = model.evaluate(train_dataset, [metric], transformers)
+valid_scores = model.evaluate(valid_dataset, [metric], transformers)
 
-  print("Train scores")
-  ts = train_scores['mean-roc_auc_score']
-  if ts > best_train:
-    best_train = ts
+print("Train scores")
+ts = train_scores['mean-roc_auc_score']
+if ts > best_train:
+  best_train = ts
 
-  print("Validation scores")
-  print(valid_scores)
-  vs = valid_scores['mean-roc_auc_score']
-  if vs > best_val:
-    best_val = vs
-  print("BEST SCORES")
-  print(best_train, best_val)
-  loop_num += 1
-  try:
-    d = json.loads(open('spectral.json').read())
-  except:
-    d = {"train_scores": [], "val_scores": []}
-  d['train_scores'].append(ts)
-  d['val_scores'].append(vs)
-  with open('spectral.json', 'w') as fout:
-    fout.write(json.dumps(d))
+print("Validation scores")
+print(valid_scores)
+vs = valid_scores['mean-roc_auc_score']
+if vs > best_val:
+  best_val = vs
+print("BEST SCORES")
+print(best_train, best_val)
+loop_num += 1
+try:
+  d = json.loads(open('spectral.json').read())
+except:
+  d = {"train_scores": [], "val_scores": []}
+d['train_scores'].append(ts)
+d['val_scores'].append(vs)
+with open('spectral.json', 'w') as fout:
+  fout.write(json.dumps(d))
