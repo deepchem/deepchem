@@ -180,6 +180,13 @@ class TensorGraph(Model):
       self.session.run(tf.global_variables_initializer())
       if restore:
         self.restore()
+      else:
+        # Initialize variables that have pre-trained values.
+        for layer in self.layers.values():
+          if layer.variable_values is not None:
+            variables = self.get_layer_variables(layer)
+            for var, val in zip(variables, layer.variable_values):
+              self.session.run(var.assign(val))
       avg_loss, n_batches = 0.0, 0.0
       coord = tf.train.Coordinator()
       n_samples = 0
@@ -330,11 +337,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -348,11 +355,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -370,7 +377,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -391,7 +398,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
