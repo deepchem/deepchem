@@ -495,7 +495,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
   def __init__(self,
                n_tasks,
                max_atoms=200,
-               dropout=0.2,
+               dropout=0.0,
                mode="classification",
                **kwargs):
     """
@@ -528,13 +528,13 @@ class PetroskiSuchTensorGraph(TensorGraph):
     gcnn2 = BatchNorm(
         GraphCNN(num_filters=64, in_layers=[gcnn1, self.adj_matrix, self.mask]))
     gcnn2 = Dropout(self.dropout, in_layers=gcnn2)
-    gc_pool, adj_matrix, factors = GraphCNNPool(
+    gc_pool, adj_matrix = GraphCNNPool(
         num_vertices=32, in_layers=[gcnn2, self.adj_matrix, self.mask])
     gc_pool = BatchNorm(gc_pool)
     gc_pool = Dropout(self.dropout, in_layers=gc_pool)
     gcnn3 = BatchNorm(GraphCNN(num_filters=32, in_layers=[gc_pool, adj_matrix]))
     gcnn3 = Dropout(self.dropout, in_layers=gcnn3)
-    gc_pool2, adj_matrix2, factors = GraphCNNPool(
+    gc_pool2, adj_matrix2 = GraphCNNPool(
         num_vertices=8, in_layers=[gcnn3, adj_matrix])
     gc_pool2 = BatchNorm(gc_pool2)
     gc_pool2 = Dropout(self.dropout, in_layers=gc_pool2)

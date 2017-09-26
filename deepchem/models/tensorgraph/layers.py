@@ -3179,11 +3179,10 @@ class GraphCNNPoolLayer(Layer):
     result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
                                      A.get_shape()[2].value, self.num_vertices))
     # We do not need the mask because every graph has self.num_vertices vertices now
-    # result = make_bn(result, True, mask=None, name="%s_bn" % self.name)
     if set_tensors:
       self.out_tensor = result
-    self.out_tensors = [result, result_A, factors]
-    return result
+    self.out_tensors = [result, result_A]
+    return result, result_A
 
   def embedding_factors(self, V, no_filters, name="default"):
     no_features = V.get_shape()[-1].value
@@ -3220,7 +3219,7 @@ class GraphCNNPoolLayer(Layer):
 
 def GraphCNNPool(num_vertices, **kwargs):
   gcnnpool_layer = GraphCNNPoolLayer(num_vertices, **kwargs)
-  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(3)]
+  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(2)]
 
 
 class GraphCNN(Layer):

@@ -732,7 +732,6 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = GraphCNN(num_filters=6)(V, adjs)
       sess.run(tf.global_variables_initializer())
       result = out_tensor.eval()
-      print(result.shape)
       assert result.shape == (10, 100, 6)
 
   def test_graphcnnpool(self):
@@ -740,8 +739,8 @@ class TestLayers(test_util.TensorFlowTestCase):
     V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
     adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
     with self.test_session() as sess:
-      out_tensor = GraphCNNPoolLayer(num_vertices=6)(V, adjs)
+      vertex_props, adjs = GraphCNNPoolLayer(num_vertices=6)(V, adjs)
       sess.run(tf.global_variables_initializer())
-      result = out_tensor.eval()
-      print(result.shape)
-      assert result.shape == (10, 6, 50)
+      vertex_props, adjs = vertex_props.eval(), adjs.eval()
+      assert vertex_props.shape == (10, 6, 50)
+      assert adjs.shape == (10, 6, 5, 6)
