@@ -1,6 +1,7 @@
 import random
 import string
 from collections import Sequence
+from copy import deepcopy
 
 import tensorflow as tf
 import numpy as np
@@ -23,6 +24,7 @@ class Layer(object):
     self.in_layers = in_layers
     self.op_type = "gpu"
     self.variable_scope = ''
+    self.variable_values = None
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
@@ -115,9 +117,22 @@ class Layer(object):
     else:
       self.variable_scope = local_scope
 
+  def set_variable_initial_values(self, values):
+    """Set the initial values of all variables.
+
+    This takes a list, which contains the initial values to use for all of
+    this layer's values (in the same order retured by
+    TensorGraph.get_layer_variables()).  When this layer is used in a
+    TensorGraph, it will automatically initialize each variable to the value
+    specified in the list.  Note that some layers also have separate mechanisms
+    for specifying variable initializers; this method overrides them. The
+    purpose of this method is to let a Layer object represent a pre-trained
+    layer, complete with trained values for its variables."""
+    self.variable_values = values
+
   def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
-    Collects data from self.out_tensor by default but can be changed by setting 
+    Collects data from self.out_tensor by default but can be changed by setting
     self.tb_input to another tensor in create_tensor
 
 
@@ -155,6 +170,64 @@ class Layer(object):
       tf.summary.scalar(self.name, self.tb_input, self.collections)
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
+
+  def copy(self, replacements={}, variables_graph=None):
+    """Duplicate this Layer and all its inputs.
+
+    This creates and returns a clone of this layer.  It also recursively calls
+    copy() on all of this layer's inputs to clone the entire hierarchy of layers.
+    In the process, you can optionally tell it to replace particular layers with
+    specific existing ones.  For example, you can clone a stack of layers, while
+    connecting the topmost ones to different inputs.
+
+    For example, consider a stack of dense layers that depend on an input:
+
+    >>> input = Feature(shape=(None, 100))
+    >>> dense1 = Dense(100, in_layers=input)
+    >>> dense2 = Dense(100, in_layers=dense1)
+    >>> dense3 = Dense(100, in_layers=dense2)
+
+    The following will clone all three dense layers, but not the input layer.
+    Instead, the input to the first dense layer will be a different layer
+    specified in the replacements map.
+
+    >>> replacements = {input: new_input}
+    >>> dense3_copy = dense3.copy(replacements)
+
+    Parameters
+    ----------
+    replacements: map
+      specifies existing layers, and the layers to replace them with (instead of
+      cloning them).  This argument serves two purposes.  First, you can pass in
+      a list of replacements to control which layers get cloned.  In addition,
+      as each layer is cloned, it is added to this map.  On exit, it therefore
+      contains a complete record of all layers that were copied, and a reference
+      to the copy of each one.
+    variables_graph: TensorGraph
+      an optional TensorGraph from which to take variables.  If this is specified,
+      the current value of each variable in each layer is recorded, and the copy
+      has that value specified as its initial value.  This allows a piece of a
+      pre-trained model to be copied to another model.
+    """
+    if self in replacements:
+      return replacements[self]
+    copied_inputs = [
+        layer.copy(replacements, variables_graph) for layer in self.in_layers
+    ]
+    saved_inputs = self.in_layers
+    self.in_layers = []
+    saved_tensors = self.none_tensors()
+    copy = deepcopy(self)
+    self.in_layers = saved_inputs
+    self.set_tensors(saved_tensors)
+    copy.in_layers = copied_inputs
+    if variables_graph is not None:
+      variables = variables_graph.get_layer_variables(self)
+      if len(variables) > 0:
+        with variables_graph._get_tf("Graph").as_default():
+          values = variables_graph.session.run(variables)
+          copy.set_variable_initial_values(values)
+    return copy
 
   def _as_graph_element(self):
     if '_as_graph_element' in dir(self.out_tensor):
@@ -914,6 +987,36 @@ class Variable(Layer):
     out_tensor = tf.Variable(self.initial_value, dtype=self.dtype)
     if set_tensors:
       self._record_variable_scope(self.name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class StopGradient(Layer):
+  """Block the flow of gradients.
+
+  This layer copies its input directly to its output, but reports that all
+  gradients of its output are zero.  This means, for example, that optimizers
+  will not try to optimize anything "upstream" of this layer.
+
+  For example, suppose you have pre-trained a stack of layers to perform a
+  calculation.  You want to use the result of that calculation as the input to
+  another layer, but because they are already pre-trained, you do not want the
+  optimizer to modify them.  You can wrap the output in a StopGradient layer,
+  then use that as the input to the next layer."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(StopGradient, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) > 1:
+      raise ValueError("Only one layer supported.")
+    out_tensor = tf.stop_gradient(inputs[0])
+    if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
@@ -1724,14 +1827,14 @@ class LSTMStep(Layer):
       Dimensionality of output vectors.
     input_dim: int
       Dimensionality of input vectors.
-    init_fn: object 
-      TensorFlow initialization to use for W. 
-    inner_init_fn: object 
-      TensorFlow initialization to use for U. 
-    activation_fn: object 
-      TensorFlow activation to use for output. 
-    inner_activation_fn: object 
-      TensorFlow activation to use for inner steps. 
+    init_fn: object
+      TensorFlow initialization to use for W.
+    inner_init_fn: object
+      TensorFlow initialization to use for U.
+    activation_fn: object
+      TensorFlow activation to use for output.
+    inner_activation_fn: object
+      TensorFlow activation to use for inner steps.
     """
 
     super(LSTMStep, self).__init__(**kwargs)
@@ -1787,7 +1890,7 @@ class LSTMStep(Layer):
     Returns
     -------
     list
-      Returns h, [h + c] 
+      Returns h, [h + c]
     """
     activation = self.activation
     inner_activation = self.inner_activation
@@ -1826,7 +1929,7 @@ def _cosine_dist(x, y):
   x: tf.Tensor
     Input Tensor
   y: tf.Tensor
-    Input Tensor 
+    Input Tensor
   """
   denom = (
       model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
@@ -2911,7 +3014,7 @@ class AtomicConvolution(Layer):
 def AlphaShare(in_layers=None, **kwargs):
   """
   This method should be used when constructing AlphaShare layers from Sluice Networks
-  
+
   Parameters
   ----------
   in_layers: list of Layers or tensors
@@ -2950,7 +3053,7 @@ class AlphaShareLayer(Layer):
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
-    out_tensor should be fed into LayerSplitter 
+    out_tensor should be fed into LayerSplitter
   Distance matrix.
   """
 
