@@ -1485,9 +1485,6 @@ class InputFifoQueue(Layer):
   def set_tensors(self, tensors):
     self.queue, self.out_tensor, self.out_tensors, self.close_op = tensors
 
-  def close(self):
-    self.queue.close()
-
 
 class GraphConv(Layer):
 
