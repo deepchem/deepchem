@@ -977,6 +977,30 @@ class Variable(Layer):
     return out_tensor
 
 
+class StopGradient(Layer):
+  """Block the flow of gradients.
+
+  This layer copies its input directly to its output, but reports that all
+  gradients of its output are zero.  This means, for example, that optimizers
+  will not try to optimize anything "upstream" of this layer."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(StopGradient, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) > 1:
+      raise ValueError("Only one layer supported.")
+    out_tensor = tf.stop_gradient(inputs[0])
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 def _max_dimension(x, y):
   if x is None:
     return y
