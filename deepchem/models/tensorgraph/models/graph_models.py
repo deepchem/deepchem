@@ -620,7 +620,6 @@ class GraphConvTensorGraph(TensorGraph):
             for k, v in six.iteritems(feed_dict)
         }
         n_samples = max(feed_dict[self.membership.out_tensor]) + 1
-
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
@@ -641,6 +640,28 @@ class GraphConvTensorGraph(TensorGraph):
         return final_results[0]
       else:
         return final_results
+
+  def predict_proba_on_generator(self, generator, transformers=[],
+                                 outputs=None):
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      out_tensors = [x.out_tensor for x in self.outputs]
+      results = []
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
+        feed_dict[self._training_placeholder] = 1.0  ##
+        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
+        if len(result.shape) == 3:
+          result = np.transpose(result, axes=[1, 0, 2])
+        if len(transformers) > 0:
+          result = undo_transforms(result, transformers)
+        results.append(result[:n_samples])
+      return np.concatenate(results, axis=0)
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
     if not self.built:
