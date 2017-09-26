@@ -3133,7 +3133,6 @@ class GraphCNNPoolLayer(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """
-    TODO(LESWING) self.num_vertices = 1
     Parameters
     ----------
     in_layers
@@ -3167,7 +3166,10 @@ class GraphCNNPoolLayer(Layer):
                                      A.get_shape()[2].value, self.num_vertices))
     # We do not need the mask because every graph has self.num_vertices vertices now
     # result = make_bn(result, True, mask=None, name="%s_bn" % self.name)
+    if set_tensors:
+      self.out_tensor = result
     self.out_tensors = [result, result_A, factors]
+    return result
 
   def embedding_factors(self, V, no_filters, name="default"):
     no_features = V.get_shape()[-1].value
@@ -3192,17 +3194,26 @@ class GraphCNNPoolLayer(Layer):
     prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
     return prob
 
+  def none_tensors(self):
+    out_tensors, out_tensor = self.out_tensors, self.out_tensor
+    self.out_tensors = None
+    self.out_tensor = None
+    return out_tensors, out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensors, self.out_tensor = tensor
+
 
 def GraphCNNPool(num_vertices, **kwargs):
   gcnnpool_layer = GraphCNNPoolLayer(num_vertices, **kwargs)
   return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(3)]
 
 
-class GraphCNNLayer(Layer):
+class GraphCNN(Layer):
 
   def __init__(self, num_filters, **kwargs):
     self.num_filters = num_filters
-    super(GraphCNNLayer, self).__init__(**kwargs)
+    super(GraphCNN, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -3210,7 +3221,6 @@ class GraphCNNLayer(Layer):
       V, A, mask = inputs
     else:
       V, A = inputs
-      mask = None
     no_A = A.get_shape()[2].value
     no_features = V.get_shape()[2].value
     W = tf.get_variable(

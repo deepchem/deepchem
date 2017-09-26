@@ -5,7 +5,7 @@ from tensorflow.python.framework import test_util
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D
+from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D, GraphCNN, GraphCNNPoolLayer
 from deepchem.models.tensorgraph.layers import AlphaShareLayer
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import BatchNorm
@@ -723,3 +723,25 @@ class TestLayers(test_util.TensorFlowTestCase):
       output_tensor = SluiceLoss()(input1, input2)
       sess.run(tf.global_variables_initializer())
       assert output_tensor.eval() == 40.0
+
+  def test_graphcnn(self):
+    """Test that layers can automatically reshape inconsistent inputs."""
+    V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+    adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = GraphCNN(num_filters=6)(V, adjs)
+      sess.run(tf.global_variables_initializer())
+      result = out_tensor.eval()
+      print(result.shape)
+      assert result.shape == (10, 100, 6)
+
+  def test_graphcnnpool(self):
+    """Test that layers can automatically reshape inconsistent inputs."""
+    V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+    adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = GraphCNNPoolLayer(num_vertices=6)(V, adjs)
+      sess.run(tf.global_variables_initializer())
+      result = out_tensor.eval()
+      print(result.shape)
+      assert result.shape == (10, 6, 50)

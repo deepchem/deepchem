@@ -12,7 +12,7 @@ from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
   DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Layer, Flatten, GraphCNNLayer, GraphCNNPool
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Layer, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -517,20 +517,18 @@ class PetroskiSuchTensorGraph(TensorGraph):
     self.mask = Feature(shape=(None, self.max_atoms, 1))
 
     gcnn1 = BatchNorm(
-        GraphCNNLayer(
+        GraphCNN(
             num_filters=64,
             in_layers=[self.vertex_features, self.adj_matrix, self.mask]))
     gcnn1 = Dropout(self.dropout, in_layers=gcnn1)
     gcnn2 = BatchNorm(
-        GraphCNNLayer(
-            num_filters=64, in_layers=[gcnn1, self.adj_matrix, self.mask]))
+        GraphCNN(num_filters=64, in_layers=[gcnn1, self.adj_matrix, self.mask]))
     gcnn2 = Dropout(self.dropout, in_layers=gcnn2)
     gc_pool, adj_matrix, factors = GraphCNNPool(
         num_vertices=32, in_layers=[gcnn2, self.adj_matrix, self.mask])
     gc_pool = BatchNorm(gc_pool)
     gc_pool = Dropout(self.dropout, in_layers=gc_pool)
-    gcnn3 = BatchNorm(
-        GraphCNNLayer(num_filters=32, in_layers=[gc_pool, adj_matrix]))
+    gcnn3 = BatchNorm(GraphCNN(num_filters=32, in_layers=[gc_pool, adj_matrix]))
     gcnn3 = Dropout(self.dropout, in_layers=gcnn3)
     gc_pool2, adj_matrix2, factors = GraphCNNPool(
         num_vertices=8, in_layers=[gcnn3, adj_matrix])
