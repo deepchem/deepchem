@@ -80,6 +80,11 @@ def test_tg_mechanics():
   assert errors == []
 
 
+def test_seqtoseq_fingerprint():
+  nb, errors = _notebook_read("seqtoseq_fingerprint.ipynb")
+  assert errors == []
+
+
 def test_dataset_preparation():
   nb, errors = _notebook_read("dataset_preparation.ipynb")
   assert errors == []
