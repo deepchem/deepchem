@@ -180,6 +180,20 @@ class Layer(object):
     specific existing ones.  For example, you can clone a stack of layers, while
     connecting the topmost ones to different inputs.
 
+    For example, consider a stack of dense layers that depend on an input:
+
+    >>> input = Feature(shape=(None, 100))
+    >>> dense1 = Dense(100, in_layers=input)
+    >>> dense2 = Dense(100, in_layers=dense1)
+    >>> dense3 = Dense(100, in_layers=dense2)
+
+    The following will clone all three dense layers, but not the input layer.
+    Instead, the input to the first dense layer will be a different layer
+    specified in the replacements map.
+
+    >>> replacements = {input: new_input}
+    >>> dense3_copy = dense3.copy(replacements)
+
     Parameters
     ----------
     replacements: map
@@ -982,7 +996,13 @@ class StopGradient(Layer):
 
   This layer copies its input directly to its output, but reports that all
   gradients of its output are zero.  This means, for example, that optimizers
-  will not try to optimize anything "upstream" of this layer."""
+  will not try to optimize anything "upstream" of this layer.
+
+  For example, suppose you have pre-trained a stack of layers to perform a
+  calculation.  You want to use the result of that calculation as the input to
+  another layer, but because they are already pre-trained, you do not want the
+  optimizer to modify them.  You can wrap the output in a StopGradient layer,
+  then use that as the input to the next layer."""
 
   def __init__(self, in_layers=None, **kwargs):
     super(StopGradient, self).__init__(in_layers, **kwargs)
