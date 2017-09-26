@@ -518,7 +518,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert support_out.shape == (n_support, n_feat)
 
   # TODO(rbharath): This test should pass. Fix it!
-  #def test_graph_pool(self):
+  # def test_graph_pool(self):
   #  """Test that GraphPool can be invoked."""
   #  out_channels = 2
   #  n_atoms = 4 # In CCC and C, there are 4 atoms
@@ -725,7 +725,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert output_tensor.eval() == 40.0
 
   def test_graphcnn(self):
-    """Test that layers can automatically reshape inconsistent inputs."""
+    """ Test GraphCNN Layer From https://arxiv.org/abs/1703.00792"""
     V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
     adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
     with self.test_session() as sess:
@@ -736,7 +736,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert result.shape == (10, 100, 6)
 
   def test_graphcnnpool(self):
-    """Test that layers can automatically reshape inconsistent inputs."""
+    """ Test GraphCNNPool Layer From https://arxiv.org/abs/1703.00792"""
     V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
     adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
     with self.test_session() as sess:

@@ -487,6 +487,10 @@ class DAGTensorGraph(TensorGraph):
 
 
 class PetroskiSuchTensorGraph(TensorGraph):
+  """
+  Model from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+  """
 
   def __init__(self,
                n_tasks,

@@ -3126,6 +3126,10 @@ class PassThroughLayer(Layer):
 
 
 class GraphCNNPoolLayer(Layer):
+  """
+  GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+  """
 
   def __init__(self, num_vertices, **kwargs):
     self.num_vertices = num_vertices
@@ -3133,15 +3137,25 @@ class GraphCNNPoolLayer(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """
+
     Parameters
     ----------
-    in_layers
-    set_tensors
-    kwargs
+    num_filters: int
+      Number of filters to have in the output
 
-    Returns
-    -------
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
 
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
     """
     in_tensors = self._get_input_tensors(in_layers)
     if len(in_tensors) == 3:
@@ -3210,8 +3224,33 @@ def GraphCNNPool(num_vertices, **kwargs):
 
 
 class GraphCNN(Layer):
+  """
+  GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+  """
 
   def __init__(self, num_filters, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_filters: int
+      Number of filters to have in the output
+
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
+
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
+    """
     self.num_filters = num_filters
     super(GraphCNN, self).__init__(**kwargs)
 
