@@ -11,6 +11,8 @@ import numpy as np
 import os
 import pandas as pd
 import tempfile
+import tarfile
+import sys
 
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
@@ -82,7 +84,27 @@ def download_url(url, dest_dir=get_data_dir(), name=None):
       name = name[name.rfind('/') + 1:]
   urlretrieve(url, os.path.join(dest_dir, name))
 
+def untargz_file(file, dest_dir=get_data_dir(),name=None):
+  """Untar and unzip a .tar.gz file to disk.
+  
+  Parameters
+  ----------
+  file: str
+    the file to decompress
+  dest_dir: str
+    the directory to save the file in
+  name: str
+    the file name to save it as.  If omitted, it will use the file name 
+  """
+  if name is None:
+    name = file	
+  tar = tarfile.open(name)
+  tar.extractall(path=dest_dir)
+  tar.close()
 
+  
+  
+  
 class ScaffoldGenerator(object):
   """
   Generate molecular scaffolds.
