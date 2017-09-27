@@ -84,7 +84,8 @@ def download_url(url, dest_dir=get_data_dir(), name=None):
       name = name[name.rfind('/') + 1:]
   urlretrieve(url, os.path.join(dest_dir, name))
 
-def untargz_file(file, dest_dir=get_data_dir(),name=None):
+
+def untargz_file(file, dest_dir=get_data_dir(), name=None):
   """Untar and unzip a .tar.gz file to disk.
   
   Parameters
@@ -97,14 +98,12 @@ def untargz_file(file, dest_dir=get_data_dir(),name=None):
     the file name to save it as.  If omitted, it will use the file name 
   """
   if name is None:
-    name = file	
+    name = file
   tar = tarfile.open(name)
   tar.extractall(path=dest_dir)
   tar.close()
 
-  
-  
-  
+
 class ScaffoldGenerator(object):
   """
   Generate molecular scaffolds.
