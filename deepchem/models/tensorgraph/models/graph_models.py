@@ -619,6 +619,7 @@ class GraphConvTensorGraph(TensorGraph):
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
         }
+        # Recording the number of samples in the input batch
         n_samples = max(feed_dict[self.membership.out_tensor]) + 1
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
@@ -630,6 +631,8 @@ class GraphConvTensorGraph(TensorGraph):
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
         for ind, result in enumerate(feed_results):
+          # GraphConvTensorGraph constantly outputs batch_size number of
+          # results, only valid samples should be appended to final results
           results[ind].append(result[:n_samples])
 
       final_results = []
