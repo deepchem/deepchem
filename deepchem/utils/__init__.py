@@ -91,7 +91,7 @@ def untargz_file(file, dest_dir=get_data_dir(), name=None):
   Parameters
   ----------
   file: str
-    the file to decompress
+    the filepath to decompress
   dest_dir: str
     the directory to save the file in
   name: str
