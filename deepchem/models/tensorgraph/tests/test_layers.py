@@ -16,6 +16,7 @@ from deepchem.models.tensorgraph.layers import Constant
 from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
 from deepchem.models.tensorgraph.layers import Conv2D
 from deepchem.models.tensorgraph.layers import Dense
+from deepchem.models.tensorgraph.layers import Exp
 from deepchem.models.tensorgraph.layers import Flatten
 from deepchem.models.tensorgraph.layers import GRU
 from deepchem.models.tensorgraph.layers import Gather
@@ -38,6 +39,7 @@ from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
 from deepchem.models.tensorgraph.layers import ToFloat
@@ -240,6 +242,16 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       assert np.array_equal(value, out_tensor.eval())
 
+  def test_stop_gradient(self):
+    """Test that StopGradient can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = StopGradient()(in_tensor)
+      assert np.array_equal(in_tensor.eval(), out_tensor.eval())
+
   def test_add(self):
     """Test that Add can be invoked."""
     value1 = np.random.uniform(size=(2, 3)).astype(np.float32)
@@ -266,6 +278,13 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
+
+  def test_exp(self):
+    """Test that Exp can be invoked."""
+    value = np.random.uniform(size=(2, 3)).astype(np.float32)
+    with self.test_session() as sess:
+      result = Exp()(value).eval()
+      assert np.array_equal(np.exp(value), result)
 
   def test_interatomic_distances(self):
     """Test that the interatomic distance calculation works."""

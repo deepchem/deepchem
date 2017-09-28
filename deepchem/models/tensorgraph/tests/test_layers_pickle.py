@@ -7,7 +7,7 @@ from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
   CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
-  Constant, Variable, Add, Multiply, Log, InteratomicL2Distances, \
+  Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
   Conv3D, MaxPool3D, \
@@ -167,10 +167,30 @@ def test_Variable_pickle():
   tg.save()
 
 
+def test_StopGradient_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  output = StopGradient(feature)
+  tg.add_output(output)
+  tg.set_loss(output)
+  tg.build()
+  tg.save()
+
+
 def test_Log_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 1))
   layer = Log(feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Exp_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Exp(feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()

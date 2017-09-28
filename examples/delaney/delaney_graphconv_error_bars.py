@@ -43,7 +43,7 @@ model.save()
 model.load_from_dir('model_saves')
 
 mu, sigma = model.bayesian_predict(
-    valid_dataset.X, transformers, untransform=True, n_passes=24)
+    valid_dataset, transformers, untransform=True, n_passes=24)
 print(mu[:4])
 print(sigma[:4])
 
