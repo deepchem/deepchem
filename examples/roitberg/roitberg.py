@@ -169,8 +169,6 @@ def load_roiterberg_ANI(mode="atomization"):
   train_dataset, test_dataset = splitter.train_test_split(
       dataset, train_dir=fold_dir, test_dir=test_dir, frac_train=.8)
 
-  print(train_dataset.y)
-
   return train_dataset, test_dataset, groups
 
 def broadcast(dataset, metadata):
