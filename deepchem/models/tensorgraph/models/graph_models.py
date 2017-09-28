@@ -1,12 +1,15 @@
 import collections
+
 import numpy as np
 import six
 import tensorflow as tf
 
+from deepchem.data import NumpyDataset
+from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-  Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+from deepchem.metrics import to_one_hot
+from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
+  DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
   DAGGather, DTNNExtract, MessagePassing, SetGather, WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
@@ -14,10 +17,6 @@ from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
-from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.data import NumpyDataset
-from deepchem.data.data_loader import featurize_smiles_np
-from deepchem.feat.graph_features import ConvMolFeaturizer
 
 
 class WeaveTensorGraph(TensorGraph):
@@ -82,11 +81,11 @@ class WeaveTensorGraph(TensorGraph):
         in_layers=[
             weave_layer1[0], weave_layer1[1], self.pair_split, self.atom_to_pair
         ])
-    separated = Separate_AP(in_layers=[weave_layer2])
+    separated = weave_layer2[0]
     dense1 = Dense(
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.tanh,
-        in_layers=[separated])
+        in_layers=separated)
     batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,

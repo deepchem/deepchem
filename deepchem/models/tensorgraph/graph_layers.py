@@ -20,38 +20,6 @@ from deepchem.models.tensorgraph.layers import Layer, PassThroughLayer
 from deepchem.models.tensorgraph.layers import convert_to_layers
 
 
-class Combine_AP(Layer):
-
-  def __init__(self, **kwargs):
-    super(Combine_AP, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-    A = in_layers[0].out_tensor
-    P = in_layers[1].out_tensor
-    out_tensor = [A, P]
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
-
-
-class Separate_AP(Layer):
-
-  def __init__(self, **kwargs):
-    super(Separate_AP, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-    out_tensor = in_layers[0].out_tensor[0]
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
-
-
 class WeaveLayer(Layer):
   """ TensorGraph style implementation
     The same as deepchem.nn.WeaveLayer
@@ -167,11 +135,11 @@ class WeaveLayer(Layer):
 
     self.build()
 
-    atom_features = in_layers[1].out_tensor
-    pair_features = in_layers[2].out_tensor
+    atom_features = in_layers[0].out_tensor
+    pair_features = in_layers[1].out_tensor
 
-    pair_split = in_layers[3].out_tensor
-    atom_to_pair = in_layers[4].out_tensor
+    pair_split = in_layers[2].out_tensor
+    atom_to_pair = in_layers[3].out_tensor
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
     AA = self.activation(AA)
