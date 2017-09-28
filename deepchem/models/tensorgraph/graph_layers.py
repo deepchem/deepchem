@@ -192,7 +192,7 @@ class WeaveLayer(Layer):
   def set_tensors(self, tensor):
     self.W_AP, self.b_AP, self.W_PP, self.W_PP, self.W_P, self.b_P, \
     self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A, \
-    self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.out_tensor, self.out_tensors, self.trainable_weights, self.variables = tensor
 
 
 def WeaveLayerFactory(**kwargs):
