@@ -7,7 +7,7 @@ from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
   CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
-  Constant, Variable, Add, Multiply, Log, Exp, InteratomicL2Distances, \
+  Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
   Conv3D, MaxPool3D, \
@@ -161,6 +161,16 @@ def test_Variable_pickle():
   feature = Feature(shape=(tg.batch_size, 1))
   layer = Variable(np.array([15.0]))
   output = Multiply(in_layers=[feature, layer])
+  tg.add_output(output)
+  tg.set_loss(output)
+  tg.build()
+  tg.save()
+
+
+def test_StopGradient_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  output = StopGradient(feature)
   tg.add_output(output)
   tg.set_loss(output)
   tg.build()

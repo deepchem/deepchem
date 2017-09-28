@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import six
 import tensorflow as tf
@@ -747,7 +745,48 @@ class GraphConvTensorGraph(TensorGraph):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
 
-  def predict_proba_on_generator(self, generator, transformers=[]):
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    if not self.built:
+      self.build()
+    if outputs is None:
+      outputs = self.outputs
+    elif not isinstance(outputs, collections.Sequence):
+      outputs = [outputs]
+    with self._get_tf("Graph").as_default():
+      # Gather results for each output
+      results = [[] for out in outputs]
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        # Recording the number of samples in the input batch
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
+        feed_dict[self._training_placeholder] = 0.0
+        feed_results = self.session.run(outputs, feed_dict=feed_dict)
+        if len(feed_results) > 1:
+          if len(transformers):
+            raise ValueError("Does not support transformations "
+                             "for multiple outputs.")
+        elif len(feed_results) == 1:
+          result = undo_transforms(feed_results[0], transformers)
+          feed_results = [result]
+        for ind, result in enumerate(feed_results):
+          # GraphConvTensorGraph constantly outputs batch_size number of
+          # results, only valid samples should be appended to final results
+          results[ind].append(result[:n_samples])
+
+      final_results = []
+      for result_list in results:
+        final_results.append(np.concatenate(result_list, axis=0))
+      # If only one output, just return array
+      if len(final_results) == 1:
+        return final_results[0]
+      else:
+        return final_results
+
+  def predict_proba_on_generator(self, generator, transformers=[],
+                                 outputs=None):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
@@ -758,13 +797,14 @@ class GraphConvTensorGraph(TensorGraph):
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
         }
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
         feed_dict[self._training_placeholder] = 1.0  ##
         result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
         if len(result.shape) == 3:
           result = np.transpose(result, axes=[1, 0, 2])
         if len(transformers) > 0:
           result = undo_transforms(result, transformers)
-        results.append(result)
+        results.append(result[:n_samples])
       return np.concatenate(results, axis=0)
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):

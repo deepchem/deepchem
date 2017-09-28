@@ -39,6 +39,7 @@ from deepchem.models.tensorgraph.layers import Reshape
 from deepchem.models.tensorgraph.layers import SluiceLoss
 from deepchem.models.tensorgraph.layers import SoftMax
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
+from deepchem.models.tensorgraph.layers import StopGradient
 from deepchem.models.tensorgraph.layers import TensorWrapper
 from deepchem.models.tensorgraph.layers import TimeSeriesDense
 from deepchem.models.tensorgraph.layers import ToFloat
@@ -240,6 +241,16 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor = Variable(value)()
       sess.run(tf.global_variables_initializer())
       assert np.array_equal(value, out_tensor.eval())
+
+  def test_stop_gradient(self):
+    """Test that StopGradient can be invoked."""
+    batch_size = 10
+    n_features = 5
+    in_tensor = np.random.rand(batch_size, n_features)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = StopGradient()(in_tensor)
+      assert np.array_equal(in_tensor.eval(), out_tensor.eval())
 
   def test_add(self):
     """Test that Add can be invoked."""

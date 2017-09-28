@@ -180,38 +180,56 @@ class TensorGraph(Model):
       self.session.run(tf.global_variables_initializer())
       if restore:
         self.restore()
-      avg_loss, n_batches = 0.0, 0.0
+      else:
+        # Initialize variables that have pre-trained values.
+        for layer in self.layers.values():
+          if layer.variable_values is not None:
+            variables = self.get_layer_variables(layer)
+            for var, val in zip(variables, layer.variable_values):
+              self.session.run(var.assign(val))
+      avg_loss, n_averaged_batches = 0.0, 0.0
       coord = tf.train.Coordinator()
       n_samples = 0
+      n_enqueued = [0]
+      final_sample = [None]
       if self.use_queue:
         enqueue_thread = threading.Thread(
             target=_enqueue_batch,
             args=(self, feed_dict_generator, self._get_tf("Graph"),
-                  self.session, coord))
+                  self.session, n_enqueued, final_sample))
         enqueue_thread.start()
-      fetches = [train_op, self.loss.out_tensor]
       for feed_dict in create_feed_dict():
-        try:
-          fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-          loss = fetched_values[-1]
-          avg_loss += loss
-          n_batches += 1
-          self.global_step += 1
-          n_samples += 1
-          if self.tensorboard and n_samples % self.tensorboard_log_frequency == 0:
-            summary = self.session.run(
-                self._get_tf("summary_op"), feed_dict=feed_dict)
-            self._log_tensorboard(summary)
-        except OutOfRangeError:
-          break
+        if self.use_queue:
+          # Don't let this thread get ahead of the enqueue thread, since if
+          # we try to read more batches than the total number that get queued,
+          # this thread will hang indefinitely.
+          while n_enqueued[0] <= n_samples:
+            if n_samples == final_sample[0]:
+              break
+            time.sleep(0)
+          if n_samples == final_sample[0]:
+            break
+        n_samples += 1
+        should_log = (self.tensorboard and
+                      n_samples % self.tensorboard_log_frequency == 0)
+        fetches = [train_op, self.loss.out_tensor]
+        if should_log:
+          fetches.append(self._get_tf("summary_op"))
+        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+        if should_log:
+          self._log_tensorboard(fetches[2])
+        loss = fetched_values[1]
+        avg_loss += loss
+        n_averaged_batches += 1
+        self.global_step += 1
         if self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
-          avg_loss = float(avg_loss) / n_batches
+          avg_loss = float(avg_loss) / n_averaged_batches
           print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                             avg_loss))
-          avg_loss, n_batches = 0.0, 0.0
-      if n_batches > 0:
-        avg_loss = float(avg_loss) / n_batches
+          avg_loss, n_averaged_batches = 0.0, 0.0
+      if n_averaged_batches > 0:
+        avg_loss = float(avg_loss) / n_averaged_batches
         print('Ending global_step %d: Average loss %g' % (self.global_step,
                                                           avg_loss))
       saver.save(self.session, self.save_file, global_step=self.global_step)
@@ -330,11 +348,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -348,11 +366,11 @@ class TensorGraph(Model):
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
-    ---------- 
+    ----------
     X: ndarray
       the input data, as a Numpy array.
     transformers: List
-      List of dc.trans.Transformers 
+      List of dc.trans.Transformers
 
     Returns
     -------
@@ -370,7 +388,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -391,7 +409,7 @@ class TensorGraph(Model):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -688,7 +706,7 @@ class TensorGraph(Model):
     pass
 
 
-def _enqueue_batch(tg, generator, graph, sess, coord):
+def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
   Function to load data into
   Parameters
@@ -697,7 +715,6 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
   dataset
   graph
   sess
-  coord
 
   Returns
   -------
@@ -711,14 +728,8 @@ def _enqueue_batch(tg, generator, graph, sess, coord):
       for layer in tg.features + tg.labels + tg.task_weights:
         enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
-      num_samples += 1
-      if tg.tensorboard and num_samples % tg.tensorboard_log_frequency == 0:
-        enq = {k.out_tensor: v for k, v in six.iteritems(feed_dict)}
-        summary = sess.run(tg._get_tf("summary_op"), feed_dict=enq)
-        tg._log_tensorboard(summary)
-    sess.run(tg.input_queue.close_op)
-    coord.num_samples = num_samples
-    coord.request_stop()
+      n_enqueued[0] += 1
+    final_sample[0] = n_enqueued[0]
 
 
 class TFWrapper(object):
