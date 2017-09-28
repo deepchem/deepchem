@@ -11,7 +11,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
   Conv3D, MaxPool3D, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphCNNPoolLayer, GraphCNN
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
 
@@ -584,7 +584,7 @@ def testGraphCNN_pickle():
 def testGraphCNNPoolLayer_pickle():
   V = Feature(shape=(None, 200, 50))
   A = Feature(shape=(None, 200, 1, 200))
-  gcnnpool = GraphCNNPoolLayer(32, in_layers=[V, A])
+  gcnnpool = GraphEmbedPoolLayer(32, in_layers=[V, A])
   tg = TensorGraph()
   tg.add_output(gcnnpool)
   tg.set_loss(gcnnpool)
