@@ -776,8 +776,8 @@ class TimeSeriesDense(Layer):
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
     dense_fn = lambda x: tf.contrib.layers.fully_connected(
-        x, num_outputs=self.out_channels,
-        activation_fn=tf.nn.sigmoid)
+      x, num_outputs=self.out_channels,
+      activation_fn=tf.nn.sigmoid)
     out_tensor = tf.map_fn(dense_fn, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -2117,7 +2117,7 @@ class IterRefLSTMEmbedding(Layer):
 
     self.trainable_weights = []
 
-    #self.build()
+    # self.build()
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
       raise ValueError(
@@ -3212,3 +3212,23 @@ class BetaShare(Layer):
 
   def set_tensors(self, tensor):
     self.out_tensor, self.betas = tensor
+
+
+class PassThroughLayer(Layer):
+  """
+  Layer which takes a tensor from in_tensor[0].out_tensors at an index
+  """
+
+  def __init__(self, output_num, **kwargs):
+    """
+    Parameters
+    ----------
+    output_num: int
+      The index which to use as this layers out_tensor from in_layers[0]
+    kwargs
+    """
+    self.output_num = output_num
+    super(PassThroughLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    self.out_tensor = self.in_layers[0].out_tensors[self.output_num]

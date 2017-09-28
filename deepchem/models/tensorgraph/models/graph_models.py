@@ -7,7 +7,7 @@ from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
   Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
-  DAGGather, DTNNExtract, MessagePassing, SetGather
+  DAGGather, DTNNExtract, MessagePassing, SetGather, WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
   GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
@@ -61,23 +61,27 @@ class WeaveTensorGraph(TensorGraph):
         """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
-    combined = Combine_AP(in_layers=[self.atom_features, self.pair_features])
     self.pair_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
-    weave_layer1 = WeaveLayer(
+    weave_layer1 = WeaveLayerFactory(
         n_atom_input_feat=self.n_atom_feat,
         n_pair_input_feat=self.n_pair_feat,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
-        in_layers=[combined, self.pair_split, self.atom_to_pair])
-    weave_layer2 = WeaveLayer(
+        in_layers=[
+            self.atom_features, self.pair_features, self.pair_split,
+            self.atom_to_pair
+        ])
+    weave_layer2 = WeaveLayerFactory(
         n_atom_input_feat=self.n_hidden,
         n_pair_input_feat=self.n_hidden,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
         update_pair=False,
-        in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
+        in_layers=[
+            weave_layer1[0], weave_layer1[1], self.pair_split, self.atom_to_pair
+        ])
     separated = Separate_AP(in_layers=[weave_layer2])
     dense1 = Dense(
         out_channels=self.n_graph_feat,
