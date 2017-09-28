@@ -1,4 +1,5 @@
 # Written by Roman Zubatyuk and Justin S. Smith
+# Modified by Yutong Zhao to make python2 compatible
 import h5py
 import numpy as np
 import platform
@@ -70,7 +71,8 @@ class anidataloader(object):
 
         yield data
       else:  # test for group (go down)
-        yield from self.h5py_dataset_iterator(item, path)
+        for s in self.h5py_dataset_iterator(item, path):
+          yield s
 
   ''' Default class iterator (iterate through all data) '''
 
