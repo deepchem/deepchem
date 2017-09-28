@@ -126,3 +126,35 @@ class anidataloader(object):
 
   def cleanup(self):
     self.store.close()
+
+if __name__ == "__main__":
+  base_dir = os.environ["ROITBERG_ANI"]
+
+  # Number of conformations in each file increases exponentially.
+  # Start with a smaller dataset before continuing. Use all of them
+  # for production
+  hdf5files = [
+      'ani_gdb_s01.h5',
+      'ani_gdb_s02.h5',
+      'ani_gdb_s03.h5',
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
+      'ani_gdb_s07.h5',
+      'ani_gdb_s08.h5'
+  ]
+
+  hdf5files = [os.path.join(base_dir, f) for f in hdf5files]
+
+
+  for hdf5file in hdf5files:
+    print("processing", hdf5file)
+    adl = anidataloader(hdf5file)
+    for data in adl:
+
+        # Extract the data
+        P = data['path']
+        R = data['coordinates']
+        E = data['energies']
+        S = data['species']
+        smi = data['smiles']

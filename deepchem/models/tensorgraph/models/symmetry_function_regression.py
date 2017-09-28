@@ -4,8 +4,12 @@
 Created on Thu Jul  6 20:31:47 2017
 
 @author: zqwu
+@contributors: ytz
+
 """
+import os
 import numpy as np
+import json
 import scipy.optimize
 import tensorflow as tf
 
@@ -42,7 +46,9 @@ class BPSymmetryFunctionRegression(TensorGraph):
     self.max_atoms = max_atoms
     self.n_feat = n_feat
     self.layer_structures = layer_structures
+    
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
+
     self.build_graph()
 
   def build_graph(self):
@@ -126,6 +132,18 @@ class ANIRegression(TensorGraph):
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
+
+
+    # (ytz): this is really dirty but needed for restoring models
+    self._kwargs = {
+      "n_tasks": n_tasks,
+      "max_atoms": max_atoms,
+      "layer_structures": layer_structures,
+      "atom_number_cases": atom_number_cases
+    }
+
+    self._kwargs.update(kwargs)
+
     self.build_graph()
     self.grad = None
 
@@ -359,3 +377,64 @@ class ANIRegression(TensorGraph):
         feed_dict[self.atom_numbers] = np.array(X_b[:, :, 0], dtype=int)
         feed_dict[self.atom_feats] = np.array(X_b[:, :, :], dtype=float)
         yield feed_dict
+
+  def save_numpy(self):
+    """
+    Save to a portable numpy file. Note that this relies on the names to be consistent
+    across different versions. The file is saved as save_pickle.npz under the model_dir.
+
+    """
+    path = os.path.join(self.model_dir, "save_pickle.npz")
+
+    with self._get_tf("Graph").as_default():
+      all_vars = tf.trainable_variables()
+      all_vals = self.session.run(all_vars)
+      save_dict = {}
+      for idx, _ in enumerate(all_vars):
+        save_dict[all_vars[idx].name] = all_vals[idx]
+
+      save_dict["_kwargs"] = np.array([json.dumps(self._kwargs)], dtype=np.string_)
+
+      np.savez(path, **save_dict)
+
+
+  @classmethod
+  def load_numpy(cls, model_dir):
+    """
+    Load from a portable numpy file.
+
+    Parameters
+    ----------
+    model_dir: str
+      Location of the model directory.
+
+    """
+    path = os.path.join(model_dir, "save_pickle.npz")
+    npo = np.load(path)
+
+    json_blob = npo["_kwargs"][0].decode('UTF-8')
+
+    kwargs = json.loads(json_blob)
+
+    obj = cls(**kwargs)
+    obj.build()
+
+
+    all_ops = []
+
+    g = obj._get_tf("Graph")
+
+    with g.as_default():
+      all_vars = tf.trainable_variables()
+      for k in npo.keys():
+
+        if k == "_kwargs":
+          continue
+
+        val = npo[k]
+        tensor = g.get_tensor_by_name(k)
+        all_ops.append(tf.assign(tensor, val))
+
+      obj.session.run(all_ops)
+
+    return obj

@@ -1,6 +1,8 @@
 import numpy as np
 import os
 
+import tensorflow as tf
+
 import deepchem as dc
 import pyanitools as pya
 import app
@@ -55,12 +57,12 @@ def load_roiterberg_ANI(mode="atomization"):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      'ani_gdb_s03.h5',
-      'ani_gdb_s04.h5',
-      'ani_gdb_s05.h5',
-      'ani_gdb_s06.h5',
-      'ani_gdb_s07.h5',
-      'ani_gdb_s08.h5'
+      # 'ani_gdb_s03.h5',
+      # 'ani_gdb_s04.h5',
+      # 'ani_gdb_s05.h5',
+      # 'ani_gdb_s06.h5',
+      # 'ani_gdb_s07.h5',
+      # 'ani_gdb_s08.h5'
   ]
 
   hdf5files = [os.path.join(base_dir, f) for f in hdf5files]
@@ -194,11 +196,11 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  model_dir = "/tmp/ani8.pkl"
+  model_dir = "/tmp/ani8.npz"
 
   if os.path.exists(model_dir):
     print("Restoring existing model...")
-    model = dc.models.ANIRegression.load_from_dir(model_dir=model_dir)
+    model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
   else:
     print("Fitting new model...")
 
@@ -219,7 +221,6 @@ if __name__ == "__main__":
 
     print("Total training set shape: ", train_dataset.get_shape())
 
-
     for transformer in transformers:
       train_dataset = transformer.transform(train_dataset)
       valid_dataset = transformer.transform(valid_dataset)
@@ -236,12 +237,16 @@ if __name__ == "__main__":
         model_dir=model_dir,
         mode="regression")
 
-    # For production, set nb_epoch to 100+
-    for i in range(10):
-      model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
+   #   # For production, set nb_epoch to 100+
+    for i in range(1):
+      model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+
+
+    # model.save_numpy(save_path)
+    # dc.models.ANIRegression.load_numpy(save_path, **kwargs)
 
       print("Saving model...")
-      model.save()
+      model.save_numpy()
       print("Done.")
 
     print("Evaluating model")
