@@ -311,6 +311,10 @@ class TestTensorGraph(unittest.TestCase):
     expected.append(2 * v2)
     tg.add_output(-c1)
     expected.append(-v1)
+    tg.add_output(c1 / c2)
+    expected.append(v1 / v2)
+    tg.add_output(c1 / 2)
+    expected.append(v1 / 2)
     for o, e in zip(tg.outputs, expected):
       value = tg.predict_on_batch(np.array([0]), outputs=o)
       assert np.array_equal(e, value)
