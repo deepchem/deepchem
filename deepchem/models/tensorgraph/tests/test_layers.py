@@ -28,7 +28,6 @@ from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.layers import L2Loss
 from deepchem.models.tensorgraph.layers import LSTMStep
-from deepchem.models.tensorgraph.layers import LayerSplitter
 from deepchem.models.tensorgraph.layers import Log
 from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import ReduceMean
