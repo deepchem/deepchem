@@ -46,7 +46,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
     self.max_atoms = max_atoms
     self.n_feat = n_feat
     self.layer_structures = layer_structures
-    
+
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
 
     self.build_graph()
@@ -109,6 +109,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
         feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
         yield feed_dict
 
+
 class ANIRegression(TensorGraph):
 
   def __init__(self,
@@ -133,13 +134,12 @@ class ANIRegression(TensorGraph):
     self.atom_number_cases = atom_number_cases
     super(ANIRegression, self).__init__(**kwargs)
 
-
     # (ytz): this is really dirty but needed for restoring models
     self._kwargs = {
-      "n_tasks": n_tasks,
-      "max_atoms": max_atoms,
-      "layer_structures": layer_structures,
-      "atom_number_cases": atom_number_cases
+        "n_tasks": n_tasks,
+        "max_atoms": max_atoms,
+        "layer_structures": layer_structures,
+        "atom_number_cases": atom_number_cases
     }
 
     self._kwargs.update(kwargs)
@@ -148,7 +148,7 @@ class ANIRegression(TensorGraph):
     self.grad = None
 
   def save(self):
-    self.grad = None # recompute grad on restore
+    self.grad = None  # recompute grad on restore
     super(ANIRegression, self).save()
 
   def build_grad(self):
@@ -215,10 +215,11 @@ class ANIRegression(TensorGraph):
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
     Z = np.zeros((self.max_atoms, 4))
-    Z[:X.shape[0], 1:X.shape[1]+1] = X
+    Z[:X.shape[0], 1:X.shape[1] + 1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
-    dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
+    dd = dc.data.NumpyDataset(
+        np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -246,7 +247,7 @@ class ANIRegression(TensorGraph):
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
     Z = np.zeros((self.max_atoms, 4))
-    Z[:X.shape[0], 1:X.shape[1]+1] = X
+    Z[:X.shape[0], 1:X.shape[1] + 1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     inp = np.array(X).reshape((1, self.max_atoms, 4))
@@ -260,7 +261,7 @@ class ANIRegression(TensorGraph):
         res[idx][1] = 0
         res[idx][2] = 0
 
-    return res.reshape((num_atoms*3,))
+    return res.reshape((num_atoms * 3,))
 
   def minimize_structure(self, X, atomic_nums, constraints=None):
     """
@@ -284,13 +285,13 @@ class ANIRegression(TensorGraph):
     num_atoms = atomic_nums.shape[0]
 
     res = scipy.optimize.minimize(
-      self.pred_one,
-      X,
-      args=(atomic_nums, constraints),
-      jac=self.grad_one,
-      method="BFGS",
-      tol=1e-6,
-      options={'disp': True})
+        self.pred_one,
+        X,
+        args=(atomic_nums, constraints),
+        jac=self.grad_one,
+        method="BFGS",
+        tol=1e-6,
+        options={'disp': True})
 
     return res.x.reshape((num_atoms, 3))
 
@@ -301,8 +302,7 @@ class ANIRegression(TensorGraph):
     self.atom_feats = Feature(shape=(None, self.max_atoms, 4))
 
     previous_layer = ANIFeat(
-      in_layers=self.atom_feats,
-      max_atoms=self.max_atoms)
+        in_layers=self.atom_feats, max_atoms=self.max_atoms)
 
     self.featurized = previous_layer
 
@@ -378,10 +378,10 @@ class ANIRegression(TensorGraph):
       for idx, _ in enumerate(all_vars):
         save_dict[all_vars[idx].name] = all_vals[idx]
 
-      save_dict["_kwargs"] = np.array([json.dumps(self._kwargs)], dtype=np.string_)
+      save_dict["_kwargs"] = np.array(
+          [json.dumps(self._kwargs)], dtype=np.string_)
 
       np.savez(path, **save_dict)
-
 
   @classmethod
   def load_numpy(cls, model_dir):
@@ -403,7 +403,6 @@ class ANIRegression(TensorGraph):
 
     obj = cls(**kwargs)
     obj.build()
-
 
     all_ops = []
 

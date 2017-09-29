@@ -7,6 +7,7 @@ import deepchem as dc
 import pyanitools as pya
 import app
 
+
 def convert_species_to_atomic_nums(s):
   PERIODIC_TABLE = {"H": 1, "C": 6, "N": 7, "O": 8}
   res = []
@@ -24,6 +25,7 @@ test_dir = os.path.join(data_dir, "test")
 fold_dir = os.path.join(data_dir, "fold")
 train_dir = os.path.join(fold_dir, "train")
 valid_dir = os.path.join(fold_dir, "valid")
+
 
 def load_roiterberg_ANI(mode="atomization"):
   """
@@ -141,7 +143,8 @@ def load_roiterberg_ANI(mode="atomization"):
 
           if len(X_cache) == shard_size:
 
-            yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
+            yield np.array(X_cache), np.array(y_cache), np.array(
+                w_cache), np.array(ids_cache)
 
             X_cache = []
             y_cache = []
@@ -160,10 +163,12 @@ def load_roiterberg_ANI(mode="atomization"):
 
     # flush once more at the end
     if len(X_cache) > 0:
-      yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
+      yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(
+          ids_cache)
 
   tasks = ["ani"]
-  dataset = dc.data.DiskDataset.create_dataset(shard_generator(), tasks=tasks, data_dir=all_dir)
+  dataset = dc.data.DiskDataset.create_dataset(
+      shard_generator(), tasks=tasks, data_dir=all_dir)
 
   print("Number of groups", np.amax(groups))
   splitter = dc.splits.RandomGroupSplitter(groups)
@@ -172,6 +177,7 @@ def load_roiterberg_ANI(mode="atomization"):
       dataset, train_dir=fold_dir, test_dir=test_dir, frac_train=.8)
 
   return train_dataset, test_dataset, groups
+
 
 def broadcast(dataset, metadata):
 
@@ -183,8 +189,8 @@ def broadcast(dataset, metadata):
 
   return new_metadata
 
+
 if __name__ == "__main__":
-  
 
   max_atoms = 23
   batch_size = 64  # CHANGED FROM 16
@@ -202,15 +208,15 @@ if __name__ == "__main__":
   else:
     print("Fitting new model...")
 
-    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(mode="relative")
+    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
+        mode="relative")
 
-    splitter = dc.splits.RandomGroupSplitter(broadcast(train_valid_dataset, all_groups))
+    splitter = dc.splits.RandomGroupSplitter(
+        broadcast(train_valid_dataset, all_groups))
 
     print("Performing 1-fold split...")
     train_dataset, valid_dataset = splitter.train_test_split(
-      train_valid_dataset,
-      train_dir=train_dir,
-      test_dir=valid_dir)
+        train_valid_dataset, train_dir=train_dir, test_dir=valid_dir)
 
     transformers = [
         dc.trans.NormalizationTransformer(
@@ -235,7 +241,7 @@ if __name__ == "__main__":
         model_dir=model_dir,
         mode="regression")
 
-   #   # For production, set nb_epoch to 100+
+    #   # For production, set nb_epoch to 100+
     for i in range(10):
       model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
 
@@ -258,9 +264,9 @@ if __name__ == "__main__":
     print(test_scores)
 
   coords = np.array([
-    [0.3, 0.4, 0.5],
-    [0.8, 0.2, 0.3],
-    [0.1, 0.3, 0.8],
+      [0.3, 0.4, 0.5],
+      [0.8, 0.2, 0.3],
+      [0.1, 0.3, 0.8],
   ])
 
   atomic_nums = np.array([1, 8, 1])

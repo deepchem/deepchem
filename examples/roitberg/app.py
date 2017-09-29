@@ -5,6 +5,7 @@ import flask
 
 webapp = Flask(__name__)
 
+
 @webapp.route('/potential', methods=["POST"])
 def potential():
   content = request.get_json(force=True)
@@ -15,6 +16,7 @@ def potential():
   a0 = X[:, :1]
   result = webapp.model.pred_one(x0, a0)
   return flask.jsonify({'y': result.tolist()[0]}), 200
+
 
 @webapp.route('/gradient', methods=["POST"])
 def index():
@@ -31,6 +33,7 @@ def index():
 
   return flask.jsonify({'grad': res.tolist()}), 200
 
+
 @webapp.route('/minimize', methods=["POST"])
 def minimize():
   content = request.get_json(force=True)
@@ -44,12 +47,9 @@ def minimize():
     constraints = content['constraints']
     print('setting constraints')
 
-
   num_atoms = X.shape[0]
   x0 = X[:, 1:]
   a0 = X[:, :1]
-
-
 
   res = webapp.model.minimize_structure(x0, a0, constraints)
   res = res.reshape((num_atoms, 3))

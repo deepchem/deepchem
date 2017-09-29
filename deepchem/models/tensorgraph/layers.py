@@ -3258,7 +3258,7 @@ class ANIFeat(Layer):
       coordinates = coordinates * 0.52917721092
 
     d = self.distance_matrix(coordinates, flags)
-    
+
     d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
     d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
 
@@ -3267,11 +3267,7 @@ class ANIFeat(Layer):
                                         coordinates)
 
     out_tensor = tf.concat(
-        [
-            tf.to_float(tf.expand_dims(atom_numbers, 2)),
-            radial_sym,
-            angular_sym
-        ],
+        [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
 
     if set_tensors:
@@ -3298,7 +3294,9 @@ class ANIFeat(Layer):
     tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
 
     # Calculate pairwise distance
-    d = tf.sqrt(tf.nn.relu(tf.reduce_sum(tf.squared_difference(tensor1,tensor2), axis=3)))
+    d = tf.sqrt(
+        tf.nn.relu(
+            tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)))
     # Masking for valid atom index
     d = d * flags
     return d
@@ -3357,7 +3355,6 @@ class ANIFeat(Layer):
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
     thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
     length = zeta.get_shape().as_list()[-1]
-
 
     # tf.stack issues again...
     vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
