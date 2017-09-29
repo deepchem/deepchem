@@ -1054,24 +1054,14 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     transformers = [
         dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset),
-        dc.trans.ANITransformer(
-            max_atoms=13,
-            atom_cases=[1, 6, 7, 8],
-            atomic_number_differentiated=False,
-            radial_cutoff=8.,
-            angular_cutoff=5.,
-            radial_length=8,
-            angular_length=4)
     ]
 
     for transformer in transformers:
       dataset = transformer.transform(dataset)
 
-    n_feat = transformers[-1].get_num_feats() - 1
     model = dc.models.ANIRegression(
         n_tasks,
         13,
-        n_feat,
         atom_number_cases=[1, 6, 7, 8],
         batch_size=batch_size,
         learning_rate=0.001,
