@@ -209,7 +209,7 @@ if __name__ == "__main__":
     print("Fitting new model...")
 
     train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
-        mode="relative")
+        mode="atomization")
 
     splitter = dc.splits.RandomGroupSplitter(
         broadcast(train_valid_dataset, all_groups))
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         atom_number_cases=atom_number_cases,
         batch_size=batch_size,
         learning_rate=0.001,
-        use_queue=False,
+        use_queue=True,
         model_dir=model_dir,
         mode="regression")
 
@@ -254,8 +254,8 @@ if __name__ == "__main__":
     valid_scores = model.evaluate(valid_dataset, metric, transformers)
     test_scores = model.evaluate(test_dataset, metric, transformers)
 
-    print("Train scores")
-    print(train_scores)
+    # print("Train scores")
+    # print(train_scores)
 
     print("Validation scores")
     print(valid_scores)
