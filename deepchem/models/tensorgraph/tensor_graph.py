@@ -198,6 +198,8 @@ class TensorGraph(Model):
             args=(self, feed_dict_generator, self._get_tf("Graph"),
                   self.session, n_enqueued, final_sample))
         enqueue_thread.start()
+      start_time = time.time()
+      start_step = self.global_step
       for feed_dict in create_feed_dict():
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
@@ -225,13 +227,15 @@ class TensorGraph(Model):
         if self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          avg_speed = ((self.global_step-start_step)*self.batch_size/(time.time()-start_time))*60
+          print('Ending global_step: %d Average loss: %g, Samples Per Minute: %g' % (self.global_step,
+                                                          avg_loss, avg_speed))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
-        avg_loss = float(avg_loss) / n_averaged_batches
-        print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                          avg_loss))
+          avg_loss = float(avg_loss) / n_averaged_batches
+          avg_speed = ((self.global_step-start_step)*self.batch_size/(time.time()-start_time))*60
+          print('Ending global_step: %d Average loss: %g, Samples Per Minute: %g' % (self.global_step,
+                                                          avg_loss, avg_speed))
       saver.save(self.session, self.save_file, global_step=self.global_step)
       time2 = time.time()
       print("TIMING: model fitting took %0.3f s" % (time2 - time1))
