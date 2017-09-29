@@ -12,7 +12,7 @@ import copy
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, BatchNorm, WeightedError, Dropout, BatchNormalization, \
-  Conv1D, MaxPool1D, Squeeze, Stack
+  Conv1D, MaxPool1D, Squeeze, Stack, Highway
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
@@ -142,8 +142,9 @@ class TextCNNTensorGraph(TensorGraph):
     concat_outputs = Concat(axis=2, in_layers=self.pooled_outputs)
     outputs = Squeeze(squeeze_dims=1, in_layers=concat_outputs)
     #HIGHWAY LAYER
-    highway = Highway(in_layers=[outputs])
-    self.gather = Dropout(dropout_prob=self.dropout, in_layers=[highway])
+    dropout = Dropout(dropout_prob=self.dropout, in_layers=[outputs])
+    dense = Dense(out_channels=200, activation_fn=tf.nn.relu, in_layers=[dropout])
+    self.gather = Highway(in_layers=[dense])
 
     costs = []
     self.labels_fd = []
@@ -216,7 +217,7 @@ class TextCNNTensorGraph(TensorGraph):
     while i < smiles_len:
       if smiles[i:i+1] == ' ':
         i = i + 1
-      if smiles[i:i+2] in keys:
+      elif smiles[i:i+2] in keys:
         seq.append(self.char_dict[smiles[i:i+2]])
         i = i + 2
       elif smiles[i:i+1] in keys:

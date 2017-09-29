@@ -395,6 +395,53 @@ class Dense(Layer):
       return self._shared_with._get_scope_name()
 
 
+class Highway(Layer):
+
+  def __init__(
+      self,
+      activation_fn=tf.nn.relu,
+      biases_initializer=tf.zeros_initializer,
+      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
+      **kwargs):
+    """Create a highway layer. https://arxiv.org/pdf/1505.00387.pdf
+
+    Parameters
+    ----------
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
+    """
+    super(Highway, self).__init__(**kwargs)
+    self.activation_fn = activation_fn
+    self.biases_initializer = biases_initializer
+    self.weights_initializer = weights_initializer
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent = inputs[0]
+    shape = parent.get_shape().as_list()[1]
+    dense1 = tf.contrib.layers.fully_connected(parent,
+                                               num_outputs=shape,
+                                               activation_fn=self.activation_fn,
+                                               biases_initializer=self.biases_initializer(),
+                                               weights_initializer=self.weights_initializer(),
+                                               trainable=True)
+    dense2 = tf.contrib.layers.fully_connected(parent,
+                                               num_outputs=shape,
+                                               activation_fn=tf.nn.sigmoid,
+                                               biases_initializer=tf.constant_initializer(-1),
+                                               weights_initializer=self.weights_initializer(),
+                                               trainable=True)
+    out_tensor = tf.multiply(dense1, dense2) + tf.multiply(parent, 1-dense2)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Flatten(Layer):
   """Flatten every dimension except the first"""
 
