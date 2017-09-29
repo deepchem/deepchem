@@ -117,7 +117,7 @@ class Layer(object):
 
   def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
-    Collects data from self.out_tensor by default but can be changed by setting 
+    Collects data from self.out_tensor by default but can be changed by setting
     self.tb_input to another tensor in create_tensor
 
 
@@ -1375,6 +1375,36 @@ class Conv3D(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+class MaxPool1D(Layer):
+
+  def __init__(self,
+               window_shape=2,
+               strides=1,
+               padding="SAME",
+               **kwargs):
+    self.window_shape = window_shape
+    self.strides = strides
+    self.padding = padding
+    self.pooling_type = "MAX"
+    super(MaxPool1D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.pool(in_tensor,
+                            window_shape=[self.window_shape],
+                            pooling_type=self.pooling_type,
+                            padding=self.padding,
+                            strides=[self.strides])
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 class MaxPool2D(Layer):
 
@@ -1724,14 +1754,14 @@ class LSTMStep(Layer):
       Dimensionality of output vectors.
     input_dim: int
       Dimensionality of input vectors.
-    init_fn: object 
-      TensorFlow initialization to use for W. 
-    inner_init_fn: object 
-      TensorFlow initialization to use for U. 
-    activation_fn: object 
-      TensorFlow activation to use for output. 
-    inner_activation_fn: object 
-      TensorFlow activation to use for inner steps. 
+    init_fn: object
+      TensorFlow initialization to use for W.
+    inner_init_fn: object
+      TensorFlow initialization to use for U.
+    activation_fn: object
+      TensorFlow activation to use for output.
+    inner_activation_fn: object
+      TensorFlow activation to use for inner steps.
     """
 
     super(LSTMStep, self).__init__(**kwargs)
@@ -1787,7 +1817,7 @@ class LSTMStep(Layer):
     Returns
     -------
     list
-      Returns h, [h + c] 
+      Returns h, [h + c]
     """
     activation = self.activation
     inner_activation = self.inner_activation
@@ -1826,7 +1856,7 @@ def _cosine_dist(x, y):
   x: tf.Tensor
     Input Tensor
   y: tf.Tensor
-    Input Tensor 
+    Input Tensor
   """
   denom = (
       model_ops.sqrt(model_ops.sum(tf.square(x)) * model_ops.sum(tf.square(y)))
@@ -2911,7 +2941,7 @@ class AtomicConvolution(Layer):
 def AlphaShare(in_layers=None, **kwargs):
   """
   This method should be used when constructing AlphaShare layers from Sluice Networks
-  
+
   Parameters
   ----------
   in_layers: list of Layers or tensors
@@ -2950,7 +2980,7 @@ class AlphaShareLayer(Layer):
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
-    out_tensor should be fed into LayerSplitter 
+    out_tensor should be fed into LayerSplitter
   Distance matrix.
   """
 
