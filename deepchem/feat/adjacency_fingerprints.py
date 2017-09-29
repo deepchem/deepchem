@@ -134,10 +134,12 @@ def get_atom_adj_matrices(mol,
   return (adj_matrix.astype(np.uint8), atom_matrix.astype(np.uint8))
 
 
-def featurize_mol(mol, n_atom_types, max_n_atoms, max_valence):
-
+def featurize_mol(mol, n_atom_types, max_n_atoms, max_valence,
+                  num_atoms_feature):
   adj_matrix, atom_matrix = get_atom_adj_matrices(mol, n_atom_types,
                                                   max_n_atoms, max_valence)
+  if num_atoms_feature:
+    return ((adj_matrix, atom_matrix, mol.GetNumAtoms()))
   return ((adj_matrix, atom_matrix))
 
 
@@ -147,11 +149,13 @@ class AdjacencyFingerprint(Featurizer):
                n_atom_types=23,
                max_n_atoms=200,
                add_hydrogens=False,
-               max_valence=4):
+               max_valence=4,
+               num_atoms_feature=False):
     self.n_atom_types = n_atom_types
     self.max_n_atoms = max_n_atoms
     self.add_hydrogens = add_hydrogens
     self.max_valence = max_valence
+    self.num_atoms_feature = num_atoms_feature
 
   def featurize(self, rdkit_mols):
     featurized_mols = np.empty((len(rdkit_mols)), dtype=object)
@@ -160,6 +164,6 @@ class AdjacencyFingerprint(Featurizer):
       if self.add_hydrogens:
         mol = Chem.AddHs(mol)
       featurized_mol = featurize_mol(mol, self.n_atom_types, self.max_n_atoms,
-                                     self.max_valence)
+                                     self.max_valence, self.num_atoms_feature)
       featurized_mols[idx] = featurized_mol
     return (featurized_mols)
