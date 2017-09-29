@@ -16,7 +16,8 @@ def convert_species_to_atomic_nums(s):
 
 
 # replace with your own scratch directory
-data_dir = "/media/yutong/datablob/deepchem"
+data_dir = "/media/yutong/datablob/datasets"
+model_dir = "/media/yutong/datablob/models"
 
 all_dir = os.path.join(data_dir, "all")
 test_dir = os.path.join(data_dir, "test")
@@ -57,10 +58,10 @@ def load_roiterberg_ANI(mode="atomization"):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      # 'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
-      # 'ani_gdb_s05.h5',
-      # 'ani_gdb_s06.h5',
+      'ani_gdb_s03.h5',
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
       # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
@@ -111,21 +112,20 @@ def load_roiterberg_ANI(mode="atomization"):
           offset = np.amin(E)
         elif mode == "atomization":
 
-          # approximation via B3LYP/6-31G* in Jaguar
-          # to shrink the dynamic range         
-          atomizationMapInHartrees = {
+          # self-interaction energies taken from
+          # https://github.com/isayev/ANI1_dataset README
+          atomizationEnergies = {
               0: 0,
-              1: -0.50027278266,
-              6: -37.77568079030,
-              7: -54.47752723207,
-              8: -74.95668301867,
-              16: -398.04142581461
+              1: -0.500607632585,
+              6: -37.8302333826,
+              7: -54.5680045287,
+              8: -75.0362229210
           }
 
           offset = 0
 
           for z in nonpadded:
-            offset -= atomizationMapInHartrees[z]
+            offset -= atomizationEnergies[z]
         elif mode == "absolute":
           offset = 0
         else:
@@ -196,8 +196,6 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  model_dir = "/tmp/ani8.npz"
-
   if os.path.exists(model_dir):
     print("Restoring existing model...")
     model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
@@ -238,12 +236,8 @@ if __name__ == "__main__":
         mode="regression")
 
    #   # For production, set nb_epoch to 100+
-    for i in range(1):
+    for i in range(10):
       model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
-
-
-    # model.save_numpy(save_path)
-    # dc.models.ANIRegression.load_numpy(save_path, **kwargs)
 
       print("Saving model...")
       model.save_numpy()

@@ -283,21 +283,6 @@ class ANIRegression(TensorGraph):
     """
     num_atoms = atomic_nums.shape[0]
 
-    # minimizer_kwargs = {
-    #   "jac": self.grad_one,
-    #   "args": (atomic_nums,),
-    #   "method": "CG",
-    #   "options": {"disp": True},
-    # }
-
-    # res = scipy.optimize.basinhopping(
-    #   self.pred_one,
-    #   X,
-    #   niter=75,
-    #   T=0.015, # ~10kcal/mol
-    #   stepsize=0.17,
-    #   minimizer_kwargs=minimizer_kwargs)
-
     res = scipy.optimize.minimize(
       self.pred_one,
       X,
