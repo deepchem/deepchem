@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import random
 import string
 from collections import Sequence
@@ -7,6 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 from deepchem.nn import model_ops, initializations, regularizers, activations
+import math
 
 
 class Layer(object):
@@ -3029,10 +3031,9 @@ def AlphaShare(in_layers=None, **kwargs):
   output_layers = []
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
   num_outputs = len(in_layers)
-  for num_layer in range(0, num_outputs):
-    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
-    output_layers.append(ls)
-  return output_layers
+  return [
+      PassThroughLayer(x, in_layers=alpha_share) for x in range(num_outputs)
+  ]
 
 
 class AlphaShareLayer(Layer):
@@ -3081,32 +3082,31 @@ class AlphaShareLayer(Layer):
     # concatenate subspaces, reshape to size of original input, then stack
     # such that out_tensor has shape (2,?,original_cols)
     count = 0
-    out_tensor = []
+    self.out_tensors = []
     tmp_tensor = []
     for row in range(n_alphas):
       tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
-        out_tensor.append(tf.concat(tmp_tensor, 1))
+        self.out_tensors.append(tf.concat(tmp_tensor, 1))
         tmp_tensor = []
         count = 0
 
-    out_tensor = tf.stack(out_tensor)
-
     self.alphas = alphas
     if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+      self.out_tensor = self.out_tensors[0]
+    return self.out_tensors
 
   def none_tensors(self):
-    num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
+    num_outputs, out_tensor, out_tensors, alphas = self.num_outputs, self.out_tensor, self.out_tensors, self.alphas
     self.num_outputs = None
     self.out_tensor = None
+    self.out_tensors = None
     self.alphas = None
-    return num_outputs, out_tensor, alphas
+    return num_outputs, out_tensor, self.out_tensors, alphas
 
   def set_tensors(self, tensor):
-    self.num_outputs, self.out_tensor, self.alphas = tensor
+    self.num_outputs, self.out_tensor, self.out_tensors, self.alphas = tensor
 
 
 class LayerSplitter(Layer):
@@ -3232,3 +3232,210 @@ class PassThroughLayer(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     self.out_tensor = self.in_layers[0].out_tensors[self.output_num]
+
+
+class GraphEmbedPoolLayer(Layer):
+  """
+  GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+
+  This is a learnable pool operation
+  It constructs a new adjacency matrix for a graph of specified number of nodes.
+
+  This differs from our other pool opertions which set vertices to a function value
+  without altering the adjacency matrix.
+
+  $V_{emb} = SpatialGraphCNN({V_{in}})$\\
+  $V_{out} = \sigma(V_{emb})^{T} * V_{in}$
+  $A_{out} = V_{emb}^{T} * A_{in} * V_{emb}$
+
+  """
+
+  def __init__(self, num_vertices, **kwargs):
+    self.num_vertices = num_vertices
+    super(GraphEmbedPoolLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_filters: int
+      Number of filters to have in the output
+
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
+
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
+    """
+    in_tensors = self._get_input_tensors(in_layers)
+    if len(in_tensors) == 3:
+      V, A, mask = in_tensors
+    else:
+      V, A = in_tensors
+      mask = None
+    factors = self.embedding_factors(
+        V, self.num_vertices, name='%s_Factors' % self.name)
+
+    if mask is not None:
+      factors = tf.multiply(factors, mask)
+    factors = self.softmax_factors(factors)
+
+    result = tf.matmul(factors, V, transpose_a=True)
+
+    result_A = tf.reshape(A, (tf.shape(A)[0], -1, tf.shape(A)[-1]))
+    result_A = tf.matmul(result_A, factors)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
+    result_A = tf.matmul(factors, result_A, transpose_a=True)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
+                                     A.get_shape()[2].value, self.num_vertices))
+    # We do not need the mask because every graph has self.num_vertices vertices now
+    if set_tensors:
+      self.out_tensor = result[0]
+    self.out_tensors = [result, result_A]
+    return result, result_A
+
+  def embedding_factors(self, V, no_filters, name="default"):
+    no_features = V.get_shape()[-1].value
+    W = tf.get_variable(
+        '%s_weights' % name, [no_features, no_filters],
+        initializer=tf.truncated_normal_initializer(
+            stddev=1.0 / math.sqrt(no_features)),
+        dtype=tf.float32)
+    b = tf.get_variable(
+        '%s_bias' % self.name, [no_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+    V_reshape = tf.reshape(V, (-1, no_features))
+    s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
+    s = tf.concat([s, tf.stack([no_filters])], 0)
+    result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+    return result
+
+  def softmax_factors(self, V, axis=1, name=None):
+    max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+    exp = tf.exp(tf.subtract(V, max_value))
+    prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+    return prob
+
+  def none_tensors(self):
+    out_tensors, out_tensor = self.out_tensors, self.out_tensor
+    self.out_tensors = None
+    self.out_tensor = None
+    return out_tensors, out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensors, self.out_tensor = tensor
+
+
+def GraphCNNPool(num_vertices, **kwargs):
+  gcnnpool_layer = GraphEmbedPoolLayer(num_vertices, **kwargs)
+  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(2)]
+
+
+class GraphCNN(Layer):
+  """
+  GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+
+  Spatial-domain convolutions can be defined as
+  H = h_0I + h_1A + h_2A^2 + ... + hkAk, H ∈ R**(N×N)
+
+  We approximate it by
+  H ≈ h_0I + h_1A
+
+  We can define a convolution as applying multiple these linear filters
+  over edges of different types (think up, down, left, right, diagonal in images)
+  Where each edge type has its own adjacency matrix
+  H ≈ h_0I + h_1A_1 + h_2A_2 + . . . h_(L−1)A_(L−1)
+
+  V_out = \sum_{c=1}^{C} H^{c} V^{c} + b
+  """
+
+  def __init__(self, num_filters, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_filters: int
+      Number of filters to have in the output
+
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
+
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
+    """
+    self.num_filters = num_filters
+    super(GraphCNN, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) == 3:
+      V, A, mask = inputs
+    else:
+      V, A = inputs
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+    W = tf.get_variable(
+        '%s_weights' % self.name, [no_features * no_A, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+    W_I = tf.get_variable(
+        '%s_weights_I' % self.name, [no_features, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+
+    b = tf.get_variable(
+        '%s_bias' % self.name, [self.num_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+
+    n = self.graphConvolution(V, A)
+    A_shape = tf.shape(A)
+    n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
+    result = self.batch_mat_mult(n, W) + self.batch_mat_mult(V, W_I) + b
+    if set_tensors:
+      self.out_tensor = result
+    return result
+
+  def graphConvolution(self, V, A):
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
+    n = tf.matmul(A_reshape, V)
+    return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
+
+  def batch_mat_mult(self, A, B):
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, [-1, A_shape[-1]])
+
+    # So the Tensor has known dimensions
+    if B.get_shape()[1] == None:
+      axis_2 = -1
+    else:
+      axis_2 = B.get_shape()[1]
+    result = tf.matmul(A_reshape, B)
+    result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+    return result

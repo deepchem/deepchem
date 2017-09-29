@@ -5,7 +5,7 @@ from tensorflow.python.framework import test_util
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D
+from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D, GraphCNN, GraphEmbedPoolLayer
 from deepchem.models.tensorgraph.layers import AlphaShareLayer
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import BatchNorm
@@ -529,7 +529,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert support_out.shape == (n_support, n_feat)
 
   # TODO(rbharath): This test should pass. Fix it!
-  #def test_graph_pool(self):
+  # def test_graph_pool(self):
   #  """Test that GraphPool can be invoked."""
   #  out_channels = 2
   #  n_atoms = 4 # In CCC and C, there are 4 atoms
@@ -709,21 +709,6 @@ class TestLayers(test_util.TensorFlowTestCase):
       assert test_1.shape == out_tensor.shape
       assert test_2.shape == out_tensor.shape
 
-  def test_layer_splitter(self):
-    """Test Layer Splitter"""
-    input1 = np.arange(10).reshape(2, 5)
-    input2 = np.arange(10, 20).reshape(2, 5)
-
-    with self.test_session() as sess:
-      input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
-      input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
-      input_tensor = tf.stack([input1, input2])
-      output1 = LayerSplitter(0)(input_tensor)
-      output2 = LayerSplitter(1)(input_tensor)
-      sess.run(tf.global_variables_initializer())
-      sess.run(tf.assert_equal(input1, output1.eval()))
-      sess.run(tf.assert_equal(input2, output2.eval()))
-
   def test_sluice_loss(self):
     """Test the sluice loss function"""
     input1 = np.ones((3, 4))
@@ -734,3 +719,24 @@ class TestLayers(test_util.TensorFlowTestCase):
       output_tensor = SluiceLoss()(input1, input2)
       sess.run(tf.global_variables_initializer())
       assert output_tensor.eval() == 40.0
+
+  def test_graphcnn(self):
+    """ Test GraphCNN Layer From https://arxiv.org/abs/1703.00792"""
+    V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+    adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+    with self.test_session() as sess:
+      out_tensor = GraphCNN(num_filters=6)(V, adjs)
+      sess.run(tf.global_variables_initializer())
+      result = out_tensor.eval()
+      assert result.shape == (10, 100, 6)
+
+  def test_graphcnnpool(self):
+    """ Test GraphCNNPool Layer From https://arxiv.org/abs/1703.00792"""
+    V = np.random.uniform(size=(10, 100, 50)).astype(np.float32)
+    adjs = np.random.uniform(size=(10, 100, 5, 100)).astype(np.float32)
+    with self.test_session() as sess:
+      vertex_props, adjs = GraphEmbedPoolLayer(num_vertices=6)(V, adjs)
+      sess.run(tf.global_variables_initializer())
+      vertex_props, adjs = vertex_props.eval(), adjs.eval()
+      assert vertex_props.shape == (10, 6, 50)
+      assert adjs.shape == (10, 6, 5, 6)
