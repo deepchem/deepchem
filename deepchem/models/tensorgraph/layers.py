@@ -3183,9 +3183,10 @@ class BetaShare(Layer):
 class LayerSplitter(Layer):
   """
   Layer which takes a tensor from in_tensor[0].out_tensors at an index
-  This is a special layer which only makes sense in the context of TensorGraph.
-  It takes a single input layer which sets the class variable self.out_tensors
-  to a list of tensors.
+  Only layers which need to output multiple layers set and use the variable
+  self.out_tensors.
+  This is a utility for those special layers which set self.out_tensors
+  to return a layer wrapping a specific tensor in in_layers[0].out_tensors
   """
 
   def __init__(self, output_num, **kwargs):

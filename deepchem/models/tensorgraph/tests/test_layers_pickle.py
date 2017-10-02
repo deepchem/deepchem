@@ -2,8 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from deepchem.models import TensorGraph
-from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
-  WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
+from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
   CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
