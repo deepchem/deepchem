@@ -13,6 +13,7 @@ install:
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
 - conda config --add channels http://conda.binstar.org/omnia
+- export tensorflow_channel=intel
 - bash scripts/install_deepchem_conda.sh deepchem
 - source activate deepchem
 - pip install yapf==0.17.0
