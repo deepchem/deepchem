@@ -3287,20 +3287,14 @@ class ANIFeat(Layer):
     # d = tf.nn.relu(d) # fix numerical instabilities about diagonal
     # d = tf.sqrt(d) # does this have negative elements? may be unstable for diagonals
 
-    # d = d * flags
-
     max_atoms = self.max_atoms
     tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
     tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
 
     # Calculate pairwise distance
-    # d = tf.sqrt(
-        # tf.nn.relu(
-            # tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)))
     d = tf.sqrt(
-            tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)+1e-7)
-    # d = tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)
-    # Masking for valid atom index
+        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
+
     d = d * flags
     return d
 
