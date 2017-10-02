@@ -371,8 +371,8 @@ class TestTensorGraph(unittest.TestCase):
     tg.add_output(var2)
     loss = (var1 - 1) * (var1 - 1) + (var2 - 1) * (var2 - 1) + features
     tg.set_loss(loss)
-    subloss1 = var1 * var1
-    subloss2 = var1 * var1 + var2 * var2
+    subloss1 = var1 * var1 + features
+    subloss2 = var1 * var1 + var2 * var2 + features
     submodel1 = tg.create_submodel(loss=subloss1)
     submodel2 = tg.create_submodel(layers=[var2], loss=subloss2)
     data = np.zeros((1, 1))
