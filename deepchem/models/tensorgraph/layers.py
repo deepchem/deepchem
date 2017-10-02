@@ -1,6 +1,4 @@
 # -*- coding: UTF-8 -*-
-from __future__ import division
-
 import random
 import string
 from collections import Sequence
@@ -271,6 +269,11 @@ class Layer(object):
 
   def __neg__(self):
     return Multiply([self, Constant(-1.0)])
+
+  def __div__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Divide([self, other])
 
   def __truediv__(self, other):
     if not isinstance(other, Layer):

@@ -149,7 +149,6 @@ class TestANIRegression(unittest.TestCase):
     assert self.model.layer_structures == restored_model.layer_structures
     assert self.model.atom_number_cases == restored_model.atom_number_cases
     assert self.model.batch_size == restored_model.batch_size
-    assert self.model.learning_rate == restored_model.learning_rate
     assert self.model.use_queue == restored_model.use_queue
 
     assert expected == predicted
