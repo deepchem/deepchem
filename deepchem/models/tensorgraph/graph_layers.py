@@ -16,7 +16,7 @@ from deepchem.nn import activations
 from deepchem.nn import initializations
 from deepchem.nn import model_ops
 
-from deepchem.models.tensorgraph.layers import Layer, PassThroughLayer
+from deepchem.models.tensorgraph.layers import Layer, LayerSplitter
 from deepchem.models.tensorgraph.layers import convert_to_layers
 
 
@@ -197,7 +197,7 @@ class WeaveLayer(Layer):
 
 def WeaveLayerFactory(**kwargs):
   weaveLayer = WeaveLayer(**kwargs)
-  return [PassThroughLayer(i, in_layers=weaveLayer) for i in range(2)]
+  return [LayerSplitter(i, in_layers=weaveLayer) for i in range(2)]
 
 
 class WeaveGather(Layer):
