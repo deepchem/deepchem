@@ -3294,9 +3294,12 @@ class ANIFeat(Layer):
     tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
 
     # Calculate pairwise distance
+    # d = tf.sqrt(
+        # tf.nn.relu(
+            # tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)))
     d = tf.sqrt(
-        tf.nn.relu(
-            tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)))
+            tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)+1e-7)
+    # d = tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3)
     # Masking for valid atom index
     d = d * flags
     return d

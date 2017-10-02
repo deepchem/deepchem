@@ -13,14 +13,24 @@ class TestANIRegression(unittest.TestCase):
 
   def setUp(self):
 
-    max_atoms = 3
+    max_atoms = 4
 
-    X = np.array([[1, 5.0, 3.2, 1.1], [6, 1.0, 3.4, -1.1], [1, 2.3, 3.4, 2.2]])
+    X = np.array([
+      [
+        [1, 5.0, 3.2, 1.1],
+        [6, 1.0, 3.4, -1.1],
+        [1, 2.3, 3.4, 2.2],
+        [0, 0,   0,   0],
+      ],
+      [
+        [8, 2.0, -1.4, -1.1],
+        [7, 6.3, 2.4, 3.2],
+        [0, 0,   0,   0],
+        [0, 0,   0,   0],
+      ]
+      ])
 
-    X = X.reshape((1, X.shape[0], X.shape[1]))
-
-    y = np.array([2.0])
-    y = y.reshape((1, 1))
+    y = np.array([2.0, 1.1])
 
     layer_structures = [128, 128, 64]
     atom_number_cases = [1, 6, 7, 8]
@@ -32,7 +42,7 @@ class TestANIRegression(unittest.TestCase):
         "max_atoms": max_atoms,
         "layer_structures": layer_structures,
         "atom_number_cases": atom_number_cases,
-        "batch_size": 1,
+        "batch_size": 2,
         "learning_rate": 0.001,
         "use_queue": False,
         "mode": "regression",
