@@ -28,7 +28,6 @@ from deepchem.models.tensorgraph.layers import InteratomicL2Distances
 from deepchem.models.tensorgraph.layers import IterRefLSTMEmbedding
 from deepchem.models.tensorgraph.layers import L2Loss
 from deepchem.models.tensorgraph.layers import LSTMStep
-from deepchem.models.tensorgraph.layers import LayerSplitter
 from deepchem.models.tensorgraph.layers import Log
 from deepchem.models.tensorgraph.layers import Multiply
 from deepchem.models.tensorgraph.layers import ReduceMean
@@ -708,21 +707,6 @@ class TestLayers(test_util.TensorFlowTestCase):
       out_tensor.eval()
       assert test_1.shape == out_tensor.shape
       assert test_2.shape == out_tensor.shape
-
-  def test_layer_splitter(self):
-    """Test Layer Splitter"""
-    input1 = np.arange(10).reshape(2, 5)
-    input2 = np.arange(10, 20).reshape(2, 5)
-
-    with self.test_session() as sess:
-      input1 = tf.convert_to_tensor(input1, dtype=tf.float32)
-      input2 = tf.convert_to_tensor(input2, dtype=tf.float32)
-      input_tensor = tf.stack([input1, input2])
-      output1 = LayerSplitter(0)(input_tensor)
-      output2 = LayerSplitter(1)(input_tensor)
-      sess.run(tf.global_variables_initializer())
-      sess.run(tf.assert_equal(input1, output1.eval()))
-      sess.run(tf.assert_equal(input2, output2.eval()))
 
   def test_sluice_loss(self):
     """Test the sluice loss function"""

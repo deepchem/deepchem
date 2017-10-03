@@ -16,46 +16,14 @@ from deepchem.nn import activations
 from deepchem.nn import initializations
 from deepchem.nn import model_ops
 
-from deepchem.models.tensorgraph.layers import Layer
+from deepchem.models.tensorgraph.layers import Layer, LayerSplitter
 from deepchem.models.tensorgraph.layers import convert_to_layers
-
-
-class Combine_AP(Layer):
-
-  def __init__(self, **kwargs):
-    super(Combine_AP, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-    A = in_layers[0].out_tensor
-    P = in_layers[1].out_tensor
-    out_tensor = [A, P]
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
-
-
-class Separate_AP(Layer):
-
-  def __init__(self, **kwargs):
-    super(Separate_AP, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    if in_layers is None:
-      in_layers = self.in_layers
-    in_layers = convert_to_layers(in_layers)
-    out_tensor = in_layers[0].out_tensor[0]
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
 
 
 class WeaveLayer(Layer):
   """ TensorGraph style implementation
     The same as deepchem.nn.WeaveLayer
-
+    Note: Use WeaveLayerFactory to construct this layer
     """
 
   def __init__(self,
@@ -167,11 +135,11 @@ class WeaveLayer(Layer):
 
     self.build()
 
-    atom_features = in_layers[0].out_tensor[0]
-    pair_features = in_layers[0].out_tensor[1]
+    atom_features = in_layers[0].out_tensor
+    pair_features = in_layers[1].out_tensor
 
-    pair_split = in_layers[1].out_tensor
-    atom_to_pair = in_layers[2].out_tensor
+    pair_split = in_layers[2].out_tensor
+    atom_to_pair = in_layers[3].out_tensor
 
     AA = tf.matmul(atom_features, self.W_AA) + self.b_AA
     AA = self.activation(AA)
@@ -201,11 +169,11 @@ class WeaveLayer(Layer):
     else:
       P = pair_features
 
-    out_tensor = [A, P]
+    self.out_tensors = [A, P]
     if set_tensors:
       self.variables = self.trainable_weights
-      self.out_tensor = out_tensor
-    return out_tensor
+      self.out_tensor = A
+    return self.out_tensors
 
   def none_tensors(self):
     W_AP, b_AP, W_PP, W_PP, W_P, b_P = self.W_AP, self.b_AP, self.W_PP, self.W_PP, self.W_P, self.b_P
@@ -214,17 +182,22 @@ class WeaveLayer(Layer):
     W_AA, b_AA, W_PA, b_PA, W_A, b_A = self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A
     self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A = None, None, None, None, None, None
 
-    out_tensor, trainable_weights, variables = self.out_tensor, self.trainable_weights, self.variables
-    self.out_tensor, self.trainable_weights, self.variables, self.activation, self.init = None, [], [], None, None
+    out_tensor, out_tensors, trainable_weights, variables = self.out_tensor, self.out_tensors, self.trainable_weights, self.variables
+    self.out_tensor, self.out_tensors, self.trainable_weights, self.variables, self.activation, self.init = None, [], [], [], None, None
 
     return W_AP, b_AP, W_PP, W_PP, W_P, b_P, \
            W_AA, b_AA, W_PA, b_PA, W_A, b_A, \
-           out_tensor, trainable_weights, variables
+           out_tensor, out_tensors, trainable_weights, variables
 
   def set_tensors(self, tensor):
     self.W_AP, self.b_AP, self.W_PP, self.W_PP, self.W_P, self.b_P, \
     self.W_AA, self.b_AA, self.W_PA, self.b_PA, self.W_A, self.b_A, \
-    self.out_tensor, self.trainable_weights, self.variables = tensor
+    self.out_tensor, self.out_tensors, self.trainable_weights, self.variables = tensor
+
+
+def WeaveLayerFactory(**kwargs):
+  weaveLayer = WeaveLayer(**kwargs)
+  return [LayerSplitter(i, in_layers=weaveLayer) for i in range(2)]
 
 
 class WeaveGather(Layer):
@@ -891,7 +864,7 @@ class MessagePassing(Layer):
     if self.update_fn == 'gru':
       self.update_function = GatedRecurrentUnit(self.n_hidden)
     self.trainable_weights = self.message_function.trainable_weights + \
-        self.update_function.trainable_weights
+                             self.update_function.trainable_weights
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Perform T steps of message passing """
@@ -996,9 +969,9 @@ class GatedRecurrentUnit(object):
     r = tf.nn.sigmoid(tf.matmul(messages, self.trainable_weights[1]) + \
                       tf.matmul(inputs, self.trainable_weights[4]) + \
                       self.trainable_weights[7])
-    h = (1-z) * tf.nn.tanh(tf.matmul(messages, self.trainable_weights[2]) + \
-                           tf.matmul(inputs * r, self.trainable_weights[5]) + \
-                           self.trainable_weights[8]) + z * inputs
+    h = (1 - z) * tf.nn.tanh(tf.matmul(messages, self.trainable_weights[2]) + \
+                             tf.matmul(inputs * r, self.trainable_weights[5]) + \
+                             self.trainable_weights[8]) + z * inputs
     return h
 
   def none_tensors(self):

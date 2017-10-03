@@ -3089,10 +3089,7 @@ def AlphaShare(in_layers=None, **kwargs):
   output_layers = []
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
   num_outputs = len(in_layers)
-  for num_layer in range(0, num_outputs):
-    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
-    output_layers.append(ls)
-  return output_layers
+  return [LayerSplitter(x, in_layers=alpha_share) for x in range(num_outputs)]
 
 
 class AlphaShareLayer(Layer):
@@ -3110,7 +3107,6 @@ class AlphaShareLayer(Layer):
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
-    out_tensor should be fed into LayerSplitter
   Distance matrix.
   """
 
@@ -3141,63 +3137,31 @@ class AlphaShareLayer(Layer):
     # concatenate subspaces, reshape to size of original input, then stack
     # such that out_tensor has shape (2,?,original_cols)
     count = 0
-    out_tensor = []
+    self.out_tensors = []
     tmp_tensor = []
     for row in range(n_alphas):
       tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
-        out_tensor.append(tf.concat(tmp_tensor, 1))
+        self.out_tensors.append(tf.concat(tmp_tensor, 1))
         tmp_tensor = []
         count = 0
 
-    out_tensor = tf.stack(out_tensor)
-
     self.alphas = alphas
     if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+      self.out_tensor = self.out_tensors[0]
+    return self.out_tensors
 
   def none_tensors(self):
-    num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
+    num_outputs, out_tensor, out_tensors, alphas = self.num_outputs, self.out_tensor, self.out_tensors, self.alphas
     self.num_outputs = None
     self.out_tensor = None
+    self.out_tensors = None
     self.alphas = None
-    return num_outputs, out_tensor, alphas
+    return num_outputs, out_tensor, self.out_tensors, alphas
 
   def set_tensors(self, tensor):
-    self.num_outputs, self.out_tensor, self.alphas = tensor
-
-
-class LayerSplitter(Layer):
-  """
-  Returns the nth output of a layer
-  Assumes out_tensor has shape [x, :] where x is the total number of intended output tensors
-  """
-
-  def __init__(self, output_num, **kwargs):
-    """
-    Parameters
-    ----------
-    output_num: int
-        returns the out_tensor[output_num, :] of a layer
-    """
-    self.output_num = output_num
-    super(LayerSplitter, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)[0]
-    self.out_tensor = inputs[self.output_num, :]
-    out_tensor = self.out_tensor
-    return self.out_tensor
-
-  def none_tensors(self):
-    out_tensor = self.out_tensor
-    self.out_tensor = None
-    return out_tensor
-
-  def set_tensors(self, tensor):
-    self.out_tensor = tensor
+    self.num_outputs, self.out_tensor, self.out_tensors, self.alphas = tensor
 
 
 class SluiceLoss(Layer):
@@ -3459,9 +3423,13 @@ class ANIFeat(Layer):
     return n_feat
 
 
-class PassThroughLayer(Layer):
+class LayerSplitter(Layer):
   """
   Layer which takes a tensor from in_tensor[0].out_tensors at an index
+  Only layers which need to output multiple layers set and use the variable
+  self.out_tensors.
+  This is a utility for those special layers which set self.out_tensors
+  to return a layer wrapping a specific tensor in in_layers[0].out_tensors
   """
 
   def __init__(self, output_num, **kwargs):
@@ -3473,10 +3441,13 @@ class PassThroughLayer(Layer):
     kwargs
     """
     self.output_num = output_num
-    super(PassThroughLayer, self).__init__(**kwargs)
+    super(LayerSplitter, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    self.out_tensor = self.in_layers[0].out_tensors[self.output_num]
+    out_tensor = self.in_layers[0].out_tensors[self.output_num]
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class GraphEmbedPoolLayer(Layer):
@@ -3584,7 +3555,7 @@ class GraphEmbedPoolLayer(Layer):
 
 def GraphCNNPool(num_vertices, **kwargs):
   gcnnpool_layer = GraphEmbedPoolLayer(num_vertices, **kwargs)
-  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(2)]
+  return [LayerSplitter(x, in_layers=gcnnpool_layer) for x in range(2)]
 
 
 class GraphCNN(Layer):
