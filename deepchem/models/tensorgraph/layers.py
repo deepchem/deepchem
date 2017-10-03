@@ -398,16 +398,18 @@ def fully_connected_layer(tensor,
   """
   if weight_init is None:
     num_features = tensor.get_shape()[-1].value
-    weight_init = tf.truncated_normal([4, num_features, size], stddev=0.01)
+    weight_init = tf.truncated_normal([4,num_features, size], stddev=0.01)
   if bias_init is None:
     bias_init = tf.zeros([4, size])
 
-  print("SHAPES:", weight_init.shape, bias_init.shape)
+  print("SHAPES:", tensor.shape, weight_init.shape, bias_init.shape)
 
   with tf.name_scope(name, 'fully_connected', [tensor]):
     w = tf.Variable(weight_init, dtype=tf.float32)
     b = tf.Variable(bias_init, dtype=tf.float32)
-    return tf.nn.xw_plus_b(tensor, w, b)
+
+    return tensor*w + b
+    # return tf.nn.xw_plus_b(tensor, w, b)
 
 
 class Dense(Layer):
@@ -469,6 +471,8 @@ class Dense(Layer):
     else:
       biases_initializer = self.biases_initializer()
     for reuse in (self._reuse, False):
+      # print("IN_TENSOR_SHAPE: ", x.shape)
+
       # dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
       #                                                        num_outputs=self.out_channels,
       #                                                        activation_fn=self.activation_fn,
@@ -478,24 +482,26 @@ class Dense(Layer):
       #                                                        reuse=reuse,
       #                                                        trainable=True)
       
-      # dense_fn = lambda x: tf.layers.dense(x,
-      #                                      units=self.out_channels,
-      #                                      activation=self.activation_fn,
-      #                                      bias_initializer=biases_initializer,
-      #                                      kernel_initializer=self.weights_initializer(),
-      #                                      # scope=self._get_scope_name(),
-      #                                      reuse=reuse,
-      #                                      trainable=True)
+      dense_fn = lambda x: tf.layers.dense(x,
+                                           units=self.out_channels,
+                                           activation=self.activation_fn,
+                                           bias_initializer=biases_initializer,
+                                           kernel_initializer=self.weights_initializer(),
+                                           # scope=self._get_scope_name(),
+                                           reuse=reuse,
+                                           trainable=True)
 
-      dense_fn = lambda x: fully_connected_layer(
-        x,
-        size=self.out_channels)
+      # dense_fn = lambda x: fully_connected_layer(
+      #   x,
+      #   size=self.out_channels)
 
       try:
         if self.time_series:
           out_tensor = tf.map_fn(dense_fn, parent)
         else:
           out_tensor = dense_fn(parent)
+
+          print("OUT_TENSOR_SHAPE", out_tensor.shape)
         break
       except ValueError:
         if reuse:
@@ -526,6 +532,51 @@ class Dense(Layer):
       return self.name
     else:
       return self._shared_with._get_scope_name()
+
+class BPGather2(Layer):
+
+  def __init__(self, **kwargs):
+    # self.in_layers = in_layers
+    # print("I-1", in_layers)
+    super(BPGather2, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """ Merge features together """
+
+    # if self.in_layers is None:
+    # in_layers = self.in_layers
+    last_dense, atom_feats = self._get_input_tensors(self.in_layers)
+
+    # print("I0", in_layers)
+
+    # in_layers = convert_to_layers(in_layers)
+
+    # print("I1", in_layers)
+
+
+    # last_dense,  = in_layers[0].out_tensor
+    # atom_numbers = in_layers[1].out_tensor
+
+    # atom_numbers = 
+    # last_layer = tf.convert_to_tensor(Hiddens[-1])
+    regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
+    flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
+    out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
+    # print("RF SHAPE", regression.shape, flags.shape)
+
+    # out_tensor = tf.reduce_sum(regression * flags, axis=1)
+
+
+    # if in_layers is None:
+    #   in_layers = self.in_layers
+    # in_layers = convert_to_layers(in_layers)
+    # out_tensor = in_layers[0].out_tensor
+    # flags = tf.cast(tf.sign(in_layers[1].out_tensor), tf.float32)
+    # out_tensor = tf.reduce_sum(out_tensor * tf.expand_dims(flags, 2), axis=1)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
 
 
 class Flatten(Layer):
@@ -3089,7 +3140,10 @@ def AlphaShare(in_layers=None, **kwargs):
   output_layers = []
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
   num_outputs = len(in_layers)
-  return [LayerSplitter(x, in_layers=alpha_share) for x in range(num_outputs)]
+  for num_layer in range(0, num_outputs):
+    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
+    output_layers.append(ls)
+  return output_layers
 
 
 class AlphaShareLayer(Layer):
@@ -3107,6 +3161,7 @@ class AlphaShareLayer(Layer):
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
+    out_tensor should be fed into LayerSplitter
   Distance matrix.
   """
 
@@ -3137,31 +3192,63 @@ class AlphaShareLayer(Layer):
     # concatenate subspaces, reshape to size of original input, then stack
     # such that out_tensor has shape (2,?,original_cols)
     count = 0
-    self.out_tensors = []
+    out_tensor = []
     tmp_tensor = []
     for row in range(n_alphas):
       tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
-        self.out_tensors.append(tf.concat(tmp_tensor, 1))
+        out_tensor.append(tf.concat(tmp_tensor, 1))
         tmp_tensor = []
         count = 0
 
+    out_tensor = tf.stack(out_tensor)
+
     self.alphas = alphas
     if set_tensors:
-      self.out_tensor = self.out_tensors[0]
-    return self.out_tensors
+      self.out_tensor = out_tensor
+    return out_tensor
 
   def none_tensors(self):
-    num_outputs, out_tensor, out_tensors, alphas = self.num_outputs, self.out_tensor, self.out_tensors, self.alphas
+    num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
     self.num_outputs = None
     self.out_tensor = None
-    self.out_tensors = None
     self.alphas = None
-    return num_outputs, out_tensor, self.out_tensors, alphas
+    return num_outputs, out_tensor, alphas
 
   def set_tensors(self, tensor):
-    self.num_outputs, self.out_tensor, self.out_tensors, self.alphas = tensor
+    self.num_outputs, self.out_tensor, self.alphas = tensor
+
+
+class LayerSplitter(Layer):
+  """
+  Returns the nth output of a layer
+  Assumes out_tensor has shape [x, :] where x is the total number of intended output tensors
+  """
+
+  def __init__(self, output_num, **kwargs):
+    """
+    Parameters
+    ----------
+    output_num: int
+        returns the out_tensor[output_num, :] of a layer
+    """
+    self.output_num = output_num
+    super(LayerSplitter, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)[0]
+    self.out_tensor = inputs[self.output_num, :]
+    out_tensor = self.out_tensor
+    return self.out_tensor
+
+  def none_tensors(self):
+    out_tensor = self.out_tensor
+    self.out_tensor = None
+    return out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensor = tensor
 
 
 class SluiceLoss(Layer):
@@ -3294,6 +3381,10 @@ class ANIFeat(Layer):
         [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
 
+    # out_tensor = tf.concat(
+    #     [tf.to_float(tf.expand_dims(atom_numbers, 2)), d],
+    #     axis=2)
+
     if set_tensors:
       self.out_tensor = out_tensor
 
@@ -3423,13 +3514,9 @@ class ANIFeat(Layer):
     return n_feat
 
 
-class LayerSplitter(Layer):
+class PassThroughLayer(Layer):
   """
   Layer which takes a tensor from in_tensor[0].out_tensors at an index
-  Only layers which need to output multiple layers set and use the variable
-  self.out_tensors.
-  This is a utility for those special layers which set self.out_tensors
-  to return a layer wrapping a specific tensor in in_layers[0].out_tensors
   """
 
   def __init__(self, output_num, **kwargs):
@@ -3441,13 +3528,10 @@ class LayerSplitter(Layer):
     kwargs
     """
     self.output_num = output_num
-    super(LayerSplitter, self).__init__(**kwargs)
+    super(PassThroughLayer, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    out_tensor = self.in_layers[0].out_tensors[self.output_num]
-    if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+    self.out_tensor = self.in_layers[0].out_tensors[self.output_num]
 
 
 class GraphEmbedPoolLayer(Layer):
@@ -3555,7 +3639,7 @@ class GraphEmbedPoolLayer(Layer):
 
 def GraphCNNPool(num_vertices, **kwargs):
   gcnnpool_layer = GraphEmbedPoolLayer(num_vertices, **kwargs)
-  return [LayerSplitter(x, in_layers=gcnnpool_layer) for x in range(2)]
+  return [PassThroughLayer(x, in_layers=gcnnpool_layer) for x in range(2)]
 
 
 class GraphCNN(Layer):

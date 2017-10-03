@@ -243,7 +243,7 @@ if __name__ == "__main__":
 
     #   # For production, set nb_epoch to 100+
     for i in range(10):
-      model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+      model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
 
       print("Saving model...")
       model.save_numpy()

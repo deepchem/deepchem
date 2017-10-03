@@ -385,11 +385,9 @@ class BPGather(Layer):
     if in_layers is None:
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
-
     out_tensor = in_layers[0].out_tensor
-    flags = in_layers[1].out_tensor
-
-    out_tensor = tf.reduce_sum(out_tensor * flags[:, :, 0:1], axis=1)
+    flags = tf.cast(tf.sign(in_layers[1].out_tensor), tf.float32)
+    out_tensor = tf.reduce_sum(out_tensor * tf.expand_dims(flags, 2), axis=1)
     self.out_tensor = out_tensor
 
 
@@ -420,7 +418,8 @@ class AtomicDifferentiatedDense(Layer):
     in_layers = convert_to_layers(in_layers)
 
     inputs = in_layers[0].out_tensor
-    atom_numbers = in_layers[1].out_tensor
+    # atom_numbers = in_layers[1].out_tensor
+    atom_numbers = in_layers[1].out_tensor[:, :, 0]
     in_channels = inputs.get_shape().as_list()[-1]
     self.W = init_fn(
         [len(self.atom_number_cases), in_channels, self.out_channels])
@@ -448,7 +447,9 @@ class AtomicDifferentiatedDense(Layer):
       output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
                                                              self.out_channels))
       outputs.append(output)
+
     self.out_tensor = tf.add_n(outputs)
+    # print("???????", self.out_tensor.shape)
 
   def none_tensors(self):
     w, b, out_tensor = self.W, self.b, self.out_tensor

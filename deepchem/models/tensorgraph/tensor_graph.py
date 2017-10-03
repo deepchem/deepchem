@@ -227,7 +227,7 @@ class TensorGraph(Model):
 
 
 
-        if self.global_step > 350:
+        if self.global_step > 100000:
           with open('/home/yutong/timeline2.json', 'w') as f:
             options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
