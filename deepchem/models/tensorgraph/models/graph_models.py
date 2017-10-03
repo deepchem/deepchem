@@ -1,16 +1,20 @@
+import collections
+
 import numpy as np
 import six
 import tensorflow as tf
+
 from deepchem.data import NumpyDataset
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
-from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-  Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
+  DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
   DAGGather, DTNNExtract, MessagePassing, SetGather
+from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Layer, Flatten, GraphCNN, GraphCNNPool
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
@@ -57,28 +61,31 @@ class WeaveTensorGraph(TensorGraph):
         """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
-    combined = Combine_AP(in_layers=[self.atom_features, self.pair_features])
     self.pair_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
-    weave_layer1 = WeaveLayer(
+    weave_layer1A, weave_layer1P = WeaveLayerFactory(
         n_atom_input_feat=self.n_atom_feat,
         n_pair_input_feat=self.n_pair_feat,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
-        in_layers=[combined, self.pair_split, self.atom_to_pair])
-    weave_layer2 = WeaveLayer(
+        in_layers=[
+            self.atom_features, self.pair_features, self.pair_split,
+            self.atom_to_pair
+        ])
+    weave_layer2A, weave_layer2P = WeaveLayerFactory(
         n_atom_input_feat=self.n_hidden,
         n_pair_input_feat=self.n_hidden,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
         update_pair=False,
-        in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
-    separated = Separate_AP(in_layers=[weave_layer2])
+        in_layers=[
+            weave_layer1A, weave_layer1P, self.pair_split, self.atom_to_pair
+        ])
     dense1 = Dense(
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.tanh,
-        in_layers=[separated])
+        in_layers=weave_layer2A)
     batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
