@@ -19,6 +19,8 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.data.data_loader import featurize_smiles_np
 
+from tensorflow.python.client import timeline
+
 
 class TensorGraph(Model):
 
@@ -198,6 +200,9 @@ class TensorGraph(Model):
             args=(self, feed_dict_generator, self._get_tf("Graph"),
                   self.session, n_enqueued, final_sample))
         enqueue_thread.start()
+      start_time = time.time()
+      run_time = 0
+      start_step = self.global_step
       for feed_dict in create_feed_dict():
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
@@ -215,18 +220,42 @@ class TensorGraph(Model):
         fetches = [train_op, self.loss.out_tensor]
         if should_log:
           fetches.append(self._get_tf("summary_op"))
-        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+
+
+        run_start = time.time()
+
+
+
+
+        if self.global_step > 350:
+          with open('/home/yutong/timeline2.json', 'w') as f:
+            options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+
+            fetched_values = self.session.run(fetches, feed_dict=feed_dict, options=options, run_metadata=run_metadata)
+            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            f.write(fetched_timeline.generate_chrome_trace_format())
+          assert 0
+        else:
+          fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+
+
+        run_time += time.time()-run_start
+
+
         if should_log:
           self._log_tensorboard(fetches[2])
         loss = fetched_values[1]
         avg_loss += loss
         n_averaged_batches += 1
         self.global_step += 1
+
+
         if self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          print('Ending global_step %d: Average loss %g' % (self.global_step,
-                                                            avg_loss))
+          avg_speed = ((self.global_step-start_step)*self.batch_size/(time.time()-start_time))*60
+          print('Ending global_step: %d, Average loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g' % (self.global_step, avg_loss, avg_speed, run_time, time.time()-start_time))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches

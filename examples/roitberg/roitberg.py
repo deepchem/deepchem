@@ -60,7 +60,7 @@ def load_roiterberg_ANI(mode="atomization"):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      # 'ani_gdb_s03.h5',
+      'ani_gdb_s03.h5',
       # 'ani_gdb_s04.h5',
       # 'ani_gdb_s05.h5',
       # 'ani_gdb_s06.h5',
@@ -193,7 +193,7 @@ def broadcast(dataset, metadata):
 if __name__ == "__main__":
 
   max_atoms = 23
-  batch_size = 64  # CHANGED FROM 16
+  batch_size = 192  # CHANGED FROM 16
   layer_structures = [128, 128, 64]
   atom_number_cases = [1, 6, 7, 8]
 

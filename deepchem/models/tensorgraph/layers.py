@@ -369,6 +369,47 @@ class Conv1D(Layer):
     return out_tensor
 
 
+def fully_connected_layer(tensor,
+                          size=None,
+                          weight_init=None,
+                          bias_init=None,
+                          name=None):
+  """Fully connected layer.
+  Parameters
+  ----------
+  tensor: tf.Tensor
+    Input tensor.
+  size: int
+    Number of output nodes for this layer.
+  weight_init: float
+    Weight initializer.
+  bias_init: float
+    Bias initializer.
+  name: str
+    Name for this op. Defaults to 'fully_connected'.
+  Returns
+  -------
+  tf.Tensor:
+    A new tensor representing the output of the fully connected layer.
+  Raises
+  ------
+  ValueError
+    If input tensor is not 2D.
+  """
+  if weight_init is None:
+    num_features = tensor.get_shape()[-1].value
+    weight_init = tf.truncated_normal([4, num_features, size], stddev=0.01)
+  if bias_init is None:
+    bias_init = tf.zeros([4, size])
+
+  print("SHAPES:", weight_init.shape, bias_init.shape)
+
+  with tf.name_scope(name, 'fully_connected', [tensor]):
+    w = tf.Variable(weight_init, dtype=tf.float32)
+    b = tf.Variable(bias_init, dtype=tf.float32)
+    return tf.nn.xw_plus_b(tensor, w, b)
+
+
 class Dense(Layer):
 
   def __init__(
@@ -415,24 +456,41 @@ class Dense(Layer):
     self._reuse = False
     self._shared_with = None
 
+
+
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("Dense layer can only have one input")
     parent = inputs[0]
+    print("PARENT SHAPE", parent.shape)
     if self.biases_initializer is None:
       biases_initializer = None
     else:
       biases_initializer = self.biases_initializer()
     for reuse in (self._reuse, False):
-      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-                                                             num_outputs=self.out_channels,
-                                                             activation_fn=self.activation_fn,
-                                                             biases_initializer=biases_initializer,
-                                                             weights_initializer=self.weights_initializer(),
-                                                             scope=self._get_scope_name(),
-                                                             reuse=reuse,
-                                                             trainable=True)
+      # dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+      #                                                        num_outputs=self.out_channels,
+      #                                                        activation_fn=self.activation_fn,
+      #                                                        biases_initializer=biases_initializer,
+      #                                                        weights_initializer=self.weights_initializer(),
+      #                                                        scope=self._get_scope_name(),
+      #                                                        reuse=reuse,
+      #                                                        trainable=True)
+      
+      # dense_fn = lambda x: tf.layers.dense(x,
+      #                                      units=self.out_channels,
+      #                                      activation=self.activation_fn,
+      #                                      bias_initializer=biases_initializer,
+      #                                      kernel_initializer=self.weights_initializer(),
+      #                                      # scope=self._get_scope_name(),
+      #                                      reuse=reuse,
+      #                                      trainable=True)
+
+      dense_fn = lambda x: fully_connected_layer(
+        x,
+        size=self.out_channels)
+
       try:
         if self.time_series:
           out_tensor = tf.map_fn(dense_fn, parent)
@@ -3251,8 +3309,10 @@ class ANIFeat(Layer):
     """
     inputs = self._get_input_tensors(in_layers)[0]
     atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
-    flags = tf.sign(atom_numbers)
-    flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
+    flags = tf.to_float(tf.sign(atom_numbers))
+    # flags = tf.to_float(tf.sign(atom_numbers))
+    # flags_t = tf.transpose(flags, (0, 2, 1))
+    # flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
     coordinates = inputs[:, :, 1:]
     if self.coordinates_in_bohr:
       coordinates = coordinates * 0.52917721092
@@ -3295,13 +3355,17 @@ class ANIFeat(Layer):
     d = tf.sqrt(
         tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
 
-    d = d * flags
+    d = tf.multiply(d, tf.expand_dims(flags, 1))
+    d = tf.multiply(d, tf.expand_dims(flags, 2))
+    # d = tf.matmul(d, flags, transpose_b=True)
     return d
 
   def distance_cutoff(self, d, cutoff, flags):
     """ Generate distance matrix with trainable cutoff """
     # Cutoff with threshold Rc
-    d_flag = flags * tf.sign(cutoff - d)
+    # d_flag = tf.multiply(tf.sign(cutoff - d), flags)
+    d_flag = tf.multiply(tf.sign(cutoff - d), tf.expand_dims(flags, 1))
+    d_flag = tf.multiply(d_flag, tf.expand_dims(flags, 2))
     d_flag = tf.nn.relu(d_flag)
     d_flag = d_flag * tf.expand_dims((1 - tf.eye(self.max_atoms)), 0)
     d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
