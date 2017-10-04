@@ -3361,9 +3361,6 @@ class ANIFeat(Layer):
     inputs = self._get_input_tensors(in_layers)[0]
     atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
     flags = tf.to_float(tf.sign(atom_numbers))
-    # flags = tf.to_float(tf.sign(atom_numbers))
-    # flags_t = tf.transpose(flags, (0, 2, 1))
-    # flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
     coordinates = inputs[:, :, 1:]
     if self.coordinates_in_bohr:
       coordinates = coordinates * 0.52917721092
@@ -3377,13 +3374,16 @@ class ANIFeat(Layer):
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
 
+
+
+    print("DEBUG ATOM NUMBERS", tf.to_float(tf.expand_dims(atom_numbers, 2)))
+
     out_tensor = tf.concat(
         [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
 
-    # out_tensor = tf.concat(
-    #     [tf.to_float(tf.expand_dims(atom_numbers, 2)), d],
-    #     axis=2)
+    print("DEBUG ATOM NUMBERS AFTER", out_tensor.shape)
+
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -3456,6 +3456,8 @@ class ANIFeat(Layer):
   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
     """ Angular Symmetry Function """
 
+    print("DSHAPE", d.shape)
+
     max_atoms = self.max_atoms
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
@@ -3505,7 +3507,11 @@ class ANIFeat(Layer):
               tf.expand_dims(selected_atoms, axis=1), axis=4)
           out_tensors.append(
               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
-      return tf.concat(out_tensors, axis=2)
+      res = tf.concat(out_tensors, axis=2)
+
+      print("RES_SHAPE", res)
+
+      return res
     else:
       return tf.reduce_sum(out_tensor, axis=(2, 3))
 

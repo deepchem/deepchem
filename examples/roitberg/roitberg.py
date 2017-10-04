@@ -17,8 +17,9 @@ def convert_species_to_atomic_nums(s):
 
 
 # replace with your own scratch directory
-data_dir = "/media/yutong/datablob/datasets"
-model_dir = "/media/yutong/datablob/models"
+data_dir = "/media/yutong/fast_datablob/datasets"
+model_dir = "/media/yutong/fast_datablob/models"
+feat_dir = "/media/yutong/fast_datablob/feat"
 
 all_dir = os.path.join(data_dir, "all")
 test_dir = os.path.join(data_dir, "test")
@@ -235,9 +236,10 @@ if __name__ == "__main__":
         max_atoms,
         layer_structures=layer_structures,
         atom_number_cases=atom_number_cases,
+        feat_dir=feat_dir,
         batch_size=batch_size,
         learning_rate=0.001,
-        use_queue=True,
+        use_queue=False, # broken if we turn queue on
         model_dir=model_dir,
         mode="regression")
 

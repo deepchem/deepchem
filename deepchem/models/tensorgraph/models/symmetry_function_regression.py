@@ -12,6 +12,7 @@ import numpy as np
 import json
 import scipy.optimize
 import tensorflow as tf
+import time
 
 import deepchem as dc
 
@@ -86,7 +87,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,
+                        predict=False,                          
                         pad_batches=True):
     for epoch in range(epochs):
       if not predict:
@@ -116,6 +117,7 @@ class ANIRegression(TensorGraph):
                max_atoms,
                layer_structures=[128, 64],
                atom_number_cases=[1, 6, 7, 8, 16],
+               feat_dir=None,
                **kwargs):
     """
     Parameters
@@ -131,15 +133,17 @@ class ANIRegression(TensorGraph):
     self.max_atoms = max_atoms
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
+    self.feat_dir = feat_dir
+    self.feat_dataset = None
     super(ANIRegression, self).__init__(**kwargs)
-
 
     # (ytz): this is really dirty but needed for restoring models
     self._kwargs = {
       "n_tasks": n_tasks,
       "max_atoms": max_atoms,
       "layer_structures": layer_structures,
-      "atom_number_cases": atom_number_cases
+      "atom_number_cases": atom_number_cases,
+      "feat_dir": feat_dir
     }
 
     self._kwargs.update(kwargs)
@@ -181,11 +185,12 @@ class ANIRegression(TensorGraph):
         self.build_grad()
 
       feed_dict = dict()
-      X = dataset.X
-      flags = np.sign(np.array(X[:upper_lim, :, 0]))
+      X = dataset.X_cache
+      # flags = np.sign(np.array(X[:upper_lim, :, 0]))
       # feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
           # np.stack([flags]*self.max_atoms, axis=1)
       # feed_dict[self.atom_numbers] = np.array(X[:upper_lim, :, 0], dtype=int)
+      print("S! SHAPE", X[:upper_lim, :, :])
       feed_dict[self.atom_feats] = np.array(X[:upper_lim, :, :], dtype=float)
       return self.session.run([self.grad], feed_dict=feed_dict)
 
@@ -219,6 +224,7 @@ class ANIRegression(TensorGraph):
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
+    print("START PREDICT!")
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -296,11 +302,7 @@ class ANIRegression(TensorGraph):
 
   def build_graph(self):
 
-    # self.atom_numbers = Feature(shape=(None, self.max_atoms), dtype=tf.int32)
-    # self.atom_flags = Feature(shape=(None, self.max_atoms, self.max_atoms))
     self.atom_feats = Feature(shape=(None, self.max_atoms, 4))
-
-    # self.atom_numbers = self.atom_feats[:, :, 0]
 
     previous_layer = ANIFeat(
       in_layers=self.atom_feats,
@@ -315,35 +317,14 @@ class ANIRegression(TensorGraph):
           n_hidden,
           self.atom_number_cases,
           activation='tanh',
-          in_layers=[previous_layer, self.atom_feats])
+          in_layers=[previous_layer, self.featurized])
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
-
-    # print("HIDDENS", Hiddens)
 
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
-
-      # print("HIDDENS 1 SHAPE", Hiddens[-1].get_shape())
-
-      # regression = Dense(
-      #     out_channels=1,
-      #     activation_fn=None,
-      #     in_layers=[Hiddens[-1]])
-
-
-      # print(Hiddens[-1].out_tensor) # not intiialized yet
-
-
-
-      # last_layer = tf.convert_to_tensor(Hiddens[-1])
-      # regression = tf.reduce_sum(last_layer, -1)
-      # flags = tf.cast(tf.sign(self.atom_feats), tf.float32)
-      # out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
-      output = BPGather2(in_layers=[Hiddens[-1], self.atom_feats])
-
-      # output = BPGather(self.max_atoms, in_layers=[regression, self.atom_numbers])
+      output = BPGather2(in_layers=[Hiddens[-1], self.featurized])
       self.add_output(output)
 
       label = Label(shape=(None, 1))
@@ -356,32 +337,117 @@ class ANIRegression(TensorGraph):
     loss = WeightedError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
 
+  def featurize(self, dataset, deterministic, pad_batches):
+
+    batch_size = self.batch_size
+    shard_size = batch_size*256
+
+    def shard_generator(closure_self):
+
+      X_cache = []
+      y_cache = []
+      w_cache = []
+      ids_cache = []
+
+      print("Dataset needs to be featurized...")
+
+      run_time = 0
+      overhead_time = 0
+
+      total_time = time.time()
+
+      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+          batch_size=batch_size,
+          deterministic=deterministic,
+          pad_batches=pad_batches):
+
+        feed_dict = {}
+        feed_dict[closure_self.atom_feats] = X_b
+
+        sss = time.time()
+        X_feat = closure_self.session.run(closure_self.featurized, feed_dict=feed_dict)
+        run_time += time.time()-sss
+
+        if len(X_cache) == shard_size:
+
+          yield np.array(X_cache), np.array(y_cache), np.array(
+              w_cache), np.array(ids_cache)
+
+          X_cache = []
+          y_cache = []
+          w_cache = []
+          ids_cache = []
+
+        else:
+
+          o_t = time.time()
+
+          for idx in range(len(X_feat)):
+            X_cache.append(X_feat[idx])
+            y_cache.append(y_b[idx])
+            w_cache.append(w_b[idx])
+            ids_cache.append(ids_b[idx])
+
+          overhead_time += time.time()-o_t
+
+          print("Overhead time: ", overhead_time, " Total time: ", time.time()-total_time, "Run time:", run_time)
+
+      if len(X_cache) > 0:
+
+        yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
+
+    self.feat_dataset = dc.data.DiskDataset.create_dataset(
+      shard_generator=shard_generator(self),
+      data_dir=self.feat_dir)
+
+    print("Finished featurization.")
+
+
   def default_generator(self,
                         dataset,
                         epochs=1,
                         predict=False,
                         deterministic=True,
                         pad_batches=True):
-    for epoch in range(epochs):
-      if not predict:
-        print('Starting epoch %i' % epoch)
+
+    batch_size = self.batch_size
+    shard_size = dataset.get_shard_size()
+
+    if predict:
+
+      if not deterministic:
+        raise Exception("Called predict with non-deterministic generator, terrible idea.")
+
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+        batch_size=self.batch_size,
+        deterministic=deterministic,
+        pad_batches=pad_batches):
+
+        feed_dict = {}
+        feed_dict[self.atom_feats] = np.array(X_b[:, :, :], dtype=float)
+        yield feed_dict
+
+
+    else:
+      if self.feat_dataset is None:
+        self.featurize(dataset, deterministic, pad_batches)
+
+      for epoch in range(epochs):
+        for (X_feat, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
 
-        feed_dict = dict()
-        if y_b is not None and not predict:
-          for index, label in enumerate(self.labels_fd):
-            feed_dict[label] = y_b[:, index:index + 1]
-        if w_b is not None and not predict:
-          feed_dict[self.weights] = w_b
+          feed_dict = {}
+          if y_b is not None and not predict:
+            for index, label in enumerate(self.labels_fd):
+              feed_dict[label] = y_b[:, index:index + 1]
+          if w_b is not None and not predict:
+            feed_dict[self.weights] = w_b
 
-        flags = np.sign(np.array(X_b[:, :, 0]))
+          feed_dict[self.featurized] = X_feat
 
-        # feed_dict[self.atom_numbers] = np.array(X_b[:, :, 0], dtype=int)
-        feed_dict[self.atom_feats] = np.array(X_b[:, :, :], dtype=float)
-        yield feed_dict
+          yield feed_dict
 
   def save_numpy(self):
     """

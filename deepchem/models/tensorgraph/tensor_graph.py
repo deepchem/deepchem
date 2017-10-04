@@ -200,10 +200,17 @@ class TensorGraph(Model):
             args=(self, feed_dict_generator, self._get_tf("Graph"),
                   self.session, n_enqueued, final_sample))
         enqueue_thread.start()
-      start_time = time.time()
+
+      start_time = None
       run_time = 0
       start_step = self.global_step
       for feed_dict in create_feed_dict():
+
+        # avoid featurization time
+        if start_time is None:
+          start_time = time.time()
+
+
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
           # we try to read more batches than the total number that get queued,
@@ -221,14 +228,10 @@ class TensorGraph(Model):
         if should_log:
           fetches.append(self._get_tf("summary_op"))
 
-
         run_start = time.time()
 
-
-
-
-        if self.global_step > 100000:
-          with open('/home/yutong/timeline2.json', 'w') as f:
+        if self.global_step > 1000000000:
+          with open('/home/yutong/timeline3.json', 'w') as f:
             options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
 
@@ -239,9 +242,7 @@ class TensorGraph(Model):
         else:
           fetched_values = self.session.run(fetches, feed_dict=feed_dict)
 
-
         run_time += time.time()-run_start
-
 
         if should_log:
           self._log_tensorboard(fetches[2])
@@ -249,7 +250,6 @@ class TensorGraph(Model):
         avg_loss += loss
         n_averaged_batches += 1
         self.global_step += 1
-
 
         if self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
@@ -473,8 +473,12 @@ class TensorGraph(Model):
       self._training_placeholder = tf.placeholder(dtype=tf.float32, shape=())
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
+
+      # need to inject queue for some applications so that it is upstream of the layer of interest
+
       self._install_queue()
       for layer in self.topsort():
+        print("TOPSORT", layer)
         with tf.name_scope(layer.name):
           layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += layer.rnn_initial_states
