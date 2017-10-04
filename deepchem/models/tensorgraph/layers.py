@@ -911,7 +911,10 @@ class Concat(Layer):
     try:
       s = list(self.in_layers[0].shape)
       for parent in self.in_layers[1:]:
-        s[axis] += parent.shape[axis]
+        if s[axis] is None or parent.shape[axis] is None:
+          s[axis] = None
+        else:
+          s[axis] += parent.shape[axis]
       self._shape = tuple(s)
     except:
       pass
