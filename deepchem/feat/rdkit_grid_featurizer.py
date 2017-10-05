@@ -28,13 +28,13 @@ TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
 def get_ligand_filetype(ligand_filename):
   """Returns the filetype of ligand."""
   if ".mol2" in ligand_filename:
-    return ".mol2"
+    return "mol2"
   elif ".sdf" in ligand_filename:
     return "sdf"
   elif ".pdbqt" in ligand_filename:
-    return ".pdbqt"
+    return "pdbqt"
   elif ".pdb" in ligand_filename:
-    return ".pdb"
+    return "pdb"
   else:
     raise ValueError("Unrecognized_filename")
 
