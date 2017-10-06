@@ -13,6 +13,7 @@ import os
 import numpy as np
 import json
 import scipy.optimize
+import scipy.sparse
 import tensorflow as tf
 import time
 
@@ -370,7 +371,7 @@ class ANIRegression(TensorGraph):
   def featurize(self, dataset, deterministic, pad_batches):
 
     batch_size = self.batch_size
-    shard_size = batch_size*256
+    shard_size = batch_size*96
 
     # run shard generation in a separate thread
 
@@ -443,7 +444,11 @@ class ANIRegression(TensorGraph):
           ids_cache = []
 
         for idx in range(len(X_feat)):
-          X_cache.append(X_feat[idx])
+
+          x_max = X_feat[idx]
+          x_sparse = scipy.sparse.csc_matrix(x_max)
+
+          X_cache.append(x_sparse)
           y_cache.append(y_b[idx])
           w_cache.append(w_b[idx])
           ids_cache.append(ids_b[idx])
@@ -502,7 +507,7 @@ class ANIRegression(TensorGraph):
         self.featurize(dataset, deterministic, pad_batches)
 
       for epoch in range(epochs):
-        for (X_feat, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
+        for (X_csc, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
@@ -519,6 +524,10 @@ class ANIRegression(TensorGraph):
           # mode = self.get_pre_q_input()
           # obj = self.get_pre_q_input()
           # print("X_feat SHAPE", X_feat.shape)
+
+          # print("???", type(X_csc[0]), X_csc[0])
+          # assert 0
+          X_feat = X_csc[0].todense()
 
           feed_dict[self.mode] = False
           feed_dict[self.dequeue_object] = X_feat

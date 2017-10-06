@@ -28,6 +28,16 @@ def save_to_disk(dataset, filename, compress=0):
   joblib.dump(dataset, filename, compress=compress)
 
 
+def save_to_disk_np(dataset, filename):
+  """Save a dataset to file."""
+  np.save(open(filename, "wb"), dataset)
+
+
+def load_from_disk_np(filename):
+  """Save a dataset to file."""
+  return np.load(filename)
+
+
 def get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
   filename, file_extension = os.path.splitext(input_file)

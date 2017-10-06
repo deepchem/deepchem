@@ -8,8 +8,8 @@ import os
 import numpy as np
 import pandas as pd
 import random
-from deepchem.utils.save import save_to_disk
-from deepchem.utils.save import load_from_disk
+from deepchem.utils.save import save_to_disk, save_to_disk_np
+from deepchem.utils.save import load_from_disk, load_from_disk_np
 from deepchem.utils.save import log
 import tempfile
 import time
@@ -488,7 +488,8 @@ class DiskDataset(Dataset):
                          ids=None):
     if X is not None:
       out_X = "%s-X.joblib" % basename
-      save_to_disk(X, os.path.join(data_dir, out_X))
+      # save_to_disk(X, os.path.join(data_dir, out_X))
+      save_to_disk_np(X, os.path.join(data_dir, out_X))
     else:
       out_X = None
 
@@ -571,7 +572,7 @@ class DiskDataset(Dataset):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    sample_X = load_from_disk(
+    sample_X = load_from_disk_np(
         os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
@@ -607,7 +608,7 @@ class DiskDataset(Dataset):
 
     def iterate(dataset):
       for _, row in dataset.metadata_df.iterrows():
-        X = np.array(load_from_disk(os.path.join(dataset.data_dir, row['X'])))
+        X = np.array(load_from_disk_np(os.path.join(dataset.data_dir, row['X'])))
         ids = np.array(
             load_from_disk(os.path.join(dataset.data_dir, row['ids'])),
             dtype=object)
@@ -885,7 +886,7 @@ class DiskDataset(Dataset):
     print("GET_SHARD_START")
     t = time.time()
     row = self.metadata_df.iloc[i]
-    X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
+    X = load_from_disk_np(os.path.join(self.data_dir, row['X']))
 
     if row['y'] is not None:
       y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
