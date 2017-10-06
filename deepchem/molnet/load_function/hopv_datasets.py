@@ -22,8 +22,8 @@ def load_hopv(featurizer='ECFP', split='index', reload=True):
     deepchem.utils.download_url(
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/hopv.tar.gz'
     )
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'hopv.tar.gz') + ' -C ' +
-              data_dir)
+    deepchem.utils.untargz_file(
+        os.path.join(data_dir, 'hopv.tar.gz'), data_dir)
 
   hopv_tasks = [
       'HOMO', 'LUMO', 'electrochemical_gap', 'optical_gap', 'PCE', 'V_OC',

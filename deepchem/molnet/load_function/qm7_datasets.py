@@ -145,8 +145,8 @@ def load_qm7(featurizer='CoulombMatrix', split='random', reload=True):
     deepchem.utils.download_url(
         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb7.tar.gz'
     )
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb7.tar.gz') + ' -C ' +
-              data_dir)
+    deepchem.utils.untargz_file(
+        os.path.join(data_dir, 'gdb7.tar.gz'), data_dir)
 
   qm7_tasks = ["u0_atom"]
   if featurizer == 'CoulombMatrix':

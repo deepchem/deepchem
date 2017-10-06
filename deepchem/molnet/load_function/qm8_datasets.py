@@ -20,8 +20,8 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
       deepchem.utils.download_url(
           'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb8.tar.gz'
       )
-      os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb8.tar.gz') + ' -C ' +
-                data_dir)
+      deepchem.utils.untargz_file(
+          os.path.join(data_dir, 'gdb8.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm8.csv")
     if not os.path.exists(dataset_file):
