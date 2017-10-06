@@ -12,6 +12,13 @@ from rdkit.Chem import MolFromMolFile, rdchem
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
 
+def random_string(length, chars=None):
+  import string
+  if chars is None:
+    chars = list(string.ascii_letters + string.ascii_letters + '()[]+-.=#@/\\')
+  return ''.join(np.random.choice(chars, length))
+
+
 class TestHelperFunctions(unittest.TestCase):
   """
   Test functions defined in rdkit_grid_featurizer module.
@@ -105,8 +112,7 @@ class TestHelperFunctions(unittest.TestCase):
   def test_hash_ecfp(self):
     for power in (2, 16, 64):
       for _ in range(10):
-        # FIXME strings generation is not controlled by random seed
-        string = os.urandom(10).decode('latin1')
+        string = random_string(10)
         string_hash = rgf.hash_ecfp(string, power)
         self.assertIsInstance(string_hash, int)
         self.assertLess(string_hash, 2**power)
@@ -115,9 +121,8 @@ class TestHelperFunctions(unittest.TestCase):
   def test_hash_ecfp_pair(self):
     for power in (2, 16, 64):
       for _ in range(10):
-        # FIXME strings generation is not controlled by random seed
-        string1 = os.urandom(10).decode('latin1')
-        string2 = os.urandom(10).decode('latin1')
+        string1 = random_string(10)
+        string2 = random_string(10)
         pair_hash = rgf.hash_ecfp_pair((string1, string2), power)
         self.assertIsInstance(pair_hash, int)
         self.assertLess(pair_hash, 2**power)
@@ -141,3 +146,94 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertIsInstance(ecfp_selected, dict)
       self.assertEqual(len(ecfp_selected), num_ind)
       self.assertEqual(sorted(ecfp_selected.keys()), sorted(indices))
+
+  def test_featurize_binding_pocket_ecfp(self):
+      prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+      lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
+      distance = rgf.compute_pairwise_distances(protein_xyz=prot_xyz,
+                                                ligand_xyz=lig_xyz)
+
+      # check if results are the same if we provide precomputed distances
+      prot_dict, lig_dict = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+      )
+      prot_dict_dist, lig_dict_dist = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        pairwise_distances=distance
+      )
+      # ...but first check if we actually got two dicts
+      self.assertIsInstance(prot_dict, dict)
+      self.assertIsInstance(lig_dict, dict)
+
+      self.assertEqual(prot_dict, prot_dict_dist)
+      self.assertEqual(lig_dict, lig_dict_dist)
+
+      # check if we get less features with smaller distance cutoff
+      prot_dict_d2, lig_dict_d2 = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        cutoff=2.0,
+      )
+      prot_dict_d6, lig_dict_d6 = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        cutoff=6.0,
+      )
+      self.assertLess(len(prot_dict_d2), len(prot_dict))
+      # ligands are typically small so all atoms might be present
+      self.assertLessEqual(len(lig_dict_d2), len(lig_dict))
+      self.assertGreater(len(prot_dict_d6), len(prot_dict))
+      self.assertGreaterEqual(len(lig_dict_d6), len(lig_dict))
+
+      # check if using different ecfp_degree changes anything
+      prot_dict_e3, lig_dict_e3 = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        ecfp_degree=3,
+      )
+      self.assertNotEqual(prot_dict_e3, prot_dict)
+      self.assertNotEqual(lig_dict_e3, lig_dict)
+
+  def test_compute_splif_features_in_range(self):
+    prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+    lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
+    prot_num_atoms = prot_rdk.GetNumAtoms()
+    lig_num_atoms = lig_rdk.GetNumAtoms()
+    distance = rgf.compute_pairwise_distances(protein_xyz=prot_xyz,
+                                              ligand_xyz=lig_xyz)
+
+    for bins in ((0, 2), (2, 3)):
+      splif_dict = rgf.compute_splif_features_in_range(
+        prot_rdk,
+        lig_rdk,
+        distance,
+        bins,
+      )
+
+      self.assertIsInstance(splif_dict, dict)
+      for (prot_idx, lig_idx), ecfp_pair in splif_dict.items():
+
+        for idx in (prot_idx, lig_idx):
+          self.assertIsInstance(idx, (int, np.int64))
+        self.assertGreaterEqual(prot_idx, 0)
+        self.assertLess(prot_idx, prot_num_atoms)
+        self.assertGreaterEqual(lig_idx, 0)
+        self.assertLess(lig_idx, lig_num_atoms)
+
+        for ecfp in ecfp_pair:
+          ecfp_idx, ecfp_frag = ecfp.split(',')
+          ecfp_idx = int(ecfp_idx)
+          self.assertGreaterEqual(ecfp_idx, 0)
+          # TODO upperbound?
