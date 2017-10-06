@@ -7,6 +7,8 @@ Created on Thu Jul  6 20:31:47 2017
 @contributors: ytz
 
 """
+import math
+import threading
 import os
 import numpy as np
 import json
@@ -17,7 +19,7 @@ import time
 import deepchem as dc
 
 from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat
-from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature, BPGather2
+from deepchem.models.tensorgraph.layers import L2Loss, Conditional, Reshape, Label, Weights, Feature, BPGather2
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
@@ -302,13 +304,41 @@ class ANIRegression(TensorGraph):
 
   def build_graph(self):
 
-    self.atom_feats = Feature(shape=(None, self.max_atoms, 4))
+    self.mode = Feature(dtype=tf.bool) # if true then we need to featurize
+    self.dequeue_object = Feature() # either atom_feats or featurized
 
-    previous_layer = ANIFeat(
-      in_layers=self.atom_feats,
-      max_atoms=self.max_atoms)
+    def true_fn():
+      # print("TrueFn")
+      r_feat = Reshape(
+        shape=[None, self.max_atoms, 4],
+        in_layers=[self.dequeue_object])
+      r_feat.create_tensor()
 
-    self.featurized = previous_layer
+      # FORWARD atom_cases??
+      ani_feat = ANIFeat(
+        in_layers=[r_feat],
+        max_atoms=self.max_atoms)
+
+      ani_feat.create_tensor()
+      # print(ani_feat.shape, "NUM FEATURES")
+      # print("TrueFnNext")
+      return ani_feat
+
+    def false_fn():
+      # print("FalseFn")
+      print("MAX_ATOMS", self.max_atoms)
+      r_feat = Reshape(
+        shape=[None, self.max_atoms, 769],
+        in_layers=[self.dequeue_object])
+      r_feat.create_tensor()
+      return r_feat
+
+    self.featurized = Conditional(
+      in_layers=[self.mode, self.dequeue_object],
+      true_fn=true_fn,
+      false_fn=false_fn)
+
+    previous_layer = self.featurized
 
     Hiddens = []
     for n_hidden in self.layer_structures:
@@ -342,7 +372,9 @@ class ANIRegression(TensorGraph):
     batch_size = self.batch_size
     shard_size = batch_size*256
 
-    def shard_generator(closure_self):
+    # run shard generation in a separate thread
+
+    def shard_generator(cself):
 
       X_cache = []
       y_cache = []
@@ -356,17 +388,49 @@ class ANIRegression(TensorGraph):
 
       total_time = time.time()
 
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      # enqueue in a separate thread
+      # yay for shitty thread-safe GILs on lists
+      all_ybs = []
+      all_wbs = []
+      all_ids = []
 
-        feed_dict = {}
-        feed_dict[closure_self.atom_feats] = X_b
+      def feed_queue():
 
-        sss = time.time()
-        X_feat = closure_self.session.run(closure_self.featurized, feed_dict=feed_dict)
-        run_time += time.time()-sss
+        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+            batch_size=batch_size,
+            deterministic=deterministic,
+            pad_batches=pad_batches):
+
+          mode = cself.get_pre_q_input(cself.mode)
+          obj = cself.get_pre_q_input(cself.dequeue_object)
+          lab = cself.get_pre_q_input(cself.labels[0])
+          weights = cself.get_pre_q_input(cself.task_weights[0])
+
+          cself.session.run(cself.input_queue, feed_dict={
+            mode: True,
+            obj: X_b,
+            lab: np.zeros((1, 1)),
+            weights: np.zeros((1, 1)),
+            })
+
+          all_ybs.append(y_b)
+          all_wbs.append(w_b)
+          all_ids.append(ids_b)
+
+      t1 = threading.Thread(target=feed_queue)
+      t1.start()
+
+      batch_idx = 0
+
+      num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
+
+      while batch_idx < num_batches:
+
+        X_feat = cself.session.run(cself.featurized)
+
+        y_b = all_ybs[batch_idx]
+        w_b = all_wbs[batch_idx]
+        ids_b = all_ids[batch_idx]
 
         if len(X_cache) == shard_size:
 
@@ -378,23 +442,20 @@ class ANIRegression(TensorGraph):
           w_cache = []
           ids_cache = []
 
-        else:
+        for idx in range(len(X_feat)):
+          X_cache.append(X_feat[idx])
+          y_cache.append(y_b[idx])
+          w_cache.append(w_b[idx])
+          ids_cache.append(ids_b[idx])
 
-          o_t = time.time()
+        batch_idx += 1
 
-          for idx in range(len(X_feat)):
-            X_cache.append(X_feat[idx])
-            y_cache.append(y_b[idx])
-            w_cache.append(w_b[idx])
-            ids_cache.append(ids_b[idx])
-
-          overhead_time += time.time()-o_t
-
-          print("Overhead time: ", overhead_time, " Total time: ", time.time()-total_time, "Run time:", run_time)
+      t1.join()
 
       if len(X_cache) > 0:
 
         yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
+
 
     self.feat_dataset = dc.data.DiskDataset.create_dataset(
       shard_generator=shard_generator(self),
@@ -411,9 +472,12 @@ class ANIRegression(TensorGraph):
                         pad_batches=True):
 
     batch_size = self.batch_size
-    shard_size = dataset.get_shard_size()
 
     if predict:
+
+      print("PREDICT")
+
+      # predicting
 
       if not deterministic:
         raise Exception("Called predict with non-deterministic generator, terrible idea.")
@@ -429,6 +493,11 @@ class ANIRegression(TensorGraph):
 
 
     else:
+
+      print("FITTING")
+
+      # fitting
+
       if self.feat_dataset is None:
         self.featurize(dataset, deterministic, pad_batches)
 
@@ -445,7 +514,14 @@ class ANIRegression(TensorGraph):
           if w_b is not None and not predict:
             feed_dict[self.weights] = w_b
 
-          feed_dict[self.featurized] = X_feat
+          # mode = self.get_pre_q_input()
+          # obj = self.get_pre_q_input()
+          print("X_feat SHAPE", X_feat.shape)
+
+          feed_dict[self.mode] = False
+          feed_dict[self.dequeue_object] = X_feat
+
+          # feed_dict[self.featurized] = X_feat
 
           yield feed_dict
 

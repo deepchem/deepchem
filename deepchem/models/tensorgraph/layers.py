@@ -96,6 +96,7 @@ class Layer(object):
       tensors.append(tf.convert_to_tensor(input))
     if reshape and len(tensors) > 1:
       shapes = [t.get_shape() for t in tensors]
+      print("SHAPES", shapes)
       if any(s != shapes[0] for s in shapes[1:]):
         # Reshape everything to match the input with the most dimensions.
 
@@ -666,6 +667,23 @@ class Squeeze(Layer):
     return out_tensor
 
 
+class Conditional(Layer):
+
+  def __init__(self, true_fn, false_fn, **kwargs):
+    # self.pred = predicate
+    self.true_fn = true_fn
+    self.false_fn = false_fn
+    super(Conditional, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    predicate = self._get_input_tensors(in_layers)[0]
+    out_tensor = tf.cond(predicate, self.true_fn, self.false_fn)
+    # out_tensor = tf.reshape(out_tensor, (2, 3, 128))
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Transpose(Layer):
 
   def __init__(self, perm, **kwargs):
@@ -897,8 +915,11 @@ class TimeSeriesDense(Layer):
 
 class Input(Layer):
 
-  def __init__(self, shape, dtype=tf.float32, **kwargs):
-    self._shape = tuple(shape)
+  def __init__(self, shape=None, dtype=tf.float32, **kwargs):
+    if shape:
+      self._shape = tuple(shape)
+    else:
+      self._shape = None
     self.dtype = dtype
     super(Input, self).__init__(**kwargs)
     self.op_type = "cpu"
@@ -918,8 +939,8 @@ class Input(Layer):
     return out_tensor
 
   def create_pre_q(self, batch_size):
-    q_shape = (batch_size,) + self._shape[1:]
-    return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
+    # q_shape = (batch_size,) + self._shape[1:]
+    return Input(shape=self._shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
     return "%s_pre_q" % self.name
@@ -973,10 +994,13 @@ class L2Loss(Layer):
       pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    print("a0")
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
+    print("a0.5")
     out_tensor = tf.reduce_mean(
         tf.square(guess - label), axis=list(range(1, len(label._shape))))
+    print("a1")
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1684,8 +1708,11 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
+    # self.queue = tf.FIFOQueue(
+        # self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    print("NAMES", self.names)
     self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+        self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
@@ -3336,7 +3363,7 @@ class ANIFeat(Layer):
                angular_cutoff=3.1,
                radial_length=32,
                angular_length=8,
-               atom_cases=[1, 6, 7, 8, 16],
+               atom_cases=[1, 6, 7, 8],
                atomic_number_differentiated=True,
                coordinates_in_bohr=True,
                **kwargs):

@@ -478,13 +478,14 @@ class TensorGraph(Model):
 
       self._install_queue()
       for layer in self.topsort():
-        print("TOPSORT", layer)
+        print("TOPSORT", layer, layer.name)
         with tf.name_scope(layer.name):
           layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
           layer.add_summary_to_tg()
+      print("TOPSORT DONE")
       self.session = tf.Session()
 
       self.built = True
@@ -502,14 +503,15 @@ class TensorGraph(Model):
       writer.close()
 
     # As a sanity check, make sure all tensors have the correct shape.
+    # Don't check this for now
 
-    for layer in self.layers.values():
-      try:
-        assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
-        ), '%s: Expected shape %s does not match actual shape %s' % (
-            layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
-      except NotImplementedError:
-        pass
+    # for layer in self.layers.values():
+    #   try:
+    #     assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
+    #     ), '%s: Expected shape %s does not match actual shape %s' % (
+    #         layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
+    #   except NotImplementedError:
+    #     pass
 
   def _install_queue(self):
     """
@@ -758,8 +760,14 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
     for feed_dict in generator:
       enq = {}
       enq[tg._training_placeholder] = 1.0
+      # for layer in tg.labels + tg.task_weights:
       for layer in tg.features + tg.labels + tg.task_weights:
-        enq[tg.get_pre_q_input(layer).out_tensor] = feed_dict[layer]
+        obj = feed_dict[layer]
+        enq[tg.get_pre_q_input(layer).out_tensor] = obj
+      # print("FDTGF:", feed_dict[tg.featurized])
+
+      # feed the pre_q version of this
+      # enq[tg.featurized.out_tensor] = feed_dict[tg.featurized]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       n_enqueued[0] += 1
     final_sample[0] = n_enqueued[0]
