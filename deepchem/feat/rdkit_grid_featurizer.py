@@ -74,7 +74,8 @@ def generate_random__unit_vector():
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
   z = np.random.uniform(low=-1.0, high=1.0)
   u = np.array(
-      [np.sqrt(1 - z**2) * np.cos(theta), np.sqrt(1 - z**2) * np.sin(theta), z])
+      [np.sqrt(1 - z**2) * np.cos(theta),
+       np.sqrt(1 - z**2) * np.sin(theta), z])
   return (u)
 
 
@@ -142,8 +143,8 @@ def compute_pairwise_distances(protein_xyz, ligand_xyz):
   atom and the j"th ligand atom
   """
 
-  pairwise_distances = np.zeros(
-      (np.shape(protein_xyz)[0], np.shape(ligand_xyz)[0]))
+  pairwise_distances = np.zeros((np.shape(protein_xyz)[0],
+                                 np.shape(ligand_xyz)[0]))
   for j in range(0, np.shape(ligand_xyz)[0]):
     differences = protein_xyz - ligand_xyz[j, :]
     squared_differences = np.square(differences)
@@ -347,8 +348,8 @@ def compute_splif_features_in_range(protein,
   atoms.  Returns a dictionary mapping (protein_index_i, ligand_index_j) -->
   (protein_ecfp_i, ligand_ecfp_j)
   """
-  contacts = np.nonzero((pairwise_distances > contact_bin[0]) & (
-      pairwise_distances < contact_bin[1]))
+  contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
+                        (pairwise_distances < contact_bin[1]))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   contacts = zip(contacts[0], contacts[1])
 
@@ -509,8 +510,8 @@ def get_formal_charge(atom):
 
 
 def is_salt_bridge(atom_i, atom_j):
-  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(
-      atom_j))) < 0.01:
+  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(atom_j))
+           ) < 0.01:
     return True
   else:
     return False
@@ -555,8 +556,8 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
   a distance bin and an angle cutoff.
   """
 
-  contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) & (
-      pairwise_distances < hbond_dist_bin[1]))
+  contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) &
+                        (pairwise_distances < hbond_dist_bin[1]))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   protein_ecfp_dict = compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
@@ -1112,8 +1113,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         for voxel in voxels:
           try:
             if hash_function is not None:
-              feature_tensor[voxel[0], voxel[1], voxel[2], hash_function(
-                  features, channel_power)] += 1.0
+              feature_tensor[voxel[0], voxel[1], voxel[2],
+                             hash_function(features, channel_power)] += 1.0
             else:
               feature_tensor[voxel[0], voxel[1], voxel[3], 0] += features
           except:
