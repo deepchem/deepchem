@@ -62,7 +62,7 @@ def load_roiterberg_ANI(mode="atomization"):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
+      'ani_gdb_s04.h5',
       # 'ani_gdb_s05.h5',
       # 'ani_gdb_s06.h5',
       # 'ani_gdb_s07.h5',
@@ -239,7 +239,7 @@ if __name__ == "__main__":
         feat_dir=feat_dir,
         batch_size=batch_size,
         learning_rate=0.001,
-        use_queue=False, # broken if we turn queue on
+        use_queue=True, # broken if we turn queue on
         model_dir=model_dir,
         mode="regression")
 

@@ -211,6 +211,8 @@ class TensorGraph(Model):
           start_time = time.time()
 
 
+        # print("0")
+
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
           # we try to read more batches than the total number that get queued,
@@ -221,6 +223,8 @@ class TensorGraph(Model):
             time.sleep(0)
           if n_samples == final_sample[0]:
             break
+
+        # print("1")
         n_samples += 1
         should_log = (self.tensorboard and
                       n_samples % self.tensorboard_log_frequency == 0)
@@ -229,6 +233,8 @@ class TensorGraph(Model):
           fetches.append(self._get_tf("summary_op"))
 
         run_start = time.time()
+
+        # print("2")
 
         if self.global_step > 1000000000:
           with open('/home/yutong/timeline3.json', 'w') as f:
@@ -242,6 +248,8 @@ class TensorGraph(Model):
         else:
           fetched_values = self.session.run(fetches, feed_dict=feed_dict)
 
+        # print("3")
+
         run_time += time.time()-run_start
 
         if should_log:
@@ -250,6 +258,8 @@ class TensorGraph(Model):
         avg_loss += loss
         n_averaged_batches += 1
         self.global_step += 1
+
+        # print("4")
 
         if self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)

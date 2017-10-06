@@ -882,6 +882,8 @@ class DiskDataset(Dataset):
 
   def get_shard(self, i):
     """Retrieves data for the i-th shard from disk."""
+    print("GET_SHARD_START")
+    t = time.time()
     row = self.metadata_df.iloc[i]
     X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
 
@@ -902,6 +904,7 @@ class DiskDataset(Dataset):
 
     ids = np.array(
         load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+    print("GET_SHARD_END", time.time()-t)
     return (X, y, w, ids)
 
   def add_shard(self, X, y, w, ids):

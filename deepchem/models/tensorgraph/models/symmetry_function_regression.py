@@ -118,7 +118,7 @@ class ANIRegression(TensorGraph):
                n_tasks,
                max_atoms,
                layer_structures=[128, 64],
-               atom_number_cases=[1, 6, 7, 8, 16],
+               atom_number_cases=[1, 6, 7, 8],
                feat_dir=None,
                **kwargs):
     """
@@ -226,7 +226,7 @@ class ANIRegression(TensorGraph):
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
-    print("START PREDICT!")
+    # print("START PREDICT!")
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -507,6 +507,8 @@ class ANIRegression(TensorGraph):
           deterministic=deterministic,
           pad_batches=pad_batches):
 
+          print("BATCH_TIME", time.time())
+
           feed_dict = {}
           if y_b is not None and not predict:
             for index, label in enumerate(self.labels_fd):
@@ -516,7 +518,7 @@ class ANIRegression(TensorGraph):
 
           # mode = self.get_pre_q_input()
           # obj = self.get_pre_q_input()
-          print("X_feat SHAPE", X_feat.shape)
+          # print("X_feat SHAPE", X_feat.shape)
 
           feed_dict[self.mode] = False
           feed_dict[self.dequeue_object] = X_feat

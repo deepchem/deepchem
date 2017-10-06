@@ -23,7 +23,7 @@ def log(string, verbose=True):
     print(string)
 
 
-def save_to_disk(dataset, filename, compress=3):
+def save_to_disk(dataset, filename, compress=0):
   """Save a dataset to file."""
   joblib.dump(dataset, filename, compress=compress)
 
