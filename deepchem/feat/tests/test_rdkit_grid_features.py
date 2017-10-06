@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 np.random.seed(123)
 
-from rdkit.Chem import MolFromMolFile
+from rdkit.Chem import MolFromMolFile, rdchem
 
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
@@ -16,12 +16,15 @@ class TestHelperFunctions(unittest.TestCase):
   """
   Test functions defined in rdkit_grid_featurizer module.
   """
+
   def setUp(self):
     # TODO test more formats for ligand
     current_dir = os.path.dirname(os.path.realpath(__file__))
     package_dir = os.path.dirname(os.path.dirname(current_dir))
-    self.protein_file = os.path.join(package_dir, 'dock', 'tests', '1jld_protein.pdb')
-    self.ligand_file = os.path.join(package_dir, 'dock', 'tests', '1jld_ligand.sdf')
+    self.protein_file = os.path.join(package_dir, 'dock', 'tests',
+                                     '1jld_protein.pdb')
+    self.ligand_file = os.path.join(package_dir, 'dock', 'tests',
+                                    '1jld_ligand.sdf')
 
   def test_get_ligand_filetype(self):
 
@@ -38,19 +41,25 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertRaises(ValueError, rgf.get_ligand_filetype, fname)
 
   def test_load_molecule(self):
+    # adding hydrogens and charges is tested in dc.utils
     for add_hydrogens in (True, False):
       for calc_charges in (True, False):
-        mol_xyz, mol_rdk = rgf.load_molecule(self.ligand_file, add_hydrogens, calc_charges)
+        mol_xyz, mol_rdk = rgf.load_molecule(self.ligand_file, add_hydrogens,
+                                             calc_charges)
         num_atoms = mol_rdk.GetNumAtoms()
+        self.assertIsInstance(mol_xyz, np.ndarray)
+        self.assertIsInstance(mol_rdk, rdchem.Mol)
         self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
   def test_generate_random__unit_vector(self):
     for _ in range(100):
       u = rgf.generate_random__unit_vector()
+      # 3D vector with unit length
       self.assertEqual(u.shape, (3,))
       self.assertAlmostEqual(np.linalg.norm(u), 1.0)
 
   def test_generate_random_rotation_matrix(self):
+    # very basic test, we check if rotations actually work in test_rotate_molecules
     for _ in range(100):
       m = rgf.generate_random_rotation_matrix()
       self.assertEqual(m.shape, (3, 3))
@@ -77,7 +86,7 @@ class TestHelperFunctions(unittest.TestCase):
     distance = rgf.compute_pairwise_distances(coords1, coords2)
     self.assertTrue((distance >= 0).all())
     # random coords between 0 and 1, so the max possible distance in sqrt(2)
-    self.assertTrue((distance <= 2.0 ** 0.5).all())
+    self.assertTrue((distance <= 2.0**0.5).all())
 
   def test_unit_vector(self):
     for _ in range(10):
@@ -99,6 +108,7 @@ class TestHelperFunctions(unittest.TestCase):
         # FIXME strings generation is not controlled by random seed
         string = os.urandom(10).decode('latin1')
         string_hash = rgf.hash_ecfp(string, power)
+        self.assertIsInstance(string_hash, int)
         self.assertLess(string_hash, 2**power)
         self.assertGreaterEqual(string_hash, 0)
 
@@ -109,6 +119,7 @@ class TestHelperFunctions(unittest.TestCase):
         string1 = os.urandom(10).decode('latin1')
         string2 = os.urandom(10).decode('latin1')
         pair_hash = rgf.hash_ecfp_pair((string1, string2), power)
+        self.assertIsInstance(pair_hash, int)
         self.assertLess(pair_hash, 2**power)
         self.assertGreaterEqual(pair_hash, 0)
 
@@ -127,7 +138,6 @@ class TestHelperFunctions(unittest.TestCase):
       indices = list(np.random.choice(range(num_atoms), num_ind, replace=False))
 
       ecfp_selected = rgf.compute_all_ecfp(mol, indices=indices, degree=degree)
-      print(indices, list(ecfp_selected.keys()))
       self.assertIsInstance(ecfp_selected, dict)
       self.assertEqual(len(ecfp_selected), num_ind)
       self.assertEqual(sorted(ecfp_selected.keys()), sorted(indices))
