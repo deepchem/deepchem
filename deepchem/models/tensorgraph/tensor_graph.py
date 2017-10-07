@@ -780,6 +780,7 @@ class TensorGraph(Model):
     with open(pickle_name, 'rb') as fout:
       tensorgraph = pickle.load(fout)
       tensorgraph.built = False
+      tensorgraph.model_dir = model_dir
       try:
         tensorgraph.restore()
       except ValueError:
