@@ -36,7 +36,8 @@ def save_to_disk(dataset, filename, compress=0):
 def save_sparse_mats(mat_b, filename):
   print("CALLING SAVE SPARSE MATS")
   res = scipy.sparse.vstack(mat_b)
-  items_to_save = [res.data, res.indices, res.indptr, res.shape]
+  # items_to_save = [res.data, res.indices, res.indptr, res.shape]
+  items_to_save = [res.data, res.row, res.col, res.shape]
   for idx, ii in enumerate(items_to_save):
     np.save(filename+str(idx), ii, allow_pickle=False)
 

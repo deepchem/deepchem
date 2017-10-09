@@ -451,7 +451,7 @@ class ANIRegression(TensorGraph):
         for idx in range(len(X_feat)):
 
           x_max = X_feat[idx]
-          x_csr = scipy.sparse.csr_matrix(x_max)
+          x_csr = scipy.sparse.coo_matrix(x_max)
 
           # X_cache.append(np.array([x_csr.data, x_csr.indices, x_csr.indptr, x_csr.shape]))
           X_cache.append(x_csr)

@@ -488,7 +488,7 @@ class DiskDataset(Dataset):
                          w=None,
                          ids=None):
     if X is not None:
-      if len(X) > 0 and isinstance(X[0], scipy.sparse.csr_matrix):
+      if len(X) > 0 and isinstance(X[0], scipy.sparse.coo_matrix):
         out_X = basename+"-X_"+MATMAGICKEY
         save_sparse_mats(X, os.path.join(data_dir, out_X))
       else:
@@ -676,10 +676,10 @@ class DiskDataset(Dataset):
 
         if type(X) == list:
           bgn = time.time()
-          X = scipy.sparse.csr_matrix(
+          X = scipy.sparse.coo_matrix(
             (X[0],
-            X[1],
-            X[2]),
+            (X[1],
+            X[2])),
             shape=X[3])
           X = X.A
           original_shape = X.shape
