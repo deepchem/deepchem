@@ -509,19 +509,21 @@ class Highway(Layer):
     inputs = self._get_input_tensors(in_layers)
     parent = inputs[0]
     shape = parent.get_shape().as_list()[1]
-    dense1 = tf.contrib.layers.fully_connected(parent,
-                                               num_outputs=shape,
-                                               activation_fn=self.activation_fn,
-                                               biases_initializer=self.biases_initializer(),
-                                               weights_initializer=self.weights_initializer(),
-                                               trainable=True)
-    dense2 = tf.contrib.layers.fully_connected(parent,
-                                               num_outputs=shape,
-                                               activation_fn=tf.nn.sigmoid,
-                                               biases_initializer=tf.constant_initializer(-1),
-                                               weights_initializer=self.weights_initializer(),
-                                               trainable=True)
-    out_tensor = tf.multiply(dense1, dense2) + tf.multiply(parent, 1-dense2)
+    dense1 = tf.contrib.layers.fully_connected(
+        parent,
+        num_outputs=shape,
+        activation_fn=self.activation_fn,
+        biases_initializer=self.biases_initializer(),
+        weights_initializer=self.weights_initializer(),
+        trainable=True)
+    dense2 = tf.contrib.layers.fully_connected(
+        parent,
+        num_outputs=shape,
+        activation_fn=tf.nn.sigmoid,
+        biases_initializer=tf.constant_initializer(-1),
+        weights_initializer=self.weights_initializer(),
+        trainable=True)
+    out_tensor = tf.multiply(dense1, dense2) + tf.multiply(parent, 1 - dense2)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1562,13 +1564,10 @@ class Conv3D(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class MaxPool1D(Layer):
 
-  def __init__(self,
-               window_shape=2,
-               strides=1,
-               padding="SAME",
-               **kwargs):
+  def __init__(self, window_shape=2, strides=1, padding="SAME", **kwargs):
     self.window_shape = window_shape
     self.strides = strides
     self.padding = padding
@@ -1584,14 +1583,16 @@ class MaxPool1D(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     in_tensor = inputs[0]
-    out_tensor = tf.nn.pool(in_tensor,
-                            window_shape=[self.window_shape],
-                            pooling_type=self.pooling_type,
-                            padding=self.padding,
-                            strides=[self.strides])
+    out_tensor = tf.nn.pool(
+        in_tensor,
+        window_shape=[self.window_shape],
+        pooling_type=self.pooling_type,
+        padding=self.padding,
+        strides=[self.strides])
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+
 
 class MaxPool2D(Layer):
 

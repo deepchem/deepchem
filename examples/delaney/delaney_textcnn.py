@@ -34,7 +34,7 @@ model = dc.models.TextCNNTensorGraph(
     use_queue=False)
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=50)
+model.fit(train_dataset, nb_epoch=100)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, [metric], transformers)
