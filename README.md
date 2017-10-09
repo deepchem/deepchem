@@ -56,7 +56,7 @@ git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source 
 cd deepchem
 bash scripts/install_deepchem_conda.sh deepchem
 source activate deepchem
-pip install tensorflow-gpu==1.2.1                       # If you want GPU support
+pip install tensorflow-gpu==1.3.0                      # If you want GPU support
 python setup.py install                                 # Manual install
 nosetests -v deepchem --nologcapture                    # Run tests
 ```
@@ -110,7 +110,7 @@ conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0
     contact your local sysadmin to work out a custom installation. If your
     version of Linux is recent, then the following command will work:
     ```
-    pip install tensorflow-gpu==1.2.1
+    pip install tensorflow-gpu==1.3.0
     ```
 
 9. `deepchem`: Clone the `deepchem` github repo:

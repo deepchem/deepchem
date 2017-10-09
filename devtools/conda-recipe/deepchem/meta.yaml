@@ -30,7 +30,7 @@ requirements:
     - xgboost ==0.6a2
     - pillow ==4.2.1
     - pandas ==0.19.2
-    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.2.1
+    - {{ environ.get('tensorflow_enabled','tensorflow') }} ==1.3.0
     - nose
     - nose-timer
     - flaky ==3.3.0

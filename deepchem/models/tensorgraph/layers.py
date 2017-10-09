@@ -1,11 +1,14 @@
+# -*- coding: UTF-8 -*-
 import random
 import string
 from collections import Sequence
+from copy import deepcopy
 
 import tensorflow as tf
 import numpy as np
 
 from deepchem.nn import model_ops, initializations, regularizers, activations
+import math
 
 
 class Layer(object):
@@ -23,6 +26,7 @@ class Layer(object):
     self.in_layers = in_layers
     self.op_type = "gpu"
     self.variable_scope = ''
+    self.variable_values = None
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
@@ -115,6 +119,19 @@ class Layer(object):
     else:
       self.variable_scope = local_scope
 
+  def set_variable_initial_values(self, values):
+    """Set the initial values of all variables.
+
+    This takes a list, which contains the initial values to use for all of
+    this layer's values (in the same order retured by
+    TensorGraph.get_layer_variables()).  When this layer is used in a
+    TensorGraph, it will automatically initialize each variable to the value
+    specified in the list.  Note that some layers also have separate mechanisms
+    for specifying variable initializers; this method overrides them. The
+    purpose of this method is to let a Layer object represent a pre-trained
+    layer, complete with trained values for its variables."""
+    self.variable_values = values
+
   def set_summary(self, summary_op, summary_description=None, collections=None):
     """Annotates a tensor with a tf.summary operation
     Collects data from self.out_tensor by default but can be changed by setting
@@ -156,6 +173,64 @@ class Layer(object):
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
+  def copy(self, replacements={}, variables_graph=None):
+    """Duplicate this Layer and all its inputs.
+
+    This creates and returns a clone of this layer.  It also recursively calls
+    copy() on all of this layer's inputs to clone the entire hierarchy of layers.
+    In the process, you can optionally tell it to replace particular layers with
+    specific existing ones.  For example, you can clone a stack of layers, while
+    connecting the topmost ones to different inputs.
+
+    For example, consider a stack of dense layers that depend on an input:
+
+    >>> input = Feature(shape=(None, 100))
+    >>> dense1 = Dense(100, in_layers=input)
+    >>> dense2 = Dense(100, in_layers=dense1)
+    >>> dense3 = Dense(100, in_layers=dense2)
+
+    The following will clone all three dense layers, but not the input layer.
+    Instead, the input to the first dense layer will be a different layer
+    specified in the replacements map.
+
+    >>> replacements = {input: new_input}
+    >>> dense3_copy = dense3.copy(replacements)
+
+    Parameters
+    ----------
+    replacements: map
+      specifies existing layers, and the layers to replace them with (instead of
+      cloning them).  This argument serves two purposes.  First, you can pass in
+      a list of replacements to control which layers get cloned.  In addition,
+      as each layer is cloned, it is added to this map.  On exit, it therefore
+      contains a complete record of all layers that were copied, and a reference
+      to the copy of each one.
+    variables_graph: TensorGraph
+      an optional TensorGraph from which to take variables.  If this is specified,
+      the current value of each variable in each layer is recorded, and the copy
+      has that value specified as its initial value.  This allows a piece of a
+      pre-trained model to be copied to another model.
+    """
+    if self in replacements:
+      return replacements[self]
+    copied_inputs = [
+        layer.copy(replacements, variables_graph) for layer in self.in_layers
+    ]
+    saved_inputs = self.in_layers
+    self.in_layers = []
+    saved_tensors = self.none_tensors()
+    copy = deepcopy(self)
+    self.in_layers = saved_inputs
+    self.set_tensors(saved_tensors)
+    copy.in_layers = copied_inputs
+    if variables_graph is not None:
+      variables = variables_graph.get_layer_variables(self)
+      if len(variables) > 0:
+        with variables_graph._get_tf("Graph").as_default():
+          values = variables_graph.session.run(variables)
+          copy.set_variable_initial_values(values)
+    return copy
+
   def _as_graph_element(self):
     if '_as_graph_element' in dir(self.out_tensor):
       return self.out_tensor._as_graph_element()
@@ -194,6 +269,16 @@ class Layer(object):
 
   def __neg__(self):
     return Multiply([self, Constant(-1.0)])
+
+  def __div__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Divide([self, other])
+
+  def __truediv__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Divide([self, other])
 
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
@@ -750,8 +835,8 @@ class TimeSeriesDense(Layer):
       raise ValueError("Must have one parent")
     parent_tensor = inputs[0]
     dense_fn = lambda x: tf.contrib.layers.fully_connected(
-        x, num_outputs=self.out_channels,
-        activation_fn=tf.nn.sigmoid)
+      x, num_outputs=self.out_channels,
+      activation_fn=tf.nn.sigmoid)
     out_tensor = tf.map_fn(dense_fn, parent_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -965,6 +1050,36 @@ class Variable(Layer):
     return out_tensor
 
 
+class StopGradient(Layer):
+  """Block the flow of gradients.
+
+  This layer copies its input directly to its output, but reports that all
+  gradients of its output are zero.  This means, for example, that optimizers
+  will not try to optimize anything "upstream" of this layer.
+
+  For example, suppose you have pre-trained a stack of layers to perform a
+  calculation.  You want to use the result of that calculation as the input to
+  another layer, but because they are already pre-trained, you do not want the
+  optimizer to modify them.  You can wrap the output in a StopGradient layer,
+  then use that as the input to the next layer."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(StopGradient, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) > 1:
+      raise ValueError("Only one layer supported.")
+    out_tensor = tf.stop_gradient(inputs[0])
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 def _max_dimension(x, y):
   if x is None:
     return y
@@ -1039,6 +1154,31 @@ class Multiply(Layer):
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Divide(Layer):
+  """Compute the ratio of the input layers."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Divide, self).__init__(in_layers, **kwargs)
+    try:
+      shape1 = list(self.in_layers[0].shape)
+      shape2 = list(self.in_layers[1].shape)
+      if len(shape1) < len(shape2):
+        shape2, shape1 = shape1, shape2
+      offset = len(shape1) - len(shape2)
+      for i in range(len(shape2)):
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
+      self._shape = tuple(shape1)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    out_tensor = inputs[0] / inputs[1]
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1561,9 +1701,6 @@ class InputFifoQueue(Layer):
 
   def set_tensors(self, tensors):
     self.queue, self.out_tensor, self.out_tensors, self.close_op = tensors
-
-  def close(self):
-    self.queue.close()
 
 
 class GraphConv(Layer):
@@ -2094,7 +2231,7 @@ class IterRefLSTMEmbedding(Layer):
 
     self.trainable_weights = []
 
-    #self.build()
+    # self.build()
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 2:
       raise ValueError(
@@ -3006,10 +3143,7 @@ def AlphaShare(in_layers=None, **kwargs):
   output_layers = []
   alpha_share = AlphaShareLayer(in_layers=in_layers, **kwargs)
   num_outputs = len(in_layers)
-  for num_layer in range(0, num_outputs):
-    ls = LayerSplitter(output_num=num_layer, in_layers=alpha_share)
-    output_layers.append(ls)
-  return output_layers
+  return [LayerSplitter(x, in_layers=alpha_share) for x in range(num_outputs)]
 
 
 class AlphaShareLayer(Layer):
@@ -3027,7 +3161,6 @@ class AlphaShareLayer(Layer):
   Returns
   -------
   out_tensor: a tensor with shape [len(in_layers), x, y] where x, y were the original layer dimensions
-    out_tensor should be fed into LayerSplitter
   Distance matrix.
   """
 
@@ -3058,63 +3191,31 @@ class AlphaShareLayer(Layer):
     # concatenate subspaces, reshape to size of original input, then stack
     # such that out_tensor has shape (2,?,original_cols)
     count = 0
-    out_tensor = []
+    self.out_tensors = []
     tmp_tensor = []
     for row in range(n_alphas):
       tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
-        out_tensor.append(tf.concat(tmp_tensor, 1))
+        self.out_tensors.append(tf.concat(tmp_tensor, 1))
         tmp_tensor = []
         count = 0
 
-    out_tensor = tf.stack(out_tensor)
-
     self.alphas = alphas
     if set_tensors:
-      self.out_tensor = out_tensor
-    return out_tensor
+      self.out_tensor = self.out_tensors[0]
+    return self.out_tensors
 
   def none_tensors(self):
-    num_outputs, out_tensor, alphas = self.num_outputs, self.out_tensor, self.alphas
+    num_outputs, out_tensor, out_tensors, alphas = self.num_outputs, self.out_tensor, self.out_tensors, self.alphas
     self.num_outputs = None
     self.out_tensor = None
+    self.out_tensors = None
     self.alphas = None
-    return num_outputs, out_tensor, alphas
+    return num_outputs, out_tensor, self.out_tensors, alphas
 
   def set_tensors(self, tensor):
-    self.num_outputs, self.out_tensor, self.alphas = tensor
-
-
-class LayerSplitter(Layer):
-  """
-  Returns the nth output of a layer
-  Assumes out_tensor has shape [x, :] where x is the total number of intended output tensors
-  """
-
-  def __init__(self, output_num, **kwargs):
-    """
-    Parameters
-    ----------
-    output_num: int
-        returns the out_tensor[output_num, :] of a layer
-    """
-    self.output_num = output_num
-    super(LayerSplitter, self).__init__(**kwargs)
-
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)[0]
-    self.out_tensor = inputs[self.output_num, :]
-    out_tensor = self.out_tensor
-    return self.out_tensor
-
-  def none_tensors(self):
-    out_tensor = self.out_tensor
-    self.out_tensor = None
-    return out_tensor
-
-  def set_tensors(self, tensor):
-    self.out_tensor = tensor
+    self.num_outputs, self.out_tensor, self.out_tensors, self.alphas = tensor
 
 
 class SluiceLoss(Layer):
@@ -3189,3 +3290,416 @@ class BetaShare(Layer):
 
   def set_tensors(self, tensor):
     self.out_tensor, self.betas = tensor
+
+
+class ANIFeat(Layer):
+  """Performs transform from 3D coordinates to ANI symmetry functions
+  """
+
+  def __init__(self,
+               in_layers,
+               max_atoms=23,
+               radial_cutoff=4.6,
+               angular_cutoff=3.1,
+               radial_length=32,
+               angular_length=8,
+               atom_cases=[1, 6, 7, 8, 16],
+               atomic_number_differentiated=True,
+               coordinates_in_bohr=True,
+               **kwargs):
+    """
+    Only X can be transformed
+    """
+    self.max_atoms = max_atoms
+    self.radial_cutoff = radial_cutoff
+    self.angular_cutoff = angular_cutoff
+    self.radial_length = radial_length
+    self.angular_length = angular_length
+    self.atom_cases = atom_cases
+    self.atomic_number_differentiated = atomic_number_differentiated
+    self.coordinates_in_bohr = coordinates_in_bohr
+    super(ANIFeat, self).__init__(in_layers, **kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+    In layers should be of shape dtype tf.float32, (None, self.max_atoms, 4)
+
+    """
+    inputs = self._get_input_tensors(in_layers)[0]
+    atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
+    flags = tf.sign(atom_numbers)
+    flags = tf.to_float(tf.expand_dims(flags, 1) * tf.expand_dims(flags, 2))
+    coordinates = inputs[:, :, 1:]
+    if self.coordinates_in_bohr:
+      coordinates = coordinates * 0.52917721092
+
+    d = self.distance_matrix(coordinates, flags)
+
+    d_radial_cutoff = self.distance_cutoff(d, self.radial_cutoff, flags)
+    d_angular_cutoff = self.distance_cutoff(d, self.angular_cutoff, flags)
+
+    radial_sym = self.radial_symmetry(d_radial_cutoff, d, atom_numbers)
+    angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
+                                        coordinates)
+
+    out_tensor = tf.concat(
+        [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
+        axis=2)
+
+    if set_tensors:
+      self.out_tensor = out_tensor
+
+    return out_tensor
+
+  def distance_matrix(self, coordinates, flags):
+    """ Generate distance matrix """
+    # (TODO YTZ:) faster, less memory intensive way
+    # r = tf.reduce_sum(tf.square(coordinates), 2)
+    # r = tf.expand_dims(r, -1)
+    # inner = 2*tf.matmul(coordinates, tf.transpose(coordinates, perm=[0,2,1]))
+    # # inner = 2*tf.matmul(coordinates, coordinates, transpose_b=True)
+
+    # d = r - inner + tf.transpose(r, perm=[0,2,1])
+    # d = tf.nn.relu(d) # fix numerical instabilities about diagonal
+    # d = tf.sqrt(d) # does this have negative elements? may be unstable for diagonals
+
+    max_atoms = self.max_atoms
+    tensor1 = tf.stack([coordinates] * max_atoms, axis=1)
+    tensor2 = tf.stack([coordinates] * max_atoms, axis=2)
+
+    # Calculate pairwise distance
+    d = tf.sqrt(
+        tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
+
+    d = d * flags
+    return d
+
+  def distance_cutoff(self, d, cutoff, flags):
+    """ Generate distance matrix with trainable cutoff """
+    # Cutoff with threshold Rc
+    d_flag = flags * tf.sign(cutoff - d)
+    d_flag = tf.nn.relu(d_flag)
+    d_flag = d_flag * tf.expand_dims((1 - tf.eye(self.max_atoms)), 0)
+    d = 0.5 * (tf.cos(np.pi * d / cutoff) + 1)
+    return d * d_flag
+    # return d
+
+  def radial_symmetry(self, d_cutoff, d, atom_numbers):
+    """ Radial Symmetry Function """
+    embedding = tf.eye(np.max(self.atom_cases) + 1)
+    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+
+    Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
+    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
+    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
+    ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
+    length = ita.get_shape().as_list()[-1]
+
+    d_cutoff = tf.stack([d_cutoff] * length, axis=3)
+    d = tf.stack([d] * length, axis=3)
+
+    out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for atom_type in self.atom_cases:
+        selected_atoms = tf.expand_dims(
+            tf.expand_dims(atom_numbers_embedded[:, :, atom_type], axis=1),
+            axis=3)
+        out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out, axis=2)
+
+  def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
+    """ Angular Symmetry Function """
+
+    max_atoms = self.max_atoms
+    embedding = tf.eye(np.max(self.atom_cases) + 1)
+    atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
+
+    Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
+    ita = 3 / (Rs[1] - Rs[0])**2
+    thetas = np.linspace(0., np.pi, self.angular_length)
+    zeta = float(self.angular_length**2)
+
+    ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
+    zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
+    ita = tf.to_float(np.reshape(ita, (1, 1, 1, 1, -1)))
+    Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
+    thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
+    length = zeta.get_shape().as_list()[-1]
+
+    # tf.stack issues again...
+    vector_distances = tf.stack([coordinates] * max_atoms, 1) - tf.stack(
+        [coordinates] * max_atoms, 2)
+    R_ij = tf.stack([d] * max_atoms, axis=3)
+    R_ik = tf.stack([d] * max_atoms, axis=2)
+    f_R_ij = tf.stack([d_cutoff] * max_atoms, axis=3)
+    f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
+
+    # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
+    vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
+        tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
+    vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
+    theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
+
+    R_ij = tf.stack([R_ij] * length, axis=4)
+    R_ik = tf.stack([R_ik] * length, axis=4)
+    f_R_ij = tf.stack([f_R_ij] * length, axis=4)
+    f_R_ik = tf.stack([f_R_ik] * length, axis=4)
+    theta = tf.stack([theta] * length, axis=4)
+
+    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
+        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+
+    if self.atomic_number_differentiated:
+      out_tensors = []
+      for id_j, atom_type_j in enumerate(self.atom_cases):
+        for atom_type_k in self.atom_cases[id_j:]:
+          selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
+                           tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
+          selected_atoms = tf.expand_dims(
+              tf.expand_dims(selected_atoms, axis=1), axis=4)
+          out_tensors.append(
+              tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
+      return tf.concat(out_tensors, axis=2)
+    else:
+      return tf.reduce_sum(out_tensor, axis=(2, 3))
+
+  def get_num_feats(self):
+    n_feat = self.outputs.get_shape().as_list()[-1]
+    return n_feat
+
+
+class LayerSplitter(Layer):
+  """
+  Layer which takes a tensor from in_tensor[0].out_tensors at an index
+  Only layers which need to output multiple layers set and use the variable
+  self.out_tensors.
+  This is a utility for those special layers which set self.out_tensors
+  to return a layer wrapping a specific tensor in in_layers[0].out_tensors
+  """
+
+  def __init__(self, output_num, **kwargs):
+    """
+    Parameters
+    ----------
+    output_num: int
+      The index which to use as this layers out_tensor from in_layers[0]
+    kwargs
+    """
+    self.output_num = output_num
+    super(LayerSplitter, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    out_tensor = self.in_layers[0].out_tensors[self.output_num]
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class GraphEmbedPoolLayer(Layer):
+  """
+  GraphCNNPool Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+
+  This is a learnable pool operation
+  It constructs a new adjacency matrix for a graph of specified number of nodes.
+
+  This differs from our other pool opertions which set vertices to a function value
+  without altering the adjacency matrix.
+
+  $V_{emb} = SpatialGraphCNN({V_{in}})$\\
+  $V_{out} = \sigma(V_{emb})^{T} * V_{in}$
+  $A_{out} = V_{emb}^{T} * A_{in} * V_{emb}$
+
+  """
+
+  def __init__(self, num_vertices, **kwargs):
+    self.num_vertices = num_vertices
+    super(GraphEmbedPoolLayer, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_filters: int
+      Number of filters to have in the output
+
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
+
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
+    """
+    in_tensors = self._get_input_tensors(in_layers)
+    if len(in_tensors) == 3:
+      V, A, mask = in_tensors
+    else:
+      V, A = in_tensors
+      mask = None
+    factors = self.embedding_factors(
+        V, self.num_vertices, name='%s_Factors' % self.name)
+
+    if mask is not None:
+      factors = tf.multiply(factors, mask)
+    factors = self.softmax_factors(factors)
+
+    result = tf.matmul(factors, V, transpose_a=True)
+
+    result_A = tf.reshape(A, (tf.shape(A)[0], -1, tf.shape(A)[-1]))
+    result_A = tf.matmul(result_A, factors)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], tf.shape(A)[-1], -1))
+    result_A = tf.matmul(factors, result_A, transpose_a=True)
+    result_A = tf.reshape(result_A, (tf.shape(A)[0], self.num_vertices,
+                                     A.get_shape()[2].value, self.num_vertices))
+    # We do not need the mask because every graph has self.num_vertices vertices now
+    if set_tensors:
+      self.out_tensor = result[0]
+    self.out_tensors = [result, result_A]
+    return result, result_A
+
+  def embedding_factors(self, V, no_filters, name="default"):
+    no_features = V.get_shape()[-1].value
+    W = tf.get_variable(
+        '%s_weights' % name, [no_features, no_filters],
+        initializer=tf.truncated_normal_initializer(
+            stddev=1.0 / math.sqrt(no_features)),
+        dtype=tf.float32)
+    b = tf.get_variable(
+        '%s_bias' % self.name, [no_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+    V_reshape = tf.reshape(V, (-1, no_features))
+    s = tf.slice(tf.shape(V), [0], [len(V.get_shape()) - 1])
+    s = tf.concat([s, tf.stack([no_filters])], 0)
+    result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+    return result
+
+  def softmax_factors(self, V, axis=1, name=None):
+    max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+    exp = tf.exp(tf.subtract(V, max_value))
+    prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+    return prob
+
+  def none_tensors(self):
+    out_tensors, out_tensor = self.out_tensors, self.out_tensor
+    self.out_tensors = None
+    self.out_tensor = None
+    return out_tensors, out_tensor
+
+  def set_tensors(self, tensor):
+    self.out_tensors, self.out_tensor = tensor
+
+
+def GraphCNNPool(num_vertices, **kwargs):
+  gcnnpool_layer = GraphEmbedPoolLayer(num_vertices, **kwargs)
+  return [LayerSplitter(x, in_layers=gcnnpool_layer) for x in range(2)]
+
+
+class GraphCNN(Layer):
+  """
+  GraphCNN Layer from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+
+  Spatial-domain convolutions can be defined as
+  H = h_0I + h_1A + h_2A^2 + ... + hkAk, H ∈ R**(N×N)
+
+  We approximate it by
+  H ≈ h_0I + h_1A
+
+  We can define a convolution as applying multiple these linear filters
+  over edges of different types (think up, down, left, right, diagonal in images)
+  Where each edge type has its own adjacency matrix
+  H ≈ h_0I + h_1A_1 + h_2A_2 + . . . h_(L−1)A_(L−1)
+
+  V_out = \sum_{c=1}^{C} H^{c} V^{c} + b
+  """
+
+  def __init__(self, num_filters, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_filters: int
+      Number of filters to have in the output
+
+    in_layers: list of Layers or tensors
+      [V, A, mask]
+      V are the vertex features must be of shape (batch, vertex, channel)
+
+      A are the adjacency matrixes for each graph
+        Shape (batch, from_vertex, adj_matrix, to_vertex)
+
+      mask is optional, to be used when not every graph has the
+      same number of vertices
+
+    Returns: tf.tensor
+    Returns a tf.tensor with a graph convolution applied
+    The shape will be (batch, vertex, self.num_filters)
+    """
+    self.num_filters = num_filters
+    super(GraphCNN, self).__init__(**kwargs)
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) == 3:
+      V, A, mask = inputs
+    else:
+      V, A = inputs
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+    W = tf.get_variable(
+        '%s_weights' % self.name, [no_features * no_A, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+    W_I = tf.get_variable(
+        '%s_weights_I' % self.name, [no_features, self.num_filters],
+        initializer=tf.truncated_normal_initializer(stddev=math.sqrt(
+            1.0 / (no_features * (no_A + 1) * 1.0))),
+        dtype=tf.float32)
+
+    b = tf.get_variable(
+        '%s_bias' % self.name, [self.num_filters],
+        initializer=tf.constant_initializer(0.1),
+        dtype=tf.float32)
+
+    n = self.graphConvolution(V, A)
+    A_shape = tf.shape(A)
+    n = tf.reshape(n, [-1, A_shape[1], no_A * no_features])
+    result = self.batch_mat_mult(n, W) + self.batch_mat_mult(V, W_I) + b
+    if set_tensors:
+      self.out_tensor = result
+    return result
+
+  def graphConvolution(self, V, A):
+    no_A = A.get_shape()[2].value
+    no_features = V.get_shape()[2].value
+
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
+    n = tf.matmul(A_reshape, V)
+    return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
+
+  def batch_mat_mult(self, A, B):
+    A_shape = tf.shape(A)
+    A_reshape = tf.reshape(A, [-1, A_shape[-1]])
+
+    # So the Tensor has known dimensions
+    if B.get_shape()[1] == None:
+      axis_2 = -1
+    else:
+      axis_2 = B.get_shape()[1]
+    result = tf.matmul(A_reshape, B)
+    result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+    return result

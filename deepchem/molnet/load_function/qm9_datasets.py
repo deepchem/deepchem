@@ -24,8 +24,8 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
       deepchem.utils.download_url(
           'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/gdb9.tar.gz'
       )
-      os.system('tar -zxvf ' + os.path.join(data_dir, 'gdb9.tar.gz') + ' -C ' +
-                data_dir)
+      deepchem.utils.untargz_file(
+          os.path.join(data_dir, 'gdb9.tar.gz'), data_dir)
   else:
     dataset_file = os.path.join(data_dir, "qm9.csv")
     if not os.path.exists(dataset_file):
