@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 # TODO(rbharath): Use standard joblib once old-data has been regenerated.
 import joblib
+import scipy
+import math
 from sklearn.externals import joblib as old_joblib
 import gzip
 import pickle
@@ -15,6 +17,7 @@ import numpy as np
 import os
 import deepchem
 from rdkit import Chem
+import time
 
 
 def log(string, verbose=True):
@@ -22,20 +25,126 @@ def log(string, verbose=True):
   if verbose:
     print(string)
 
+MATMAGICKEY = "_matmagickey_"
 
 def save_to_disk(dataset, filename, compress=0):
   """Save a dataset to file."""
+
   joblib.dump(dataset, filename, compress=compress)
 
 
-def save_to_disk_np(dataset, filename):
-  """Save a dataset to file."""
-  np.save(open(filename, "wb"), dataset)
+def save_sparse_mats(mat_b, filename):
+  print("CALLING SAVE SPARSE MATS")
+  res = scipy.sparse.vstack(mat_b)
+  items_to_save = [res.data, res.indices, res.indptr, res.shape]
+  for idx, ii in enumerate(items_to_save):
+    np.save(filename+str(idx), ii, allow_pickle=False)
+
+def load_sparse_mats(filename, max_atoms=23):
+  print("LOAD SPARSE START")
+  files_to_load = [filename+str(idx)+".npy" for idx in range(4)]
+  loaded_items = []
+
+  bgn = time.time()
+
+  for fh in files_to_load:
+    obj = np.load(fh, allow_pickle=False)
+    loaded_items.append(obj)
+
+  print("LOAD OBJ TIME:", time.time()-bgn)
+  bgn = time.time()
+
+  # final = scipy.sparse.csr_matrix(
+  #   (loaded_items[0],
+  #   loaded_items[1],
+  #   loaded_items[2]),
+  #   shape=loaded_items[3])
+
+  # print("CSR CONSTRUCT TIME:", time.time()-bgn)
+  # bgn = time.time()
+
+  # return np.array(
+  #   [loaded_items[0],
+  #   loaded_items[1],
+  #   loaded_items[2],
+  #   loaded_items[3]])
+  
+
+  return loaded_items
+  
+  # final = final.A
 
 
-def load_from_disk_np(filename):
-  """Save a dataset to file."""
-  return np.load(filename)
+  # print("CONVERT_TIME:", time.time()-bgn)
+  # bgn = time.time()
+  # n_mats = math.ceil(final.shape[0]/max_atoms)
+  # all_mats = []
+
+  # for m_idx in range(n_mats):
+  #   start = m_idx*max_atoms
+  #   end = (m_idx+1)*max_atoms
+  #   all_mats.append(final[start:end, :])
+
+
+  # print("LOAD SPARSE END", time.time()-bgn) 
+  # return np.array(all_mats)
+
+
+
+
+
+
+
+
+
+
+
+
+# def save_to_disk_np(dataset, filename):
+#   """Save a dataset to file."""
+
+#   items = []
+
+#   data = []
+#   indices = []
+#   indptrs = []
+#   shapes = []
+
+#   if len(dataset[0]) == 4:
+#     for i,j,k,l in dataset:
+#       data.append(i)
+#       indices.append(j)
+#       indptrs.append(k)
+#       shapes.append(l)
+#     np.savez(open(filename, "wb"),
+#       data=data,
+#       indices=indices,
+#       indptrs=indptrs,
+#       shapes=shapes,
+#       allow_pickle=False)
+
+#   else:
+#     np.save(open(filename, "wb"), dataset, allow_pickle=False)
+
+
+# def load_from_disk_np(filename):
+#   """Save a dataset to file."""
+#   start = time.time()
+#   # item = np.load(filename, allow_pickle=False)
+#   item = np.load(filename)
+
+
+#   blobs = []
+
+#   if type(item) == np.lib.npyio.NpzFile:
+#     # print("NPZ FOUND")
+#     for a,b,c,d in zip(item['data'], item['indices'], item['indptrs'], item['shapes']):
+#       blobs.append((a,b,c,d))
+#     print("NP LOAD TIME:", time.time()-start)
+#     return np.array(blobs)
+
+#   else:
+#     return item
 
 
 def get_input_type(input_file):
@@ -116,6 +225,10 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
+  if MATMAGICKEY in name:
+    print("LOADING SPARSE MATS")
+    return load_sparse_mats(name)
+
   if os.path.splitext(name)[1] == ".gz":
     name = os.path.splitext(name)[0]
   if os.path.splitext(name)[1] == ".pkl":

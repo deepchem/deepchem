@@ -211,7 +211,7 @@ class TensorGraph(Model):
           start_time = time.time()
 
 
-        # print("0")
+        # print("0 ")
 
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if

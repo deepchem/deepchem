@@ -372,6 +372,7 @@ class ANIRegression(TensorGraph):
 
     batch_size = self.batch_size
     shard_size = batch_size*96
+    # shard_size = batch_size*16
 
     # run shard generation in a separate thread
 
@@ -401,6 +402,8 @@ class ANIRegression(TensorGraph):
             batch_size=batch_size,
             deterministic=deterministic,
             pad_batches=pad_batches):
+
+          # print("Feeding..")
 
           mode = cself.get_pre_q_input(cself.mode)
           obj = cself.get_pre_q_input(cself.dequeue_object)
@@ -433,6 +436,8 @@ class ANIRegression(TensorGraph):
         w_b = all_wbs[batch_idx]
         ids_b = all_ids[batch_idx]
 
+        # print(len(X_cache), shard_size)
+
         if len(X_cache) == shard_size:
 
           yield np.array(X_cache), np.array(y_cache), np.array(
@@ -446,9 +451,10 @@ class ANIRegression(TensorGraph):
         for idx in range(len(X_feat)):
 
           x_max = X_feat[idx]
-          x_sparse = scipy.sparse.csc_matrix(x_max)
+          x_csr = scipy.sparse.csr_matrix(x_max)
 
-          X_cache.append(x_sparse)
+          # X_cache.append(np.array([x_csr.data, x_csr.indices, x_csr.indptr, x_csr.shape]))
+          X_cache.append(x_csr)
           y_cache.append(y_b[idx])
           w_cache.append(w_b[idx])
           ids_cache.append(ids_b[idx])
@@ -507,12 +513,12 @@ class ANIRegression(TensorGraph):
         self.featurize(dataset, deterministic, pad_batches)
 
       for epoch in range(epochs):
-        for (X_csc, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
+        for (X_feat, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
 
-          print("BATCH_TIME", time.time())
+          # print("BATCH_TIME", time.time())
 
           feed_dict = {}
           if y_b is not None and not predict:
@@ -521,13 +527,19 @@ class ANIRegression(TensorGraph):
           if w_b is not None and not predict:
             feed_dict[self.weights] = w_b
 
-          # mode = self.get_pre_q_input()
-          # obj = self.get_pre_q_input()
-          # print("X_feat SHAPE", X_feat.shape)
+          # print(X_feat, "X_FEAT")
 
-          # print("???", type(X_csc[0]), X_csc[0])
-          # assert 0
-          X_feat = X_csc[0].todense()
+          # print(X_feat[3])
+
+          # obj = scipy.sparse.csr_matrix((X_feat[0], X_feat[1], X_feat[2]), shape=X_feat[3])
+          # obj = obj.A
+          # obj = obj.reshape("hehe")
+          #   #   (loaded_items[0],
+          #   #   loaded_items[1],
+          #   #   loaded_items[2]),
+          #   #   shape=loaded_items[3])
+
+          # # X_feat = X_feat[0].todense()
 
           feed_dict[self.mode] = False
           feed_dict[self.dequeue_object] = X_feat

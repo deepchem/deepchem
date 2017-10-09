@@ -202,11 +202,18 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  if os.path.exists(model_dir):
+
+  # switch for datasets and models
+  if os.path.exists(train_dir) and \
+     os.path.exists(valid_dir) and \
+     os.path.exists(test_dir):
     print("Restoring existing model...")
-    model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
+    train_dataset = dc.data.DiskDataset(data_dir=train_dir)
+    valid_dataset = dc.data.DiskDataset(data_dir=valid_dir)
+    test_dataset = dc.data.DiskDataset(data_dir=test_dir)
+
   else:
-    print("Fitting new model...")
+    print("Generating datasets")
 
     train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
         mode="atomization")
@@ -230,39 +237,46 @@ if __name__ == "__main__":
       valid_dataset = transformer.transform(valid_dataset)
       test_dataset = transformer.transform(test_dataset)
 
-    model = dc.models.ANIRegression(
-        1,
-        max_atoms,
-        layer_structures=layer_structures,
-        atom_number_cases=atom_number_cases,
-        feat_dir=feat_dir,
-        batch_size=batch_size,
-        learning_rate=0.001,
-        use_queue=True, # broken if we turn queue on
-        model_dir=model_dir,
-        mode="regression")
+  # if os.path.exists(model_dir):
+    # model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
+  # else:
+  model = dc.models.ANIRegression(
+      1,
+      max_atoms,
+      layer_structures=layer_structures,
+      atom_number_cases=atom_number_cases,
+      feat_dir=feat_dir,
+      batch_size=batch_size,
+      learning_rate=0.001,
+      use_queue=True, # broken if we turn queue on
+      model_dir=model_dir,
+      mode="regression")
 
-    #   # For production, set nb_epoch to 100+
-    for i in range(10):
-      model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
+  if os.path.exists(feat_dir):
+    model.feat_dataset = dc.data.DiskDataset(data_dir=feat_dir)
 
-      print("Saving model...")
-      model.save_numpy()
-      print("Done.")
 
-    print("Evaluating model")
-    train_scores = model.evaluate(train_dataset, metric, transformers)
-    valid_scores = model.evaluate(valid_dataset, metric, transformers)
-    test_scores = model.evaluate(test_dataset, metric, transformers)
+  #   # For production, set nb_epoch to 100+
+  for i in range(10):
+    model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
 
-    # print("Train scores")
-    # print(train_scores)
+    print("Saving model...")
+    model.save_numpy()
+    print("Done.")
 
-    print("Validation scores")
-    print(valid_scores)
+  print("Evaluating model")
+  train_scores = model.evaluate(train_dataset, metric, transformers)
+  valid_scores = model.evaluate(valid_dataset, metric, transformers)
+  test_scores = model.evaluate(test_dataset, metric, transformers)
 
-    print("Test scores")
-    print(test_scores)
+  # print("Train scores")
+  # print(train_scores)
+
+  print("Validation scores")
+  print(valid_scores)
+
+  print("Test scores")
+  print(test_scores)
 
   coords = np.array([
       [0.3, 0.4, 0.5],

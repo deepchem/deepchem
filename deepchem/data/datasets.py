@@ -8,8 +8,9 @@ import os
 import numpy as np
 import pandas as pd
 import random
-from deepchem.utils.save import save_to_disk, save_to_disk_np
-from deepchem.utils.save import load_from_disk, load_from_disk_np
+import scipy
+from deepchem.utils.save import save_to_disk, MATMAGICKEY, save_sparse_mats
+from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
 import tempfile
 import time
@@ -487,9 +488,12 @@ class DiskDataset(Dataset):
                          w=None,
                          ids=None):
     if X is not None:
-      out_X = "%s-X.joblib" % basename
-      # save_to_disk(X, os.path.join(data_dir, out_X))
-      save_to_disk_np(X, os.path.join(data_dir, out_X))
+      if len(X) > 0 and isinstance(X[0], scipy.sparse.csr_matrix):
+        out_X = basename+"-X_"+MATMAGICKEY
+        save_sparse_mats(X, os.path.join(data_dir, out_X))
+      else:
+        out_X = "%s-X.joblib" % basename
+        save_to_disk(X, os.path.join(data_dir, out_X))
     else:
       out_X = None
 
@@ -572,7 +576,7 @@ class DiskDataset(Dataset):
     """
     if not len(self.metadata_df):
       raise ValueError("No data in dataset.")
-    sample_X = load_from_disk_np(
+    sample_X = load_from_disk(
         os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]['X']))
     return np.shape(sample_X)[1:]
 
@@ -608,7 +612,7 @@ class DiskDataset(Dataset):
 
     def iterate(dataset):
       for _, row in dataset.metadata_df.iterrows():
-        X = np.array(load_from_disk_np(os.path.join(dataset.data_dir, row['X'])))
+        X = np.array(load_from_disk(os.path.join(dataset.data_dir, row['X'])))
         ids = np.array(
             load_from_disk(os.path.join(dataset.data_dir, row['ids'])),
             dtype=object)
@@ -645,12 +649,43 @@ class DiskDataset(Dataset):
         shard_perm = np.random.permutation(num_shards)
       else:
         shard_perm = np.arange(num_shards)
-      pool = Pool(1)
-      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
+
+      # threadsafe queue
+      # queue = queue.Queue(maxsize=10)
+
+      # def fill_queue():
+      #   n_workers = 4
+      #   pool = Pool(4)
+      #   for i in range(num_shards):
+      #     next_shard = pool.apply_async(dataset.get_shard, (shard_perm[i],))
+
+
+      n_workers = min(4, num_shards)
+
+      pool = Pool(n_workers)
+      next_shards = [None] * n_workers
+      for i in range(n_workers):
+        next_shards[i] = pool.apply_async(dataset.get_shard, (shard_perm[i],))
+
       for i in range(num_shards):
-        X, y, w, ids = next_shard.get()
-        if i < num_shards - 1:
-          next_shard = pool.apply_async(dataset.get_shard, (shard_perm[i + 1],))
+        shard_idx = i % n_workers
+        X, y, w, ids = next_shards[shard_idx].get()
+        if i < num_shards - shard_idx:
+          next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))
+        
+
+        if type(X) == list:
+          bgn = time.time()
+          X = scipy.sparse.csr_matrix(
+            (X[0],
+            X[1],
+            X[2]),
+            shape=X[3])
+          X = X.A
+          original_shape = X.shape
+          X = X.reshape(X.shape[0]//23, 23, X.shape[1])
+          print("PREPROCESS TIME", time.time()-bgn)
+
         n_samples = X.shape[0]
         # TODO(rbharath): This happens in tests sometimes, but don't understand why?
         # Handle edge case.
@@ -884,14 +919,18 @@ class DiskDataset(Dataset):
   def get_shard(self, i):
     """Retrieves data for the i-th shard from disk."""
     print("GET_SHARD_START")
-    t = time.time()
+    t0 = time.time()
     row = self.metadata_df.iloc[i]
-    X = load_from_disk_np(os.path.join(self.data_dir, row['X']))
+    X = load_from_disk(os.path.join(self.data_dir, row['X']))
+    print("X TIME:", time.time()-t0)
+    t = time.time()
 
     if row['y'] is not None:
       y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
     else:
       y = None
+
+    print("Y TIME:", time.time()-t)
 
     if row['w'] is not None:
       # TODO (ytz): Under what condition does this exist but the file itself doesn't?
@@ -902,10 +941,11 @@ class DiskDataset(Dataset):
         w = np.ones(y.shape)
     else:
       w = None
-
+    t = time.time()
     ids = np.array(
         load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
-    print("GET_SHARD_END", time.time()-t)
+    print("IDS_TIME", time.time()-t)
+    print("GET_SHARD_END", time.time()-t0)
     return (X, y, w, ids)
 
   def add_shard(self, X, y, w, ids):
