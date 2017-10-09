@@ -8,7 +8,8 @@ import unittest
 import numpy as np
 np.random.seed(123)
 
-from rdkit.Chem import MolFromMolFile, rdchem
+from rdkit.Chem import MolFromMolFile
+from rdkit.Chem.AllChem import Mol, ComputeGasteigerCharges
 
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
@@ -56,7 +57,7 @@ class TestHelperFunctions(unittest.TestCase):
                                              calc_charges)
         num_atoms = mol_rdk.GetNumAtoms()
         self.assertIsInstance(mol_xyz, np.ndarray)
-        self.assertIsInstance(mol_rdk, rdchem.Mol)
+        self.assertIsInstance(mol_rdk, Mol)
         self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
   def test_generate_random__unit_vector(self):
@@ -271,6 +272,19 @@ class TestHelperFunctions(unittest.TestCase):
           # coordinates were properly translated and scaled
           self.assertTrue(
               (voxel[0] < (box_width + coords_range) / 2.0 / voxel_width).all())
+          self.assertTrue(
+              np.allclose(voxel[0],
+                          np.floor((xyz[idx] + box_width / 2.0) / voxel_width)))
+
+    # for coordinates outside of the box function should properly transform them
+    # to indices and warn the user
+    for args in ((np.array([[0, 1, 6]]), 0, 10, 1.0), (np.array([[0, 4, -6]]),
+                                                       0, 10, 1.0)):
+      # TODO check if function warns. There is assertWarns method in unittest,
+      # but it is not implemented in 2.7 and buggy in 3.5 (issue 29620)
+      voxel = rgf.convert_atom_to_voxel(*args)
+      self.assertTrue(
+          np.allclose(voxel[0], np.floor((args[0] + args[2] / 2.0) / args[3])))
 
   def test_convert_atom_pair_to_voxel(self):
     # 20 points with coords between -5 and 5, centered at 0
@@ -288,3 +302,13 @@ class TestHelperFunctions(unittest.TestCase):
           self.assertEqual(len(v_pair), 2)
           self.assertTrue((v1 == v_pair[0]).all())
           self.assertTrue((v2 == v_pair[1]).all())
+
+  def test_compute_charge_dictionary(self):
+    for fname in (self.ligand_file, self.protein_file):
+      _, mol = rgf.load_molecule(fname)
+      ComputeGasteigerCharges(mol)
+      charge_dict = rgf.compute_charge_dictionary(mol)
+      self.assertEqual(len(charge_dict), mol.GetNumAtoms())
+      for i in range(mol.GetNumAtoms()):
+        self.assertIn(i, charge_dict)
+        self.assertIsInstance(charge_dict[i], (float, int))
