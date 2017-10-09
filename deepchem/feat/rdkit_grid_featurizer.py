@@ -271,18 +271,17 @@ def featurize_binding_pocket_ecfp(protein_xyz,
   ----------
   protein_xyz: np.ndarray
     Of shape (N_protein_atoms, 3)
-  protein: PDB object (TODO(rbharath): Correct?)
+  protein: rdkit.rdchem.Mol
     Contains more metadata.
   ligand_xyz: np.ndarray
     Of shape (N_ligand_atoms, 3)
-  ligand: PDB object (TODO(rbharath): Correct?)
+  ligand: rdkit.rdchem.Mol
     Contains more metadata
   pairwise_distances: np.ndarray 
     Array of pairwise protein-ligand distances (Angstroms) 
   cutoff: float
     Cutoff distance for contact consideration.
   """
-  features_dict = {}
 
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
@@ -595,10 +594,15 @@ def convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
   """
   Converts an atom to an i,j,k grid index.
   """
-  coordinates = molecule_xyz[atom_index, :]
+  from warnings import warn
+
   indices = np.floor(
-      np.abs(molecule_xyz[atom_index, :] + np.array(
-          [box_width, box_width, box_width]) / 2.0) / voxel_width).astype(int)
+      (molecule_xyz[atom_index, :] + np.array([box_width, box_width, box_width]
+                                             ) / 2.0) / voxel_width).astype(int)
+  if ((indices < 0) | (indices >= box_width / voxel_width)).any():
+    warn(
+        'Coordinates are outside of the box (atom id = %s, coords xyz = %s, coords in box = %s'
+        % (atom_index, molecule_xyz[atom_index], indices))
   return ([indices])
 
 
@@ -618,10 +622,15 @@ def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
 
 
 def compute_charge_dictionary(molecule):
-  """Computes partial charges for each atom."""
+  """Create a dictionary with partial charges for each atom in the molecule.
+
+  This function assumes that the charges for the molecule are already
+  computed (it can be done with rdkit_util.compute_charges(molecule))
+  """
+
   charge_dictionary = {}
-  for i, atom in enumerate(ob.OBMolAtomIter(molecule)):
-    charge_dictionary[i] = atom.GetPartialCharge()
+  for i, atom in enumerate(molecule.GetAtoms()):
+    charge_dictionary[i] = get_formal_charge(atom)
   return charge_dictionary
 
 
@@ -1091,7 +1100,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                 channel_power=None,
                 nb_channel=16,
                 dtype="np.int8"):
-    # TODO(enf): make array index checking not a try-catch statement.
+
     if channel_power is not None:
       if channel_power == 0:
         nb_channel = 1
@@ -1111,22 +1120,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       for key, features in feature_dict.items():
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
         for voxel in voxels:
-          try:
+          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
             if hash_function is not None:
               feature_tensor[voxel[0], voxel[1], voxel[2],
                              hash_function(features, channel_power)] += 1.0
             else:
               feature_tensor[voxel[0], voxel[1], voxel[3], 0] += features
-          except:
-            continue
     elif feature_list is not None:
       for key in feature_list:
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
         for voxel in voxels:
-          try:
+          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
             feature_tensor[voxel[0], voxel[1], voxel[2], 0] += 1.0
-          except:
-            continue
 
     return feature_tensor
 
