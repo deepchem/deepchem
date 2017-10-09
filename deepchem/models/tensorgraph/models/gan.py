@@ -92,17 +92,14 @@ class GAN(TensorGraph):
 
     # Create the discriminator.
 
-    discrim_data = []
+    self._discrim_data = []
     for g, d in zip(self.generator, self.data_inputs):
-      discrim_data.append(layers.Concat([g, d], axis=0))
-    discrim_conditional = []
+      self._discrim_data.append(layers.Concat([g, d], axis=0))
+    self._discrim_conditional = []
     for n, c in zip(self.noise_conditional_inputs, self.conditional_inputs):
-      discrim_conditional.append(layers.Concat([n, c], axis=0))
-    self.discriminator = self.create_discriminator(discrim_data,
-                                                   discrim_conditional)
-
-    #if self.discriminator.shape != (None,):
-    #  raise ValueError('Incorrect shape for discriminator output')
+      self._discrim_conditional.append(layers.Concat([n, c], axis=0))
+    self.discriminator = self.create_discriminator(self._discrim_data,
+                                                   self._discrim_conditional)
 
     # Make a list of all layers in the generator and discriminator.
 
@@ -349,24 +346,25 @@ class GAN(TensorGraph):
 
         # Train the generator.
 
-        gen_train_fraction += generator_steps
-        while gen_train_fraction >= 1.0:
-          feed_dict[self.noise_input] = self.get_noise_batch(self.batch_size)
-          gen_error += self.fit_generator(
-              [feed_dict],
-              submodel=self.generator_submodel,
-              checkpoint_interval=0)
-          self.global_step = global_step
-          gen_average_steps += 1
-          gen_train_fraction -= 1.0
+        if generator_steps > 0.0:
+          gen_train_fraction += generator_steps
+          while gen_train_fraction >= 1.0:
+            feed_dict[self.noise_input] = self.get_noise_batch(self.batch_size)
+            gen_error += self.fit_generator(
+                [feed_dict],
+                submodel=self.generator_submodel,
+                checkpoint_interval=0)
+            self.global_step = global_step
+            gen_average_steps += 1
+            gen_train_fraction -= 1.0
         self.global_step = global_step + 1
 
         # Write checkpoints and report progress.
 
         if discrim_average_steps == checkpoint_interval:
           saver.save(self.session, self.save_file, global_step=self.global_step)
-          discrim_loss = discrim_error / discrim_average_steps
-          gen_loss = gen_error / gen_average_steps
+          discrim_loss = discrim_error / max(1, discrim_average_steps)
+          gen_loss = gen_error / max(1, gen_average_steps)
           print(
               'Ending global_step %d: generator average loss %g, discriminator average loss %g'
               % (self.global_step, gen_loss, discrim_loss))
@@ -431,3 +429,88 @@ class GAN(TensorGraph):
       shape = list(layer.shape)
       shape[0] = 0
       feed_dict[layer] = np.zeros(shape)
+
+
+class WGAN(GAN):
+  """Implements Wasserstein Generative Adversarial Networks.
+
+  This class implements Wasserstein Generative Adversarial Networks (WGANs) as
+  described in Arjovsky et al., "Wasserstein GAN" (https://arxiv.org/abs/1701.07875).
+  A WGAN is conceptually rather different from a conventional GAN, but in
+  practical terms very similar.  It reinterprets the discriminator (often called
+  the "critic" in this context) as learning an approximation to the Earth Mover
+  distance between the training and generated distributions.  The generator is
+  then trained to minimize that distance.  In practice, this just means using
+  slightly different loss functions for training the generator and discriminator.
+
+  WGANs have theoretical advantages over conventional GANs, and they often work
+  better in practice.  In addition, the discriminator's loss function can be
+  directly interpreted as a measure of the quality of the model.  That is an
+  advantage over conventional GANs, where the loss does not directly convey
+  information about the quality of the model.
+
+  The theory WGANs are based on requires the discriminator's gradient to be
+  bounded.  The original paper achieved this by clipping its weights.  This
+  class instead does it by adding a penalty term to the discriminator's loss, as
+  described in https://arxiv.org/abs/1704.00028.  This is sometimes found to
+  produce better results.
+
+  There are a few other practical differences between GANs and WGANs.  In a
+  conventional GAN, the discriminator's output must be between 0 and 1 so it can
+  be interpreted as a probability.  In a WGAN, it should produce an unbounded
+  output that can be interpreted as a distance.
+
+  When training a WGAN, you also should usually use a smaller value for
+  generator_steps.  Conventional GANs rely on keeping the generator and
+  discriminator "in balance" with each other.  If the discriminator ever gets
+  too good, it becomes impossible for the generator to fool it and training
+  stalls.  WGANs do not have this problem, and in fact the better the
+  discriminator is, the easier it is for the generator to improve.  It therefore
+  usually works best to perform several training steps on the discriminator for
+  each training step on the generator.
+  """
+
+  def __init__(self, gradient_penalty=10.0, **kwargs):
+    """Construct a WGAN.
+
+    In addition to the following, this class accepts all the keyword arguments
+    from TensorGraph.
+
+    Parameters
+    ----------
+    gradient_penalty: float
+      the magnitude of the gradient penalty loss
+    """
+    super(WGAN, self).__init__(**kwargs)
+    self.gradient_penalty = gradient_penalty
+
+  def create_generator_loss(self, discrim_output, is_training):
+    return layers.ReduceMean(discrim_output * (1 - is_training))
+
+  def create_discriminator_loss(self, discrim_output, is_training):
+    training_data_loss = discrim_output * is_training
+    gen_data_loss = -discrim_output * (1 - is_training)
+    gradient_penalty = GradientPenaltyLayer(discrim_output, self)
+    return gradient_penalty + layers.ReduceMean(training_data_loss +
+                                                gen_data_loss)
+
+
+class GradientPenaltyLayer(layers.Layer):
+  """Implements the gradient penalty loss term for WGANs."""
+
+  def __init__(self, discrim_output, gan):
+    super(GradientPenaltyLayer, self).__init__(discrim_output)
+    self.gan = gan
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    gradients = tf.gradients(self.in_layers[0], self.gan._discrim_data)
+    norm2 = 0.0
+    for g in gradients:
+      g2 = tf.square(g)
+      dims = len(g.shape)
+      if dims > 1:
+        g2 = tf.reduce_sum(g2, axis=list(range(1, dims)))
+      norm2 += g2
+    penalty = tf.square(tf.sqrt(norm2) - 1.0)
+    self.out_tensor = self.gan.gradient_penalty * tf.reduce_mean(penalty)
+    return self.out_tensor
