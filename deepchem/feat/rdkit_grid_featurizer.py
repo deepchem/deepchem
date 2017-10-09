@@ -271,18 +271,17 @@ def featurize_binding_pocket_ecfp(protein_xyz,
   ----------
   protein_xyz: np.ndarray
     Of shape (N_protein_atoms, 3)
-  protein: PDB object (TODO(rbharath): Correct?)
+  protein: rdkit.rdchem.Mol
     Contains more metadata.
   ligand_xyz: np.ndarray
     Of shape (N_ligand_atoms, 3)
-  ligand: PDB object (TODO(rbharath): Correct?)
+  ligand: rdkit.rdchem.Mol
     Contains more metadata
   pairwise_distances: np.ndarray 
     Array of pairwise protein-ligand distances (Angstroms) 
   cutoff: float
     Cutoff distance for contact consideration.
   """
-  features_dict = {}
 
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
