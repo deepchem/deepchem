@@ -128,7 +128,7 @@ def load_roiterberg_ANI(mode="atomization"):
           offset = 0
 
           for z in nonpadded:
-            offset -= atomizationEnergies[z]
+            offset += atomizationEnergies[z]
         elif mode == "absolute":
           offset = 0
         else:
@@ -152,13 +152,12 @@ def load_roiterberg_ANI(mode="atomization"):
             w_cache = []
             ids_cache = []
 
-          else:
-            X_cache.append(X)
-            y_cache.append(np.array(y).reshape((1,)))
-            w_cache.append(np.array(1).reshape((1,)))
-            ids_cache.append(row_idx)
-            row_idx += 1
-            groups.append(group_idx)
+          X_cache.append(X)
+          y_cache.append(np.array(y).reshape((1,)))
+          w_cache.append(np.array(1).reshape((1,)))
+          ids_cache.append(row_idx)
+          row_idx += 1
+          groups.append(group_idx)
 
         group_idx += 1
 
