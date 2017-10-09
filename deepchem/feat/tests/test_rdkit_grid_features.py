@@ -142,7 +142,7 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertEqual(list(ecfp_all.keys()), list(range(num_atoms)))
 
       num_ind = np.random.choice(range(1, num_atoms))
-      indices = list(np.random.choice(range(num_atoms), num_ind, replace=False))
+      indices = list(np.random.choice(num_atoms, num_ind, replace=False))
 
       ecfp_selected = rgf.compute_all_ecfp(mol, indices=indices, degree=degree)
       self.assertIsInstance(ecfp_selected, dict)
@@ -229,3 +229,62 @@ class TestHelperFunctions(unittest.TestCase):
           ecfp_idx = int(ecfp_idx)
           self.assertGreaterEqual(ecfp_idx, 0)
           # TODO upperbound?
+
+  def test_featurize_splif(self):
+    prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+    lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
+    distance = rgf.compute_pairwise_distances(
+        protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
+
+    bins = [(1, 2), (2, 3)]
+
+    dicts = rgf.featurize_splif(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        contact_bins=bins,
+        pairwise_distances=distance,
+        ecfp_degree=2)
+    expected_dicts = [
+        rgf.compute_splif_features_in_range(
+            prot_rdk, lig_rdk, distance, c_bin, ecfp_degree=2) for c_bin in bins
+    ]
+    self.assertIsInstance(dicts, list)
+    self.assertEqual(dicts, expected_dicts)
+
+  def test_convert_atom_to_voxel(self):
+    # 20 points with coords between -5 and 5, centered at 0
+    coords_range = 10
+    xyz = (np.random.rand(20, 3) - 0.5) * coords_range
+    for idx in np.random.choice(20, 6):
+      for box_width in (10, 20, 40):
+        for voxel_width in (0.5, 1, 2):
+          voxel = rgf.convert_atom_to_voxel(xyz, idx, box_width, voxel_width)
+          self.assertIsInstance(voxel, list)
+          self.assertEqual(len(voxel), 1)
+          self.assertIsInstance(voxel[0], np.ndarray)
+          self.assertEqual(voxel[0].shape, (3,))
+          self.assertIs(voxel[0].dtype, np.dtype('int'))
+          # indices are positive
+          self.assertTrue((voxel[0] >= 0).all())
+          # coordinates were properly translated and scaled
+          self.assertTrue(
+              (voxel[0] < (box_width + coords_range) / 2.0 / voxel_width).all())
+
+  def test_convert_atom_pair_to_voxel(self):
+    # 20 points with coords between -5 and 5, centered at 0
+    coords_range = 10
+    xyz1 = (np.random.rand(20, 3) - 0.5) * coords_range
+    xyz2 = (np.random.rand(20, 3) - 0.5) * coords_range
+    # 3 pairs of indices
+    for idx1, idx2 in np.random.choice(20, (3, 2)):
+      for box_width in (10, 20, 40):
+        for voxel_width in (0.5, 1, 2):
+          v1 = rgf.convert_atom_to_voxel(xyz1, idx1, box_width, voxel_width)
+          v2 = rgf.convert_atom_to_voxel(xyz2, idx2, box_width, voxel_width)
+          v_pair = rgf.convert_atom_pair_to_voxel((xyz1, xyz2), (idx1, idx2),
+                                                  box_width, voxel_width)
+          self.assertEqual(len(v_pair), 2)
+          self.assertTrue((v1 == v_pair[0]).all())
+          self.assertTrue((v2 == v_pair[1]).all())
