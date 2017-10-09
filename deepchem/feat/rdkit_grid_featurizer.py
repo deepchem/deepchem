@@ -620,8 +620,8 @@ def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
 def compute_charge_dictionary(molecule):
   """Computes partial charges for each atom."""
   charge_dictionary = {}
-  for i, atom in enumerate(ob.OBMolAtomIter(molecule)):
-    charge_dictionary[i] = atom.GetPartialCharge()
+  for i, atom in enumerate(molecule.GetAtoms()):
+    charge_dictionary[i] = get_formal_charge(atom)
   return charge_dictionary
 
 
