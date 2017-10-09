@@ -622,7 +622,12 @@ def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
 
 
 def compute_charge_dictionary(molecule):
-  """Computes partial charges for each atom."""
+  """Create a dictionary with partial charges for each atom in the molecule.
+
+  This function assumes that the charges for the molecule are already
+  computed (it can be done with rdkit_util.compute_charges(molecule))
+  """
+
   charge_dictionary = {}
   for i, atom in enumerate(molecule.GetAtoms()):
     charge_dictionary[i] = get_formal_charge(atom)
