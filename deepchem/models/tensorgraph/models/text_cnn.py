@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
 Created on Thu Sep 28 15:17:50 2017
 
@@ -19,7 +17,7 @@ from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
 
-# Common symbols in SMILES, note that Cl and Br are regarded as one symbol
+# Common symbols in SMILES, note that Cl and Br are regarded as single symbol
 default_dict = {
     '#': 1,
     '(': 2,
@@ -58,6 +56,15 @@ default_dict = {
 
 
 class TextCNNTensorGraph(TensorGraph):
+  """ A Convolutional neural network on smiles strings
+  Reimplementation of the discriminator module in ORGAN: https://arxiv.org/abs/1705.10843
+  Originated from: http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
+
+  This model applies multiple 1D convolutional filters to the padded strings,
+  then max-over-time pooling is applied on all filters, extracting one feature per filter.
+  All features are concatenated and transformed through several hidden layers to form predictions.
+
+  """
 
   def __init__(
       self,
@@ -102,26 +109,35 @@ class TextCNNTensorGraph(TensorGraph):
   @staticmethod
   def build_char_dict(dataset, default_dict=default_dict):
     """ Collect all unique characters(in smiles) from the dataset.
+    This method should be called before defining the model to build appropriate char_dict
     """
+    # SMILES strings
     X = dataset.ids
+    # Maximum length is expanded to allow length variation during train and inference
     seq_length = int(max([len(smile) for smile in X]) * 1.2)
+    # '_' served as delimiter and padding
     all_smiles = '_'.join(X)
     tot_len = len(all_smiles)
-    keys = default_dict.keys()
+    # Initialize common characters as keys
+    keys = list(default_dict.keys())
     out_dict = copy.deepcopy(default_dict)
     current_key_val = len(keys) + 1
+    # Include space to avoid extra keys
     keys.extend([' '])
     extra_keys = []
     i = 0
     while i < tot_len:
+      # For 'Cl', 'Br', etc.
       if all_smiles[i:i + 2] in keys:
         i = i + 2
       elif all_smiles[i:i + 1] in keys:
         i = i + 1
       else:
+        # Character not recognized, add to extra_keys
         extra_keys.append(all_smiles[i])
         keys.append(all_smiles[i])
         i = i + 1
+    # Add all extra_keys to char_dict
     for extra_key in extra_keys:
       out_dict[extra_key] = current_key_val
       current_key_val += 1
@@ -151,7 +167,7 @@ class TextCNNTensorGraph(TensorGraph):
               strides=1,
               padding='VALID',
               in_layers=[self.conv_layers[-1]]))
-
+    # Concat features from all filters(one feature per filter)
     concat_outputs = Concat(axis=2, in_layers=self.pooled_outputs)
     outputs = Squeeze(squeeze_dims=1, in_layers=concat_outputs)
     dropout = Dropout(dropout_prob=self.dropout, in_layers=[outputs])
@@ -215,7 +231,7 @@ class TextCNNTensorGraph(TensorGraph):
               feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None:
           feed_dict[self.weights] = w_b
-
+        # Transform SMILES string to integer vectors
         smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
         feed_dict[self.smiles_seqs] = np.stack(smiles_seqs, axis=0)
         yield feed_dict
@@ -228,10 +244,11 @@ class TextCNNTensorGraph(TensorGraph):
     keys = self.char_dict.keys()
     i = 0
     while i < smiles_len:
+      # Skip all spaces
       if smiles[i:i + 1] == ' ':
         i = i + 1
+      # For 'Cl', 'Br', etc.
       elif smiles[i:i + 2] in keys:
-        # For Cl, Br, etc.
         seq.append(self.char_dict[smiles[i:i + 2]])
         i = i + 2
       elif smiles[i:i + 1] in keys:
@@ -240,6 +257,6 @@ class TextCNNTensorGraph(TensorGraph):
       else:
         raise ValueError('character not found in dict')
     for i in range(self.seq_length - len(seq)):
-      # Padding
+      # Padding with '_'
       seq.append(self.char_dict['_'])
     return np.array(seq)
