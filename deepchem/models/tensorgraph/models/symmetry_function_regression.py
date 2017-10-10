@@ -309,25 +309,22 @@ class ANIRegression(TensorGraph):
     self.dequeue_object = Feature() # either atom_feats or featurized
 
     def true_fn():
-      # print("TrueFn")
       r_feat = Reshape(
         shape=[None, self.max_atoms, 4],
         in_layers=[self.dequeue_object])
       r_feat.create_tensor()
 
-      # FORWARD atom_cases??
       ani_feat = ANIFeat(
         in_layers=[r_feat],
         max_atoms=self.max_atoms)
 
       ani_feat.create_tensor()
-      # print(ani_feat.shape, "NUM FEATURES")
-      # print("TrueFnNext")
       return ani_feat
 
     def false_fn():
-      # print("FalseFn")
-      print("MAX_ATOMS", self.max_atoms)
+
+      # dequeue yields a sparse tensor for the entire shard
+
       r_feat = Reshape(
         shape=[None, self.max_atoms, 769],
         in_layers=[self.dequeue_object])
@@ -371,7 +368,8 @@ class ANIRegression(TensorGraph):
   def featurize(self, dataset, deterministic, pad_batches):
 
     batch_size = self.batch_size
-    shard_size = batch_size*96
+    shard_size = batch_size*1
+    # shard_size = batch_size*192
     # shard_size = batch_size*16
 
     # run shard generation in a separate thread
