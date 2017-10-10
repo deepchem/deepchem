@@ -13,9 +13,10 @@ import tempfile
 import hashlib
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import deepchem.utils.rdkit_util as rdkit_util
+from deepchem.utils.rdkit_util import load_molecule
 
 import numpy as np
+from scipy.spatial.distance import cdist
 from copy import deepcopy
 from functools import partial
 from deepchem.feat import ComplexFeaturizer
@@ -37,10 +38,6 @@ def get_ligand_filetype(ligand_filename):
     return "pdb"
   else:
     raise ValueError("Unrecognized_filename")
-
-
-def load_molecule(molecule_file, add_hydrogens=True, calc_charges=False):
-  return rdkit_util.load_molecule(molecule_file, add_hydrogens, calc_charges)
 
 
 def merge_two_dicts(x, y):
@@ -136,20 +133,13 @@ def rotate_molecules(mol_coordinates_list):
 
 
 def compute_pairwise_distances(protein_xyz, ligand_xyz):
-  """
-  Takes an input m x 3 and n x 3 np arrays of 3d coords of protein and ligand,
+  """Takes an input m x 3 and n x 3 np arrays of 3D coords of protein and ligand,
   respectively, and outputs an m x n np array of pairwise distances in Angstroms
   between protein and ligand atoms. entry (i,j) is dist between the i"th protein
-  atom and the j"th ligand atom
+  atom and the j"th ligand atom.
   """
 
-  pairwise_distances = np.zeros((np.shape(protein_xyz)[0],
-                                 np.shape(ligand_xyz)[0]))
-  for j in range(0, np.shape(ligand_xyz)[0]):
-    differences = protein_xyz - ligand_xyz[j, :]
-    squared_differences = np.square(differences)
-    pairwise_distances[:, j] = np.sqrt(np.sum(squared_differences, 1))
-
+  pairwise_distances = cdist(protein_xyz, ligand_xyz, metric='euclidean')
   return (pairwise_distances)
 
 
@@ -235,7 +225,7 @@ def compute_all_ecfp(mol, indices=None, degree=2):
   return ecfp_dict
 
 
-def compute_ecfp_features(mol, ecfp_degree, ecfp_power):
+def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
   """Computes ECFP features for provided rdkit molecule.
 
   Parameters:
@@ -254,8 +244,9 @@ def compute_ecfp_features(mol, ecfp_degree, ecfp_power):
       that ECFP fragment is found in the molecule and array at index j has a 0
       if ECFP fragment not in molecule.
   """
-  bv = AllChem.GetMorganFingerprint(mol, 2)
-  return [int(bv.GetBit(x)) for x in range(bv.GetNumBits())]
+  bv = AllChem.GetMorganFingerprintAsBitVect(
+      mol, ecfp_degree, nBits=2**ecfp_power)
+  return np.array(bv)
 
 
 def featurize_binding_pocket_ecfp(protein_xyz,
@@ -297,7 +288,7 @@ def featurize_binding_pocket_ecfp(protein_xyz,
 
 def compute_all_sybyl(mol, indices=None):
   """Computes Sybyl atom types for atoms in molecule."""
-  raise ValueError("Not Yet Implemented")
+  raise NotImplementedError("This function is not implemented yet")
 
 
 def featurize_binding_pocket_sybyl(protein_xyz,
@@ -467,7 +458,7 @@ def compute_pi_stack(protein_xyz,
             for each atom in ligand and in protein:
               add to list of atom indices
   """
-  raise ValueError("Not Yet Implemented")
+  raise NotImplementedError("This function is not implemented yet")
 
 
 def is_cation_pi(cation_position, ring_center, ring_normal):
@@ -484,7 +475,7 @@ def is_cation_pi(cation_position, ring_center, ring_normal):
 
 
 def compute_cation_pi(protein, ligand, protein_cation_pi, ligand_cation_pi):
-  raise ValueError("Not Yet Implemented")
+  raise NotImplementedError("This function is not implemented yet")
 
 
 def compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
@@ -779,12 +770,9 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    protein_name = str(protein_pdb).split("/")[len(str(protein_pdb).split("/"))
-                                               - 2]
 
     if not self.ligand_only:
-      protein_xyz, protein_ob = rdkit_util.load_molecule(
-          protein_pdb, calc_charges=True)
+      protein_xyz, protein_ob = load_molecule(protein_pdb, calc_charges=True)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
@@ -793,8 +781,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_xyz, ligand_ob = rdkit_util.load_molecule(
-        ligand_file, calc_charges=True)
+    ligand_xyz, ligand_ob = load_molecule(ligand_file, calc_charges=True)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),

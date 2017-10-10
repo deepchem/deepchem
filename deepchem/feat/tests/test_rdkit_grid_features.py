@@ -98,6 +98,12 @@ class TestHelperFunctions(unittest.TestCase):
     # random coords between 0 and 1, so the max possible distance in sqrt(2)
     self.assertTrue((distance <= 2.0**0.5).all())
 
+    # check if correct distance metric was used
+    coords1 = np.array([[0, 0, 0], [1, 0, 0]])
+    coords2 = np.array([[1, 0, 0], [2, 0, 0], [3, 0, 0]])
+    distance = rgf.compute_pairwise_distances(coords1, coords2)
+    self.assertTrue((distance == [[1, 2, 3], [0, 1, 2]]).all())
+
   def test_unit_vector(self):
     for _ in range(10):
       vector = np.random.rand(3)
