@@ -64,6 +64,18 @@ class TextCNNTensorGraph(TensorGraph):
   then max-over-time pooling is applied on all filters, extracting one feature per filter.
   All features are concatenated and transformed through several hidden layers to form predictions.
 
+  This model is initially developed for sentence-level classification tasks, with
+  words represented as vectors. In this implementation, SMILES strings are dissected
+  into characters and transformed to one-hot vectors in a similar way. The model can
+  be used for general molecular-level classification or regression tasks. It is also
+  used in the ORGAN model as discriminator.
+  
+  Training of the model only requires SMILES strings input, all featurized datasets
+  that include SMILES in the `ids` attribute are accepted. PDBbind, QM7 and QM7b 
+  are not supported. To use the model, `build_char_dict` should be called first
+  before defining the model to build character dict of input dataset, example can
+  be found in examples/delaney/delaney_textcnn.py
+  
   """
 
   def __init__(
