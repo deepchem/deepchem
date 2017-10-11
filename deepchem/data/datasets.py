@@ -15,7 +15,7 @@ from deepchem.utils.save import log
 import tempfile
 import time
 import shutil
-from multiprocessing.dummy import Pool
+from multiprocessing.pool import Pool, ThreadPool
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -488,11 +488,12 @@ class DiskDataset(Dataset):
                          w=None,
                          ids=None):
     if X is not None:
+      out_X = "%s-X.joblib" % basename
       if len(X) > 0 and isinstance(X[0], scipy.sparse.coo_matrix):
-        out_X = basename+"-X_"+MATMAGICKEY
-        save_sparse_mats(X, os.path.join(data_dir, out_X))
+        # (ytz): save_sparse_mats returns a modified filename
+        # that can be used later on to identify the format. 
+        out_X = save_sparse_mats(X, os.path.join(data_dir, out_X))
       else:
-        out_X = "%s-X.joblib" % basename
         save_to_disk(X, os.path.join(data_dir, out_X))
     else:
       out_X = None
@@ -650,20 +651,15 @@ class DiskDataset(Dataset):
       else:
         shard_perm = np.arange(num_shards)
 
-      # threadsafe queue
-      # queue = queue.Queue(maxsize=10)
-
-      # def fill_queue():
-      #   n_workers = 4
-      #   pool = Pool(4)
-      #   for i in range(num_shards):
-      #     next_shard = pool.apply_async(dataset.get_shard, (shard_perm[i],))
-
-
       n_workers = min(4, num_shards)
 
-      pool = Pool(n_workers)
+      # (ytz): Depending on the application, thread-based pools may be faster
+      # than process based pools, since process based pools need to pickle/serialize
+      # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
+      # we're actually protected by the GIL.
+      pool = ThreadPool(n_workers)
       next_shards = [None] * n_workers
+
       for i in range(n_workers):
         next_shards[i] = pool.apply_async(dataset.get_shard, (shard_perm[i],))
 
@@ -671,59 +667,65 @@ class DiskDataset(Dataset):
         shard_idx = i % n_workers
         X, y, w, ids = next_shards[shard_idx].get()
         if i < num_shards - shard_idx:
-          next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))
-        
-
-        if type(X) == list:
-          bgn = time.time()
-          X = scipy.sparse.coo_matrix(
-            (X[0],
-            (X[1],
-            X[2])),
-            shape=X[3])
-          X = X.A
-          original_shape = X.shape
-          X = X.reshape(X.shape[0]//23, 23, X.shape[1])
-          print("PREPROCESS TIME", time.time()-bgn)
+          next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))        
 
         n_samples = X.shape[0]
-        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
-        # Handle edge case.
-        if n_samples == 0:
-          continue
-        if not deterministic:
-          sample_perm = np.random.permutation(n_samples)
-        else:
-          sample_perm = np.arange(n_samples)
+
         if batch_size is None:
           shard_batch_size = n_samples
         else:
           shard_batch_size = batch_size
-        interval_points = np.linspace(
-            0,
-            n_samples,
-            np.ceil(float(n_samples) / shard_batch_size) + 1,
-            dtype=int)
-        for j in range(len(interval_points) - 1):
-          indices = range(interval_points[j], interval_points[j + 1])
-          perm_indices = sample_perm[indices]
-          X_batch = X[perm_indices]
 
-          if y is not None:
-            y_batch = y[perm_indices]
-          else:
-            y_batch = None
+        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
+        # Handle edge case.
+        if batch_size == n_samples:
+          # (ytz): optimized branch to avoid an extra permutation, since each shard
+          # contains exactly one batch, the permutation within the shard is irrelevant.
 
-          if w is not None:
-            w_batch = w[perm_indices]
-          else:
-            w_batch = None
+          X_batch = X
+          y_batch = y
+          w_batch = w
+          ids_batch = ids
 
-          ids_batch = ids[perm_indices]
           if pad_batches:
             (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-          yield (X_batch, y_batch, w_batch, ids_batch)
+              shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+          yield (X_batch, y_batch, w_batch, ids_batch)        
+
+        else:
+
+          if n_samples == 0:
+            continue
+          if not deterministic:
+            sample_perm = np.random.permutation(n_samples)
+          else:
+            sample_perm = np.arange(n_samples)
+
+          interval_points = np.linspace(
+              0,
+              n_samples,
+              np.ceil(float(n_samples) / shard_batch_size) + 1,
+              dtype=int)
+          for j in range(len(interval_points) - 1):
+            indices = range(interval_points[j], interval_points[j + 1])
+            perm_indices = sample_perm[indices]
+            X_batch = X[perm_indices]
+
+            if y is not None:
+              y_batch = y[perm_indices]
+            else:
+              y_batch = None
+
+            if w is not None:
+              w_batch = w[perm_indices]
+            else:
+              w_batch = None
+
+            ids_batch = ids[perm_indices]
+            if pad_batches:
+              (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+                  shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+            yield (X_batch, y_batch, w_batch, ids_batch)
       pool.close()
 
     return iterate(self)
@@ -918,19 +920,13 @@ class DiskDataset(Dataset):
 
   def get_shard(self, i):
     """Retrieves data for the i-th shard from disk."""
-    print("GET_SHARD_START")
-    t0 = time.time()
     row = self.metadata_df.iloc[i]
     X = load_from_disk(os.path.join(self.data_dir, row['X']))
-    print("X TIME:", time.time()-t0)
-    t = time.time()
 
     if row['y'] is not None:
       y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
     else:
       y = None
-
-    print("Y TIME:", time.time()-t)
 
     if row['w'] is not None:
       # TODO (ytz): Under what condition does this exist but the file itself doesn't?
@@ -944,8 +940,6 @@ class DiskDataset(Dataset):
     t = time.time()
     ids = np.array(
         load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
-    print("IDS_TIME", time.time()-t)
-    print("GET_SHARD_END", time.time()-t0)
     return (X, y, w, ids)
 
   def add_shard(self, X, y, w, ids):

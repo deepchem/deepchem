@@ -19,6 +19,7 @@ import deepchem
 from rdkit import Chem
 import time
 
+import struct
 
 def log(string, verbose=True):
   """Print string if verbose."""
@@ -34,119 +35,47 @@ def save_to_disk(dataset, filename, compress=0):
 
 
 def save_sparse_mats(mat_b, filename):
-  print("CALLING SAVE SPARSE MATS")
+  # These are the elements of a coo_format matrix
+
+  filename = filename + ".coo"
   res = scipy.sparse.vstack(mat_b)
-  # items_to_save = [res.data, res.indices, res.indptr, res.shape]
-  items_to_save = [res.data, res.row, res.col, res.shape]
-  for idx, ii in enumerate(items_to_save):
-    np.save(filename+str(idx), ii, allow_pickle=False)
+  items_to_save = [res.data, res.row, res.col]
+  with open(filename, "wb") as buf:
 
-def load_sparse_mats(filename, max_atoms=23):
-  print("LOAD SPARSE START")
-  files_to_load = [filename+str(idx)+".npy" for idx in range(4)]
-  loaded_items = []
+    buf.write(struct.pack("i", mat_b[0].shape[0]))
+    buf.write(struct.pack("i", res.shape[0]))
+    buf.write(struct.pack("i", res.shape[1]))
 
-  bgn = time.time()
+    # (ytz) Serialize contents of array. Fortunately
+    # numpy arrays specify the number of bytes and separation
+    # points explicitly. ie. They're safe for binary
+    # concatenation purposes.
+    for idx, ii in enumerate(items_to_save):
+      np.save(buf, ii, allow_pickle=False)
 
-  for fh in files_to_load:
-    obj = np.load(fh, allow_pickle=False)
-    loaded_items.append(obj)
+  return filename
 
-  print("LOAD OBJ TIME:", time.time()-bgn)
-  bgn = time.time()
+def load_sparse_mats(filename):
 
-  # final = scipy.sparse.csr_matrix(
-  #   (loaded_items[0],
-  #   loaded_items[1],
-  #   loaded_items[2]),
-  #   shape=loaded_items[3])
+  with open(filename, "rb") as fh:
+    inner_shape = struct.unpack("i", fh.read(4))[0]
+    outer_shape0 = struct.unpack("i", fh.read(4))[0]
+    outer_shape1 = struct.unpack("i", fh.read(4))[0]
 
-  # print("CSR CONSTRUCT TIME:", time.time()-bgn)
-  # bgn = time.time()
+    items = []
+    for _ in range(3):
+      res = np.load(fh, allow_pickle=False)
+      items.append(res)
 
-  # return np.array(
-  #   [loaded_items[0],
-  #   loaded_items[1],
-  #   loaded_items[2],
-  #   loaded_items[3]])
-  
+    X = scipy.sparse.coo_matrix(
+        (items[0],
+        (items[1],
+        items[2])),
+        shape=[outer_shape0, outer_shape1])
+    X = X.A
+    X = X.reshape(X.shape[0]//inner_shape, inner_shape, X.shape[1])
 
-  return loaded_items
-  
-  # final = final.A
-
-
-  # print("CONVERT_TIME:", time.time()-bgn)
-  # bgn = time.time()
-  # n_mats = math.ceil(final.shape[0]/max_atoms)
-  # all_mats = []
-
-  # for m_idx in range(n_mats):
-  #   start = m_idx*max_atoms
-  #   end = (m_idx+1)*max_atoms
-  #   all_mats.append(final[start:end, :])
-
-
-  # print("LOAD SPARSE END", time.time()-bgn) 
-  # return np.array(all_mats)
-
-
-
-
-
-
-
-
-
-
-
-
-# def save_to_disk_np(dataset, filename):
-#   """Save a dataset to file."""
-
-#   items = []
-
-#   data = []
-#   indices = []
-#   indptrs = []
-#   shapes = []
-
-#   if len(dataset[0]) == 4:
-#     for i,j,k,l in dataset:
-#       data.append(i)
-#       indices.append(j)
-#       indptrs.append(k)
-#       shapes.append(l)
-#     np.savez(open(filename, "wb"),
-#       data=data,
-#       indices=indices,
-#       indptrs=indptrs,
-#       shapes=shapes,
-#       allow_pickle=False)
-
-#   else:
-#     np.save(open(filename, "wb"), dataset, allow_pickle=False)
-
-
-# def load_from_disk_np(filename):
-#   """Save a dataset to file."""
-#   start = time.time()
-#   # item = np.load(filename, allow_pickle=False)
-#   item = np.load(filename)
-
-
-#   blobs = []
-
-#   if type(item) == np.lib.npyio.NpzFile:
-#     # print("NPZ FOUND")
-#     for a,b,c,d in zip(item['data'], item['indices'], item['indptrs'], item['shapes']):
-#       blobs.append((a,b,c,d))
-#     print("NP LOAD TIME:", time.time()-start)
-#     return np.array(blobs)
-
-#   else:
-#     return item
-
+    return X
 
 def get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""
@@ -227,14 +156,16 @@ def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
   if MATMAGICKEY in name:
-    print("LOADING SPARSE MATS")
     return load_sparse_mats(name)
 
   if os.path.splitext(name)[1] == ".gz":
     name = os.path.splitext(name)[0]
-  if os.path.splitext(name)[1] == ".pkl":
+
+  ext = os.path.splitext(name)[1]
+
+  if ext == ".pkl":
     return load_pickle_from_disk(filename)
-  elif os.path.splitext(name)[1] == ".joblib":
+  elif ext == ".joblib":
     try:
       return joblib.load(filename)
     except KeyError:
@@ -242,11 +173,13 @@ def load_from_disk(filename):
       return old_joblib.load(filename)
     except ValueError:
       return old_joblib.load(filename)
-  elif os.path.splitext(name)[1] == ".csv":
+  elif ext == ".csv":
     # First line of user-specified CSV *must* be header.
     df = pd.read_csv(filename, header=0)
     df = df.replace(np.nan, str(""), regex=True)
     return df
+  elif ext == ".coo":
+    return load_sparse_mats(filename)
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
