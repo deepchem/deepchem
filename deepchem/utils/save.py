@@ -34,15 +34,27 @@ def save_to_disk(dataset, filename, compress=0):
   joblib.dump(dataset, filename, compress=compress)
 
 
+cum = 0
+
 def save_sparse_mats(mat_b, filename):
   # These are the elements of a coo_format matrix
 
+  global cum
+
+  start = time.time()
+
   filename = filename + ".coo"
-  res = scipy.sparse.vstack(mat_b)
+  max_atoms = mat_b.shape[1]
+
+  # avoid the stupid vstack, do a reshape instead?
+  # res = scipy.sparse.vstack(mat_b)
+  mat_b = mat_b.reshape((mat_b[0]*mat_b[1], mat_b[2]))
+  res = scipy.sparse.coo_matrix(mat_b)
   items_to_save = [res.data, res.row, res.col]
+
   with open(filename, "wb") as buf:
 
-    buf.write(struct.pack("i", mat_b[0].shape[0]))
+    buf.write(struct.pack("i", max_atoms))
     buf.write(struct.pack("i", res.shape[0]))
     buf.write(struct.pack("i", res.shape[1]))
 
@@ -52,6 +64,10 @@ def save_sparse_mats(mat_b, filename):
     # concatenation purposes.
     for idx, ii in enumerate(items_to_save):
       np.save(buf, ii, allow_pickle=False)
+
+  cum += time.time()-start
+
+  # print("SAVE TIME", cum)
 
   return filename
 

@@ -3401,16 +3401,9 @@ class ANIFeat(Layer):
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
 
-
-
-    print("DEBUG ATOM NUMBERS", tf.to_float(tf.expand_dims(atom_numbers, 2)))
-
     out_tensor = tf.concat(
         [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
-
-    print("DEBUG ATOM NUMBERS AFTER", out_tensor.shape)
-
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -3437,15 +3430,14 @@ class ANIFeat(Layer):
     d = tf.sqrt(
         tf.reduce_sum(tf.squared_difference(tensor1, tensor2), axis=3) + 1e-7)
 
+    # Zero out dummy atoms along the rows and cols
     d = tf.multiply(d, tf.expand_dims(flags, 1))
     d = tf.multiply(d, tf.expand_dims(flags, 2))
-    # d = tf.matmul(d, flags, transpose_b=True)
     return d
 
   def distance_cutoff(self, d, cutoff, flags):
     """ Generate distance matrix with trainable cutoff """
     # Cutoff with threshold Rc
-    # d_flag = tf.multiply(tf.sign(cutoff - d), flags)
     d_flag = tf.multiply(tf.sign(cutoff - d), tf.expand_dims(flags, 1))
     d_flag = tf.multiply(d_flag, tf.expand_dims(flags, 2))
     d_flag = tf.nn.relu(d_flag)

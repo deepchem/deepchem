@@ -17,6 +17,8 @@ import scipy.sparse
 import tensorflow as tf
 import time
 
+import multiprocessing.pool
+
 import deepchem as dc
 
 from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat
@@ -188,13 +190,11 @@ class ANIRegression(TensorGraph):
         self.build_grad()
 
       feed_dict = dict()
-      X = dataset.X_cache
-      # flags = np.sign(np.array(X[:upper_lim, :, 0]))
-      # feed_dict[self.atom_flags] = np.stack([flags]*self.max_atoms, axis=2)*\
-          # np.stack([flags]*self.max_atoms, axis=1)
-      # feed_dict[self.atom_numbers] = np.array(X[:upper_lim, :, 0], dtype=int)
-      print("S! SHAPE", X[:upper_lim, :, :])
-      feed_dict[self.atom_feats] = np.array(X[:upper_lim, :, :], dtype=float)
+      feed_dict = {
+        self.mode: True,
+        self.dequeue_object: np.array(X[:upper_lim, :, :], dtype=float)
+      } 
+
       return self.session.run([self.grad], feed_dict=feed_dict)
 
   def pred_one(self, X, atomic_nums, constraints=None):
@@ -227,7 +227,6 @@ class ANIRegression(TensorGraph):
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
-    # print("START PREDICT!")
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -367,32 +366,32 @@ class ANIRegression(TensorGraph):
 
   def featurize(self, dataset, deterministic, pad_batches):
 
+    start_time = time.time()
+
     batch_size = self.batch_size
+
+    # (ytz): This is set to a batch_size of 1 intentionally.
+    # If you increase, you need to deal with consequences of:
+    #   1. shuffling batches within a shard via a perm
+    #   2. computing toarray() on a shard_size*batch_size array
+    #      as opposed to a batch_size array, and then
+    #   3. subsequently re-slicing it again into batches when
+    #      calling iterbatches
+
     shard_size = batch_size*1
     # shard_size = batch_size*192
-    # shard_size = batch_size*16
-
-    # run shard generation in a separate thread
 
     def shard_generator(cself):
 
-      X_cache = []
-      y_cache = []
-      w_cache = []
-      ids_cache = []
-
       print("Dataset needs to be featurized...")
 
-      run_time = 0
-      overhead_time = 0
-
-      total_time = time.time()
-
-      # enqueue in a separate thread
+      # (ytz): enqueue in a separate thread
       # yay for shitty thread-safe GILs on lists
       all_ybs = []
       all_wbs = []
       all_ids = []
+
+      # bgn = time.time()
 
       def feed_queue():
 
@@ -426,51 +425,41 @@ class ANIRegression(TensorGraph):
 
       num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
 
+      run_time = 0
+      total_time = time.time()
+
+      # use a seperate thread to do the compute so we can overlap with the file write
+
+      append_time = time.time()
+
+      pool = multiprocessing.pool.ThreadPool(1)
+      next_batch = pool.apply_async(cself.session.run, (cself.featurized, ))
+
+      # following code assumes shard_size == batch_size
+      assert shard_size == batch_size
+
       while batch_idx < num_batches:
 
-        X_feat = cself.session.run(cself.featurized)
+        X_feat = next_batch.get() # shape (batch_size, max_atoms, feat_size)
+
+        if batch_idx < num_batches - 1:
+          next_batch = pool.apply_async(cself.session.run, (cself.featurized, ))
 
         y_b = all_ybs[batch_idx]
         w_b = all_wbs[batch_idx]
         ids_b = all_ids[batch_idx]
-
-        # print(len(X_cache), shard_size)
-
-        if len(X_cache) == shard_size:
-
-          yield np.array(X_cache), np.array(y_cache), np.array(
-              w_cache), np.array(ids_cache)
-
-          X_cache = []
-          y_cache = []
-          w_cache = []
-          ids_cache = []
-
-        for idx in range(len(X_feat)):
-
-          x_max = X_feat[idx]
-          x_csr = scipy.sparse.coo_matrix(x_max)
-
-          # X_cache.append(np.array([x_csr.data, x_csr.indices, x_csr.indptr, x_csr.shape]))
-          X_cache.append(x_csr)
-          y_cache.append(y_b[idx])
-          w_cache.append(w_b[idx])
-          ids_cache.append(ids_b[idx])
-
         batch_idx += 1
+        yield X_feat, y_b, w_b, ids_b
 
+      pool.close()
       t1.join()
-
-      if len(X_cache) > 0:
-
-        yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
 
 
     self.feat_dataset = dc.data.DiskDataset.create_dataset(
       shard_generator=shard_generator(self),
       data_dir=self.feat_dir)
 
-    print("Finished featurization.")
+    # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
 
 
   def default_generator(self,
@@ -484,10 +473,6 @@ class ANIRegression(TensorGraph):
 
     if predict:
 
-      print("PREDICT")
-
-      # predicting
-
       if not deterministic:
         raise Exception("Called predict with non-deterministic generator, terrible idea.")
 
@@ -496,16 +481,14 @@ class ANIRegression(TensorGraph):
         deterministic=deterministic,
         pad_batches=pad_batches):
 
-        feed_dict = {}
-        feed_dict[self.atom_feats] = np.array(X_b[:, :, :], dtype=float)
+        feed_dict = {
+            self.mode: True,
+            self.dequeue_object: X_b,
+        }
+
         yield feed_dict
 
-
     else:
-
-      print("FITTING")
-
-      # fitting
 
       if self.feat_dataset is None:
         self.featurize(dataset, deterministic, pad_batches)
@@ -516,8 +499,6 @@ class ANIRegression(TensorGraph):
           deterministic=deterministic,
           pad_batches=pad_batches):
 
-          # print("BATCH_TIME", time.time())
-
           feed_dict = {}
           if y_b is not None and not predict:
             for index, label in enumerate(self.labels_fd):
@@ -525,24 +506,8 @@ class ANIRegression(TensorGraph):
           if w_b is not None and not predict:
             feed_dict[self.weights] = w_b
 
-          # print(X_feat, "X_FEAT")
-
-          # print(X_feat[3])
-
-          # obj = scipy.sparse.csr_matrix((X_feat[0], X_feat[1], X_feat[2]), shape=X_feat[3])
-          # obj = obj.A
-          # obj = obj.reshape("hehe")
-          #   #   (loaded_items[0],
-          #   #   loaded_items[1],
-          #   #   loaded_items[2]),
-          #   #   shape=loaded_items[3])
-
-          # # X_feat = X_feat[0].todense()
-
           feed_dict[self.mode] = False
           feed_dict[self.dequeue_object] = X_feat
-
-          # feed_dict[self.featurized] = X_feat
 
           yield feed_dict
 

@@ -770,14 +770,9 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
     for feed_dict in generator:
       enq = {}
       enq[tg._training_placeholder] = 1.0
-      # for layer in tg.labels + tg.task_weights:
       for layer in tg.features + tg.labels + tg.task_weights:
         obj = feed_dict[layer]
         enq[tg.get_pre_q_input(layer).out_tensor] = obj
-      # print("FDTGF:", feed_dict[tg.featurized])
-
-      # feed the pre_q version of this
-      # enq[tg.featurized.out_tensor] = feed_dict[tg.featurized]
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       n_enqueued[0] += 1
     final_sample[0] = n_enqueued[0]
