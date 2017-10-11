@@ -8,7 +8,8 @@ import unittest
 import numpy as np
 np.random.seed(123)
 
-from rdkit.Chem import MolFromMolFile, rdchem
+from rdkit.Chem import MolFromMolFile
+from rdkit.Chem.AllChem import Mol, ComputeGasteigerCharges
 
 from deepchem.feat import rdkit_grid_featurizer as rgf
 
@@ -56,7 +57,7 @@ class TestHelperFunctions(unittest.TestCase):
                                              calc_charges)
         num_atoms = mol_rdk.GetNumAtoms()
         self.assertIsInstance(mol_xyz, np.ndarray)
-        self.assertIsInstance(mol_rdk, rdchem.Mol)
+        self.assertIsInstance(mol_rdk, Mol)
         self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
   def test_generate_random__unit_vector(self):
@@ -142,7 +143,7 @@ class TestHelperFunctions(unittest.TestCase):
       self.assertEqual(list(ecfp_all.keys()), list(range(num_atoms)))
 
       num_ind = np.random.choice(range(1, num_atoms))
-      indices = list(np.random.choice(range(num_atoms), num_ind, replace=False))
+      indices = list(np.random.choice(num_atoms, num_ind, replace=False))
 
       ecfp_selected = rgf.compute_all_ecfp(mol, indices=indices, degree=degree)
       self.assertIsInstance(ecfp_selected, dict)
@@ -229,3 +230,139 @@ class TestHelperFunctions(unittest.TestCase):
           ecfp_idx = int(ecfp_idx)
           self.assertGreaterEqual(ecfp_idx, 0)
           # TODO upperbound?
+
+  def test_featurize_splif(self):
+    prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+    lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
+    distance = rgf.compute_pairwise_distances(
+        protein_xyz=prot_xyz, ligand_xyz=lig_xyz)
+
+    bins = [(1, 2), (2, 3)]
+
+    dicts = rgf.featurize_splif(
+        prot_xyz,
+        prot_rdk,
+        lig_xyz,
+        lig_rdk,
+        contact_bins=bins,
+        pairwise_distances=distance,
+        ecfp_degree=2)
+    expected_dicts = [
+        rgf.compute_splif_features_in_range(
+            prot_rdk, lig_rdk, distance, c_bin, ecfp_degree=2) for c_bin in bins
+    ]
+    self.assertIsInstance(dicts, list)
+    self.assertEqual(dicts, expected_dicts)
+
+  def test_convert_atom_to_voxel(self):
+    # 20 points with coords between -5 and 5, centered at 0
+    coords_range = 10
+    xyz = (np.random.rand(20, 3) - 0.5) * coords_range
+    for idx in np.random.choice(20, 6):
+      for box_width in (10, 20, 40):
+        for voxel_width in (0.5, 1, 2):
+          voxel = rgf.convert_atom_to_voxel(xyz, idx, box_width, voxel_width)
+          self.assertIsInstance(voxel, list)
+          self.assertEqual(len(voxel), 1)
+          self.assertIsInstance(voxel[0], np.ndarray)
+          self.assertEqual(voxel[0].shape, (3,))
+          self.assertIs(voxel[0].dtype, np.dtype('int'))
+          # indices are positive
+          self.assertTrue((voxel[0] >= 0).all())
+          # coordinates were properly translated and scaled
+          self.assertTrue(
+              (voxel[0] < (box_width + coords_range) / 2.0 / voxel_width).all())
+          self.assertTrue(
+              np.allclose(voxel[0],
+                          np.floor((xyz[idx] + box_width / 2.0) / voxel_width)))
+
+    # for coordinates outside of the box function should properly transform them
+    # to indices and warn the user
+    for args in ((np.array([[0, 1, 6]]), 0, 10, 1.0), (np.array([[0, 4, -6]]),
+                                                       0, 10, 1.0)):
+      # TODO check if function warns. There is assertWarns method in unittest,
+      # but it is not implemented in 2.7 and buggy in 3.5 (issue 29620)
+      voxel = rgf.convert_atom_to_voxel(*args)
+      self.assertTrue(
+          np.allclose(voxel[0], np.floor((args[0] + args[2] / 2.0) / args[3])))
+
+  def test_convert_atom_pair_to_voxel(self):
+    # 20 points with coords between -5 and 5, centered at 0
+    coords_range = 10
+    xyz1 = (np.random.rand(20, 3) - 0.5) * coords_range
+    xyz2 = (np.random.rand(20, 3) - 0.5) * coords_range
+    # 3 pairs of indices
+    for idx1, idx2 in np.random.choice(20, (3, 2)):
+      for box_width in (10, 20, 40):
+        for voxel_width in (0.5, 1, 2):
+          v1 = rgf.convert_atom_to_voxel(xyz1, idx1, box_width, voxel_width)
+          v2 = rgf.convert_atom_to_voxel(xyz2, idx2, box_width, voxel_width)
+          v_pair = rgf.convert_atom_pair_to_voxel((xyz1, xyz2), (idx1, idx2),
+                                                  box_width, voxel_width)
+          self.assertEqual(len(v_pair), 2)
+          self.assertTrue((v1 == v_pair[0]).all())
+          self.assertTrue((v2 == v_pair[1]).all())
+
+  def test_compute_charge_dictionary(self):
+    for fname in (self.ligand_file, self.protein_file):
+      _, mol = rgf.load_molecule(fname)
+      ComputeGasteigerCharges(mol)
+      charge_dict = rgf.compute_charge_dictionary(mol)
+      self.assertEqual(len(charge_dict), mol.GetNumAtoms())
+      for i in range(mol.GetNumAtoms()):
+        self.assertIn(i, charge_dict)
+        self.assertIsInstance(charge_dict[i], (float, int))
+
+
+class TestRdkitGridFeaturizer(unittest.TestCase):
+  """
+  Test RdkitGridFeaturizer class defined in rdkit_grid_featurizer module.
+  """
+
+  def setUp(self):
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    package_dir = os.path.dirname(os.path.dirname(current_dir))
+    self.protein_file = os.path.join(package_dir, 'dock', 'tests',
+                                     '1jld_protein.pdb')
+    self.ligand_file = os.path.join(package_dir, 'dock', 'tests',
+                                    '1jld_ligand.sdf')
+
+  def test_voxelize(self):
+    prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
+    lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
+
+    centroid = rgf.compute_centroid(lig_xyz)
+    prot_xyz = rgf.subtract_centroid(prot_xyz, centroid)
+    lig_xyz = rgf.subtract_centroid(lig_xyz, centroid)
+
+    prot_ecfp_dict, lig_ecfp_dict = (rgf.featurize_binding_pocket_ecfp(
+        prot_xyz, prot_rdk, lig_xyz, lig_rdk))
+
+    box_w = 20
+    f_power = 5
+
+    rgf_featurizer = rgf.RdkitGridFeaturizer(
+        box_width=box_w, ecfp_power=f_power)
+
+    prot_tensor = rgf_featurizer._voxelize(
+        rgf.convert_atom_to_voxel,
+        rgf.hash_ecfp,
+        prot_xyz,
+        feature_dict=prot_ecfp_dict,
+        channel_power=f_power)
+    self.assertEqual(prot_tensor.shape, tuple([box_w] * 3 + [2**f_power]))
+    all_features = prot_tensor.sum()
+    # protein is too big for the box, some features should be missing
+    self.assertGreater(all_features, 0)
+    self.assertLess(all_features, prot_rdk.GetNumAtoms())
+
+    lig_tensor = rgf_featurizer._voxelize(
+        rgf.convert_atom_to_voxel,
+        rgf.hash_ecfp,
+        lig_xyz,
+        feature_dict=lig_ecfp_dict,
+        channel_power=f_power)
+    self.assertEqual(lig_tensor.shape, tuple([box_w] * 3 + [2**f_power]))
+    all_features = lig_tensor.sum()
+    # whole ligand should fit in the box
+    self.assertEqual(all_features, lig_rdk.GetNumAtoms())
