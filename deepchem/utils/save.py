@@ -39,18 +39,13 @@ cum = 0
 def save_sparse_mats(mat_b, filename):
   # These are the elements of a coo_format matrix
 
-  global cum
-
-  start = time.time()
-
   filename = filename + ".coo"
   max_atoms = mat_b.shape[1]
 
   # avoid the stupid vstack, do a reshape instead?
-  # res = scipy.sparse.vstack(mat_b)
-  mat_b = mat_b.reshape((mat_b[0]*mat_b[1], mat_b[2]))
+  mat_b = mat_b.reshape((mat_b.shape[0]*mat_b.shape[1], mat_b.shape[2]))
   res = scipy.sparse.coo_matrix(mat_b)
-  items_to_save = [res.data, res.row, res.col]
+  items_to_save = [res.data, res.row.astype(np.uint16), res.col.astype(np.uint16)]
 
   with open(filename, "wb") as buf:
 
@@ -64,10 +59,6 @@ def save_sparse_mats(mat_b, filename):
     # concatenation purposes.
     for idx, ii in enumerate(items_to_save):
       np.save(buf, ii, allow_pickle=False)
-
-  cum += time.time()-start
-
-  # print("SAVE TIME", cum)
 
   return filename
 

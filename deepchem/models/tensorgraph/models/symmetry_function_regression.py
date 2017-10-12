@@ -391,16 +391,12 @@ class ANIRegression(TensorGraph):
       all_wbs = []
       all_ids = []
 
-      # bgn = time.time()
-
       def feed_queue():
 
         for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
             batch_size=batch_size,
             deterministic=deterministic,
             pad_batches=pad_batches):
-
-          # print("Feeding..")
 
           mode = cself.get_pre_q_input(cself.mode)
           obj = cself.get_pre_q_input(cself.dequeue_object)
@@ -435,6 +431,8 @@ class ANIRegression(TensorGraph):
       pool = multiprocessing.pool.ThreadPool(1)
       next_batch = pool.apply_async(cself.session.run, (cself.featurized, ))
 
+      print("Total number of batches:", num_batches)
+
       # following code assumes shard_size == batch_size
       assert shard_size == batch_size
 
@@ -457,7 +455,8 @@ class ANIRegression(TensorGraph):
 
     self.feat_dataset = dc.data.DiskDataset.create_dataset(
       shard_generator=shard_generator(self),
-      data_dir=self.feat_dir)
+      data_dir=self.feat_dir,
+      X_is_sparse=True)
 
     # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
 

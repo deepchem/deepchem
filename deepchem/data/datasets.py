@@ -436,7 +436,12 @@ class DiskDataset(Dataset):
       raise ValueError("No metadata found on disk.")
 
   @staticmethod
-  def create_dataset(shard_generator, data_dir=None, tasks=[], verbose=True):
+  def create_dataset(
+    shard_generator,
+    data_dir=None,
+    tasks=[],
+    verbose=True,
+    X_is_sparse=False):
     """Creates a new DiskDataset
 
     Parameters
@@ -459,8 +464,15 @@ class DiskDataset(Dataset):
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
-          DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
-                                         ids))
+          DiskDataset.write_data_to_disk(
+            data_dir,
+            basename,
+            tasks,
+            X,
+            y,
+            w,
+            ids,
+            X_is_sparse))
       if shard_num % 5 == 0:
         print("Shards generated per minute: ", shard_num * 60 / (time.time()-time1))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -488,10 +500,11 @@ class DiskDataset(Dataset):
                          X=None,
                          y=None,
                          w=None,
-                         ids=None):
+                         ids=None,
+                         X_is_sparse=False):
     if X is not None:
       out_X = "%s-X.joblib" % basename
-      if len(X) > 0 and isinstance(X[0], scipy.sparse.coo_matrix):
+      if X_is_sparse:
         # (ytz): save_sparse_mats returns a modified filename
         # that can be used later on to identify the format. 
         out_X = save_sparse_mats(X, os.path.join(data_dir, out_X))

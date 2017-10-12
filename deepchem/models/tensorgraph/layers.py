@@ -3475,8 +3475,6 @@ class ANIFeat(Layer):
   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
     """ Angular Symmetry Function """
 
-    print("DSHAPE", d.shape)
-
     max_atoms = self.max_atoms
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
@@ -3527,8 +3525,6 @@ class ANIFeat(Layer):
           out_tensors.append(
               tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
       res = tf.concat(out_tensors, axis=2)
-
-      print("RES_SHAPE", res)
 
       return res
     else:
