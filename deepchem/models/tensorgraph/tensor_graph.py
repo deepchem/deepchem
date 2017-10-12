@@ -488,14 +488,12 @@ class TensorGraph(Model):
 
       self._install_queue()
       for layer in self.topsort():
-        print("TOPSORT", layer, layer.name)
         with tf.name_scope(layer.name):
           layer.create_tensor(training=self._training_placeholder)
           self.rnn_initial_states += layer.rnn_initial_states
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
           layer.add_summary_to_tg()
-      print("TOPSORT DONE")
       self.session = tf.Session()
 
       self.built = True

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import random
 import scipy
-from deepchem.utils.save import save_to_disk, MATMAGICKEY, save_sparse_mats
+from deepchem.utils.save import save_to_disk, save_sparse_mats
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
 import tempfile
@@ -473,8 +473,8 @@ class DiskDataset(Dataset):
             w,
             ids,
             X_is_sparse))
-      if shard_num % 5 == 0:
-        print("Shards generated per minute: ", shard_num * 60 / (time.time()-time1))
+      if shard_num % 10 == 0:
+        print("Shard #"+str(shard_num)+" | # generated per minute: ", shard_num * 60 / (time.time()-time1))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
     metadata_filename = os.path.join(data_dir, "metadata.joblib")
     save_to_disk((tasks, metadata_df), metadata_filename)

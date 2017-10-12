@@ -418,9 +418,7 @@ class AtomicDifferentiatedDense(Layer):
     in_layers = convert_to_layers(in_layers)
 
     inputs = in_layers[0].out_tensor
-    # atom_numbers = in_layers[1].out_tensor
     atom_numbers = in_layers[1].out_tensor[:, :, 0]
-    # in_channels = self.max_atoms
 
     in_channels = inputs.get_shape().as_list()[-1]
     self.W = init_fn(
@@ -441,9 +439,6 @@ class AtomicDifferentiatedDense(Layer):
       ak = tf.shape(a)[2]
       bl = tf.shape(b)[1]
 
-      print(a.shape)
-      print(b.shape)
-
       output = activation_fn(
           tf.reshape(tf.matmul(tf.reshape(a, [ai * aj, ak]), b), [ai, aj, bl]) +
           self.b[i, :])
@@ -454,7 +449,6 @@ class AtomicDifferentiatedDense(Layer):
       outputs.append(output)
 
     self.out_tensor = tf.add_n(outputs)
-    # print("???????", self.out_tensor.shape)
 
   def none_tensors(self):
     w, b, out_tensor = self.W, self.b, self.out_tensor

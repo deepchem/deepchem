@@ -96,7 +96,6 @@ class Layer(object):
       tensors.append(tf.convert_to_tensor(input))
     if reshape and len(tensors) > 1:
       shapes = [t.get_shape() for t in tensors]
-      print("SHAPES", shapes)
       if any(s != shapes[0] for s in shapes[1:]):
         # Reshape everything to match the input with the most dimensions.
 
@@ -534,50 +533,23 @@ class Dense(Layer):
     else:
       return self._shared_with._get_scope_name()
 
+
 class BPGather2(Layer):
 
   def __init__(self, **kwargs):
-    # self.in_layers = in_layers
-    # print("I-1", in_layers)
     super(BPGather2, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Merge features together """
 
-    # if self.in_layers is None:
-    # in_layers = self.in_layers
     last_dense, atom_feats = self._get_input_tensors(self.in_layers)
-
-    # print("I0", in_layers)
-
-    # in_layers = convert_to_layers(in_layers)
-
-    # print("I1", in_layers)
-
-
-    # last_dense,  = in_layers[0].out_tensor
-    # atom_numbers = in_layers[1].out_tensor
-
-    # atom_numbers = 
-    # last_layer = tf.convert_to_tensor(Hiddens[-1])
     regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
     flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
     out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
-    # print("RF SHAPE", regression.shape, flags.shape)
 
-    # out_tensor = tf.reduce_sum(regression * flags, axis=1)
-
-
-    # if in_layers is None:
-    #   in_layers = self.in_layers
-    # in_layers = convert_to_layers(in_layers)
-    # out_tensor = in_layers[0].out_tensor
-    # flags = tf.cast(tf.sign(in_layers[1].out_tensor), tf.float32)
-    # out_tensor = tf.reduce_sum(out_tensor * tf.expand_dims(flags, 2), axis=1)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
-
 
 
 class Flatten(Layer):
@@ -994,13 +966,10 @@ class L2Loss(Layer):
       pass
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    print("a0")
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
-    print("a0.5")
     out_tensor = tf.reduce_mean(
         tf.square(guess - label), axis=list(range(1, len(label._shape))))
-    print("a1")
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -1708,9 +1677,6 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    # self.queue = tf.FIFOQueue(
-        # self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
-    print("NAMES", self.names)
     self.queue = tf.FIFOQueue(
         self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}

@@ -62,11 +62,11 @@ def load_roiterberg_ANI(mode="atomization"):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
-      # 'ani_gdb_s05.h5',
-      # 'ani_gdb_s06.h5',
-      # 'ani_gdb_s07.h5',
-      # 'ani_gdb_s08.h5'
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
+      'ani_gdb_s07.h5',
+      'ani_gdb_s08.h5'
   ]
 
   hdf5files = [os.path.join(base_dir, f) for f in hdf5files]
@@ -225,17 +225,19 @@ if __name__ == "__main__":
     train_dataset, valid_dataset = splitter.train_test_split(
         train_valid_dataset, train_dir=train_dir, test_dir=valid_dir)
 
-    transformers = [
-        dc.trans.NormalizationTransformer(
-            transform_y=True, dataset=train_dataset)
-    ]
+  transformers = [
+      dc.trans.NormalizationTransformer(
+          transform_y=True, dataset=train_dataset)
+  ]
 
-    print("Total training set shape: ", train_dataset.get_shape())
+  print("Total training set shape: ", train_dataset.get_shape())
 
-    for transformer in transformers:
-      train_dataset = transformer.transform(train_dataset)
-      valid_dataset = transformer.transform(valid_dataset)
-      test_dataset = transformer.transform(test_dataset)
+  print("Transforming....")
+
+  for transformer in transformers:
+    train_dataset = transformer.transform(train_dataset)
+    valid_dataset = transformer.transform(valid_dataset)
+    test_dataset = transformer.transform(test_dataset)
 
   # if os.path.exists(model_dir):
     # model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
@@ -248,7 +250,7 @@ if __name__ == "__main__":
       feat_dir=feat_dir,
       batch_size=batch_size,
       learning_rate=0.001,
-      use_queue=True, # broken if we turn queue on
+      use_queue=True,
       model_dir=model_dir,
       mode="regression")
 

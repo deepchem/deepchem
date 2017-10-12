@@ -18,23 +18,20 @@ import os
 import deepchem
 from rdkit import Chem
 import time
-
 import struct
+
 
 def log(string, verbose=True):
   """Print string if verbose."""
   if verbose:
     print(string)
 
-MATMAGICKEY = "_matmagickey_"
 
 def save_to_disk(dataset, filename, compress=0):
   """Save a dataset to file."""
 
   joblib.dump(dataset, filename, compress=compress)
 
-
-cum = 0
 
 def save_sparse_mats(mat_b, filename):
   # These are the elements of a coo_format matrix
@@ -166,8 +163,6 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
-  if MATMAGICKEY in name:
-    return load_sparse_mats(name)
 
   if os.path.splitext(name)[1] == ".gz":
     name = os.path.splitext(name)[0]

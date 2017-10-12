@@ -161,7 +161,7 @@ class ANIRegression(TensorGraph):
     super(ANIRegression, self).save()
 
   def build_grad(self):
-    self.grad = tf.gradients(self.outputs, self.atom_feats)
+    self.grad = tf.gradients(self.outputs, self.dequeue_object)
 
   def compute_grad(self, dataset, upper_lim=1):
     """
@@ -192,7 +192,7 @@ class ANIRegression(TensorGraph):
       feed_dict = dict()
       feed_dict = {
         self.mode: True,
-        self.dequeue_object: np.array(X[:upper_lim, :, :], dtype=float)
+        self.dequeue_object: np.array(dataset.X[:upper_lim, :, :], dtype=float)
       } 
 
       return self.session.run([self.grad], feed_dict=feed_dict)
