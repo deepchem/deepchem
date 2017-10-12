@@ -242,17 +242,18 @@ class TensorGraph(Model):
 
         run_start = time.time()
 
-        if self.global_step > 1000000000:
-          with open('/home/yutong/timeline3.json', 'w') as f:
-            options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-            run_metadata = tf.RunMetadata()
+        # Commented out but this is really useful for profiling.
+        # if self.global_step > 1000000000:
+        #   with open('/home/yutong/timeline3.json', 'w') as f:
+        #     options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        #     run_metadata = tf.RunMetadata()
 
-            fetched_values = self.session.run(fetches, feed_dict=feed_dict, options=options, run_metadata=run_metadata)
-            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            f.write(fetched_timeline.generate_chrome_trace_format())
-          assert 0
-        else:
-          fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+        #     fetched_values = self.session.run(fetches, feed_dict=feed_dict, options=options, run_metadata=run_metadata)
+        #     fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+        #     f.write(fetched_timeline.generate_chrome_trace_format())
+        #   assert 0
+        # else:
+        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
 
         run_time += time.time()-run_start
 
