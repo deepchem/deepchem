@@ -270,6 +270,16 @@ class Layer(object):
   def __neg__(self):
     return Multiply([self, Constant(-1.0)])
 
+  def __div__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Divide([self, other])
+
+  def __truediv__(self, other):
+    if not isinstance(other, Layer):
+      other = Constant(other)
+    return Divide([self, other])
+
 
 def _convert_layer_to_tensor(value, dtype=None, name=None, as_ref=False):
   return tf.convert_to_tensor(value.out_tensor, dtype=dtype, name=name)
@@ -1151,6 +1161,31 @@ class Multiply(Layer):
     out_tensor = inputs[0]
     for layer in inputs[1:]:
       out_tensor *= layer
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Divide(Layer):
+  """Compute the ratio of the input layers."""
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(Divide, self).__init__(in_layers, **kwargs)
+    try:
+      shape1 = list(self.in_layers[0].shape)
+      shape2 = list(self.in_layers[1].shape)
+      if len(shape1) < len(shape2):
+        shape2, shape1 = shape1, shape2
+      offset = len(shape1) - len(shape2)
+      for i in range(len(shape2)):
+        shape1[i + offset] = _max_dimension(shape1[i + offset], shape2[i])
+      self._shape = tuple(shape1)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    out_tensor = inputs[0] / inputs[1]
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
