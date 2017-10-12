@@ -333,20 +333,24 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     self.ligand_file = os.path.join(package_dir, 'dock', 'tests',
                                     '1jld_ligand.sdf')
 
-  def test_init(self):
+  def test_featurizer(self):
+    ecfp_power = 5
+    splif_power = 5
 
-    # just check if it doesn't throw any error for the use-case from examples
+    # just check if it works for the use-case from examples
     featurizer = rgf.RdkitGridFeaturizer(
         voxel_width=16.0,
-        feature_types="voxel_combined",
-        voxel_feature_types=[
-            "ecfp", "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"
-        ],
-        ecfp_power=5,
-        splif_power=5,
-        parallel=True,
+        feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
+        ecfp_power=ecfp_power,
+        splif_power=splif_power,
         flatten=True)
     self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+    total_len = (2**ecfp_power + len(featurizer.contact_bins) * 2**splif_power +
+                 len(featurizer.hbond_dist_bins) + 1)
+    self.assertEqual(feature_tensor.shape, (1, total_len))
 
   def test_voxelize(self):
     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
