@@ -219,12 +219,8 @@ class TensorGraph(Model):
       start_step = self.global_step
       for feed_dict in create_feed_dict():
 
-        # avoid featurization time
         if start_time is None:
           start_time = time.time()
-
-
-        # print("0 ")
 
         if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
@@ -237,7 +233,6 @@ class TensorGraph(Model):
           if n_samples == final_sample[0]:
             break
 
-        # print("1")
         n_samples += 1
         should_log = (self.tensorboard and
                       n_samples % self.tensorboard_log_frequency == 0)
@@ -246,8 +241,6 @@ class TensorGraph(Model):
           fetches.append(self._get_tf("summary_op"))
 
         run_start = time.time()
-
-        # print("2")
 
         if self.global_step > 1000000000:
           with open('/home/yutong/timeline3.json', 'w') as f:
@@ -260,8 +253,6 @@ class TensorGraph(Model):
           assert 0
         else:
           fetched_values = self.session.run(fetches, feed_dict=feed_dict)
-
-        # print("3")
 
         run_time += time.time()-run_start
 
