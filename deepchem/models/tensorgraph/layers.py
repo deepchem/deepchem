@@ -1519,6 +1519,165 @@ class Conv3D(Layer):
     return out_tensor
 
 
+class Conv2DTranspose(Layer):
+  """A transposed 2D convolution on the input.
+
+  This layer is typically used for upsampling in a deconvolutional network.  It
+  expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
+  If there is only one channel, the fourth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv2DTranspose layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a two element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a two
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    super(Conv2DTranspose, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] * strides[0],
+                     parent_shape[2] * strides[1], num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 3:
+      parent_tensor = tf.expand_dims(parent_tensor, 3)
+    out_tensor = tf.contrib.layers.conv2d_transpose(
+        parent_tensor,
+        num_outputs=self.num_outputs,
+        kernel_size=self.kernel_size,
+        stride=self.stride,
+        padding=self.padding,
+        activation_fn=self.activation_fn,
+        normalizer_fn=self.normalizer_fn,
+        scope=self.scope_name)
+    out_tensor = out_tensor
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Conv3DTranspose(Layer):
+  """A transposed 3D convolution on the input.
+
+  This layer is typically used for upsampling in a deconvolutional network.  It
+  expects its input to be a five dimensional tensor of shape (batch size, height, width, depth, # channels).
+  If there is only one channel, the fifth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv3DTranspose layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a three element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a three
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    super(Conv3DTranspose, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] * strides[0],
+                     parent_shape[2] * strides[1], parent_shape[3] * strides[2],
+                     num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 4:
+      parent_tensor = tf.expand_dims(parent_tensor, 4)
+    out_tensor = tf.layers.conv3d_transpose(
+        parent_tensor,
+        filters=self.num_outputs,
+        kernel_size=self.kernel_size,
+        strides=self.stride,
+        padding=self.padding,
+        activation=self.activation_fn,
+        activity_regularizer=self.normalizer_fn,
+        name=self.scope_name)
+    out_tensor = out_tensor
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class MaxPool2D(Layer):
 
   def __init__(self,

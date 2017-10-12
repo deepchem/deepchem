@@ -9,7 +9,7 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
-  Conv3D, MaxPool3D, \
+  Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
   LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
@@ -282,6 +282,26 @@ def test_Conv3D_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10, 10, 1))
   layer = Conv3D(num_outputs=3, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Conv2DTranspose_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 1))
+  layer = Conv2DTranspose(num_outputs=3, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Conv3DTranspose_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 10, 1))
+  layer = Conv3DTranspose(num_outputs=3, in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
