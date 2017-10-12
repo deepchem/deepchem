@@ -8,6 +8,7 @@ __license__ = "MIT"
 
 import os
 import shutil
+from warnings import warn
 import time
 import tempfile
 import hashlib
@@ -489,7 +490,7 @@ def compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
   return (protein_cation_pi, ligand_cation_pi)
 
 
-def get_formal_charge(atom):
+def get_partial_charge(atom):
   try:
     value = atom.GetProp(str("_GasteigerCharge"))
     if value == '-nan':
@@ -499,9 +500,16 @@ def get_formal_charge(atom):
     return 0
 
 
+def get_formal_charge(atom):
+  warn(
+      'get_formal_charge function is deprecated, use get_partial_charge instead',
+      DeprecationWarning)
+  return get_partial_charge(atom)
+
+
 def is_salt_bridge(atom_i, atom_j):
-  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(atom_j))
-           ) < 0.01:
+  if np.abs(2.0 - np.abs(
+      get_partial_charge(atom_i) - get_partial_charge(atom_j))) < 0.01:
     return True
   else:
     return False
@@ -540,7 +548,7 @@ def is_hydrogen_bond(protein_xyz, protein, ligand_xyz, ligand, contact,
 
 def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                             pairwise_distances, hbond_dist_bin,
-                            hbond_angle_cutoff, ecfp_degree):
+                            hbond_angle_cutoff):
   """
   Find all pairs of (protein_index_i, ligand_index_j) that hydrogen bond given
   a distance bin and an angle cutoff.
@@ -548,10 +556,6 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
 
   contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) &
                         (pairwise_distances < hbond_dist_bin[1]))
-  protein_atoms = set([int(c) for c in contacts[0].tolist()])
-  protein_ecfp_dict = compute_all_ecfp(
-      protein, indices=protein_atoms, degree=ecfp_degree)
-  ligand_ecfp_dict = compute_all_ecfp(ligand, degree=ecfp_degree)
   contacts = zip(contacts[0], contacts[1])
   hydrogen_bond_contacts = []
   for contact in contacts:
@@ -563,7 +567,7 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
 
 def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
                            pairwise_distances, hbond_dist_bins,
-                           hbond_angle_cutoffs, ecfp_degree):
+                           hbond_angle_cutoffs):
   """Computes hydrogen bonds between proteins and ligands.
 
   Returns a list of sublists. Each sublist is a series of tuples of
@@ -577,7 +581,7 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
     hbond_contacts.append(
         compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
                                 pairwise_distances, hbond_dist_bin,
-                                hbond_angle_cutoff, ecfp_degree))
+                                hbond_angle_cutoff))
   return (hbond_contacts)
 
 
@@ -626,7 +630,7 @@ def compute_charge_dictionary(molecule):
 
   charge_dictionary = {}
   for i, atom in enumerate(molecule.GetAtoms()):
-    charge_dictionary[i] = get_formal_charge(atom)
+    charge_dictionary[i] = get_partial_charge(atom)
   return charge_dictionary
 
 
@@ -644,32 +648,32 @@ def subtract_centroid(xyz, centroid):
 class RdkitGridFeaturizer(ComplexFeaturizer):
 
   def __init__(self,
-               box_x=16.0,
-               box_y=16.0,
-               box_z=16.0,
                nb_rotations=0,
                nb_reflections=0,
                feature_types="ecfp",
                ecfp_degree=2,
                ecfp_power=3,
                splif_power=3,
-               save_intermediates=False,
                ligand_only=False,
                box_width=16.0,
                voxel_width=1.0,
-               voxelize_features=True,
                voxel_feature_types=[],
                flatten=False,
-               parallel=False,
                verbose=True,
                **kwargs):
-    self.verbose = verbose
-    self.parallel = parallel
-    self.flatten = flatten
 
-    self.box_x = float(box_x) / 10.0
-    self.box_y = float(box_y) / 10.0
-    self.box_z = float(box_z) / 10.0
+    # check if user tries to set removed arguments
+    deprecated_args = [
+        'box_x', 'box_y', 'box_z', 'save_intermediates', 'voxelize_features',
+        'parallel'
+    ]
+    for arg in deprecated_args:
+      if arg in kwargs:
+        warn('%s argument was removed and it is ignored' % arg,
+             DeprecationWarning)
+
+    self.verbose = verbose
+    self.flatten = flatten
 
     self.ecfp_degree = ecfp_degree
     self.ecfp_power = ecfp_power
@@ -679,7 +683,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.nb_reflections = nb_reflections
     self.feature_types = feature_types
 
-    self.save_intermediates = save_intermediates
     self.ligand_only = ligand_only
 
     self.hbond_dist_bins = [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
@@ -689,7 +692,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.box_width = float(box_width)
     self.voxel_width = float(voxel_width)
     self.voxels_per_edge = self.box_width / self.voxel_width
-    self.voxelize_features = voxelize_features
     self.voxel_feature_types = voxel_feature_types
 
     self.sybyl_types = [
@@ -852,7 +854,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ############################################################## TIMING
       hbond_list = compute_hydrogen_bonds(
           protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
-          self.hbond_dist_bins, self.hbond_angle_cutoffs, self.ecfp_degree)
+          self.hbond_dist_bins, self.hbond_angle_cutoffs)
       ############################################################## TIMING
       time2 = time.time()
       log("TIMING: hbond voxel computataion took %0.3f s" % (time2 - time1),
@@ -1077,7 +1079,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               feature_tensors, axis=3).astype(np.int8)
 
         if self.flatten:
-          feature_tensor = np.squeeze(feature_tensor)
+          feature_tensor = feature_tensor.flatten()
 
         features[system_id] = feature_tensor
 
@@ -1144,23 +1146,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     return feature_vector
 
-  def _generate_box(self, mol):
-    """Removes atoms outside box.
-
-    Generate_box takes as input a molecule of class PDB and removes all atoms
-    outside of the given box dims
-    """
-
-    molecule = deepcopy(mol)
-    atoms_to_keep = []
-    all_atoms = [a for a in molecule.topology.atoms]
-    for atom in all_atoms:
-      coords = np.abs(molecule.xyz[0][atom.index, :])
-      if (coords[0] <= (self.box_x / 2.) and coords[1] <= (self.box_y / 2.) and
-          coords[2] <= (self.box_z / 2.)):
-        atoms_to_keep.append(atom.index)
-    return (molecule.atom_slice(atoms_to_keep))
-
   def _compute_flat_features(self, protein_xyz, protein_ob, ligand_xyz,
                              ligand_ob):
     """Computes vectorial (as opposed to tensorial) featurization."""
@@ -1178,7 +1163,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                                   pairwise_distances, self.ecfp_degree)
     hbond_list = compute_hydrogen_bonds(
         protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
-        self.hbond_dist_bins, self.hbond_angle_cutoffs, self.ecfp_degree)
+        self.hbond_dist_bins, self.hbond_angle_cutoffs)
 
     protein_ecfp_vector = [
         self._vectorize(

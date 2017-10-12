@@ -333,6 +333,21 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     self.ligand_file = os.path.join(package_dir, 'dock', 'tests',
                                     '1jld_ligand.sdf')
 
+  def test_init(self):
+
+    # just check if it doesn't throw any error for the use-case from examples
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=16.0,
+        feature_types="voxel_combined",
+        voxel_feature_types=[
+            "ecfp", "splif", "hbond", "pi_stack", "cation_pi", "salt_bridge"
+        ],
+        ecfp_power=5,
+        splif_power=5,
+        parallel=True,
+        flatten=True)
+    self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
+
   def test_voxelize(self):
     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)
     lig_xyz, lig_rdk = rgf.load_molecule(self.ligand_file)
@@ -341,8 +356,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     prot_xyz = rgf.subtract_centroid(prot_xyz, centroid)
     lig_xyz = rgf.subtract_centroid(lig_xyz, centroid)
 
-    prot_ecfp_dict, lig_ecfp_dict = (rgf.featurize_binding_pocket_ecfp(
-        prot_xyz, prot_rdk, lig_xyz, lig_rdk))
+    prot_ecfp_dict, lig_ecfp_dict = rgf.featurize_binding_pocket_ecfp(
+        prot_xyz, prot_rdk, lig_xyz, lig_rdk)
 
     box_w = 20
     f_power = 5
