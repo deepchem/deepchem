@@ -39,13 +39,17 @@ cum = 0
 def save_sparse_mats(mat_b, filename):
   # These are the elements of a coo_format matrix
 
-  filename = filename + ".coo"
+  # csr matrix is more efficient if # cols < # rows and cols can fit with a uint32 and rows
+  # with a uint16
+  filename = filename + ".csr"
   max_atoms = mat_b.shape[1]
 
   # avoid the stupid vstack, do a reshape instead?
   mat_b = mat_b.reshape((mat_b.shape[0]*mat_b.shape[1], mat_b.shape[2]))
-  res = scipy.sparse.coo_matrix(mat_b)
-  items_to_save = [res.data, res.row.astype(np.uint16), res.col.astype(np.uint16)]
+  res = scipy.sparse.csr_matrix(mat_b)
+  # (ytz): if you really need an extra 32% savings you can use res.data.astype(np.float16)
+  # but you will lose several points of precision.
+  items_to_save = [res.data, res.indices.astype(np.uint16), res.indptr]
 
   with open(filename, "wb") as buf:
 
@@ -74,10 +78,10 @@ def load_sparse_mats(filename):
       res = np.load(fh, allow_pickle=False)
       items.append(res)
 
-    X = scipy.sparse.coo_matrix(
+    X = scipy.sparse.csr_matrix(
         (items[0],
-        (items[1],
-        items[2])),
+        items[1],
+        items[2]),
         shape=[outer_shape0, outer_shape1])
     X = X.A
     X = X.reshape(X.shape[0]//inner_shape, inner_shape, X.shape[1])
@@ -185,7 +189,7 @@ def load_from_disk(filename):
     df = pd.read_csv(filename, header=0)
     df = df.replace(np.nan, str(""), regex=True)
     return df
-  elif ext == ".coo":
+  elif ext == ".csr":
     return load_sparse_mats(filename)
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)
