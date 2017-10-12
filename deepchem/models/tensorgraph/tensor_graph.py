@@ -533,13 +533,16 @@ class TensorGraph(Model):
     # As a sanity check, make sure all tensors have the correct shape.
     # Don't check this for now
 
-    # for layer in self.layers.values():
-    #   try:
-    #     assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
-    #     ), '%s: Expected shape %s does not match actual shape %s' % (
-    #         layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
-    #   except NotImplementedError:
-    #     pass
+    for layer in self.layers.values():
+      # Dequeued objects from a queue may not necessarily have a well-defined
+      # shape.
+      if layer.shape is not None:
+        try:
+          assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
+          ), '%s: Expected shape %s does not match actual shape %s' % (
+              layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
+        except NotImplementedError:
+          pass
 
   def _install_queue(self):
     """

@@ -41,7 +41,6 @@ def save_sparse_mats(mat_b, filename):
   filename = filename + ".csr"
   max_atoms = mat_b.shape[1]
 
-  # avoid the stupid vstack, do a reshape instead?
   mat_b = mat_b.reshape((mat_b.shape[0]*mat_b.shape[1], mat_b.shape[2]))
   res = scipy.sparse.csr_matrix(mat_b)
   # (ytz): if you really need an extra 32% savings you can use res.data.astype(np.float16)
