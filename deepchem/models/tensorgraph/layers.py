@@ -369,49 +369,6 @@ class Conv1D(Layer):
     return out_tensor
 
 
-def fully_connected_layer(tensor,
-                          size=None,
-                          weight_init=None,
-                          bias_init=None,
-                          name=None):
-  """Fully connected layer.
-  Parameters
-  ----------
-  tensor: tf.Tensor
-    Input tensor.
-  size: int
-    Number of output nodes for this layer.
-  weight_init: float
-    Weight initializer.
-  bias_init: float
-    Bias initializer.
-  name: str
-    Name for this op. Defaults to 'fully_connected'.
-  Returns
-  -------
-  tf.Tensor:
-    A new tensor representing the output of the fully connected layer.
-  Raises
-  ------
-  ValueError
-    If input tensor is not 2D.
-  """
-  if weight_init is None:
-    num_features = tensor.get_shape()[-1].value
-    weight_init = tf.truncated_normal([4,num_features, size], stddev=0.01)
-  if bias_init is None:
-    bias_init = tf.zeros([4, size])
-
-  print("SHAPES:", tensor.shape, weight_init.shape, bias_init.shape)
-
-  with tf.name_scope(name, 'fully_connected', [tensor]):
-    w = tf.Variable(weight_init, dtype=tf.float32)
-    b = tf.Variable(bias_init, dtype=tf.float32)
-
-    return tensor*w + b
-    # return tf.nn.xw_plus_b(tensor, w, b)
-
-
 class Dense(Layer):
 
   def __init__(
@@ -465,35 +422,19 @@ class Dense(Layer):
     if len(inputs) != 1:
       raise ValueError("Dense layer can only have one input")
     parent = inputs[0]
-    print("PARENT SHAPE", parent.shape)
     if self.biases_initializer is None:
       biases_initializer = None
     else:
       biases_initializer = self.biases_initializer()
     for reuse in (self._reuse, False):
-      # print("IN_TENSOR_SHAPE: ", x.shape)
-
-      # dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
-      #                                                        num_outputs=self.out_channels,
-      #                                                        activation_fn=self.activation_fn,
-      #                                                        biases_initializer=biases_initializer,
-      #                                                        weights_initializer=self.weights_initializer(),
-      #                                                        scope=self._get_scope_name(),
-      #                                                        reuse=reuse,
-      #                                                        trainable=True)
-      
-      dense_fn = lambda x: tf.layers.dense(x,
-                                           units=self.out_channels,
-                                           activation=self.activation_fn,
-                                           bias_initializer=biases_initializer,
-                                           kernel_initializer=self.weights_initializer(),
-                                           # scope=self._get_scope_name(),
-                                           reuse=reuse,
-                                           trainable=True)
-
-      # dense_fn = lambda x: fully_connected_layer(
-      #   x,
-      #   size=self.out_channels)
+      dense_fn = lambda x: tf.contrib.layers.fully_connected(x,
+                                                             num_outputs=self.out_channels,
+                                                             activation_fn=self.activation_fn,
+                                                             biases_initializer=biases_initializer,
+                                                             weights_initializer=self.weights_initializer(),
+                                                             scope=self._get_scope_name(),
+                                                             reuse=reuse,
+                                                             trainable=True)
 
       try:
         if self.time_series:
@@ -501,7 +442,6 @@ class Dense(Layer):
         else:
           out_tensor = dense_fn(parent)
 
-          print("OUT_TENSOR_SHAPE", out_tensor.shape)
         break
       except ValueError:
         if reuse:
@@ -640,9 +580,19 @@ class Squeeze(Layer):
 
 
 class Conditional(Layer):
+  """
+  A Conditional Layer wraps tf.Cond. 
 
+  Parameters
+  ----------
+  true_fn: function
+    Function to run if predicate evaluates to true.
+
+  false_fn: function
+    Function to run if predicate evaluates to false.
+
+  """
   def __init__(self, true_fn, false_fn, **kwargs):
-    # self.pred = predicate
     self.true_fn = true_fn
     self.false_fn = false_fn
     super(Conditional, self).__init__(**kwargs)
@@ -650,7 +600,6 @@ class Conditional(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     predicate = self._get_input_tensors(in_layers)[0]
     out_tensor = tf.cond(predicate, self.true_fn, self.false_fn)
-    # out_tensor = tf.reshape(out_tensor, (2, 3, 128))
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -911,8 +860,11 @@ class Input(Layer):
     return out_tensor
 
   def create_pre_q(self, batch_size):
-    # q_shape = (batch_size,) + self._shape[1:]
-    return Input(shape=self._shape, name="%s_pre_q" % self.name, dtype=self.dtype)
+    if self._shape is not None:
+      q_shape = (batch_size,) + self._shape[1:]
+    else:
+      q_shape = None
+    return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
     return "%s_pre_q" % self.name
