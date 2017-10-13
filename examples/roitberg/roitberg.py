@@ -202,7 +202,6 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-
   # switch for datasets and models
   if os.path.exists(train_dir) and \
      os.path.exists(valid_dir) and \
@@ -240,7 +239,7 @@ if __name__ == "__main__":
     test_dataset = transformer.transform(test_dataset)
 
   # if os.path.exists(model_dir):
-    # model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
+  # model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
   # else:
   model = dc.models.ANIRegression(
       1,
@@ -256,7 +255,6 @@ if __name__ == "__main__":
 
   if os.path.exists(feat_dir):
     model.feat_dataset = dc.data.DiskDataset(data_dir=feat_dir)
-
 
   #   # For production, set nb_epoch to 100+
   for i in range(10):

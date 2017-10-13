@@ -425,8 +425,6 @@ class Dense(Layer):
     self._reuse = False
     self._shared_with = None
 
-
-
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
@@ -606,8 +604,9 @@ class Conditional(Layer):
     Function to run if predicate evaluates to false.
 
   """
+
   def __init__(self, true_fn, false_fn, **kwargs):
-    # TODO(ytz) This likely isn't pickleable, so be careful when using it. 
+    # TODO(ytz) This likely isn't pickleable, so be careful when using it.
     self.true_fn = true_fn
     self.false_fn = false_fn
     super(Conditional, self).__init__(**kwargs)
@@ -1673,8 +1672,7 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, names=self.names)
+    self.queue = tf.FIFOQueue(self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
@@ -3485,9 +3483,10 @@ class LayerSplitter(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     out_tensor = self.in_layers[0].out_tensors[self.output_num]
-    if set_tensors:   
-      self.out_tensor = out_tensor    
+    if set_tensors:
+      self.out_tensor = out_tensor
     return out_tensor
+
 
 class GraphEmbedPoolLayer(Layer):
   """

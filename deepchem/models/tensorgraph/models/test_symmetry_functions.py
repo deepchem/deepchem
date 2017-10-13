@@ -15,17 +15,20 @@ class TestANIRegression(unittest.TestCase):
 
     max_atoms = 3
 
-    X = np.array([[
-        [1, 5.0, 3.2, 1.1],
-        [6, 1.0, 3.4, -1.1],
-        [1, 2.3, 3.4, 2.2],
-        # [0, 0, 0, 0],
-    ], [
-        [8, 2.0, -1.4, -1.1],
-        [7, 6.3, 2.4, 3.2],
-        [0, 0, 0, 0],
-        # [0, 0, 0, 0],
-    ]])
+    X = np.array([
+        [
+            [1, 5.0, 3.2, 1.1],
+            [6, 1.0, 3.4, -1.1],
+            [1, 2.3, 3.4, 2.2],
+            # [0, 0, 0, 0],
+        ],
+        [
+            [8, 2.0, -1.4, -1.1],
+            [7, 6.3, 2.4, 3.2],
+            [0, 0, 0, 0],
+            # [0, 0, 0, 0],
+        ]
+    ])
 
     y = np.array([2.0, 1.1])
 
@@ -54,39 +57,61 @@ class TestANIRegression(unittest.TestCase):
   def test_pred_perm(self):
 
     new_x = np.array([
-        -2.0, 1.2, 2.1,
-        1.3, -6.4, 3.1,
-        -2.5, 2.4, 5.6,
+        -2.0,
+        1.2,
+        2.1,
+        1.3,
+        -6.4,
+        3.1,
+        -2.5,
+        2.4,
+        5.6,
     ])
 
     new_atomic_nums = np.array([1, 1, 6])
 
-
     new_x_1 = np.array([
-        -2.5, 2.4, 5.6,
-        -2.0, 1.2, 2.1,
-        1.3, -6.4, 3.1,
+        -2.5,
+        2.4,
+        5.6,
+        -2.0,
+        1.2,
+        2.1,
+        1.3,
+        -6.4,
+        3.1,
     ])
 
     new_atomic_nums_1 = np.array([6, 1, 1])
 
-
     new_x_2 = np.array([
-        -2.0, 1.2, 2.1,
-        -2.5, 2.4, 5.6,
-        1.3, -6.4, 3.1,
+        -2.0,
+        1.2,
+        2.1,
+        -2.5,
+        2.4,
+        5.6,
+        1.3,
+        -6.4,
+        3.1,
     ])
 
     new_atomic_nums_2 = np.array([1, 6, 1])
 
     new_x_3 = np.array([
-        1.3, -6.4, 3.1,
-        -2.5, 2.4, 5.6,
-        -2.0, 1.2, 2.1,
+        1.3,
+        -6.4,
+        3.1,
+        -2.5,
+        2.4,
+        5.6,
+        -2.0,
+        1.2,
+        2.1,
     ])
 
     new_atomic_nums_3 = np.array([1, 6, 1])
- 
+
     res1 = self.model.pred_one(new_x, new_atomic_nums)
     res2 = self.model.pred_one(new_x_1, new_atomic_nums_1)
     res3 = self.model.pred_one(new_x_2, new_atomic_nums_2)

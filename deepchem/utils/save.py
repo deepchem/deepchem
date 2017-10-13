@@ -41,7 +41,7 @@ def save_sparse_mats(mat_b, filename):
   filename = filename + ".csr"
   max_atoms = mat_b.shape[1]
 
-  mat_b = mat_b.reshape((mat_b.shape[0]*mat_b.shape[1], mat_b.shape[2]))
+  mat_b = mat_b.reshape((mat_b.shape[0] * mat_b.shape[1], mat_b.shape[2]))
   res = scipy.sparse.csr_matrix(mat_b)
   # (ytz): if you really need an extra 32% savings you can use res.data.astype(np.float16)
   # but you will lose several points of precision.
@@ -62,6 +62,7 @@ def save_sparse_mats(mat_b, filename):
 
   return filename
 
+
 def load_sparse_mats(filename):
 
   with open(filename, "rb") as fh:
@@ -75,14 +76,12 @@ def load_sparse_mats(filename):
       items.append(res)
 
     X = scipy.sparse.csr_matrix(
-        (items[0],
-        items[1],
-        items[2]),
-        shape=[outer_shape0, outer_shape1])
+        (items[0], items[1], items[2]), shape=[outer_shape0, outer_shape1])
     X = X.A
-    X = X.reshape(X.shape[0]//inner_shape, inner_shape, X.shape[1])
+    X = X.reshape(X.shape[0] // inner_shape, inner_shape, X.shape[1])
 
     return X
+
 
 def get_input_type(input_file):
   """Get type of input file. Must be csv/pkl.gz/sdf file."""

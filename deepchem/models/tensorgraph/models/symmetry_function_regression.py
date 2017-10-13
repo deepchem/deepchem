@@ -52,7 +52,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
     self.max_atoms = max_atoms
     self.n_feat = n_feat
     self.layer_structures = layer_structures
-    
+
     super(BPSymmetryFunctionRegression, self).__init__(**kwargs)
 
     self.build_graph()
@@ -92,7 +92,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
   def default_generator(self,
                         dataset,
                         epochs=1,
-                        predict=False,                          
+                        predict=False,
                         pad_batches=True):
     for epoch in range(epochs):
       if not predict:
@@ -114,6 +114,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
             np.stack([flags]*self.max_atoms, axis=1)
         feed_dict[self.atom_feats] = np.array(X_b[:, :, 1:], dtype=float)
         yield feed_dict
+
 
 class ANIRegression(TensorGraph):
 
@@ -144,11 +145,11 @@ class ANIRegression(TensorGraph):
 
     # (ytz): this is really dirty but needed for restoring models
     self._kwargs = {
-      "n_tasks": n_tasks,
-      "max_atoms": max_atoms,
-      "layer_structures": layer_structures,
-      "atom_number_cases": atom_number_cases,
-      "feat_dir": feat_dir
+        "n_tasks": n_tasks,
+        "max_atoms": max_atoms,
+        "layer_structures": layer_structures,
+        "atom_number_cases": atom_number_cases,
+        "feat_dir": feat_dir
     }
 
     self._kwargs.update(kwargs)
@@ -157,7 +158,7 @@ class ANIRegression(TensorGraph):
     self.grad = None
 
   def save(self):
-    self.grad = None # recompute grad on restore
+    self.grad = None  # recompute grad on restore
     super(ANIRegression, self).save()
 
   def build_grad(self):
@@ -191,9 +192,10 @@ class ANIRegression(TensorGraph):
 
       feed_dict = dict()
       feed_dict = {
-        self.mode: True,
-        self.dequeue_object: np.array(dataset.X[:upper_lim, :, :], dtype=float)
-      } 
+          self.mode: True,
+          self.dequeue_object: np.array(
+              dataset.X[:upper_lim, :, :], dtype=float)
+      }
 
       return self.session.run([self.grad], feed_dict=feed_dict)
 
@@ -223,10 +225,11 @@ class ANIRegression(TensorGraph):
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
     Z = np.zeros((self.max_atoms, 4))
-    Z[:X.shape[0], 1:X.shape[1]+1] = X
+    Z[:X.shape[0], 1:X.shape[1] + 1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
-    dd = dc.data.NumpyDataset(np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
+    dd = dc.data.NumpyDataset(
+        np.array(X).reshape((1, self.max_atoms, 4)), np.array(0), np.array(1))
     return self.predict(dd)[0]
 
   def grad_one(self, X, atomic_nums, constraints=None):
@@ -254,7 +257,7 @@ class ANIRegression(TensorGraph):
     X = X.reshape((num_atoms, 3))
     A = atomic_nums.reshape((atomic_nums.shape[0], 1))
     Z = np.zeros((self.max_atoms, 4))
-    Z[:X.shape[0], 1:X.shape[1]+1] = X
+    Z[:X.shape[0], 1:X.shape[1] + 1] = X
     Z[:A.shape[0], :A.shape[1]] = A
     X = Z
     inp = np.array(X).reshape((1, self.max_atoms, 4))
@@ -268,7 +271,7 @@ class ANIRegression(TensorGraph):
         res[idx][1] = 0
         res[idx][2] = 0
 
-    return res.reshape((num_atoms*3,))
+    return res.reshape((num_atoms * 3,))
 
   def minimize_structure(self, X, atomic_nums, constraints=None):
     """
@@ -292,30 +295,27 @@ class ANIRegression(TensorGraph):
     num_atoms = atomic_nums.shape[0]
 
     res = scipy.optimize.minimize(
-      self.pred_one,
-      X,
-      args=(atomic_nums, constraints),
-      jac=self.grad_one,
-      method="BFGS",
-      tol=1e-6,
-      options={'disp': True})
+        self.pred_one,
+        X,
+        args=(atomic_nums, constraints),
+        jac=self.grad_one,
+        method="BFGS",
+        tol=1e-6,
+        options={'disp': True})
 
     return res.x.reshape((num_atoms, 3))
 
   def build_graph(self):
 
-    self.mode = Feature(dtype=tf.bool) # if true then we need to featurize
-    self.dequeue_object = Feature() # either atom_feats or featurized
+    self.mode = Feature(dtype=tf.bool)  # if true then we need to featurize
+    self.dequeue_object = Feature()  # either atom_feats or featurized
 
     def true_fn():
       r_feat = Reshape(
-        shape=[None, self.max_atoms, 4],
-        in_layers=[self.dequeue_object])
+          shape=[None, self.max_atoms, 4], in_layers=[self.dequeue_object])
       r_feat.create_tensor()
 
-      ani_feat = ANIFeat(
-        in_layers=[r_feat],
-        max_atoms=self.max_atoms)
+      ani_feat = ANIFeat(in_layers=[r_feat], max_atoms=self.max_atoms)
 
       ani_feat.create_tensor()
       return ani_feat
@@ -325,15 +325,14 @@ class ANIRegression(TensorGraph):
       # dequeue yields a sparse tensor for the entire shard
 
       r_feat = Reshape(
-        shape=[None, self.max_atoms, 769],
-        in_layers=[self.dequeue_object])
+          shape=[None, self.max_atoms, 769], in_layers=[self.dequeue_object])
       r_feat.create_tensor()
       return r_feat
 
     self.featurized = Conditional(
-      in_layers=[self.mode, self.dequeue_object],
-      true_fn=true_fn,
-      false_fn=false_fn)
+        in_layers=[self.mode, self.dequeue_object],
+        true_fn=true_fn,
+        false_fn=false_fn)
 
     previous_layer = self.featurized
 
@@ -378,7 +377,8 @@ class ANIRegression(TensorGraph):
     #   3. subsequently re-slicing it again into batches when
     #      calling iterbatches
 
-    shard_size = batch_size*1
+    shard_size = batch_size * 1
+
     # shard_size = batch_size*192
 
     def shard_generator(cself):
@@ -403,12 +403,16 @@ class ANIRegression(TensorGraph):
           lab = cself.get_pre_q_input(cself.labels[0])
           weights = cself.get_pre_q_input(cself.task_weights[0])
 
-          cself.session.run(cself.input_queue, feed_dict={
-            mode: True,
-            obj: X_b,
-            lab: np.zeros((batch_size, 1)), # TODO(ytz): would be nice if we didn't have to feed dummys
-            weights: np.zeros((batch_size, 1)),
-            })
+          cself.session.run(
+              cself.input_queue,
+              feed_dict={
+                  mode: True,
+                  obj: X_b,
+                  lab: np.zeros(
+                      (batch_size, 1)
+                  ),  # TODO(ytz): would be nice if we didn't have to feed dummys
+                  weights: np.zeros((batch_size, 1)),
+              })
 
           all_ybs.append(y_b)
           all_wbs.append(w_b)
@@ -420,7 +424,7 @@ class ANIRegression(TensorGraph):
       batch_idx = 0
 
       # num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
-      num_batches = math.ceil(dataset.get_shape()[0][0] / batch_size);
+      num_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
 
       run_time = 0
       total_time = time.time()
@@ -430,7 +434,7 @@ class ANIRegression(TensorGraph):
       append_time = time.time()
 
       pool = multiprocessing.pool.ThreadPool(1)
-      next_batch = pool.apply_async(cself.session.run, (cself.featurized, ))
+      next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
       print("Total number of batches:", num_batches)
 
@@ -439,10 +443,10 @@ class ANIRegression(TensorGraph):
 
       while batch_idx < num_batches:
 
-        X_feat = next_batch.get() # shape (batch_size, max_atoms, feat_size)
+        X_feat = next_batch.get()  # shape (batch_size, max_atoms, feat_size)
 
         if batch_idx < num_batches - 1:
-          next_batch = pool.apply_async(cself.session.run, (cself.featurized, ))
+          next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
         y_b = all_ybs[batch_idx]
         w_b = all_wbs[batch_idx]
@@ -454,14 +458,12 @@ class ANIRegression(TensorGraph):
       pool.close()
       t1.join()
 
-
     self.feat_dataset = dc.data.DiskDataset.create_dataset(
-      shard_generator=shard_generator(self),
-      data_dir=self.feat_dir,
-      X_is_sparse=True)
+        shard_generator=shard_generator(self),
+        data_dir=self.feat_dir,
+        X_is_sparse=True)
 
     # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
-
 
   def default_generator(self,
                         dataset,
@@ -475,12 +477,13 @@ class ANIRegression(TensorGraph):
     if predict:
 
       if not deterministic:
-        raise Exception("Called predict with non-deterministic generator, terrible idea.")
+        raise Exception(
+            "Called predict with non-deterministic generator, terrible idea.")
 
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-        batch_size=self.batch_size,
-        deterministic=deterministic,
-        pad_batches=pad_batches):
+          batch_size=self.batch_size,
+          deterministic=deterministic,
+          pad_batches=pad_batches):
 
         feed_dict = {
             self.mode: True,
@@ -496,9 +499,9 @@ class ANIRegression(TensorGraph):
 
       for epoch in range(epochs):
         for (X_feat, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+            batch_size=self.batch_size,
+            deterministic=deterministic,
+            pad_batches=pad_batches):
 
           feed_dict = {}
           if y_b is not None and not predict:
@@ -527,10 +530,10 @@ class ANIRegression(TensorGraph):
       for idx, _ in enumerate(all_vars):
         save_dict[all_vars[idx].name] = all_vals[idx]
 
-      save_dict["_kwargs"] = np.array([json.dumps(self._kwargs)], dtype=np.string_)
+      save_dict["_kwargs"] = np.array(
+          [json.dumps(self._kwargs)], dtype=np.string_)
 
       np.savez(path, **save_dict)
-
 
   @classmethod
   def load_numpy(cls, model_dir):
@@ -552,7 +555,6 @@ class ANIRegression(TensorGraph):
 
     obj = cls(**kwargs)
     obj.build()
-
 
     all_ops = []
 

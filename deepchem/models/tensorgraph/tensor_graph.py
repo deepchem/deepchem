@@ -255,7 +255,7 @@ class TensorGraph(Model):
         # else:
         fetched_values = self.session.run(fetches, feed_dict=feed_dict)
 
-        run_time += time.time()-run_start
+        run_time += time.time() - run_start
 
         if should_log:
           self._log_tensorboard(fetches[2])
@@ -265,8 +265,12 @@ class TensorGraph(Model):
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-          avg_speed = ((self.global_step-start_step)*self.batch_size/(time.time()-start_time))*60
-          print('Ending global_step: %d, Average loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g' % (self.global_step, avg_loss, avg_speed, run_time, time.time()-start_time))
+          avg_speed = ((self.global_step - start_step) * self.batch_size /
+                       (time.time() - start_time)) * 60
+          print(
+              'Ending global_step: %d, Average loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g'
+              % (self.global_step, avg_loss, avg_speed, run_time,
+                 time.time() - start_time))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches

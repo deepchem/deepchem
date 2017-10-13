@@ -437,12 +437,11 @@ class DiskDataset(Dataset):
       raise ValueError("No metadata found on disk.")
 
   @staticmethod
-  def create_dataset(
-    shard_generator,
-    data_dir=None,
-    tasks=[],
-    verbose=True,
-    X_is_sparse=False):
+  def create_dataset(shard_generator,
+                     data_dir=None,
+                     tasks=[],
+                     verbose=True,
+                     X_is_sparse=False):
     """Creates a new DiskDataset
 
     Parameters
@@ -465,17 +464,11 @@ class DiskDataset(Dataset):
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
       basename = "shard-%d" % shard_num
       metadata_rows.append(
-          DiskDataset.write_data_to_disk(
-            data_dir,
-            basename,
-            tasks,
-            X,
-            y,
-            w,
-            ids,
-            X_is_sparse))
+          DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
+                                         ids, X_is_sparse))
       if shard_num % 50 == 0:
-        print("Shard #"+str(shard_num)+" | # generated per minute: ", shard_num * 60 / (time.time()-time1))
+        print("Shard #" + str(shard_num) + " | # generated per minute: ",
+              shard_num * 60 / (time.time() - time1))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
     print("Constructing metadata")
     metadata_filename = os.path.join(data_dir, "metadata.joblib")
@@ -508,7 +501,7 @@ class DiskDataset(Dataset):
       out_X = "%s-X.joblib" % basename
       if X_is_sparse:
         # (ytz): save_sparse_mats returns a modified filename
-        # that can be used later on to identify the format. 
+        # that can be used later on to identify the format.
         out_X = save_sparse_mats(X, os.path.join(data_dir, out_X))
       else:
         save_to_disk(X, os.path.join(data_dir, out_X))
@@ -684,7 +677,8 @@ class DiskDataset(Dataset):
         shard_idx = i % n_workers
         X, y, w, ids = next_shards[shard_idx].get()
         if i < num_shards - shard_idx:
-          next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))        
+          next_shards[shard_idx] = pool.apply_async(
+              dataset.get_shard, (shard_perm[i + shard_idx],))
 
         n_samples = X.shape[0]
 
@@ -706,8 +700,8 @@ class DiskDataset(Dataset):
 
           if pad_batches:
             (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-              shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-          yield (X_batch, y_batch, w_batch, ids_batch)        
+                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+          yield (X_batch, y_batch, w_batch, ids_batch)
 
         else:
 
@@ -719,11 +713,11 @@ class DiskDataset(Dataset):
             sample_perm = np.arange(n_samples)
 
           batch_idx = 0
-          num_batches = math.ceil(n_samples/shard_batch_size)
+          num_batches = math.ceil(n_samples / shard_batch_size)
 
           while batch_idx < num_batches:
-            start = batch_idx*shard_batch_size
-            end = min(n_samples, (batch_idx+1)*shard_batch_size)
+            start = batch_idx * shard_batch_size
+            end = min(n_samples, (batch_idx + 1) * shard_batch_size)
 
             indices = range(start, end)
             perm_indices = sample_perm[indices]
