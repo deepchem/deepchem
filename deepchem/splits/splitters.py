@@ -197,7 +197,7 @@ class Splitter(object):
 
 class RandomGroupSplitter(Splitter):
 
-  def __init__(self, groups):
+  def __init__(self, groups, *args, **kwargs):
     """
     A splitter class that splits on groupings. An example use case is when there
     are multiple conformations of the same molecule that share the same topology.
@@ -223,6 +223,7 @@ class RandomGroupSplitter(Splitter):
 
     """
     self.groups = groups
+    super(RandomGroupSplitter, self).__init__(*args, **kwargs)
 
   def split(self,
             dataset,

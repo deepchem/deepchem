@@ -1,22 +1,23 @@
+import collections
+
 import numpy as np
 import six
 import tensorflow as tf
 
+from deepchem.data import NumpyDataset
+from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.metrics import to_one_hot, from_one_hot
-from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, \
-  Combine_AP, Separate_AP, DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
+from deepchem.metrics import to_one_hot
+from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
+  DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
   DAGGather, DTNNExtract, MessagePassing, SetGather
+from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
 from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
-  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack
+  GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.trans import undo_transforms
-from deepchem.utils.evaluate import GeneratorEvaluator
-from deepchem.data import NumpyDataset
-from deepchem.data.data_loader import featurize_smiles_np
-from deepchem.feat.graph_features import ConvMolFeaturizer
 
 
 class WeaveTensorGraph(TensorGraph):
@@ -60,28 +61,31 @@ class WeaveTensorGraph(TensorGraph):
         """
     self.atom_features = Feature(shape=(None, self.n_atom_feat))
     self.pair_features = Feature(shape=(None, self.n_pair_feat))
-    combined = Combine_AP(in_layers=[self.atom_features, self.pair_features])
     self.pair_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_split = Feature(shape=(None,), dtype=tf.int32)
     self.atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
-    weave_layer1 = WeaveLayer(
+    weave_layer1A, weave_layer1P = WeaveLayerFactory(
         n_atom_input_feat=self.n_atom_feat,
         n_pair_input_feat=self.n_pair_feat,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
-        in_layers=[combined, self.pair_split, self.atom_to_pair])
-    weave_layer2 = WeaveLayer(
+        in_layers=[
+            self.atom_features, self.pair_features, self.pair_split,
+            self.atom_to_pair
+        ])
+    weave_layer2A, weave_layer2P = WeaveLayerFactory(
         n_atom_input_feat=self.n_hidden,
         n_pair_input_feat=self.n_hidden,
         n_atom_output_feat=self.n_hidden,
         n_pair_output_feat=self.n_hidden,
         update_pair=False,
-        in_layers=[weave_layer1, self.pair_split, self.atom_to_pair])
-    separated = Separate_AP(in_layers=[weave_layer2])
+        in_layers=[
+            weave_layer1A, weave_layer1P, self.pair_split, self.atom_to_pair
+        ])
     dense1 = Dense(
         out_channels=self.n_graph_feat,
         activation_fn=tf.nn.tanh,
-        in_layers=[separated])
+        in_layers=weave_layer2A)
     batch_norm1 = BatchNormalization(epsilon=1e-5, mode=1, in_layers=[dense1])
     weave_gather = WeaveGather(
         self.batch_size,
@@ -487,6 +491,151 @@ class DAGTensorGraph(TensorGraph):
         yield feed_dict
 
 
+class PetroskiSuchTensorGraph(TensorGraph):
+  """
+  Model from Robust Spatial Filtering with Graph Convolutional Neural Networks
+  https://arxiv.org/abs/1703.00792
+  """
+
+  def __init__(self,
+               n_tasks,
+               max_atoms=200,
+               dropout=0.0,
+               mode="classification",
+               **kwargs):
+    """
+    Parameters
+    ----------
+    n_tasks: int
+      Number of tasks
+    mode: str
+      Either "classification" or "regression"
+    """
+    self.n_tasks = n_tasks
+    self.mode = mode
+    self.max_atoms = max_atoms
+    self.error_bars = True if 'error_bars' in kwargs and kwargs['error_bars'] else False
+    self.dropout = dropout
+    kwargs['use_queue'] = False
+    super(PetroskiSuchTensorGraph, self).__init__(**kwargs)
+    self.build_graph()
+
+  def build_graph(self):
+    self.vertex_features = Feature(shape=(None, self.max_atoms, 75))
+    self.adj_matrix = Feature(shape=(None, self.max_atoms, 1, self.max_atoms))
+    self.mask = Feature(shape=(None, self.max_atoms, 1))
+
+    gcnn1 = BatchNorm(
+        GraphCNN(
+            num_filters=64,
+            in_layers=[self.vertex_features, self.adj_matrix, self.mask]))
+    gcnn1 = Dropout(self.dropout, in_layers=gcnn1)
+    gcnn2 = BatchNorm(
+        GraphCNN(num_filters=64, in_layers=[gcnn1, self.adj_matrix, self.mask]))
+    gcnn2 = Dropout(self.dropout, in_layers=gcnn2)
+    gc_pool, adj_matrix = GraphCNNPool(
+        num_vertices=32, in_layers=[gcnn2, self.adj_matrix, self.mask])
+    gc_pool = BatchNorm(gc_pool)
+    gc_pool = Dropout(self.dropout, in_layers=gc_pool)
+    gcnn3 = BatchNorm(GraphCNN(num_filters=32, in_layers=[gc_pool, adj_matrix]))
+    gcnn3 = Dropout(self.dropout, in_layers=gcnn3)
+    gc_pool2, adj_matrix2 = GraphCNNPool(
+        num_vertices=8, in_layers=[gcnn3, adj_matrix])
+    gc_pool2 = BatchNorm(gc_pool2)
+    gc_pool2 = Dropout(self.dropout, in_layers=gc_pool2)
+    flattened = Flatten(in_layers=gc_pool2)
+    readout = Dense(
+        out_channels=256, activation_fn=tf.nn.relu, in_layers=flattened)
+    costs = []
+    self.my_labels = []
+    for task in range(self.n_tasks):
+      if self.mode == 'classification':
+        classification = Dense(
+            out_channels=2, activation_fn=None, in_layers=[readout])
+
+        softmax = SoftMax(in_layers=[classification])
+        self.add_output(softmax)
+
+        label = Label(shape=(None, 2))
+        self.my_labels.append(label)
+        cost = SoftMaxCrossEntropy(in_layers=[label, classification])
+        costs.append(cost)
+      if self.mode == 'regression':
+        regression = Dense(
+            out_channels=1, activation_fn=None, in_layers=[readout])
+        self.add_output(regression)
+
+        label = Label(shape=(None, 1))
+        self.my_labels.append(label)
+        cost = L2Loss(in_layers=[label, regression])
+        costs.append(cost)
+    if self.mode == "classification":
+      entropy = Concat(in_layers=costs, axis=-1)
+    elif self.mode == "regression":
+      entropy = Stack(in_layers=costs, axis=1)
+    self.my_task_weights = Weights(shape=(None, self.n_tasks))
+    loss = WeightedError(in_layers=[entropy, self.my_task_weights])
+    self.set_loss(loss)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        predict=False,
+                        deterministic=True,
+                        pad_batches=True):
+    for epoch in range(epochs):
+      if not predict:
+        print('Starting epoch %i' % epoch)
+      for ind, (X_b, y_b, w_b, ids_b) in enumerate(
+          dataset.iterbatches(
+              self.batch_size, pad_batches=True, deterministic=deterministic)):
+        d = {}
+        for index, label in enumerate(self.my_labels):
+          if self.mode == 'classification':
+            d[label] = to_one_hot(y_b[:, index])
+          if self.mode == 'regression':
+            d[label] = np.expand_dims(y_b[:, index], -1)
+        d[self.my_task_weights] = w_b
+        d[self.adj_matrix] = np.expand_dims(np.array([x[0] for x in X_b]), -2)
+        d[self.vertex_features] = np.array([x[1] for x in X_b])
+        mask = np.zeros(shape=(self.batch_size, self.max_atoms, 1))
+        for i in range(self.batch_size):
+          mask_size = X_b[i][2]
+          mask[i][:mask_size][0] = 1
+        d[self.mask] = mask
+        yield d
+
+  def predict_proba_on_generator(self, generator, transformers=[]):
+    if not self.built:
+      self.build()
+    with self._get_tf("Graph").as_default():
+      out_tensors = [x.out_tensor for x in self.outputs]
+      results = []
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        feed_dict[self._training_placeholder] = 1.0  ##
+        result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
+        if len(result.shape) == 3:
+          result = np.transpose(result, axes=[1, 0, 2])
+        if len(transformers) > 0:
+          result = undo_transforms(result, transformers)
+        results.append(result)
+      return np.concatenate(results, axis=0)
+
+  def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
+    if not self.built:
+      self.build()
+    return self.evaluate_generator(
+        self.default_generator(dataset, predict=True),
+        metrics,
+        labels=self.my_labels,
+        weights=[self.my_task_weights],
+        per_task_metrics=per_task_metrics)
+
+
 class GraphConvTensorGraph(TensorGraph):
 
   def __init__(self, n_tasks, mode="classification", **kwargs):
@@ -603,7 +752,48 @@ class GraphConvTensorGraph(TensorGraph):
           d[self.deg_adjs[i - 1]] = multiConvMol.get_deg_adjacency_lists()[i]
         yield d
 
-  def predict_proba_on_generator(self, generator, transformers=[]):
+  def predict_on_generator(self, generator, transformers=[], outputs=None):
+    if not self.built:
+      self.build()
+    if outputs is None:
+      outputs = self.outputs
+    elif not isinstance(outputs, collections.Sequence):
+      outputs = [outputs]
+    with self._get_tf("Graph").as_default():
+      # Gather results for each output
+      results = [[] for out in outputs]
+      for feed_dict in generator:
+        feed_dict = {
+            self.layers[k.name].out_tensor: v
+            for k, v in six.iteritems(feed_dict)
+        }
+        # Recording the number of samples in the input batch
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
+        feed_dict[self._training_placeholder] = 0.0
+        feed_results = self.session.run(outputs, feed_dict=feed_dict)
+        if len(feed_results) > 1:
+          if len(transformers):
+            raise ValueError("Does not support transformations "
+                             "for multiple outputs.")
+        elif len(feed_results) == 1:
+          result = undo_transforms(feed_results[0], transformers)
+          feed_results = [result]
+        for ind, result in enumerate(feed_results):
+          # GraphConvTensorGraph constantly outputs batch_size number of
+          # results, only valid samples should be appended to final results
+          results[ind].append(result[:n_samples])
+
+      final_results = []
+      for result_list in results:
+        final_results.append(np.concatenate(result_list, axis=0))
+      # If only one output, just return array
+      if len(final_results) == 1:
+        return final_results[0]
+      else:
+        return final_results
+
+  def predict_proba_on_generator(self, generator, transformers=[],
+                                 outputs=None):
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
@@ -614,13 +804,14 @@ class GraphConvTensorGraph(TensorGraph):
             self.layers[k.name].out_tensor: v
             for k, v in six.iteritems(feed_dict)
         }
+        n_samples = max(feed_dict[self.membership.out_tensor]) + 1
         feed_dict[self._training_placeholder] = 1.0  ##
         result = np.array(self.session.run(out_tensors, feed_dict=feed_dict))
         if len(result.shape) == 3:
           result = np.transpose(result, axes=[1, 0, 2])
         if len(transformers) > 0:
           result = undo_transforms(result, transformers)
-        results.append(result)
+        results.append(result[:n_samples])
       return np.concatenate(results, axis=0)
 
   def evaluate(self, dataset, metrics, transformers=[], per_task_metrics=False):
@@ -670,10 +861,10 @@ class GraphConvTensorGraph(TensorGraph):
     return mu[:max_index + 1], sigma[:max_index + 1]
 
   def bayesian_predict_on_batch(self, X, transformers=[], n_passes=4):
-    """ 
-    Returns: 
-      mu: numpy ndarray of shape (n_samples, n_tasks) 
-      sigma: numpy ndarray of shape (n_samples, n_tasks)     
+    """
+    Returns:
+      mu: numpy ndarray of shape (n_samples, n_tasks)
+      sigma: numpy ndarray of shape (n_samples, n_tasks)
     """
     dataset = NumpyDataset(X=X, y=None, n_tasks=len(self.outputs))
     y_ = []
