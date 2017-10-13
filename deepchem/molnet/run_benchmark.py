@@ -231,6 +231,7 @@ def run_benchmark(datasets,
       with open(os.path.join(out_path, dataset + model + '.pkl'), 'w') as f:
         pickle.dump(hyper_parameters, f)
 
+
 #
 # Note by @XericZephyr. Reason why I spun off this function:
 #   1. Some model needs dataset information.

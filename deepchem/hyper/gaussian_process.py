@@ -18,25 +18,26 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   Gaussian Process Global Optimization(GPGO)
   """
 
-  def hyperparam_search(self,
-                        params_dict,
-                        train_dataset,
-                        valid_dataset,
-                        output_transformers,
-                        metric,
-                        direction=True,
-                        n_features=1024,
-                        n_tasks=1,
-                        max_iter=20,
-                        search_range=4,
-                        hp_invalid_list=[
-                            'seed', 'nb_epoch', 'penalty_type', 'dropouts',
-                            'bypass_dropouts', 'n_pair_feat', 'fit_transformers',
-                            'min_child_weight', 'max_delta_step','subsample',
-                            'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 
-                            'reg_lambda', 'scale_pos_weight', 'base_score'
-                        ],
-                        log_file='GPhypersearch.log'):
+  def hyperparam_search(
+      self,
+      params_dict,
+      train_dataset,
+      valid_dataset,
+      output_transformers,
+      metric,
+      direction=True,
+      n_features=1024,
+      n_tasks=1,
+      max_iter=20,
+      search_range=4,
+      hp_invalid_list=[
+          'seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts',
+          'n_pair_feat', 'fit_transformers', 'min_child_weight',
+          'max_delta_step', 'subsample', 'colsample_bylevel',
+          'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight',
+          'base_score'
+      ],
+      log_file='GPhypersearch.log'):
     """Perform hyperparams search using a gaussian process assumption
 
     params_dict include single-valued parameters being optimized,
@@ -72,7 +73,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       optimization on [initial values / search_range,
                        initial values * search_range]
     hp_invalid_list: list
-      names of parameters that should not be optimize
+      names of parameters that should not be optimized
     logfile: string
       name of log file, hyperparameters and results for each trial will be recorded
 
@@ -138,6 +139,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
     data_dir = os.environ['DEEPCHEM_DATA_DIR']
     log_file = os.path.join(data_dir, log_file)
+
     def f(l00=0,
           l01=0,
           l02=0,
@@ -225,7 +227,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         evaluator = Evaluator(model, valid_dataset, output_transformers)
         multitask_scores = evaluator.compute_model_performance([metric])
         score = multitask_scores[metric.name]
-      
+
       with open(log_file, 'a') as f:
         # Record performances
         f.write(str(score))
@@ -269,8 +271,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       # Record hyperparameters
       f.write(str(params_dict))
       f.write('\n')
-    if isinstance(self.model_class, str) or isinstance(
-        self.model_class, unicode):
+    if isinstance(self.model_class, str) or isinstance(self.model_class,
+                                                       unicode):
       try:
         train_scores, valid_scores, _ = benchmark_classification(
             train_dataset,
@@ -300,7 +302,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         score = -score
       if score > valid_performance_opt:
         # Optimized model is better, return hyperparameters
-        return params_dict, score 
+        return params_dict, score
 
     # Return default hyperparameters
     return hyper_parameters, valid_performance_opt

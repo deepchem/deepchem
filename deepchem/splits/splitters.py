@@ -924,6 +924,7 @@ class SpecifiedSplitter(Splitter):
         raise ValueError("Missing required split information.")
     return train_inds, valid_inds, test_inds
 
+
 class TimeSplitterPDBbind(Splitter):
 
   def __init__(self, ids, year_file=None, verbose=False):
@@ -948,8 +949,7 @@ class TimeSplitterPDBbind(Splitter):
         if not os.path.exists(self.year_file):
           dc.utils.download_url(
               'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
-              dest_dir = data_dir
-          )
+              dest_dir=data_dir)
       except:
         raise ValueError("Time description file should be specified")
     df = pd.read_csv(self.year_file, header=None)
@@ -963,7 +963,9 @@ class TimeSplitterPDBbind(Splitter):
     valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
     indices = range(num_datapoints)
     data_year = [self.years[self.ids[i]] for i in indices]
-    new_indices = [pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])]
+    new_indices = [
+        pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])
+    ]
 
     return (new_indices[:train_cutoff], new_indices[train_cutoff:valid_cutoff],
             new_indices[valid_cutoff:])

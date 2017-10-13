@@ -754,6 +754,7 @@ def benchmark_regression(train_dataset,
     train_dataset = ft_transformer.transform(train_dataset)
     valid_dataset = ft_transformer.transform(valid_dataset)
     test_dataset = ft_transformer.transform(test_dataset)
+
     # Building scikit learn Kernel Ridge Regression model
     def model_builder(model_dir_krr):
       sklearn_model = KernelRidge(kernel="rbf", alpha=alpha)
