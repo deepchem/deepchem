@@ -492,7 +492,7 @@ class BPGather2(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Merge features together """
 
-    last_dense, atom_feats = self._get_input_tensors(self.in_layers)
+    last_dense, atom_feats = self._get_input_tensors(in_layers)
     regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
     flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
     out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
