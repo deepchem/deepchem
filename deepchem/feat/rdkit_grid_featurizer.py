@@ -12,6 +12,7 @@ from warnings import warn
 import time
 import tempfile
 import hashlib
+from collections import Counter
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from deepchem.utils.rdkit_util import load_molecule
@@ -162,6 +163,9 @@ def angle_between(vector_i, vector_j):
   0.000000
   >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
   3.141593
+
+  Note that this function always returns the smaller of the two angles between
+  the vectors (value between 0 and pi).
   """
   vector_i_u = unit_vector(vector_i)
   vector_j_u = unit_vector(vector_j)
@@ -373,71 +377,60 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
   return (splif_dicts)
 
 
-def compute_ring_center(mol, ring):
-  ring_xyz = np.zeros((len(ring._path), 3))
-  for i, atom_idx in enumerate(ring._path):
-    atom = mol.GetAtom(int(atom_idx))
-    ring_xyz[i, :] = [atom.x(), atom.y(), atom.z()]
+def compute_ring_center(mol, ring_indices):
+  conformer = mol.GetConformer()
+  ring_xyz = np.zeros((len(ring_indices), 3))
+  for i, atom_idx in enumerate(ring_indices):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    ring_xyz[i] = np.array(atom_position)
   ring_centroid = compute_centroid(ring_xyz)
   return ring_centroid
 
 
-def compute_ring_normal(mol, ring):
+def compute_ring_normal(mol, ring_indices):
+  conformer = mol.GetConformer()
   points = np.zeros((3, 3))
-  for i, atom_idx in enumerate(ring._path):
-    if i == 3: break
-    atom = mol.GetAtom(int(atom_idx))
-    points[i, :] = [atom.x(), atom.y(), atom.z()]
+  for i, atom_idx in enumerate(ring_indices[:3]):
+    atom_position = conformer.GetAtomPosition(atom_idx)
+    points[i] = np.array(atom_position)
 
-  v1 = points[1, :] - points[0, :]
-  v2 = points[2, :] - points[0, :]
+  v1 = points[1] - points[0]
+  v2 = points[2] - points[0]
   normal = np.cross(v1, v2)
   return normal
 
 
-def is_pi_parallel(protein_ring_center, protein_ring_normal, ligand_ring_center,
-                   ligand_ring_normal):
-  dist = np.linalg.norm(protein_ring_center - ligand_ring_center)
-  angle = angle_between(protein_ring_normal, ligand_ring_normal) * 180 / np.pi
-  if ((np.abs(angle) < 30.0) or
-      (np.abs(angle) > 150.0 and np.abs(angle) < 210.0) or
-      (np.abs(angle) > 330.0 and np.abs(angle) < 360.0)):
-    if dist < 8.0:
-      return True
-
-  return False
-
-
-def is_pi_t(protein_ring_center, protein_ring_normal, ligand_ring_center,
-            ligand_ring_normal):
-  dist = np.linalg.norm(protein_ring_center - ligand_ring_center)
-  angle = angle_between(protein_ring_normal, ligand_ring_normal) * 180 / np.pi
-  if ((np.abs(angle) > 60.0 and np.abs(angle) < 120.0) or
-      (np.abs(angle) > 240.0 and np.abs(angle) < 300.0)):
-    if dist < 5.5:
-      return True
-
-  return False
+def is_pi_parallel(ring1_center,
+                   ring1_normal,
+                   ring2_center,
+                   ring2_normal,
+                   dist_cutoff=8.0,
+                   angle_cutoff=30.0):
+  dist = np.linalg.norm(ring1_center - ring2_center)
+  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
+  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
+      dist < dist_cutoff):
+    return True
+  else:
+    return False
 
 
-def update_feature_dict(feature_dict, idxs=None, indices=None):
-  if idxs is not None:
-    indices = []
-    for idx in idxs:
-      indices.append(idx - 1)
+def is_pi_t(ring1_center,
+            ring1_normal,
+            ring2_center,
+            ring2_normal,
+            dist_cutoff=5.5,
+            angle_cutoff=30.0):
+  dist = np.linalg.norm(ring1_center - ring2_center)
+  angle = angle_between(ring1_normal, ring2_normal) * 180 / np.pi
+  if ((90.0 - angle_cutoff < angle < 90.0 + angle_cutoff) and
+      dist < dist_cutoff):
+    return True
+  else:
+    return False
 
-  for index in indices:
-    if index not in feature_dict.keys():
-      feature_dict[index] = 1
-    else:
-      feature_dict[index] += 1
 
-  return feature_dict
-
-
-def compute_pi_stack(protein_xyz,
-                     protein,
-                     ligand_xyz,
+def compute_pi_stack(protein,
                      ligand,
                      pairwise_distances=None,
                      dist_cutoff=4.4,
@@ -458,35 +451,118 @@ def compute_pi_stack(protein_xyz,
             for each atom in ligand and in protein:
               add to list of atom indices
   """
-  raise NotImplementedError("This function is not implemented yet")
+  protein_pi_parallel = Counter()
+  protein_pi_t = Counter()
+  ligand_pi_parallel = Counter()
+  ligand_pi_t = Counter()
+
+  protein_aromatic_rings = []
+  ligand_aromatic_rings = []
+  for mol, ring_list in ((protein, protein_aromatic_rings),
+                         (ligand, ligand_aromatic_rings)):
+    aromatic_atoms = set(atom.GetIdx() for atom in mol.GetAromaticAtoms())
+    for ring in Chem.GetSymmSSSR(mol):
+      if set(ring).issubset(aromatic_atoms):
+        ring_center = compute_ring_center(mol, ring)
+        ring_normal = compute_ring_normal(mol, ring)
+        ring_list.append((ring, ring_center, ring_normal))
+
+  counted_pairs_parallel = set()
+  counted_pairs_t = set()
+  for prot_ring, prot_ring_center, prot_ring_normal in protein_aromatic_rings:
+    for lig_ring, lig_ring_center, lig_ring_normal in ligand_aromatic_rings:
+      if is_pi_parallel(
+          prot_ring_center,
+          prot_ring_normal,
+          lig_ring_center,
+          lig_ring_normal,
+          angle_cutoff=angle_cutoff,
+          dist_cutoff=dist_cutoff):
+        prot_to_update = set()
+        lig_to_update = set()
+        for i in prot_ring:
+          for j in lig_ring:
+            if (i, j) not in counted_pairs_parallel:
+              prot_to_update.add(i)
+              lig_to_update.add(j)
+              counted_pairs_parallel.add((i, j))
+
+        protein_pi_parallel.update(prot_to_update)
+        ligand_pi_parallel.update(lig_to_update)
+
+      if is_pi_t(
+          prot_ring_center,
+          prot_ring_normal,
+          lig_ring_center,
+          lig_ring_normal,
+          angle_cutoff=angle_cutoff,
+          dist_cutoff=dist_cutoff):
+        prot_to_update = set()
+        lig_to_update = set()
+        for i in prot_ring:
+          for j in lig_ring:
+            if (i, j) not in counted_pairs_t:
+              prot_to_update.add(i)
+              lig_to_update.add(j)
+              counted_pairs_t.add((i, j))
+
+        protein_pi_t.update(prot_to_update)
+        ligand_pi_t.update(lig_to_update)
+
+  return (protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel)
 
 
-def is_cation_pi(cation_position, ring_center, ring_normal):
+def is_cation_pi(cation_position,
+                 ring_center,
+                 ring_normal,
+                 dist_cutoff=6.5,
+                 angle_cutoff=30.0):
   cation_to_ring_vec = cation_position - ring_center
   dist = np.linalg.norm(cation_to_ring_vec)
   angle = angle_between(cation_to_ring_vec, ring_normal) * 180. / np.pi
-  if dist < 6.5:
-    if ((np.abs(angle) < 30.0) or
-        (np.abs(angle) > 150.0 and np.abs(angle) < 210.0) or
-        (np.abs(angle) > 330.0 and np.abs(angle) < 360.0)):
-      return True
-
-  return False
+  if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
+      (dist < dist_cutoff)):
+    return True
+  else:
+    return False
 
 
-def compute_cation_pi(protein, ligand, protein_cation_pi, ligand_cation_pi):
-  raise NotImplementedError("This function is not implemented yet")
+def compute_cation_pi(mol1, mol2, charge_tolerance=0.01):
+  """Finds aromatic rings in mo1 interacting with cations in mol2"""
+  mol1_pi = Counter()
+  mol2_cation = Counter()
+  conformer = mol2.GetConformer()
+
+  aromatic_atoms = set(atom.GetIdx() for atom in mol1.GetAromaticAtoms())
+  rings = [list(r) for r in Chem.GetSymmSSSR(mol1)]
+
+  for ring in rings:
+    if set(ring).issubset(aromatic_atoms):
+      ring_center = compute_ring_center(mol1, ring)
+      ring_normal = compute_ring_normal(mol1, ring)
+
+      for atom in mol2.GetAtoms():
+        if atom.GetFormalCharge() > 1.0 - charge_tolerance:
+          cation_position = np.array(conformer.GetAtomPosition(atom.GetIdx()))
+          if is_cation_pi(cation_position, ring_center, ring_normal):
+            mol1_pi.update(ring)
+            mol2_cation.update([atom.GetIndex()])
+  return mol1_pi, mol2_cation
 
 
-def compute_binding_pocket_cation_pi(protein_xyz, protein, ligand_xyz, ligand):
-  protein_cation_pi = {}
-  ligand_cation_pi = {}
+def compute_binding_pocket_cation_pi(protein, ligand):
+  protein_pi, ligand_cation = compute_cation_pi(protein, ligand)
+  ligand_pi, protein_cation = compute_cation_pi(ligand, protein)
 
-  (protein_cation_pi, ligand_cation_pi) = compute_cation_pi(
-      protein, ligand, protein_cation_pi, ligand_cation_pi)
-  (ligand_cation_pi, protein_cation_pi) = compute_cation_pi(
-      ligand, protein, ligand_cation_pi, protein_cation_pi)
-  return (protein_cation_pi, ligand_cation_pi)
+  protein_cation_pi = Counter()
+  protein_cation_pi.update(protein_pi)
+  protein_cation_pi.update(protein_cation)
+
+  ligand_cation_pi = Counter()
+  ligand_cation_pi.update(ligand_pi)
+  ligand_cation_pi.update(ligand_cation)
+
+  return protein_cation_pi, ligand_cation_pi
 
 
 def get_partial_charge(atom):
@@ -500,9 +576,8 @@ def get_partial_charge(atom):
 
 
 def get_formal_charge(atom):
-  warn(
-      'get_formal_charge function is deprecated, use get_partial_charge instead',
-      DeprecationWarning)
+  warn('get_formal_charge function is deprecated and will be removed'
+       ' in version 1.4, use get_partial_charge instead', DeprecationWarning)
   return get_partial_charge(atom)
 
 
@@ -667,7 +742,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ]
     for arg in deprecated_args:
       if arg in kwargs:
-        warn('%s argument was removed and it is ignored' % arg,
+        warn('%s argument was removed and it is ignored,'
+             ' using it will result in error in version 1.4' % arg,
              DeprecationWarning)
 
     self.verbose = verbose
@@ -747,6 +823,36 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                 self.hbond_dist_bins,
                 self.hbond_angle_cutoffs)]
     }
+
+    def voxelize_pi_stack(prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances):
+      protein_pi_t, protein_pi_parallel, ligand_pi_t, ligand_pi_parallel = (
+          compute_pi_stack(prot_rdk, lig_rdk, distances))
+      pi_parallel_tensor = self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          prot_xyz,
+          feature_dict=protein_pi_parallel,
+          nb_channel=1)
+      pi_parallel_tensor += self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          lig_xyz,
+          feature_dict=ligand_pi_parallel,
+          nb_channel=1)
+
+      pi_t_tensor = self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          prot_xyz,
+          feature_dict=protein_pi_t,
+          nb_channel=1)
+      pi_t_tensor += self._voxelize(
+          convert_atom_to_voxel,
+          None,
+          lig_xyz,
+          feature_dict=ligand_pi_t,
+          nb_channel=1)
+      return [pi_parallel_tensor, pi_t_tensor]
 
     self.VOXEL_FEATURES = {
         'ecfp': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
@@ -839,7 +945,21 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                 distances,
                 self.hbond_dist_bins,
                 self.hbond_angle_cutoffs)
-            ]
+            ],
+        'pi_stack': voxelize_pi_stack,
+
+        'cation_pi': lambda prot_xyz, prot_rdk, lig_xyz, lig_rdk, distances:
+            [sum([self._voxelize(
+                convert_atom_to_voxel,
+                None,
+                xyz,
+                feature_dict=cation_pi_dict,
+                nb_channel=1
+            ) for xyz, cation_pi_dict in zip(
+                (prot_xyz, lig_xyz), compute_binding_pocket_cation_pi(
+                    prot_rdk,
+                    lig_rdk,
+                ))])],
     }
 
     if feature_types is None:
