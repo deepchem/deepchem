@@ -26,8 +26,8 @@ Giving regression performances of:
 on datasets: bace_r, chembl, clearance, delaney(ESOL), hopv, kaggle, lipo,
              nci, pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl(FreeSolv)
 
-
-time estimation listed in README file
+Hyperparameters and all benchmark scripts for MoleculeNet are available at:
+http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/Hyperparameter_MoleculeNetv3.tar.gz
 
 """
 from __future__ import print_function
