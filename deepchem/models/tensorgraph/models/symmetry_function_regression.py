@@ -406,8 +406,8 @@ class ANIRegression(TensorGraph):
           cself.session.run(cself.input_queue, feed_dict={
             mode: True,
             obj: X_b,
-            lab: np.zeros((1, 1)),
-            weights: np.zeros((1, 1)),
+            lab: np.zeros((batch_size, 1)), # TODO(ytz): would be nice if we didn't have to feed dummys
+            weights: np.zeros((batch_size, 1)),
             })
 
           all_ybs.append(y_b)

@@ -473,9 +473,10 @@ class DiskDataset(Dataset):
             w,
             ids,
             X_is_sparse))
-      if shard_num % 10 == 0:
+      if shard_num % 50 == 0:
         print("Shard #"+str(shard_num)+" | # generated per minute: ", shard_num * 60 / (time.time()-time1))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
+    print("Constructing metadata")
     metadata_filename = os.path.join(data_dir, "metadata.joblib")
     save_to_disk((tasks, metadata_df), metadata_filename)
     time2 = time.time()

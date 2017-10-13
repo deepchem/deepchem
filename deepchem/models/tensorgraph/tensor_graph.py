@@ -537,13 +537,13 @@ class TensorGraph(Model):
     for layer in self.layers.values():
       # Dequeued objects from a queue may not necessarily have a well-defined
       # shape.
-      if layer.shape is not None:
-        try:
-          assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
-          ), '%s: Expected shape %s does not match actual shape %s' % (
-              layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
-        except NotImplementedError:
-          pass
+      # if layer.shape is not None:
+      try:
+        assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
+        ), '%s: Expected shape %s does not match actual shape %s' % (
+            layer.name, layer.shape, layer.out_tensor.get_shape().as_list())
+      except NotImplementedError:
+        pass
 
   def _install_queue(self):
     """
@@ -560,7 +560,10 @@ class TensorGraph(Model):
 
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
-      shapes.append(pre_q_input.shape)
+      try:
+        shapes.append(pre_q_input.shape)
+      except NotImplementedError:
+        shapes.append(None)
       names.append(pre_q_input.name)
       pre_q_inputs.append(pre_q_input)
 
@@ -662,7 +665,7 @@ class TensorGraph(Model):
     out_tensors = []
     if self.built:
       must_restore = True
-      for layer in self.topsort():
+      for layer in self.zsort():
         out_tensors.append(layer.none_tensors())
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
