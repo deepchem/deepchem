@@ -491,8 +491,6 @@ class TensorGraph(Model):
       if self.random_seed is not None:
         tf.set_random_seed(self.random_seed)
 
-      # need to inject queue for some applications so that it is upstream of the layer of interest
-
       self._install_queue()
       for layer in self.topsort():
         with tf.name_scope(layer.name):
@@ -532,12 +530,10 @@ class TensorGraph(Model):
       writer.close()
 
     # As a sanity check, make sure all tensors have the correct shape.
-    # Don't check this for now
 
     for layer in self.layers.values():
       # Dequeued objects from a queue may not necessarily have a well-defined
       # shape.
-      # if layer.shape is not None:
       try:
         assert list(layer.shape) == layer.out_tensor.get_shape().as_list(
         ), '%s: Expected shape %s does not match actual shape %s' % (
@@ -665,7 +661,7 @@ class TensorGraph(Model):
     out_tensors = []
     if self.built:
       must_restore = True
-      for layer in self.zsort():
+      for layer in self.topsort():
         out_tensors.append(layer.none_tensors())
       training_placeholder = self._training_placeholder
       self._training_placeholder = None
