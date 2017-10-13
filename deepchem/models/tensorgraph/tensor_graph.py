@@ -12,7 +12,7 @@ from tensorflow.python.framework.errors_impl import OutOfRangeError
 from deepchem.data import NumpyDataset
 from deepchem.metrics import to_one_hot, from_one_hot
 from deepchem.models.models import Model
-from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant
+from deepchem.models.tensorgraph.layers import InputFifoQueue, Label, Feature, Weights, Constant, Shared
 from deepchem.models.tensorgraph.optimizers import Adam
 from deepchem.trans import undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
@@ -442,6 +442,8 @@ class TensorGraph(Model):
     def add_layers_to_list(layer, sorted_layers):
       if layer in sorted_layers:
         return
+      if isinstance(layer, Shared):
+        add_layers_to_list(layer.original_layer, sorted_layers)
       for in_layer in layer.in_layers:
         add_layers_to_list(in_layer, sorted_layers)
       sorted_layers.append(layer)

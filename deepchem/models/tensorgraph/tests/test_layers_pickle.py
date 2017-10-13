@@ -10,8 +10,19 @@ from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, 
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
   Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
-  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN, Shared
 from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
+
+
+def test_Shared_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1, 1))
+  dense = Dense(out_channels=1, in_layers=feature)
+  shared = Shared(dense, in_layers=feature)
+  tg.add_output(shared)
+  tg.set_loss(shared)
+  tg.build()
+  tg.save()
 
 
 def test_Conv1D_pickle():

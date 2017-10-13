@@ -63,7 +63,7 @@ class Layer(object):
     -------
     Layer
     """
-    raise NotImplementedError("Each Layer must implement shared for itself")
+    return Shared(self, in_layers=in_layers)
 
   def __call__(self, *in_layers):
     return self.create_tensor(in_layers=in_layers, set_tensors=False)
@@ -173,7 +173,7 @@ class Layer(object):
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
-  def copy(self, replacements={}, variables_graph=None):
+  def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
 
     This creates and returns a clone of this layer.  It also recursively calls
@@ -210,20 +210,30 @@ class Layer(object):
       the current value of each variable in each layer is recorded, and the copy
       has that value specified as its initial value.  This allows a piece of a
       pre-trained model to be copied to another model.
+    shared: bool
+      if True, create Shared layers instead of directly cloning the input layers.
+      This means the newly created layers will share variables with the original
+      ones.
     """
     if self in replacements:
       return replacements[self]
     copied_inputs = [
-        layer.copy(replacements, variables_graph) for layer in self.in_layers
+        layer.copy(replacements, variables_graph, shared)
+        for layer in self.in_layers
     ]
-    saved_inputs = self.in_layers
-    self.in_layers = []
-    saved_tensors = self.none_tensors()
-    copy = deepcopy(self)
-    self.in_layers = saved_inputs
-    self.set_tensors(saved_tensors)
-    copy.in_layers = copied_inputs
+    if shared:
+      copy = Shared(self, in_layers=copied_inputs)
+    else:
+      saved_inputs = self.in_layers
+      self.in_layers = []
+      saved_tensors = self.none_tensors()
+      copy = deepcopy(self)
+      self.in_layers = saved_inputs
+      self.set_tensors(saved_tensors)
+      copy.in_layers = copied_inputs
     if variables_graph is not None:
+      if shared:
+        raise ValueError('Cannot specify variables_graph when shared==True')
       variables = variables_graph.get_layer_variables(self)
       if len(variables) > 0:
         with variables_graph._get_tf("Graph").as_default():
@@ -312,6 +322,48 @@ def convert_to_layers(in_layers):
     else:
       raise ValueError("convert_to_layers must be invoked on layers or tensors")
   return layers
+
+
+class Shared(Layer):
+  """A copy of another layer that shares variables with it.
+
+  A Shared layer duplicates all the computations of another layer so those
+  computations may be performed on a second set of inputs.  It does this while
+  sharing variables with the original layer.
+  """
+
+  def __init__(self, original_layer, **kwargs):
+    """Create a Shared layer.
+
+    Parameters
+    ----------
+    original_layer: Layer
+      the Layer whose computations this layer should duplicate, and with which
+      it should share variables
+    """
+    super(Shared, self).__init__(**kwargs)
+    self.original_layer = original_layer
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != len(self.original_layer.in_layers):
+      raise ValueError(
+          "Shared must have the same number of inputs as the original layer")
+    replacements = {}
+    for original, input in zip(self.original_layer.in_layers, inputs):
+      replacements[original.out_tensor] = input
+    if self.original_layer.variable_scope != '':
+      for var in tf.get_collection(
+          tf.GraphKeys.TRAINABLE_VARIABLES,
+          scope=self.original_layer.variable_scope):
+        var_tensor = tf.convert_to_tensor(var)
+        replacements[var_tensor] = var_tensor
+    out_tensor = tf.contrib.graph_editor.graph_replace(
+        self.original_layer.out_tensor, replacements)
+    if set_tensors:
+      self._record_variable_scope(self.original_layer.variable_scope)
+      self.out_tensor = out_tensor
+    return out_tensor
 
 
 class Conv1D(Layer):
