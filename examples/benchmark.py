@@ -7,13 +7,13 @@ Created on Tue Oct 18 15:53:27 2016
 
 Benchmark test:
 
-Giving classification performances of: 
-    Random forest(rf), MultitaskDNN(tf), 
+Giving classification performances of:
+    Random forest(rf), MultitaskDNN(tf),
     RobustMultitaskDNN(tf_robust),
     Logistic regression(logreg), IRV(irv)
     Graph convolution(graphconv), xgboost(xgb),
-    Directed acyclic graph(dag), Weave(weave) 
-on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast  
+    Directed acyclic graph(dag), Weave(weave)
+on datasets: bace_c, bbbp, clintox, hiv, muv, pcba, sider, tox21, toxcast
 
 Giving regression performances of:
     MultitaskDNN(tf_regression),
@@ -25,9 +25,9 @@ Giving regression performances of:
     Weave(weave_regression)
 on datasets: bace_r, chembl, clearance, delaney(ESOL), hopv, kaggle, lipo,
              nci, pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl(FreeSolv)
-                
 
-time estimation listed in README file
+Hyperparameters and all benchmark scripts for MoleculeNet are available at:
+http://deepchem.io.s3-website-us-west-1.amazonaws.com/trained_models/Hyperparameter_MoleculeNetv3.tar.gz
 
 """
 from __future__ import print_function
@@ -91,8 +91,8 @@ if len(splitters) == 0:
   splitters = ['index', 'random', 'scaffold']
 if len(models) == 0:
   models = [
-      'tf', 'tf_robust', 'logreg', 'graphconv', 'tf_regression',
-      'tf_regression_ft', 'graphconvreg'
+      'tf', 'tf_robust', 'logreg', 'graphconv', 'irv', 'tf_regression',
+      'tf_regression_ft', 'graphconvreg', 'weave', 'weave_regression', 'dtnn'
   ]
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:

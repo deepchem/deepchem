@@ -886,6 +886,8 @@ class MessagePassing(Layer):
       out = tf.pad(atom_features, ((0, 0), (0, pad_length)), mode='CONSTANT')
     elif n_atom_features > self.n_hidden:
       raise ValueError("Too large initial feature vector")
+    else:
+      out = atom_features
 
     for i in range(self.T):
       message = self.message_function.forward(out, atom_to_pair)

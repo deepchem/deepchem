@@ -34,8 +34,8 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
       )
 
   qm9_tasks = [
-      "A", "B", "C", "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv",
-      "u0_atom", "u298_atom", "h298_atom", "g298_atom"
+      "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
+      "h298", "g298"
   ]
 
   if reload:
@@ -52,7 +52,8 @@ def load_qm9(featurizer='CoulombMatrix', split='random', reload=True):
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
     elif featurizer == 'MP':
-      featurizer = deepchem.feat.WeaveFeaturizer(graph_distance=False)
+      featurizer = deepchem.feat.WeaveFeaturizer(
+          graph_distance=False, explicit_H=True)
     loader = deepchem.data.SDFLoader(
         tasks=qm9_tasks,
         smiles_field="smiles",
