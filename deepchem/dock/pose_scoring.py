@@ -34,12 +34,8 @@ class GridPoseScorer(object):
     if feat == "grid":
       self.featurizer = RdkitGridFeaturizer(
           voxel_width=16.0,
-          feature_types="voxel_combined",
-          # TODO(rbharath, enf): Figure out why pi_stack is slow and cation_pi
-          # causes segfaults.
-          #voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
-          #"salt_bridge"], ecfp_power=9, splif_power=9,
-          voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
+          feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+          "salt_bridge"],
           ecfp_power=9,
           splif_power=9,
           parallel=True,

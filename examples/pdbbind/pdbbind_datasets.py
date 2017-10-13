@@ -71,12 +71,8 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   if feat == "grid":
     featurizer = dc.feat.RdkitGridFeaturizer(
         voxel_width=16.0,
-        feature_types="voxel_combined",
-        # TODO(rbharath, enf, leswing): Figure out why pi_stack and cation_pi
-        # reduce validation performance
-        # voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
-        # "salt_bridge"], ecfp_power=9, splif_power=9,
-        voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
+        feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+        "salt_bridge"],
         ecfp_power=9,
         splif_power=9,
         parallel=True,
