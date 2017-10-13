@@ -680,11 +680,8 @@ class DiskDataset(Dataset):
       for i in range(n_workers):
         next_shards[i] = pool.apply_async(dataset.get_shard, (shard_perm[i],))
 
-      print("num_shards", num_shards)
-
       for i in range(num_shards):
         shard_idx = i % n_workers
-        print(i, shard_idx)
         X, y, w, ids = next_shards[shard_idx].get()
         if i < num_shards - shard_idx:
           next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))        
