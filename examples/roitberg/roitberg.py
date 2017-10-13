@@ -61,11 +61,11 @@ def load_roiterberg_ANI(mode="atomization"):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      'ani_gdb_s03.h5',
-      'ani_gdb_s04.h5',
-      'ani_gdb_s05.h5',
-      'ani_gdb_s06.h5',
-      'ani_gdb_s07.h5',
+      # 'ani_gdb_s03.h5',
+      # 'ani_gdb_s04.h5',
+      # 'ani_gdb_s05.h5',
+      # 'ani_gdb_s06.h5',
+      # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
 

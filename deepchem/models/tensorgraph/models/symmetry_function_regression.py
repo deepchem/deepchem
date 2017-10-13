@@ -419,7 +419,8 @@ class ANIRegression(TensorGraph):
 
       batch_idx = 0
 
-      num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
+      # num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
+      num_batches = math.ceil(dataset.get_shape()[0][0] / batch_size);
 
       run_time = 0
       total_time = time.time()
@@ -447,6 +448,7 @@ class ANIRegression(TensorGraph):
         w_b = all_wbs[batch_idx]
         ids_b = all_ids[batch_idx]
         batch_idx += 1
+
         yield X_feat, y_b, w_b, ids_b
 
       pool.close()

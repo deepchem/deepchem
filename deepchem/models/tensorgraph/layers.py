@@ -591,7 +591,11 @@ class Squeeze(Layer):
 
 class Conditional(Layer):
   """
-  A Conditional Layer wraps tf.Cond. 
+  A Layer providing conditional semantics. Outputs true_value if the condition evaluates to true,
+  or false_value if the condition evaluates to false. There are many subtleties to the
+  behavior of this layer, and it sometimes behaves in unexpected ways. See the
+  documentation for tensorflow.cond() for details.
+
 
   Parameters
   ----------

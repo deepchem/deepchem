@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 import os
+import math
 import numpy as np
 import pandas as pd
 import random
@@ -679,8 +680,11 @@ class DiskDataset(Dataset):
       for i in range(n_workers):
         next_shards[i] = pool.apply_async(dataset.get_shard, (shard_perm[i],))
 
+      print("num_shards", num_shards)
+
       for i in range(num_shards):
         shard_idx = i % n_workers
+        print(i, shard_idx)
         X, y, w, ids = next_shards[shard_idx].get()
         if i < num_shards - shard_idx:
           next_shards[shard_idx] = pool.apply_async(dataset.get_shard, (shard_perm[i + shard_idx],))        
@@ -717,13 +721,14 @@ class DiskDataset(Dataset):
           else:
             sample_perm = np.arange(n_samples)
 
-          interval_points = np.linspace(
-              0,
-              n_samples,
-              np.ceil(float(n_samples) / shard_batch_size) + 1,
-              dtype=int)
-          for j in range(len(interval_points) - 1):
-            indices = range(interval_points[j], interval_points[j + 1])
+          batch_idx = 0
+          num_batches = math.ceil(n_samples/shard_batch_size)
+
+          while batch_idx < num_batches:
+            start = batch_idx*shard_batch_size
+            end = min(n_samples, (batch_idx+1)*shard_batch_size)
+
+            indices = range(start, end)
             perm_indices = sample_perm[indices]
             X_batch = X[perm_indices]
 
@@ -741,7 +746,10 @@ class DiskDataset(Dataset):
             if pad_batches:
               (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
                   shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+
+            batch_idx += 1
             yield (X_batch, y_batch, w_batch, ids_batch)
+
       pool.close()
 
     return iterate(self)
