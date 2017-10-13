@@ -34,9 +34,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                             'bypass_dropouts', 'n_pair_feat', 'fit_transformers',
                             'min_child_weight', 'max_delta_step','subsample',
                             'colsample_bylevel', 'colsample_bytree', 'reg_alpha', 
-                            'reg_lambda', 'scale_pos_weight', 'base_score', 'T', 'M'
+                            'reg_lambda', 'scale_pos_weight', 'base_score'
                         ],
-                        logdir=None,
                         log_file='GPhypersearch.log'):
     """Perform hyperparams search using a gaussian process assumption
 
@@ -73,7 +72,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       optimization on [initial values / search_range,
                        initial values * search_range]
     hp_invalid_list: list
-      names of parameters that should not be optimized
+      names of parameters that should not be optimize
+    logfile: string
+      name of log file, hyperparameters and results for each trial will be recorded
 
     Returns
     -------
@@ -190,6 +191,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       print(hyper_parameters)
       # Run benchmark
       with open(log_file, 'a') as f:
+        # Record hyperparameters
         f.write(str(hyper_parameters))
         f.write('\n')
       if isinstance(self.model_class, str) or isinstance(
@@ -225,8 +227,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         score = multitask_scores[metric.name]
       
       with open(log_file, 'a') as f:
+        # Record performances
         f.write(str(score))
         f.write('\n')
+      # GPGO maximize performance by default, set performance to its negative value for minimization
       if direction:
         return score
       else:
@@ -260,8 +264,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
       i = i + hp[1]
 
-
+    # Compare best model to default hyperparameters
     with open(log_file, 'a') as f:
+      # Record hyperparameters
       f.write(str(params_dict))
       f.write('\n')
     if isinstance(self.model_class, str) or isinstance(
@@ -288,11 +293,14 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             hyper_parameters=params_dict)
       score = valid_scores[self.model_class][metric[0].name]
       with open(log_file, 'a') as f:
+        # Record performances
         f.write(str(score))
         f.write('\n')
       if not direction:
         score = -score
       if score > valid_performance_opt:
+        # Optimized model is better, return hyperparameters
         return params_dict, score 
- 
+
+    # Return default hyperparameters
     return hyper_parameters, valid_performance_opt

@@ -939,15 +939,15 @@ class TimeSplitterPDBbind(Splitter):
             frac_test=.1,
             log_every_n=None):
     """
-        Splits internal compounds into train/validation/test in time order.
-        """
+    Splits protein-ligand pairs in PDBbind into train/validation/test in time order.
+    """
     if self.year_file is None:
       try:
         data_dir = os.environ['DEEPCHEM_DATA_DIR']
         self.year_file = os.path.join(data_dir, 'pdbbind_year.csv')
         if not os.path.exists(self.year_file):
           dc.utils.download_url(
-              'http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/pdbbind_year.csv',
+              'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
               dest_dir = data_dir
           )
       except:

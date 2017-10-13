@@ -88,7 +88,7 @@ else:
   seed = 123
 
 if len(splitters) == 0:
-  splitters = ['random']
+  splitters = ['index', 'random', 'scaffold']
 if len(models) == 0:
   models = [
       'tf', 'tf_robust', 'logreg', 'graphconv', 'irv', 'tf_regression',
@@ -97,33 +97,14 @@ if len(models) == 0:
   #irv, rf, rf_regression should be assigned manually
 if len(datasets) == 0:
   datasets = [
-      'clintox', 'delaney', 'lipo', 'qm7b', 'qm8', 'sampl',
-      'sider', 'tox21', 'toxcast', 'muv'
+      'bace_c', 'bace_r', 'bbbp', 'clearance', 'clintox', 'delaney', 'hiv',
+      'hopv', 'lipo', 'muv', 'pdbbind', 'ppb', 'qm7b', 'qm8', 'qm9', 'sampl',
+      'sider', 'tox21', 'toxcast'
   ]
 
-metrics = {
-    'qm7': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
-    'qm7b': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
-    'qm8': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
-    'qm9': [[dc.metrics.Metric(dc.metrics.mean_absolute_error, np.mean, mode='regression')], False],
-    'delaney': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
-    'sampl': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
-    'lipo': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
-    'pdbbind': [[dc.metrics.Metric(dc.metrics.rms_score, np.mean, mode='regression')], False],
-    'pcba': [[dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')], True],
-    'muv': [[dc.metrics.Metric(dc.metrics.prc_auc_score, np.mean, mode='classification')], True],
-    'hiv': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'tox21': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'toxcast': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'sider': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'clintox': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'bace_c': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True],
-    'bbbp': [[dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode='classification')], True]
-    }
 for dataset in datasets:
   for split in splitters:
     for model in models:
       np.random.seed(seed)
       dc.molnet.run_benchmark(
-          [dataset], str(model), split=split, metric=metrics[dataset][0],
-          direction=metrics[dataset][1], hyper_param_search=True, max_iter=20, test=test, seed=seed)
+          [dataset], str(model), split=split, test=test, seed=seed)

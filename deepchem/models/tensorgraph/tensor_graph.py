@@ -333,8 +333,9 @@ class TensorGraph(Model):
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
-          result = undo_transforms(np.stack(feed_results, 1), transformers)
-          feed_results = [result[:, i] for i in range(result.shape[1])]
+          if len(transformers):
+            raise ValueError("Does not support transformations "
+                             "for multiple outputs.")
         elif len(feed_results) == 1:
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]

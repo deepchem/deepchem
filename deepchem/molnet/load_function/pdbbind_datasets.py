@@ -36,12 +36,12 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
     )
     if not os.path.exists(pdbbind_dir):
       os.system('mkdir ' + pdbbind_dir)
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'core_grid.tar.gz') + ' -C '
-              + pdbbind_dir)
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'full_grid.tar.gz') + ' -C '
-              + pdbbind_dir)
-    os.system('tar -zxvf ' + os.path.join(data_dir, 'refined_grid.tar.gz') +
-              ' -C ' + pdbbind_dir)
+    deepchem.utils.untargz_file(
+        os.path.join(data_dir, 'core_grid.tar.gz'), pdbbind_dir)
+    deepchem.utils.untargz_file(
+        os.path.join(data_dir, 'full_grid.tar.gz'), pdbbind_dir)
+    deepchem.utils.untargz_file(
+        os.path.join(data_dir, 'refined_grid.tar.gz'), pdbbind_dir)
 
   return deepchem.data.DiskDataset(dataset_dir), tasks
 

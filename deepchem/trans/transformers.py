@@ -618,9 +618,6 @@ class CoulombFitTransformer(Transformer):
     X = self.normalize(self.expand(self.realize(X)))
     return X
 
-  #def transform(self, dataset):
-    # raise NotImplementedError("Cannot transform datasets with FitTransformer")
-
   def transform_array(self, X, y, w):
     X = self.X_transform(X)
     return (X, y, w)

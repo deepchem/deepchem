@@ -227,8 +227,9 @@ def run_benchmark(datasets,
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)
-    with open(os.path.join(out_path, dataset + model + '.pkl'), 'w') as f:
-      pickle.dump(hyper_parameters, f)
+    if hyper_param_search:
+      with open(os.path.join(out_path, dataset + model + '.pkl'), 'w') as f:
+        pickle.dump(hyper_parameters, f)
 
 #
 # Note by @XericZephyr. Reason why I spun off this function:
