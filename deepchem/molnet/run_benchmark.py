@@ -14,39 +14,48 @@ import csv
 import numpy as np
 import tensorflow as tf
 import deepchem
+import pickle
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
 from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
+from deepchem.molnet.preset_hyper_parameters import hps
 
 
 def run_benchmark(datasets,
                   model,
                   split=None,
                   metric=None,
+                  direction=True,
                   featurizer=None,
                   n_features=0,
                   out_path='.',
                   hyper_parameters=None,
+                  hyper_param_search=False,
+                  max_iter=20,
+                  search_range=2,
                   test=False,
                   reload=True,
                   seed=123):
   """
   Run benchmark test on designated datasets with deepchem(or user-defined) model
-  
+
   Parameters
   ----------
   datasets: list of string
       choice of which datasets to use, should be: bace_c, bace_r, bbbp, chembl,
-      clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba, 
-      pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast 
+      clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba,
+      pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast
   model: string or user-defined model stucture
       choice of which model to use, deepchem provides implementation of
-      logistic regression, random forest, multitask network, 
+      logistic regression, random forest, multitask network,
       bypass multitask network, irv, graph convolution;
       for user define model, it should include function: fit, evaluate
   split: string,  optional (default=None)
       choice of splitter function, None = using the default splitter
-  metric: string,  optional (default=None)
+  metric: string, optional (default=None)
       choice of evaluation metrics, None = using the default metrics(AUC & R2)
+  direction: bool, optional(default=True)
+      Optimization direction when doing hyperparameter search
+      Maximization(True) or minimization(False)
   featurizer: string or dc.feat.Featurizer,  optional (default=None)
       choice of featurization, None = using the default corresponding to model
       (string only applicable to deepchem models)
@@ -57,6 +66,13 @@ def run_benchmark(datasets,
       path of result file
   hyper_parameters: dict, optional (default=None)
       hyper parameters for designated model, None = use preset values
+  hyper_param_search: bool, optional(default=False)
+      whether to perform hyper parameter search, using gaussian process by default
+  max_iter: int, optional(default=20)
+      number of optimization trials
+  search_range: int(float), optional(default=4)
+      optimization on [initial values / search_range,
+                       initial values * search_range]
   test: boolean, optional(default=False)
       whether to evaluate on test set
   reload: boolean, optional(default=True)
@@ -142,6 +158,22 @@ def run_benchmark(datasets,
     valid_score = {}
     test_score = {}
 
+    if hyper_param_search:
+      if hyper_parameters is None:
+        hyper_parameters = hps[model]
+      search_mode = deepchem.hyper.GaussianProcessHyperparamOpt(model)
+      hyper_param_opt, _ = search_mode.hyperparam_search(
+          hyper_parameters,
+          train_dataset,
+          valid_dataset,
+          transformers,
+          metric,
+          direction=direction,
+          n_features=n_features,
+          n_tasks=len(tasks),
+          max_iter=max_iter,
+          search_range=search_range)
+      hyper_parameters = hyper_param_opt
     if isinstance(model, str):
       if mode == 'classification':
         train_score, valid_score, test_score = benchmark_classification(
@@ -195,6 +227,9 @@ def run_benchmark(datasets,
         output_line.extend(
             ['time_for_running', time_finish_fitting - time_start_fitting])
         writer.writerow(output_line)
+    if hyper_param_search:
+      with open(os.path.join(out_path, dataset + model + '.pkl'), 'w') as f:
+        pickle.dump(hyper_parameters, f)
 
 
 #
@@ -208,11 +243,11 @@ def run_benchmark(datasets,
 def load_dataset(dataset, featurizer, split='random'):
   """
   Load specific dataset for benchmark.
-  
+
   Parameters
   ----------
   dataset: string
-      choice of which datasets to use, should be: tox21, muv, sider, 
+      choice of which datasets to use, should be: tox21, muv, sider,
       toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
       qm7, qm7b, qm9, sampl
   featurizer: string or dc.feat.Featurizer.
