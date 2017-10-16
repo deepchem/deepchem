@@ -480,6 +480,67 @@ class Dense(Layer):
       return self._shared_with._get_scope_name()
 
 
+class Highway(Layer):
+  """ Create a highway layer. y = H(x) * T(x) + x * (1 - T(x))
+  H(x) = activation_fn(matmul(W_H, x) + b_H) is the non-linear transformed output
+  T(x) = sigmoid(matmul(W_T, x) + b_T) is the transform gate
+
+  reference: https://arxiv.org/pdf/1505.00387.pdf
+
+  This layer expects its input to be a two dimensional tensor of shape (batch size, # input features).
+  Outputs will be in the same shape.
+  """
+
+  def __init__(
+      self,
+      activation_fn=tf.nn.relu,
+      biases_initializer=tf.zeros_initializer,
+      weights_initializer=tf.contrib.layers.variance_scaling_initializer,
+      **kwargs):
+    """
+
+    Parameters
+    ----------
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
+    """
+    super(Highway, self).__init__(**kwargs)
+    self.activation_fn = activation_fn
+    self.biases_initializer = biases_initializer
+    self.weights_initializer = weights_initializer
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent = inputs[0]
+    shape = parent.get_shape().as_list()[1]
+    # H(x), with same number of input and output channels
+    dense_H = tf.contrib.layers.fully_connected(
+        parent,
+        num_outputs=shape,
+        activation_fn=self.activation_fn,
+        biases_initializer=self.biases_initializer(),
+        weights_initializer=self.weights_initializer(),
+        trainable=True)
+    # T(x), with same number of input and output channels
+    dense_T = tf.contrib.layers.fully_connected(
+        parent,
+        num_outputs=shape,
+        activation_fn=tf.nn.sigmoid,
+        biases_initializer=tf.constant_initializer(-1),
+        weights_initializer=self.weights_initializer(),
+        trainable=True)
+    out_tensor = tf.multiply(dense_H, dense_T) + tf.multiply(
+        parent, 1 - dense_T)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Flatten(Layer):
   """Flatten every dimension except the first"""
 
@@ -1512,6 +1573,51 @@ class Conv3D(Layer):
     out_tensor = out_tensor
     if set_tensors:
       self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class MaxPool1D(Layer):
+  """A 1D max pooling on the input.
+
+  This layer expects its input to be a three dimensional tensor of shape
+  (batch size, width, # channels).
+  """
+
+  def __init__(self, window_shape=2, strides=1, padding="SAME", **kwargs):
+    """Create a MaxPool1D layer.
+
+    Parameters
+    ----------
+    window_shape: int, optional
+      size of the window(assuming input with only one dimension)
+    strides: int, optional
+      stride of the sliding window
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    """
+    self.window_shape = window_shape
+    self.strides = strides
+    self.padding = padding
+    self.pooling_type = "MAX"
+    super(MaxPool1D, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = tuple(None if p is None else p // s
+                          for p, s in zip(parent_shape, strides))
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    in_tensor = inputs[0]
+    out_tensor = tf.nn.pool(
+        in_tensor,
+        window_shape=[self.window_shape],
+        pooling_type=self.pooling_type,
+        padding=self.padding,
+        strides=[self.strides])
+    if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
 
