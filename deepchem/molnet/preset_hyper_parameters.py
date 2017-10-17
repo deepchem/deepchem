@@ -80,7 +80,7 @@ hps['xgb'] = {
     'max_depth': 5,
     'learning_rate': 0.05,
     'n_estimators': 3000,
-    'gamma': 0,
+    'gamma': 0.,
     'min_child_weight': 5,
     'max_delta_step': 1,
     'subsample': 0.53,
@@ -118,7 +118,8 @@ hps['tf_regression_ft'] = {
     'fit_transformers': deepchem.trans.CoulombFitTransformer
 }
 hps['rf_regression'] = {'n_estimators': 500}
-hps['krr'] = {'alpha': 1e-3, 'gamma': 0.05}
+hps['krr'] = {'alpha': 1e-3}
+hps['krr_ft'] = {'alpha': 1e-3}
 hps['graphconvreg'] = {
     'batch_size': 128,
     'nb_epoch': 20,
@@ -152,17 +153,26 @@ hps['weave_regression'] = {
     'seed': 123
 }
 hps['ani'] = {
-    'batch_size': 128,
-    'nb_epoch': 300,
-    'learning_rate': 0.001,
-    'layer_structures': [128, 128, 64],
+    'batch_size': 32,
+    'nb_epoch': 100,
+    'learning_rate': 0.00005,
+    'layer_structures': [20, 10, 10],
     'seed': 123
 }
+hps['mpnn'] = {
+    'batch_size': 64,
+    'nb_epoch': 50,
+    'learning_rate': 0.001,
+    'T': 2,
+    'M': 5,
+    'seed': 123
+}
+
 hps['xgb_regression'] = {
     'max_depth': 5,
     'learning_rate': 0.05,
     'n_estimators': 3000,
-    'gamma': 0,
+    'gamma': 0.,
     'min_child_weight': 5,
     'max_delta_step': 1,
     'subsample': 0.53,

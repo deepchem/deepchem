@@ -33,3 +33,4 @@ from deepchem.models.tensorgraph.models.symmetry_function_regression import BPSy
 
 from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
 from deepchem.models.tensorgraph.models.gan import GAN, WGAN
+from deepchem.models.tensorgraph.models.text_cnn import TextCNNTensorGraph

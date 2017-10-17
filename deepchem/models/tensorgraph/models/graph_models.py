@@ -1095,3 +1095,6 @@ class MPNNTensorGraph(TensorGraph):
         # Only fetch the first set of unique samples
         results.append(result[:n_valid_samples])
       return np.concatenate(results, axis=0)
+
+  def predict_on_generator(self, generator, transformers=[]):
+    return self.predict_proba_on_generator(generator, transformers)

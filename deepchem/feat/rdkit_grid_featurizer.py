@@ -28,13 +28,13 @@ TODO(LESWING) add sanitization with rdkit upgrade to 2017.*
 def get_ligand_filetype(ligand_filename):
   """Returns the filetype of ligand."""
   if ".mol2" in ligand_filename:
-    return ".mol2"
+    return "mol2"
   elif ".sdf" in ligand_filename:
     return "sdf"
   elif ".pdbqt" in ligand_filename:
-    return ".pdbqt"
+    return "pdbqt"
   elif ".pdb" in ligand_filename:
-    return ".pdb"
+    return "pdb"
   else:
     raise ValueError("Unrecognized_filename")
 
@@ -74,7 +74,8 @@ def generate_random__unit_vector():
   theta = np.random.uniform(low=0.0, high=2 * np.pi)
   z = np.random.uniform(low=-1.0, high=1.0)
   u = np.array(
-      [np.sqrt(1 - z**2) * np.cos(theta), np.sqrt(1 - z**2) * np.sin(theta), z])
+      [np.sqrt(1 - z**2) * np.cos(theta),
+       np.sqrt(1 - z**2) * np.sin(theta), z])
   return (u)
 
 
@@ -142,8 +143,8 @@ def compute_pairwise_distances(protein_xyz, ligand_xyz):
   atom and the j"th ligand atom
   """
 
-  pairwise_distances = np.zeros(
-      (np.shape(protein_xyz)[0], np.shape(ligand_xyz)[0]))
+  pairwise_distances = np.zeros((np.shape(protein_xyz)[0],
+                                 np.shape(ligand_xyz)[0]))
   for j in range(0, np.shape(ligand_xyz)[0]):
     differences = protein_xyz - ligand_xyz[j, :]
     squared_differences = np.square(differences)
@@ -270,18 +271,17 @@ def featurize_binding_pocket_ecfp(protein_xyz,
   ----------
   protein_xyz: np.ndarray
     Of shape (N_protein_atoms, 3)
-  protein: PDB object (TODO(rbharath): Correct?)
+  protein: rdkit.rdchem.Mol
     Contains more metadata.
   ligand_xyz: np.ndarray
     Of shape (N_ligand_atoms, 3)
-  ligand: PDB object (TODO(rbharath): Correct?)
+  ligand: rdkit.rdchem.Mol
     Contains more metadata
   pairwise_distances: np.ndarray 
     Array of pairwise protein-ligand distances (Angstroms) 
   cutoff: float
     Cutoff distance for contact consideration.
   """
-  features_dict = {}
 
   if pairwise_distances is None:
     pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
@@ -347,8 +347,8 @@ def compute_splif_features_in_range(protein,
   atoms.  Returns a dictionary mapping (protein_index_i, ligand_index_j) -->
   (protein_ecfp_i, ligand_ecfp_j)
   """
-  contacts = np.nonzero((pairwise_distances > contact_bin[0]) & (
-      pairwise_distances < contact_bin[1]))
+  contacts = np.nonzero((pairwise_distances > contact_bin[0]) &
+                        (pairwise_distances < contact_bin[1]))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   contacts = zip(contacts[0], contacts[1])
 
@@ -509,8 +509,8 @@ def get_formal_charge(atom):
 
 
 def is_salt_bridge(atom_i, atom_j):
-  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(
-      atom_j))) < 0.01:
+  if np.abs(2.0 - np.abs(get_formal_charge(atom_i) - get_formal_charge(atom_j))
+           ) < 0.01:
     return True
   else:
     return False
@@ -555,8 +555,8 @@ def compute_hbonds_in_range(protein, protein_xyz, ligand, ligand_xyz,
   a distance bin and an angle cutoff.
   """
 
-  contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) & (
-      pairwise_distances < hbond_dist_bin[1]))
+  contacts = np.nonzero((pairwise_distances > hbond_dist_bin[0]) &
+                        (pairwise_distances < hbond_dist_bin[1]))
   protein_atoms = set([int(c) for c in contacts[0].tolist()])
   protein_ecfp_dict = compute_all_ecfp(
       protein, indices=protein_atoms, degree=ecfp_degree)
@@ -590,14 +590,24 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
   return (hbond_contacts)
 
 
-def convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
+def convert_atom_to_voxel(molecule_xyz,
+                          atom_index,
+                          box_width,
+                          voxel_width,
+                          verbose=False):
   """
   Converts an atom to an i,j,k grid index.
   """
-  coordinates = molecule_xyz[atom_index, :]
+  from warnings import warn
+
   indices = np.floor(
-      np.abs(molecule_xyz[atom_index, :] + np.array(
-          [box_width, box_width, box_width]) / 2.0) / voxel_width).astype(int)
+      (molecule_xyz[atom_index, :] + np.array([box_width, box_width, box_width]
+                                             ) / 2.0) / voxel_width).astype(int)
+  if ((indices < 0) | (indices >= box_width / voxel_width)).any():
+    if verbose:
+      warn(
+          'Coordinates are outside of the box (atom id = %s, coords xyz = %s, coords in box = %s'
+          % (atom_index, molecule_xyz[atom_index], indices))
   return ([indices])
 
 
@@ -617,10 +627,15 @@ def convert_atom_pair_to_voxel(molecule_xyz_tuple, atom_index_pair, box_width,
 
 
 def compute_charge_dictionary(molecule):
-  """Computes partial charges for each atom."""
+  """Create a dictionary with partial charges for each atom in the molecule.
+
+  This function assumes that the charges for the molecule are already
+  computed (it can be done with rdkit_util.compute_charges(molecule))
+  """
+
   charge_dictionary = {}
-  for i, atom in enumerate(ob.OBMolAtomIter(molecule)):
-    charge_dictionary[i] = atom.GetPartialCharge()
+  for i, atom in enumerate(molecule.GetAtoms()):
+    charge_dictionary[i] = get_formal_charge(atom)
   return charge_dictionary
 
 
@@ -1090,7 +1105,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                 channel_power=None,
                 nb_channel=16,
                 dtype="np.int8"):
-    # TODO(enf): make array index checking not a try-catch statement.
+
     if channel_power is not None:
       if channel_power == 0:
         nb_channel = 1
@@ -1110,22 +1125,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       for key, features in feature_dict.items():
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
         for voxel in voxels:
-          try:
+          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
             if hash_function is not None:
-              feature_tensor[voxel[0], voxel[1], voxel[2], hash_function(
-                  features, channel_power)] += 1.0
+              feature_tensor[voxel[0], voxel[1], voxel[2],
+                             hash_function(features, channel_power)] += 1.0
             else:
               feature_tensor[voxel[0], voxel[1], voxel[3], 0] += features
-          except:
-            continue
     elif feature_list is not None:
       for key in feature_list:
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
         for voxel in voxels:
-          try:
+          if ((voxel >= 0) & (voxel < self.voxels_per_edge)).all():
             feature_tensor[voxel[0], voxel[1], voxel[2], 0] += 1.0
-          except:
-            continue
 
     return feature_tensor
 
