@@ -374,8 +374,8 @@ class TestTensorGraph(unittest.TestCase):
     replacements = {features: features, constant: Constant(20.0)}
     copy = output.copy(replacements, shared=True)
     tg.add_output(copy)
-    assert isinstance(copy, Shared)
-    assert isinstance(copy.in_layers[0], Shared)
+    assert isinstance(copy, Add)
+    assert isinstance(copy.in_layers[0], Dense)
     assert isinstance(copy.in_layers[0].in_layers[0], Feature)
     assert copy.in_layers[1] == replacements[constant]
     variables1 = tg.get_layer_variables(dense)

@@ -27,6 +27,7 @@ class Layer(object):
     self.op_type = "gpu"
     self.variable_scope = ''
     self.variable_values = None
+    self.out_tensor = None
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
@@ -51,9 +52,24 @@ class Layer(object):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     raise NotImplementedError("Subclasses must implement for themselves")
 
+  def clone(self, in_layers):
+    """Create a copy of this layer with different inputs."""
+    saved_inputs = self.in_layers
+    self.in_layers = []
+    saved_tensors = self.none_tensors()
+    copy = deepcopy(self)
+    self.in_layers = saved_inputs
+    self.set_tensors(saved_tensors)
+    copy.in_layers = in_layers
+    return copy
+
   def shared(self, in_layers):
     """
-    Share weights with different in tensors and a new out tensor
+    Create a copy of this layer that shares variables with it.
+
+    This is similar to clone(), but where clone() creates two independent layers,
+    this causes the layers to share variables with each other.
+
     Parameters
     ----------
     in_layers: list tensor
@@ -63,7 +79,9 @@ class Layer(object):
     -------
     Layer
     """
-    return Shared(self, in_layers=in_layers)
+    if self.variable_scope == '':
+      return self.clone(in_layers)
+    raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
   def __call__(self, *in_layers):
     return self.create_tensor(in_layers=in_layers, set_tensors=False)
@@ -176,11 +194,11 @@ class Layer(object):
   def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
 
-    This creates and returns a clone of this layer.  It also recursively calls
-    copy() on all of this layer's inputs to clone the entire hierarchy of layers.
-    In the process, you can optionally tell it to replace particular layers with
-    specific existing ones.  For example, you can clone a stack of layers, while
-    connecting the topmost ones to different inputs.
+    This is similar to clone(), but instead of only cloning one layer, it also
+    recursively calls copy() on all of this layer's inputs to clone the entire
+    hierarchy of layers.  In the process, you can optionally tell it to replace
+    particular layers with specific existing ones.  For example, you can clone a
+    stack of layers, while connecting the topmost ones to different inputs.
 
     For example, consider a stack of dense layers that depend on an input:
 
@@ -211,7 +229,7 @@ class Layer(object):
       has that value specified as its initial value.  This allows a piece of a
       pre-trained model to be copied to another model.
     shared: bool
-      if True, create Shared layers instead of directly cloning the input layers.
+      if True, create new layers by calling shared() on the input layers.
       This means the newly created layers will share variables with the original
       ones.
     """
@@ -222,15 +240,9 @@ class Layer(object):
         for layer in self.in_layers
     ]
     if shared:
-      copy = Shared(self, in_layers=copied_inputs)
+      copy = self.shared(copied_inputs)
     else:
-      saved_inputs = self.in_layers
-      self.in_layers = []
-      saved_tensors = self.none_tensors()
-      copy = deepcopy(self)
-      self.in_layers = saved_inputs
-      self.set_tensors(saved_tensors)
-      copy.in_layers = copied_inputs
+      copy = self.clone(copied_inputs)
     if variables_graph is not None:
       if shared:
         raise ValueError('Cannot specify variables_graph when shared==True')
@@ -302,9 +314,9 @@ class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
 
   def __init__(self, out_tensor, **kwargs):
+    super(TensorWrapper, self).__init__(**kwargs)
     self.out_tensor = out_tensor
     self._shape = out_tensor.get_shape().as_list()
-    super(TensorWrapper, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
@@ -324,46 +336,31 @@ def convert_to_layers(in_layers):
   return layers
 
 
-class Shared(Layer):
-  """A copy of another layer that shares variables with it.
+class SharedVariableScope(Layer):
+  """A Layer that can share variables with another layer via name scope.
 
-  A Shared layer duplicates all the computations of another layer so those
-  computations may be performed on a second set of inputs.  It does this while
-  sharing variables with the original layer.
+  This abstract class can be used as a parent for any layer that implements
+  shared() by means of the variable name scope.  It exists to avoid duplicated
+  code.
   """
 
-  def __init__(self, original_layer, **kwargs):
-    """Create a Shared layer.
+  def __init__(self, **kwargs):
+    super(SharedVariableScope, self).__init__(**kwargs)
+    self._reuse = False
+    self._shared_with = None
 
-    Parameters
-    ----------
-    original_layer: Layer
-      the Layer whose computations this layer should duplicate, and with which
-      it should share variables
-    """
-    super(Shared, self).__init__(**kwargs)
-    self.original_layer = original_layer
+  def shared(self, in_layers):
+    copy = self.clone(in_layers)
+    self._reuse = True
+    copy._reuse = True
+    copy._shared_with = self
+    return copy
 
-  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
-    inputs = self._get_input_tensors(in_layers)
-    if len(inputs) != len(self.original_layer.in_layers):
-      raise ValueError(
-          "Shared must have the same number of inputs as the original layer")
-    replacements = {}
-    for original, input in zip(self.original_layer.in_layers, inputs):
-      replacements[original.out_tensor] = input
-    if self.original_layer.variable_scope != '':
-      for var in tf.get_collection(
-          tf.GraphKeys.TRAINABLE_VARIABLES,
-          scope=self.original_layer.variable_scope):
-        var_tensor = tf.convert_to_tensor(var)
-        replacements[var_tensor] = var_tensor
-    out_tensor = tf.contrib.graph_editor.graph_replace(
-        self.original_layer.out_tensor, replacements)
-    if set_tensors:
-      self._record_variable_scope(self.original_layer.variable_scope)
-      self.out_tensor = out_tensor
-    return out_tensor
+  def _get_scope_name(self):
+    if self._shared_with is None:
+      return self.name
+    else:
+      return self._shared_with._get_scope_name()
 
 
 class Conv1D(Layer):
@@ -431,7 +428,7 @@ class Conv1D(Layer):
     return out_tensor
 
 
-class Dense(Layer):
+class Dense(SharedVariableScope):
 
   def __init__(
       self,
@@ -474,8 +471,6 @@ class Dense(Layer):
       self._shape = tuple(parent_shape[:-1]) + (out_channels,)
     except:
       pass
-    self._reuse = False
-    self._shared_with = None
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -511,25 +506,6 @@ class Dense(Layer):
       self._record_variable_scope(self._get_scope_name())
       self.out_tensor = out_tensor
     return out_tensor
-
-  def shared(self, in_layers):
-    copy = Dense(
-        self.out_channels,
-        self.activation_fn,
-        self.biases_initializer,
-        self.weights_initializer,
-        time_series=self.time_series,
-        in_layers=in_layers)
-    self._reuse = True
-    copy._reuse = True
-    copy._shared_with = self
-    return copy
-
-  def _get_scope_name(self):
-    if self._shared_with is None:
-      return self.name
-    else:
-      return self._shared_with._get_scope_name()
 
 
 class Flatten(Layer):
@@ -1413,7 +1389,7 @@ class ReduceSquareDifference(Layer):
     return out_tensor
 
 
-class Conv2D(Layer):
+class Conv2D(SharedVariableScope):
   """A 2D convolution on the input.
 
   This layer expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
@@ -1475,23 +1451,32 @@ class Conv2D(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 3:
       parent_tensor = tf.expand_dims(parent_tensor, 3)
-    out_tensor = tf.contrib.layers.conv2d(
-        parent_tensor,
-        num_outputs=self.num_outputs,
-        kernel_size=self.kernel_size,
-        stride=self.stride,
-        padding=self.padding,
-        activation_fn=self.activation_fn,
-        normalizer_fn=self.normalizer_fn,
-        scope=self.scope_name)
-    out_tensor = out_tensor
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.contrib.layers.conv2d(
+            parent_tensor,
+            num_outputs=self.num_outputs,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.padding,
+            activation_fn=self.activation_fn,
+            normalizer_fn=self.normalizer_fn,
+            scope=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
     return out_tensor
 
 
-class Conv3D(Layer):
+class Conv3D(SharedVariableScope):
   """A 3D convolution on the input.
 
   This layer expects its input to be a five dimensional tensor of shape
@@ -1555,15 +1540,25 @@ class Conv3D(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 4:
       parent_tensor = tf.expand_dims(parent_tensor, 4)
-    out_tensor = tf.layers.conv3d(
-        parent_tensor,
-        filters=self.num_outputs,
-        kernel_size=self.kernel_size,
-        strides=self.stride,
-        padding=self.padding,
-        activation=self.activation_fn,
-        activity_regularizer=self.normalizer_fn,
-        name=self.scope_name)
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.layers.conv3d(
+            parent_tensor,
+            filters=self.num_outputs,
+            kernel_size=self.kernel_size,
+            strides=self.stride,
+            padding=self.padding,
+            activation=self.activation_fn,
+            activity_regularizer=self.normalizer_fn,
+            name=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     out_tensor = out_tensor
     if set_tensors:
       self._record_variable_scope(self.scope_name)
@@ -1571,7 +1566,7 @@ class Conv3D(Layer):
     return out_tensor
 
 
-class Conv2DTranspose(Layer):
+class Conv2DTranspose(SharedVariableScope):
   """A transposed 2D convolution on the input.
 
   This layer is typically used for upsampling in a deconvolutional network.  It
@@ -1634,23 +1629,32 @@ class Conv2DTranspose(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 3:
       parent_tensor = tf.expand_dims(parent_tensor, 3)
-    out_tensor = tf.contrib.layers.conv2d_transpose(
-        parent_tensor,
-        num_outputs=self.num_outputs,
-        kernel_size=self.kernel_size,
-        stride=self.stride,
-        padding=self.padding,
-        activation_fn=self.activation_fn,
-        normalizer_fn=self.normalizer_fn,
-        scope=self.scope_name)
-    out_tensor = out_tensor
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.contrib.layers.conv2d_transpose(
+            parent_tensor,
+            num_outputs=self.num_outputs,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.padding,
+            activation_fn=self.activation_fn,
+            normalizer_fn=self.normalizer_fn,
+            scope=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
     return out_tensor
 
 
-class Conv3DTranspose(Layer):
+class Conv3DTranspose(SharedVariableScope):
   """A transposed 3D convolution on the input.
 
   This layer is typically used for upsampling in a deconvolutional network.  It
@@ -1714,16 +1718,25 @@ class Conv3DTranspose(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 4:
       parent_tensor = tf.expand_dims(parent_tensor, 4)
-    out_tensor = tf.layers.conv3d_transpose(
-        parent_tensor,
-        filters=self.num_outputs,
-        kernel_size=self.kernel_size,
-        strides=self.stride,
-        padding=self.padding,
-        activation=self.activation_fn,
-        activity_regularizer=self.normalizer_fn,
-        name=self.scope_name)
-    out_tensor = out_tensor
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.layers.conv3d_transpose(
+            parent_tensor,
+            filters=self.num_outputs,
+            kernel_size=self.kernel_size,
+            strides=self.stride,
+            padding=self.padding,
+            activation=self.activation_fn,
+            activity_regularizer=self.normalizer_fn,
+            name=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
