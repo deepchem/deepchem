@@ -1848,6 +1848,7 @@ class MaxPool1D(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
+
 class MaxPool2D(Layer):
 
   def __init__(self,

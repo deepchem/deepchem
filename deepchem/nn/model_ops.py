@@ -661,8 +661,10 @@ def lrelu(alpha=0.01):
   -------
   a function f(x) that returns alpha*x when x<0, and x when x>0.
   """
+
   def eval(x):
     return relu(x, alpha=alpha)
+
   return eval
 
 
