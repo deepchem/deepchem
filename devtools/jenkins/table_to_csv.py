@@ -3,7 +3,6 @@ Utility script to convert the benchmark markdown table into a CSV
 """
 import sys
 
-
 def classification_table_to_csv(lines):
   output = []
   headers = [
@@ -29,6 +28,9 @@ def classification_table_to_csv(lines):
     output.append(",".join([split, dataset, model, train, test]))
   for l in output:
     print(l)
+  #with open('desired_results.csv', 'a') as f:
+  #  for l in output:
+  #    f.write(l + '\n')
 
 
 def regression_table_to_csv(lines):
@@ -55,6 +57,9 @@ def regression_table_to_csv(lines):
     output.append(",".join([split, dataset, model, train, test]))
   for l in output:
     print(l)
+  #with open('desired_results.csv', 'a') as f:
+  #  for l in output:
+  #    f.write(l + '\n')
 
 
 def split_classification_regression(lines):
