@@ -5,7 +5,7 @@ from tensorflow.python.framework import test_util
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.mol_graphs import ConvMol
-from deepchem.models.tensorgraph.layers import Add, Conv3D, MaxPool2D, MaxPool3D, GraphCNN, GraphEmbedPoolLayer
+from deepchem.models.tensorgraph.layers import Add, MaxPool2D, MaxPool3D, GraphCNN, GraphEmbedPoolLayer
 from deepchem.models.tensorgraph.layers import AlphaShareLayer
 from deepchem.models.tensorgraph.layers import AttnLSTMEmbedding
 from deepchem.models.tensorgraph.layers import BatchNorm
@@ -15,6 +15,9 @@ from deepchem.models.tensorgraph.layers import Concat
 from deepchem.models.tensorgraph.layers import Constant
 from deepchem.models.tensorgraph.layers import Conv1D, Squeeze
 from deepchem.models.tensorgraph.layers import Conv2D
+from deepchem.models.tensorgraph.layers import Conv2DTranspose
+from deepchem.models.tensorgraph.layers import Conv3D
+from deepchem.models.tensorgraph.layers import Conv3DTranspose
 from deepchem.models.tensorgraph.layers import Dense
 from deepchem.models.tensorgraph.layers import Exp
 from deepchem.models.tensorgraph.layers import Flatten
@@ -393,6 +396,41 @@ class TestLayers(test_util.TensorFlowTestCase):
       sess.run(tf.global_variables_initializer())
       out_tensor = out_tensor.eval()
       assert out_tensor.shape == (batch_size, length, width, depth,
+                                  out_channels)
+
+  def test_conv_2D_transpose(self):
+    """Test that Conv2DTranspose can be invoked."""
+    length = 4
+    width = 5
+    in_channels = 2
+    out_channels = 3
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = Conv2DTranspose(
+          out_channels, kernel_size=1, stride=2)(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, 2 * length, 2 * width,
+                                  out_channels)
+
+  def test_conv_3D_transpose(self):
+    """Test that Conv3DTranspose can be invoked."""
+    length = 4
+    width = 5
+    depth = 6
+    in_channels = 2
+    out_channels = 3
+    batch_size = 20
+    in_tensor = np.random.rand(batch_size, length, width, depth, in_channels)
+    with self.test_session() as sess:
+      in_tensor = tf.convert_to_tensor(in_tensor, dtype=tf.float32)
+      out_tensor = Conv3DTranspose(
+          out_channels, kernel_size=1, stride=(2, 3, 1))(in_tensor)
+      sess.run(tf.global_variables_initializer())
+      out_tensor = out_tensor.eval()
+      assert out_tensor.shape == (batch_size, 2 * length, 3 * width, depth,
                                   out_channels)
 
   def test_maxpool2D(self):
