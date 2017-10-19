@@ -25,4 +25,3 @@ script:
 after_success:
 - echo $TRAVIS_SECURE_ENV_VARS
 - coveralls
-- source devtools/travis-ci/after_sucess.sh
