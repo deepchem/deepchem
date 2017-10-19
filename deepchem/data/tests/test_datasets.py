@@ -379,8 +379,30 @@ class TestDatasets(unittest.TestCase):
     X_means, y_means = np.mean(X, axis=0), np.mean(y, axis=0)
     X_stds, y_stds = np.std(X, axis=0), np.std(y, axis=0)
     comp_X_means, comp_X_stds, comp_y_means, comp_y_stds = \
-        solubility_dataset.get_statistics()
+      solubility_dataset.get_statistics()
     np.testing.assert_allclose(comp_X_means, X_means)
     np.testing.assert_allclose(comp_y_means, y_means)
     np.testing.assert_allclose(comp_X_stds, X_stds)
     np.testing.assert_allclose(comp_y_stds, y_stds)
+
+  def test_disk_iterate_batch_size(self):
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
+                  solubility_dataset.w, solubility_dataset.ids)
+    batch_sizes = []
+    for X, y, _, _ in solubility_dataset.iterbatches(
+        3, pad_batches=False, deterministic=True):
+      batch_sizes.append(len(X))
+    self.assertEqual([3, 3, 3, 1], batch_sizes)
+
+  def test_numpy_iterate_batch_size(self):
+    solubility_dataset = dc.data.tests.load_solubility_data()
+    X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
+                  solubility_dataset.w, solubility_dataset.ids)
+    solubility_dataset = dc.data.NumpyDataset.from_DiskDataset(
+        solubility_dataset)
+    batch_sizes = []
+    for X, y, _, _ in solubility_dataset.iterbatches(
+        3, pad_batches=False, deterministic=True):
+      batch_sizes.append(len(X))
+    self.assertEqual([3, 3, 3, 1], batch_sizes)
