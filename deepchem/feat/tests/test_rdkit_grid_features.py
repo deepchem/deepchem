@@ -487,8 +487,9 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     feature_tensor = featurizer.featurize_complexes([self.ligand_file],
                                                     [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
-    total_len = (2**ecfp_power + len(featurizer.contact_bins) * 2**splif_power +
-                 len(featurizer.hbond_dist_bins) + 4)
+    total_len = (2**ecfp_power +
+                 len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power
+                 + len(featurizer.cutoffs['hbond_dist_bins']) + 4)
     self.assertEqual(feature_tensor.shape, (1, total_len))
 
   def test_voxelize(self):
@@ -506,7 +507,10 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     f_power = 5
 
     rgf_featurizer = rgf.RdkitGridFeaturizer(
-        box_width=box_w, ecfp_power=f_power)
+        box_width=box_w,
+        ecfp_power=f_power,
+        feature_types=['all_combined'],
+        flatten=True)
 
     prot_tensor = rgf_featurizer._voxelize(
         rgf.convert_atom_to_voxel,
