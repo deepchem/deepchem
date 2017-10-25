@@ -531,7 +531,7 @@ class DiskDataset(Dataset):
 
   def save_to_disk(self):
     """Save dataset to disk."""
-    save_to_disk((self.tasks, self.metadata_df), self._get_metadata_filename())
+    save_metadata(self.tasks, self.metadata_df, self.data_dir)
 
   def move(self, new_data_dir):
     """Moves dataset to new directory."""
