@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import joblib
 from sklearn.externals import joblib as old_joblib
 import gzip
+import json
 import pickle
 import pandas as pd
 import numpy as np
@@ -103,6 +104,29 @@ def load_csv_files(filenames, shard_size=None, verbose=True):
         yield df
 
 
+def save_metadata(tasks, metadata_df, data_dir):
+  """
+  Saves the metadata for a DiskDataset
+  Parameters
+  ----------
+  tasks: list of str
+    Tasks of DiskDataset
+  metadata_df: pd.DataFrame
+  data_dir: str
+    Directory to store metadata
+  Returns
+  -------
+  """
+
+  metadata_filename = os.path.join(data_dir, "metadata.hd5")
+  tasks_filename = os.path.join(data_dir, "tasks.json")
+  with open(tasks_filename, 'w') as fout:
+    json.dump(tasks, fout)
+  hdf = pd.HDFStore(metadata_filename)
+  hdf.put('metadata', metadata_df)
+  hdf.close()
+
+
 def load_from_disk(filename):
   """Load a dataset from file."""
   name = filename
@@ -142,7 +166,7 @@ def load_sharded_csv(filenames):
     else:
       raise ValueError("Unrecognized filetype for %s" % filename)
 
-  #combine dataframes
+  # combine dataframes
   combined_df = dataframes[0]
   for i in range(0, len(dataframes) - 1):
     combined_df = combined_df.append(dataframes[i + 1])

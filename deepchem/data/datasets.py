@@ -4,13 +4,15 @@ Contains wrapper class for datasets.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+import json
 import os
 import numpy as np
 import pandas as pd
 import random
-from deepchem.utils.save import save_to_disk
+from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+from pandas import read_hdf
 import tempfile
 import time
 import shutil
@@ -431,11 +433,7 @@ class DiskDataset(Dataset):
     self.verbose = verbose
 
     log("Loading dataset from disk.", self.verbose)
-    if os.path.exists(self._get_metadata_filename()):
-      (self.tasks,
-       self.metadata_df) = load_from_disk(self._get_metadata_filename())
-    else:
-      raise ValueError("No metadata found on disk.")
+    self.tasks, self.metadata_df = self.load_metadata()
 
   @staticmethod
   def create_dataset(shard_generator, data_dir=None, tasks=[], verbose=True):
@@ -464,11 +462,26 @@ class DiskDataset(Dataset):
           DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
                                          ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
-    metadata_filename = os.path.join(data_dir, "metadata.joblib")
-    save_to_disk((tasks, metadata_df), metadata_filename)
+    save_metadata(tasks, metadata_df, data_dir)
     time2 = time.time()
     log("TIMING: dataset construction took %0.3f s" % (time2 - time1), verbose)
     return DiskDataset(data_dir, verbose=verbose)
+
+  def load_metadata(self):
+    try:
+      tasks_filename, metadata_filename = self._get_metadata_filename()
+      with open(tasks_filename) as fin:
+        tasks = json.load(fin)
+      metadata_df = read_hdf(metadata_filename, 'metadata')
+      return tasks, metadata_df
+    except Exception as e:
+      pass
+
+    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
+    if os.path.exists(metadata_filename):
+      tasks, metadata_df = load_from_disk(metadata_filename)
+      save_metadata(tasks, metadata_df, self.data_dir)
+    raise ValueError("No Metadata Found On Disk")
 
   @staticmethod
   def _construct_metadata(metadata_entries):
@@ -590,8 +603,9 @@ class DiskDataset(Dataset):
     """
     Get standard location for metadata file.
     """
-    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
-    return metadata_filename
+    metadata_filename = os.path.join(self.data_dir, "metadata.hd5")
+    tasks_filename = os.path.join(self.data_dir, "tasks.json")
+    return tasks_filename, metadata_filename
 
   def get_number_shards(self):
     """
