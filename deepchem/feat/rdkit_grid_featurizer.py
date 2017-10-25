@@ -697,7 +697,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
     self.box_width = float(box_width)
     self.voxel_width = float(voxel_width)
-    self.voxels_per_edge = self.box_width / self.voxel_width
+    self.voxels_per_edge = int(self.box_width / self.voxel_width)
     self.voxelize_features = voxelize_features
     self.voxel_feature_types = voxel_feature_types
 

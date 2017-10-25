@@ -491,7 +491,7 @@ class PowerTransformer(Transformer):
   def untransform(self, z):
     # print("Cannot undo Power Transformer, for now.")
     n_powers = len(self.powers)
-    orig_len = (z.shape[1]) / n_powers
+    orig_len = (z.shape[1]) // n_powers
     z = z[:, :orig_len]
     z = np.power(z, 1 / self.powers[0])
     return z

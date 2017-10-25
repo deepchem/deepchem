@@ -14,6 +14,7 @@ from deepchem.utils.save import log
 import tempfile
 import time
 import shutil
+import json
 from multiprocessing.dummy import Pool
 
 __author__ = "Bharath Ramsundar"
@@ -416,6 +417,23 @@ class NumpyDataset(Dataset):
 
     """
     return NumpyDataset(ds.X, ds.y, ds.w, ds.ids)
+
+  @staticmethod
+  def to_json(self, fname):
+    d = {
+        'X': self.X.tolist(),
+        'y': self.y.tolist(),
+        'w': self.w.tolist(),
+        'ids': self.ids.tolist()
+    }
+    with open(fname, 'w') as fout:
+      json.dump(d, fout)
+
+  @staticmethod
+  def from_json(fname):
+    with open(fname) as fin:
+      d = json.load(fin)
+      return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
 
 
 class DiskDataset(Dataset):
