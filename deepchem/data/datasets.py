@@ -471,7 +471,7 @@ class DiskDataset(Dataset):
     try:
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
-        tasks = np.array(json.load(fin))
+        tasks = json.load(fin)
       metadata_df = read_hdf(metadata_filename, 'metadata')
       return tasks, metadata_df
     except Exception as e:
