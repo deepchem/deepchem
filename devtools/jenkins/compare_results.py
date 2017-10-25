@@ -12,7 +12,7 @@ BENCHMARK_TO_DESIRED_KEY_MAP = {
     "tf": "NN classification",
     "tf_robust": "robust NN",
     "tf_regression": "NN regression",
-    "tf_regression_ft": "NN regression(CM)"
+    "tf_regression_ft": "NN regression(CM)",
     "graphconv": "Graph convolution",
     "graphconvreg": "Graphconv regression",
     "irv": "IRV",
