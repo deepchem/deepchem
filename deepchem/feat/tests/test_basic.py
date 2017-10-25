@@ -13,6 +13,7 @@ class TestMolecularWeight(unittest.TestCase):
   """
   Test MolecularWeight.
   """
+
   def setUp(self):
     """
     Set up tests.
@@ -32,6 +33,7 @@ class TestRDKitDescriptors(unittest.TestCase):
   """
   Test RDKitDescriptors.
   """
+
   def setUp(self):
     """
     Set up tests.
@@ -45,6 +47,9 @@ class TestRDKitDescriptors(unittest.TestCase):
     Test simple descriptors.
     """
     descriptors = self.engine([self.mol])
+    print(descriptors)
+    print(descriptors[0, self.engine.descriptors.index('ExactMolWt')])
     assert np.allclose(
-      descriptors[0, self.engine.descriptors.index('ExactMolWt')], 180,
-      atol=0.1)
+        descriptors[0, self.engine.descriptors.index('ExactMolWt')],
+        180,
+        atol=0.1)

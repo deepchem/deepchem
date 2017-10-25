@@ -292,7 +292,7 @@ class TestSplitters(unittest.TestCase):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
-    w[:n_positives / 2] = 0
+    w[:n_positives // 2] = 0
     ids = np.arange(n_samples)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
