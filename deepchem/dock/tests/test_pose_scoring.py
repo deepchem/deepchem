@@ -32,8 +32,6 @@ class TestPoseScoring(unittest.TestCase):
     download_url(
         "http://deepchem.io.s3-website-us-west-1.amazonaws.com/featurized_datasets/core_grid.json"
     )
-    # call("tar -zxvf core_grid.tar.gz".split())
-    # self.core_dataset = dc.data.DiskDataset("core_grid/")
     json_fname = os.path.join(get_data_dir(), 'core_grid.json')
     self.core_dataset = dc.data.NumpyDataset.from_json(json_fname)
 
