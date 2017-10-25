@@ -411,8 +411,7 @@ def is_pi_parallel(ring1_center,
   if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
       dist < dist_cutoff):
     return True
-  else:
-    return False
+  return False
 
 
 def is_pi_t(ring1_center,
@@ -426,8 +425,7 @@ def is_pi_t(ring1_center,
   if ((90.0 - angle_cutoff < angle < 90.0 + angle_cutoff) and
       dist < dist_cutoff):
     return True
-  else:
-    return False
+  return False
 
 
 def compute_pi_stack(protein,
@@ -460,7 +458,7 @@ def compute_pi_stack(protein,
   ligand_aromatic_rings = []
   for mol, ring_list in ((protein, protein_aromatic_rings),
                          (ligand, ligand_aromatic_rings)):
-    aromatic_atoms = set(atom.GetIdx() for atom in mol.GetAromaticAtoms())
+    aromatic_atoms = {atom.GetIdx() for atom in mol.GetAromaticAtoms()}
     for ring in Chem.GetSymmSSSR(mol):
       if set(ring).issubset(aromatic_atoms):
         ring_center = compute_ring_center(mol, ring)
@@ -480,12 +478,12 @@ def compute_pi_stack(protein,
           dist_cutoff=dist_cutoff):
         prot_to_update = set()
         lig_to_update = set()
-        for i in prot_ring:
-          for j in lig_ring:
-            if (i, j) not in counted_pairs_parallel:
-              prot_to_update.add(i)
-              lig_to_update.add(j)
-              counted_pairs_parallel.add((i, j))
+        for prot_atom_idx in prot_ring:
+          for lig_atom_idx in lig_ring:
+            if (prot_atom_idx, lig_atom_idx) not in counted_pairs_parallel:
+              prot_to_update.add(prot_atom_idx)
+              lig_to_update.add(lig_atom_idx)
+              counted_pairs_parallel.add((prot_atom_idx, lig_atom_idx))
 
         protein_pi_parallel.update(prot_to_update)
         ligand_pi_parallel.update(lig_to_update)
@@ -523,8 +521,7 @@ def is_cation_pi(cation_position,
   if ((angle < angle_cutoff or angle > 180.0 - angle_cutoff) and
       (dist < dist_cutoff)):
     return True
-  else:
-    return False
+  return False
 
 
 def compute_cation_pi(mol1, mol2, charge_tolerance=0.01):
@@ -585,8 +582,7 @@ def is_salt_bridge(atom_i, atom_j):
   if np.abs(2.0 - np.abs(
       get_partial_charge(atom_i) - get_partial_charge(atom_j))) < 0.01:
     return True
-  else:
-    return False
+  return False
 
 
 def compute_salt_bridges(protein_xyz, protein, ligand_xyz, ligand,
