@@ -121,7 +121,7 @@ def save_metadata(tasks, metadata_df, data_dir):
   metadata_filename = os.path.join(data_dir, "metadata.hd5")
   tasks_filename = os.path.join(data_dir, "tasks.json")
   with open(tasks_filename, 'w') as fout:
-    json.dump(tasks, fout)
+    json.dump(tasks.tolist(), fout)
   hdf = pd.HDFStore(metadata_filename)
   hdf.put('metadata', metadata_df)
   hdf.close()
