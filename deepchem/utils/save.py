@@ -117,6 +117,7 @@ def save_metadata(tasks, metadata_df, data_dir):
   Returns
   -------
   """
+
   if isinstance(tasks, np.ndarray):
     tasks = tasks.tolist()
   metadata_filename = os.path.join(data_dir, "metadata.hd5")
