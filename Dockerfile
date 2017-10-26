@@ -2,7 +2,7 @@ FROM nvidia/cuda
 
 # Install some utilities
 RUN apt-get update && \
-    apt-get install -y -q wget git libxrender1 && \
+    apt-get install -y -q wget git libxrender1 libsm6 && \
     apt-get clean
 
 # Install miniconda
