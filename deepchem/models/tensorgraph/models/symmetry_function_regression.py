@@ -121,7 +121,7 @@ class ANIRegression(TensorGraph):
   def __init__(self,
                n_tasks,
                max_atoms,
-               layer_structures=[128, 64],
+               layer_structures=[128, 64, 1],
                atom_number_cases=[1, 6, 7, 8],
                feat_dir=None,
                **kwargs):
