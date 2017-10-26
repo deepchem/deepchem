@@ -49,7 +49,8 @@ def load_qm8(featurizer='CoulombMatrix', split='random', reload=True):
     elif featurizer == 'Raw':
       featurizer = deepchem.feat.RawFeaturizer()
     elif featurizer == 'MP':
-      featurizer = deepchem.feat.WeaveFeaturizer(graph_distance=False)
+      featurizer = deepchem.feat.WeaveFeaturizer(
+          graph_distance=False, explicit_H=True)
     loader = deepchem.data.SDFLoader(
         tasks=qm8_tasks,
         smiles_field="smiles",

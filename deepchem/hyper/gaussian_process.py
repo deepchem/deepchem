@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import tempfile
+import os
 from deepchem.hyper.grid_search import HyperparamOpt
 from deepchem.utils.evaluate import Evaluator
 from deepchem.molnet.run_benchmark_models import benchmark_classification, benchmark_regression
@@ -17,21 +18,26 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   Gaussian Process Global Optimization(GPGO)
   """
 
-  def hyperparam_search(self,
-                        params_dict,
-                        train_dataset,
-                        valid_dataset,
-                        output_transformers,
-                        metric,
-                        n_features=1024,
-                        n_tasks=1,
-                        max_iter=20,
-                        search_range=4,
-                        hp_invalid_list=[
-                            'seed', 'nb_epoch', 'penalty_type', 'dropouts',
-                            'bypass_dropouts', 'n_pair_feat'
-                        ],
-                        logdir=None):
+  def hyperparam_search(
+      self,
+      params_dict,
+      train_dataset,
+      valid_dataset,
+      output_transformers,
+      metric,
+      direction=True,
+      n_features=1024,
+      n_tasks=1,
+      max_iter=20,
+      search_range=4,
+      hp_invalid_list=[
+          'seed', 'nb_epoch', 'penalty_type', 'dropouts', 'bypass_dropouts',
+          'n_pair_feat', 'fit_transformers', 'min_child_weight',
+          'max_delta_step', 'subsample', 'colsample_bylevel',
+          'colsample_bytree', 'reg_alpha', 'reg_lambda', 'scale_pos_weight',
+          'base_score'
+      ],
+      log_file='GPhypersearch.log'):
     """Perform hyperparams search using a gaussian process assumption
 
     params_dict include single-valued parameters being optimized,
@@ -55,6 +61,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       transformers for evaluation
     metric: list of dc.metrics.Metric
       metric used for evaluation
+    direction: bool
+      maximization(True) or minimization(False)
     n_features: int
       number of input features
     n_tasks: int
@@ -66,6 +74,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                        initial values * search_range]
     hp_invalid_list: list
       names of parameters that should not be optimized
+    logfile: string
+      name of log file, hyperparameters and results for each trial will be recorded
 
     Returns
     -------
@@ -95,7 +105,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                         if hp_list_class[i] is list]
 
     # Number of parameters
-    n_param = len(hp_list_single + sum([hp[1] for hp in hp_list_multiple]))
+    n_param = len(hp_list_single)
+    if len(hp_list_multiple) > 0:
+      n_param = n_param + sum([hp[1] for hp in hp_list_multiple])
     # Range of optimization
     param_range = []
     for hp in hp_list_single:
@@ -124,6 +136,9 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     # Dummy names
     param_name = ['l' + format(i, '02d') for i in range(20)]
     param = dict(zip(param_name[:n_param], param_range))
+
+    data_dir = os.environ['DEEPCHEM_DATA_DIR']
+    log_file = os.path.join(data_dir, log_file)
 
     def f(l00=0,
           l01=0,
@@ -177,6 +192,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
 
       print(hyper_parameters)
       # Run benchmark
+      with open(log_file, 'a') as f:
+        # Record hyperparameters
+        f.write(str(hyper_parameters))
+        f.write('\n')
       if isinstance(self.model_class, str) or isinstance(
           self.model_class, unicode):
         try:
@@ -199,7 +218,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
               metric,
               self.model_class,
               hyper_parameters=hyper_parameters)
-        return valid_scores[self.model_class][metric[0].name]
+        score = valid_scores[self.model_class][metric[0].name]
       else:
         model_dir = tempfile.mkdtemp()
         model = self.model_class(hyper_parameters, model_dir)
@@ -207,17 +226,31 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         model.save()
         evaluator = Evaluator(model, valid_dataset, output_transformers)
         multitask_scores = evaluator.compute_model_performance([metric])
-        return multitask_scores[metric.name]
+        score = multitask_scores[metric.name]
+
+      with open(log_file, 'a') as f:
+        # Record performances
+        f.write(str(score))
+        f.write('\n')
+      # GPGO maximize performance by default, set performance to its negative value for minimization
+      if direction:
+        return score
+      else:
+        return -score
 
     import pyGPGO
-    cov = pyGPGO.covfunc.matern32()
-    gp = pyGPGO.surrogates.GaussianProcess.GaussianProcess(cov)
-    acq = pyGPGO.acquisition.Acquisition(mode='ExpectedImprovement')
-    gpgo = pyGPGO.GPGO.GPGO(gp, acq, f, param)
+    from pyGPGO.covfunc import matern32
+    from pyGPGO.acquisition import Acquisition
+    from pyGPGO.surrogates.GaussianProcess import GaussianProcess
+    from pyGPGO.GPGO import GPGO
+    cov = matern32()
+    gp = GaussianProcess(cov)
+    acq = Acquisition(mode='ExpectedImprovement')
+    gpgo = GPGO(gp, acq, f, param)
+    print("Max number of iteration: %i" % max_iter)
     gpgo.run(max_iter=max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
-
     # Readout best hyper parameters
     i = 0
     for hp in hp_list_single:
@@ -233,4 +266,43 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         hyper_parameters[hp[0]] = map(int, hyper_parameters[hp[0]])
       i = i + hp[1]
 
+    # Compare best model to default hyperparameters
+    with open(log_file, 'a') as f:
+      # Record hyperparameters
+      f.write(str(params_dict))
+      f.write('\n')
+    if isinstance(self.model_class, str) or isinstance(self.model_class,
+                                                       unicode):
+      try:
+        train_scores, valid_scores, _ = benchmark_classification(
+            train_dataset,
+            valid_dataset,
+            valid_dataset, ['task_placeholder'] * n_tasks,
+            output_transformers,
+            n_features,
+            metric,
+            self.model_class,
+            hyper_parameters=params_dict)
+      except AssertionError:
+        train_scores, valid_scores, _ = benchmark_regression(
+            train_dataset,
+            valid_dataset,
+            valid_dataset, ['task_placeholder'] * n_tasks,
+            output_transformers,
+            n_features,
+            metric,
+            self.model_class,
+            hyper_parameters=params_dict)
+      score = valid_scores[self.model_class][metric[0].name]
+      with open(log_file, 'a') as f:
+        # Record performances
+        f.write(str(score))
+        f.write('\n')
+      if not direction:
+        score = -score
+      if score > valid_performance_opt:
+        # Optimized model is better, return hyperparameters
+        return params_dict, score
+
+    # Return default hyperparameters
     return hyper_parameters, valid_performance_opt

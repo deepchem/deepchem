@@ -987,6 +987,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
+  @attr('slow')
   def test_ANI_multitask_regression_overfit(self):
     """Test ANI-1 regression overfits tiny data."""
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
@@ -1027,6 +1028,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .8
 
+  @attr('slow')
   def test_BP_symmetry_function_overfit(self):
     """Test ANI-1 regression overfits tiny data."""
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
@@ -1379,6 +1381,78 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
 
     assert scores[regression_metric.name] > .8
+
+  def test_textCNN_singletask_classification_overfit(self):
+    """Test textCNN model overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    featurizer = dc.feat.RawFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_classification.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
+    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    batch_size = 10
+
+    model = dc.models.TextCNNTensorGraph(
+        n_tasks,
+        char_dict,
+        seq_length=length,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="classification")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=200)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+
+    assert scores[classification_metric.name] > .8
+
+  def test_textCNN_singletask_regression_overfit(self):
+    """Test textCNN model overfits tiny data."""
+    np.random.seed(123)
+    tf.set_random_seed(123)
+    n_tasks = 1
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.RawFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(self.current_dir, "example_regression.csv")
+    loader = dc.data.CSVLoader(
+        tasks=tasks, smiles_field="smiles", featurizer=featurizer)
+    dataset = loader.featurize(input_file)
+
+    regression_metric = dc.metrics.Metric(
+        dc.metrics.pearson_r2_score, task_averager=np.mean)
+
+    char_dict, length = dc.models.TextCNNTensorGraph.build_char_dict(dataset)
+    batch_size = 10
+
+    model = dc.models.TextCNNTensorGraph(
+        n_tasks,
+        char_dict,
+        seq_length=length,
+        batch_size=batch_size,
+        learning_rate=0.001,
+        use_queue=False,
+        mode="regression")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=200)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .9
 
   def test_siamese_singletask_classification_overfit(self):
     """Test siamese singletask model overfits tiny data."""

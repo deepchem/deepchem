@@ -68,7 +68,7 @@ via this installation procedure.
 
 ### Easy Install via Conda
 ```bash
-conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.2.0
+conda install -c deepchem -c rdkit -c conda-forge -c omnia deepchem=1.3.0
 ```
 
 ### Installing Dependencies Manually

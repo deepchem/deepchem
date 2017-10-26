@@ -361,6 +361,31 @@ class TestTensorGraph(unittest.TestCase):
     for v1, v2 in zip(values, copy.in_layers[0].variable_values):
       assert np.array_equal(v1, v2)
 
+  def test_copy_layers_shared(self):
+    """Test copying layers with shared variables."""
+    tg = dc.models.TensorGraph()
+    features = Feature(shape=(None, 10))
+    dense = Dense(
+        10, in_layers=features, biases_initializer=tf.random_normal_initializer)
+    constant = Constant(10.0)
+    output = dense + constant
+    tg.add_output(output)
+    tg.set_loss(output)
+    replacements = {features: features, constant: Constant(20.0)}
+    copy = output.copy(replacements, shared=True)
+    tg.add_output(copy)
+    assert isinstance(copy, Add)
+    assert isinstance(copy.in_layers[0], Dense)
+    assert isinstance(copy.in_layers[0].in_layers[0], Feature)
+    assert copy.in_layers[1] == replacements[constant]
+    variables1 = tg.get_layer_variables(dense)
+    variables2 = tg.get_layer_variables(copy.in_layers[0])
+    for v1, v2, in zip(variables1, variables2):
+      assert v1 == v2
+    feed_dict = {features: np.random.random((5, 10))}
+    v1, v2 = tg.predict_on_generator([feed_dict], outputs=[output, copy])
+    assert_true(np.all(np.isclose(v1 + 10, v2)))
+
   def test_submodels(self):
     """Test optimizing submodels."""
     tg = dc.models.TensorGraph(learning_rate=0.1, batch_size=1)

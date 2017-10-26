@@ -645,6 +645,29 @@ def relu(x, alpha=0., max_value=None):
   return x
 
 
+def lrelu(alpha=0.01):
+  """Create a leaky rectified linear unit function.
+
+  This function returns a new function that implements the LReLU with a
+  specified alpha.  The returned value can be used as an activation function in
+  network layers.
+
+  Parameters
+  ----------
+  alpha: float
+    the slope of the function when x<0
+
+  Returns
+  -------
+  a function f(x) that returns alpha*x when x<0, and x when x>0.
+  """
+
+  def eval(x):
+    return relu(x, alpha=alpha)
+
+  return eval
+
+
 def selu(x):
   """Scaled Exponential Linear unit.
 

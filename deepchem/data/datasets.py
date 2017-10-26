@@ -326,10 +326,12 @@ class NumpyDataset(Dataset):
         sample_perm = np.arange(n_samples)
       if batch_size is None:
         batch_size = n_samples
-      interval_points = np.linspace(
-          0, n_samples, np.ceil(float(n_samples) / batch_size) + 1, dtype=int)
-      for j in range(len(interval_points) - 1):
-        indices = range(interval_points[j], interval_points[j + 1])
+      batch_idx = 0
+      num_batches = np.math.ceil(n_samples / batch_size)
+      while batch_idx < num_batches:
+        start = batch_idx * batch_size
+        end = min(n_samples, (batch_idx + 1) * batch_size)
+        indices = range(start, end)
         perm_indices = sample_perm[indices]
         X_batch = dataset._X[perm_indices]
         y_batch = dataset._y[perm_indices]
@@ -338,6 +340,7 @@ class NumpyDataset(Dataset):
         if pad_batches:
           (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
               batch_size, X_batch, y_batch, w_batch, ids_batch)
+        batch_idx += 1
         yield (X_batch, y_batch, w_batch, ids_batch)
 
     return iterate(self, batch_size, deterministic, pad_batches)
@@ -687,6 +690,20 @@ class DiskDataset(Dataset):
         else:
           shard_batch_size = batch_size
 
+        batch_idx = 0
+        num_batches = np.math.ceil(n_samples / shard_batch_size)
+        while batch_idx < num_batches:
+          start = batch_idx * shard_batch_size
+          end = min(n_samples, (batch_idx + 1) * shard_batch_size)
+          indices = range(start, end)
+          perm_indices = sample_perm[indices]
+          X_batch = X[perm_indices]
+
+          if y is not None:
+            y_batch = y[perm_indices]
+          else:
+            y_batch = None
+
         # TODO(rbharath): This happens in tests sometimes, but don't understand why?
         # Handle edge case.
         if batch_size == n_samples:
@@ -701,6 +718,7 @@ class DiskDataset(Dataset):
           if pad_batches:
             (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
                 shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
+          batch_idx += 1
           yield (X_batch, y_batch, w_batch, ids_batch)
 
         else:
