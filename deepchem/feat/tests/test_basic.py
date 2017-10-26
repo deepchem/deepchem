@@ -47,8 +47,6 @@ class TestRDKitDescriptors(unittest.TestCase):
     Test simple descriptors.
     """
     descriptors = self.engine([self.mol])
-    print(descriptors)
-    print(descriptors[0, self.engine.descriptors.index('ExactMolWt')])
     assert np.allclose(
         descriptors[0, self.engine.descriptors.index('ExactMolWt')],
         180,
