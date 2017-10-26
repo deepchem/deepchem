@@ -477,10 +477,12 @@ class DiskDataset(Dataset):
     except Exception as e:
       pass
 
+    # Load obsolete format -> save in new format
     metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
     if os.path.exists(metadata_filename):
       tasks, metadata_df = load_from_disk(metadata_filename)
       save_metadata(tasks, metadata_df, self.data_dir)
+      return tasks, metadata_df
     raise ValueError("No Metadata Found On Disk")
 
   @staticmethod
