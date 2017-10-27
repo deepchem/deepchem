@@ -531,7 +531,7 @@ class DiskDataset(Dataset):
       out_ids = None
 
     # note that this corresponds to the _construct_metadata column order
-    return [basename, out_ids, out_X, out_y, out_w]
+    return [out_ids, out_X, out_y, out_w]
 
   def save_to_disk(self):
     """Save dataset to disk."""
