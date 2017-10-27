@@ -482,6 +482,7 @@ class DiskDataset(Dataset):
     if os.path.exists(metadata_filename):
       tasks, metadata_df = load_from_disk(metadata_filename)
       del metadata_df['task_names']
+      del metadata_df['basename']
       save_metadata(tasks, metadata_df, self.data_dir)
       return tasks, metadata_df
     raise ValueError("No Metadata Found On Disk")
@@ -493,7 +494,7 @@ class DiskDataset(Dataset):
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
-    columns = ('basename', 'ids', 'X', 'y', 'w')
+    columns = ('ids', 'X', 'y', 'w')
     metadata_df = pd.DataFrame(metadata_entries, columns=columns)
     return metadata_df
 
