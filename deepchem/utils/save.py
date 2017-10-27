@@ -117,7 +117,6 @@ def save_metadata(tasks, metadata_df, data_dir):
   Returns
   -------
   """
-
   if isinstance(tasks, np.ndarray):
     tasks = tasks.tolist()
   metadata_filename = os.path.join(data_dir, "metadata.hd5")
@@ -125,7 +124,7 @@ def save_metadata(tasks, metadata_df, data_dir):
   with open(tasks_filename, 'w') as fout:
     json.dump(tasks, fout)
   hdf = pd.HDFStore(metadata_filename)
-  hdf.put('metadata', metadata_df)
+  hdf.put('metadata', metadata_df, format='table')
   hdf.close()
 
 

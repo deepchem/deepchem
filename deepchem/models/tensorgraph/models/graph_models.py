@@ -821,6 +821,7 @@ class GraphConvTensorGraph(TensorGraph):
         self.default_generator(dataset, predict=True),
         metrics,
         labels=self.my_labels,
+        transformers=transformers,
         weights=[self.my_task_weights],
         per_task_metrics=per_task_metrics)
 
