@@ -56,9 +56,9 @@ git clone https://github.com/deepchem/deepchem.git      # Clone deepchem source 
 cd deepchem
 bash scripts/install_deepchem_conda.sh deepchem
 source activate deepchem
-pip install tensorflow-gpu==1.3.0                      # If you want GPU support
-python setup.py install                                 # Manual install
-nosetests -v deepchem --nologcapture                    # Run tests
+conda install -c conda-forge tensorflow-gpu=1.3.0      # If you want GPU support
+python setup.py install                                # Manual install
+nosetests -a '!slow' -v deepchem --nologcapture        # Run tests
 ```
 This creates a new conda environment `deepchem` and installs in it the dependencies that
 are needed. To access it, use the `source activate deepchem` command.
