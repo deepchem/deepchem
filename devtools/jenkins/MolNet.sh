@@ -16,9 +16,9 @@ export retval_delaney=$?
 python benchmark.py -d qm7 -m dtnn -m graphconvreg -m tf_regression_ft -m tf_regression --seed 123
 export retval_qm7=$?
 
-#cd ..
-#nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
-#export retval=$?
+cd ..
+nosetests -v devtools/jenkins/compare_results.py --with-xunit || true
+export retval=$?
 
 source deactivate
 conda remove --name $envname --all
