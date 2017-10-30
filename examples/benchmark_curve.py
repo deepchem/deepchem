@@ -31,9 +31,8 @@ from deepchem.molnet.run_benchmark import load_dataset
 from deepchem.molnet.check_availability import CheckFeaturizer, CheckSplit
 from deepchem.molnet.preset_hyper_parameters import hps
 
-
 # Evaluate performances with different training set fraction
-frac_trains=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+frac_trains = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 parser = argparse.ArgumentParser(
     description='Deepchem benchmark: ' +
@@ -106,38 +105,59 @@ for dataset in datasets:
         featurizer = CheckFeaturizer[pair][0]
         n_features = CheckFeaturizer[pair][1]
 
-      tasks, all_dataset, transformers = load_dataset(dataset, featurizer, split='index')
+      tasks, all_dataset, transformers = load_dataset(
+          dataset, featurizer, split='index')
       all_dataset = dc.data.DiskDataset.merge(all_dataset)
       for frac_train in frac_trains:
         splitters = {
-          'index': dc.splits.IndexSplitter(),
-          'random': dc.splits.RandomSplitter(),
-          'scaffold': dc.splits.ScaffoldSplitter(),
-          'stratified': dc.splits.SingletaskStratifiedSplitter(task_number=0)
+            'index': dc.splits.IndexSplitter(),
+            'random': dc.splits.RandomSplitter(),
+            'scaffold': dc.splits.ScaffoldSplitter(),
+            'stratified': dc.splits.SingletaskStratifiedSplitter(task_number=0)
         }
         splitter = splitters[split]
         np.random.seed(seed)
-        train, valid, test = splitter.train_valid_test_split(all_dataset,
-                                                             frac_train=frac_train,
-                                                             frac_valid=1-frac_train,
-                                                             frac_test=0.)
+        train, valid, test = splitter.train_valid_test_split(
+            all_dataset,
+            frac_train=frac_train,
+            frac_valid=1 - frac_train,
+            frac_test=0.)
         test = valid
-	if mode == 'classification':
+        if mode == 'classification':
           train_score, valid_score, test_score = benchmark_classification(
-              train, valid, test, tasks, transformers, n_features, metric,
-              model, test=False, hyper_parameters=hyper_parameters, seed=seed)
-	elif mode == 'regression':
+              train,
+              valid,
+              test,
+              tasks,
+              transformers,
+              n_features,
+              metric,
+              model,
+              test=False,
+              hyper_parameters=hyper_parameters,
+              seed=seed)
+        elif mode == 'regression':
           train_score, valid_score, test_score = benchmark_regression(
-              train, valid, test, tasks, transformers, n_features, metric,
-              model, test=False, hyper_parameters=hyper_parameters, seed=seed)
-        with open(os.path.join(out_path, 'results_frac_train_curve.csv'), 'a') as f:
+              train,
+              valid,
+              test,
+              tasks,
+              transformers,
+              n_features,
+              metric,
+              model,
+              test=False,
+              hyper_parameters=hyper_parameters,
+              seed=seed)
+        with open(os.path.join(out_path, 'results_frac_train_curve.csv'),
+                  'a') as f:
           writer = csv.writer(f)
           model_name = list(train_score.keys())[0]
           for i in train_score[model_name]:
             output_line = [
-              dataset, str(split), mode, model_name, i, 'train',
-              train_score[model_name][i], 'valid', valid_score[model_name][i]
+                dataset,
+                str(split), mode, model_name, i, 'train',
+                train_score[model_name][i], 'valid', valid_score[model_name][i]
             ]
-            output_line.extend([
-                'frac_train', frac_train])
+            output_line.extend(['frac_train', frac_train])
             writer.writerow(output_line)

@@ -243,7 +243,6 @@ class TensorflowLogisticRegression(TensorflowGraphModel):
           raise ValueError('Unrecognized rank combination for output: %s' %
                            (batch_output.shape,))
         output.append(batch_output)
-        outputs = np.array(
-            from_one_hot(np.concatenate(output), axis=-1))
+        outputs = np.array(from_one_hot(np.concatenate(output), axis=-1))
 
     return np.copy(outputs)

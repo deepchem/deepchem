@@ -17,13 +17,13 @@ BENCHMARK_TO_DESIRED_KEY_MAP = {
     "graphconvreg": "Graphconv regression",
     "irv": "IRV",
     "dag": "DAG",
-    "dag_regression":"DAG regression",
+    "dag_regression": "DAG regression",
     "dtnn": "DTNN",
     "mpnn": "MPNN",
     "weave": "Weave",
     "weave_regression": "Weave regression",
     "xgb": "XGBoost",
-    "xgb_regression":"XGBoost regression"
+    "xgb_regression": "XGBoost regression"
 }
 DESIRED_RESULTS_CSV = "devtools/jenkins/desired_results.csv"
 TEST_RESULTS_CSV = "examples/results.csv"
