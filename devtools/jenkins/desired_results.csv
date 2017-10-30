@@ -224,18 +224,21 @@ Index splitting,delaney,NN regression,0.869,0.585
 Index splitting,delaney,Graphconv regression,0.969,0.813
 Index splitting,delaney,DAG regression,0.976,0.85
 Index splitting,delaney,Weave regression,0.963,0.872
+Index splitting,delaney,MPNN,0.988,0.882
 Random splitting,delaney,Random forest,0.955,0.561
 Random splitting,delaney,XGBoost regression,0.927,0.727
 Random splitting,delaney,NN regression,0.875,0.495
 Random splitting,delaney,Graphconv regression,0.976,0.787
 Random splitting,delaney,DAG regression,0.968,0.899
 Random splitting,delaney,Weave regression,0.955,0.907
+Random splitting,delaney,MPNN,0.985,0.926
 Scaffold splitting,delaney,Random forest,0.953,0.281
 Scaffold splitting,delaney,XGBoost regression,0.89,0.316
 Scaffold splitting,delaney,NN regression,0.872,0.308
 Scaffold splitting,delaney,Graphconv regression,0.98,0.564
 Scaffold splitting,delaney,DAG regression,0.968,0.676
 Scaffold splitting,delaney,Weave regression,0.971,0.756
+Scaffold splitting,delaney,MPNN,0.986,0.777
 Index splitting,hopv,Random forest,0.943,0.338
 Index splitting,hopv,NN regression,0.725,0.293
 Index splitting,hopv,Graphconv regression,0.307,0.284
@@ -354,15 +357,18 @@ Index splitting,sampl,NN regression,0.923,0.758
 Index splitting,sampl,Graphconv regression,0.97,0.897
 Index splitting,sampl,DAG regression,0.97,0.871
 Index splitting,sampl,Weave regression,0.992,0.915
+Index splitting,sampl,MPNN,0.992,0.906
 Random splitting,sampl,Random forest,0.966,0.729
 Random splitting,sampl,XGBoost regression,0.906,0.745
 Random splitting,sampl,NN regression,0.931,0.689
 Random splitting,sampl,Graphconv regression,0.964,0.848
 Random splitting,sampl,DAG regression,0.973,0.861
 Random splitting,sampl,Weave regression,0.992,0.885
+Random splitting,sampl,MPNN,0.997,0.883
 Scaffold splitting,sampl,Random forest,0.967,0.465
 Scaffold splitting,sampl,XGBoost regression,0.918,0.439
 Scaffold splitting,sampl,NN regression,0.901,0.238
 Scaffold splitting,sampl,Graphconv regression,0.963,0.822
 Scaffold splitting,sampl,DAG regression,0.961,0.846
 Scaffold splitting,sampl,Weave regression,0.992,0.837
+Scaffold splitting,sampl,MPNN,0.993,0.862
