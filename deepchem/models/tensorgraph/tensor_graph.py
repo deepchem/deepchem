@@ -335,7 +335,7 @@ class TensorGraph(Model):
         if len(feed_results) > 1:
           if len(transformers):
             raise ValueError("Does not support transformations "
-                             "for multiple outputs.")  
+                             "for multiple outputs.")
         elif len(feed_results) == 1:
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
