@@ -590,7 +590,11 @@ def compute_hydrogen_bonds(protein_xyz, protein, ligand_xyz, ligand,
   return (hbond_contacts)
 
 
-def convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
+def convert_atom_to_voxel(molecule_xyz,
+                          atom_index,
+                          box_width,
+                          voxel_width,
+                          verbose=False):
   """
   Converts an atom to an i,j,k grid index.
   """
@@ -600,9 +604,10 @@ def convert_atom_to_voxel(molecule_xyz, atom_index, box_width, voxel_width):
       (molecule_xyz[atom_index, :] + np.array([box_width, box_width, box_width]
                                              ) / 2.0) / voxel_width).astype(int)
   if ((indices < 0) | (indices >= box_width / voxel_width)).any():
-    warn(
-        'Coordinates are outside of the box (atom id = %s, coords xyz = %s, coords in box = %s'
-        % (atom_index, molecule_xyz[atom_index], indices))
+    if verbose:
+      warn(
+          'Coordinates are outside of the box (atom id = %s, coords xyz = %s, coords in box = %s'
+          % (atom_index, molecule_xyz[atom_index], indices))
   return ([indices])
 
 

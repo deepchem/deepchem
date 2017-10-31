@@ -987,6 +987,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .9
 
+  @attr('slow')
   def test_ANI_multitask_regression_overfit(self):
     """Test ANI-1 regression overfits tiny data."""
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")
@@ -1027,6 +1028,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[regression_metric.name] > .8
 
+  @attr('slow')
   def test_BP_symmetry_function_overfit(self):
     """Test ANI-1 regression overfits tiny data."""
     input_file = os.path.join(self.current_dir, "example_DTNN.mat")

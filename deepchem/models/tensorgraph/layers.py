@@ -27,6 +27,7 @@ class Layer(object):
     self.op_type = "gpu"
     self.variable_scope = ''
     self.variable_values = None
+    self.out_tensor = None
     self.rnn_initial_states = []
     self.rnn_final_states = []
     self.rnn_zero_states = []
@@ -51,9 +52,24 @@ class Layer(object):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     raise NotImplementedError("Subclasses must implement for themselves")
 
+  def clone(self, in_layers):
+    """Create a copy of this layer with different inputs."""
+    saved_inputs = self.in_layers
+    self.in_layers = []
+    saved_tensors = self.none_tensors()
+    copy = deepcopy(self)
+    self.in_layers = saved_inputs
+    self.set_tensors(saved_tensors)
+    copy.in_layers = in_layers
+    return copy
+
   def shared(self, in_layers):
     """
-    Share weights with different in tensors and a new out tensor
+    Create a copy of this layer that shares variables with it.
+
+    This is similar to clone(), but where clone() creates two independent layers,
+    this causes the layers to share variables with each other.
+
     Parameters
     ----------
     in_layers: list tensor
@@ -63,7 +79,9 @@ class Layer(object):
     -------
     Layer
     """
-    raise NotImplementedError("Each Layer must implement shared for itself")
+    if self.variable_scope == '':
+      return self.clone(in_layers)
+    raise ValueError('%s does not implement shared()' % self.__class__.__name__)
 
   def __call__(self, *in_layers):
     return self.create_tensor(in_layers=in_layers, set_tensors=False)
@@ -173,14 +191,14 @@ class Layer(object):
     elif self.summary_op == 'histogram':
       tf.summary.histogram(self.name, self.tb_input, self.collections)
 
-  def copy(self, replacements={}, variables_graph=None):
+  def copy(self, replacements={}, variables_graph=None, shared=False):
     """Duplicate this Layer and all its inputs.
 
-    This creates and returns a clone of this layer.  It also recursively calls
-    copy() on all of this layer's inputs to clone the entire hierarchy of layers.
-    In the process, you can optionally tell it to replace particular layers with
-    specific existing ones.  For example, you can clone a stack of layers, while
-    connecting the topmost ones to different inputs.
+    This is similar to clone(), but instead of only cloning one layer, it also
+    recursively calls copy() on all of this layer's inputs to clone the entire
+    hierarchy of layers.  In the process, you can optionally tell it to replace
+    particular layers with specific existing ones.  For example, you can clone a
+    stack of layers, while connecting the topmost ones to different inputs.
 
     For example, consider a stack of dense layers that depend on an input:
 
@@ -210,20 +228,24 @@ class Layer(object):
       the current value of each variable in each layer is recorded, and the copy
       has that value specified as its initial value.  This allows a piece of a
       pre-trained model to be copied to another model.
+    shared: bool
+      if True, create new layers by calling shared() on the input layers.
+      This means the newly created layers will share variables with the original
+      ones.
     """
     if self in replacements:
       return replacements[self]
     copied_inputs = [
-        layer.copy(replacements, variables_graph) for layer in self.in_layers
+        layer.copy(replacements, variables_graph, shared)
+        for layer in self.in_layers
     ]
-    saved_inputs = self.in_layers
-    self.in_layers = []
-    saved_tensors = self.none_tensors()
-    copy = deepcopy(self)
-    self.in_layers = saved_inputs
-    self.set_tensors(saved_tensors)
-    copy.in_layers = copied_inputs
+    if shared:
+      copy = self.shared(copied_inputs)
+    else:
+      copy = self.clone(copied_inputs)
     if variables_graph is not None:
+      if shared:
+        raise ValueError('Cannot specify variables_graph when shared==True')
       variables = variables_graph.get_layer_variables(self)
       if len(variables) > 0:
         with variables_graph._get_tf("Graph").as_default():
@@ -292,9 +314,9 @@ class TensorWrapper(Layer):
   """Used to wrap a tensorflow tensor."""
 
   def __init__(self, out_tensor, **kwargs):
+    super(TensorWrapper, self).__init__(**kwargs)
     self.out_tensor = out_tensor
     self._shape = out_tensor.get_shape().as_list()
-    super(TensorWrapper, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, **kwargs):
     """Take no actions."""
@@ -314,6 +336,33 @@ def convert_to_layers(in_layers):
   return layers
 
 
+class SharedVariableScope(Layer):
+  """A Layer that can share variables with another layer via name scope.
+
+  This abstract class can be used as a parent for any layer that implements
+  shared() by means of the variable name scope.  It exists to avoid duplicated
+  code.
+  """
+
+  def __init__(self, **kwargs):
+    super(SharedVariableScope, self).__init__(**kwargs)
+    self._reuse = False
+    self._shared_with = None
+
+  def shared(self, in_layers):
+    copy = self.clone(in_layers)
+    self._reuse = True
+    copy._reuse = True
+    copy._shared_with = self
+    return copy
+
+  def _get_scope_name(self):
+    if self._shared_with is None:
+      return self.name
+    else:
+      return self._shared_with._get_scope_name()
+
+
 class Conv1D(Layer):
   """A 1D convolution on the input.
 
@@ -327,6 +376,8 @@ class Conv1D(Layer):
                stride=1,
                padding='SAME',
                activation_fn=tf.nn.relu,
+               biases_initializer=tf.random_normal_initializer,
+               weights_initializer=tf.random_normal_initializer,
                **kwargs):
     """Create a Conv1D layer.
 
@@ -342,12 +393,19 @@ class Conv1D(Layer):
       the padding method to use, either 'SAME' or 'VALID'
     activation_fn: object
       the Tensorflow activation function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.width = width
     self.out_channels = out_channels
     self.stride = stride
     self.padding = padding
     self.activation_fn = activation_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     self.out_tensor = None
     super(Conv1D, self).__init__(**kwargs)
     try:
@@ -367,19 +425,23 @@ class Conv1D(Layer):
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.get_shape()
     parent_channel_size = parent_shape[2].value
-    f = tf.Variable(
-        tf.random_normal([self.width, parent_channel_size, self.out_channels]))
-    b = tf.Variable(tf.random_normal([self.out_channels]))
+    f = tf.Variable(self.weights_initializer()
+                    ([self.width, parent_channel_size, self.out_channels]))
     t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
-    t = tf.nn.bias_add(t, b)
-    out_tensor = self.activation_fn(t)
+    if self.biases_initializer is not None:
+      b = tf.Variable(self.biases_initializer()([self.out_channels]))
+      t = tf.nn.bias_add(t, b)
+    if self.activation_fn is None:
+      out_tensor = t
+    else:
+      out_tensor = self.activation_fn(t)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
     return out_tensor
 
 
-class Dense(Layer):
+class Dense(SharedVariableScope):
 
   def __init__(
       self,
@@ -422,8 +484,6 @@ class Dense(Layer):
       self._shape = tuple(parent_shape[:-1]) + (out_channels,)
     except:
       pass
-    self._reuse = False
-    self._shared_with = None
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
@@ -459,25 +519,6 @@ class Dense(Layer):
       self._record_variable_scope(self._get_scope_name())
       self.out_tensor = out_tensor
     return out_tensor
-
-  def shared(self, in_layers):
-    copy = Dense(
-        self.out_channels,
-        self.activation_fn,
-        self.biases_initializer,
-        self.weights_initializer,
-        time_series=self.time_series,
-        in_layers=in_layers)
-    self._reuse = True
-    copy._reuse = True
-    copy._shared_with = self
-    return copy
-
-  def _get_scope_name(self):
-    if self._shared_with is None:
-      return self.name
-    else:
-      return self._shared_with._get_scope_name()
 
 
 class Highway(Layer):
@@ -972,7 +1013,10 @@ class Concat(Layer):
     try:
       s = list(self.in_layers[0].shape)
       for parent in self.in_layers[1:]:
-        s[axis] += parent.shape[axis]
+        if s[axis] is None or parent.shape[axis] is None:
+          s[axis] = None
+        else:
+          s[axis] += parent.shape[axis]
       self._shape = tuple(s)
     except:
       pass
@@ -1419,7 +1463,7 @@ class ReduceSquareDifference(Layer):
     return out_tensor
 
 
-class Conv2D(Layer):
+class Conv2D(SharedVariableScope):
   """A 2D convolution on the input.
 
   This layer expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
@@ -1433,6 +1477,8 @@ class Conv2D(Layer):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv2D layer.
@@ -1455,6 +1501,11 @@ class Conv2D(Layer):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1462,6 +1513,8 @@ class Conv2D(Layer):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv2D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1481,23 +1534,34 @@ class Conv2D(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 3:
       parent_tensor = tf.expand_dims(parent_tensor, 3)
-    out_tensor = tf.contrib.layers.conv2d(
-        parent_tensor,
-        num_outputs=self.num_outputs,
-        kernel_size=self.kernel_size,
-        stride=self.stride,
-        padding=self.padding,
-        activation_fn=self.activation_fn,
-        normalizer_fn=self.normalizer_fn,
-        scope=self.scope_name)
-    out_tensor = out_tensor
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.contrib.layers.conv2d(
+            parent_tensor,
+            num_outputs=self.num_outputs,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.padding,
+            activation_fn=self.activation_fn,
+            normalizer_fn=self.normalizer_fn,
+            biases_initializer=self.biases_initializer(),
+            weights_initializer=self.weights_initializer(),
+            scope=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
     return out_tensor
 
 
-class Conv3D(Layer):
+class Conv3D(SharedVariableScope):
   """A 3D convolution on the input.
 
   This layer expects its input to be a five dimensional tensor of shape
@@ -1512,6 +1576,8 @@ class Conv3D(Layer):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv3D layer.
@@ -1534,6 +1600,11 @@ class Conv3D(Layer):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1541,6 +1612,8 @@ class Conv3D(Layer):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv3D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1561,16 +1634,227 @@ class Conv3D(Layer):
     parent_tensor = inputs[0]
     if len(parent_tensor.get_shape()) == 4:
       parent_tensor = tf.expand_dims(parent_tensor, 4)
-    out_tensor = tf.layers.conv3d(
-        parent_tensor,
-        filters=self.num_outputs,
-        kernel_size=self.kernel_size,
-        strides=self.stride,
-        padding=self.padding,
-        activation=self.activation_fn,
-        activity_regularizer=self.normalizer_fn,
-        name=self.scope_name)
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.layers.conv3d(
+            parent_tensor,
+            filters=self.num_outputs,
+            kernel_size=self.kernel_size,
+            strides=self.stride,
+            padding=self.padding,
+            activation=self.activation_fn,
+            activity_regularizer=self.normalizer_fn,
+            bias_initializer=self.biases_initializer(),
+            kernel_initializer=self.weights_initializer(),
+            name=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     out_tensor = out_tensor
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Conv2DTranspose(SharedVariableScope):
+  """A transposed 2D convolution on the input.
+
+  This layer is typically used for upsampling in a deconvolutional network.  It
+  expects its input to be a four dimensional tensor of shape (batch size, height, width, # channels).
+  If there is only one channel, the fourth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv2DTranspose layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a two element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a two
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
+    super(Conv2DTranspose, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] * strides[0],
+                     parent_shape[2] * strides[1], num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 3:
+      parent_tensor = tf.expand_dims(parent_tensor, 3)
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.contrib.layers.conv2d_transpose(
+            parent_tensor,
+            num_outputs=self.num_outputs,
+            kernel_size=self.kernel_size,
+            stride=self.stride,
+            padding=self.padding,
+            activation_fn=self.activation_fn,
+            normalizer_fn=self.normalizer_fn,
+            biases_initializer=self.biases_initializer(),
+            weights_initializer=self.weights_initializer(),
+            scope=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
+    if set_tensors:
+      self._record_variable_scope(self.scope_name)
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
+class Conv3DTranspose(SharedVariableScope):
+  """A transposed 3D convolution on the input.
+
+  This layer is typically used for upsampling in a deconvolutional network.  It
+  expects its input to be a five dimensional tensor of shape (batch size, height, width, depth, # channels).
+  If there is only one channel, the fifth dimension may optionally be omitted.
+  """
+
+  def __init__(self,
+               num_outputs,
+               kernel_size=5,
+               stride=1,
+               padding='SAME',
+               activation_fn=tf.nn.relu,
+               normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
+               scope_name=None,
+               **kwargs):
+    """Create a Conv3DTranspose layer.
+
+    Parameters
+    ----------
+    num_outputs: int
+      the number of outputs produced by the convolutional kernel
+    kernel_size: int or tuple
+      the width of the convolutional kernel.  This can be either a three element tuple, giving
+      the kernel size along each dimension, or an integer to use the same size along both
+      dimensions.
+    stride: int or tuple
+      the stride between applications of the convolutional kernel.  This can be either a three
+      element tuple, giving the stride along each dimension, or an integer to use the same
+      stride along both dimensions.
+    padding: str
+      the padding method to use, either 'SAME' or 'VALID'
+    activation_fn: object
+      the Tensorflow activation function to apply to the output
+    normalizer_fn: object
+      the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
+    """
+    self.num_outputs = num_outputs
+    self.kernel_size = kernel_size
+    self.stride = stride
+    self.padding = padding
+    self.activation_fn = activation_fn
+    self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
+    super(Conv3DTranspose, self).__init__(**kwargs)
+    if scope_name is None:
+      scope_name = self.name
+    self.scope_name = scope_name
+    try:
+      parent_shape = self.in_layers[0].shape
+      strides = stride
+      if isinstance(stride, int):
+        strides = (stride, stride, stride)
+      self._shape = (parent_shape[0], parent_shape[1] * strides[0],
+                     parent_shape[2] * strides[1], parent_shape[3] * strides[2],
+                     num_outputs)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    parent_tensor = inputs[0]
+    if len(parent_tensor.get_shape()) == 4:
+      parent_tensor = tf.expand_dims(parent_tensor, 4)
+    for reuse in (self._reuse, False):
+      try:
+        out_tensor = tf.layers.conv3d_transpose(
+            parent_tensor,
+            filters=self.num_outputs,
+            kernel_size=self.kernel_size,
+            strides=self.stride,
+            padding=self.padding,
+            activation=self.activation_fn,
+            activity_regularizer=self.normalizer_fn,
+            bias_initializer=self.biases_initializer(),
+            kernel_initializer=self.weights_initializer(),
+            name=self._get_scope_name(),
+            reuse=reuse)
+        break
+      except ValueError:
+        if reuse:
+          # This probably means the variable hasn't been created yet, so try again
+          # with reuse set to false.
+          continue
+        raise
     if set_tensors:
       self._record_variable_scope(self.scope_name)
       self.out_tensor = out_tensor
