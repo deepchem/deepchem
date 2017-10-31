@@ -900,7 +900,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
 
   def __init__(self,
                nb_rotations=0,
-               nb_reflections=0,
                feature_types=None,
                ecfp_degree=2,
                ecfp_power=3,
@@ -987,7 +986,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.splif_power = splif_power
 
     self.nb_rotations = nb_rotations
-    self.nb_reflections = nb_reflections
 
     self.ligand_only = ligand_only
 
@@ -1390,10 +1388,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     for i in range(self.nb_rotations):
       rotated_system = rotate_molecules([protein_xyz, ligand_xyz])
       transformed_systems[(i + 1, 0)] = rotated_system
-    # FIXME: _reflect_molecule is not implemented
-    #   for j in range(self.nb_reflections):
-    #     reflected_system = self._reflect_molecule(rotated_system)
-    #     transformed_systems[(i + 1, j + 1)] = reflected_system
 
     features = {}
     for system_id, (protein_xyz, ligand_xyz) in transformed_systems.items():
