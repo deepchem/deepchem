@@ -28,7 +28,7 @@ train_dir = os.path.join(fold_dir, "train")
 valid_dir = os.path.join(fold_dir, "valid")
 
 
-def load_roiterberg_ANI(mode="atomization"):
+def load_roiteberg_ANI(mode="atomization", batch_size=192):
   """
   Load the ANI dataset.
 
@@ -61,10 +61,10 @@ def load_roiterberg_ANI(mode="atomization"):
   hdf5files = [
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
-      # 'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
-      # 'ani_gdb_s05.h5',
-      # 'ani_gdb_s06.h5',
+      'ani_gdb_s03.h5',
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
       # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
@@ -75,7 +75,7 @@ def load_roiterberg_ANI(mode="atomization"):
 
   def shard_generator():
 
-    shard_size = 4096 * 64
+    shard_size = 4096 * batch_size
 
     row_idx = 0
     group_idx = 0
@@ -144,6 +144,10 @@ def load_roiterberg_ANI(mode="atomization"):
 
           if len(X_cache) == shard_size:
 
+            # christ this yields different shaped arrays
+            # that aren't necessarily batch_Sized, and the subsequent
+            # iterator fucks up everything
+
             yield np.array(X_cache), np.array(y_cache), np.array(
                 w_cache), np.array(ids_cache)
 
@@ -163,6 +167,7 @@ def load_roiterberg_ANI(mode="atomization"):
 
     # flush once more at the end
     if len(X_cache) > 0:
+
       yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(
           ids_cache)
 
@@ -193,7 +198,7 @@ def broadcast(dataset, metadata):
 if __name__ == "__main__":
 
   max_atoms = 23
-  batch_size = 192  # CHANGED FROM 16
+  batch_size = 64  # CHANGED FROM 192
   layer_structures = [128, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
@@ -214,8 +219,8 @@ if __name__ == "__main__":
   else:
     print("Generating datasets")
 
-    train_valid_dataset, test_dataset, all_groups = load_roiterberg_ANI(
-        mode="atomization")
+    train_valid_dataset, test_dataset, all_groups = load_roiteberg_ANI(
+        mode="atomization", batch_size=batch_size)
 
     splitter = dc.splits.RandomGroupSplitter(
         broadcast(train_valid_dataset, all_groups))
@@ -237,6 +242,8 @@ if __name__ == "__main__":
     train_dataset = transformer.transform(train_dataset)
     valid_dataset = transformer.transform(valid_dataset)
     test_dataset = transformer.transform(test_dataset)
+
+  # print("SHAPE", train_dataset.get_shape())
 
   # if os.path.exists(model_dir):
   #   model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)

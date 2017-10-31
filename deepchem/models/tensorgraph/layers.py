@@ -593,6 +593,7 @@ class BPGather2(Layer):
     """ Merge features together """
 
     last_dense, atom_feats = self._get_input_tensors(in_layers)
+    print("last_dense_shape", last_dense.shape)
     regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
     flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
     out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
@@ -3568,14 +3569,12 @@ class AlphaShareLayer(Layer):
     self.out_tensors = []
     tmp_tensor = []
     for row in range(n_alphas):
-      self.out_tensors.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
+      tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
       count += 1
       if (count == 2):
-        out_tensor.append(tf.concat(tmp_tensor, 1))
+        self.out_tensors.append(tf.concat(tmp_tensor, 1))
         tmp_tensor = []
         count = 0
-
-    out_tensor = tf.stack(out_tensor)
 
     self.alphas = alphas
     if set_tensors:
@@ -3721,6 +3720,7 @@ class ANIFeat(Layer):
         [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
 
+
     if set_tensors:
       self.out_tensor = out_tensor
 
@@ -3854,9 +3854,9 @@ class ANIFeat(Layer):
 class LayerSplitter(Layer):
   """
   Layer which takes a tensor from in_tensor[0].out_tensors at an index
-  Only layers which need to output multiple layers set and use the variable   
-  self.out_tensors.   
-  This is a utility for those special layers which set self.out_tensors   
+  Only layers which need to output multiple layers set and use the variable
+  self.out_tensors.
+  This is a utility for those special layers which set self.out_tensors
   to return a layer wrapping a specific tensor in in_layers[0].out_tensors
   """
 
@@ -3869,7 +3869,7 @@ class LayerSplitter(Layer):
     kwargs
     """
     self.output_num = output_num
-    super(LayerSplitterr, self).__init__(**kwargs)
+    super(LayerSplitter, self).__init__(**kwargs)
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     out_tensor = self.in_layers[0].out_tensors[self.output_num]

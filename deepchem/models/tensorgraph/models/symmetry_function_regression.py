@@ -379,6 +379,22 @@ class ANIRegression(TensorGraph):
 
     shard_size = batch_size * 1
 
+
+    # print("X SHAPE", dataset.X.shape)
+    # print("SHAPE", dataset.get_shape())
+
+
+    for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
+        batch_size=batch_size,
+        deterministic=deterministic,
+        pad_batches=pad_batches)):
+      pass
+      # print("SHOVING", batch_idx)
+
+    print(batch_idx, math.ceil(dataset.get_shape()[0][0] / batch_size) - 1)
+    assert batch_idx == math.ceil(dataset.get_shape()[0][0]/batch_size)-1
+
+
     # shard_size = batch_size*192
 
     def shard_generator(cself):
@@ -393,26 +409,35 @@ class ANIRegression(TensorGraph):
 
       def feed_queue():
 
-        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+        for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
             batch_size=batch_size,
             deterministic=deterministic,
-            pad_batches=pad_batches):
+            pad_batches=pad_batches)):
 
-          mode = cself.get_pre_q_input(cself.mode)
-          obj = cself.get_pre_q_input(cself.dequeue_object)
-          lab = cself.get_pre_q_input(cself.labels[0])
-          weights = cself.get_pre_q_input(cself.task_weights[0])
+          # debugging race condition
+          if batch_idx < 14100:
 
-          cself.session.run(
-              cself.input_queue,
-              feed_dict={
-                  mode: True,
-                  obj: X_b,
-                  lab: np.zeros(
-                      (batch_size, 1)
-                  ),  # TODO(ytz): would be nice if we didn't have to feed dummys
-                  weights: np.zeros((batch_size, 1)),
-              })
+
+            pass
+
+
+          else:
+
+            mode = cself.get_pre_q_input(cself.mode)
+            obj = cself.get_pre_q_input(cself.dequeue_object)
+            lab = cself.get_pre_q_input(cself.labels[0])
+            weights = cself.get_pre_q_input(cself.task_weights[0])
+
+            cself.session.run(
+                cself.input_queue,
+                feed_dict={
+                    mode: True,
+                    obj: X_b,
+                    lab: np.zeros(
+                        (batch_size, 1)
+                    ),  # TODO(ytz): would be nice if we didn't have to feed dummys
+                    weights: np.zeros((batch_size, 1)),
+                })
 
           all_ybs.append(y_b)
           all_wbs.append(w_b)
@@ -443,7 +468,12 @@ class ANIRegression(TensorGraph):
 
       while batch_idx < num_batches:
 
-        X_feat = next_batch.get()  # shape (batch_size, max_atoms, feat_size)
+        if batch_idx < 14100:
+          fname = "/media/yutong/fast_datablob/feat_backup/shard-"+str(batch_idx)+"-X.joblib.csr"
+          X_feat = dc.utils.save.load_sparse_mats(fname)
+          # X_feat = 
+        else:
+          X_feat = next_batch.get()  # shape (batch_size, max_atoms, feat_size)
 
         if batch_idx < num_batches - 1:
           next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
