@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 np.random.seed(123)
 
-from rdkit.Chem import MolFromMolFile, MolFromSmiles, MolFromPDBFile, SDMolSupplier
+from rdkit.Chem import MolFromSmiles
 from rdkit.Chem.AllChem import Mol, ComputeGasteigerCharges
 
 from deepchem.feat import rdkit_grid_featurizer as rgf
@@ -205,15 +205,13 @@ class TestPiInteractions(unittest.TestCase):
     self.cycle4.Compute2DCoords()
 
     # load and sanitize two real molecules
-    self.prot = MolFromPDBFile(
+    _, self.prot = rgf.load_molecule(
         os.path.join(current_dir, '3ws9_protein_fixer_rdkit.pdb'),
-        sanitize=True,
-        removeHs=False)
+        add_hydrogens=False, calc_charges=False, sanitize=True)
 
-    self.lig = SDMolSupplier(
+    _, self.lig = rgf.load_molecule(
         os.path.join(current_dir, '3ws9_ligand.sdf'),
-        sanitize=True,
-        removeHs=False)[0]
+        add_hydrogens=False, calc_charges=False, sanitize=True)
 
   def test_compute_ring_center(self):
     # FIXME might break with different version of rdkit
@@ -334,7 +332,7 @@ class TestFeaturizationFunctions(unittest.TestCase):
     self.ligand_file = os.path.join(current_dir, '3ws9_ligand.sdf')
 
   def test_compute_all_ecfp(self):
-    mol = MolFromMolFile(self.ligand_file)
+    _, mol = rgf.load_molecule(self.ligand_file)
     num_atoms = mol.GetNumAtoms()
     for degree in range(1, 4):
       # TODO test if dict contains smiles
@@ -482,7 +480,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         ],
         ecfp_power=ecfp_power,
         splif_power=splif_power,
-        flatten=True)
+        flatten=True,
+        sanitize=True)
     self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
     feature_tensor = featurizer.featurize_complexes([self.ligand_file],
                                                     [self.protein_file])
@@ -510,7 +509,8 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
         box_width=box_w,
         ecfp_power=f_power,
         feature_types=['all_combined'],
-        flatten=True)
+        flatten=True,
+        sanitize=True)
 
     prot_tensor = rgf_featurizer._voxelize(
         rgf.convert_atom_to_voxel,

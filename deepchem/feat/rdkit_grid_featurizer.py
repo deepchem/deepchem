@@ -910,6 +910,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                voxel_width=1.0,
                flatten=False,
                verbose=True,
+               sanitize=False,
                **kwargs):
     """Parameters:
     -----------
@@ -967,6 +968,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         'box_x', 'box_y', 'box_z', 'save_intermediates', 'voxelize_features',
         'parallel', 'voxel_feature_types'
     ]
+
+    # list of features that require sanitized molecules
+    require_sanitized = ['pi_stack', 'cation_pi']
+
     for arg in deprecated_args:
       if arg in kwargs and verbose:
         warn('%s argument was removed and it is ignored,'
@@ -974,6 +979,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
              DeprecationWarning)
 
     self.verbose = verbose
+    self.sanitize = sanitize
     self.flatten = flatten
 
     self.ecfp_degree = ecfp_degree
@@ -1222,8 +1228,20 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     # each entry is a tuple (is_flat, feature_name)
     self.feature_types = []
 
+    # list of features that cannot be calculated with specified parameters
+    # this list is used to define <flat/voxel/all>_combined subset
+    ignored_features = []
+    if self.sanitize is False:
+      ignored_features += require_sanitized
+
     # parse provided feature types
     for feature_type in feature_types:
+      if self.sanitize is False and feature_type in require_sanitized:
+        if self.verbose:
+          warn('sanitize is set to False, %s feature will be ignored' %
+               feature_type)
+        continue
+
       if feature_type in self.FLAT_FEATURES:
         self.feature_types.append((True, feature_type))
         if self.flatten is False:
@@ -1235,28 +1253,28 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
         self.feature_types.append((False, feature_type))
 
       elif feature_type == 'flat_combined':
-        self.feature_types += list(
-            zip([True] * len(self.FLAT_FEATURES),
-                sorted(self.FLAT_FEATURES.keys())))
+        self.feature_types += [(True, ftype)
+                               for ftype in sorted(self.FLAT_FEATURES.keys())
+                               if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            warn('flat features are used, output will be flattened')
+            warn('Flat features are used, output will be flattened')
           self.flatten = True
 
       elif feature_type == 'voxel_combined':
-        self.feature_types += list(
-            zip([False] * len(self.VOXEL_FEATURES),
-                sorted(self.VOXEL_FEATURES.keys())))
+        self.feature_types += [(False, ftype)
+                               for ftype in sorted(self.VOXEL_FEATURES.keys())
+                               if ftype not in ignored_features]
       elif feature_type == 'all_combined':
-        self.feature_types += list(
-            zip([True] * len(self.FLAT_FEATURES),
-                sorted(self.FLAT_FEATURES.keys())))
-        self.feature_types += list(
-            zip([False] * len(self.VOXEL_FEATURES),
-                sorted(self.VOXEL_FEATURES.keys())))
+        self.feature_types += [(True, ftype)
+                               for ftype in sorted(self.FLAT_FEATURES.keys())
+                               if ftype not in ignored_features]
+        self.feature_types += [(False, ftype)
+                               for ftype in sorted(self.VOXEL_FEATURES.keys())
+                               if ftype not in ignored_features]
         if self.flatten is False:
           if self.verbose:
-            warn('flat feature are used, output will be flattened')
+            warn('Flat feature are used, output will be flattened')
           self.flatten = True
       elif self.verbose:
         warn('Ignoring unknown feature %s' % feature_type)
@@ -1333,7 +1351,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
 
     if not self.ligand_only:
-      protein_xyz, protein_rdk = load_molecule(protein_pdb, calc_charges=True)
+      protein_xyz, protein_rdk = load_molecule(
+          protein_pdb, calc_charges=True, sanitize=self.sanitize)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
@@ -1342,7 +1361,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     time1 = time.time()
     ############################################################## TIMING
-    ligand_xyz, ligand_rdk = load_molecule(ligand_file, calc_charges=True)
+    ligand_xyz, ligand_rdk = load_molecule(
+        ligand_file, calc_charges=True, sanitize=self.sanitize)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading ligand coordinates took %0.3f s" % (time2 - time1),
