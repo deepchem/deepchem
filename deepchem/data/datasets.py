@@ -652,9 +652,17 @@ class DiskDataset(Dataset):
                   epoch=0,
                   deterministic=False,
                   pad_batches=False):
-    """Get an object that iterates over minibatches from the dataset.
+    """ Get an object that iterates over minibatches from the dataset. This method guarantees
+    that the number of batches returned is math.ceil(dataset.get_shape()[0][0]/batch_size)
+
+    Parameters:
+    -----------
+    batch_size: int
+      Number of elements per 
+
 
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
+
     """
 
     def iterate(dataset):
@@ -670,96 +678,71 @@ class DiskDataset(Dataset):
       # than process based pools, since process based pools need to pickle/serialize
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
-      pool = ThreadPool(n_workers)
-      next_shards = [None] * n_workers
+      pool = ThreadPool(1)
+      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
 
-      for i in range(n_workers):
-        next_shards[i] = pool.apply_async(dataset.get_shard, (shard_perm[i],))
+      total_yield = 0
 
-      for i in range(num_shards):
-        shard_idx = i % n_workers
-        X, y, w, ids = next_shards[shard_idx].get()
-        if i < num_shards - shard_idx:
-          next_shards[shard_idx] = pool.apply_async(
-              dataset.get_shard, (shard_perm[i + shard_idx],))
+      num_global_batches = math.ceil(dataset.get_shape()[0][0]/batch_size)
+      cur_global_batch = 0
+      cur_shard = 0
+      carry = None
 
-        n_samples = X.shape[0]
+      while cur_global_batch < num_global_batches:
 
-        if batch_size is None:
-          shard_batch_size = n_samples
+        X, y, w, ids = next_shard.get()
+        if cur_shard < num_shards - 1:
+          next_shard = pool.apply_async(dataset.get_shard, (shard_perm[cur_shard + 1],))
         else:
-          shard_batch_size = batch_size
+          pool.close()
 
-        batch_idx = 0
-        num_batches = np.math.ceil(n_samples / shard_batch_size)
-        while batch_idx < num_batches:
-          start = batch_idx * shard_batch_size
-          end = min(n_samples, (batch_idx + 1) * shard_batch_size)
+        if carry is not None:
+          X = np.concatenate([carry[0], X], axis=0)
+          y = np.concatenate([carry[1], y], axis=0)
+          w = np.concatenate([carry[2], w], axis=0)
+          ids = np.concatenate([carry[3], ids], axis=0)
+          carry = None
+
+        n_shard_samples = X.shape[0]
+        cur_local_batch = 0
+        num_local_batches = math.ceil(n_shard_samples/batch_size)
+
+        if n_shard_samples == 0:
+          continue
+        if not deterministic:
+          sample_perm = np.random.permutation(n_shard_samples)
+        else:
+          sample_perm = np.arange(n_shard_samples)
+
+        while cur_local_batch < num_local_batches:
+          start = cur_local_batch * batch_size
+          end = min(n_shard_samples, (cur_local_batch + 1) * batch_size)
+
           indices = range(start, end)
           perm_indices = sample_perm[indices]
-          X_batch = X[perm_indices]
+          X_b = X[perm_indices]
 
           if y is not None:
-            y_batch = y[perm_indices]
+            y_b = y[perm_indices]
           else:
-            y_batch = None
+            y_b = None
 
-        # TODO(rbharath): This happens in tests sometimes, but don't understand why?
-        # Handle edge case.
-        if batch_size == n_samples:
-          # (ytz): optimized branch to avoid an extra permutation, since each shard
-          # contains exactly one batch, the permutation within the shard is irrelevant.
-
-          X_batch = X
-          y_batch = y
-          w_batch = w
-          ids_batch = ids
-
-          if pad_batches:
-            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-          batch_idx += 1
-          yield (X_batch, y_batch, w_batch, ids_batch)
-
-        else:
-
-          if n_samples == 0:
-            continue
-          if not deterministic:
-            sample_perm = np.random.permutation(n_samples)
+          if w is not None:
+            w_b = w[perm_indices]
           else:
-            sample_perm = np.arange(n_samples)
+            w_b = None
 
-          batch_idx = 0
-          num_batches = math.ceil(n_samples / shard_batch_size)
+          ids_b = ids[perm_indices]
 
-          while batch_idx < num_batches:
-            start = batch_idx * shard_batch_size
-            end = min(n_samples, (batch_idx + 1) * shard_batch_size)
-
-            indices = range(start, end)
-            perm_indices = sample_perm[indices]
-            X_batch = X[perm_indices]
-
-            if y is not None:
-              y_batch = y[perm_indices]
-            else:
-              y_batch = None
-
-            if w is not None:
-              w_batch = w[perm_indices]
-            else:
-              w_batch = None
-
-            ids_batch = ids[perm_indices]
-            if pad_batches:
-              (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                  shard_batch_size, X_batch, y_batch, w_batch, ids_batch)
-
-            batch_idx += 1
-            yield (X_batch, y_batch, w_batch, ids_batch)
-
-      pool.close()
+          assert len(X_b) <= batch_size
+          if len(X_b) < batch_size and cur_shard != num_shards-1:
+            assert carry is None
+            carry = [X_b, y_b, w_b, ids_b]
+          else:
+            yield X_b, y_b, w_b, ids_b
+            cur_global_batch += 1
+          cur_local_batch += 1
+        cur_shard += 1
 
     return iterate(self)
 
