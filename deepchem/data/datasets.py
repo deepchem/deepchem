@@ -646,8 +646,8 @@ class DiskDataset(Dataset):
     Parameters:
     -----------
     batch_size: int
-      Number of elements in a batch. If batch_size is not None then the entire dataset
-      across all shards will be returned as a single batch.
+      Number of elements in a batch. If None, then it yields batches with size equal to the size
+      of each individual shard.
 
     epoch: int
       Not used
@@ -681,9 +681,10 @@ class DiskDataset(Dataset):
       total_yield = 0
 
       if batch_size is None:
-        batch_size = len(dataset)
+        num_global_batches = num_shards
+      else:
+        num_global_batches = math.ceil(len(dataset) / batch_size)
 
-      num_global_batches = math.ceil(len(dataset) / batch_size)
       cur_global_batch = 0
       cur_shard = 0
       carry = None
@@ -706,7 +707,12 @@ class DiskDataset(Dataset):
 
         n_shard_samples = X.shape[0]
         cur_local_batch = 0
-        num_local_batches = math.ceil(n_shard_samples / batch_size)
+        if batch_size is None:
+          shard_batch_size = n_shard_samples
+        else:
+          shard_batch_size = batch_size
+
+        num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
 
         if n_shard_samples == 0:
           continue
@@ -716,8 +722,8 @@ class DiskDataset(Dataset):
           sample_perm = np.arange(n_shard_samples)
 
         while cur_local_batch < num_local_batches:
-          start = cur_local_batch * batch_size
-          end = min(n_shard_samples, (cur_local_batch + 1) * batch_size)
+          start = cur_local_batch * shard_batch_size
+          end = min(n_shard_samples, (cur_local_batch + 1) * shard_batch_size)
 
           indices = range(start, end)
           perm_indices = sample_perm[indices]
@@ -735,16 +741,16 @@ class DiskDataset(Dataset):
 
           ids_b = ids[perm_indices]
 
-          assert len(X_b) <= batch_size
-          if len(X_b) < batch_size and cur_shard != num_shards - 1:
+          assert len(X_b) <= shard_batch_size
+          if len(X_b) < shard_batch_size and cur_shard != num_shards - 1:
             assert carry is None
             carry = [X_b, y_b, w_b, ids_b]
           else:
 
             # (ytz): this skips everything except possibly the last shard
             if pad_batches:
-              (X_b, y_b, w_b, ids_b) = pad_batch(batch_size, X_b, y_b, w_b,
-                                                 ids_b)
+              (X_b, y_b, w_b, ids_b) = pad_batch(shard_batch_size, X_b, y_b,
+                                                 w_b, ids_b)
 
             yield X_b, y_b, w_b, ids_b
             cur_global_batch += 1

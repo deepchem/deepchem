@@ -457,8 +457,8 @@ class TestDatasets(unittest.TestCase):
 
   def test_disk_iterate_batch(self):
 
-    all_batch_sizes = [32, 17, 11]
-    all_shard_sizes = [[1, 1, 1, 1, 1], [31, 31, 31, 31, 31],
+    all_batch_sizes = [None, 32, 17, 11]
+    all_shard_sizes = [[7, 3, 12, 4, 5], [1, 1, 1, 1, 1], [31, 31, 31, 31, 31],
                        [21, 11, 41, 21, 51]]
 
     for idx in range(25):
@@ -514,10 +514,12 @@ class TestDatasets(unittest.TestCase):
         test_ids.append(d)
 
       if batch_size is None:
-        assert len(test_Xs) == 1
-        assert len(test_ys) == 1
-        assert len(test_ws) == 1
-        assert len(test_ids) == 1
+        for idx, (tx, ty, tw,
+                  tids) in enumerate(zip(test_Xs, test_ys, test_ws, test_ids)):
+          assert len(tx) == shard_sizes[idx]
+          assert len(ty) == shard_sizes[idx]
+          assert len(tw) == shard_sizes[idx]
+          assert len(tids) == shard_sizes[idx]
 
       test_Xs = np.concatenate(test_Xs, axis=0)
       test_ys = np.concatenate(test_ys, axis=0)
@@ -525,7 +527,7 @@ class TestDatasets(unittest.TestCase):
       test_ids = np.concatenate(test_ids, axis=0)
 
       if batch_size is None:
-        assert bidx == 0
+        assert bidx == len(shard_sizes) - 1
       else:
         assert bidx == math.ceil(total_size / batch_size) - 1
 
@@ -536,6 +538,7 @@ class TestDatasets(unittest.TestCase):
 
       # non-deterministic
       test_Xs, test_ys, test_ws, test_ids = [], [], [], []
+
       for bidx, (a, b, c, d) in enumerate(
           dataset.iterbatches(
               batch_size=batch_size, pad_batches=False, deterministic=False)):
@@ -545,19 +548,14 @@ class TestDatasets(unittest.TestCase):
         test_ws.append(c)
         test_ids.append(d)
 
-      if batch_size is None:
-        assert len(test_Xs) == 1
-        assert len(test_ys) == 1
-        assert len(test_ws) == 1
-        assert len(test_ids) == 1
-
+      # we don't know the order in which the shards are iterated in.
       test_Xs = np.concatenate(test_Xs, axis=0)
       test_ys = np.concatenate(test_ys, axis=0)
       test_ws = np.concatenate(test_ws, axis=0)
       test_ids = np.concatenate(test_ids, axis=0)
 
       if batch_size is None:
-        assert bidx == 0
+        assert bidx == len(shard_sizes) - 1
       else:
         assert bidx == math.ceil(total_size / batch_size) - 1
 
