@@ -638,7 +638,7 @@ class DiskDataset(Dataset):
                   deterministic=False,
                   pad_batches=False):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
-    that the number of batches returned is math.ceil(dataset.get_shape()[0][0]/batch_size).
+    that the number of batches returned is math.ceil(len(dataset)/batch_size).
     
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
 
@@ -675,7 +675,7 @@ class DiskDataset(Dataset):
       # than process based pools, since process based pools need to pickle/serialize
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
-      pool = Pool(1) # mp.dummy aliases ThreadPool to Pool
+      pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
       next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
 
       total_yield = 0
@@ -683,7 +683,7 @@ class DiskDataset(Dataset):
       if batch_size is None:
         batch_size = len(dataset)
 
-      num_global_batches = math.ceil(len(dataset)/batch_size)
+      num_global_batches = math.ceil(len(dataset) / batch_size)
       cur_global_batch = 0
       cur_shard = 0
       carry = None
@@ -692,7 +692,8 @@ class DiskDataset(Dataset):
 
         X, y, w, ids = next_shard.get()
         if cur_shard < num_shards - 1:
-          next_shard = pool.apply_async(dataset.get_shard, (shard_perm[cur_shard + 1],))
+          next_shard = pool.apply_async(dataset.get_shard,
+                                        (shard_perm[cur_shard + 1],))
         else:
           pool.close()
 
@@ -705,7 +706,7 @@ class DiskDataset(Dataset):
 
         n_shard_samples = X.shape[0]
         cur_local_batch = 0
-        num_local_batches = math.ceil(n_shard_samples/batch_size)
+        num_local_batches = math.ceil(n_shard_samples / batch_size)
 
         if n_shard_samples == 0:
           continue
@@ -735,14 +736,15 @@ class DiskDataset(Dataset):
           ids_b = ids[perm_indices]
 
           assert len(X_b) <= batch_size
-          if len(X_b) < batch_size and cur_shard != num_shards-1:
+          if len(X_b) < batch_size and cur_shard != num_shards - 1:
             assert carry is None
             carry = [X_b, y_b, w_b, ids_b]
           else:
 
             # (ytz): this skips everything except possibly the last shard
             if pad_batches:
-              (X_b, y_b, w_b, ids_b) = pad_batch(batch_size, X_b, y_b, w_b, ids_b)
+              (X_b, y_b, w_b, ids_b) = pad_batch(batch_size, X_b, y_b, w_b,
+                                                 ids_b)
 
             yield X_b, y_b, w_b, ids_b
             cur_global_batch += 1
