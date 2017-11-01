@@ -90,15 +90,24 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
   else:
     X_out = np.zeros((batch_size,), dtype=X_b.dtype)
 
-  num_tasks = y_b.shape[1]
-  y_out = np.zeros((batch_size, num_tasks), dtype=y_b.dtype)
-  w_out = np.zeros((batch_size, num_tasks), dtype=w_b.dtype)
+  if y_b is None:
+    y_out = None
+  else:
+    y_out = np.zeros((batch_size, y_b.shape[1]), dtype=y_b.dtype)
+
+  if w_b is None:
+    w_out = None
+  else:
+    w_out = np.zeros((batch_size, w_b.shape[1]), dtype=w_b.dtype)
+
   ids_out = np.zeros((batch_size,), dtype=ids_b.dtype)
 
   # Fill in batch arrays
   start = 0
   # Only the first set of copy will be counted in training loss
-  w_out[start:start + num_samples] = w_b[:]
+  if w_out is not None:
+    w_out[start:start + num_samples] = w_b[:]
+
   while start < batch_size:
     num_left = batch_size - start
     if num_left < num_samples:
@@ -106,7 +115,10 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
     else:
       increment = num_samples
     X_out[start:start + increment] = X_b[:increment]
-    y_out[start:start + increment] = y_b[:increment]
+
+    if y_out is not None:
+      y_out[start:start + increment] = y_b[:increment]
+
     ids_out[start:start + increment] = ids_b[:increment]
     start += increment
 
@@ -683,7 +695,7 @@ class DiskDataset(Dataset):
       if batch_size is None:
         num_global_batches = num_shards
       else:
-        num_global_batches = math.ceil(len(dataset) / batch_size)
+        num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
 
       cur_global_batch = 0
       cur_shard = 0
@@ -700,8 +712,10 @@ class DiskDataset(Dataset):
 
         if carry is not None:
           X = np.concatenate([carry[0], X], axis=0)
-          y = np.concatenate([carry[1], y], axis=0)
-          w = np.concatenate([carry[2], w], axis=0)
+          if y is not None:
+            y = np.concatenate([carry[1], y], axis=0)
+          if w is not None:
+            w = np.concatenate([carry[2], w], axis=0)
           ids = np.concatenate([carry[3], ids], axis=0)
           carry = None
 

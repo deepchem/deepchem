@@ -455,6 +455,50 @@ class TestDatasets(unittest.TestCase):
     np.testing.assert_array_equal(all_ws, test_ws[:total_size, :])
     np.testing.assert_array_equal(all_ids, test_ids[:total_size])
 
+  def test_disk_iterate_y_w_None(self):
+    shard_sizes = [21, 11, 41, 21, 51]
+    batch_size = 10
+
+    all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+    def shard_generator():
+      for sz in shard_sizes:
+        X_b = np.random.rand(sz, 1)
+        ids_b = np.random.rand(sz)
+
+        all_Xs.append(X_b)
+        all_ids.append(ids_b)
+
+        yield X_b, None, None, ids_b
+
+    dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+    all_Xs = np.concatenate(all_Xs, axis=0)
+    all_ids = np.concatenate(all_ids, axis=0)
+
+    test_Xs, test_ids = [], []
+    for bidx, (a, _, _, d) in enumerate(
+        dataset.iterbatches(
+            batch_size=batch_size, pad_batches=True, deterministic=True)):
+
+      test_Xs.append(a)
+      test_ids.append(d)
+
+    test_Xs = np.concatenate(test_Xs, axis=0)
+    test_ids = np.concatenate(test_ids, axis=0)
+
+    total_size = sum(shard_sizes)
+
+    assert bidx == math.ceil(total_size / batch_size) - 1
+
+    expected_batches = math.ceil(total_size / batch_size) * batch_size
+
+    assert len(test_Xs) == expected_batches
+    assert len(test_ids) == expected_batches
+
+    np.testing.assert_array_equal(all_Xs, test_Xs[:total_size, :])
+    np.testing.assert_array_equal(all_ids, test_ids[:total_size])
+
   def test_disk_iterate_batch(self):
 
     all_batch_sizes = [None, 32, 17, 11]
