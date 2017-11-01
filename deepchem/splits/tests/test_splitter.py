@@ -136,16 +136,28 @@ class TestSplitters(unittest.TestCase):
         [train_data, valid_data, test_data])
     assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
-  def test_singletask_butina_split(self):
+  def test_singletask_maxmin_split(self):
     """
-    Test singletask ScaffoldSplitter class.
+    Test singletask MaxMinSplitter class.
     """
     solubility_dataset = dc.data.tests.load_butina_data()
-    scaffold_splitter = dc.splits.ButinaSplitter()
+    maxmin_splitter = dc.splits.MaxMinSplitter()
     train_data, valid_data, test_data = \
-      scaffold_splitter.train_valid_test_split(
+      maxmin_splitter.train_valid_test_split(
         solubility_dataset)
-    print(len(train_data), len(valid_data))
+    assert len(train_data) == 8
+    assert len(valid_data) == 1
+    assert len(test_data) == 1
+
+  def test_singletask_butina_split(self):
+    """
+    Test singletask ButinaSplitter class.
+    """
+    solubility_dataset = dc.data.tests.load_butina_data()
+    butina_splitter = dc.splits.ButinaSplitter()
+    train_data, valid_data, test_data = \
+      butina_splitter.train_valid_test_split(
+        solubility_dataset)
     assert len(train_data) == 7
     assert len(valid_data) == 3
     assert len(test_data) == 0
@@ -292,7 +304,7 @@ class TestSplitters(unittest.TestCase):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
-    w[:n_positives / 2] = 0
+    w[:n_positives // 2] = 0
     ids = np.arange(n_samples)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
@@ -340,7 +352,7 @@ class TestSplitters(unittest.TestCase):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Mask half the examples
-    w[:n_samples / 2] = 0
+    w[:n_samples // 2] = 0
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     split_indices = stratified_splitter.get_task_split_indices(
