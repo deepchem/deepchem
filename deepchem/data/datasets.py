@@ -646,7 +646,8 @@ class DiskDataset(Dataset):
     Parameters:
     -----------
     batch_size: int
-      Number of elements in a batch
+      Number of elements in a batch. If batch_size is not None then the entire dataset
+      across all shards will be returned as a single batch.
 
     epoch: int
       Not used
@@ -663,7 +664,7 @@ class DiskDataset(Dataset):
 
     """
 
-    def iterate(dataset):
+    def iterate(dataset, batch_size):
       num_shards = dataset.get_number_shards()
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
@@ -679,7 +680,10 @@ class DiskDataset(Dataset):
 
       total_yield = 0
 
-      num_global_batches = math.ceil(dataset.get_shape()[0][0]/batch_size)
+      if batch_size is None:
+        batch_size = len(dataset)
+
+      num_global_batches = math.ceil(len(dataset)/batch_size)
       cur_global_batch = 0
       cur_shard = 0
       carry = None
@@ -738,14 +742,14 @@ class DiskDataset(Dataset):
 
             # (ytz): this skips everything except possibly the last shard
             if pad_batches:
-              (X_b, y_b, w_b, ids_b) = pad_batches(shard_batch_size, X_b, y_b, w_b, ids_b)
+              (X_b, y_b, w_b, ids_b) = pad_batch(batch_size, X_b, y_b, w_b, ids_b)
 
             yield X_b, y_b, w_b, ids_b
             cur_global_batch += 1
           cur_local_batch += 1
         cur_shard += 1
 
-    return iterate(self)
+    return iterate(self, batch_size)
 
   def itersamples(self):
     """Get an object that iterates over the samples in the dataset.
