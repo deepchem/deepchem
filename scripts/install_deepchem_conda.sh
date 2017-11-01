@@ -22,7 +22,7 @@ conda create -y --name $envname python=$python_version
 source activate $envname
 conda install -y -q -c omnia pdbfixer=1.4
 conda install -y -q -c rdkit rdkit=2017.03.3
-conda install -y -q -c conda-forge icu=56
+conda install -y -q -c conda-forge icu=56.1
 conda install -y -q -c conda-forge joblib=0.11
 conda install -y -q -c conda-forge six=1.10.0
 conda install -y -q -c conda-forge mdtraj=1.8.0

@@ -2,7 +2,7 @@ FROM nvidia/cuda
 
 # Install some utilities
 RUN apt-get update && \
-    apt-get install -y -q wget git libxrender1 && \
+    apt-get install -y -q wget git libxrender1 libsm6 && \
     apt-get clean
 
 # Install miniconda
@@ -21,10 +21,9 @@ ENV PATH /miniconda/bin:$PATH
 # TODO: Get rid of this when there is a stable release of deepchem.
 RUN git clone https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    git checkout tags/1.2.0 && \
+    git checkout tags/1.3.0 && \
     sed -i -- 's/tensorflow$/tensorflow-gpu/g' scripts/install_deepchem_conda.sh && \
     bash scripts/install_deepchem_conda.sh root && \
-    pip install tensorflow-gpu==1.0.1 && \
     python setup.py develop
 
 # Clean up
