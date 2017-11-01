@@ -639,14 +639,17 @@ class MaxMinSplitter(Splitter):
 
     picker = MaxMinPicker()
     testIndices = picker.LazyPick(
-        distFunc=distance, poolSize=num_datapoints, pickSize=num_test, seed=23)
+        distFunc=distance,
+        poolSize=num_datapoints,
+        pickSize=num_test,
+        seed=seed)
 
     validTestIndices = picker.LazyPick(
         distFunc=distance,
         poolSize=num_datapoints,
         pickSize=num_valid + num_test,
         firstPicks=testIndices,
-        seed=23)
+        seed=seed)
 
     allSet = set(range(num_datapoints))
     testSet = set(testIndices)
