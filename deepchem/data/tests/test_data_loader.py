@@ -33,6 +33,15 @@ class TestDataLoader(unittest.TestCase):
         tasks=[], smiles_field="smiles", featurizer=featurizer)
     loader.featurize(input_file)
 
+  def test_none_shard_size(self):
+    """Test a shard_size of None for the CSVLoader. (Process the whole file at once)"""
+    input_file = os.path.join(self.current_dir,
+                              "../../models/tests/example.csv")
+    featurizer = dc.feat.CircularFingerprint(size=1024)
+    loader = dc.data.CSVLoader(
+         tasks=[], smiles_field="smiles", featurizer=featurizer)
+    loader.featurize(input_file, shard_size=None)
+
   def scaffold_test_train_valid_test_split(self):
     """Test of singletask RF ECFP regression API."""
     splittype = "scaffold"

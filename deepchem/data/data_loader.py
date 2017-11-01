@@ -189,7 +189,7 @@ class DataLoader(object):
   def featurize(self, input_files, data_dir=None, shard_size=8192):
     """Featurize provided files and write to specified location."""
     log("Loading raw samples now.", self.verbose)
-    log("shard_size: %d" % shard_size, self.verbose)
+    log("shard_size: {}".format(shard_size), self.verbose)
 
     if not isinstance(input_files, list):
       input_files = [input_files]
