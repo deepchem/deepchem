@@ -30,6 +30,7 @@ class TensorGraph(Model):
                use_queue=True,
                graph=None,
                learning_rate=0.001,
+               configproto=None,
                **kwargs):
     """
     Parameters
@@ -51,8 +52,7 @@ class TensorGraph(Model):
       is created.
     learning_rate: float or LearningRateSchedule
       the learning rate to use for optimization
-    kwargs
-      "configproto": a tf.ConfigProto() object used to create tf.Session()
+    configproto: a tf.ConfigProto() object used to create tf.Session()
     """
 
     # Layer Management
@@ -67,7 +67,7 @@ class TensorGraph(Model):
     self.queue_installed = False
     self.optimizer = Adam(
         learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
-    self.configproto = kwargs.pop("configproto", tf.ConfigProto())
+    self.configproto = configproto
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
