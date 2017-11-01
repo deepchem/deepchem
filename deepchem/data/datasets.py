@@ -472,7 +472,7 @@ class DiskDataset(Dataset):
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
-      metadata_df = read_hdf(metadata_filename, 'metadata')
+      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
       return tasks, metadata_df
     except Exception as e:
       pass
@@ -607,7 +607,7 @@ class DiskDataset(Dataset):
     """
     Get standard location for metadata file.
     """
-    metadata_filename = os.path.join(self.data_dir, "metadata.hd5")
+    metadata_filename = os.path.join(self.data_dir, "metadata.csv.gzip")
     tasks_filename = os.path.join(self.data_dir, "tasks.json")
     return tasks_filename, metadata_filename
 

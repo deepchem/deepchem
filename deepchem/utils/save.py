@@ -119,13 +119,11 @@ def save_metadata(tasks, metadata_df, data_dir):
   """
   if isinstance(tasks, np.ndarray):
     tasks = tasks.tolist()
-  metadata_filename = os.path.join(data_dir, "metadata.hd5")
+  metadata_filename = os.path.join(data_dir, "metadata.csv.gzip")
   tasks_filename = os.path.join(data_dir, "tasks.json")
   with open(tasks_filename, 'w') as fout:
     json.dump(tasks, fout)
-  hdf = pd.HDFStore(metadata_filename)
-  hdf.put('metadata', metadata_df, format='table')
-  hdf.close()
+  metadata_df.to_csv(metadata_filename, compression='gzip')
 
 
 def load_from_disk(filename):
