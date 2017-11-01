@@ -376,6 +376,8 @@ class Conv1D(Layer):
                stride=1,
                padding='SAME',
                activation_fn=tf.nn.relu,
+               biases_initializer=tf.random_normal_initializer,
+               weights_initializer=tf.random_normal_initializer,
                **kwargs):
     """Create a Conv1D layer.
 
@@ -391,12 +393,19 @@ class Conv1D(Layer):
       the padding method to use, either 'SAME' or 'VALID'
     activation_fn: object
       the Tensorflow activation function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.width = width
     self.out_channels = out_channels
     self.stride = stride
     self.padding = padding
     self.activation_fn = activation_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     self.out_tensor = None
     super(Conv1D, self).__init__(**kwargs)
     try:
@@ -416,12 +425,16 @@ class Conv1D(Layer):
       raise ValueError("Parent tensor must be (batch, width, channel)")
     parent_shape = parent.get_shape()
     parent_channel_size = parent_shape[2].value
-    f = tf.Variable(
-        tf.random_normal([self.width, parent_channel_size, self.out_channels]))
-    b = tf.Variable(tf.random_normal([self.out_channels]))
+    f = tf.Variable(self.weights_initializer()
+                    ([self.width, parent_channel_size, self.out_channels]))
     t = tf.nn.conv1d(parent, f, stride=self.stride, padding=self.padding)
-    t = tf.nn.bias_add(t, b)
-    out_tensor = self.activation_fn(t)
+    if self.biases_initializer is not None:
+      b = tf.Variable(self.biases_initializer()([self.out_channels]))
+      t = tf.nn.bias_add(t, b)
+    if self.activation_fn is None:
+      out_tensor = t
+    else:
+      out_tensor = self.activation_fn(t)
     if set_tensors:
       self._record_variable_scope(self.name)
       self.out_tensor = out_tensor
@@ -1464,6 +1477,8 @@ class Conv2D(SharedVariableScope):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv2D layer.
@@ -1486,6 +1501,11 @@ class Conv2D(SharedVariableScope):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1493,6 +1513,8 @@ class Conv2D(SharedVariableScope):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv2D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1522,6 +1544,8 @@ class Conv2D(SharedVariableScope):
             padding=self.padding,
             activation_fn=self.activation_fn,
             normalizer_fn=self.normalizer_fn,
+            biases_initializer=self.biases_initializer(),
+            weights_initializer=self.weights_initializer(),
             scope=self._get_scope_name(),
             reuse=reuse)
         break
@@ -1552,6 +1576,8 @@ class Conv3D(SharedVariableScope):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv3D layer.
@@ -1574,6 +1600,11 @@ class Conv3D(SharedVariableScope):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1581,6 +1612,8 @@ class Conv3D(SharedVariableScope):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv3D, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1611,6 +1644,8 @@ class Conv3D(SharedVariableScope):
             padding=self.padding,
             activation=self.activation_fn,
             activity_regularizer=self.normalizer_fn,
+            bias_initializer=self.biases_initializer(),
+            kernel_initializer=self.weights_initializer(),
             name=self._get_scope_name(),
             reuse=reuse)
         break
@@ -1642,6 +1677,8 @@ class Conv2DTranspose(SharedVariableScope):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv2DTranspose layer.
@@ -1664,6 +1701,11 @@ class Conv2DTranspose(SharedVariableScope):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1671,6 +1713,8 @@ class Conv2DTranspose(SharedVariableScope):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv2DTranspose, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1700,6 +1744,8 @@ class Conv2DTranspose(SharedVariableScope):
             padding=self.padding,
             activation_fn=self.activation_fn,
             normalizer_fn=self.normalizer_fn,
+            biases_initializer=self.biases_initializer(),
+            weights_initializer=self.weights_initializer(),
             scope=self._get_scope_name(),
             reuse=reuse)
         break
@@ -1730,6 +1776,8 @@ class Conv3DTranspose(SharedVariableScope):
                padding='SAME',
                activation_fn=tf.nn.relu,
                normalizer_fn=None,
+               biases_initializer=tf.zeros_initializer,
+               weights_initializer=tf.contrib.layers.xavier_initializer,
                scope_name=None,
                **kwargs):
     """Create a Conv3DTranspose layer.
@@ -1752,6 +1800,11 @@ class Conv3DTranspose(SharedVariableScope):
       the Tensorflow activation function to apply to the output
     normalizer_fn: object
       the Tensorflow normalizer function to apply to the output
+    biases_initializer: callable object
+      the initializer for bias values.  This may be None, in which case the layer
+      will not include biases.
+    weights_initializer: callable object
+      the initializer for weight values
     """
     self.num_outputs = num_outputs
     self.kernel_size = kernel_size
@@ -1759,6 +1812,8 @@ class Conv3DTranspose(SharedVariableScope):
     self.padding = padding
     self.activation_fn = activation_fn
     self.normalizer_fn = normalizer_fn
+    self.weights_initializer = weights_initializer
+    self.biases_initializer = biases_initializer
     super(Conv3DTranspose, self).__init__(**kwargs)
     if scope_name is None:
       scope_name = self.name
@@ -1789,6 +1844,8 @@ class Conv3DTranspose(SharedVariableScope):
             padding=self.padding,
             activation=self.activation_fn,
             activity_regularizer=self.normalizer_fn,
+            bias_initializer=self.biases_initializer(),
+            kernel_initializer=self.weights_initializer(),
             name=self._get_scope_name(),
             reuse=reuse)
         break
