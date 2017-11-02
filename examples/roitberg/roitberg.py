@@ -62,9 +62,9 @@ def load_roiteberg_ANI(mode="atomization", batch_size=192):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      'ani_gdb_s04.h5',
-      'ani_gdb_s05.h5',
-      'ani_gdb_s06.h5',
+      # 'ani_gdb_s04.h5',
+      # 'ani_gdb_s05.h5',
+      # 'ani_gdb_s06.h5',
       # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
@@ -198,7 +198,7 @@ def broadcast(dataset, metadata):
 if __name__ == "__main__":
 
   max_atoms = 23
-  batch_size = 64  # CHANGED FROM 192
+  batch_size = 192  # CHANGED FROM 192
   layer_structures = [128, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 

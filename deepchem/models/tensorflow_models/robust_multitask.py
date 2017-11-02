@@ -160,15 +160,12 @@ class RobustMultitaskClassifier(TensorflowMultiTaskClassifier):
           task_layer_size = layer_sizes[-1]
         print("Adding output weights of shape %s" % str([task_layer_size, 1]))
         output.append(
-            tf.squeeze(
-                model_ops.logits(
-                    task_layer,
-                    num_classes=2,
-                    weight_init=tf.truncated_normal(
-                        shape=[task_layer_size, 2],
-                        stddev=weight_init_stddevs[-1]),
-                    bias_init=tf.constant(
-                        value=bias_init_consts[-1], shape=[2]))))
+            model_ops.logits(
+                task_layer,
+                num_classes=2,
+                weight_init=tf.truncated_normal(
+                    shape=[task_layer_size, 2], stddev=weight_init_stddevs[-1]),
+                bias_init=tf.constant(value=bias_init_consts[-1], shape=[2])))
       return (output, labels, weights)
 
 
@@ -328,5 +325,6 @@ class RobustMultitaskRegressor(TensorflowMultiTaskRegressor):
                         shape=[task_layer_size, 1],
                         stddev=weight_init_stddevs[-1]),
                     bias_init=tf.constant(
-                        value=bias_init_consts[-1], shape=[1]))))
+                        value=bias_init_consts[-1], shape=[1])),
+                axis=1))
       return (output, labels, weights)
