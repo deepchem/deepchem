@@ -691,6 +691,7 @@ class DiskDataset(Dataset):
     """
 
     def iterate(dataset, batch_size):
+      print("getting number of shards")
       num_shards = dataset.get_number_shards()
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
@@ -709,7 +710,7 @@ class DiskDataset(Dataset):
       if batch_size is None:
         num_global_batches = num_shards
       else:
-        num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
+        num_global_batches = math.ceil(len(dataset) / batch_size)
 
       cur_global_batch = 0
       cur_shard = 0

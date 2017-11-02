@@ -384,14 +384,14 @@ class ANIRegression(TensorGraph):
     # print("SHAPE", dataset.get_shape())
 
 
-    for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-        batch_size=batch_size,
-        deterministic=deterministic,
-        pad_batches=pad_batches)):
-      pass
+    # for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
+    #     batch_size=batch_size,
+    #     deterministic=deterministic,
+    #     pad_batches=pad_batches)):
+    #   pass
 
-    print(batch_idx, math.ceil(dataset.get_shape()[0][0] / batch_size) - 1)
-    assert batch_idx == math.ceil(dataset.get_shape()[0][0]/batch_size)-1
+    # print(batch_idx, math.ceil(dataset.get_shape()[0][0] / batch_size) - 1)
+    # assert batch_idx == math.ceil(dataset.get_shape()[0][0]/batch_size)-1
 
     def shard_generator(cself):
 
@@ -436,8 +436,7 @@ class ANIRegression(TensorGraph):
 
       batch_idx = 0
 
-      # num_batches = (dataset.get_shape()[0][0] + batch_size - 1) // batch_size;
-      num_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
+      num_batches = math.ceil(len(dataset) / batch_size)
 
       run_time = 0
       total_time = time.time()

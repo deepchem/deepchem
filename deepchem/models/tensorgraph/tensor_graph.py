@@ -216,6 +216,7 @@ class TensorGraph(Model):
                   self.session, n_enqueued, final_sample))
         enqueue_thread.start()
 
+      print("setting_start_time")
       start_time = None
       run_time = 0
       start_step = self.global_step
@@ -269,10 +270,11 @@ class TensorGraph(Model):
           avg_loss = float(avg_loss) / n_averaged_batches
           avg_speed = ((self.global_step - start_step) * self.batch_size /
                        (time.time() - start_time)) * 60
+          t_time = time.time() - start_time
           print(
-              'Ending global_step: %d, Average loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g'
+              'Ending global_step: %d, Average loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g, Efficiency: %g'
               % (self.global_step, avg_loss, avg_speed, run_time,
-                 time.time() - start_time))
+                 t_time, run_time / t_time))
           avg_loss, n_averaged_batches = 0.0, 0.0
       if n_averaged_batches > 0:
         avg_loss = float(avg_loss) / n_averaged_batches
@@ -311,13 +313,15 @@ class TensorGraph(Model):
                         predict=False,
                         deterministic=True,
                         pad_batches=True):
-    if len(self.features) > 1:
-      raise ValueError("More than one Feature, must use generator")
-    if len(self.labels) > 1:
-      raise ValueError("More than one Label, must use generator")
-    if len(self.task_weights) > 1:
-      raise ValueError("More than one Weights, must use generator")
+    # this is really slow
+    # if len(self.features) > 1:
+      # raise ValueError("More than one Feature, must use generator")
+    # if len(self.labels) > 1:
+      # raise ValueError("More than one Label, must use generator")
+    # if len(self.task_weights) > 1:
+      # raise ValueError("More than one Weights, must use generator")
     for epoch in range(epochs):
+      print("STARTING EPOCH", epoch)
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,

@@ -211,7 +211,7 @@ if __name__ == "__main__":
   if os.path.exists(train_dir) and \
      os.path.exists(valid_dir) and \
      os.path.exists(test_dir):
-    print("Restoring existing model...")
+    print("Restoring existing datasets...")
     train_dataset = dc.data.DiskDataset(data_dir=train_dir)
     valid_dataset = dc.data.DiskDataset(data_dir=valid_dir)
     test_dataset = dc.data.DiskDataset(data_dir=test_dir)
@@ -263,6 +263,7 @@ if __name__ == "__main__":
   if os.path.exists(feat_dir):
     model.feat_dataset = dc.data.DiskDataset(data_dir=feat_dir)
 
+  print("Start training...")
 
   #   # For production, set nb_epoch to 100+
   for i in range(10):
