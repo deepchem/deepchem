@@ -115,6 +115,8 @@ class TestHelperFunctions(unittest.TestCase):
       angle = rgf.angle_between(v1, v2)
       self.assertLessEqual(angle, np.pi)
       self.assertGreaterEqual(angle, 0.0)
+      self.assertAlmostEqual(rgf.angle_between(v1, v1), 0.0)
+      self.assertAlmostEqual(rgf.angle_between(v1, -v1), np.pi)
 
   def test_hash_ecfp(self):
     for power in (2, 16, 64):
@@ -207,11 +209,15 @@ class TestPiInteractions(unittest.TestCase):
     # load and sanitize two real molecules
     _, self.prot = rgf.load_molecule(
         os.path.join(current_dir, '3ws9_protein_fixer_rdkit.pdb'),
-        add_hydrogens=False, calc_charges=False, sanitize=True)
+        add_hydrogens=False,
+        calc_charges=False,
+        sanitize=True)
 
     _, self.lig = rgf.load_molecule(
         os.path.join(current_dir, '3ws9_ligand.sdf'),
-        add_hydrogens=False, calc_charges=False, sanitize=True)
+        add_hydrogens=False,
+        calc_charges=False,
+        sanitize=True)
 
   def test_compute_ring_center(self):
     # FIXME might break with different version of rdkit
@@ -468,28 +474,115 @@ class TestRdkitGridFeaturizer(unittest.TestCase):
     self.ligand_file = os.path.join(package_dir, 'dock', 'tests',
                                     '1jld_ligand.sdf')
 
-  def test_featurizer(self):
-    ecfp_power = 5
-    splif_power = 5
-
-    # just check if it works for the use-case from examples
-    featurizer = rgf.RdkitGridFeaturizer(
-        voxel_width=16.0,
-        feature_types=[
-            'ecfp', 'splif', 'hbond', 'salt_bridge', 'pi_stack', 'cation_pi'
-        ],
-        ecfp_power=ecfp_power,
-        splif_power=splif_power,
-        flatten=True,
-        sanitize=True)
+  def test_default_featurizer(self):
+    # test if default parameters work
+    featurizer = rgf.RdkitGridFeaturizer()
     self.assertIsInstance(featurizer, rgf.RdkitGridFeaturizer)
     feature_tensor = featurizer.featurize_complexes([self.ligand_file],
                                                     [self.protein_file])
     self.assertIsInstance(feature_tensor, np.ndarray)
-    total_len = (2**ecfp_power +
-                 len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power
-                 + len(featurizer.cutoffs['hbond_dist_bins']) + 4)
+
+  def test_example_featurizer(self):
+    # check if use-case from examples works
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=16.0,
+        feature_types=['ecfp', 'splif', 'hbond', 'salt_bridge'],
+        ecfp_power=9,
+        splif_power=9,
+        flatten=True)
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+
+  def test_force_flatten(self):
+    # test if input is flattened when flat features are used
+    featurizer = rgf.RdkitGridFeaturizer(
+        feature_types=['ecfp_hashed'], flatten=False)
+    featurizer.flatten = True  # False should be ignored with ecfp_hashed
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+    self.assertEqual(feature_tensor.shape, (1, 2 * 2**featurizer.ecfp_power))
+
+  def test_combined(self):
+    ecfp_power = 5
+    splif_power = 5
+    # test voxel features
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=1.0,
+        box_width=20.0,
+        feature_types=['voxel_combined'],
+        ecfp_power=ecfp_power,
+        splif_power=splif_power,
+        flatten=False,
+        sanitize=True)
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+    voxel_total_len = (
+        2**ecfp_power +
+        len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power +
+        len(featurizer.cutoffs['hbond_dist_bins']) + 5)
+    self.assertEqual(feature_tensor.shape, (1, 20, 20, 20, voxel_total_len))
+
+    # test flat features
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=1.0,
+        feature_types=['flat_combined'],
+        ecfp_power=ecfp_power,
+        splif_power=splif_power,
+        sanitize=True)
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+    flat_total_len = (
+        3 * 2**ecfp_power +
+        len(featurizer.cutoffs['splif_contact_bins']) * 2**splif_power +
+        len(featurizer.cutoffs['hbond_dist_bins']))
+    self.assertEqual(feature_tensor.shape, (1, flat_total_len))
+
+    # check if aromatic features are ignores if sanitize=False
+    featurizer = rgf.RdkitGridFeaturizer(
+        voxel_width=16.0,
+        feature_types=['all_combined'],
+        ecfp_power=ecfp_power,
+        splif_power=splif_power,
+        flatten=True,
+        sanitize=False)
+
+    self.assertTrue('pi_stack' not in featurizer.feature_types)
+    self.assertTrue('cation_pi' not in featurizer.feature_types)
+    feature_tensor = featurizer.featurize_complexes([self.ligand_file],
+                                                    [self.protein_file])
+    self.assertIsInstance(feature_tensor, np.ndarray)
+    total_len = voxel_total_len + flat_total_len - 3 - 2**ecfp_power
     self.assertEqual(feature_tensor.shape, (1, total_len))
+
+  def test_custom_cutoffs(self):
+    custom_cutoffs = {
+        'hbond_dist_bins': [(2., 3.), (3., 3.5)],
+        'hbond_angle_cutoffs': [5, 90],
+        'splif_contact_bins': [(0, 3.5), (3.5, 6.0)],
+        'ecfp_cutoff': 5.0,
+        'sybyl_cutoff': 3.0,
+        'salt_bridges_cutoff': 4.0,
+        'pi_stack_dist_cutoff': 5.0,
+        'pi_stack_angle_cutoff': 15.0,
+        'cation_pi_dist_cutoff': 5.5,
+        'cation_pi_angle_cutoff': 20.0,
+    }
+    rgf_featurizer = rgf.RdkitGridFeaturizer(**custom_cutoffs)
+    self.assertEqual(rgf_featurizer.cutoffs, custom_cutoffs)
+
+  def test_rotations(self):
+    featurizer = rgf.RdkitGridFeaturizer(
+        nb_rotations=3,
+        feature_types=['voxel_combined'],
+        flatten=False,
+        sanitize=True)
+    feature_tensors = featurizer.featurize_complexes([self.ligand_file],
+                                                     [self.protein_file])
+    self.assertEqual(len(feature_tensors), 4)
 
   def test_voxelize(self):
     prot_xyz, prot_rdk = rgf.load_molecule(self.protein_file)

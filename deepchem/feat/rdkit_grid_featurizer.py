@@ -41,13 +41,6 @@ def get_ligand_filetype(ligand_filename):
     raise ValueError("Unrecognized_filename")
 
 
-def merge_two_dicts(x, y):
-  """Given two dicts, merge them into a new dict as a shallow copy."""
-  z = x.copy()
-  z.update(y)
-  return z
-
-
 def compute_centroid(coordinates):
   """Compute the x,y,z centroid of provided coordinates
 
@@ -169,7 +162,7 @@ def angle_between(vector_i, vector_j):
   vector_j_u = unit_vector(vector_j)
   angle = np.arccos(np.dot(vector_i_u, vector_j_u))
   if np.isnan(angle):
-    if (vector_i_u == vector_j_u).all():
+    if np.allclose(vector_i_u, vector_j_u):
       return 0.0
     else:
       return np.pi
@@ -363,8 +356,6 @@ def featurize_splif(protein_xyz, protein, ligand_xyz, ligand, contact_bins,
   (protein_ecfp_i, ligand_ecfp_j) tuples. Return a list of such splif
   dictionaries.
   """
-  if pairwise_distances is None:
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
   splif_dicts = []
   for i, contact_bin in enumerate(contact_bins):
     splif_dicts.append(
@@ -904,7 +895,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                ecfp_degree=2,
                ecfp_power=3,
                splif_power=3,
-               ligand_only=False,
                box_width=16.0,
                voxel_width=1.0,
                flatten=False,
@@ -915,7 +905,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     -----------
     nb_rotations: int, optional (default 0)
       Number of additional random rotations of a complex to generate.
-    feature_types: list, optional (default ['ecfp_ligand'])
+    feature_types: list, optional (default ['ecfp'])
       Types of features to calculate. Available types are:
         flat features: 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
         voxel features: 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond',
@@ -932,8 +922,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     splif_power: int, optional (default 3)
       Number of bits to store SPLIF features (resulting vector will be
       2^splif_power long)
-    ligand_only: bool, optional (defaul False)
-      Do not load protein. Can speed up computations when are used.
     box_width: float, optional (default 16.0)
       Size of a box in which voxel features are calculated. Box is centered on a
       ligand centroid.
@@ -944,6 +932,9 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       flattened if flat features are specified in feature_types.
     verbose: bool, optional (defaul True)
       Verbolity for logging
+    sanitize: bool, optional (defaul False)
+      If set to True molecules will be sanitized. Note that calculating some
+      features (e.g. aromatic interactions) require sanitized molecules.
     **kwargs: dict, optional
       Keyword arguments can be usaed to specify custom cutoffs and bins (see
       default values below).
@@ -969,7 +960,10 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ]
 
     # list of features that require sanitized molecules
-    require_sanitized = ['pi_stack', 'cation_pi']
+    require_sanitized = ['pi_stack', 'cation_pi', 'ecfp_ligand']
+
+    # not implemented featurization types
+    not_implemented = ['sybyl']
 
     for arg in deprecated_args:
       if arg in kwargs and verbose:
@@ -986,8 +980,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     self.splif_power = splif_power
 
     self.nb_rotations = nb_rotations
-
-    self.ligand_only = ligand_only
 
     # default values
     self.cutoffs = {
@@ -1221,7 +1213,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     }
 
     if feature_types is None:
-      feature_types = ['ecfp_ligand']
+      feature_types = ['ecfp']
 
     # each entry is a tuple (is_flat, feature_name)
     self.feature_types = []
@@ -1231,12 +1223,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ignored_features = []
     if self.sanitize is False:
       ignored_features += require_sanitized
+    ignored_features += not_implemented
 
     # parse provided feature types
     for feature_type in feature_types:
       if self.sanitize is False and feature_type in require_sanitized:
         if self.verbose:
           warn('sanitize is set to False, %s feature will be ignored' %
+               feature_type)
+        continue
+      if feature_type in not_implemented:
+        if self.verbose:
+          warn('%s feature is not implemented yet and will be ignored' %
                feature_type)
         continue
 
@@ -1348,9 +1346,8 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     time1 = time.time()
     ############################################################## TIMING
 
-    if not self.ligand_only:
-      protein_xyz, protein_rdk = load_molecule(
-          protein_pdb, calc_charges=True, sanitize=self.sanitize)
+    protein_xyz, protein_rdk = load_molecule(
+        protein_pdb, calc_charges=True, sanitize=self.sanitize)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Loading protein coordinates took %0.3f s" % (time2 - time1),
@@ -1372,8 +1369,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
     ############################################################## TIMING
     centroid = compute_centroid(ligand_xyz)
     ligand_xyz = subtract_centroid(ligand_xyz, centroid)
-    if not self.ligand_only:
-      protein_xyz = subtract_centroid(protein_xyz, centroid)
+    protein_xyz = subtract_centroid(protein_xyz, centroid)
     ############################################################## TIMING
     time2 = time.time()
     log("TIMING: Centroid processing took %0.3f s" % (time2 - time1),
@@ -1473,51 +1469,3 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       feature_vector[0] += len(feature_list)
 
     return feature_vector
-
-  def _compute_flat_features(self, protein_xyz, protein_ob, ligand_xyz,
-                             ligand_ob):
-    """Computes vectorial (as opposed to tensorial) featurization."""
-    pairwise_distances = compute_pairwise_distances(protein_xyz, ligand_xyz)
-    protein_ecfp_dict, ligand_ecfp_dict = featurize_binding_pocket_ecfp(
-        protein_xyz,
-        protein_ob,
-        ligand_xyz,
-        ligand_ob,
-        pairwise_distances,
-        cutoff=4.5,
-        ecfp_degree=self.ecfp_degree)
-    splif_dicts = featurize_splif(protein_xyz, protein_ob, ligand_xyz,
-                                  ligand_ob, self.contact_bins,
-                                  pairwise_distances, self.ecfp_degree)
-    hbond_list = compute_hydrogen_bonds(
-        protein_xyz, protein_ob, ligand_xyz, ligand_ob, pairwise_distances,
-        self.hbond_dist_bins, self.hbond_angle_cutoffs)
-
-    protein_ecfp_vector = [
-        self._vectorize(
-            hash_ecfp,
-            feature_dict=protein_ecfp_dict,
-            channel_power=self.ecfp_power)
-    ]
-    ligand_ecfp_vector = [
-        self._vectorize(
-            hash_ecfp,
-            feature_dict=ligand_ecfp_dict,
-            channel_power=self.ecfp_power)
-    ]
-    splif_vectors = [
-        self._vectorize(
-            hash_ecfp_pair,
-            feature_dict=splif_dict,
-            channel_power=self.splif_power) for splif_dict in splif_dicts
-    ]
-    hbond_vectors = [
-        self._vectorize(
-            hash_ecfp_pair, feature_list=hbond_list, channel_power=0)
-        for hbond_class in hbond_list
-    ]
-    feature_vectors = protein_ecfp_vector + \
-                      ligand_ecfp_vector + splif_vectors + hbond_vectors
-    feature_vector = np.concatenate(feature_vectors, axis=0)
-
-    return ({(0, 0): feature_vector})
