@@ -1447,7 +1447,7 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
               feature_tensor[voxel[0], voxel[1], voxel[2],
                              hash_function(features, channel_power)] += 1.0
             else:
-              feature_tensor[voxel[0], voxel[1], voxel[3], 0] += features
+              feature_tensor[voxel[0], voxel[1], voxel[2], 0] += features
     elif feature_list is not None:
       for key in feature_list:
         voxels = get_voxels(coordinates, key, self.box_width, self.voxel_width)
