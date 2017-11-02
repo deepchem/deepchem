@@ -87,7 +87,9 @@ def compute_charges(mol):
   return mol
 
 
-def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True,
+def load_molecule(molecule_file,
+                  add_hydrogens=True,
+                  calc_charges=True,
                   sanitize=False):
   """
   Converts molecule file to (xyz-coords, obmol object)
