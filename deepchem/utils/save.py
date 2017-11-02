@@ -123,7 +123,7 @@ def save_metadata(tasks, metadata_df, data_dir):
   tasks_filename = os.path.join(data_dir, "tasks.json")
   with open(tasks_filename, 'w') as fout:
     json.dump(tasks, fout)
-  metadata_df.to_csv(metadata_filename, compression='gzip')
+  metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
 
 
 def load_from_disk(filename):
