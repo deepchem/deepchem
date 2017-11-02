@@ -41,7 +41,7 @@ class MCTS(object):
                n_search_episodes=1000,
                discount_factor=0.99,
                value_weight=1.0,
-               optimizer=None,
+               optimizer=Adam(),
                model_dir=None):
     """Create an object for optimizing a policy.
 
@@ -53,13 +53,16 @@ class MCTS(object):
       the Policy to optimize.  Its create_layers() method must return a map containing the
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_search_depth: int
-      the maximum length of rollouts to generate
+      the maximum depth of the tree search, measured in steps
+    n_search_episodes: int
+      the number of episodes to simulate (up to max_search_depth, if they do not
+      terminate first) for each tree search
     discount_factor: float
       the discount factor to use when computing rewards
     value_weight: float
       a scale factor for the value loss term in the loss function
     optimizer: Optimizer
-      the optimizer to use.  If None, a default optimizer is used.
+      the optimizer to use
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     """
@@ -77,10 +80,6 @@ class MCTS(object):
     (self._graph, self._features, self._pred_prob, self._pred_value,
      self._search_prob, self._search_value) = self._build_graph(
          None, 'global', model_dir)
-    self._rnn_states = self._graph.rnn_zero_states
-
-    self.c_puct = 1.0
-    self.temperature = 1.0
 
   def _build_graph(self, tf_graph, scope, model_dir):
     """Construct a TensorGraph containing the policy and loss calculations."""
@@ -114,12 +113,16 @@ class MCTS(object):
     with graph._get_tf("Graph").as_default():
       with tf.variable_scope(scope):
         graph.build()
+    if len(graph.rnn_initial_states) > 0:
+      raise ValueError('MCTS does not support policies with recurrent layers')
     return graph, features, action_prob, value, search_prob, search_value
 
   def fit(self,
           iterations,
-          steps_per_iteration = 10000,
-          epochs_per_iteration = 1,
+          steps_per_iteration=10000,
+          epochs_per_iteration=10,
+          temperature=0.5,
+          puct_scale=None,
           max_checkpoints_to_keep=5,
           checkpoint_interval=600,
           restore=False):
@@ -127,9 +130,29 @@ class MCTS(object):
 
     Parameters
     ----------
-    total_steps: int
-      the total number of time steps to perform on the environment, across all rollouts
-      on all threads
+    iterations: int
+      the total number of iterations (simulation followed by optimization) to perform
+    steps_per_iteration: int
+      the total number of steps to simulate in each iteration.  Every step consists
+      of a tree search, followed by selecting an action based on the results of
+      the search.
+    epochs_per_iteration: int
+      the number of epochs of optimization to perform for each iteration.  Each
+      epoch involves randomly ordering all the steps that were just simulated in
+      the current iteration, splitting them into batches, and looping over the
+      batches.
+    temperature: float
+      the temperature factor to use when selecting a move for each step of
+      simulation.  Larger values produce a broader probability distribution and
+      hence more exploration.  Smaller values produce a stronger preference for
+      whatever action did best in the tree search.
+    puct_scale: float
+      the scale of the PUCT term in the expression for selecting actions during
+      tree search.  This should be roughly similar in magnitude to the rewards
+      given by the environment, since the PUCT term is added to the mean
+      discounted reward.  This may be None, in which case a value is adaptively
+      selected that tries to match the mean absolute value of the discounted
+      reward.
     max_checkpoints_to_keep: int
       the maximum number of checkpoint files to keep.  When this number is reached, older
       files are deleted.
@@ -139,6 +162,12 @@ class MCTS(object):
       if True, restore the model from the most recent checkpoint and continue training
       from there.  If False, retrain the model from scratch.
     """
+    if puct_scale is None:
+      self._puct_scale = 1.0
+      adapt_puct = True
+    else:
+      self._puct_scale = puct_scale
+      adapt_puct = False
     with self._graph._get_tf("Graph").as_default():
       self._graph.session.run(tf.global_variables_initializer())
       if restore:
@@ -149,32 +178,19 @@ class MCTS(object):
       checkpoint_index = 0
       for iteration in range(iterations):
         print(iteration)
-        buffer = self._run_episodes(steps_per_iteration)
+        buffer = self._run_episodes(steps_per_iteration, temperature, adapt_puct)
         self._optimize_policy(buffer, epochs_per_iteration)
         checkpoint_index += 1
         saver.save(
             self._graph.session, self._graph.save_file, global_step=checkpoint_index)
 
-  def predict(self, state, use_saved_states=True, save_states=True):
+  def predict(self, state):
     """Compute the policy's output predictions for a state.
-
-    If the policy involves recurrent layers, this method can preserve their internal
-    states between calls.  Use the use_saved_states and save_states arguments to specify
-    how it should behave.
 
     Parameters
     ----------
     state: array
       the state of the environment for which to generate predictions
-    use_saved_states: bool
-      if True, the states most recently saved by a previous call to predict() or select_action()
-      will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
-    save_states: bool
-      if True, the internal states of all recurrent layers at the end of the calculation
-      will be saved, and any previously saved states will be discarded.  If False, the
-      states at the end of the calculation will be discarded, and any previously saved
-      states will be kept.
 
     Returns
     -------
@@ -183,25 +199,15 @@ class MCTS(object):
     if not self._state_is_list:
       state = [state]
     with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state, use_saved_states)
+      feed_dict = self._create_feed_dict(state)
       tensors = [self._pred_prob.out_tensor, self._pred_value.out_tensor]
-      if save_states:
-        tensors += self._graph.rnn_final_states
       results = self._graph.session.run(tensors, feed_dict=feed_dict)
-      if save_states:
-        self._rnn_states = results[2:]
       return results[:2]
 
   def select_action(self,
                     state,
-                    deterministic=False,
-                    use_saved_states=True,
-                    save_states=True):
+                    deterministic=False):
     """Select an action to perform based on the environment's state.
-
-    If the policy involves recurrent layers, this method can preserve their internal
-    states between calls.  Use the use_saved_states and save_states arguments to specify
-    how it should behave.
 
     Parameters
     ----------
@@ -210,15 +216,6 @@ class MCTS(object):
     deterministic: bool
       if True, always return the best action (that is, the one with highest probability).
       If False, randomly select an action based on the computed probabilities.
-    use_saved_states: bool
-      if True, the states most recently saved by a previous call to predict() or select_action()
-      will be used as the initial states.  If False, the internal states of all recurrent layers
-      will be set to all zeros before computing the predictions.
-    save_states: bool
-      if True, the internal states of all recurrent layers at the end of the calculation
-      will be saved, and any previously saved states will be discarded.  If False, the
-      states at the end of the calculation will be discarded, and any previously saved
-      states will be kept.
 
     Returns
     -------
@@ -227,14 +224,10 @@ class MCTS(object):
     if not self._state_is_list:
       state = [state]
     with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state, use_saved_states)
+      feed_dict = self._create_feed_dict(state)
       tensors = [self._pred_prob.out_tensor]
-      if save_states:
-        tensors += self._graph.rnn_final_states
       results = self._graph.session.run(tensors, feed_dict=feed_dict)
       probabilities = results[0]
-      if save_states:
-        self._rnn_states = results[1:]
       if deterministic:
         return probabilities.argmax()
       else:
@@ -252,24 +245,18 @@ class MCTS(object):
       saver = tf.train.Saver(variables)
       saver.restore(self._graph.session, last_checkpoint)
 
-  def _create_feed_dict(self, state, use_saved_states):
+  def _create_feed_dict(self, state):
     """Create a feed dict for use by predict() or select_action()."""
     feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
                      for f, s in zip(self._features, state))
-    if use_saved_states:
-      rnn_states = self._rnn_states
-    else:
-      rnn_states = self._graph.rnn_zero_states
-    for (placeholder, value) in zip(self._graph.rnn_initial_states, rnn_states):
-      feed_dict[placeholder] = value
     return feed_dict
 
-  def _run_episodes(self, steps):
+  def _run_episodes(self, steps, temperature, adapt_puct):
     buffer = []
     self._env.reset()
     root = TreeSearchNode(0.0)
     for step in range(steps):
-      prob, reward = self._do_tree_search(root)
+      prob, reward = self._do_tree_search(root, temperature, adapt_puct)
       state = self._env.state
       if not self._state_is_list:
         state = [state]
@@ -302,7 +289,7 @@ class MCTS(object):
 
       loss = self._graph.fit_generator(generate_batches(), checkpoint_interval=0)
 
-  def _do_tree_search(self, root):
+  def _do_tree_search(self, root, temperature, adapt_puct):
     # Build the tree.
 
     traces = []
@@ -315,9 +302,12 @@ class MCTS(object):
 
     # Compute the final probabilities and expected reward.
 
-    prob = np.array([c.count**self.temperature for c in root.children])
+    prob = np.array([c.count**(1.0/temperature) for c in root.children])
     prob /= np.sum(prob)
     reward = np.sum(p*c.mean_reward for p, c in zip(prob, root.children))
+    if adapt_puct:
+      scale = np.sum([p*np.abs(c.mean_reward) for p, c in zip(prob, root.children)])
+      self._puct_scale = 0.99 * self._puct_scale + 0.01 * scale
     return prob, reward
 
   def _create_trace(self, env, node, trace):
@@ -342,7 +332,7 @@ class MCTS(object):
     if total_counts == 0:
       score = [c.prior_prob for c in node.children]
     else:
-      scale = self.c_puct*np.sqrt(total_counts)
+      scale = self._puct_scale*np.sqrt(total_counts)
       score = [c.mean_reward + scale*c.prior_prob/(1+c.count) for c in node.children]
     action = np.argmax(score)
     next_node = node.children[action]
