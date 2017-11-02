@@ -886,14 +886,12 @@ class DiskDataset(Dataset):
     n_rows = len(self.metadata_df.index)
     for i in range(n_rows):
       row = self.metadata_df.iloc[i]
-      basename = row["basename"]
       X, y, w, ids = self.get_shard(i)
       n = X.shape[0]
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                     ids)
+      DiskDataset.write_data_to_disk(self.data_dir, "", tasks, X, y, w, ids)
 
   def shuffle_shards(self):
     """Shuffles the order of the shards for this dataset."""
