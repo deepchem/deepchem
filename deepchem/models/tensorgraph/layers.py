@@ -3704,8 +3704,8 @@ class ANIFeat(Layer):
     atom_numbers = tf.cast(inputs[:, :, 0], tf.int32)
     flags = tf.to_float(tf.sign(atom_numbers))
     coordinates = inputs[:, :, 1:]
-    if self.coordinates_in_bohr:
-      coordinates = coordinates * 0.52917721092
+    # if self.coordinates_in_bohr:
+      # coordinates = coordinates * 0.52917721092
 
     d = self.distance_matrix(coordinates, flags)
 
