@@ -325,7 +325,9 @@ class ANIRegression(TensorGraph):
       # dequeue yields a sparse tensor for the entire shard
 
       r_feat = Reshape(
-          shape=[None, self.max_atoms, 769], in_layers=[self.dequeue_object])
+        # (ytz): We don't actually want to hardcode this but this information
+        # is a little hard to extract a priori
+          shape=[None, self.max_atoms, 385], in_layers=[self.dequeue_object])
       r_feat.create_tensor()
       return r_feat
 

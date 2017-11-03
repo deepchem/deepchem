@@ -3716,6 +3716,18 @@ class ANIFeat(Layer):
     angular_sym = self.angular_symmetry(d_angular_cutoff, d, atom_numbers,
                                         coordinates)
 
+
+    # Parameter sets
+    # TM = 1
+    # Rcr = 4.6000e+00
+    # Rca = 3.1000e+00
+    # EtaR = [1.6000000e+01]
+    # ShfR = [5.0000000e-01,7.5625000e-01,1.0125000e+00,1.2687500e+00,1.5250000e+00,1.7812500e+00,2.0375000e+00,2.2937500e+00,2.5500000e+00,2.8062500e+00,3.0625000e+00,3.3187500e+00,3.5750000e+00,3.8312500e+00,4.0875000e+00,4.3437500e+00]
+    # Zeta = [8.0000000e+00]
+    # ShfZ = [0.0000000e+00,7.8539816e-01,1.5707963e+00,2.3561945e+00,3.1415927e+00,3.9269908e+00,4.7123890e+00,5.4977871e+00]
+    # EtaA = [6.0000000e+00]
+    # ShfA = [5.0000000e-01,1.1500000e+00,1.8000000e+00,2.4500000e+00]
+    # Atyp = [H,C,N,O]
     out_tensor = tf.concat(
         [tf.to_float(tf.expand_dims(atom_numbers, 2)), radial_sym, angular_sym],
         axis=2)
@@ -3723,6 +3735,8 @@ class ANIFeat(Layer):
 
     if set_tensors:
       self.out_tensor = out_tensor
+
+    print("NUM FEATS", out_tensor.shape)
 
     return out_tensor
 
@@ -3767,16 +3781,34 @@ class ANIFeat(Layer):
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
-    ita = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
+    Rs = np.array([
+      5.0000000e-01,
+      7.5625000e-01,
+      1.0125000e+00,
+      1.2687500e+00,
+      1.5250000e+00,
+      1.7812500e+00,
+      2.0375000e+00,
+      2.2937500e+00,
+      2.5500000e+00,
+      2.8062500e+00,
+      3.0625000e+00,
+      3.3187500e+00,
+      3.5750000e+00,
+      3.8312500e+00,
+      4.0875000e+00,
+      4.3437500e+00])
+    # Rs = np.linspace(0., self.radial_cutoff, self.radial_length)
+    # eta = np.ones_like(Rs) * 3 / (Rs[1] - Rs[0])**2
+    eta = np.ones_like(Rs) * 16
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, -1)))
-    length = ita.get_shape().as_list()[-1]
+    eta = tf.to_float(np.reshape(eta, (1, 1, 1, -1)))
+    length = eta.get_shape().as_list()[-1]
 
     d_cutoff = tf.stack([d_cutoff] * length, axis=3)
     d = tf.stack([d] * length, axis=3)
 
-    out = tf.exp(-ita * tf.square(d - Rs)) * d_cutoff
+    out = tf.exp(-eta * tf.square(d - Rs)) * d_cutoff
     if self.atomic_number_differentiated:
       out_tensors = []
       for atom_type in self.atom_cases:
@@ -3795,14 +3827,30 @@ class ANIFeat(Layer):
     embedding = tf.eye(np.max(self.atom_cases) + 1)
     atom_numbers_embedded = tf.nn.embedding_lookup(embedding, atom_numbers)
 
-    Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
-    ita = 3 / (Rs[1] - Rs[0])**2
-    thetas = np.linspace(0., np.pi, self.angular_length)
+    # Rs = np.linspace(0., self.angular_cutoff, self.angular_length)
+    Rs = np.array([
+      5.0000000e-01,
+      1.1500000e+00,
+      1.8000000e+00,
+      2.4500000e+00])
+    # eta = 3 / (Rs[1] - Rs[0])**2
+    eta = 6
+    thetas = np.array([
+      0.0000000e+00,
+      7.8539816e-01,
+      1.5707963e+00,
+      2.3561945e+00,
+      3.1415927e+00,
+      3.9269908e+00,
+      4.7123890e+00,
+      5.4977871e+00])
+    # thetas = np.linspace(0., np.pi, self.angular_length)
     zeta = float(self.angular_length**2)
+    zeta = 8.0
 
-    ita, zeta, Rs, thetas = np.meshgrid(ita, zeta, Rs, thetas)
+    eta, zeta, Rs, thetas = np.meshgrid(eta, zeta, Rs, thetas)
     zeta = tf.to_float(np.reshape(zeta, (1, 1, 1, 1, -1)))
-    ita = tf.to_float(np.reshape(ita, (1, 1, 1, 1, -1)))
+    eta = tf.to_float(np.reshape(eta, (1, 1, 1, 1, -1)))
     Rs = tf.to_float(np.reshape(Rs, (1, 1, 1, 1, -1)))
     thetas = tf.to_float(np.reshape(thetas, (1, 1, 1, 1, -1)))
     length = zeta.get_shape().as_list()[-1]
@@ -3828,7 +3876,7 @@ class ANIFeat(Layer):
     theta = tf.stack([theta] * length, axis=4)
 
     out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+        tf.exp(-eta * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []
@@ -3847,7 +3895,7 @@ class ANIFeat(Layer):
       return tf.reduce_sum(out_tensor, axis=(2, 3))
 
   def get_num_feats(self):
-    n_feat = self.outputs.get_shape().as_list()[-1]
+    n_feat = self.out_tensor.get_shape().as_list()[-1]
     return n_feat
 
 
