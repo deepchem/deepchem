@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import unittest
 from deepchem.models.tensorgraph import layers
+from flaky import flaky
 
 
 def generate_batch(batch_size):
