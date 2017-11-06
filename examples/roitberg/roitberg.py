@@ -6,7 +6,7 @@ import tensorflow as tf
 import deepchem as dc
 import pyanitools as pya
 import app
-
+import random
 
 def convert_species_to_atomic_nums(s):
   PERIODIC_TABLE = {"H": 1, "C": 6, "N": 7, "O": 8}
@@ -25,10 +25,11 @@ all_dir = os.path.join(data_dir, "all")
 test_dir = os.path.join(data_dir, "test")
 fold_dir = os.path.join(data_dir, "fold")
 train_dir = os.path.join(fold_dir, "train")
+temp_dir = os.path.join(fold_dir, "train") # used for un-shuffled train data
 valid_dir = os.path.join(fold_dir, "valid")
 
 
-def load_roiteberg_ANI(mode="atomization", batch_size=192):
+def load_roitberg_ANI(mode="atomization", batch_size=192):
   """
   Load the ANI dataset.
 
@@ -194,7 +195,6 @@ def broadcast(dataset, metadata):
 
   return new_metadata
 
-
 if __name__ == "__main__":
 
   max_atoms = 23
@@ -208,9 +208,9 @@ if __name__ == "__main__":
   ]
 
   # switch for datasets and models
-  if os.path.exists(train_dir) and \
-     os.path.exists(valid_dir) and \
-     os.path.exists(test_dir):
+  if os.path.exists(valid_dir) and \
+     os.path.exists(test_dir) and \
+     os.path.exists(train_dir):
     print("Restoring existing datasets...")
     train_dataset = dc.data.DiskDataset(data_dir=train_dir)
     valid_dataset = dc.data.DiskDataset(data_dir=valid_dir)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
   else:
     print("Generating datasets")
 
-    train_valid_dataset, test_dataset, all_groups = load_roiteberg_ANI(
+    train_valid_dataset, test_dataset, all_groups = load_roitberg_ANI(
         mode="atomization", batch_size=batch_size)
 
     splitter = dc.splits.RandomGroupSplitter(
@@ -227,7 +227,10 @@ if __name__ == "__main__":
 
     print("Performing 1-fold split...")
     train_dataset, valid_dataset = splitter.train_test_split(
-        train_valid_dataset, train_dir=train_dir, test_dir=valid_dir)
+        train_valid_dataset, train_dir=temp_dir, test_dir=valid_dir)
+
+    print("Shuffling training dataset...")
+    train_dataset = train_dataset.complete_shuffle(data_dir=train_dir)
 
   transformers = [
       dc.trans.NormalizationTransformer(
@@ -268,7 +271,6 @@ if __name__ == "__main__":
   #   # For production, set nb_epoch to 100+
   for i in range(10):
     model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
-
     print("Saving model...")
     model.save_numpy()
     print("Done.")

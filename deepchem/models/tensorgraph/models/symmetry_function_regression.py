@@ -381,24 +381,9 @@ class ANIRegression(TensorGraph):
 
     shard_size = batch_size * 1
 
-
-    # print("X SHAPE", dataset.X.shape)
-    # print("SHAPE", dataset.get_shape())
-
-
-    # for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
-    #     batch_size=batch_size,
-    #     deterministic=deterministic,
-    #     pad_batches=pad_batches)):
-    #   pass
-
-    # print(batch_idx, math.ceil(dataset.get_shape()[0][0] / batch_size) - 1)
-    # assert batch_idx == math.ceil(dataset.get_shape()[0][0]/batch_size)-1
-
     def shard_generator(cself):
 
       print("Dataset needs to be featurized...")
-
       # (ytz): enqueue in a separate thread
       # yay for shitty thread-safe GILs on lists
       all_ybs = []
