@@ -1,7 +1,5 @@
 """
 Activations for models.
-
-Copied over from Keras.
 """
 from __future__ import print_function
 from __future__ import division
@@ -87,22 +85,67 @@ def softsign(x):
 
 
 def relu(x, alpha=0., max_value=None):
+  """The rectified linear activation function
+
+  Wrapper around model_ops.relu.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input tensor
+  """
   return model_ops.relu(x, alpha=alpha, max_value=max_value)
 
 
 def tanh(x):
+  """The hyperbolic tanget activation function
+
+  Wrapper around tf.nn.tanh.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input tensor
+  """
   return tf.nn.tanh(x)
 
 
 def sigmoid(x):
+  """The sigmoidal activation function
+
+  Wrapper around tf.nn.sigmoid.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input tensor
+  """
   return tf.nn.sigmoid(x)
 
 
 def hard_sigmoid(x):
+  """The hard sigmoidal activation function
+
+  Piecewise-linear approximation to sigmoid. 
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input tensor
+  """
   return model_ops.hard_sigmoid(x)
 
 
 def linear(x):
+  """A linear activation function.
+
+  Note that a linear activation function is simply the identity.
+
+  Parameters
+  ----------
+  x: tf.Tensor
+    Input tensor
+  """
   return x
 
 
