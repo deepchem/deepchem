@@ -402,12 +402,14 @@ class AtomicDifferentiatedDense(Layer):
                atom_number_cases=[1, 6, 7, 8],
                init='glorot_uniform',
                activation='relu',
+               is_batch_norm=False,
                **kwargs):
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
     self.max_atoms = max_atoms
     self.out_channels = out_channels
     self.atom_number_cases = atom_number_cases
+    self.is_batch_norm = is_batch_norm
 
     super(AtomicDifferentiatedDense, self).__init__(**kwargs)
 
@@ -448,7 +450,17 @@ class AtomicDifferentiatedDense(Layer):
       output = tf.reshape(output * tf.expand_dims(mask, 2), (-1, self.max_atoms,
                                                              self.out_channels))
       outputs.append(output)
-    self.out_tensor = tf.add_n(outputs)
+    out_tensor = tf.add_n(outputs)
+    if self.is_batch_norm:
+      epsilon = 1e-3
+      bm, bv = tf.nn.moments(self.out_tensor, [0, 1])
+      scale = tf.Variable(tf.ones([self.out_channels]))
+      beta = tf.Variable(tf.zeros([self.out_channels]))
+      out_tensor = tf.nn.batch_normalization(self.out_tensor, bm, bv, beta,
+                                             scale, epsilon)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
 
   def none_tensors(self):
     w, b, out_tensor = self.W, self.b, self.out_tensor
