@@ -11,6 +11,7 @@ How to do a release
 - Tag current master with new release version
 - Look at github issues merged since last release
 - Bump Dockerfile Version
+- Update README with new version string
 
 ### Post-release
 - Update the docker images

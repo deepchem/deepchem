@@ -1417,6 +1417,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     assert scores[classification_metric.name] > .8
 
+  @flaky()
   def test_textCNN_singletask_regression_overfit(self):
     """Test textCNN model overfits tiny data."""
     np.random.seed(123)

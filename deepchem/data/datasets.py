@@ -4,14 +4,16 @@ Contains wrapper class for datasets.
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
+import json
 import os
 import math
 import numpy as np
 import pandas as pd
 import random
-from deepchem.utils.save import save_to_disk
+from deepchem.utils.save import save_to_disk, save_metadata
 from deepchem.utils.save import load_from_disk
 from deepchem.utils.save import log
+from pandas import read_hdf
 import tempfile
 import time
 import shutil
@@ -444,11 +446,7 @@ class DiskDataset(Dataset):
     self.verbose = verbose
 
     log("Loading dataset from disk.", self.verbose)
-    if os.path.exists(self._get_metadata_filename()):
-      (self.tasks,
-       self.metadata_df) = load_from_disk(self._get_metadata_filename())
-    else:
-      raise ValueError("No metadata found on disk.")
+    self.tasks, self.metadata_df = self.load_metadata()
 
   @staticmethod
   def create_dataset(shard_generator, data_dir=None, tasks=[], verbose=True):
@@ -477,11 +475,31 @@ class DiskDataset(Dataset):
           DiskDataset.write_data_to_disk(data_dir, basename, tasks, X, y, w,
                                          ids))
     metadata_df = DiskDataset._construct_metadata(metadata_rows)
-    metadata_filename = os.path.join(data_dir, "metadata.joblib")
-    save_to_disk((tasks, metadata_df), metadata_filename)
+    save_metadata(tasks, metadata_df, data_dir)
     time2 = time.time()
     log("TIMING: dataset construction took %0.3f s" % (time2 - time1), verbose)
     return DiskDataset(data_dir, verbose=verbose)
+
+  def load_metadata(self):
+    try:
+      tasks_filename, metadata_filename = self._get_metadata_filename()
+      with open(tasks_filename) as fin:
+        tasks = json.load(fin)
+      metadata_df = pd.read_csv(metadata_filename, compression='gzip')
+      metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
+      return tasks, metadata_df
+    except Exception as e:
+      pass
+
+    # Load obsolete format -> save in new format
+    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
+    if os.path.exists(metadata_filename):
+      tasks, metadata_df = load_from_disk(metadata_filename)
+      del metadata_df['task_names']
+      del metadata_df['basename']
+      save_metadata(tasks, metadata_df, self.data_dir)
+      return tasks, metadata_df
+    raise ValueError("No Metadata Found On Disk")
 
   @staticmethod
   def _construct_metadata(metadata_entries):
@@ -490,7 +508,7 @@ class DiskDataset(Dataset):
     metadata_entries should have elements returned by write_data_to_disk
     above.
     """
-    columns = ('basename', 'task_names', 'ids', 'X', 'y', 'w')
+    columns = ('ids', 'X', 'y', 'w')
     metadata_df = pd.DataFrame(metadata_entries, columns=columns)
     return metadata_df
 
@@ -527,11 +545,11 @@ class DiskDataset(Dataset):
       out_ids = None
 
     # note that this corresponds to the _construct_metadata column order
-    return [basename, tasks, out_ids, out_X, out_y, out_w]
+    return [out_ids, out_X, out_y, out_w]
 
   def save_to_disk(self):
     """Save dataset to disk."""
-    save_to_disk((self.tasks, self.metadata_df), self._get_metadata_filename())
+    save_metadata(self.tasks, self.metadata_df, self.data_dir)
 
   def move(self, new_data_dir):
     """Moves dataset to new directory."""
@@ -603,8 +621,9 @@ class DiskDataset(Dataset):
     """
     Get standard location for metadata file.
     """
-    metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
-    return metadata_filename
+    metadata_filename = os.path.join(self.data_dir, "metadata.csv.gzip")
+    tasks_filename = os.path.join(self.data_dir, "tasks.json")
+    return tasks_filename, metadata_filename
 
   def get_number_shards(self):
     """
@@ -945,14 +964,12 @@ class DiskDataset(Dataset):
     n_rows = len(self.metadata_df.index)
     for i in range(n_rows):
       row = self.metadata_df.iloc[i]
-      basename = row["basename"]
       X, y, w, ids = self.get_shard(i)
       n = X.shape[0]
       permutation = np.random.permutation(n)
       X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                       ids[permutation])
-      DiskDataset.write_data_to_disk(self.data_dir, basename, tasks, X, y, w,
-                                     ids)
+      DiskDataset.write_data_to_disk(self.data_dir, "", tasks, X, y, w, ids)
 
   def shuffle_shards(self):
     """Shuffles the order of the shards for this dataset."""

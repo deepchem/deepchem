@@ -87,7 +87,10 @@ def compute_charges(mol):
   return mol
 
 
-def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
+def load_molecule(molecule_file,
+                  add_hydrogens=True,
+                  calc_charges=True,
+                  sanitize=False):
   """
   Converts molecule file to (xyz-coords, obmol object)
 
@@ -99,7 +102,7 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
   :return: (xyz, mol)
   """
   if ".mol2" in molecule_file:
-    my_mol = Chem.MolFromMol2File(molecule_file)
+    my_mol = Chem.MolFromMol2File(molecule_file, sanitize=False, removeHs=False)
   elif ".sdf" in molecule_file:
     suppl = Chem.SDMolSupplier(str(molecule_file), sanitize=False)
     my_mol = suppl[0]
@@ -118,6 +121,10 @@ def load_molecule(molecule_file, add_hydrogens=True, calc_charges=True):
 
   if add_hydrogens or calc_charges:
     my_mol = add_hydrogens_to_mol(my_mol)
+  # TODO: mol should be always sanitized when charges are calculated
+  # can't change it now because it would break a lot of examples
+  if sanitize:
+    Chem.SanitizeMol(my_mol)
   if calc_charges:
     compute_charges(my_mol)
 

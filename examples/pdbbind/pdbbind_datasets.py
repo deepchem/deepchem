@@ -71,15 +71,13 @@ def featurize_pdbbind(data_dir=None, feat="grid", subset="core"):
   if feat == "grid":
     featurizer = dc.feat.RdkitGridFeaturizer(
         voxel_width=16.0,
-        feature_types="voxel_combined",
-        # TODO(rbharath, enf, leswing): Figure out why pi_stack and cation_pi
-        # reduce validation performance
-        # voxel_feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
-        # "salt_bridge"], ecfp_power=9, splif_power=9,
-        voxel_feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
+        # TODO: add pi_stack and cation_pi to feature_types (it's not trivial
+        # because they require sanitized molecules)
+        # feature_types=["ecfp", "splif", "hbond", "pi_stack", "cation_pi",
+        # "salt_bridge"],
+        feature_types=["ecfp", "splif", "hbond", "salt_bridge"],
         ecfp_power=9,
         splif_power=9,
-        parallel=True,
         flatten=True)
   elif feat == "coord":
     neighbor_cutoff = 4
