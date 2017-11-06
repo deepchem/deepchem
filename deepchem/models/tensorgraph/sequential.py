@@ -29,7 +29,8 @@ class Sequential(TensorGraph):
       if kwargs["use_queue"]:
         raise ValueError("Sequential doesn't support queues.")
     kwargs["use_queue"] = False
-    self.layer_list = []
+    self._layer_list = []
+    self._built = False
     super(Sequential, self).__init__(**kwargs)
 
   def add(self, layer):
@@ -40,7 +41,7 @@ class Sequential(TensorGraph):
     layer: Layer
       Adds layer to this graph.
     """
-    self.layer_list.append(layer)
+    self._layer_list.append(layer)
 
   def fit(self, dataset, loss, **kwargs):
     """Fits on the specified dataset.
@@ -55,32 +56,35 @@ class Sequential(TensorGraph):
       Only "binary_crossentropy" for now.
     """
     X_shape, y_shape, _, _ = dataset.get_shape()
-    feature_shape = X_shape[1:]
-    label_shape = y_shape[1:]
-    # Add in features
-    features = Feature(shape=(None,) + feature_shape)
-    self._add_layer(features)
-    # Add in labels
-    labels = Label(shape=(None,) + label_shape)
-    self._add_layer(labels)
+    # Calling fit() for first time
+    if not self._built:
+      feature_shape = X_shape[1:]
+      label_shape = y_shape[1:]
+      # Add in features
+      features = Feature(shape=(None,) + feature_shape)
+      self._add_layer(features)
+      # Add in labels
+      labels = Label(shape=(None,) + label_shape)
+      self._add_layer(labels)
 
-    # Add in all layers
-    prev_layer = features
-    for ind, layer in enumerate(self.layer_list):
-      if not len(layer.in_layers) == 0:
-        raise ValueError("Cannot specify in_layers for Sequential.")
-      layer.in_layers += [prev_layer]
-      self._add_layer(layer)
-      prev_layer = layer
-    # The last layer is the output of the model
-    self.outputs.append(prev_layer)
+      # Add in all layers
+      prev_layer = features
+      for ind, layer in enumerate(self._layer_list):
+        if not len(layer.in_layers) == 0:
+          raise ValueError("Cannot specify in_layers for Sequential.")
+        layer.in_layers += [prev_layer]
+        self._add_layer(layer)
+        prev_layer = layer
+      # The last layer is the output of the model
+      self.outputs.append(prev_layer)
 
-    if loss == "binary_crossentropy":
-      smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
-      self._add_layer(smce)
-      self.set_loss(ReduceMean(in_layers=[smce]))
-    else:
-      # TODO(rbharath): Add in support for additional losses.
-      raise ValueError("Unsupported loss.")
+      if loss == "binary_crossentropy":
+        smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
+        self._add_layer(smce)
+        self.set_loss(ReduceMean(in_layers=[smce]))
+      else:
+        # TODO(rbharath): Add in support for additional losses.
+        raise ValueError("Unsupported loss.")
+    self._built = True
 
     super(Sequential, self).fit(dataset, **kwargs)
