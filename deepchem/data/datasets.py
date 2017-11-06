@@ -691,7 +691,6 @@ class DiskDataset(Dataset):
     """
 
     def iterate(dataset, batch_size):
-      print("getting number of shards")
       num_shards = dataset.get_number_shards()
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
@@ -951,6 +950,51 @@ class DiskDataset(Dataset):
       self.set_shard(i, X_s, y_s, w_s, ids_s)
     time2 = time.time()
     log("TIMING: sparse_shuffle took %0.3f s" % (time2 - time1), self.verbose)
+
+  def complete_shuffle(self, data_dir=None):
+    """
+    Completely shuffle across all data, across all shards.
+
+    Note: this loads all the data into ram, and can be prohibitively
+    expensive for larger datasets.
+
+    Parameters
+    ----------
+    shard_size: int
+      size of the resulting dataset's size. If None, then the first
+      shard's shard_size will be used.
+
+    Returns
+    -------
+    DiskDatasset
+      A DiskDataset with a single shard.
+
+    """
+    all_X = []
+    all_y = []
+    all_w = []
+    all_ids = []
+    for Xs, ys, ws, ids in self.itershards():
+      all_X.append(Xs)
+      if ys is not None:
+        all_y.append(ys)
+      if ws is not None:
+        all_w.append(ws)
+      all_ids.append(ids)
+
+    all_X = np.concatenate(all_X)
+    all_y = np.concatenate(all_y)
+    all_w = np.concatenate(all_w)
+    all_ids = np.concatenate(all_ids)
+
+    perm = np.random.permutation(all_X.shape[0])
+    all_X = all_X[perm]
+    all_y = all_y[perm]
+    all_w = all_w[perm]
+    all_ids = all_ids[perm]
+
+    return DiskDataset.from_numpy(
+        all_X, all_y, all_w, all_ids, data_dir=data_dir)
 
   def shuffle_each_shard(self):
     """Shuffles elements within each shard of the datset."""
