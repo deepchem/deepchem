@@ -12,6 +12,7 @@ from deepchem.models.tensorgraph.layers import Feature
 from deepchem.models.tensorgraph.layers import Label
 from deepchem.models.tensorgraph.layers import SoftMaxCrossEntropy
 from deepchem.models.tensorgraph.layers import ReduceMean
+from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 
 
 class Sequential(TensorGraph):
@@ -53,7 +54,7 @@ class Sequential(TensorGraph):
     dataset: dc.data.Dataset
       Dataset with data
     loss: string
-      Only "binary_crossentropy" for now.
+      Only "binary_crossentropy" or "mse" for now.
     """
     X_shape, y_shape, _, _ = dataset.get_shape()
     # Calling fit() for first time
@@ -69,6 +70,8 @@ class Sequential(TensorGraph):
 
       # Add in all layers
       prev_layer = features
+      if len(self._layer_list) == 0:
+        raise ValueError("No layers have been added to model.")
       for ind, layer in enumerate(self._layer_list):
         if not len(layer.in_layers) == 0:
           raise ValueError("Cannot specify in_layers for Sequential.")
@@ -82,6 +85,10 @@ class Sequential(TensorGraph):
         smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
         self._add_layer(smce)
         self.set_loss(ReduceMean(in_layers=[smce]))
+      elif loss == "mse":
+        mse = ReduceSquareDifference(in_layers=[prev_layer, labels])
+        self._add_layer(mse)
+        self.loss = mse
       else:
         # TODO(rbharath): Add in support for additional losses.
         raise ValueError("Unsupported loss.")
