@@ -245,4 +245,4 @@ DeepChem is supported by a number of corporate partners who use DeepChem to solv
 
 
 ## Version
-1.3.0
+1.3.1
