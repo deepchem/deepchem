@@ -63,14 +63,12 @@ class TestMCTS(unittest.TestCase):
         max_search_depth=5,
         n_search_episodes=200,
         optimizer=Adam(learning_rate=0.005))
-    mcts.fit(3, steps_per_iteration=50, epochs_per_iteration=50)
+    mcts.fit(3, steps_per_iteration=50, epochs_per_iteration=50, puct_scale=1.0)
 
     # It should have learned that the expected value is very close to zero, and that the best
     # action is to walk away.
 
     action_prob, value = mcts.predict([[0]])
-    print(action_prob)
-    print(value)
     assert -0.5 < value[0] < 0.5
     assert action_prob.argmax() == 37
     assert mcts.select_action([[0]], deterministic=True) == 37

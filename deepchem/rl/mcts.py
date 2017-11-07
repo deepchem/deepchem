@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import collections
 import copy
+import time
 
 
 class MCTSLoss(Layer):
@@ -32,6 +33,42 @@ class MCTSLoss(Layer):
 class MCTS(object):
   """
   Implements a Monte Carlo tree search algorithm for reinforcement learning.
+
+  This is adapted from Silver et al, "Mastering the game of Go without human
+  knowledge" (https://www.nature.com/articles/nature24270).  The methods
+  described in that paper rely on features of Go that are not generally true of
+  all reinforcement learning problems.  To transform it into a more generally
+  useful RL algorithm, it has been necessary to change some aspects of the
+  method.  The overall approach used in this implementation is still the same,
+  although some of the details differ.
+
+  This class requires the policy to output two quantities: a vector giving the
+  probability of taking each action, and an estimate of the value function for
+  the current state.  At every step of simulating an episode, it performs an
+  expensive tree search to explore the consequences of many possible actions.
+  Based on that search, it computes much better estimates for the value function
+  of the current state and the desired action probabilities.  In then tries to
+  optimize the policy to make its outputs match the result of the tree search.
+
+  Optimization proceeds through a series of iterations.  Each iteration consists
+  of two stages:
+
+  1. Simulate many episodes.  At every step perform a tree search to determine
+     targets for the probabilities and value function, and store them into a
+     buffer.
+  2. Optimize the policy using batches drawn from the buffer generated in step 1.
+
+  The tree search involves repeatedly selecting actions starting from the
+  current state.  This is done by using deepcopy() to clone the environment.  It
+  is essential that this produce a deterministic sequence of states: performing
+  an action on the cloned environment must always lead to the same state as
+  performing that action on the original environment.  For environments whose
+  state transitions are deterministic, this is not a problem.  For ones whose
+  state transitions are stochastic, it is essential that the random number
+  generator used to select new states be stored as part of the environment and
+  be properly cloned by deepcopy().
+
+  This class does not support policies that include recurrent layers.
   """
 
   def __init__(self,
@@ -175,14 +212,20 @@ class MCTS(object):
       variables = tf.get_collection(
           tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
       saver = tf.train.Saver(variables, max_to_keep=max_checkpoints_to_keep)
-      checkpoint_index = 0
+      self._checkpoint_index = 0
+      self._checkpoint_time = time.time() + checkpoint_interval
+
+      # Run the algorithm.
+
       for iteration in range(iterations):
-        print(iteration)
-        buffer = self._run_episodes(steps_per_iteration, temperature, adapt_puct)
+        buffer = self._run_episodes(steps_per_iteration, temperature, saver, adapt_puct)
         self._optimize_policy(buffer, epochs_per_iteration)
-        checkpoint_index += 1
-        saver.save(
-            self._graph.session, self._graph.save_file, global_step=checkpoint_index)
+
+      # Save a file checkpoint.
+
+      self._checkpoint_index += 1
+      saver.save(
+          self._graph.session, self._graph.save_file, global_step=self._checkpoint_index)
 
   def predict(self, state):
     """Compute the policy's output predictions for a state.
@@ -200,7 +243,7 @@ class MCTS(object):
       state = [state]
     with self._graph._get_tf("Graph").as_default():
       feed_dict = self._create_feed_dict(state)
-      tensors = [self._pred_prob.out_tensor, self._pred_value.out_tensor]
+      tensors = [self._pred_prob, self._pred_value]
       results = self._graph.session.run(tensors, feed_dict=feed_dict)
       return results[:2]
 
@@ -225,9 +268,7 @@ class MCTS(object):
       state = [state]
     with self._graph._get_tf("Graph").as_default():
       feed_dict = self._create_feed_dict(state)
-      tensors = [self._pred_prob.out_tensor]
-      results = self._graph.session.run(tensors, feed_dict=feed_dict)
-      probabilities = results[0]
+      probabilities = self._graph.session.run(self._pred_prob, feed_dict=feed_dict)
       if deterministic:
         return probabilities.argmax()
       else:
@@ -251,7 +292,8 @@ class MCTS(object):
                      for f, s in zip(self._features, state))
     return feed_dict
 
-  def _run_episodes(self, steps, temperature, adapt_puct):
+  def _run_episodes(self, steps, temperature, saver, adapt_puct):
+    """Simulate the episodes for one iteration."""
     buffer = []
     self._env.reset()
     root = TreeSearchNode(0.0)
@@ -269,9 +311,15 @@ class MCTS(object):
       else:
 #        root = root.children[action]
         root = TreeSearchNode(0.0)
+      if time.time() > self._checkpoint_time:
+        self._checkpoint_index += 1
+        saver.save(
+            self._graph.session, self._graph.save_file, global_step=self._checkpoint_index)
+        self._checkpoint_time = time.time()
     return buffer
 
   def _optimize_policy(self, buffer, epochs):
+    """Optimize the policy based on the replay buffer from the current iteration."""
     batch_size = self._graph.batch_size
     n_batches = len(buffer) // batch_size
     for epoch in range(epochs):
@@ -290,13 +338,12 @@ class MCTS(object):
       loss = self._graph.fit_generator(generate_batches(), checkpoint_interval=0)
 
   def _do_tree_search(self, root, temperature, adapt_puct):
+    """Perform the tree search for a state."""
     # Build the tree.
 
-    traces = []
     for i in range(self.n_search_episodes):
       env = copy.deepcopy(self._env)
-      trace = Trace()
-      traces.append(trace)
+      trace = []
       self._create_trace(env, root, trace)
       self._record_trace_rewards(trace)
 
@@ -311,7 +358,8 @@ class MCTS(object):
     return prob, reward
 
   def _create_trace(self, env, node, trace):
-    trace.nodes.append(node)
+    """Create one trace as part of the tree search."""
+    trace.append(node)
     node.count += 1
     if env.terminated:
       # Mark this node as terminal
@@ -323,7 +371,7 @@ class MCTS(object):
       prob_pred, value = self.predict(env.state)
       node.value = float(value)
       node.children = [TreeSearchNode(p) for p in prob_pred[0]]
-    if len(trace.nodes) == self.max_search_depth:
+    if len(trace) == self.max_search_depth:
       return
 
     # Select the next action to perform.
@@ -343,8 +391,9 @@ class MCTS(object):
     self._create_trace(env, next_node, trace)
 
   def _record_trace_rewards(self, trace):
-    value = trace.nodes[-1].value
-    for node in reversed(trace.nodes):
+    """Record the rewards received during a trace."""
+    value = trace[-1].value
+    for node in reversed(trace):
       value = node.reward + self.discount_factor*value
       node.total_reward += value
       node.mean_reward = node.total_reward/node.count
@@ -360,9 +409,3 @@ class TreeSearchNode(object):
     self.mean_reward = 0.0
     self.prior_prob = prior_prob
     self.children = []
-
-
-class Trace(object):
-
-  def __init__(self):
-    self.nodes = []

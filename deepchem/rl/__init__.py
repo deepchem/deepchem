@@ -122,9 +122,6 @@ class GymEnvironment(Environment):
     self._state, reward, self._terminated, info = self.env.step(action)
     return reward
 
-  def __deepcopy__(self, memo):
-    return GymEnvironment(self.name)
-
 
 class Policy(object):
   """A policy for taking actions within an environment.
