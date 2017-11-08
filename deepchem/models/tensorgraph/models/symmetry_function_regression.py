@@ -203,6 +203,7 @@ class ANIRegression(TensorGraph):
                                    np.stack([flags] * self.max_atoms, axis=1)
       feed_dict[self.atom_numbers] = np.array(X[:upper_lim, :, 0], dtype=int)
       feed_dict[self.atom_feats] = np.array(X[:upper_lim, :, :], dtype=float)
+      feed_dict[self._training_placeholder] = 0.0
       return self.session.run([self.grad], feed_dict=feed_dict)
 
   def pred_one(self, X, atomic_nums, constraints=None):
