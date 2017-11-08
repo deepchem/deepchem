@@ -409,7 +409,9 @@ class _Worker(object):
     if self.env.terminated:
       self.env.reset()
       self.rnn_states = self.graph.rnn_zero_states
-    return states, actions, np.array(rewards, dtype=np.float32), np.array(values, dtype=np.float32)
+    return states, actions, np.array(
+        rewards, dtype=np.float32), np.array(
+            values, dtype=np.float32)
 
   def process_rollout(self, states, actions, rewards, values,
                       initial_rnn_states, step_count):
