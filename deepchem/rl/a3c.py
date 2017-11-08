@@ -96,7 +96,7 @@ class A3C(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a map containing the
+      the Policy to optimize.  Its create_layers() method must return a dict containing the
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_rollout_length: int
       the maximum length of rollouts to generate
@@ -409,7 +409,7 @@ class _Worker(object):
     if self.env.terminated:
       self.env.reset()
       self.rnn_states = self.graph.rnn_zero_states
-    return states, actions, np.array(rewards), np.array(values)
+    return states, actions, np.array(rewards, dtype=np.float32), np.array(values, dtype=np.float32)
 
   def process_rollout(self, states, actions, rewards, values,
                       initial_rnn_states, step_count):

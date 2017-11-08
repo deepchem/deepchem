@@ -87,7 +87,7 @@ class MCTS(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a map containing the
+      the Policy to optimize.  Its create_layers() method must return a dict containing the
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_search_depth: int
       the maximum depth of the tree search, measured in steps
@@ -218,14 +218,17 @@ class MCTS(object):
       # Run the algorithm.
 
       for iteration in range(iterations):
-        buffer = self._run_episodes(steps_per_iteration, temperature, saver, adapt_puct)
+        buffer = self._run_episodes(steps_per_iteration, temperature, saver,
+                                    adapt_puct)
         self._optimize_policy(buffer, epochs_per_iteration)
 
       # Save a file checkpoint.
 
       self._checkpoint_index += 1
       saver.save(
-          self._graph.session, self._graph.save_file, global_step=self._checkpoint_index)
+          self._graph.session,
+          self._graph.save_file,
+          global_step=self._checkpoint_index)
 
   def predict(self, state):
     """Compute the policy's output predictions for a state.
@@ -247,9 +250,7 @@ class MCTS(object):
       results = self._graph.session.run(tensors, feed_dict=feed_dict)
       return results[:2]
 
-  def select_action(self,
-                    state,
-                    deterministic=False):
+  def select_action(self, state, deterministic=False):
     """Select an action to perform based on the environment's state.
 
     Parameters
@@ -268,7 +269,8 @@ class MCTS(object):
       state = [state]
     with self._graph._get_tf("Graph").as_default():
       feed_dict = self._create_feed_dict(state)
-      probabilities = self._graph.session.run(self._pred_prob, feed_dict=feed_dict)
+      probabilities = self._graph.session.run(
+          self._pred_prob, feed_dict=feed_dict)
       if deterministic:
         return probabilities.argmax()
       else:
@@ -309,12 +311,13 @@ class MCTS(object):
         self._env.reset()
         root = TreeSearchNode(0.0)
       else:
-#        root = root.children[action]
-        root = TreeSearchNode(0.0)
+        root = root.children[action]
       if time.time() > self._checkpoint_time:
         self._checkpoint_index += 1
         saver.save(
-            self._graph.session, self._graph.save_file, global_step=self._checkpoint_index)
+            self._graph.session,
+            self._graph.save_file,
+            global_step=self._checkpoint_index)
         self._checkpoint_time = time.time()
     return buffer
 
@@ -327,15 +330,17 @@ class MCTS(object):
 
       def generate_batches():
         for batch in range(n_batches):
-          indices = list(range(batch*batch_size, (batch+1)*batch_size))
+          indices = list(range(batch * batch_size, (batch + 1) * batch_size))
           feed_dict = {}
           for i, f in enumerate(self._features):
             feed_dict[f] = np.stack(buffer[j][0][i] for j in indices)
           feed_dict[self._search_prob] = np.stack(buffer[j][1] for j in indices)
-          feed_dict[self._search_value] = np.array([buffer[j][2] for j in indices])
+          feed_dict[self._search_value] = np.array(
+              [buffer[j][2] for j in indices])
           yield feed_dict
 
-      loss = self._graph.fit_generator(generate_batches(), checkpoint_interval=0)
+      loss = self._graph.fit_generator(
+          generate_batches(), checkpoint_interval=0)
 
   def _do_tree_search(self, root, temperature, adapt_puct):
     """Perform the tree search for a state."""
@@ -343,60 +348,61 @@ class MCTS(object):
 
     for i in range(self.n_search_episodes):
       env = copy.deepcopy(self._env)
-      trace = []
-      self._create_trace(env, root, trace)
-      self._record_trace_rewards(trace)
+      self._create_trace(env, root, 1)
 
     # Compute the final probabilities and expected reward.
 
-    prob = np.array([c.count**(1.0/temperature) for c in root.children])
+    prob = np.array([c.count**(1.0 / temperature) for c in root.children])
     prob /= np.sum(prob)
-    reward = np.sum(p*c.mean_reward for p, c in zip(prob, root.children))
+    reward = np.sum(p * c.mean_reward for p, c in zip(prob, root.children))
     if adapt_puct:
-      scale = np.sum([p*np.abs(c.mean_reward) for p, c in zip(prob, root.children)])
+      scale = np.sum(
+          [p * np.abs(c.mean_reward) for p, c in zip(prob, root.children)])
       self._puct_scale = 0.99 * self._puct_scale + 0.01 * scale
     return prob, reward
 
-  def _create_trace(self, env, node, trace):
+  def _create_trace(self, env, node, depth):
     """Create one trace as part of the tree search."""
-    trace.append(node)
     node.count += 1
     if env.terminated:
       # Mark this node as terminal
       node.children = None
       node.value = 0.0
-      return
+      return 0.0
     if node.children is not None and len(node.children) == 0:
       # Expand this node.
       prob_pred, value = self.predict(env.state)
       node.value = float(value)
       node.children = [TreeSearchNode(p) for p in prob_pred[0]]
-    if len(trace) == self.max_search_depth:
-      return
-
-    # Select the next action to perform.
-
-    total_counts = sum(c.count for c in node.children)
-    if total_counts == 0:
-      score = [c.prior_prob for c in node.children]
+    if depth == self.max_search_depth:
+      reward = 0.0
+      future_rewards = node.value
     else:
-      scale = self._puct_scale*np.sqrt(total_counts)
-      score = [c.mean_reward + scale*c.prior_prob/(1+c.count) for c in node.children]
-    action = np.argmax(score)
-    next_node = node.children[action]
-    next_node.reward = env.step(action)
+      # Select the next action to perform.
 
-    # Recursively build the tree.
+      total_counts = sum(c.count for c in node.children)
+      if total_counts == 0:
+        score = [c.prior_prob for c in node.children]
+      else:
+        scale = self._puct_scale * np.sqrt(total_counts)
+        score = [
+            c.mean_reward + scale * c.prior_prob / (1 + c.count)
+            for c in node.children
+        ]
+      action = np.argmax(score)
+      next_node = node.children[action]
+      reward = env.step(action)
 
-    self._create_trace(env, next_node, trace)
+      # Recursively build the tree.
 
-  def _record_trace_rewards(self, trace):
-    """Record the rewards received during a trace."""
-    value = trace[-1].value
-    for node in reversed(trace):
-      value = node.reward + self.discount_factor*value
-      node.total_reward += value
-      node.mean_reward = node.total_reward/node.count
+      future_rewards = self._create_trace(env, next_node, depth + 1)
+
+    # Update statistics for this node.
+
+    future_rewards = reward + self.discount_factor * future_rewards
+    node.total_reward += future_rewards
+    node.mean_reward = node.total_reward / node.count
+    return future_rewards
 
 
 class TreeSearchNode(object):

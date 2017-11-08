@@ -107,7 +107,7 @@ class PPO(object):
     env: Environment
       the Environment to interact with
     policy: Policy
-      the Policy to optimize.  Its create_layers() method must return a map containing the
+      the Policy to optimize.  Its create_layers() method must return a dict containing the
       keys 'action_prob' and 'value', corresponding to the action probabilities and value estimate
     max_rollout_length: int
       the maximum length of rollouts to generate

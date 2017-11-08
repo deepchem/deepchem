@@ -63,7 +63,7 @@ class TestMCTS(unittest.TestCase):
         max_search_depth=5,
         n_search_episodes=200,
         optimizer=Adam(learning_rate=0.005))
-    mcts.fit(3, steps_per_iteration=50, epochs_per_iteration=50, puct_scale=1.0)
+    mcts.fit(10, steps_per_iteration=50, epochs_per_iteration=50)
 
     # It should have learned that the expected value is very close to zero, and that the best
     # action is to walk away.
