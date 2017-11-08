@@ -238,6 +238,44 @@ class TestDatasets(unittest.TestCase):
     np.testing.assert_array_equal(w[indices], w_sel)
     np.testing.assert_array_equal(ids[indices], ids_sel)
 
+  def test_complete_shuffle(self):
+    shard_sizes = [1, 2, 3, 4, 5]
+    batch_size = 10
+
+    all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+    def shard_generator():
+      for sz in shard_sizes:
+        X_b = np.random.rand(sz, 1)
+        y_b = np.random.rand(sz, 1)
+        w_b = np.random.rand(sz, 1)
+        ids_b = np.random.rand(sz)
+
+        all_Xs.append(X_b)
+        all_ys.append(y_b)
+        all_ws.append(w_b)
+        all_ids.append(ids_b)
+
+        yield X_b, y_b, w_b, ids_b
+
+    dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+    res = dataset.complete_shuffle()
+
+    # approx 1/15! chance of equality
+    np.testing.assert_equal(np.any(np.not_equal(dataset.X, res.X)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.y, res.w)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.w, res.y)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.ids, res.ids)), True)
+
+    np.testing.assert_array_equal(
+        np.sort(dataset.X, axis=0), np.sort(res.X, axis=0))
+    np.testing.assert_array_equal(
+        np.sort(dataset.y, axis=0), np.sort(res.y, axis=0))
+    np.testing.assert_array_equal(
+        np.sort(dataset.w, axis=0), np.sort(res.w, axis=0))
+    np.testing.assert_array_equal(np.sort(dataset.ids), np.sort(res.ids))
+
   def test_get_shape(self):
     """Test that get_shape works."""
     num_datapoints = 100
