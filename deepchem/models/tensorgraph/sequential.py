@@ -18,7 +18,24 @@ from deepchem.models.tensorgraph.layers import ReduceSquareDifference
 class Sequential(TensorGraph):
   """Sequential models are linear stacks of layers.
 
-  Analogous to the Sequential model from Keras.
+  Analogous to the Sequential model from Keras and allows for less
+  verbose construction of simple deep learning model.
+
+  Example
+  -------
+
+  >>> import deepchem as dc
+  >>> import numpy as np
+  >>> from deepchem.models.tensorgraph import layers
+  >>> # Define Data
+  >>> X = np.random.rand(20, 2)                     
+  >>> y = [[0, 1] for x in range(20)]
+  >>> dataset = dc.data.NumpyDataset(X, y)                              
+  >>> model = dc.models.Sequential(learning_rate=0.01)                  
+  >>> model.add(layers.Dense(out_channels=2))                                  
+  >>> model.add(layers.SoftMax())
+  >>> model.fit(dataset, loss="binary_crossentropy", nb_epoch=1000)     
+  >>> prediction = np.squeeze(model.predict_on_batch(X)) 
   """
 
   def __init__(self, **kwargs):
@@ -47,7 +64,9 @@ class Sequential(TensorGraph):
   def fit(self, dataset, loss, **kwargs):
     """Fits on the specified dataset.
 
-    Adds the necessary feature and placeholders.
+    If called for the first time, constructs the TensorFlow graph for this
+    model. Fits this graph on the specified dataset according to the specified
+    loss.
 
     Parameters
     ----------
