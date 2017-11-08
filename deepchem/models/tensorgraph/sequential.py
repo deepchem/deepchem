@@ -34,8 +34,6 @@ class Sequential(TensorGraph):
   >>> model = dc.models.Sequential(learning_rate=0.01)                  
   >>> model.add(layers.Dense(out_channels=2))                                  
   >>> model.add(layers.SoftMax())
-  >>> model.fit(dataset, loss="binary_crossentropy", nb_epoch=1000)     
-  >>> prediction = np.squeeze(model.predict_on_batch(X)) 
   """
 
   def __init__(self, **kwargs):
