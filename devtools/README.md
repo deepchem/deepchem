@@ -12,6 +12,7 @@ How to do a release
 - Look at github issues merged since last release
 - Bump Dockerfile Version
 - Update README with new version string
+- Update Website install commands
 
 ### Post-release
 - Update the docker images
