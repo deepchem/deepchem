@@ -9,6 +9,8 @@ __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
+import random
+import math
 import unittest
 import tempfile
 import os
@@ -236,6 +238,44 @@ class TestDatasets(unittest.TestCase):
     np.testing.assert_array_equal(w[indices], w_sel)
     np.testing.assert_array_equal(ids[indices], ids_sel)
 
+  def test_complete_shuffle(self):
+    shard_sizes = [1, 2, 3, 4, 5]
+    batch_size = 10
+
+    all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+    def shard_generator():
+      for sz in shard_sizes:
+        X_b = np.random.rand(sz, 1)
+        y_b = np.random.rand(sz, 1)
+        w_b = np.random.rand(sz, 1)
+        ids_b = np.random.rand(sz)
+
+        all_Xs.append(X_b)
+        all_ys.append(y_b)
+        all_ws.append(w_b)
+        all_ids.append(ids_b)
+
+        yield X_b, y_b, w_b, ids_b
+
+    dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+    res = dataset.complete_shuffle()
+
+    # approx 1/15! chance of equality
+    np.testing.assert_equal(np.any(np.not_equal(dataset.X, res.X)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.y, res.w)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.w, res.y)), True)
+    np.testing.assert_equal(np.any(np.not_equal(dataset.ids, res.ids)), True)
+
+    np.testing.assert_array_equal(
+        np.sort(dataset.X, axis=0), np.sort(res.X, axis=0))
+    np.testing.assert_array_equal(
+        np.sort(dataset.y, axis=0), np.sort(res.y, axis=0))
+    np.testing.assert_array_equal(
+        np.sort(dataset.w, axis=0), np.sort(res.w, axis=0))
+    np.testing.assert_array_equal(np.sort(dataset.ids), np.sort(res.ids))
+
   def test_get_shape(self):
     """Test that get_shape works."""
     num_datapoints = 100
@@ -395,6 +435,221 @@ class TestDatasets(unittest.TestCase):
       batch_sizes.append(len(X))
     self.assertEqual([3, 3, 3, 1], batch_sizes)
 
+  def test_disk_pad_batches(self):
+    shard_sizes = [21, 11, 41, 21, 51]
+    batch_size = 10
+
+    all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+    def shard_generator():
+      for sz in shard_sizes:
+        X_b = np.random.rand(sz, 1)
+        y_b = np.random.rand(sz, 1)
+        w_b = np.random.rand(sz, 1)
+        ids_b = np.random.rand(sz)
+
+        all_Xs.append(X_b)
+        all_ys.append(y_b)
+        all_ws.append(w_b)
+        all_ids.append(ids_b)
+
+        yield X_b, y_b, w_b, ids_b
+
+    dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+    all_Xs = np.concatenate(all_Xs, axis=0)
+    all_ys = np.concatenate(all_ys, axis=0)
+    all_ws = np.concatenate(all_ws, axis=0)
+    all_ids = np.concatenate(all_ids, axis=0)
+
+    test_Xs, test_ys, test_ws, test_ids = [], [], [], []
+    for bidx, (a, b, c, d) in enumerate(
+        dataset.iterbatches(
+            batch_size=batch_size, pad_batches=True, deterministic=True)):
+
+      test_Xs.append(a)
+      test_ys.append(b)
+      test_ws.append(c)
+      test_ids.append(d)
+
+    test_Xs = np.concatenate(test_Xs, axis=0)
+    test_ys = np.concatenate(test_ys, axis=0)
+    test_ws = np.concatenate(test_ws, axis=0)
+    test_ids = np.concatenate(test_ids, axis=0)
+
+    total_size = sum(shard_sizes)
+
+    assert bidx == math.ceil(total_size / batch_size) - 1
+
+    expected_batches = math.ceil(total_size / batch_size) * batch_size
+
+    assert len(test_Xs) == expected_batches
+    assert len(test_ys) == expected_batches
+    assert len(test_ws) == expected_batches
+    assert len(test_ids) == expected_batches
+
+    np.testing.assert_array_equal(all_Xs, test_Xs[:total_size, :])
+    np.testing.assert_array_equal(all_ys, test_ys[:total_size, :])
+    np.testing.assert_array_equal(all_ws, test_ws[:total_size, :])
+    np.testing.assert_array_equal(all_ids, test_ids[:total_size])
+
+  def test_disk_iterate_y_w_None(self):
+    shard_sizes = [21, 11, 41, 21, 51]
+    batch_size = 10
+
+    all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+    def shard_generator():
+      for sz in shard_sizes:
+        X_b = np.random.rand(sz, 1)
+        ids_b = np.random.rand(sz)
+
+        all_Xs.append(X_b)
+        all_ids.append(ids_b)
+
+        yield X_b, None, None, ids_b
+
+    dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+    all_Xs = np.concatenate(all_Xs, axis=0)
+    all_ids = np.concatenate(all_ids, axis=0)
+
+    test_Xs, test_ids = [], []
+    for bidx, (a, _, _, d) in enumerate(
+        dataset.iterbatches(
+            batch_size=batch_size, pad_batches=True, deterministic=True)):
+
+      test_Xs.append(a)
+      test_ids.append(d)
+
+    test_Xs = np.concatenate(test_Xs, axis=0)
+    test_ids = np.concatenate(test_ids, axis=0)
+
+    total_size = sum(shard_sizes)
+
+    assert bidx == math.ceil(total_size / batch_size) - 1
+
+    expected_batches = math.ceil(total_size / batch_size) * batch_size
+
+    assert len(test_Xs) == expected_batches
+    assert len(test_ids) == expected_batches
+
+    np.testing.assert_array_equal(all_Xs, test_Xs[:total_size, :])
+    np.testing.assert_array_equal(all_ids, test_ids[:total_size])
+
+  def test_disk_iterate_batch(self):
+
+    all_batch_sizes = [None, 32, 17, 11]
+    all_shard_sizes = [[7, 3, 12, 4, 5], [1, 1, 1, 1, 1], [31, 31, 31, 31, 31],
+                       [21, 11, 41, 21, 51]]
+
+    for idx in range(25):
+      shard_length = random.randint(1, 32)
+      shard_sizes = []
+      for _ in range(shard_length):
+        shard_sizes.append(random.randint(1, 128))
+      all_shard_sizes.append(shard_sizes)
+      if idx == 0:
+        # special case to test
+        all_batch_sizes.append(None)
+      else:
+        all_batch_sizes.append(random.randint(1, 256))
+
+    for shard_sizes, batch_size in zip(all_shard_sizes, all_batch_sizes):
+
+      all_Xs, all_ys, all_ws, all_ids = [], [], [], []
+
+      def shard_generator():
+        for sz in shard_sizes:
+          X_b = np.random.rand(sz, 1)
+          y_b = np.random.rand(sz, 1)
+          w_b = np.random.rand(sz, 1)
+          ids_b = np.random.rand(sz)
+
+          all_Xs.append(X_b)
+          all_ys.append(y_b)
+          all_ws.append(w_b)
+          all_ids.append(ids_b)
+
+          yield X_b, y_b, w_b, ids_b
+
+      dataset = dc.data.DiskDataset.create_dataset(shard_generator())
+
+      all_Xs = np.concatenate(all_Xs, axis=0)
+      all_ys = np.concatenate(all_ys, axis=0)
+      all_ws = np.concatenate(all_ws, axis=0)
+      all_ids = np.concatenate(all_ids, axis=0)
+
+      total_size = sum(shard_sizes)
+
+      assert dataset.X.shape[0] == total_size
+
+      # deterministic
+      test_Xs, test_ys, test_ws, test_ids = [], [], [], []
+      for bidx, (a, b, c, d) in enumerate(
+          dataset.iterbatches(
+              batch_size=batch_size, pad_batches=False, deterministic=True)):
+
+        test_Xs.append(a)
+        test_ys.append(b)
+        test_ws.append(c)
+        test_ids.append(d)
+
+      if batch_size is None:
+        for idx, (tx, ty, tw,
+                  tids) in enumerate(zip(test_Xs, test_ys, test_ws, test_ids)):
+          assert len(tx) == shard_sizes[idx]
+          assert len(ty) == shard_sizes[idx]
+          assert len(tw) == shard_sizes[idx]
+          assert len(tids) == shard_sizes[idx]
+
+      test_Xs = np.concatenate(test_Xs, axis=0)
+      test_ys = np.concatenate(test_ys, axis=0)
+      test_ws = np.concatenate(test_ws, axis=0)
+      test_ids = np.concatenate(test_ids, axis=0)
+
+      if batch_size is None:
+        assert bidx == len(shard_sizes) - 1
+      else:
+        assert bidx == math.ceil(total_size / batch_size) - 1
+
+      np.testing.assert_array_equal(all_Xs, test_Xs)
+      np.testing.assert_array_equal(all_ys, test_ys)
+      np.testing.assert_array_equal(all_ws, test_ws)
+      np.testing.assert_array_equal(all_ids, test_ids)
+
+      # non-deterministic
+      test_Xs, test_ys, test_ws, test_ids = [], [], [], []
+
+      for bidx, (a, b, c, d) in enumerate(
+          dataset.iterbatches(
+              batch_size=batch_size, pad_batches=False, deterministic=False)):
+
+        test_Xs.append(a)
+        test_ys.append(b)
+        test_ws.append(c)
+        test_ids.append(d)
+
+      # we don't know the order in which the shards are iterated in.
+      test_Xs = np.concatenate(test_Xs, axis=0)
+      test_ys = np.concatenate(test_ys, axis=0)
+      test_ws = np.concatenate(test_ws, axis=0)
+      test_ids = np.concatenate(test_ids, axis=0)
+
+      if batch_size is None:
+        assert bidx == len(shard_sizes) - 1
+      else:
+        assert bidx == math.ceil(total_size / batch_size) - 1
+
+      np.testing.assert_array_equal(
+          np.sort(all_Xs, axis=0), np.sort(test_Xs, axis=0))
+      np.testing.assert_array_equal(
+          np.sort(all_ys, axis=0), np.sort(test_ys, axis=0))
+      np.testing.assert_array_equal(
+          np.sort(all_ws, axis=0), np.sort(test_ws, axis=0))
+      np.testing.assert_array_equal(
+          np.sort(all_ids, axis=0), np.sort(test_ids, axis=0))
+
   def test_numpy_iterate_batch_size(self):
     solubility_dataset = dc.data.tests.load_solubility_data()
     X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
@@ -406,3 +661,7 @@ class TestDatasets(unittest.TestCase):
         3, pad_batches=False, deterministic=True):
       batch_sizes.append(len(X))
     self.assertEqual([3, 3, 3, 1], batch_sizes)
+
+
+if __name__ == "__main__":
+  unittest.main()
