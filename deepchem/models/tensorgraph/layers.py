@@ -1039,7 +1039,7 @@ class L1Loss(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
-    out_tensor = tf.reduce_mean(
+    out_tensor = tf.reduce_sum(
         tf.abs(guess - label), axis=list(range(1, len(label.shape))))
     if set_tensors:
       self.out_tensor = out_tensor
@@ -1063,10 +1063,8 @@ class L2Loss(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
-    print("GLSHAPE", (guess-label).shape)
-    out_tensor = tf.reduce_mean(
+    out_tensor = tf.reduce_sum(
         tf.square(guess - label), axis=list(range(1, len(label._shape))))
-    print("DEBUG_OUTT SHAPE", out_tensor.shape)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
