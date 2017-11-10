@@ -444,7 +444,7 @@ class _Worker(object):
       global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                       'global')
       self.update_local_variables = tf.group(
-          * [tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
+          *[tf.assign(v1, v2) for v1, v2 in zip(local_vars, global_vars)])
 
   def run(self):
     rollouts = []
