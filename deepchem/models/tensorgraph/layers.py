@@ -991,6 +991,28 @@ class Input(Layer):
     return "%s_pre_q" % self.name
 
 
+class ShiftedExponential(Layer):
+
+  def __init__(self, t, in_layers=None, **kwargs):
+    self.t = t
+    super(ShiftedExponential, self).__init__(in_layers, **kwargs)
+    try:
+      self._shape = tuple(self.in_layers[0].shape)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("")
+    parent = inputs[0]
+    out_tensor = tf.exp(tf.multiply(parent, (1.0 / self.t)))
+    out_tensor = tf.multiply(self.t, out_tensor)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class Feature(Input):
 
   def __init__(self, **kwargs):
@@ -1041,8 +1063,10 @@ class L2Loss(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers, True)
     guess, label = inputs[0], inputs[1]
+    print("GLSHAPE", (guess-label).shape)
     out_tensor = tf.reduce_mean(
         tf.square(guess - label), axis=list(range(1, len(label._shape))))
+    print("DEBUG_OUTT SHAPE", out_tensor.shape)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor

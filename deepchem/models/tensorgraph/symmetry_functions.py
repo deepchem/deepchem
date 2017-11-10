@@ -3,12 +3,13 @@
 """
 Created on Thu Jul  6 20:43:23 2017
 
-@author: zqwu
+@author: zqwu, ytz
 """
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
+import math
 import numpy as np
 import tensorflow as tf
 from deepchem.nn import activations
@@ -398,8 +399,9 @@ class AtomicDifferentiatedDense(Layer):
                max_atoms,
                out_channels,
                atom_number_cases=[1, 6, 7, 8],
-               init='glorot_uniform',
-               activation='relu',
+               init='ani_norm',
+               # activation='relu',
+               activation='gaussian',
                **kwargs):
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
@@ -411,7 +413,7 @@ class AtomicDifferentiatedDense(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Generate Radial Symmetry Function """
-    init_fn = initializations.get(self.init)  # Set weight initialization
+
     activation_fn = activations.get(self.activation)
     if in_layers is None:
       in_layers = self.in_layers
@@ -421,6 +423,11 @@ class AtomicDifferentiatedDense(Layer):
     atom_numbers = in_layers[1].out_tensor[:, :, 0]
 
     in_channels = inputs.get_shape().as_list()[-1]
+    init_fn = initializations.get(self.init)
+    #   'normal',
+    #   scale=1/math.sqrt(in_channels)
+    # )  # Set weight initialization
+    # init_fn = initialization.normal()
     self.W = init_fn(
         [len(self.atom_number_cases), in_channels, self.out_channels])
 
@@ -431,8 +438,8 @@ class AtomicDifferentiatedDense(Layer):
       # using a reshape trick. Note that the np and tf matmul behavior
       # differs when dealing with broadcasts
 
-      a = inputs  # (i,j,k)
-      b = self.W[i, :, :]  # (k, l)
+      a = inputs  # (i,j,k) (batch_size, num_atoms, num_features)
+      b = self.W[i, :, :]  # (k, l) (num_features, out_channels)
 
       ai = tf.shape(a)[0]
       aj = tf.shape(a)[1]

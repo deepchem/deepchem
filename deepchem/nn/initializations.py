@@ -58,6 +58,10 @@ def glorot_normal(shape, name=None):
   s = np.sqrt(2. / (fan_in + fan_out))
   return normal(shape, s, name=name)
 
+def ani_norm(shape, name=None):
+  fan_in, _ = gtetf _fans(shape)
+  s = 1 / np.sqrt(fan_in)
+  return normal(shape, s, name=name)
 
 def glorot_uniform(shape, name=None):
   fan_in, fan_out = get_fans(shape)

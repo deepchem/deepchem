@@ -25,7 +25,7 @@ all_dir = os.path.join(data_dir, "all")
 test_dir = os.path.join(data_dir, "test")
 fold_dir = os.path.join(data_dir, "fold")
 train_dir = os.path.join(fold_dir, "train")
-temp_dir = os.path.join(fold_dir, "train") # used for un-shuffled train data
+temp_dir = os.path.join(fold_dir, "temp") # used for un-shuffled train data
 valid_dir = os.path.join(fold_dir, "valid")
 
 
@@ -63,10 +63,10 @@ def load_roitberg_ANI(mode="atomization", batch_size=192):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      # 'ani_gdb_s04.h5',
-      # 'ani_gdb_s05.h5',
-      # 'ani_gdb_s06.h5',
-      # 'ani_gdb_s07.h5',
+      'ani_gdb_s04.h5',
+      'ani_gdb_s05.h5',
+      'ani_gdb_s06.h5',
+      'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
 
@@ -198,12 +198,12 @@ def broadcast(dataset, metadata):
 if __name__ == "__main__":
 
   max_atoms = 23
-  batch_size = 192  # CHANGED FROM 192
+  batch_size = 384  # CHANGED FROM 192
   layer_structures = [128, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
   metric = [
-      dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
+      dc.metrics.Metric(dc.metrics.mean_squared_error, mode="regression"),
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
@@ -249,6 +249,7 @@ if __name__ == "__main__":
   # print("SHAPE", train_dataset.get_shape())
 
   # if os.path.exists(model_dir):
+  #   print("Restoring model...")
   #   model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
   # else:
   model = dc.models.ANIRegression(
@@ -268,26 +269,27 @@ if __name__ == "__main__":
 
   print("Start training...")
 
-  #   # For production, set nb_epoch to 100+
+  # For production, set nb_epoch to 100+
   for i in range(10):
     model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
     print("Saving model...")
     model.save_numpy()
     print("Done.")
 
-  print("Evaluating model")
-  train_scores = model.evaluate(train_dataset, metric, transformers)
-  valid_scores = model.evaluate(valid_dataset, metric, transformers)
+    print("Evaluating model on validation and test")
+    valid_scores = model.evaluate(valid_dataset, metric, transformers)
+
   test_scores = model.evaluate(test_dataset, metric, transformers)
+    # train_scores = model.evaluate(train_dataset, metric, transformers)
 
   # print("Train scores")
-  # print(train_scores)
+  # # print(train_scores)
 
-  print("Validation scores")
-  print(valid_scores)
+  # print("Validation scores")
+  # print(valid_scores)
 
-  print("Test scores")
-  print(test_scores)
+  # print("Test scores")
+  # print(test_scores)
 
   coords = np.array([
       [0.3, 0.4, 0.5],

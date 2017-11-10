@@ -77,6 +77,8 @@ def elu(x, alpha=1.0):
 def selu(x):
   return model_ops.selu(x)
 
+def gaussian(x):
+  return tf.exp(-1 * x * x)
 
 def softplus(x):
   return tf.nn.softplus(x)

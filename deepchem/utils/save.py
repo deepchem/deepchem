@@ -77,7 +77,7 @@ def load_sparse_mats(filename):
 
     X = scipy.sparse.csr_matrix(
         (items[0], items[1], items[2]), shape=[outer_shape0, outer_shape1])
-    X = X.A
+    X = X.A # conversion to dense
     X = X.reshape(X.shape[0] // inner_shape, inner_shape, X.shape[1])
 
     return X

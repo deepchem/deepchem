@@ -68,7 +68,7 @@ class TensorGraph(Model):
     self.built = False
     self.queue_installed = False
     self.optimizer = Adam(
-        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+        learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-8)
     self.configproto = configproto
 
     # Singular place to hold Tensor objects which don't serialize
@@ -263,6 +263,7 @@ class TensorGraph(Model):
         if should_log:
           self._log_tensorboard(fetches[2])
         avg_loss += fetched_values[1]
+        # print("tmp loss:", fetched_values[1])
         n_averaged_batches += 1
         self.global_step += 1
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
@@ -771,8 +772,21 @@ class TensorGraph(Model):
       opt = self._get_tf('Optimizer')
       global_step = self._get_tf('GlobalStep')
       try:
-        self.tensor_objects['train_op'] = opt.minimize(
-            self.loss.out_tensor, global_step=global_step)
+        # hard clip
+        grads_and_vars = opt.compute_gradients(self.loss.out_tensor)
+        capped_grads_and_vars = [(tf.clip_by_value(gv[0], -3.0, 3.0), gv[1]) for gv in grads_and_vars]
+        train_op = opt.apply_gradients(
+          capped_grads_and_vars,
+          global_step=global_step
+        )
+
+        # clip by global norm - this just NaNs endlessly
+        # gradients, variables = zip(*opt.compute_gradients(self.loss.out_tensor))
+        # gradients, _ = tf.clip_by_global_norm(gradients, 2.0)
+        # train_op = opt.apply_gradients(zip(gradients, variables), global_step=global_step)
+
+        self.tensor_objects['train_op'] = train_op
+        # self.loss.out_tensor, global_step=global_step)
       except ValueError:
         # The loss doesn't depend on any variables.
         self.tensor_objects['train_op'] = 0

@@ -16,6 +16,10 @@ def mean_squared_error(y_true, y_pred):
   return model_ops.mean(tf.square(y_pred - y_true), axis=-1)
 
 
+def root_mean_squared_error(y_true, y_pred):
+  return model_ops.sqrt(model_ops.mean(tf.square(y_pred - y_true), axis=-1))
+
+
 def mean_absolute_error(y_true, y_pred):
   return model_ops.mean(tf.abs(y_pred - y_true), axis=-1)
 

@@ -21,8 +21,8 @@ import multiprocessing.pool
 
 import deepchem as dc
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat
-from deepchem.models.tensorgraph.layers import L2Loss, Conditional, Reshape, Label, Weights, Feature, BPGather2
+from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat, ShiftedExponential
+from deepchem.models.tensorgraph.layers import L1Loss, L2Loss, Conditional, Reshape, Label, Weights, Feature, BPGather2
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
 from deepchem.models.tensorgraph.symmetry_functions import DistanceMatrix, \
@@ -339,12 +339,18 @@ class ANIRegression(TensorGraph):
     previous_layer = self.featurized
 
     Hiddens = []
-    for n_hidden in self.layer_structures:
+    for idx, n_hidden in enumerate(self.layer_structures):
+
+      if idx != len(self.layer_structures)-1:
+        act_fn = 'gaussian'
+      else:
+        act_fn = 'linear'
+
       Hidden = AtomicDifferentiatedDense(
           self.max_atoms,
           n_hidden,
           self.atom_number_cases,
-          activation='tanh',
+          activation=act_fn,
           in_layers=[previous_layer, self.featurized])
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
@@ -358,6 +364,7 @@ class ANIRegression(TensorGraph):
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
       cost = L2Loss(in_layers=[label, output])
+      cost = ShiftedExponential(0.5, in_layers=cost)
       costs.append(cost)
 
     all_cost = Stack(in_layers=costs, axis=1)
@@ -370,7 +377,6 @@ class ANIRegression(TensorGraph):
     start_time = time.time()
 
     batch_size = self.batch_size
-
     # (ytz): This is set to a batch_size of 1 intentionally.
     # If you increase, you need to deal with consequences of:
     #   1. shuffling batches within a shard via a perm
