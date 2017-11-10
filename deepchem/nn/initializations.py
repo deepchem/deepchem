@@ -59,7 +59,7 @@ def glorot_normal(shape, name=None):
   return normal(shape, s, name=name)
 
 def ani_norm(shape, name=None):
-  fan_in, _ = gtetf _fans(shape)
+  fan_in, _ = get_fans(shape)
   s = 1 / np.sqrt(fan_in)
   return normal(shape, s, name=name)
 
