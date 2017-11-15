@@ -1006,6 +1006,7 @@ class ShiftedExponential(Layer):
     if len(inputs) != 1:
       raise ValueError("")
     parent = inputs[0]
+    # tmp = tf.multiply(parent, (1.0 / self.t))
     out_tensor = tf.exp(tf.multiply(parent, (1.0 / self.t)))
     out_tensor = tf.multiply(self.t, out_tensor)
     if set_tensors:
@@ -1048,7 +1049,7 @@ class L1Loss(Layer):
 
 class L2Loss(Layer):
 
-  def __init__(self, in_layers=None, **kwargs):
+  def __init__(self, in_layers=None, use_sum=False, **kwargs):
     super(L2Loss, self).__init__(in_layers, **kwargs)
     try:
       shape1 = self.in_layers[0].shape
@@ -2756,6 +2757,22 @@ class BatchNormalization(Layer):
     return out_tensor
 
 
+class RootWeightedMeanError(Layer):
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(RootWeightedMeanError, self).__init__(in_layers, **kwargs)
+    self._shape = tuple()
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, True)
+    entropy, weights = inputs[0], inputs[1]
+    out_tensor = tf.sqrt(tf.reduce_mean(entropy * weights))
+    # out_tensor = tf.reduce_mean(entropy * weights)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
+
 class WeightedError(Layer):
 
   def __init__(self, in_layers=None, **kwargs):
@@ -3867,7 +3884,7 @@ class ANIFeat(Layer):
       4.7123890e+00,
       5.4977871e+00])
     # thetas = np.linspace(0., np.pi, self.angular_length)
-    zeta = float(self.angular_length**2)
+    # zeta = float(self.angular_length**2)
     zeta = 8.0
 
     eta, zeta, Rs, thetas = np.meshgrid(eta, zeta, Rs, thetas)

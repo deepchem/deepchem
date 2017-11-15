@@ -539,8 +539,10 @@ class TestDatasets(unittest.TestCase):
 
   def test_disk_iterate_batch(self):
 
+    np.random.seed(55)
+
     all_batch_sizes = [None, 32, 17, 11]
-    all_shard_sizes = [[7, 3, 12, 4, 5], [1, 1, 1, 1, 1], [31, 31, 31, 31, 31],
+    all_shard_sizes = [[7, 3, 25, 4, 5], [1, 1, 1, 1, 1], [31, 31, 31, 31, 31],
                        [21, 11, 41, 21, 51]]
 
     for idx in range(25):
@@ -561,10 +563,10 @@ class TestDatasets(unittest.TestCase):
 
       def shard_generator():
         for sz in shard_sizes:
-          X_b = np.random.rand(sz, 1)
-          y_b = np.random.rand(sz, 1)
-          w_b = np.random.rand(sz, 1)
-          ids_b = np.random.rand(sz)
+          X_b = np.random.randint(0, 10, sz)
+          y_b = np.random.randint(0, 10, sz)
+          w_b = np.random.randint(0, 10, sz)
+          ids_b = np.random.randint(0, 256, sz)
 
           all_Xs.append(X_b)
           all_ys.append(y_b)
@@ -598,6 +600,7 @@ class TestDatasets(unittest.TestCase):
       if batch_size is None:
         for idx, (tx, ty, tw,
                   tids) in enumerate(zip(test_Xs, test_ys, test_ws, test_ids)):
+
           assert len(tx) == shard_sizes[idx]
           assert len(ty) == shard_sizes[idx]
           assert len(tw) == shard_sizes[idx]
@@ -612,6 +615,9 @@ class TestDatasets(unittest.TestCase):
         assert bidx == len(shard_sizes) - 1
       else:
         assert bidx == math.ceil(total_size / batch_size) - 1
+
+      # print(all_Xs)
+      # print(test_Xs)
 
       np.testing.assert_array_equal(all_Xs, test_Xs)
       np.testing.assert_array_equal(all_ys, test_ys)

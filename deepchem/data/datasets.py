@@ -727,7 +727,6 @@ class DiskDataset(Dataset):
 
       tot_permute_time = 0
 
-
       carry_Xs = []
       carry_ys = []
       carry_ws = []
@@ -761,20 +760,25 @@ class DiskDataset(Dataset):
 
         if carry_Xs_size < shard_batch_size and cur_shard != num_shards - 1:
           cur_shard += 1
+          # print("skipping")
           # move to the next shard if we're not in the last shard
           continue
+        # print("merging")
 
         # we definitely have enough data elements to yield now
+        # print("all shapes", [x.shape for x in carry_Xs])
 
         if len(carry_Xs) > 0:
           st = time.time()
+          # print("concatenating", [x.shape for x in carry_Xs])
           X = np.concatenate(carry_Xs, axis=0)
+          tot_concat_time += time.time()-st
           if y is not None:
             y = np.concatenate(carry_ys, axis=0)
           if w is not None:
             w = np.concatenate(carry_ws, axis=0)
           ids = np.concatenate(carry_ids, axis=0)
-          tot_concat_time += time.time()-st
+
           carry_Xs = []
           carry_ys = []
           carry_ws = []
@@ -831,7 +835,6 @@ class DiskDataset(Dataset):
             carry_ys = [y_b]
             carry_ws = [w_b]
             carry_ids = [ids_b]
-            # carry = [X_b, y_b, w_b, ids_b]
           else:
 
             # (ytz): this skips everything except possibly the last shard
@@ -844,7 +847,7 @@ class DiskDataset(Dataset):
           cur_local_batch += 1
         cur_shard += 1
 
-      print("total iterate time", time.time()-it_start_time)
+      print("tot iterate time", time.time()-it_start_time)
       print("tot concat time:", tot_concat_time)
       print("tot perm time:", tot_permute_time)
 

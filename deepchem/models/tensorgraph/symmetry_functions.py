@@ -391,7 +391,6 @@ class BPGather(Layer):
     out_tensor = tf.reduce_sum(out_tensor * tf.expand_dims(flags, 2), axis=1)
     self.out_tensor = out_tensor
 
-
 class AtomicDifferentiatedDense(Layer):
   """ Separate Dense module for different atoms """
 
@@ -424,12 +423,23 @@ class AtomicDifferentiatedDense(Layer):
 
     in_channels = inputs.get_shape().as_list()[-1]
     init_fn = initializations.get(self.init)
-    #   'normal',
-    #   scale=1/math.sqrt(in_channels)
-    # )  # Set weight initialization
-    # init_fn = initialization.normal()
+
     self.W = init_fn(
         [len(self.atom_number_cases), in_channels, self.out_channels])
+
+    # (ytz): This is used to regularize the neural networks to avoid
+    # overfitting. The first implements maxnorm along the input vectors
+    # The second implements drop connect, whereby the weights are dropped
+    # out randomly. ytz thinks that clipping then dropping is the correct
+    # order of operations. ytz may also be wrong.
+    self.W = tf.clip_by_norm(self.W, 3.0, axes=1)
+    drop_p = 0.5
+    self.W = tf.nn.dropout(self.W, keep_prob=drop_p) * drop_p
+
+    # w_shape = tf.shape(self.W)
+    # wi, wj, wk = w_shape[0], w_shape[1], w_shape[2]
+    # self.W = tf.reshape(self.W, [wi * wj, wk])
+    # self.W = tf.reshape(self.W, [wi, wj, wk])
 
     self.b = model_ops.zeros((len(self.atom_number_cases), self.out_channels))
     outputs = []

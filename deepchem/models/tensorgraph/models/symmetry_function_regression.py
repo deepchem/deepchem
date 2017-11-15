@@ -21,7 +21,7 @@ import multiprocessing.pool
 
 import deepchem as dc
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, WeightedError, Stack, Layer, ANIFeat, ShiftedExponential
+from deepchem.models.tensorgraph.layers import Dense, Concat, RootWeightedMeanError, Stack, Layer, ANIFeat, ShiftedExponential
 from deepchem.models.tensorgraph.layers import L1Loss, L2Loss, Conditional, Reshape, Label, Weights, Feature, BPGather2
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
@@ -123,7 +123,7 @@ class ANIRegression(TensorGraph):
                max_atoms,
                layer_structures=[128, 64, 1],
                atom_number_cases=[1, 6, 7, 8],
-               feat_dir=None,
+               shift_exp=False,
                **kwargs):
     """
     Parameters
@@ -139,8 +139,7 @@ class ANIRegression(TensorGraph):
     self.max_atoms = max_atoms
     self.layer_structures = layer_structures
     self.atom_number_cases = atom_number_cases
-    self.feat_dir = feat_dir
-    self.feat_dataset = None
+    self.shift_exp = shift_exp
     super(ANIRegression, self).__init__(**kwargs)
 
     # (ytz): this is really dirty but needed for restoring models
@@ -149,7 +148,6 @@ class ANIRegression(TensorGraph):
         "max_atoms": max_atoms,
         "layer_structures": layer_structures,
         "atom_number_cases": atom_number_cases,
-        "feat_dir": feat_dir
     }
 
     self._kwargs.update(kwargs)
@@ -364,19 +362,26 @@ class ANIRegression(TensorGraph):
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
       cost = L2Loss(in_layers=[label, output])
-      cost = ShiftedExponential(0.5, in_layers=cost)
       costs.append(cost)
 
     all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
+
+    loss = RootWeightedMeanError(in_layers=[all_cost, self.weights])
+
+    if self.shift_exp:
+      print("WARNING: Using shifted exponential loss")
+      loss = ShiftedExponential(1.0, in_layers=loss)
     self.set_loss(loss)
 
-  def featurize(self, dataset, deterministic, pad_batches):
+  # def featurize(self, dataset, deterministic, pad_batches):
+  def featurize(self, dataset):
 
     start_time = time.time()
 
-    batch_size = self.batch_size
+    # batch_size = self.batch_size
+    batch_size = 384 # Featurization uses significantly more
+    # memory than training, so we need to hardcode the batch_size here
     # (ytz): This is set to a batch_size of 1 intentionally.
     # If you increase, you need to deal with consequences of:
     #   1. shuffling batches within a shard via a perm
@@ -400,17 +405,17 @@ class ANIRegression(TensorGraph):
 
         for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
             batch_size=batch_size,
-            deterministic=deterministic,
-            pad_batches=pad_batches)):
+            deterministic=True,
+            pad_batches=False)):
 
           # debugging race condition
-          mode = cself.get_pre_q_input(cself.mode)
-          obj = cself.get_pre_q_input(cself.dequeue_object)
-          lab = cself.get_pre_q_input(cself.labels[0])
-          weights = cself.get_pre_q_input(cself.task_weights[0])
+          mode = cself.get_pre_q_input(cself.mode) # FEAT_0_PREQ
+          obj = cself.get_pre_q_input(cself.dequeue_object) # FEAT_1_PREQ
+          lab = cself.get_pre_q_input(cself.labels[0]) # FEAT_2_PREQ
+          weights = cself.get_pre_q_input(cself.task_weights[0]) # FEAT_3_PREQ
 
           cself.session.run(
-              cself.input_queue,
+              cself.input_queue, # enqueue_op
               feed_dict={
                   mode: True,
                   obj: X_b,
@@ -463,9 +468,9 @@ class ANIRegression(TensorGraph):
       pool.close()
       t1.join()
 
-    self.feat_dataset = dc.data.DiskDataset.create_dataset(
+    dataset.feat_dataset = dc.data.DiskDataset.create_dataset(
         shard_generator=shard_generator(self),
-        data_dir=self.feat_dir,
+        data_dir=os.path.join(dataset.data_dir, "feat"),
         X_is_sparse=True)
 
     # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
@@ -477,48 +482,42 @@ class ANIRegression(TensorGraph):
                         deterministic=True,
                         pad_batches=True):
 
-    batch_size = self.batch_size
-
-    if predict:
-
-      if not deterministic:
-        raise Exception(
+    if predict and not deterministic:
+      raise Exception(
             "Called predict with non-deterministic generator, terrible idea.")
 
+    batch_size = self.batch_size
+
+    if isinstance(dataset, dc.data.DiskDataset):
+      needs_feat = False
+      try:
+        dataset.feat_dataset
+        print("Skipping featurization...")
+      except AttributeError:
+        self.featurize(dataset)
+      dataset = dataset.feat_dataset
+    else:
+      needs_feat = True
+
+    for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
           batch_size=self.batch_size,
           deterministic=deterministic,
           pad_batches=pad_batches):
 
-        feed_dict = {
-            self.mode: True,
-            self.dequeue_object: X_b,
-        }
+        # print("X_b shape", X_b.shape)
+
+        feed_dict = {}
+        if y_b is not None and not predict:
+          for index, label in enumerate(self.labels_fd):
+            feed_dict[label] = y_b[:, index:index + 1]
+        if w_b is not None and not predict:
+          feed_dict[self.weights] = w_b
+
+        feed_dict[self.mode] = needs_feat
+        feed_dict[self.dequeue_object] = X_b
 
         yield feed_dict
-
-    else:
-
-      if self.feat_dataset is None:
-        self.featurize(dataset, deterministic, pad_batches)
-
-      for epoch in range(epochs):
-        for (X_feat, y_b, w_b, ids_b) in self.feat_dataset.iterbatches(
-            batch_size=self.batch_size,
-            deterministic=deterministic,
-            pad_batches=pad_batches):
-
-          feed_dict = {}
-          if y_b is not None and not predict:
-            for index, label in enumerate(self.labels_fd):
-              feed_dict[label] = y_b[:, index:index + 1]
-          if w_b is not None and not predict:
-            feed_dict[self.weights] = w_b
-
-          feed_dict[self.mode] = False
-          feed_dict[self.dequeue_object] = X_feat
-
-          yield feed_dict
 
   def save_numpy(self):
     """
@@ -541,7 +540,7 @@ class ANIRegression(TensorGraph):
       np.savez(path, **save_dict)
 
   @classmethod
-  def load_numpy(cls, model_dir):
+  def load_numpy(cls, model_dir, override_kwargs=None):
     """
     Load from a portable numpy file.
 
@@ -557,6 +556,10 @@ class ANIRegression(TensorGraph):
     json_blob = npo["_kwargs"][0].decode('UTF-8')
 
     kwargs = json.loads(json_blob)
+
+    if override_kwargs:
+      for k, v in override_kwargs.items():
+        kwargs[k] = v
 
     obj = cls(**kwargs)
     obj.build()

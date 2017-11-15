@@ -15,6 +15,8 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import auc
 from scipy.stats import pearsonr
 
+def root_mean_squared_error(*args, **kwargs):
+  return np.sqrt(mean_squared_error(*args, **kwargs))
 
 def to_one_hot(y, n_classes=2):
   """Transforms label vector into one-hot encoding.

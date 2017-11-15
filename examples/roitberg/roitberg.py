@@ -19,7 +19,8 @@ def convert_species_to_atomic_nums(s):
 # replace with your own scratch directory
 data_dir = "/media/yutong/fast_datablob/datasets"
 model_dir = "/media/yutong/fast_datablob/models"
-feat_dir = "/media/yutong/fast_datablob/feat"
+# feat_train_dir = "/media/yutong/fast_datablob/feat"
+# feat_valid_dir = "/media/yutong/fast_datablob/valid"
 
 all_dir = os.path.join(data_dir, "all")
 test_dir = os.path.join(data_dir, "test")
@@ -29,7 +30,7 @@ temp_dir = os.path.join(fold_dir, "temp") # used for un-shuffled train data
 valid_dir = os.path.join(fold_dir, "valid")
 
 
-def load_roitberg_ANI(mode="atomization", batch_size=192):
+def load_roitberg_ANI(mode, batch_size):
   """
   Load the ANI dataset.
 
@@ -54,6 +55,8 @@ def load_roitberg_ANI(mode="atomization", batch_size=192):
         "Please set environment variable ROITBERG_ANI to where the ani_dgb_s0x.h5 files are."
     )
 
+  print("FEATURIZATION MODE:", mode)
+
   base_dir = os.environ["ROITBERG_ANI"]
 
   # Number of conformations in each file increases exponentially.
@@ -63,10 +66,10 @@ def load_roitberg_ANI(mode="atomization", batch_size=192):
       'ani_gdb_s01.h5',
       'ani_gdb_s02.h5',
       'ani_gdb_s03.h5',
-      'ani_gdb_s04.h5',
-      'ani_gdb_s05.h5',
-      'ani_gdb_s06.h5',
-      'ani_gdb_s07.h5',
+      'ani_gdb_s04.h5', # ~500k conformations
+      # 'ani_gdb_s05.h5', # ~1.7e6 conformations
+      # 'ani_gdb_s06.h5',
+      # 'ani_gdb_s07.h5',
       # 'ani_gdb_s08.h5'
   ]
 
@@ -145,10 +148,7 @@ def load_roitberg_ANI(mode="atomization", batch_size=192):
 
           if len(X_cache) == shard_size:
 
-            # christ this yields different shaped arrays
-            # that aren't necessarily batch_Sized, and the subsequent
-            # iterator fucks up everything
-
+            # (ytz): Note that this yields different shaped arrays
             yield np.array(X_cache), np.array(y_cache), np.array(
                 w_cache), np.array(ids_cache)
 
@@ -185,6 +185,7 @@ def load_roitberg_ANI(mode="atomization", batch_size=192):
   return train_dataset, test_dataset, groups
 
 
+
 def broadcast(dataset, metadata):
 
   new_metadata = []
@@ -203,7 +204,8 @@ if __name__ == "__main__":
   atom_number_cases = [1, 6, 7, 8]
 
   metric = [
-      dc.metrics.Metric(dc.metrics.mean_squared_error, mode="regression"),
+      dc.metrics.Metric(dc.metrics.root_mean_squared_error, mode="regression"),
+      dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
@@ -215,6 +217,12 @@ if __name__ == "__main__":
     train_dataset = dc.data.DiskDataset(data_dir=train_dir)
     valid_dataset = dc.data.DiskDataset(data_dir=valid_dir)
     test_dataset = dc.data.DiskDataset(data_dir=test_dir)
+
+    print("Restoring featurizations...")
+    for dd in [train_dataset, valid_dataset, test_dataset]:
+      fp = os.path.join(dd.data_dir, "feat")
+      if os.path.exists(fp):
+        dd.feat_dataset = dc.data.DiskDataset(data_dir=fp)
 
   else:
     print("Generating datasets")
@@ -232,64 +240,76 @@ if __name__ == "__main__":
     print("Shuffling training dataset...")
     train_dataset = train_dataset.complete_shuffle(data_dir=train_dir)
 
-  transformers = [
-      dc.trans.NormalizationTransformer(
-          transform_y=True, dataset=train_dataset)
-  ]
+  # transformers = [
+  #     dc.trans.NormalizationTransformer(
+  #         transform_y=True, dataset=train_dataset)
+  # ]
 
-  print("Total training set shape: ", train_dataset.get_shape())
+  # print("Total training set shape: ", train_dataset.get_shape())
 
-  print("Transforming....")
+  # print("Transforming....")
 
-  for transformer in transformers:
-    train_dataset = transformer.transform(train_dataset)
-    valid_dataset = transformer.transform(valid_dataset)
-    test_dataset = transformer.transform(test_dataset)
+  # for transformer in transformers:
+  #   train_dataset = transformer.transform(train_dataset)
+  #   valid_dataset = transformer.transform(valid_dataset)
+  #   test_dataset = transformer.transform(test_dataset)
 
-  # print("SHAPE", train_dataset.get_shape())
+  # need to hit 0.003 RMSE hartrees for 2kcal/mol.
 
-  # if os.path.exists(model_dir):
-  #   print("Restoring model...")
-  #   model = dc.models.ANIRegression.load_numpy(model_dir=model_dir)
-  # else:
-  model = dc.models.ANIRegression(
-      1,
-      max_atoms,
-      layer_structures=layer_structures,
-      atom_number_cases=atom_number_cases,
-      feat_dir=feat_dir,
-      batch_size=batch_size,
-      learning_rate=0.001,
-      use_queue=True,
-      model_dir=model_dir,
-      mode="regression")
+  best_val_score = 1e9
 
-  if os.path.exists(feat_dir):
-    model.feat_dataset = dc.data.DiskDataset(data_dir=feat_dir)
+  for lr_idx, lr in enumerate([1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]):
 
-  print("Start training...")
+    print ("\n\nTRAINING with learning rate:", lr, "\n\n")
 
-  # For production, set nb_epoch to 100+
-  for i in range(10):
-    model.fit(train_dataset, nb_epoch=10, checkpoint_interval=100)
-    print("Saving model...")
-    model.save_numpy()
-    print("Done.")
+    shift_exp = True
 
-    print("Evaluating model on validation and test")
-    valid_scores = model.evaluate(valid_dataset, metric, transformers)
+    # (ytz): I like big batches and I cannot lie
+    train_batch_size = 1024
 
-  test_scores = model.evaluate(test_dataset, metric, transformers)
-    # train_scores = model.evaluate(train_dataset, metric, transformers)
+    # tricky - need to do featurizations separately
 
-  # print("Train scores")
-  # # print(train_scores)
+    if lr_idx == 0:
+      print("Bootstrapping with L2 Loss...")
+      model = dc.models.ANIRegression(
+          1,
+          max_atoms,
+          layer_structures=layer_structures,
+          atom_number_cases=atom_number_cases,
+          batch_size=train_batch_size,
+          learning_rate=lr,
+          use_queue=True,
+          model_dir=model_dir,
+          shift_exp=shift_exp,
+          mode="regression")
+    else:
+      model = dc.models.ANIRegression.load_numpy(
+        model_dir=model_dir,
+        override_kwargs = {
+          "learning_rate": lr,
+          "shift_exp": shift_exp,
+          "batch_size":  train_batch_size})
 
-  # print("Validation scores")
-  # print(valid_scores)
+    converged = False
+    continuous_epochs = 0
+    max_continuous_epochs = 25
 
-  # print("Test scores")
-  # print(test_scores)
+    while not converged and continuous_epochs < max_continuous_epochs:
+      model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+      # print("Validation score:")
+      # val_score = model.evaluate(valid_dataset, metric, transformers)
+      val_score = model.evaluate(valid_dataset, metric)
+      val_score = val_score['root_mean_squared_error']
+      print("This epoch's validation score:", val_score)
+      if val_score < best_val_score:
+        print("--------- Better validation score found:", val_score, "---------")
+        best_val_score = val_score
+        model.save_numpy()
+        continuous_epochs = 0
+      else:
+        continuous_epochs += 1
+
+  model.evaluate(test_dataset, metric)
 
   coords = np.array([
       [0.3, 0.4, 0.5],
