@@ -82,6 +82,8 @@ def pad_batch(batch_size, X_b, y_b, w_b, ids_b):
   num_samples = len(X_b)
   if num_samples == batch_size:
     return (X_b, y_b, w_b, ids_b)
+
+  print ("actually padding...")
   # By invariant of when this is called, can assume num_samples > 0
   # and num_samples < batch_size
   if len(X_b.shape) > 1:
@@ -690,7 +692,13 @@ class DiskDataset(Dataset):
 
     """
 
+
+
     def iterate(dataset, batch_size):
+    
+
+      it_start_time = time.time()
+
       num_shards = dataset.get_number_shards()
       if not deterministic:
         shard_perm = np.random.permutation(num_shards)
@@ -715,30 +723,69 @@ class DiskDataset(Dataset):
       cur_shard = 0
       carry = None
 
-      while cur_global_batch < num_global_batches:
+      tot_concat_time = 0
 
+      tot_permute_time = 0
+
+
+      carry_Xs = []
+      carry_ys = []
+      carry_ws = []
+      carry_ids = []
+
+      while cur_global_batch < num_global_batches:
         X, y, w, ids = next_shard.get()
+
         if cur_shard < num_shards - 1:
+          # print("kicking off next...")
           next_shard = pool.apply_async(dataset.get_shard,
                                         (shard_perm[cur_shard + 1],))
         else:
           pool.close()
 
-        if carry is not None:
-          X = np.concatenate([carry[0], X], axis=0)
+        # process if and only if carry has sufficient data elements
+        # to yield a full batch
+        carry_Xs.append(X)
+        carry_ys.append(y)
+        carry_ws.append(w)
+        carry_ids.append(ids)
+        carry_Xs_size = sum([len(x) for x in carry_Xs])
+
+        if batch_size is None:
+
+          assert len(carry_Xs) <= 1
+          shard_batch_size = len(X)
+        else:
+          shard_batch_size = batch_size
+
+
+        if carry_Xs_size < shard_batch_size and cur_shard != num_shards - 1:
+          cur_shard += 1
+          # move to the next shard if we're not in the last shard
+          continue
+
+        # we definitely have enough data elements to yield now
+
+        if len(carry_Xs) > 0:
+          st = time.time()
+          X = np.concatenate(carry_Xs, axis=0)
           if y is not None:
-            y = np.concatenate([carry[1], y], axis=0)
+            y = np.concatenate(carry_ys, axis=0)
           if w is not None:
-            w = np.concatenate([carry[2], w], axis=0)
-          ids = np.concatenate([carry[3], ids], axis=0)
-          carry = None
+            w = np.concatenate(carry_ws, axis=0)
+          ids = np.concatenate(carry_ids, axis=0)
+          tot_concat_time += time.time()-st
+          carry_Xs = []
+          carry_ys = []
+          carry_ws = []
+          carry_ids = []
 
         n_shard_samples = X.shape[0]
         cur_local_batch = 0
-        if batch_size is None:
-          shard_batch_size = n_shard_samples
-        else:
-          shard_batch_size = batch_size
+        # if batch_size is None:
+          # shard_batch_size = n_shard_samples
+        # else:
+          # shard_batch_size = batch_size
 
         num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
 
@@ -753,9 +800,15 @@ class DiskDataset(Dataset):
           start = cur_local_batch * shard_batch_size
           end = min(n_shard_samples, (cur_local_batch + 1) * shard_batch_size)
 
+          p_time = time.time()
+
           indices = range(start, end)
           perm_indices = sample_perm[indices]
           X_b = X[perm_indices]
+
+          # (ytz): just do np shuffle as opposed to broadcasting
+
+          # print("permutating data of size:", X.shape)
 
           if y is not None:
             y_b = y[perm_indices]
@@ -769,10 +822,16 @@ class DiskDataset(Dataset):
 
           ids_b = ids[perm_indices]
 
+          tot_permute_time += time.time() - p_time
+
           assert len(X_b) <= shard_batch_size
           if len(X_b) < shard_batch_size and cur_shard != num_shards - 1:
-            assert carry is None
-            carry = [X_b, y_b, w_b, ids_b]
+            assert len(carry_Xs) == 0
+            carry_Xs = [X_b]
+            carry_ys = [y_b]
+            carry_ws = [w_b]
+            carry_ids = [ids_b]
+            # carry = [X_b, y_b, w_b, ids_b]
           else:
 
             # (ytz): this skips everything except possibly the last shard
@@ -784,6 +843,10 @@ class DiskDataset(Dataset):
             cur_global_batch += 1
           cur_local_batch += 1
         cur_shard += 1
+
+      print("total iterate time", time.time()-it_start_time)
+      print("tot concat time:", tot_concat_time)
+      print("tot perm time:", tot_permute_time)
 
     return iterate(self, batch_size)
 
@@ -1163,11 +1226,16 @@ class DiskDataset(Dataset):
     """
     Finds number of elements in dataset.
     """
-    total = 0
-    for _, row in self.metadata_df.iterrows():
-      y = load_from_disk(os.path.join(self.data_dir, row['ids']))
-      total += len(y)
-    return total
+
+    try:
+      return self._len_cache
+    except AttributeError:
+      total = 0
+      for _, row in self.metadata_df.iterrows():
+        y = load_from_disk(os.path.join(self.data_dir, row['ids']))
+        total += len(y)
+      self._len_cache = total
+      return self._len_cache
 
   def get_shape(self):
     """Finds shape of dataset."""
