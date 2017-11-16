@@ -180,7 +180,7 @@ def load_roitberg_ANI(mode, batch_size):
   splitter = dc.splits.RandomGroupSplitter(groups)
 
   train_dataset, test_dataset = splitter.train_test_split(
-      dataset, train_dir=fold_dir, test_dir=test_dir, frac_train=.8)
+      dataset, train_dir=fold_dir, test_dir=test_dir, frac_train=.9)
 
   return train_dataset, test_dataset, groups
 
@@ -234,18 +234,42 @@ if __name__ == "__main__":
         broadcast(train_valid_dataset, all_groups))
 
     print("Performing 1-fold split...")
+
+    # (ytz): the 0.888888 is used s.t. 0.9*0.88888888 = 0.8, and we end up with a 80/10/10 split
     train_dataset, valid_dataset = splitter.train_test_split(
-        train_valid_dataset, train_dir=temp_dir, test_dir=valid_dir)
+        train_valid_dataset, train_dir=temp_dir, test_dir=valid_dir, frac_train=0.8888888888)
 
     print("Shuffling training dataset...")
     train_dataset = train_dataset.complete_shuffle(data_dir=train_dir)
+
+    print("Featurizing...")
+    feat_batch_size = 384
+    model = dc.models.ANIRegression(
+        1,
+        max_atoms,
+        layer_structures=layer_structures,
+        atom_number_cases=atom_number_cases,
+        batch_size=feat_batch_size,
+        learning_rate=None,
+        use_queue=True,
+        model_dir=model_dir,
+        shift_exp=True,
+        mode="regression")
+    model.build()
+    # model.save_numpy()
+
+    for dd in [train_dataset, valid_dataset, test_dataset]:
+      fp = os.path.join(dd.data_dir, "feat")
+      dd.feat_dataset = model.featurize(dd, fp)
+
+  # (ytz): I like big batches and I cannot lie
+  train_batch_size = 1024
 
   # transformers = [
   #     dc.trans.NormalizationTransformer(
   #         transform_y=True, dataset=train_dataset)
   # ]
 
-  # print("Total training set shape: ", train_dataset.get_shape())
 
   # print("Transforming....")
 
@@ -253,6 +277,8 @@ if __name__ == "__main__":
   #   train_dataset = transformer.transform(train_dataset)
   #   valid_dataset = transformer.transform(valid_dataset)
   #   test_dataset = transformer.transform(test_dataset)
+
+  print("Total training set shape: ", train_dataset.get_shape())
 
   # need to hit 0.003 RMSE hartrees for 2kcal/mol.
 
@@ -264,13 +290,7 @@ if __name__ == "__main__":
 
     shift_exp = True
 
-    # (ytz): I like big batches and I cannot lie
-    train_batch_size = 1024
-
-    # tricky - need to do featurizations separately
-
     if lr_idx == 0:
-      print("Bootstrapping with L2 Loss...")
       model = dc.models.ANIRegression(
           1,
           max_atoms,
@@ -292,12 +312,11 @@ if __name__ == "__main__":
 
     converged = False
     continuous_epochs = 0
-    max_continuous_epochs = 25
+    max_continuous_epochs = 100
 
     while not converged and continuous_epochs < max_continuous_epochs:
       model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
       # print("Validation score:")
-      # val_score = model.evaluate(valid_dataset, metric, transformers)
       val_score = model.evaluate(valid_dataset, metric)
       val_score = val_score['root_mean_squared_error']
       print("This epoch's validation score:", val_score)
@@ -309,7 +328,13 @@ if __name__ == "__main__":
       else:
         continuous_epochs += 1
 
+  print("--train--")
+  model.evaluate(train_dataset, metric)
+  print("--valid--")
+  model.evaluate(valid_dataset, metric)
+  print("--test--")
   model.evaluate(test_dataset, metric)
+
 
   coords = np.array([
       [0.3, 0.4, 0.5],

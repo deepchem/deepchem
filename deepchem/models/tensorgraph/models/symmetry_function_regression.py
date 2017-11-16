@@ -375,21 +375,34 @@ class ANIRegression(TensorGraph):
     self.set_loss(loss)
 
   # def featurize(self, dataset, deterministic, pad_batches):
-  def featurize(self, dataset):
+  def featurize(self, dataset, feat_dir):
+    """
+    Use the model to featurize the dataset.
+
+    Parameters
+    ----------
+    dataset: dc.data.DiskDataset
+      Dataset that we're featurizing
+
+    feat_dir: str
+      Path to store featurization data
+
+    Returns
+    -------
+    dc.data.DiskDataset
+      A DiskDatasets object representing the featurized data.
+
+    """
+
+    fp = os.path.join(dataset.data_dir, "feat")
+    if os.path.exists(fp):
+      dataset.feat_dataset = dc.data.DiskDataset(data_dir=fp)
 
     start_time = time.time()
 
-    # batch_size = self.batch_size
-    batch_size = 384 # Featurization uses significantly more
-    # memory than training, so we need to hardcode the batch_size here
-    # (ytz): This is set to a batch_size of 1 intentionally.
-    # If you increase, you need to deal with consequences of:
-    #   1. shuffling batches within a shard via a perm
-    #   2. computing toarray() on a shard_size*batch_size array
-    #      as opposed to a batch_size array, and then
-    #   3. subsequently re-slicing it again into batches when
-    #      calling iterbatches
-
+    # (ytz): Featurization uses significantly more memory than training
+    # so the batch_size should be smaller
+    batch_size = self.batch_size
     shard_size = batch_size * 1
 
     def shard_generator(cself):
@@ -468,9 +481,9 @@ class ANIRegression(TensorGraph):
       pool.close()
       t1.join()
 
-    dataset.feat_dataset = dc.data.DiskDataset.create_dataset(
+    return dc.data.DiskDataset.create_dataset(
         shard_generator=shard_generator(self),
-        data_dir=os.path.join(dataset.data_dir, "feat"),
+        data_dir=feat_dir,
         X_is_sparse=True)
 
     # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
@@ -488,16 +501,14 @@ class ANIRegression(TensorGraph):
 
     batch_size = self.batch_size
 
-    if isinstance(dataset, dc.data.DiskDataset):
-      needs_feat = False
-      try:
-        dataset.feat_dataset
-        print("Skipping featurization...")
-      except AttributeError:
-        self.featurize(dataset)
+    needs_feat = True
+    try:
       dataset = dataset.feat_dataset
-    else:
-      needs_feat = True
+      needs_feat = False
+      print("Skipping featurization...")
+    except AttributeError:
+      print("Requires manual featurization")
+      pass
 
     for epoch in range(epochs):
       for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
