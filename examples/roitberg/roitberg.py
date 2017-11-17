@@ -1,5 +1,11 @@
+#!/usr/bin/env python
+
+import argparse
+import errno
 import numpy as np
 import os
+import shutil
+import sys
 
 import tensorflow as tf
 
@@ -15,71 +21,118 @@ def convert_species_to_atomic_nums(s):
     res.append(PERIODIC_TABLE[k])
   return np.array(res, dtype=np.float32)
 
+def path(*dir_segments):
+  return os.path.abspath(os.path.expanduser(os.path.join(*dir_segments)))
 
-# replace with your own scratch directory
-data_dir = "/media/yutong/fast_datablob/datasets"
-model_dir = "/media/yutong/fast_datablob/models"
-# feat_train_dir = "/media/yutong/fast_datablob/feat"
-# feat_valid_dir = "/media/yutong/fast_datablob/valid"
+def path_not_empty(d):
+  d = path(d)
+  return os.path.exists(d) and len(os.listdir(d)) > 1
 
-all_dir = os.path.join(data_dir, "all")
-test_dir = os.path.join(data_dir, "test")
-fold_dir = os.path.join(data_dir, "fold")
-train_dir = os.path.join(fold_dir, "train")
-temp_dir = os.path.join(fold_dir, "temp") # used for un-shuffled train data
-valid_dir = os.path.join(fold_dir, "valid")
+def find_or_create_path(*dir_segments):
+  """
+  Pretty much what it sounds like: finds a directory path or creates one if it
+  doesn't exist.
+
+  Also adds in the functionality of os.path.join, for extra helpfulness: the
+  dir_segments will be joined together, then checked for existence.
+  """
+  d = path(*dir_segments)
+
+  if not os.path.exists(d):
+    os.makedirs(d, exist_ok=True)
+
+  return d
+
+def setup_work_dirs(args):
+  """
+  Sets up the work directory structure beneath the directory in +args.work_dir+.
+
+  If args.work_dir is not a valid directory, errors out with a warning to the user,
+  on the theory that the program shouldn't be chucking lots of data in places the
+  user isn't explicitly aware of.
+
+  Below args.work_dir, creates new subdirectories with impunity. The various work
+  directories will be set in +args+ for later reference.
+
+  Parameters:
+    args - the result of calling ArgumentParser.parse_args()
+  """
+  args.work_dir = path(args.work_dir)
+
+  if not os.path.exists(args.work_dir):
+    # we don't create the work dir if it doesn't already exist:
+    # don't want to silently dump big files on the user's FS without
+    # their knowledge.
+    sys.stderr.write("Work directory '%s' does not exist. "
+                     "Create it, or specify a new directory with the -w option.\n" % args.work_dir)
+    sys.exit(-1)
+  elif args.clean_work_dir:
+    # python doesn't have an easy way to remove all files in a directory
+    # this will *probably* work, but might fail on weird setups.
+    shutil.rmtree(args.work_dir)
+    os.makedirs(args.work_dir, exist_ok=True)
+
+  args.data_dir = find_or_create_path(args.work_dir, "datasets")
+  args.model_dir = find_or_create_path(args.work_dir, "models")
+
+  args.all_dir = find_or_create_path(args.data_dir, "all")
+  args.test_dir = find_or_create_path(args.data_dir, "test")
+  args.fold_dir = find_or_create_path(args.data_dir, "fold")
+
+  args.train_dir = find_or_create_path(args.fold_dir, "train")
+  args.temp_dir = find_or_create_path(args.fold_dir, "temp")
+  args.valid_dir = find_or_create_path(args.fold_dir, "valid")
+
+  return args
 
 
-def load_roitberg_ANI(mode, batch_size):
+def find_training_data(base_dir, max_gdb_level):
+  """
+  Generates filenames for GDB files and checks for their existence.
+  Fails out with user error if any file is not found.
+
+  Returns:
+    list of validated file path strings.
+  """
+  base_dir = os.path.abspath(os.path.expanduser(base_dir))
+  files = [os.path.join(base_dir, "ani_gdb_s%02d.h5" % i) for i in range(0, max_gdb_level)]
+
+  for f in files:
+    if not os.path.exists(f):
+      sys.stderr.write("Training data file '%s' not found." % f)
+      sys.exit(-1)
+
+  return files
+
+def load_roitberg_ANI(args, mode="atomization"):
   """
   Load the ANI dataset.
 
   Parameters
   ----------
+  args:
+    Result of calling ArgumentParser.parse_args()
+
   mode: str
     Accepted modes are "relative", "atomization", or "absolute". These settings are used
     to adjust the dynamic range of the model, with absolute having the greatest and relative
     having the lowest. Note that for atomization we approximate the single atom energy
     using a different level of theory
 
-
   Returns
   -------
   tuples
     Elements returned are 3-tuple (a,b,c) where and b are the train and test datasets, respectively,
-    and c is an array of indices denoting the group of each 
+    and c is an array of indices denoting the group of each
 
   """
-  if "ROITBERG_ANI" not in os.environ:
-    raise ValueError(
-        "Please set environment variable ROITBERG_ANI to where the ani_dgb_s0x.h5 files are."
-    )
 
-  print("FEATURIZATION MODE:", mode)
-
-  base_dir = os.environ["ROITBERG_ANI"]
-
-  # Number of conformations in each file increases exponentially.
-  # Start with a smaller dataset before continuing. Use all of them
-  # for production
-  hdf5files = [
-      'ani_gdb_s01.h5',
-      'ani_gdb_s02.h5',
-      'ani_gdb_s03.h5',
-      'ani_gdb_s04.h5', # ~500k conformations
-      # 'ani_gdb_s05.h5', # ~1.7e6 conformations
-      # 'ani_gdb_s06.h5',
-      # 'ani_gdb_s07.h5',
-      # 'ani_gdb_s08.h5'
-  ]
-
-  hdf5files = [os.path.join(base_dir, f) for f in hdf5files]
-
+  hdf5files = find_training_data(args.training_data_dir, args.gdb_level)
   groups = []
 
   def shard_generator():
 
-    shard_size = 4096 * batch_size
+    shard_size = 4096 * args.batch_size
 
     row_idx = 0
     group_idx = 0
@@ -168,19 +221,17 @@ def load_roitberg_ANI(mode, batch_size):
 
     # flush once more at the end
     if len(X_cache) > 0:
-
-      yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(
-          ids_cache)
+      yield np.array(X_cache), np.array(y_cache), np.array(w_cache), np.array(ids_cache)
 
   tasks = ["ani"]
   dataset = dc.data.DiskDataset.create_dataset(
-      shard_generator(), tasks=tasks, data_dir=all_dir)
+      shard_generator(), tasks=tasks, data_dir=args.all_dir)
 
   print("Number of groups", np.amax(groups))
   splitter = dc.splits.RandomGroupSplitter(groups)
 
   train_dataset, test_dataset = splitter.train_test_split(
-      dataset, train_dir=fold_dir, test_dir=test_dir, frac_train=.9)
+    dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
 
   return train_dataset, test_dataset, groups
 
@@ -196,10 +247,65 @@ def broadcast(dataset, metadata):
 
   return new_metadata
 
-if __name__ == "__main__":
+def parse_args():
+  """
+  Parses the command line arguments.
 
-  max_atoms = 23
-  batch_size = 384  # CHANGED FROM 192
+  Returns:
+
+  An argparse.Namespace object, as returned by ArgumentParser.parse_args().
+  This object will have at least the following fields:
+
+    * batch_size int
+      The batch size for training.
+    * featurization_batch_size int
+      The batch size for featurization
+    * max_search_epochs int
+      The the maximum number of epochs to search for a lower validation score.
+    * work_dir string
+      The path of the working directory (i.e. where we write stuff).
+    * training_data_dir string
+      The path of the directory holding the input data for training.
+    * gdb_level int
+      The maximum GDB level to use for training.
+    * max_atoms int
+      The maximum molecule size.
+    * clean_work_dir bool
+      If true, indicates that the working directory should be wiped before
+      training.
+  """
+  parser = argparse.ArgumentParser(description="Run ANI1 neural net training.",
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('-b', '--batch-size', type=int, default=1024,
+                      help="training batch size")
+  parser.add_argument('--featurization-batch-size', type=int, default=384,
+                      help="featurization batch size")
+  parser.add_argument('-e', '--max-search-epochs', type=int, default=100,
+                      help="The maximum number of epochs to run w/o validation score improvement.")
+  parser.add_argument('-w', '--work-dir', default='~/roitberg-scratch',
+                      help="location where work data is dumped")
+  parser.add_argument('-t', '--training-data-dir', default='~/roitberg-ani',
+                      help="directory containing training/gdb data")
+  parser.add_argument('--gdb-level', type=int, default=5,
+                      help="Max GDB level to train. NOTE: num conformations " \
+                      "in each file increases exponentially. Start with a smaller dataset. " \
+                      "Use max value (8) for production.")
+  parser.add_argument('--max-atoms', type=int, default=23,
+                      help="max molecule size")
+  parser.add_argument('--clean-work-dir', action='store_true',
+                      help="Clean the work dir before training (i.e. do a clean run)")
+
+  return parser.parse_args()
+
+#
+# Program main
+#
+if __name__ == "__main__":
+  args = parse_args()
+  setup_work_dirs(args)
+
+  max_atoms = args.max_atoms
+  batch_size = args.batch_size
   layer_structures = [128, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
@@ -210,25 +316,25 @@ if __name__ == "__main__":
   ]
 
   # switch for datasets and models
-  if os.path.exists(valid_dir) and \
-     os.path.exists(test_dir) and \
-     os.path.exists(train_dir):
+  if path_not_empty(args.valid_dir) and \
+     path_not_empty(args.test_dir) and \
+     path_not_empty(args.train_dir):
+
     print("Restoring existing datasets...")
-    train_dataset = dc.data.DiskDataset(data_dir=train_dir)
-    valid_dataset = dc.data.DiskDataset(data_dir=valid_dir)
-    test_dataset = dc.data.DiskDataset(data_dir=test_dir)
+    train_dataset = dc.data.DiskDataset(data_dir=args.train_dir)
+    valid_dataset = dc.data.DiskDataset(data_dir=args.valid_dir)
+    test_dataset = dc.data.DiskDataset(data_dir=args.test_dir)
 
     print("Restoring featurizations...")
     for dd in [train_dataset, valid_dataset, test_dataset]:
-      fp = os.path.join(dd.data_dir, "feat")
-      if os.path.exists(fp):
+      fp = path(dd.data_dir, "feat")
+      if path_not_empty(fp):
         dd.feat_dataset = dc.data.DiskDataset(data_dir=fp)
 
   else:
-    print("Generating datasets")
+    print("Generating datasets...")
 
-    train_valid_dataset, test_dataset, all_groups = load_roitberg_ANI(
-        mode="atomization", batch_size=batch_size)
+    train_valid_dataset, test_dataset, all_groups = load_roitberg_ANI(args, "atomization")
 
     splitter = dc.splits.RandomGroupSplitter(
         broadcast(train_valid_dataset, all_groups))
@@ -237,58 +343,36 @@ if __name__ == "__main__":
 
     # (ytz): the 0.888888 is used s.t. 0.9*0.88888888 = 0.8, and we end up with a 80/10/10 split
     train_dataset, valid_dataset = splitter.train_test_split(
-        train_valid_dataset, train_dir=temp_dir, test_dir=valid_dir, frac_train=0.8888888888)
+      train_valid_dataset, train_dir=args.temp_dir,
+      test_dir=args.valid_dir, frac_train=0.8888888888)
 
     print("Shuffling training dataset...")
-    train_dataset = train_dataset.complete_shuffle(data_dir=train_dir)
+    train_dataset = train_dataset.complete_shuffle(data_dir=args.train_dir)
 
     print("Featurizing...")
-    feat_batch_size = 384
     model = dc.models.ANIRegression(
         1,
         max_atoms,
         layer_structures=layer_structures,
         atom_number_cases=atom_number_cases,
-        batch_size=feat_batch_size,
+        batch_size=args.featurization_batch_size,
         learning_rate=None,
         use_queue=True,
-        model_dir=model_dir,
+        model_dir=args.model_dir,
         shift_exp=True,
         mode="regression")
     model.build()
-    # model.save_numpy()
 
     for dd in [train_dataset, valid_dataset, test_dataset]:
-      fp = os.path.join(dd.data_dir, "feat")
-      dd.feat_dataset = model.featurize(dd, fp)
-
-  # (ytz): I like big batches and I cannot lie
-  train_batch_size = 1024
-
-  # transformers = [
-  #     dc.trans.NormalizationTransformer(
-  #         transform_y=True, dataset=train_dataset)
-  # ]
-
-
-  # print("Transforming....")
-
-  # for transformer in transformers:
-  #   train_dataset = transformer.transform(train_dataset)
-  #   valid_dataset = transformer.transform(valid_dataset)
-  #   test_dataset = transformer.transform(test_dataset)
+      dd.feat_dataset = model.featurize(dd, path(dd.data_dir, "feat"))
 
   print("Total training set shape: ", train_dataset.get_shape())
 
   # need to hit 0.003 RMSE hartrees for 2kcal/mol.
-
   best_val_score = 1e9
 
   for lr_idx, lr in enumerate([1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]):
-
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
-
-    shift_exp = True
 
     if lr_idx == 0:
       model = dc.models.ANIRegression(
@@ -296,37 +380,37 @@ if __name__ == "__main__":
           max_atoms,
           layer_structures=layer_structures,
           atom_number_cases=atom_number_cases,
-          batch_size=train_batch_size,
+          batch_size=args.batch_size,
           learning_rate=lr,
           use_queue=True,
-          model_dir=model_dir,
-          shift_exp=shift_exp,
+          model_dir=args.model_dir,
+          shift_exp=True,
           mode="regression")
     else:
       model = dc.models.ANIRegression.load_numpy(
-        model_dir=model_dir,
+        model_dir=args.model_dir,
         override_kwargs = {
           "learning_rate": lr,
-          "shift_exp": shift_exp,
-          "batch_size":  train_batch_size})
+          "shift_exp": True,
+          "batch_size": args.batch_size
+        })
 
-    converged = False
-    continuous_epochs = 0
-    max_continuous_epochs = 100
+    epoch_count = 0
 
-    while not converged and continuous_epochs < max_continuous_epochs:
+    while epoch_count < args.max_search_epochs:
       model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
-      # print("Validation score:")
       val_score = model.evaluate(valid_dataset, metric)
       val_score = val_score['root_mean_squared_error']
+
       print("This epoch's validation score:", val_score)
+
       if val_score < best_val_score:
         print("--------- Better validation score found:", val_score, "---------")
         best_val_score = val_score
         model.save_numpy()
-        continuous_epochs = 0
+        epoch_count = 0
       else:
-        continuous_epochs += 1
+        epoch_count += 1
 
   print("--train--")
   model.evaluate(train_dataset, metric)
@@ -334,7 +418,6 @@ if __name__ == "__main__":
   model.evaluate(valid_dataset, metric)
   print("--test--")
   model.evaluate(test_dataset, metric)
-
 
   coords = np.array([
       [0.3, 0.4, 0.5],
