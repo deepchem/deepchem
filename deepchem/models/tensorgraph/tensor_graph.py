@@ -599,7 +599,6 @@ class TensorGraph(Model):
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
       # try:
-      print("appending NONE", pre_q_input.name)
         # shapes.append(pre_q_input.shape)
       # except NotImplementedError:
 
