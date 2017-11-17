@@ -122,7 +122,8 @@ class TensorGraph(Model):
           checkpoint_interval=1000,
           deterministic=False,
           restore=False,
-          submodel=None):
+          submodel=None,
+          max_batches=None):
     """Train this model on a dataset.
 
     Parameters
@@ -149,14 +150,19 @@ class TensorGraph(Model):
     return self.fit_generator(
         self.default_generator(
             dataset, epochs=nb_epoch, deterministic=deterministic),
-        max_checkpoints_to_keep, checkpoint_interval, restore, submodel)
+        max_checkpoints_to_keep,
+        checkpoint_interval,
+        restore,
+        submodel,
+        max_batches)
 
   def fit_generator(self,
                     feed_dict_generator,
                     max_checkpoints_to_keep=5,
                     checkpoint_interval=1000,
                     restore=False,
-                    submodel=None):
+                    submodel=None,
+                    max_batches=None):
     """Train this model on data from a generator.
 
     Parameters
@@ -181,14 +187,16 @@ class TensorGraph(Model):
     the average loss over the most recent checkpoint interval
     """
 
-    def create_feed_dict():
-      if self.use_queue:
-        while True:
-          yield {self._training_placeholder: 1.0}
-      for d in feed_dict_generator:
-        feed_dict = dict(d)
-        feed_dict[self._training_placeholder] = 1.0
-        yield feed_dict
+    # def create_feed_dict():
+    #   if self.use_queue:
+    #     while True:
+    #       yield {self._training_placeholder: 1.0}
+    #   for d in feed_dict_generator:
+    #     feed_dict = dict(d)
+    #     feed_dict[self._training_placeholder] = 1.0
+    #     yield feed_dict
+
+    print("MAX BATCHES", max_batches)
 
     if not self.built:
       self.build()
@@ -219,21 +227,22 @@ class TensorGraph(Model):
       start_time = None
       run_time = 0
       start_step = self.global_step
-      for feed_dict in create_feed_dict():
+      # for feed_dict in create_feed_dict():
+      for _ in range(max_batches):
 
         if start_time is None:
           start_time = time.time()
 
-        if self.use_queue:
+        # if self.use_queue:
           # Don't let this thread get ahead of the enqueue thread, since if
           # we try to read more batches than the total number that get queued,
           # this thread will hang indefinitely.
-          while n_enqueued[0] <= n_samples:
-            if n_samples == final_sample[0]:
-              break
-            time.sleep(0)
-          if n_samples == final_sample[0]:
-            break
+          # while n_enqueued[0] <= n_samples:
+          #   if n_samples == final_sample[0]:
+          #     break
+          #   time.sleep(0)
+          # if n_samples == final_sample[0]:
+          #   break
 
         n_samples += 1
         should_log = (self.tensorboard and
@@ -256,7 +265,27 @@ class TensorGraph(Model):
         #   assert 0
         # else:
 
-        fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+
+        # if self.global_step > 5000:
+
+        #   before, after, costs, labels = self.session.run([
+        #     self.BEFORE,
+        #     self.AFTER,
+        #     self.COSTS,
+        #     self.labels_fd[0]], feed_dict=feed_dict)
+        #   print("BEFORE SHAPE", before.shape, "AFTER SHAPE", after.shape)
+        #   print("TMPS", before[0], after[0])
+        #   print("SUMS", np.sum(before[0]))
+        #   print("COSTS", costs)
+        #   print("AFTERS", after)
+        #   print("LABELS", labels)
+
+        #   assert 0
+
+
+        # fetched_values = self.session.run(fetches, feed_dict=feed_dict)
+        # print("FETCHING", fetches)
+        fetched_values = self.session.run(fetches)
 
         run_time += time.time() - run_start
 
@@ -569,10 +598,12 @@ class TensorGraph(Model):
 
     for layer in self.features + self.labels + self.task_weights:
       pre_q_input = layer.create_pre_q(self.batch_size)
-      try:
-        shapes.append(pre_q_input.shape)
-      except NotImplementedError:
-        shapes.append(None)
+      # try:
+      print("appending NONE", pre_q_input.name)
+        # shapes.append(pre_q_input.shape)
+      # except NotImplementedError:
+
+      shapes.append(None)
       names.append(pre_q_input.name)
       pre_q_inputs.append(pre_q_input)
 

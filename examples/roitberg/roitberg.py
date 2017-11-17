@@ -1,3 +1,10 @@
+# import cProfile
+# pr = cProfile.Profile()
+# pr.disable()
+# import pstats
+# from io import StringIO
+
+import math
 import numpy as np
 import os
 
@@ -200,7 +207,7 @@ if __name__ == "__main__":
 
   max_atoms = 23
   batch_size = 384  # CHANGED FROM 192
-  layer_structures = [128, 128, 64, 1]
+  layer_structures = [256, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
   metric = [
@@ -208,6 +215,9 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
+
+  feat_batch_size = 384
+  train_batch_size = feat_batch_size*3
 
   # switch for datasets and models
   if os.path.exists(valid_dir) and \
@@ -236,14 +246,14 @@ if __name__ == "__main__":
     print("Performing 1-fold split...")
 
     # (ytz): the 0.888888 is used s.t. 0.9*0.88888888 = 0.8, and we end up with a 80/10/10 split
-    train_dataset, valid_dataset = splitter.train_test_split(
+    temp_train_dataset, valid_dataset = splitter.train_test_split(
         train_valid_dataset, train_dir=temp_dir, test_dir=valid_dir, frac_train=0.8888888888)
 
     print("Shuffling training dataset...")
-    train_dataset = train_dataset.complete_shuffle(data_dir=train_dir)
+    train_dataset = temp_train_dataset.complete_shuffle(data_dir=train_dir)
 
     print("Featurizing...")
-    feat_batch_size = 384
+    # feat_batch_size = 384
     model = dc.models.ANIRegression(
         1,
         max_atoms,
@@ -263,7 +273,6 @@ if __name__ == "__main__":
       dd.feat_dataset = model.featurize(dd, fp)
 
   # (ytz): I like big batches and I cannot lie
-  train_batch_size = 1024
 
   # transformers = [
   #     dc.trans.NormalizationTransformer(
@@ -314,8 +323,25 @@ if __name__ == "__main__":
     continuous_epochs = 0
     max_continuous_epochs = 100
 
+    max_batches = math.ceil(train_dataset.get_shape()[0][0] / train_batch_size)
+
     while not converged and continuous_epochs < max_continuous_epochs:
-      model.fit(train_dataset, nb_epoch=1, checkpoint_interval=100)
+      # pr.enable()
+      model.fit(
+        train_dataset,
+        nb_epoch=1,
+        checkpoint_interval=100,
+        max_batches=max_batches
+      )
+      # pr.disable()
+
+      # s = StringIO()
+      # sortby = 'cumulative'
+      # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+      # ps.print_stats()
+      # print(s.getvalue())
+
+      # assert 0
       # print("Validation score:")
       val_score = model.evaluate(valid_dataset, metric)
       val_score = val_score['root_mean_squared_error']

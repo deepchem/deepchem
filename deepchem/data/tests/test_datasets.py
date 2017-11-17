@@ -616,9 +616,6 @@ class TestDatasets(unittest.TestCase):
       else:
         assert bidx == math.ceil(total_size / batch_size) - 1
 
-      # print(all_Xs)
-      # print(test_Xs)
-
       np.testing.assert_array_equal(all_Xs, test_Xs)
       np.testing.assert_array_equal(all_ys, test_ys)
       np.testing.assert_array_equal(all_ws, test_ws)

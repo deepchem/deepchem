@@ -358,7 +358,6 @@ class ANIRegression(TensorGraph):
     for task in range(self.n_tasks):
       output = BPGather2(in_layers=[Hiddens[-1], self.featurized])
       self.add_output(output)
-
       label = Label(shape=(None, 1))
       self.labels_fd.append(label)
       cost = L2Loss(in_layers=[label, output])
@@ -403,7 +402,7 @@ class ANIRegression(TensorGraph):
     # (ytz): Featurization uses significantly more memory than training
     # so the batch_size should be smaller
     batch_size = self.batch_size
-    shard_size = batch_size * 1
+    shard_size = batch_size * 3
 
     def shard_generator(cself):
 
@@ -447,36 +446,76 @@ class ANIRegression(TensorGraph):
 
       batch_idx = 0
 
+      # number of batches in this shard
       num_batches = math.ceil(len(dataset) / batch_size)
 
       run_time = 0
       total_time = time.time()
 
       # use a seperate thread to do the compute so we can overlap with the file write
-
-      append_time = time.time()
-
       pool = multiprocessing.pool.ThreadPool(1)
       next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
       print("Total number of batches:", num_batches)
 
       # following code assumes shard_size == batch_size
-      assert shard_size == batch_size
+      # assert shard_size == batch_size
+
+      # preallocate a shard and fill on the fly
+      shard_X_pre_alloc = np.zeros((shard_size, 23, 385), dtype=np.float32)
+      shard_y_pre_alloc = np.zeros((shard_size, 1), dtype=np.float32)
+      shard_w_pre_alloc = np.zeros((shard_size, 1), dtype=np.float32)
+      shard_ids_pre_alloc = np.zeros((shard_size,), dtype=np.int32)
+
+      # start_size = 0
+      start_idx = 0
 
       while batch_idx < num_batches:
 
         X_feat = next_batch.get()  # shape (batch_size, max_atoms, feat_size)
 
+        # if batch_idx == num_batches - 1:
+          # print("DEBUG X_FEAT SHAPE", X_feat.shape)
+          # assert 0
+
+        end_idx = start_idx + len(X_feat)
+
+        # print("X_FEAT SIZE", X_feat.shape)
+
+        shard_X_pre_alloc[start_idx:end_idx, :, :] = X_feat
+
         if batch_idx < num_batches - 1:
           next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
         y_b = all_ybs[batch_idx]
+
+        # print("Y_b SIZE", y_b.shape)
+
+        shard_y_pre_alloc[start_idx:end_idx, :] = y_b
         w_b = all_wbs[batch_idx]
+        shard_w_pre_alloc[start_idx:end_idx, :] = w_b
         ids_b = all_ids[batch_idx]
+        shard_ids_pre_alloc[start_idx:end_idx] = ids_b
+
+        # print("COMP", start_idx, end_idx)
+
+        if end_idx == shard_size or batch_idx == num_batches - 1:
+          # flush and reset pre-alloc
+
+          # if batch_idx == num_batches - 1:
+            # print("YIELDING", shard_X_pre_alloc[:end_idx, :, :].shape)
+            # assert 0
+
+          yield shard_X_pre_alloc[:end_idx, :, :], \
+                shard_y_pre_alloc[:end_idx, :], \
+                shard_w_pre_alloc[:end_idx, :], \
+                shard_ids_pre_alloc[:end_idx]
+          start_idx = 0
+        else:
+          start_idx += len(X_feat)
+
         batch_idx += 1
 
-        yield X_feat, y_b, w_b, ids_b
 
       pool.close()
       t1.join()
@@ -511,10 +550,7 @@ class ANIRegression(TensorGraph):
       pass
 
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b, ids_b) in dataset.ani_iterbatches(deterministic=deterministic):
 
         # print("X_b shape", X_b.shape)
 

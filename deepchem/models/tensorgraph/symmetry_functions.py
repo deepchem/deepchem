@@ -432,7 +432,7 @@ class AtomicDifferentiatedDense(Layer):
     # The second implements drop connect, whereby the weights are dropped
     # out randomly. ytz thinks that clipping then dropping is the correct
     # order of operations. ytz may also be wrong.
-    self.W = tf.clip_by_norm(self.W, 3.0, axes=1)
+    self.W = tf.clip_by_norm(self.W, 1.0, axes=1)
     drop_p = 0.5
     self.W = tf.nn.dropout(self.W, keep_prob=drop_p) * drop_p
 

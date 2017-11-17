@@ -591,12 +591,19 @@ class BPGather2(Layer):
 
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     """ Merge features together """
-
     last_dense, atom_feats = self._get_input_tensors(in_layers)
-    print("last_dense_shape", last_dense.shape)
-    regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
-    flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
-    out_tensor = tf.reduce_sum(regression * tf.expand_dims(flags, 2), axis=1)
+    # regression = tf.reduce_sum(last_dense, -1, keep_dims=True)
+    regression = tf.reduce_sum(last_dense, 1)
+    out_tensor = regression
+    # flags = tf.cast(tf.sign(atom_feats[:, :, 0]), tf.float32)
+    # out_tensor = tf.reduce_sum(
+    #   regression * tf.expand_dims(flags, 2),
+    #   axis=1)
+    # print("OUTTENSOR SHAPE", out_tensor.shape)
+    # self.BEFORE = out_tensor
+    # out_tensor = tf.exp(out_tensor)
+    # out_tensor = tf.multiply(tf.exp(out_tensor), -1.0)
+    # self.AFTER = out_tensor
 
     if set_tensors:
       self.out_tensor = out_tensor
@@ -982,9 +989,11 @@ class Input(Layer):
 
   def create_pre_q(self, batch_size):
     try:
-      q_shape = (batch_size,) + self.shape[1:]
+      q_shape = self.shape
+      # q_shape = (batch_size,) + self.shape[1:]
     except NotImplementedError:
       q_shape = None
+    # q_shape = self.shape
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
