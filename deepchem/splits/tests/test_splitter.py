@@ -292,7 +292,7 @@ class TestSplitters(unittest.TestCase):
     y[:n_positives] = 1
     w = np.ones((n_samples, n_tasks))
     # Set half the positives to have zero weight
-    w[:n_positives / 2] = 0
+    w[:n_positives // 2] = 0
     ids = np.arange(n_samples)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
@@ -340,7 +340,7 @@ class TestSplitters(unittest.TestCase):
     y = np.random.binomial(1, p, size=(n_samples, n_tasks))
     w = np.ones((n_samples, n_tasks))
     # Mask half the examples
-    w[:n_samples / 2] = 0
+    w[:n_samples // 2] = 0
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     split_indices = stratified_splitter.get_task_split_indices(

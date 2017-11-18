@@ -15,7 +15,7 @@ install:
 - conda config --add channels http://conda.binstar.org/omnia
 - bash scripts/install_deepchem_conda.sh deepchem
 - source activate deepchem
-- pip install yapf==0.17.0
+- pip install yapf==0.19.0
 - pip install coveralls
 - python setup.py install
 script:

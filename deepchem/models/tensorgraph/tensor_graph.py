@@ -30,6 +30,7 @@ class TensorGraph(Model):
                use_queue=True,
                graph=None,
                learning_rate=0.001,
+               configproto=None,
                **kwargs):
     """
     Parameters
@@ -51,7 +52,7 @@ class TensorGraph(Model):
       is created.
     learning_rate: float or LearningRateSchedule
       the learning rate to use for optimization
-    kwargs
+    configproto: a tf.ConfigProto() object used to create tf.Session()
     """
 
     # Layer Management
@@ -66,6 +67,7 @@ class TensorGraph(Model):
     self.queue_installed = False
     self.optimizer = Adam(
         learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-7)
+    self.configproto = configproto
 
     # Singular place to hold Tensor objects which don't serialize
     # These have to be reconstructed on restoring from pickle
@@ -333,8 +335,9 @@ class TensorGraph(Model):
         feed_dict[self._training_placeholder] = 0.0
         feed_results = self.session.run(outputs, feed_dict=feed_dict)
         if len(feed_results) > 1:
-          result = undo_transforms(np.stack(feed_results, 1), transformers)
-          feed_results = [result[:, i] for i in range(result.shape[1])]
+          if len(transformers):
+            raise ValueError("Does not support transformations "
+                             "for multiple outputs.")
         elif len(feed_results) == 1:
           result = undo_transforms(feed_results[0], transformers)
           feed_results = [result]
@@ -469,7 +472,7 @@ class TensorGraph(Model):
           self.rnn_final_states += layer.rnn_final_states
           self.rnn_zero_states += layer.rnn_zero_states
           layer.add_summary_to_tg()
-      self.session = tf.Session()
+      self.session = tf.Session(config=self.configproto)
       self.built = True
 
       # Ensure all training operators have been created.

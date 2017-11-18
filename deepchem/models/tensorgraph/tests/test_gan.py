@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import unittest
 from deepchem.models.tensorgraph import layers
+from flaky import flaky
 
 
 def generate_batch(batch_size):
@@ -58,6 +59,7 @@ class TestGAN(unittest.TestCase):
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
 
+  @flaky
   def test_wgan(self):
     """Test fitting a conditional WGAN."""
 
