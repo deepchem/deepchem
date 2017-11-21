@@ -345,6 +345,7 @@ if __name__ == "__main__":
 
   max_atoms = args.max_atoms
   batch_size = args.batch_size
+  train_batch_size = args.featurization_batch_size * 3
   layer_structures = [256, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
@@ -353,9 +354,6 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression"),
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
-
-  feat_batch_size = 384
-  train_batch_size = feat_batch_size*3
 
   # switch for datasets and models
   if path_not_empty(args.valid_dir) and \
