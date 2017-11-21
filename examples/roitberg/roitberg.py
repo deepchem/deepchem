@@ -241,8 +241,6 @@ def load_roitberg_ANI(args, mode="atomization"):
 
   return train_dataset, test_dataset, groups
 
-
-
 def broadcast(dataset, metadata):
 
   new_metadata = []
@@ -252,6 +250,11 @@ def broadcast(dataset, metadata):
       new_metadata.append(metadata[idx])
 
   return new_metadata
+
+def die(msg, retval=-1):
+  """Terminate the program with a warning message."""
+  sys.stderr.write("Execution failed with error:\n\n%s" % msg)
+  sys.exit(retval)
 
 def parse_args():
   """
@@ -268,6 +271,10 @@ def parse_args():
       The batch size for featurization
     * max_search_epochs int
       The the maximum number of epochs to search for a lower validation score.
+    * initial_learning_rate float
+      The starting learning rate for a new model.
+    * learning_rate_factor float
+      The factor by which to reduce the learning rate as training proceeds.
     * work_dir string
       The path of the working directory (i.e. where we write stuff).
     * training_data_dir string
@@ -279,15 +286,24 @@ def parse_args():
     * clean_work_dir bool
       If true, indicates that the working directory should be wiped before
       training.
+    * reload_model bool
+      If true, indicates that a model should be reloaded instead of training
+      a new one from scratch.
   """
   parser = argparse.ArgumentParser(description="Run ANI1 neural net training.",
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
   parser.add_argument('-b', '--batch-size', type=int, default=1152,
                       help="training batch size")
   parser.add_argument('--featurization-batch-size', type=int, default=384,
                       help="featurization batch size")
   parser.add_argument('-e', '--max-search-epochs', type=int, default=100,
                       help="The maximum number of epochs to run w/o validation score improvement.")
+  parser.add_argument('--initial-learning-rate', type=float, default=0.001,
+                      help="The initial learning rate.")
+  parser.add_argument('--learning-rate-factor', type=float, default=10.0,
+                      help="The factor by which to reduce the learning rate every --max-search-epochs")
+
   parser.add_argument('-w', '--work-dir', default='~/roitberg-scratch',
                       help="location where work data is dumped")
   parser.add_argument('-t', '--training-data-dir', default='~/roitberg-ani',
@@ -300,21 +316,32 @@ def parse_args():
                       help="max molecule size")
   parser.add_argument('--clean-work-dir', action='store_true',
                       help="Clean the work dir before training (i.e. do a clean run)")
+  parser.add_argument('--reload-model', action='store_true',
+                      help="Reloads an existing model from the work dir, instead of training new.")
 
-  return parser.parse_args()
+  args = parser.parse_args()
+
+  if args.batch_size % args.featurization_batch_size != 0:
+    die("--batch-size must be evenly divisible by --featurization-batch-size!")
+
+  if args.max_atoms != 23:
+    # just for now, I hope...
+    die("You can use any --max-atoms you like, as long as it's 23.")
+
+  if args.initial_learning_rate < 0:
+    die("The --initial-learning-rate must be a positive number.")
+
+  if args.learning_rate_factor <= 1.0:
+    die("The --learning-rate-factor must be greater than 1.")
+
+  return args
 
 #
 # Program main
 #
 if __name__ == "__main__":
   args = parse_args()
-
-  assert args.batch_size % args.featurization_batch_size == 0
-  assert args.max_atoms == 23
-
   setup_work_dirs(args)
-
-
 
   max_atoms = args.max_atoms
   batch_size = args.batch_size
@@ -398,11 +425,23 @@ if __name__ == "__main__":
 
   # need to hit 0.003 RMSE hartrees for 2kcal/mol.
   best_val_score = 1e9
+  lr_idx = 0
+  lr = args.initial_learning_rate
 
-  for lr_idx, lr in enumerate([1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]):
+  print("Training from initial learning rate %f, with step factor %f" % (lr, args.learning_rate_factor))
+
+  while lr >= 1e-9:
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
 
-    if lr_idx == 0:
+    if args.reload_model or lr_idx != 0:
+      model = dc.models.ANIRegression.load_numpy(
+        model_dir=args.model_dir,
+        override_kwargs = {
+          "learning_rate": lr,
+          "shift_exp": True,
+          "batch_size": args.batch_size
+        })
+    else:
       model = dc.models.ANIRegression(
           1,
           max_atoms,
@@ -414,14 +453,6 @@ if __name__ == "__main__":
           model_dir=args.model_dir,
           shift_exp=True,
           mode="regression")
-    else:
-      model = dc.models.ANIRegression.load_numpy(
-        model_dir=args.model_dir,
-        override_kwargs = {
-          "learning_rate": lr,
-          "shift_exp": True,
-          "batch_size": args.batch_size
-        })
 
     epoch_count = 0
 
@@ -455,6 +486,9 @@ if __name__ == "__main__":
         epoch_count = 0
       else:
         epoch_count += 1
+
+    lr /= args.learning_rate_factor
+    lr_idx += 1
 
   print("--train--")
   model.evaluate(train_dataset, metric)
