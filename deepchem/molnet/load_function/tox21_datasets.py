@@ -42,7 +42,8 @@ def load_tox21(featurizer='ECFP', split='index', reload=True, K=4):
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
   elif featurizer == 'AdjacencyConv':
-    featurizer = deepchem.feat.AdjacencyFingerprint(max_n_atoms=150, max_valence=6)
+    featurizer = deepchem.feat.AdjacencyFingerprint(
+        max_n_atoms=150, max_valence=6)
 
   loader = deepchem.data.CSVLoader(
       tasks=tox21_tasks, smiles_field="smiles", featurizer=featurizer)
