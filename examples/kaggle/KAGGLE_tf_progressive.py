@@ -11,7 +11,7 @@ import tempfile
 import shutil
 import numpy as np
 import deepchem as dc
-from kaggle_datasets import load_kaggle
+from deepchem.molnet import load_kaggle
 
 ###Load data###
 shard_size = 2000
@@ -33,11 +33,18 @@ for trial in range(num_trials):
   n_layers = 3
   nb_epoch = 50
   model = dc.models.ProgressiveMultitaskRegressor(
-      len(KAGGLE_tasks), train_dataset.get_data_shape()[0],
-      layer_sizes=[100]*n_layers, dropouts=[.25]*n_layers,
-      alpha_init_stddevs=[.02]*n_layers, weight_init_stddevs=[.02]*n_layers,
-      bias_init_consts=[1.]*n_layers, learning_rate=.0003,
-      penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
+      len(KAGGLE_tasks),
+      train_dataset.get_data_shape()[0],
+      layer_sizes=[100] * n_layers,
+      dropouts=[.25] * n_layers,
+      alpha_init_stddevs=[.02] * n_layers,
+      weight_init_stddevs=[.02] * n_layers,
+      bias_init_consts=[1.] * n_layers,
+      learning_rate=.0003,
+      penalty=.0001,
+      penalty_type="l2",
+      optimizer="adam",
+      batch_size=100,
       logdir="KAGGLE_tf_progressive")
 
   #Use R2 classification metric
@@ -54,9 +61,8 @@ for trial in range(num_trials):
   test_score, test_task_scores = model.evaluate(
       test_dataset, [metric], transformers, per_task_metrics=True)
 
-  all_results.append((train_score, train_task_scores,
-                      valid_score, valid_task_scores,
-                      test_score, test_task_scores))
+  all_results.append((train_score, train_task_scores, valid_score,
+                      valid_task_scores, test_score, test_task_scores))
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
@@ -76,8 +82,8 @@ for trial in range(num_trials):
 print("####################################################################")
 
 for trial in range(num_trials):
-  (train_score, train_task_scores, valid_score, valid_task_scores,
-   test_score, test_task_scores) = all_results[trial]
+  (train_score, train_task_scores, valid_score, valid_task_scores, test_score,
+   test_task_scores) = all_results[trial]
 
   print("Scores for trial %d" % trial)
   print("----------------------------------------------------------------")
