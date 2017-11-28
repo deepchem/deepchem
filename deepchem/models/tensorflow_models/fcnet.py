@@ -22,7 +22,7 @@ from deepchem.models.tensorflow_models import TensorflowRegressor
 from deepchem.metrics import to_one_hot
 
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph, TFWrapper
-from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss
+from deepchem.models.tensorgraph.layers import Feature, Label, Weights, WeightedError, Dense, Dropout, WeightDecay, Reshape, SoftMaxCrossEntropy, L2Loss, ReduceSum
 
 
 class TensorGraphMultiTaskClassifier(TensorGraph):
@@ -165,7 +165,7 @@ class TensorGraphMultiTaskClassifier(TensorGraph):
       Dataset to make prediction on
     transformers: list
       List of dc.trans.Transformers.
-    outputs: object 
+    outputs: object
       If outputs is None, then will assume outputs = self.outputs[0] (single
       output). If outputs is a Layer/Tensor, then will evaluate and return as a
       single ndarray. If outputs is a list of Layers/Tensors, will return a list
@@ -280,8 +280,7 @@ class TensorGraphMultiTaskRegressor(TensorGraph):
     self.add_output(output)
     labels = Label(shape=(None, n_tasks, 1))
     weights = Weights(shape=(None, n_tasks))
-    loss = L2Loss(in_layers=[labels, output])
-    weighted_loss = WeightedError(in_layers=[loss, weights])
+    weighted_loss = ReduceSum(L2Loss(in_layers=[labels, output, weights]))
     if weight_decay_penalty != 0.0:
       weighted_loss = WeightDecay(
           weight_decay_penalty,
@@ -500,8 +499,8 @@ class TensorflowMultiTaskClassifier(TensorflowClassifier):
         orig_dict["labels_%d" % task] = to_one_hot(y_b[:, task])
       else:
         # Dummy placeholders
-        orig_dict["labels_%d" %
-                  task] = np.squeeze(to_one_hot(np.zeros((self.batch_size,))))
+        orig_dict["labels_%d" % task] = np.squeeze(
+            to_one_hot(np.zeros((self.batch_size,))))
       if w_b is not None:
         orig_dict["weights_%d" % task] = w_b[:, task]
       else:
@@ -588,8 +587,8 @@ class TensorflowMultiTaskRegressor(TensorflowRegressor):
                     weight_init=tf.truncated_normal(
                         shape=[prev_layer_size, 1],
                         stddev=weight_init_stddevs[i]),
-                    bias_init=tf.constant(value=bias_init_consts[i], shape=[1
-                                                                           ]))))
+                    bias_init=tf.constant(value=bias_init_consts[i],
+                                          shape=[1]))))
     return (output, labels, weights)
 
   def construct_feed_dict(self, X_b, y_b=None, w_b=None, ids_b=None):
