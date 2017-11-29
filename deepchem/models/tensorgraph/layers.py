@@ -920,8 +920,8 @@ class Input(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-  def create_pre_q(self, batch_size):
-    q_shape = (batch_size,) + self._shape[1:]
+  def create_pre_q(self):
+    q_shape = (None,) + self._shape[1:]
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -2014,8 +2014,7 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    self.queue = tf.FIFOQueue(self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()
