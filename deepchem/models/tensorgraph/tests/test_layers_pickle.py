@@ -1,14 +1,17 @@
 import numpy as np
 import tensorflow as tf
+
 from deepchem.models import TensorGraph
+from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
+  DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-    CombineMeanStd, Repeat, GRU, L2Loss, Concat, SoftMax, Constant, Variable, Add, Multiply, InteratomicL2Distances, \
-    SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool, ReduceSum, GraphConv, GraphPool, \
-    GraphGather, BatchNorm, WeightedError, \
-    LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding
-from deepchem.models.tensorgraph.graph_layers import Combine_AP, Separate_AP, \
-    WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
-    DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
+  CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
+  Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
+  SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
+  GraphGather, BatchNorm, WeightedError, \
+  Conv3D, MaxPool3D, Conv2DTranspose, Conv3DTranspose, \
+  LSTMStep, AttnLSTMEmbedding, IterRefLSTMEmbedding, GraphEmbedPoolLayer, GraphCNN
+from deepchem.models.tensorgraph.symmetry_functions import AtomicDifferentiatedDense
 
 
 def test_Conv1D_pickle():
@@ -91,6 +94,16 @@ def test_Repeat_pickle():
   tg.save()
 
 
+def test_Gather_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Gather(indices=[[0], [2], [3]], in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
 def test_GRU_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10))
@@ -149,6 +162,36 @@ def test_Variable_pickle():
   output = Multiply(in_layers=[feature, layer])
   tg.add_output(output)
   tg.set_loss(output)
+  tg.build()
+  tg.save()
+
+
+def test_StopGradient_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  output = StopGradient(feature)
+  tg.add_output(output)
+  tg.set_loss(output)
+  tg.build()
+  tg.save()
+
+
+def test_Log_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Log(feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Exp_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 1))
+  layer = Exp(feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
   tg.build()
   tg.save()
 
@@ -235,10 +278,50 @@ def test_Conv2D_pickle():
   tg.save()
 
 
-def test_MaxPool_pickle():
+def test_Conv3D_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 10, 1))
+  layer = Conv3D(num_outputs=3, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Conv2DTranspose_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 1))
+  layer = Conv2DTranspose(num_outputs=3, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_Conv3DTranspose_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 10, 1))
+  layer = Conv3DTranspose(num_outputs=3, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_MaxPool2D_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10, 10))
-  layer = MaxPool(in_layers=feature)
+  layer = MaxPool2D(in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_MaxPool3D_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10, 10, 10))
+  layer = MaxPool3D(in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
@@ -319,26 +402,14 @@ def test_WeightedError_pickle():
   tg.save()
 
 
-def test_Combine_Separate_AP_pickle():
-  tg = TensorGraph()
-  atom_feature = Feature(shape=(None, 10))
-  pair_feature = Feature(shape=(None, 5))
-  C_AP = Combine_AP(in_layers=[atom_feature, pair_feature])
-  S_AP = Separate_AP(in_layers=[C_AP])
-  tg.add_output(S_AP)
-  tg.set_loss(S_AP)
-  tg.build()
-  tg.save()
-
-
 def test_Weave_pickle():
   tg = TensorGraph()
   atom_feature = Feature(shape=(None, 75))
   pair_feature = Feature(shape=(None, 14))
   pair_split = Feature(shape=(None,), dtype=tf.int32)
   atom_to_pair = Feature(shape=(None, 2), dtype=tf.int32)
-  C_AP = Combine_AP(in_layers=[atom_feature, pair_feature])
-  weave = WeaveLayer(in_layers=[C_AP, pair_split, atom_to_pair])
+  weave = WeaveLayer(
+      in_layers=[atom_feature, pair_feature, pair_split, atom_to_pair])
   tg.add_output(weave)
   tg.set_loss(weave)
   tg.build()
@@ -498,5 +569,41 @@ def test_SetGather_pickle():
   Gather = SetGather(5, 16, in_layers=[atom_feature, atom_split])
   tg.add_output(Gather)
   tg.set_loss(Gather)
+  tg.build()
+  tg.save()
+
+
+def test_AtomicDifferentialDense_pickle():
+  max_atoms = 23
+  atom_features = 100
+  tg = TensorGraph()
+  atom_feature = Feature(shape=(None, max_atoms, atom_features))
+  atom_numbers = Feature(shape=(None, max_atoms))
+  atomic_differential_dense = AtomicDifferentiatedDense(
+      max_atoms=23, out_channels=5, in_layers=[atom_feature, atom_numbers])
+  tg.add_output(atomic_differential_dense)
+  tg.set_loss(atomic_differential_dense)
+  tg.build()
+  tg.save()
+
+
+def testGraphCNN_pickle():
+  V = Feature(shape=(None, 200, 50))
+  A = Feature(shape=(None, 200, 1, 200))
+  gcnn = GraphCNN(32, in_layers=[V, A])
+  tg = TensorGraph()
+  tg.add_output(gcnn)
+  tg.set_loss(gcnn)
+  tg.build()
+  tg.save()
+
+
+def testGraphCNNPoolLayer_pickle():
+  V = Feature(shape=(None, 200, 50))
+  A = Feature(shape=(None, 200, 1, 200))
+  gcnnpool = GraphEmbedPoolLayer(32, in_layers=[V, A])
+  tg = TensorGraph()
+  tg.add_output(gcnnpool)
+  tg.set_loss(gcnnpool)
   tg.build()
   tg.save()

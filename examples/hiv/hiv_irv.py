@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from hiv_datasets import load_hiv
+from deepchem.molnet import load_hiv
 
 # Only for debug!
 np.random.seed(123)

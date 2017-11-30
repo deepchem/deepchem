@@ -1,6 +1,7 @@
 """Interface for reinforcement learning."""
 
 from deepchem.rl.a3c import A3C
+from deepchem.rl.mcts import MCTS
 from deepchem.rl.ppo import PPO
 
 
@@ -120,9 +121,6 @@ class GymEnvironment(Environment):
   def step(self, action):
     self._state, reward, self._terminated, info = self.env.step(action)
     return reward
-
-  def __deepcopy__(self, memo):
-    return GymEnvironment(self.name)
 
 
 class Policy(object):
