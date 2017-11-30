@@ -11,21 +11,27 @@ from deepchem.molnet.load_function.delaney_datasets import load_delaney
 
 class TestGraphModels(unittest.TestCase):
 
-  def get_dataset(self, mode='classification', featurizer='GraphConv'):
+  def get_dataset(self,
+                  mode='classification',
+                  featurizer='GraphConv',
+                  num_tasks=2):
     data_points = 10
     tasks, all_dataset, transformers = load_delaney(featurizer)
     train, valid, test = all_dataset
+    for i in range(1, num_tasks):
+      tasks.append("random_task")
+    w = np.ones(shape=(data_points, len(tasks)))
 
     if mode == 'classification':
       y = np.random.randint(0, 2, size=(data_points, len(tasks)))
       metric = deepchem.metrics.Metric(
           deepchem.metrics.roc_auc_score, np.mean, mode="classification")
-    if mode == 'regression':
+    else:
       y = np.random.normal(size=(data_points, len(tasks)))
       metric = deepchem.metrics.Metric(
           deepchem.metrics.mean_absolute_error, mode="regression")
 
-    ds = NumpyDataset(train.X[:10], y, train.w[:10], train.ids[:10])
+    ds = NumpyDataset(train.X[:10], y, w, train.ids[:10])
 
     return tasks, ds, transformers, metric
 
@@ -61,7 +67,7 @@ class TestGraphModels(unittest.TestCase):
 
   def test_graph_conv_error_bars(self):
     tasks, dataset, transformers, metric = self.get_dataset(
-        'regression', 'GraphConv')
+        'regression', 'GraphConv', num_tasks=1)
 
     batch_size = 50
     model = GraphConvTensorGraph(

@@ -280,6 +280,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
+      assert np.all(np.isclose(np.log(value), result, atol=0.001))
 
   def test_exp(self):
     """Test that Exp can be invoked."""

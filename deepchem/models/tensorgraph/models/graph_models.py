@@ -12,7 +12,7 @@ from deepchem.models.tensorgraph.graph_layers import WeaveGather, \
   DTNNEmbedding, DTNNStep, DTNNGather, DAGLayer, \
   DAGGather, DTNNExtract, MessagePassing, SetGather
 from deepchem.models.tensorgraph.graph_layers import WeaveLayerFactory
-from deepchem.models.tensorgraph.layers import Dense, Concat, SoftMax, \
+from deepchem.models.tensorgraph.layers import Dense, SoftMax, \
   SoftMaxCrossEntropy, GraphConv, BatchNorm, \
   GraphPool, GraphGather, WeightedError, Dropout, BatchNormalization, Stack, Flatten, GraphCNN, GraphCNNPool
 from deepchem.models.tensorgraph.layers import L2Loss, Label, Weights, Feature
@@ -116,7 +116,7 @@ class WeaveTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      all_cost = Concat(in_layers=costs, axis=1)
+      all_cost = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
@@ -174,8 +174,8 @@ class WeaveTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(),
+                         (n_atoms * n_atoms, self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
@@ -310,8 +310,8 @@ class DTNNTensorGraph(TensorGraph):
         num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
         atom_number = [
             np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]), 1 /
-                         2.4)).astype(int) for i in range(len(num_atoms))
+                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
+                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
         ]
         start = 0
         for im, molecule in enumerate(atom_number):
@@ -425,7 +425,7 @@ class DAGTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      all_cost = Concat(in_layers=costs, axis=1)
+      all_cost = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
@@ -570,7 +570,7 @@ class PetroskiSuchTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      entropy = Concat(in_layers=costs, axis=-1)
+      entropy = Stack(in_layers=costs, axis=-1)
     elif self.mode == "regression":
       entropy = Stack(in_layers=costs, axis=1)
     self.my_task_weights = Weights(shape=(None, self.n_tasks))
@@ -716,7 +716,7 @@ class GraphConvTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      entropy = Concat(in_layers=costs, axis=-1)
+      entropy = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       entropy = Stack(in_layers=costs, axis=1)
     self.my_task_weights = Weights(shape=(None, self.n_tasks))
@@ -994,7 +994,7 @@ class MPNNTensorGraph(TensorGraph):
         cost = L2Loss(in_layers=[label, regression])
         costs.append(cost)
     if self.mode == "classification":
-      all_cost = Concat(in_layers=costs, axis=1)
+      all_cost = Stack(in_layers=costs, axis=1)
     elif self.mode == "regression":
       all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
@@ -1051,8 +1051,8 @@ class MPNNTensorGraph(TensorGraph):
           atom_feat.append(mol.get_atom_features())
           # pair features
           pair_feat.append(
-              np.reshape(mol.get_pair_features(), (n_atoms * n_atoms,
-                                                   self.n_pair_feat)))
+              np.reshape(mol.get_pair_features(),
+                         (n_atoms * n_atoms, self.n_pair_feat)))
 
         feed_dict[self.atom_features] = np.concatenate(atom_feat, axis=0)
         feed_dict[self.pair_features] = np.concatenate(pair_feat, axis=0)
