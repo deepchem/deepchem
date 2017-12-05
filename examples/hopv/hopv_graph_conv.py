@@ -10,7 +10,7 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from hopv_datasets import load_hopv
+from deepchem.molnet import load_hopv
 
 # Load HOPV dataset
 hopv_tasks, hopv_datasets, transformers = load_hopv(featurizer='GraphConv')

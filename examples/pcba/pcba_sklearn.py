@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from pcba_datasets import load_pcba
+from deepchem.molnet import load_pcba
 from sklearn.ensemble import RandomForestClassifier
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem import metrics

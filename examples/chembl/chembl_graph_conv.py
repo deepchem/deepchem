@@ -10,7 +10,7 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from chembl_datasets import load_chembl
+from deepchem.molnet import load_chembl
 
 # Load ChEMBL dataset
 chembl_tasks, datasets, transformers = load_chembl(

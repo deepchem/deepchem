@@ -10,7 +10,7 @@ np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
 import deepchem as dc
-from tox21_datasets import load_tox21
+from deepchem.molnet import load_tox21
 
 # Load Tox21 dataset
 tox21_tasks, tox21_datasets, transformers = load_tox21(featurizer='GraphConv')

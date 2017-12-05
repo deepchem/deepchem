@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from tox21_datasets import load_tox21
 
 # Only for debug!
 np.random.seed(123)

@@ -280,6 +280,7 @@ class TestLayers(test_util.TensorFlowTestCase):
     with self.test_session() as sess:
       result = Log()(value).eval()
       assert np.array_equal(np.log(value), result)
+      assert np.all(np.isclose(np.log(value), result, atol=0.001))
 
   def test_exp(self):
     """Test that Exp can be invoked."""
@@ -318,7 +319,7 @@ class TestLayers(test_util.TensorFlowTestCase):
       label_tensor = tf.convert_to_tensor(label_tensor, dtype=tf.float32)
       out_tensor = SoftMaxCrossEntropy()(logit_tensor, label_tensor)
       out_tensor = out_tensor.eval()
-      assert out_tensor.shape == (batch_size, 1)
+      assert out_tensor.shape == (batch_size,)
 
   def test_reduce_mean(self):
     """Test that ReduceMean can be invoked."""

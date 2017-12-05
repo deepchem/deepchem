@@ -21,7 +21,7 @@ import tensorflow as tf
 
 tf.set_random_seed(123)
 import deepchem as dc
-from tox21_datasets import load_tox21
+from deepchem.molnet import load_tox21
 
 
 def sluice_model(batch_size, tasks):
