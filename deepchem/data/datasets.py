@@ -660,7 +660,6 @@ class DiskDataset(Dataset):
 
     return iterate(self)
 
-
   def ani_iterbatches(self, deterministic=False):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
@@ -737,7 +736,11 @@ class DiskDataset(Dataset):
                   batch_size=None,
                   epoch=0,
                   deterministic=False,
-                  pad_batches=False):
+                  pad_batches=False,
+                  dataset_size=None,
+                  load_ys=True,
+                  load_ws=True,
+                  load_ids=True):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
     
@@ -762,8 +765,11 @@ class DiskDataset(Dataset):
       Whether or not we should pad the last batch, globally, such that it has exactly batch_size
       elements.
 
+    dataset_size: int (optional)
+      If the length of the dataset is known a-priori this can be passed in to speed things up.
 
     """
+
     def iterate(dataset, batch_size):
     
       it_start_time = time.time()
@@ -779,14 +785,22 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
-      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
+      next_shard = pool.apply_async(
+        dataset.get_shard,
+        (shard_perm[0],
+         load_ys,
+         load_ws,
+         load_ids))
 
       total_yield = 0
 
       if batch_size is None:
         num_global_batches = num_shards
       else:
-        num_global_batches = math.ceil(len(dataset) / batch_size)
+        if dataset_size is not None:
+          num_global_batches = math.ceil(dataset_size / batch_size)
+        else:
+          num_global_batches = math.ceil(len(dataset) / batch_size)
 
       cur_global_batch = 0
       cur_shard = 0
@@ -807,7 +821,7 @@ class DiskDataset(Dataset):
         if cur_shard < num_shards - 1:
           # print("kicking off next...")
           next_shard = pool.apply_async(dataset.get_shard,
-                                        (shard_perm[cur_shard + 1],))
+                                        (shard_perm[cur_shard + 1], load_ys, load_ws, load_ids))
         else:
           pool.close()
 
@@ -845,7 +859,8 @@ class DiskDataset(Dataset):
             y = np.concatenate(carry_ys, axis=0)
           if w is not None:
             w = np.concatenate(carry_ws, axis=0)
-          ids = np.concatenate(carry_ids, axis=0)
+          if ids is not None:
+            ids = np.concatenate(carry_ids, axis=0)
 
           carry_Xs = []
           carry_ys = []
@@ -857,35 +872,25 @@ class DiskDataset(Dataset):
 
         num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
 
-        # deterministic = False
-
         if n_shard_samples == 0:
           continue
-        # if not deterministic:
-        #   p_time = time.time()
-        #   np.random.shuffle(X)
-        #   np.random.shuffle(y)
-        #   np.random.shuffle(w)
-        #   np.random.shuffle(ids)
-        #   tot_permute_time += time.time() - p_time
-          # sample_perm = np.random.permutation(n_shard_samples)
-        # else:
-          # sample_perm = np.arange(n_shard_samples)
+
+        if not deterministic:
+          pp = np.random.permutation(len(X))
+          X = X[pp]
+          y = y[pp]
+          if w:
+            w = w[pp]
+          if ids:
+            ids = ids[pp]
 
         while cur_local_batch < num_local_batches:
           start = cur_local_batch * shard_batch_size
           end = min(n_shard_samples, (cur_local_batch + 1) * shard_batch_size)
 
-          # indices = range(start, end)
-          # perm_indices = sample_perm[indices]
-
           p_time = time.time()
 
           X_b = X[start:end]
-
-          # (ytz): just do np shuffle as opposed to broadcasting
-
-          # print("permutating data of size:", X.shape)
 
           if y is not None:
             y_b = y[start:end]
@@ -897,7 +902,10 @@ class DiskDataset(Dataset):
           else:
             w_b = None
 
-          ids_b = ids[start:end]
+          if ids is not None:
+            ids_b = ids[start:end]
+          else:
+            ids_b = ids
 
           tot_permute_time += time.time() - p_time
 
@@ -1155,17 +1163,17 @@ class DiskDataset(Dataset):
     self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
     self.save_to_disk()
 
-  def get_shard(self, i):
+  def get_shard(self, i, load_ys=True, load_ws=True, load_ids=True):
     """Retrieves data for the i-th shard from disk."""
     row = self.metadata_df.iloc[i]
     X = load_from_disk(os.path.join(self.data_dir, row['X']))
 
-    if row['y'] is not None:
+    if row['y'] is not None and load_ys:
       y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
     else:
       y = None
 
-    if row['w'] is not None:
+    if row['w'] is not None and load_ws:
       # TODO (ytz): Under what condition does this exist but the file itself doesn't?
       w_filename = os.path.join(self.data_dir, row['w'])
       if os.path.exists(w_filename):
@@ -1175,8 +1183,12 @@ class DiskDataset(Dataset):
     else:
       w = None
 
-    ids = np.array(
-        load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+    if load_ids:
+      ids = np.array(
+          load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+    else:
+      ids = None
+
     return (X, y, w, ids, i)
 
   def add_shard(self, X, y, w, ids):

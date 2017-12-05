@@ -16,12 +16,10 @@ import scipy.optimize
 import scipy.sparse
 import tensorflow as tf
 import time
-
 import multiprocessing.pool
-
 import deepchem as dc
 
-from deepchem.models.tensorgraph.layers import Dense, Concat, RootWeightedMeanError, Stack, Layer, ANIFeat, ShiftedExponential
+from deepchem.models.tensorgraph.layers import Dense, Concat, RootMeanError, Stack, Layer, ANIFeat, ShiftedExponential
 from deepchem.models.tensorgraph.layers import L1Loss, L2Loss, Conditional, Reshape, Label, Weights, Feature, BPGather2
 from deepchem.models.tensorgraph.tensor_graph import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import DTNNEmbedding
@@ -94,6 +92,8 @@ class BPSymmetryFunctionRegression(TensorGraph):
                         epochs=1,
                         predict=False,
                         pad_batches=True):
+
+
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -364,13 +364,13 @@ class ANIRegression(TensorGraph):
       costs.append(cost)
 
     all_cost = Stack(in_layers=costs, axis=1)
-    self.weights = Weights(shape=(None, self.n_tasks))
+    # self.weights = Weights(shape=(None, self.n_tasks))
 
-    loss = RootWeightedMeanError(in_layers=[all_cost, self.weights])
+    loss = RootMeanError(in_layers=[all_cost])
 
     if self.shift_exp:
       print("WARNING: Using shifted exponential loss")
-      loss = ShiftedExponential(1.0, in_layers=loss)
+      loss = ShiftedExponential(0.5, in_layers=loss)
     self.set_loss(loss)
 
   # def featurize(self, dataset, deterministic, pad_batches):
@@ -402,7 +402,7 @@ class ANIRegression(TensorGraph):
     # (ytz): Featurization uses significantly more memory than training
     # so the batch_size should be smaller
     batch_size = self.batch_size
-    shard_size = batch_size * 3
+    shard_size = batch_size * 512
 
     def shard_generator(cself):
 
@@ -410,21 +410,21 @@ class ANIRegression(TensorGraph):
       # (ytz): enqueue in a separate thread
       # yay for shitty thread-safe GILs on lists
       all_ybs = []
-      all_wbs = []
-      all_ids = []
 
       def feed_queue():
 
-        for batch_idx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
+        for bidx, (X_b, y_b, w_b, ids_b) in enumerate(dataset.iterbatches(
             batch_size=batch_size,
             deterministic=True,
             pad_batches=False)):
+
+          print("ENQUEUE LENGTH", bidx, len(X_b), len(y_b))
 
           # debugging race condition
           mode = cself.get_pre_q_input(cself.mode) # FEAT_0_PREQ
           obj = cself.get_pre_q_input(cself.dequeue_object) # FEAT_1_PREQ
           lab = cself.get_pre_q_input(cself.labels[0]) # FEAT_2_PREQ
-          weights = cself.get_pre_q_input(cself.task_weights[0]) # FEAT_3_PREQ
+          # weights = cself.get_pre_q_input(cself.task_weights[0]) # FEAT_3_PREQ
 
           cself.session.run(
               cself.input_queue, # enqueue_op
@@ -434,12 +434,9 @@ class ANIRegression(TensorGraph):
                   lab: np.zeros(
                       (batch_size, 1)
                   ),  # TODO(ytz): would be nice if we didn't have to feed dummys
-                  weights: np.zeros((batch_size, 1)),
               })
 
           all_ybs.append(y_b)
-          all_wbs.append(w_b)
-          all_ids.append(ids_b)
 
       t1 = threading.Thread(target=feed_queue)
       t1.start()
@@ -456,31 +453,18 @@ class ANIRegression(TensorGraph):
       pool = multiprocessing.pool.ThreadPool(1)
       next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
-      print("Total number of batches:", num_batches)
-
-      # following code assumes shard_size == batch_size
-      # assert shard_size == batch_size
+      print("Total number of batches:", num_batches, "Batch Size:", batch_size)
 
       # preallocate a shard and fill on the fly
       shard_X_pre_alloc = np.zeros((shard_size, 23, 385), dtype=np.float32)
       shard_y_pre_alloc = np.zeros((shard_size, 1), dtype=np.float32)
-      shard_w_pre_alloc = np.zeros((shard_size, 1), dtype=np.float32)
-      shard_ids_pre_alloc = np.zeros((shard_size,), dtype=np.int32)
 
-      # start_size = 0
       start_idx = 0
 
       while batch_idx < num_batches:
 
         X_feat = next_batch.get()  # shape (batch_size, max_atoms, feat_size)
-
-        # if batch_idx == num_batches - 1:
-          # print("DEBUG X_FEAT SHAPE", X_feat.shape)
-          # assert 0
-
         end_idx = start_idx + len(X_feat)
-
-        # print("X_FEAT SIZE", X_feat.shape)
 
         shard_X_pre_alloc[start_idx:end_idx, :, :] = X_feat
 
@@ -488,28 +472,15 @@ class ANIRegression(TensorGraph):
           next_batch = pool.apply_async(cself.session.run, (cself.featurized,))
 
         y_b = all_ybs[batch_idx]
-
-        # print("Y_b SIZE", y_b.shape)
-
         shard_y_pre_alloc[start_idx:end_idx, :] = y_b
-        w_b = all_wbs[batch_idx]
-        shard_w_pre_alloc[start_idx:end_idx, :] = w_b
-        ids_b = all_ids[batch_idx]
-        shard_ids_pre_alloc[start_idx:end_idx] = ids_b
-
-        # print("COMP", start_idx, end_idx)
 
         if end_idx == shard_size or batch_idx == num_batches - 1:
-          # flush and reset pre-alloc
-
-          # if batch_idx == num_batches - 1:
-            # print("YIELDING", shard_X_pre_alloc[:end_idx, :, :].shape)
-            # assert 0
 
           yield shard_X_pre_alloc[:end_idx, :, :], \
                 shard_y_pre_alloc[:end_idx, :], \
-                shard_w_pre_alloc[:end_idx, :], \
-                shard_ids_pre_alloc[:end_idx]
+                None, \
+                None
+
           start_idx = 0
         else:
           start_idx += len(X_feat)
@@ -520,11 +491,14 @@ class ANIRegression(TensorGraph):
       pool.close()
       t1.join()
 
-    return dc.data.DiskDataset.create_dataset(
+    res = dc.data.DiskDataset.create_dataset(
         shard_generator=shard_generator(self),
         data_dir=feat_dir,
         X_is_sparse=True)
 
+    # print(res.get_shape(), dataset.get_shape())
+    # assert len(res) == len(dataset)
+    return res
     # print("Finished featurization, total_time: " + strtime.time()-start_time + " seconds.")
 
   def default_generator(self,
@@ -532,13 +506,20 @@ class ANIRegression(TensorGraph):
                         epochs=1,
                         predict=False,
                         deterministic=True,
-                        pad_batches=True):
+                        pad_batches=False):
+
+    assert pad_batches == False
 
     if predict and not deterministic:
       raise Exception(
             "Called predict with non-deterministic generator, terrible idea.")
 
+    # print("DEFAULT_GENERATOR BATCH_SIZE", self.batch_size)
+
     batch_size = self.batch_size
+
+    # way faster on un-featurized data
+    dataset_size = len(dataset)
 
     needs_feat = True
     try:
@@ -549,17 +530,42 @@ class ANIRegression(TensorGraph):
       print("Requires manual featurization")
       pass
 
+
+    # print("??")
+    # print("!!", len(dataset), needs_feat)
+    print("--")
+
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.ani_iterbatches(deterministic=deterministic):
+      if predict:
+        generator = dataset.iterbatches(
+          deterministic=deterministic,
+          batch_size=batch_size,
+          dataset_size=dataset_size,
+          load_ys=False,
+          load_ws=False,
+          load_ids=False)
+      else:
+        generator = dataset.iterbatches(
+          deterministic=deterministic,
+          batch_size=batch_size,
+          dataset_size=dataset_size,
+          load_ys=True,
+          load_ws=False,
+          load_ids=False)
+
+      for (X_b, y_b, w_b, ids_b) in generator:
+
+        # print(YIELDING)
 
         # print("X_b shape", X_b.shape)
-
         feed_dict = {}
         if y_b is not None and not predict:
           for index, label in enumerate(self.labels_fd):
             feed_dict[label] = y_b[:, index:index + 1]
         if w_b is not None and not predict:
-          feed_dict[self.weights] = w_b
+          feed_dict[self.weights] = np.ones((self.batch_size, 1))
+
+        # print("NEEDS_FEAT:", needs_feat)
 
         feed_dict[self.mode] = needs_feat
         feed_dict[self.dequeue_object] = X_b

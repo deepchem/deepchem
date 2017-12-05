@@ -2,6 +2,7 @@ import pickle
 import threading
 import time
 
+import math
 import collections
 import numpy as np
 import os
@@ -196,8 +197,6 @@ class TensorGraph(Model):
     #     feed_dict[self._training_placeholder] = 1.0
     #     yield feed_dict
 
-    print("MAX BATCHES", max_batches)
-
     if not self.built:
       self.build()
     with self._get_tf("Graph").as_default():
@@ -228,21 +227,10 @@ class TensorGraph(Model):
       run_time = 0
       start_step = self.global_step
       # for feed_dict in create_feed_dict():
-      for _ in range(max_batches):
+      for batch_idx in range(max_batches):
 
         if start_time is None:
           start_time = time.time()
-
-        # if self.use_queue:
-          # Don't let this thread get ahead of the enqueue thread, since if
-          # we try to read more batches than the total number that get queued,
-          # this thread will hang indefinitely.
-          # while n_enqueued[0] <= n_samples:
-          #   if n_samples == final_sample[0]:
-          #     break
-          #   time.sleep(0)
-          # if n_samples == final_sample[0]:
-          #   break
 
         n_samples += 1
         should_log = (self.tensorboard and
@@ -285,7 +273,10 @@ class TensorGraph(Model):
 
         # fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         # print("FETCHING", fetches)
-        fetched_values = self.session.run(fetches)
+        fetched_values = self.session.run(
+          fetches,
+          feed_dict={self._training_placeholder: 1.0})
+        # print("DONE")
 
         run_time += time.time() - run_start
 
@@ -295,11 +286,23 @@ class TensorGraph(Model):
         # print("tmp loss:", fetched_values[1])
         n_averaged_batches += 1
         self.global_step += 1
+
+        if (batch_idx % (max_batches//25)) == 0 or batch_idx == max_batches - 1:
+          # print(avg_loss)
+          tmp_loss = float(avg_loss) / n_averaged_batches
+          avg_speed = ((self.global_step - start_step) * self.batch_size /
+                       (time.time() - start_time)) * 60
+          t_time = time.time() - start_time
+          print(
+              'Total Samples Fed: %d, Average Loss: %g, Samples Per Minute: %g, Run Time: %g, Total Time: %g, Efficiency: %g'
+              % (self.global_step*self.batch_size, tmp_loss, avg_speed, run_time,
+                 t_time, run_time / t_time))
+
+
+
         if checkpoint_interval > 0 and self.global_step % checkpoint_interval == checkpoint_interval - 1:
           saver.save(self.session, self.save_file, global_step=self.global_step)
           avg_loss = float(avg_loss) / n_averaged_batches
-
-          # print("batch_size for speed:", self.batch_size)
           avg_speed = ((self.global_step - start_step) * self.batch_size /
                        (time.time() - start_time)) * 60
           t_time = time.time() - start_time
@@ -316,6 +319,7 @@ class TensorGraph(Model):
                                                             avg_loss))
         saver.save(self.session, self.save_file, global_step=self.global_step)
         time2 = time.time()
+
         print("TIMING: model fitting took %0.3f s" % (time2 - time1))
     return avg_loss
 
@@ -370,11 +374,16 @@ class TensorGraph(Model):
           feed_dict[initial_state] = zero_state
         yield feed_dict
 
-  def predict_on_generator(self, generator, transformers=[], outputs=None):
+  def predict_on_generator(
+    self,
+    pred_generator,
+    transformers=[],
+    outputs=None,
+    max_batches=None):
     """
     Parameters
     ----------
-    generator: Generator
+    pred_generator: Generator
       Generator that constructs feed dictionaries for TensorGraph.
     transformers: list
       List of dc.trans.Transformers.
@@ -388,38 +397,72 @@ class TensorGraph(Model):
     """
     if not self.built:
       self.build()
-    if outputs is None:
-      outputs = self.outputs
-    elif not isinstance(outputs, collections.Sequence):
-      outputs = [outputs]
-    with self._get_tf("Graph").as_default():
-      # Gather results for each output
-      results = [[] for out in outputs]
-      for feed_dict in generator:
-        feed_dict = {
-            self.layers[k.name].out_tensor: v
-            for k, v in six.iteritems(feed_dict)
-        }
-        feed_dict[self._training_placeholder] = 0.0
-        feed_results = self.session.run(outputs, feed_dict=feed_dict)
-        if len(feed_results) > 1:
-          if len(transformers):
-            raise ValueError("Does not support transformations "
-                             "for multiple outputs.")
-        elif len(feed_results) == 1:
-          result = undo_transforms(feed_results[0], transformers)
-          feed_results = [result]
-        for ind, result in enumerate(feed_results):
-          results[ind].append(result)
 
-      final_results = []
-      for result_list in results:
-        final_results.append(np.concatenate(result_list, axis=0))
-      # If only one output, just return array
-      if len(final_results) == 1:
-        return final_results[0]
-      else:
-        return final_results
+    with self._get_tf("Graph").as_default():
+
+      if outputs is None:
+        outputs = self.outputs
+      elif not isinstance(outputs, collections.Sequence):
+        outputs = [outputs]
+
+      if self.use_queue:
+        enqueue_thread = threading.Thread(
+            target=_enqueue_batch_pred,
+            args=(self, pred_generator, self._get_tf("Graph"),
+                  self.session))
+        enqueue_thread.start()
+
+      results = []
+
+      for iiii in range(max_batches):
+        feed_results = self.session.run(
+          outputs,
+          feed_dict={self._training_placeholder: 0.0})
+        results.append(feed_results[0])
+
+      final_results = np.concatenate(results)
+      return final_results
+
+      # final_results = []
+      # for result_list in results:
+      #   print("RESULT_LIST SHAPE", result_list.shape)
+      #   final_results.append(np.concatenate(result_list, axis=0))
+
+      # print("FINAL_RESULTS", final_results)
+
+      # if len(final_results) == 1:
+      #   return final_results[0]
+      # else:
+      #   return final_results
+
+    # with self._get_tf("Graph").as_default():
+    #   # Gather results for each output
+    #   results = [[] for out in outputs]
+    #   for feed_dict in pred_generator:
+    #     feed_dict = {
+    #         self.layers[k.name].out_tensor: v
+    #         for k, v in six.iteritems(feed_dict)
+    #     }
+    #     feed_dict[self._training_placeholder] = 0.0
+    #     feed_results = self.session.run(outputs, feed_dict=feed_dict)
+    #     if len(feed_results) > 1:
+    #       if len(transformers):
+    #         raise ValueError("Does not support transformations "
+    #                          "for multiple outputs.")
+    #     elif len(feed_results) == 1:
+    #       result = undo_transforms(feed_results[0], transformers)
+    #       feed_results = [result]
+    #     for ind, result in enumerate(feed_results):
+    #       results[ind].append(result)
+
+    #   final_results = []
+    #   for result_list in results:
+    #     final_results.append(np.concatenate(result_list, axis=0))
+    #   # If only one output, just return array
+    #   if len(final_results) == 1:
+    #     return final_results[0]
+    #   else:
+    #     return final_results
 
   def predict_proba_on_generator(self, generator, transformers=[],
                                  outputs=None):
@@ -483,8 +526,12 @@ class TensorGraph(Model):
     -------
     results: numpy ndarray or list of numpy ndarrays
     """
+    st = time.time()
     generator = self.default_generator(dataset, predict=True, pad_batches=False)
-    return self.predict_on_generator(generator, transformers, outputs)
+    max_batches = math.ceil(len(dataset)/self.batch_size)
+    res = self.predict_on_generator(generator, transformers, outputs, max_batches)
+
+    return res
 
   def predict_proba(self, dataset, transformers=[], outputs=None):
     """
@@ -867,6 +914,34 @@ class TensorGraph(Model):
   def __del__(self):
     pass
 
+def _enqueue_batch_pred(tg, generator, graph, sess):
+  """
+  Function to load data into
+  Parameters
+  ----------
+  tg
+  dataset
+  graph
+  sess
+
+  Returns
+  -------
+
+  """
+  with graph.as_default():
+    for feed_dict in generator:
+      enq = {}
+      enq[tg._training_placeholder] = 0.0
+      for layer in tg.features:
+        obj = feed_dict[layer]
+        # print("OBJ SHAPE", obj.shape)
+        enq[tg.get_pre_q_input(layer).out_tensor] = obj
+      for layer in tg.task_weights:
+        enq[tg.get_pre_q_input(layer).out_tensor] = np.ones((tg.batch_size, 1))
+      for layer in tg.labels:
+        enq[tg.get_pre_q_input(layer).out_tensor] = np.zeros((tg.batch_size, 1))
+      sess.run(tg.input_queue.out_tensor, feed_dict=enq)
+
 
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
@@ -886,10 +961,15 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
     num_samples = 0
     for feed_dict in generator:
       enq = {}
+
+      # print("SETTING", tg._training_placeholder, "TPH 1.0")
       enq[tg._training_placeholder] = 1.0
-      for layer in tg.features + tg.labels + tg.task_weights:
+      for layer in tg.features + tg.labels:
         obj = feed_dict[layer]
         enq[tg.get_pre_q_input(layer).out_tensor] = obj
+      for layer in tg.task_weights:
+        enq[tg.get_pre_q_input(layer).out_tensor] = np.ones((tg.batch_size, 1))
+      # print("????????????", enq[tg._training_placeholder])
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       n_enqueued[0] += 1
     final_sample[0] = n_enqueued[0]

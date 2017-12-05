@@ -401,12 +401,15 @@ class AtomicDifferentiatedDense(Layer):
                init='ani_norm',
                # activation='relu',
                activation='gaussian',
+               drop_connect=False,
                **kwargs):
     self.init = init  # Set weight initialization
     self.activation = activation  # Get activations
     self.max_atoms = max_atoms
     self.out_channels = out_channels
     self.atom_number_cases = atom_number_cases
+    # self.drop_connect = drop_connect
+    # self.dropout_prob = 0.5 
 
     super(AtomicDifferentiatedDense, self).__init__(**kwargs)
 
@@ -432,9 +435,13 @@ class AtomicDifferentiatedDense(Layer):
     # The second implements drop connect, whereby the weights are dropped
     # out randomly. ytz thinks that clipping then dropping is the correct
     # order of operations. ytz may also be wrong.
-    self.W = tf.clip_by_norm(self.W, 1.0, axes=1)
-    drop_p = 0.5
-    self.W = tf.nn.dropout(self.W, keep_prob=drop_p) * drop_p
+    self.W = tf.clip_by_norm(self.W, 3.0, axes=1)
+
+    # (ytz): DropConnect is actually non-trivial to implement for inference.
+    # if self.drop_connect:
+    #   print("WARNING: ENABLING DROP CONNECTS")
+    #   keep_prob = 1.0 - self.dropout_prob * kwargs['training']
+    #   self.W = tf.nn.dropout(self.W, keep_prob=keep_prob)
 
     # w_shape = tf.shape(self.W)
     # wi, wj, wk = w_shape[0], w_shape[1], w_shape[2]

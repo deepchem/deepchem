@@ -90,6 +90,7 @@ class Evaluator(object):
       If true, return computed metric for each task on multitask dataset.
     """
     y = self.dataset.y
+
     y = undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 

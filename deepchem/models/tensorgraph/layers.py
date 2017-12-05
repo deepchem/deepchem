@@ -1015,8 +1015,8 @@ class ShiftedExponential(Layer):
     if len(inputs) != 1:
       raise ValueError("")
     parent = inputs[0]
-    # tmp = tf.multiply(parent, (1.0 / self.t))
-    out_tensor = tf.exp(tf.multiply(parent, (1.0 / self.t)))
+    inner = tf.multiply(parent, (1.0 / self.t))
+    out_tensor = tf.exp(inner)
     out_tensor = tf.multiply(self.t, out_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
@@ -2764,6 +2764,23 @@ class BatchNormalization(Layer):
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
+
+
+class RootMeanError(Layer):
+
+  def __init__(self, in_layers=None, **kwargs):
+    super(RootMeanError, self).__init__(in_layers, **kwargs)
+    self._shape = tuple()
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers, True)
+    entropy = inputs[0]
+    out_tensor = tf.sqrt(tf.reduce_mean(entropy))
+    # out_tensor = tf.reduce_mean(entropy * weights)
+    if set_tensors:
+      self.out_tensor = out_tensor
+    return out_tensor
+
 
 
 class RootWeightedMeanError(Layer):

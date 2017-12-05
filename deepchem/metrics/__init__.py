@@ -214,6 +214,7 @@ class Metric(object):
     if self.mode == "classification":
       y_pred = np.reshape(y_pred, (n_samples, n_tasks, n_classes))
     else:
+      # print("DEBUG SHAPE", y_pred.shape)
       y_pred = np.reshape(y_pred, (n_samples, n_tasks))
     y_true = np.reshape(y_true, (n_samples, n_tasks))
     if w is None or len(w) == 0:

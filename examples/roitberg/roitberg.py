@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# import cProfile
-# pr = cProfile.Profile()
-# pr.disable()
-# import pstats
-# from io import StringIO
+import cProfile
+pr = cProfile.Profile()
+pr.disable()
+import pstats
+from io import StringIO
 
 import argparse
 import math
@@ -19,6 +19,8 @@ import deepchem as dc
 import pyanitools as pya
 import app
 import random
+
+HARTREE_TO_KCAL_PER_MOL = 627.509
 
 def convert_species_to_atomic_nums(s):
   PERIODIC_TABLE = {"H": 1, "C": 6, "N": 7, "O": 8}
@@ -110,7 +112,7 @@ def find_training_data(base_dir, max_gdb_level):
 
   return files
 
-def load_roitberg_ANI(args, mode="atomization"):
+def load_roitberg_ANI(args, mode="aastomization"):
   """
   Load the ANI dataset.
 
@@ -234,6 +236,8 @@ def load_roitberg_ANI(args, mode="atomization"):
       shard_generator(), tasks=tasks, data_dir=args.all_dir)
 
   print("Number of groups", np.amax(groups))
+
+  # split based on chemotype for true test set generalizibility
   splitter = dc.splits.RandomGroupSplitter(groups)
 
   train_dataset, test_dataset = splitter.train_test_split(
@@ -327,8 +331,8 @@ if __name__ == "__main__":
       dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")
   ]
 
-  feat_batch_size = 384
-  train_batch_size = feat_batch_size*3
+  # feat_batch_size = 384
+  # train_batch_size = feat_batch_size*3
 
   # switch for datasets and models
   if path_not_empty(args.valid_dir) and \
@@ -346,13 +350,21 @@ if __name__ == "__main__":
       if path_not_empty(fp):
         dd.feat_dataset = dc.data.DiskDataset(data_dir=fp)
 
+    print("Train, Valid, Test Sizes:", len(train_dataset), len(valid_dataset), len(test_dataset))
+
   else:
-    print("Generating datasets...")
+    print("Generating train_valid/test datasets...")
 
     train_valid_dataset, test_dataset, all_groups = load_roitberg_ANI(args, "atomization")
 
-    splitter = dc.splits.RandomGroupSplitter(
-        broadcast(train_valid_dataset, all_groups))
+    # splitter = dc.splits.RandomGroupSplitter(
+        # broadcast(train_valid_dataset, all_groups))
+
+    # train/valid split uses completely random split because we don't want to overfit
+    # to a specific set of chemotypes.
+    # splitter = dc.splits.RandomSplitter(
+        # broadcast(train_valid_dataset, all_groups))
+    splitter = dc.splits.RandomSplitter(train_valid_dataset)
 
     print("Performing 1-fold split...")
 
@@ -394,15 +406,19 @@ if __name__ == "__main__":
     for dd in [train_dataset, valid_dataset, test_dataset]:
       dd.feat_dataset = model.featurize(dd, path(dd.data_dir, "feat"))
 
-  print("Total training set shape: ", train_dataset.get_shape())
+  print("Total training set shape: ", len(train_dataset))
 
-  # need to hit 0.003 RMSE hartrees for 2kcal/mol.
-  best_val_score = 1e9
+  # Need to hit 0.003 RMSE hartrees for 2kcal/mol.
+  best_val_score = None
 
   for lr_idx, lr in enumerate([1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]):
+
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
 
+
     if lr_idx == 0:
+    # if False:
+      print("Building new model")
       model = dc.models.ANIRegression(
           1,
           max_atoms,
@@ -414,7 +430,10 @@ if __name__ == "__main__":
           model_dir=args.model_dir,
           shift_exp=True,
           mode="regression")
+
+
     else:
+      print("Restoring Model")
       model = dc.models.ANIRegression.load_numpy(
         model_dir=args.model_dir,
         override_kwargs = {
@@ -423,28 +442,36 @@ if __name__ == "__main__":
           "batch_size": args.batch_size
         })
 
+    if lr_idx == 0:
+      val_score = model.evaluate(valid_dataset, metric)
+      best_val_score = val_score['root_mean_squared_error']
+  
     epoch_count = 0
 
-    max_batches = math.ceil(train_dataset.get_shape()[0][0] / train_batch_size)
+    print("....")
+    max_batches = math.ceil(len(train_dataset) / model.batch_size)
 
     while epoch_count < args.max_search_epochs:
       # pr.enable()
+      print("fitting....", len(train_dataset))
       model.fit(
         train_dataset,
         nb_epoch=1,
-        checkpoint_interval=100,
+        checkpoint_interval=0,
         max_batches=max_batches
       )
-      # pr.disable()
+      print("fitting done...")
 
-      # s = StringIO()
-      # sortby = 'cumulative'
-      # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-      # ps.print_stats()
-      # print(s.getvalue())
-
+      print("--val--")
       val_score = model.evaluate(valid_dataset, metric)
       val_score = val_score['root_mean_squared_error']
+      print("val score in kcal/mol:", val_score*HARTREE_TO_KCAL_PER_MOL)
+
+
+      print("--test--")
+      test_score = model.evaluate(test_dataset, metric)
+      test_score = test_score['root_mean_squared_error']
+      print("test score in kcal/mol:", test_score*HARTREE_TO_KCAL_PER_MOL)
 
       print("This epoch's validation score:", val_score)
 
@@ -455,6 +482,16 @@ if __name__ == "__main__":
         epoch_count = 0
       else:
         epoch_count += 1
+
+    # pr.disable()
+
+    # # if epoch_count == 0:
+    # s = StringIO()
+    # sortby = 'cumulative'
+    # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    # ps.print_stats()
+    # print(s.getvalue())
+
 
   print("--train--")
   model.evaluate(train_dataset, metric)
