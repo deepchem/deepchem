@@ -7,6 +7,7 @@ BENCHMARK_TO_DESIRED_KEY_MAP = {
     "index": "Index splitting",
     "random": "Random splitting",
     "scaffold": "Scaffold splitting",
+    "stratified": "Stratified splitting",
     "logreg": "Logistic regression",
     "rf": "Random forest",
     "tf": "NN classification",

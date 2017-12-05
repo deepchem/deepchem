@@ -232,7 +232,7 @@ class TensorGraph(Model):
           fetches.append(self._get_tf("summary_op"))
         fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         if should_log:
-          self._log_tensorboard(fetches[2])
+          self._log_tensorboard(fetched_values[2])
         avg_loss += fetched_values[1]
         n_averaged_batches += 1
         self.global_step += 1

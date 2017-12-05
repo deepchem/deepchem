@@ -257,16 +257,19 @@ Index splitting,lipo,NN regression,0.829,0.508
 Index splitting,lipo,Graphconv regression,0.867,0.702
 Index splitting,lipo,DAG regression,0.957,0.483
 Index splitting,lipo,Weave regression,0.726,0.607
+Index splitting,lipo,MPNN,0.963,0.68
 Random splitting,lipo,Random forest,0.96,0.514
 Random splitting,lipo,NN regression,0.833,0.476
 Random splitting,lipo,Graphconv regression,0.867,0.631
 Random splitting,lipo,DAG regression,0.967,0.412
 Random splitting,lipo,Weave regression,0.747,0.598
+Random splitting,lipo,MPNN,0.964,0.66
 Scaffold splitting,lipo,Random forest,0.959,0.33
 Scaffold splitting,lipo,NN regression,0.83,0.308
 Scaffold splitting,lipo,Graphconv regression,0.875,0.608
 Scaffold splitting,lipo,DAG regression,0.937,0.368
 Scaffold splitting,lipo,Weave regression,0.761,0.575
+Scaffold splitting,lipo,MPNN,0.954,0.537
 Index splitting,nci,XGBoost regression,0.441,0.066
 Index splitting,nci,NN regression,0.69,0.062
 Index splitting,nci,Graphconv regression,0.123,0.053
@@ -329,16 +332,19 @@ Index splitting,qm8,NN regression,0.939,0.604
 Index splitting,qm8,Graphconv regression,0.866,0.704
 Index splitting,qm8,NN regression(CM),0.77,0.625
 Index splitting,qm8,DTNN,0.856,0.696
+Index splitting,qm8,MPNN,0.836,0.704
 Random splitting,qm8,Random forest,0.971,0.706
 Random splitting,qm8,NN regression,0.934,0.717
 Random splitting,qm8,Graphconv regression,0.848,0.78
 Random splitting,qm8,NN regression(CM),0.753,0.699
 Random splitting,qm8,DTNN,0.842,0.754
+Random splitting,qm8,MPNN,0.828,0.764
 Stratified splitting,qm8,Random forest,0.971,0.69
 Stratified splitting,qm8,NN regression,0.934,0.712
 Stratified splitting,qm8,Graphconv regression,0.846,0.767
 Stratified splitting,qm8,NN regression(CM),0.761,0.696
 Stratified splitting,qm8,DTNN,0.846,0.745
+Stratified splitting,qm8,MPNN,0.839,0.752
 Index splitting,qm9,NN regression,0.839,0.708
 Index splitting,qm9,Graphconv regression,0.754,0.768
 Index splitting,qm9,NN regression(CM),0.803,0.8

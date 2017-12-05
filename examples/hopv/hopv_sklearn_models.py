@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from hopv_datasets import load_hopv
+from deepchem.molnet import load_hopv
 from sklearn.ensemble import RandomForestRegressor
 
 # Only for debug!
