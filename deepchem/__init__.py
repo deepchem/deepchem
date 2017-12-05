@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-__version__ = '2.0.dev0'
+__version__ = '1.3.1'
 
 import deepchem.data
 import deepchem.feat
