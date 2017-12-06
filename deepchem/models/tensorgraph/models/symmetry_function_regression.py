@@ -370,7 +370,7 @@ class ANIRegression(TensorGraph):
 
     if self.shift_exp:
       print("WARNING: Using shifted exponential loss")
-      loss = ShiftedExponential(0.5, in_layers=loss)
+      loss = ShiftedExponential(1.0, in_layers=loss)
     self.set_loss(loss)
 
   # def featurize(self, dataset, deterministic, pad_batches):

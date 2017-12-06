@@ -84,6 +84,7 @@ def setup_work_dirs(args):
   args.model_dir = find_or_create_path(args.work_dir, "models")
 
   args.all_dir = find_or_create_path(args.data_dir, "all")
+  args.select_dir = find_or_create_path(args.data_dir, "select")
   args.test_dir = find_or_create_path(args.data_dir, "test")
   args.fold_dir = find_or_create_path(args.data_dir, "fold")
   args.gdb10_dir = find_or_create_path(args.data_dir, "gdb10")
@@ -119,8 +120,7 @@ def find_gdb10_test_data(base_dir):
   return [file]
   # files = [os.path.join(base_dir, "ani_gdb_s%02d.h5" % i) for i in range(1, max_gdb_level+1)]    
 
-
-def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
+def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
   """
   Load the ANI dataset.
 
@@ -147,7 +147,7 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
   # hdf5files.append(find_gdb10_test_data(args.training_data_dir))
   groups = []
 
-  def shard_generator():
+  def shard_generator(sel_size):
 
     shard_size = 4096 * batch_size
 
@@ -158,6 +158,34 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
     y_cache = []
     w_cache = []
     ids_cache = []
+
+    # loop once to compute the size of the dataset
+    total_size = 0
+
+    for hdf5file in hdf5files:
+      adl = pya.anidataloader(hdf5file)
+      for data in adl:
+        S = data['species']
+        E = data['energies']
+        if len(S) > 23:
+          continue
+        
+        total_size += E.shape[0]
+
+    if sel_size is None:
+      sel_size = total_size
+
+    assert isinstance(sel_size, int)
+
+    print("Total of", total_size, "elements, keeping", sel_size)
+
+    keep_flags = np.zeros(total_size, dtype=np.bool)
+    # note that we still need a true random shuffle after (outside since this still
+    # adds an ordering dependence). 
+    keep_idxes = np.random.permutation(total_size)[:sel_size]
+    keep_flags[keep_idxes] = 1
+
+    print("Starting iteration")
 
     for hdf5file in hdf5files:
       adl = pya.anidataloader(hdf5file)
@@ -227,14 +255,18 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
             w_cache = []
             ids_cache = []
 
-          X_cache.append(X)
-          y_cache.append(np.array(y).reshape((1,)))
-          w_cache.append(np.array(1).reshape((1,)))
-          ids_cache.append(row_idx)
+          if keep_flags[row_idx]:
+            X_cache.append(X)
+            y_cache.append(np.array(y).reshape((1,)))
+            w_cache.append(np.array(1).reshape((1,)))
+            ids_cache.append(row_idx)
+            groups.append(group_idx)
+
           row_idx += 1
-          groups.append(group_idx)
 
         group_idx += 1
+
+    assert row_idx == total_size
 
     # flush once more at the end
     if len(X_cache) > 0:
@@ -242,7 +274,10 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
 
   tasks = ["ani"]
   dataset = dc.data.DiskDataset.create_dataset(
-      shard_generator(), tasks=tasks, data_dir=data_dir)
+      shard_generator(selection_size), tasks=tasks, data_dir=data_dir)
+
+  if selection_size:
+    assert len(dataset) == selection_size
 
   return dataset, groups
 
@@ -270,9 +305,12 @@ def load_roitberg_ANI(args, mode="atomization"):
   """
 
   all_train = find_training_data(args.training_data_dir, args.gdb_level)
-  all_dataset, groups = load_hdf5_files(all_train, args.batch_size, args.all_dir, mode)
-  
-  print("Number of groups", np.amax(groups))
+  all_dataset, groups = load_hdf5_files(
+    all_train,
+    batch_size=args.batch_size,
+    data_dir=args.all_dir,
+    mode=mode,
+    selection_size=int(1e6))
 
   # split based on chemotype for true test set generalizibility
   # splitter = dc.splits.RandomGroupSplitter(groups)
@@ -338,9 +376,9 @@ def parse_args():
   parser = argparse.ArgumentParser(description="Run ANI1 neural net training.",
                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-  parser.add_argument('-b', '--batch-size', type=int, default=1152,
+  parser.add_argument('-b', '--batch-size', type=int, default=1024,
                       help="training batch size")
-  parser.add_argument('--featurization-batch-size', type=int, default=384,
+  parser.add_argument('--featurization-batch-size', type=int, default=256,
                       help="featurization batch size")
   parser.add_argument('-e', '--max-search-epochs', type=int, default=100,
                       help="The maximum number of epochs to run w/o validation score improvement.")
