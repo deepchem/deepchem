@@ -418,7 +418,7 @@ class ANIRegression(TensorGraph):
             deterministic=True,
             pad_batches=False)):
 
-          print("ENQUEUE LENGTH", bidx, len(X_b), len(y_b))
+          # print("ENQUEUE LENGTH", bidx, len(X_b), len(y_b))
 
           # debugging race condition
           mode = cself.get_pre_q_input(cself.mode) # FEAT_0_PREQ

@@ -86,6 +86,7 @@ def setup_work_dirs(args):
   args.all_dir = find_or_create_path(args.data_dir, "all")
   args.test_dir = find_or_create_path(args.data_dir, "test")
   args.fold_dir = find_or_create_path(args.data_dir, "fold")
+  args.gdb10_dir = find_or_create_path(args.data_dir, "gdb10")
 
   args.train_dir = find_or_create_path(args.fold_dir, "train")
   args.temp_dir = find_or_create_path(args.fold_dir, "temp")
@@ -112,7 +113,14 @@ def find_training_data(base_dir, max_gdb_level):
 
   return files
 
-def load_roitberg_ANI(args, mode="aastomization"):
+def find_gdb10_test_data(base_dir):
+  base_dir = os.path.abspath(os.path.expanduser(base_dir))
+  file = os.path.join(base_dir, "ani1_gdb10_ts.h5")
+  return [file]
+  # files = [os.path.join(base_dir, "ani_gdb_s%02d.h5" % i) for i in range(1, max_gdb_level+1)]    
+
+
+def load_hdf5_files(hdf5files, batch_size, data_dir, mode):
   """
   Load the ANI dataset.
 
@@ -135,12 +143,13 @@ def load_roitberg_ANI(args, mode="aastomization"):
 
   """
 
-  hdf5files = find_training_data(args.training_data_dir, args.gdb_level)
+  # hdf5files = find_training_data(args.training_data_dir, args.gdb_level)
+  # hdf5files.append(find_gdb10_test_data(args.training_data_dir))
   groups = []
 
   def shard_generator():
 
-    shard_size = 4096 * args.batch_size
+    shard_size = 4096 * batch_size
 
     row_idx = 0
     group_idx = 0
@@ -162,7 +171,7 @@ def load_roitberg_ANI(args, mode="aastomization"):
         smi = data['smiles']
 
         if len(S) > 23:
-          print("skipping:", smi, "due to atom count.")
+          print("skipping ", smi, "due to atom count: ", len(S))
           continue
 
         # Print the data
@@ -233,17 +242,49 @@ def load_roitberg_ANI(args, mode="aastomization"):
 
   tasks = ["ani"]
   dataset = dc.data.DiskDataset.create_dataset(
-      shard_generator(), tasks=tasks, data_dir=args.all_dir)
+      shard_generator(), tasks=tasks, data_dir=data_dir)
 
+  return dataset, groups
+
+def load_roitberg_ANI(args, mode="atomization"):
+  """
+  Load the ANI dataset.
+
+  Parameters
+  ----------
+  args:
+    Result of calling ArgumentParser.parse_args()
+
+  mode: str
+    Accepted modes are "relative", "atomization", or "absolute". These settings are used
+    to adjust the dynamic range of the model, with absolute having the greatest and relative
+    having the lowest. Note that for atomization we approximate the single atom energy
+    using a different level of theory
+
+  Returns
+  -------
+  tuples
+    Elements returned are 3-tuple (a,b,c) where and b are the train and test datasets, respectively,
+    and c is an array of indices denoting the group of each
+
+  """
+
+  all_train = find_training_data(args.training_data_dir, args.gdb_level)
+  all_dataset, groups = load_hdf5_files(all_train, args.batch_size, args.all_dir, mode)
+  
   print("Number of groups", np.amax(groups))
 
   # split based on chemotype for true test set generalizibility
-  splitter = dc.splits.RandomGroupSplitter(groups)
+  # splitter = dc.splits.RandomGroupSplitter(groups)
+  splitter = dc.splits.RandomSplitter(all_dataset)
 
   train_dataset, test_dataset = splitter.train_test_split(
-    dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
+    all_dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
 
-  return train_dataset, test_dataset, groups
+  gdb10_test = find_gdb10_test_data(args.training_data_dir)
+  gdb10_dataset, groups = load_hdf5_files(gdb10_test, args.gdb10_dir, args.all_dir, mode)
+
+  return train_dataset, test_dataset, groups, gdb10_dataset
 
 def broadcast(dataset, metadata):
 
@@ -375,12 +416,10 @@ if __name__ == "__main__":
       if path_not_empty(fp):
         dd.feat_dataset = dc.data.DiskDataset(data_dir=fp)
 
-    print("Train, Valid, Test Sizes:", len(train_dataset), len(valid_dataset), len(test_dataset))
-
   else:
     print("Generating train_valid/test datasets...")
 
-    train_valid_dataset, test_dataset, all_groups = load_roitberg_ANI(args, "atomization")
+    train_valid_dataset, test_dataset, all_groups, gdb10_dataset = load_roitberg_ANI(args, "atomization")
 
     # splitter = dc.splits.RandomGroupSplitter(
         # broadcast(train_valid_dataset, all_groups))
@@ -428,10 +467,12 @@ if __name__ == "__main__":
     #   valid_dataset = transformer.transform(valid_dataset)
     #   test_dataset = transformer.transform(test_dataset)
 
-    for dd in [train_dataset, valid_dataset, test_dataset]:
+    for dd in [train_dataset, valid_dataset, test_dataset, gdb10_dataset]:
       dd.feat_dataset = model.featurize(dd, path(dd.data_dir, "feat"))
 
-  print("Total training set shape: ", len(train_dataset))
+  print("Train, Valid, Test, GDB10 sizes:", len(train_dataset), len(valid_dataset), len(test_dataset), len(gdb10_dataset))
+
+  # print("Total training set shape: ", len(train_dataset))
 
   # need to hit 0.003 RMSE hartrees for 2kcal/mol.
   best_val_score = 1e9
@@ -489,11 +530,15 @@ if __name__ == "__main__":
       val_score = val_score['root_mean_squared_error']
       print("val score in kcal/mol:", val_score*HARTREE_TO_KCAL_PER_MOL)
 
-
       print("--test--")
       test_score = model.evaluate(test_dataset, metric)
       test_score = test_score['root_mean_squared_error']
       print("test score in kcal/mol:", test_score*HARTREE_TO_KCAL_PER_MOL)
+
+      print("--gdb10--")
+      gdb10_score = model.evaluate(gdb10_dataset, metric)
+      gdb10_score = gdb10_score['root_mean_squared_error']
+      print("test score in kcal/mol:", gdb10_score*HARTREE_TO_KCAL_PER_MOL)      
 
       print("This epoch's validation score:", val_score)
 
