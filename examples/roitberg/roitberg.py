@@ -568,6 +568,9 @@ if __name__ == "__main__":
   model.evaluate(valid_dataset, metric)
   print("--test--")
   model.evaluate(test_dataset, metric)
+  print("--gdb10--")
+  model.evaluate(gdb10_dataset, metric)
+
 
   coords = np.array([
       [0.3, 0.4, 0.5],
