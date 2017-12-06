@@ -282,7 +282,7 @@ def load_roitberg_ANI(args, mode="atomization"):
     all_dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
 
   gdb10_test = find_gdb10_test_data(args.training_data_dir)
-  gdb10_dataset, groups = load_hdf5_files(gdb10_test, args.gdb10_dir, args.all_dir, mode)
+  gdb10_dataset, groups = load_hdf5_files(gdb10_test, args.batch_size, args.gdb10_dir, mode)
 
   return train_dataset, test_dataset, groups, gdb10_dataset
 
@@ -409,9 +409,10 @@ if __name__ == "__main__":
     train_dataset = dc.data.DiskDataset(data_dir=args.train_dir)
     valid_dataset = dc.data.DiskDataset(data_dir=args.valid_dir)
     test_dataset = dc.data.DiskDataset(data_dir=args.test_dir)
+    gdb10_dataset = dc.data.DiskDataset(data_dir=args.gdb10_dir)
 
     print("Restoring featurizations...")
-    for dd in [train_dataset, valid_dataset, test_dataset]:
+    for dd in [train_dataset, valid_dataset, test_dataset, gdb10_dataset]:
       fp = path(dd.data_dir, "feat")
       if path_not_empty(fp):
         dd.feat_dataset = dc.data.DiskDataset(data_dir=fp)
@@ -468,6 +469,7 @@ if __name__ == "__main__":
     #   test_dataset = transformer.transform(test_dataset)
 
     for dd in [train_dataset, valid_dataset, test_dataset, gdb10_dataset]:
+      print("Featurizing into:", dd.data_dir)
       dd.feat_dataset = model.featurize(dd, path(dd.data_dir, "feat"))
 
   print("Train, Valid, Test, GDB10 sizes:", len(train_dataset), len(valid_dataset), len(test_dataset), len(gdb10_dataset))
