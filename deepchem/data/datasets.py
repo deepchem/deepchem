@@ -450,7 +450,7 @@ class DiskDataset(Dataset):
       (self.tasks,
        self.metadata_df) = load_from_disk(self._get_metadata_filename())
     else:
-      raise ValueError("No metadata found on disk.")
+      raise ValueError("No metadata file found on disk: %s" % self._get_metadata_filename())
 
   @staticmethod
   def create_dataset(shard_generator,
@@ -663,7 +663,7 @@ class DiskDataset(Dataset):
   def ani_iterbatches(self, deterministic=False):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
-    
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
 
 
@@ -688,7 +688,7 @@ class DiskDataset(Dataset):
 
     """
     def iterate(dataset):
-    
+
 
       it_start_time = time.time()
 
@@ -743,7 +743,7 @@ class DiskDataset(Dataset):
                   load_ids=True):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
-    
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
 
 
@@ -771,7 +771,7 @@ class DiskDataset(Dataset):
     """
 
     def iterate(dataset, batch_size):
-    
+
       it_start_time = time.time()
 
       num_shards = dataset.get_number_shards()
