@@ -34,8 +34,8 @@ def load_pcba(featurizer='ECFP', split='random', reload=True):
   elif featurizer == 'Raw':
     featurizer = deepchem.feat.RawFeaturizer()
 
-  with gzip.GzipFile(dataset_file, "r") as file:
-    header = file.readline().rstrip().decode("utf-8")
+  with gzip.GzipFile(dataset_file, "r") as fin:
+    header = fin.readline().rstrip().decode("utf-8")
     columns = header.split(",")
     columns.remove("mol_id")
     columns.remove("smiles")
