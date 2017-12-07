@@ -17,6 +17,12 @@ then
     export python_version=3.5
 fi
 
+if [ -z "$tensorflow_channel" ]
+then
+    echo "Installing Tensorflow from conda-forge by default"
+    export tensorflow_channel=conda-forge
+fi
+
 export envname=$1
 conda create -y --name $envname python=$python_version
 source activate $envname
@@ -33,7 +39,7 @@ conda install -y -q -c conda-forge networkx=1.11
 conda install -y -q -c conda-forge xgboost=0.6a2
 conda install -y -q -c conda-forge pillow=4.2.1
 conda install -y -q -c conda-forge pandas=0.19.2
-conda install -y -q -c conda-forge $tensorflow=1.3.0
+conda install -y -q -c $tensorflow_channel $tensorflow=1.3.0
 conda install -y -q -c conda-forge nose=1.3.7
 conda install -y -q -c conda-forge nose-timer=0.7.0
 conda install -y -q -c conda-forge flaky=3.3.0
