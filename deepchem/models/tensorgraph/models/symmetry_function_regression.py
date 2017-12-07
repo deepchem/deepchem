@@ -353,6 +353,8 @@ class ANIRegression(TensorGraph):
       Hiddens.append(Hidden)
       previous_layer = Hiddens[-1]
 
+    self.DEBUG_LAYER = previous_layer
+
     costs = []
     self.labels_fd = []
     for task in range(self.n_tasks):
@@ -365,12 +367,12 @@ class ANIRegression(TensorGraph):
 
     all_cost = Stack(in_layers=costs, axis=1)
     # self.weights = Weights(shape=(None, self.n_tasks))
-
-    loss = RootMeanError(in_layers=[all_cost])
-
     if self.shift_exp:
       print("WARNING: Using shifted exponential loss")
-      loss = ShiftedExponential(1.0, in_layers=loss)
+      loss = ShiftedExponential(0.5, in_layers=all_cost)
+    else:
+      loss = RootMeanError(in_layers=[all_cost])
+
     self.set_loss(loss)
 
   # def featurize(self, dataset, deterministic, pad_batches):
@@ -456,7 +458,7 @@ class ANIRegression(TensorGraph):
       print("Total number of batches:", num_batches, "Batch Size:", batch_size)
 
       # preallocate a shard and fill on the fly
-      shard_X_pre_alloc = np.zeros((shard_size, 23, 385), dtype=np.float32)
+      shard_X_pre_alloc = np.zeros((shard_size, self.max_atoms, 385), dtype=np.float32)
       shard_y_pre_alloc = np.zeros((shard_size, 1), dtype=np.float32)
 
       start_idx = 0

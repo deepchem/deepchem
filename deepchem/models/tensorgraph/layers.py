@@ -1014,10 +1014,12 @@ class ShiftedExponential(Layer):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
       raise ValueError("")
+
     parent = inputs[0]
+    parent = tf.reduce_sum(parent)
     inner = tf.multiply(parent, (1.0 / self.t))
-    out_tensor = tf.exp(inner)
-    out_tensor = tf.multiply(self.t, out_tensor)
+    out_tensor = tf.exp(tf.cast(inner, tf.float64))
+    out_tensor = tf.multiply(tf.cast(self.t, tf.float64), out_tensor)
     if set_tensors:
       self.out_tensor = out_tensor
     return out_tensor
@@ -3738,7 +3740,7 @@ class ANIFeat(Layer):
 
   def __init__(self,
                in_layers,
-               max_atoms=23,
+               max_atoms=24,
                radial_cutoff=4.6,
                angular_cutoff=3.1,
                radial_length=32,
@@ -3885,6 +3887,22 @@ class ANIFeat(Layer):
     else:
       return tf.reduce_sum(out, axis=2)
 
+  def get_angular_mask(self):
+    try:
+      return self._mask
+    except AttributeError:
+
+      mask = np.ones((self.max_atoms, self.max_atoms, self.max_atoms, 32))
+
+      for i_idx in range(self.max_atoms):
+        for j_idx in range(self.max_atoms):
+            for k_idx in range(self.max_atoms):
+                if i_idx == j_idx or i_idx == k_idx:
+                    mask[i_idx][j_idx][k_idx] = np.zeros(mask.shape[-1])
+
+      self._mask = mask
+      return self._mask
+
   def angular_symmetry(self, d_cutoff, d, atom_numbers, coordinates):
     """ Angular Symmetry Function """
 
@@ -3932,7 +3950,12 @@ class ANIFeat(Layer):
     vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
         tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
-    theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
+
+    inner = tf.div(vector_mul, R_ij * R_ik) # note that this may be outside of -1 and 1 for the colinear case
+    inner = tf.clip_by_value(inner, -1, 1) # non-differentiable
+    theta = tf.acos(inner)
+
+    # theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-7))
 
     R_ij = tf.stack([R_ij] * length, axis=4)
     R_ik = tf.stack([R_ik] * length, axis=4)
@@ -3940,8 +3963,16 @@ class ANIFeat(Layer):
     f_R_ik = tf.stack([f_R_ik] * length, axis=4)
     theta = tf.stack([theta] * length, axis=4)
 
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-eta * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+    # out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
+        # tf.exp(-eta * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+
+    out_tensor = tf.pow(1. + tf.cos(theta - thetas), zeta) * \
+        tf.exp(-eta * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * tf.pow(2.0, 1-zeta)
+
+    print("OT SHAPE", out_tensor.shape, self.get_angular_mask().shape)
+
+
+    out_tensor = out_tensor*self.get_angular_mask()
 
     if self.atomic_number_differentiated:
       out_tensors = []

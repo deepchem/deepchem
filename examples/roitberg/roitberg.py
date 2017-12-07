@@ -120,7 +120,13 @@ def find_gdb10_test_data(base_dir):
   return [file]
   # files = [os.path.join(base_dir, "ani_gdb_s%02d.h5" % i) for i in range(1, max_gdb_level+1)]    
 
-def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
+def load_hdf5_files(
+  hdf5files,
+  batch_size,
+  data_dir,
+  mode,
+  max_atoms,
+  selection_size=None):
   """
   Load the ANI dataset.
 
@@ -162,12 +168,14 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
     # loop once to compute the size of the dataset
     total_size = 0
 
+    print("Counting total size...")
+
     for hdf5file in hdf5files:
       adl = pya.anidataloader(hdf5file)
       for data in adl:
         S = data['species']
         E = data['energies']
-        if len(S) > 23:
+        if len(S) > max_atoms:
           continue
         
         total_size += E.shape[0]
@@ -198,7 +206,7 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
         S = data['species']
         smi = data['smiles']
 
-        if len(S) > 23:
+        if len(S) > max_atoms:
           print("skipping ", smi, "due to atom count: ", len(S))
           continue
 
@@ -209,7 +217,7 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
         print("  Coordinates: ", R.shape)
         print("  Energies:    ", E.shape)
 
-        Z_padded = np.zeros((23,), dtype=np.float32)
+        Z_padded = np.zeros((max_atoms,), dtype=np.float32)
         nonpadded = convert_species_to_atomic_nums(S)
         Z_padded[:nonpadded.shape[0]] = nonpadded
 
@@ -237,7 +245,7 @@ def load_hdf5_files(hdf5files, batch_size, data_dir, mode, selection_size=None):
           raise Exception("Unsupported mode: ", mode)
 
         for k in range(len(E)):
-          R_padded = np.zeros((23, 3), dtype=np.float32)
+          R_padded = np.zeros((max_atoms, 3), dtype=np.float32)
           R_padded[:R[k].shape[0], :R[k].shape[1]] = R[k]
 
           X = np.concatenate([np.expand_dims(Z_padded, 1), R_padded], axis=1)
@@ -310,6 +318,7 @@ def load_roitberg_ANI(args, mode="atomization"):
     batch_size=args.batch_size,
     data_dir=args.all_dir,
     mode=mode,
+    max_atoms=args.max_atoms,
     selection_size=int(1e6))
 
   # split based on chemotype for true test set generalizibility
@@ -320,7 +329,12 @@ def load_roitberg_ANI(args, mode="atomization"):
     all_dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
 
   gdb10_test = find_gdb10_test_data(args.training_data_dir)
-  gdb10_dataset, groups = load_hdf5_files(gdb10_test, args.batch_size, args.gdb10_dir, mode)
+  gdb10_dataset, groups = load_hdf5_files(
+    gdb10_test,
+    args.batch_size,
+    args.gdb10_dir,
+    mode,
+    args.max_atoms)
 
   return train_dataset, test_dataset, groups, gdb10_dataset
 
@@ -395,7 +409,7 @@ def parse_args():
                       help="Max GDB level to train. NOTE: num conformations " \
                       "in each file increases exponentially. Start with a smaller dataset. " \
                       "Use max value (8) for production.")
-  parser.add_argument('--max-atoms', type=int, default=23,
+  parser.add_argument('--max-atoms', type=int, default=24,
                       help="max molecule size")
   parser.add_argument('--clean-work-dir', action='store_true',
                       help="Clean the work dir before training (i.e. do a clean run)")
@@ -407,9 +421,9 @@ def parse_args():
   if args.batch_size % args.featurization_batch_size != 0:
     die("--batch-size must be evenly divisible by --featurization-batch-size!")
 
-  if args.max_atoms != 23:
+  if args.max_atoms != 24:
     # just for now, I hope...
-    die("You can use any --max-atoms you like, as long as it's 23.")
+    die("You can use any --max-atoms you like, as long as it's 24.")
 
   if args.initial_learning_rate < 0:
     die("The --initial-learning-rate must be a positive number.")
@@ -524,6 +538,8 @@ if __name__ == "__main__":
   while lr >= 1e-9:
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
 
+
+
     if args.reload_model or lr_idx != 0:
       model = dc.models.ANIRegression.load_numpy(
         model_dir=args.model_dir,
@@ -542,8 +558,23 @@ if __name__ == "__main__":
           learning_rate=lr,
           use_queue=True,
           model_dir=args.model_dir,
-          shift_exp=True,
+          shift_exp=False,
           mode="regression")
+
+      max_batches = math.ceil(len(train_dataset) / model.batch_size)
+
+      # bootstrap for one epoch
+      model.fit(
+        train_dataset,
+        nb_epoch=1,
+        checkpoint_interval=0,
+        max_batches=max_batches
+      )
+      model.save_numpy()
+
+      args.reload_model = True
+      print("Switching loss fn to exp")
+      continue
 
     if lr_idx == 0:
       val_score = model.evaluate(valid_dataset, metric)
@@ -552,7 +583,7 @@ if __name__ == "__main__":
     epoch_count = 0
 
     print("....")
-    max_batches = math.ceil(len(train_dataset) / model.batch_size)
+
 
     while epoch_count < args.max_search_epochs:
       # pr.enable()

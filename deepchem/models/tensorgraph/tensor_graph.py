@@ -273,9 +273,12 @@ class TensorGraph(Model):
 
         # fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         # print("FETCHING", fetches)
+
         fetched_values = self.session.run(
           fetches,
-          feed_dict={self._training_placeholder: 1.0})
+          feed_dict={
+            self._training_placeholder: 1.0}
+        )
         # print("DONE")
 
         run_time += time.time() - run_start
@@ -415,6 +418,26 @@ class TensorGraph(Model):
       results = []
 
       for iiii in range(max_batches):
+
+
+
+        # print("---------------")
+        # fetched_values = self.session.run(
+        #   [self.DEBUG_LAYER.atom_outputs, self.featurized],
+        #   feed_dict={self._training_placeholder: 0.0})
+
+        # print(fetched_values)
+
+        # # print(fetched_values[0][0].shape)
+        # # print(fetched_values[0][0])
+
+        # # print(fetched_values[1].shape)
+        # print(fetched_values[1][0][0].shape)
+
+        # assert 0
+
+
+
         feed_results = self.session.run(
           outputs,
           feed_dict={self._training_placeholder: 0.0})
