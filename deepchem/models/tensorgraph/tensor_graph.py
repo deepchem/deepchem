@@ -286,7 +286,7 @@ class TensorGraph(Model):
         if should_log:
           self._log_tensorboard(fetches[2])
         avg_loss += fetched_values[1]
-        # print("tmp loss:", fetched_values[1])
+        print("tmp loss:", fetched_values[1])
         n_averaged_batches += 1
         self.global_step += 1
 

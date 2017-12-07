@@ -535,6 +535,8 @@ if __name__ == "__main__":
 
   print("Training from initial learning rate %f, with step factor %f" % (lr, args.learning_rate_factor))
 
+  max_batches = math.ceil(len(train_dataset) / args.batch_size)
+
   while lr >= 1e-9:
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
 
@@ -561,7 +563,7 @@ if __name__ == "__main__":
           shift_exp=False,
           mode="regression")
 
-      max_batches = math.ceil(len(train_dataset) / model.batch_size)
+
 
       # bootstrap for one epoch
       model.fit(
