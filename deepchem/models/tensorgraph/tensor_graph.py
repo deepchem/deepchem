@@ -120,7 +120,8 @@ class TensorGraph(Model):
           checkpoint_interval=1000,
           deterministic=False,
           restore=False,
-          submodel=None):
+          submodel=None,
+          **kwargs):
     """Train this model on a dataset.
 
     Parameters
