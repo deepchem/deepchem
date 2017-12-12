@@ -770,7 +770,7 @@ class TensorGraph(Model):
     return tf.train.get_checkpoint_state(
         self.model_dir).all_model_checkpoint_paths
 
-  def restore(self, checkpoint):
+  def restore(self, checkpoint=None):
     """Reload the values of all variables from a checkpoint file.
 
     Parameters
