@@ -37,7 +37,7 @@ n_features = train_dataset.get_data_shape()[0]
 all_results = []
 for trial in range(num_trials):
   print("Starting trial %d" % trial)
-  model = dc.models.TensorGraphMultiTaskRegressor(
+  model = dc.models.MultiTaskRegressor(
       n_tasks=len(KAGGLE_tasks),
       n_features=n_features,
       layer_sizes=[2000, 1000, 1000],

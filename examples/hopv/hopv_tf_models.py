@@ -24,7 +24,7 @@ metric = [
         dc.metrics.mean_absolute_error, np.mean, mode="regression")
 ]
 
-model = dc.models.TensorGraphMultiTaskRegressor(
+model = dc.models.MultiTaskRegressor(
     len(hopv_tasks),
     n_features,
     layer_sizes=[1000],
