@@ -211,6 +211,7 @@ class Layer(object):
     Instead, the input to the first dense layer will be a different layer
     specified in the replacements map.
 
+    >>> new_input = Feature(shape=(None, 100))
     >>> replacements = {input: new_input}
     >>> dense3_copy = dense3.copy(replacements)
 
