@@ -20,7 +20,7 @@ train_dataset, valid_dataset, test_dataset = hiv_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
 
-model = dc.models.TensorGraphMultiTaskClassifier(
+model = dc.models.MultiTaskClassifier(
     len(hiv_tasks),
     n_features,
     layer_sizes=[1000],

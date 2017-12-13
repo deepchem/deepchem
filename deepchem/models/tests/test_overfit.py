@@ -164,7 +164,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     # TODO(rbharath): This breaks with optimizer="momentum". Why?
-    model = dc.models.TensorGraphMultiTaskRegressor(
+    model = dc.models.MultiTaskRegressor(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -228,7 +228,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    model = dc.models.TensorGraphMultiTaskClassifier(
+    model = dc.models.MultiTaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -293,7 +293,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     fit_transformers = [dc.trans.CoulombFitTransformer(dataset)]
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    model = dc.models.TensorGraphMultiTaskFitTransformRegressor(
+    model = dc.models.MultiTaskFitTransformRegressor(
         n_tasks, [n_features, n_features],
         dropouts=[0.],
         weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
@@ -364,7 +364,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.TensorGraphMultiTaskClassifier(
+    model = dc.models.MultiTaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -454,7 +454,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.TensorGraphMultiTaskClassifier(
+    model = dc.models.MultiTaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -553,7 +553,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     classification_metric = dc.metrics.Metric(
         dc.metrics.accuracy_score, task_averager=np.mean)
-    model = dc.models.TensorGraphMultiTaskClassifier(
+    model = dc.models.MultiTaskClassifier(
         n_tasks,
         n_features,
         dropouts=[0.],
@@ -751,7 +751,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
 
     regression_metric = dc.metrics.Metric(
         dc.metrics.mean_squared_error, task_averager=np.mean, mode="regression")
-    model = dc.models.TensorGraphMultiTaskRegressor(
+    model = dc.models.MultiTaskRegressor(
         n_tasks,
         n_features,
         dropouts=[0.],
