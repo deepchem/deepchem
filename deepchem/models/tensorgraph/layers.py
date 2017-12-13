@@ -820,7 +820,7 @@ class GRU(Layer):
   """A Gated Recurrent Unit.
 
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
-  It consists of a set of independent sequence (one for each element in the batch),
+  It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the GRU.
   """
 
@@ -862,6 +862,76 @@ class GRU(Layer):
       self.rnn_initial_states.append(initial_state)
       self.rnn_final_states.append(final_state)
       self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
+    return out_tensor
+
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
+
+
+class LSTM(Layer):
+  """A Long Short Term Memory.
+
+  This layer expects its input to be of shape (batch_size, sequence_length, ...).
+  It consists of a set of independent sequences (one for each element in the batch),
+  that are each propagated independently through the LSTM.
+  """
+
+  def __init__(self, n_hidden, batch_size, **kwargs):
+    """Create a Long Short Term Memory.
+
+    Parameters
+    ----------
+    n_hidden: int
+      the size of the LSTM's hidden state, which also determines the size of its output
+    batch_size: int
+      the batch size that will be used with this layer
+    """
+    self.n_hidden = n_hidden
+    self.batch_size = batch_size
+    super(LSTM, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (batch_size, parent_shape[1], n_hidden)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Must have one parent")
+    parent_tensor = inputs[0]
+    lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
+    zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
+    if set_tensors:
+      initial_state = tf.contrib.rnn.LSTMStateTuple(
+          tf.placeholder(tf.float32, zero_state.c.get_shape()),
+          tf.placeholder(tf.float32, zero_state.h.get_shape()))
+    else:
+      initial_state = zero_state
+    out_tensor, final_state = tf.nn.dynamic_rnn(
+        lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if set_tensors:
+      self._record_variable_scope(self.name)
+      self.out_tensor = out_tensor
+      self.rnn_initial_states.append(initial_state.c)
+      self.rnn_initial_states.append(initial_state.h)
+      self.rnn_final_states.append(final_state.c)
+      self.rnn_final_states.append(final_state.h)
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.c.get_shape(), np.float32))
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.h.get_shape(), np.float32))
     return out_tensor
 
   def none_tensors(self):

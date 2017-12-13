@@ -5,7 +5,7 @@ from deepchem.models import TensorGraph
 from deepchem.models.tensorgraph.graph_layers import WeaveLayer, WeaveGather, DTNNEmbedding, DTNNGather, DTNNStep, \
   DTNNExtract, DAGLayer, DAGGather, MessagePassing, SetGather
 from deepchem.models.tensorgraph.layers import Feature, Conv1D, Dense, Flatten, Reshape, Squeeze, Transpose, \
-  CombineMeanStd, Repeat, Gather, GRU, L2Loss, Concat, SoftMax, \
+  CombineMeanStd, Repeat, Gather, GRU, LSTM, L2Loss, Concat, SoftMax, \
   Constant, Variable, StopGradient, Add, Multiply, Log, Exp, InteratomicL2Distances, \
   SoftMaxCrossEntropy, ReduceMean, ToFloat, ReduceSquareDifference, Conv2D, MaxPool2D, ReduceSum, GraphConv, GraphPool, \
   GraphGather, BatchNorm, WeightedError, \
@@ -108,6 +108,16 @@ def test_GRU_pickle():
   tg = TensorGraph()
   feature = Feature(shape=(tg.batch_size, 10, 10))
   layer = GRU(n_hidden=10, batch_size=tg.batch_size, in_layers=feature)
+  tg.add_output(layer)
+  tg.set_loss(layer)
+  tg.build()
+  tg.save()
+
+
+def test_LSTM_pickle():
+  tg = TensorGraph()
+  feature = Feature(shape=(tg.batch_size, 10, 10))
+  layer = LSTM(n_hidden=10, batch_size=tg.batch_size, in_layers=feature)
   tg.add_output(layer)
   tg.set_loss(layer)
   tg.build()
