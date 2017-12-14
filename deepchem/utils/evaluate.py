@@ -90,7 +90,6 @@ class Evaluator(object):
       If true, return computed metric for each task on multitask dataset.
     """
     y = self.dataset.y
-
     y = undo_transforms(y, self.output_transformers)
     w = self.dataset.w
 
@@ -105,6 +104,7 @@ class Evaluator(object):
     else:
       y_pred = self.model.predict(self.dataset, self.output_transformers)
       y_pred_print = y_pred
+
     multitask_scores = {}
     all_task_scores = {}
 
@@ -225,6 +225,8 @@ class GeneratorEvaluator(object):
       y_pred = np.reshape(y_pred, newshape=(-1, self.n_tasks))
     multitask_scores = {}
     all_task_scores = {}
+
+    print("OUTPUT TRANSFORMERS", self.output_transformers)
 
     y = undo_transforms(y, self.output_transformers)
     y_pred = undo_transforms(y_pred, self.output_transformers)

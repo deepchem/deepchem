@@ -60,7 +60,8 @@ def glorot_normal(shape, name=None):
 
 def ani_norm(shape, name=None):
   fan_in, _ = get_fans(shape)
-  s = 1 / np.sqrt(fan_in)
+  # s = 1 / np.sqrt(fan_in)
+  s = 1 / fan_in
   return normal(shape, s, name=name)
 
 def glorot_uniform(shape, name=None):

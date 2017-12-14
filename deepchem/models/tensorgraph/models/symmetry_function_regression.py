@@ -84,7 +84,7 @@ class BPSymmetryFunctionRegression(TensorGraph):
 
     all_cost = Stack(in_layers=costs, axis=1)
     self.weights = Weights(shape=(None, self.n_tasks))
-    loss = WeightedError(in_layers=[all_cost, self.weights])
+    loss = RootWeightedMeanError(in_layers=[all_cost, self.weights])
     self.set_loss(loss)
 
   def default_generator(self,
@@ -369,11 +369,38 @@ class ANIRegression(TensorGraph):
     # self.weights = Weights(shape=(None, self.n_tasks))
     if self.shift_exp:
       print("WARNING: Using shifted exponential loss")
-      loss = ShiftedExponential(0.5, in_layers=all_cost)
+      loss = RootMeanError(in_layers=[all_cost])
+      loss = ShiftedExponential(0.5, in_layers=loss)
     else:
       loss = RootMeanError(in_layers=[all_cost])
 
     self.set_loss(loss)
+
+    # max_normalization
+    # ws = tf.trainable_variables()
+    # ops = []
+    # for h in Hiddens:
+      # ops.append(tf.assign(h.W, tf.clip_by_norm(w, 3.0, axes=1)))
+    # self.maxnorm_op = ops
+    self.hiddens = Hiddens
+
+  def weight_matrices(self):
+    weights = []
+    for h in self.hiddens:
+      weights.append(h.W)
+    return weights
+
+  def get_maxnorm_ops(self):
+    try:
+      return self._ops
+    except AttributeError:
+      with self._get_tf("Graph").as_default():
+        ws = self.weight_matrices()
+        ops = []
+        for w in ws:
+          ops.append(tf.assign(w, tf.clip_by_norm(w, 3.0, axes=1)))
+        self._ops = ops
+      return self._ops
 
   # def featurize(self, dataset, deterministic, pad_batches):
   def featurize(self, dataset, feat_dir):

@@ -423,8 +423,8 @@ class AtomicDifferentiatedDense(Layer):
 
     inputs = in_layers[0].out_tensor
 
-    keep_prob = 1.0 - self.dropout_prob * kwargs['training']
-    inputs = tf.nn.dropout(inputs, keep_prob)
+    # keep_prob = 1.0 - self.dropout_prob * kwargs['training']
+    # inputs = tf.nn.dropout(inputs, keep_prob)
 
     atom_numbers = in_layers[1].out_tensor[:, :, 0]
 
@@ -434,12 +434,16 @@ class AtomicDifferentiatedDense(Layer):
     self.W = init_fn(
         [len(self.atom_number_cases), in_channels, self.out_channels])
 
+
     # (ytz): This is used to regularize the neural networks to avoid
     # overfitting. The first implements maxnorm along the input vectors
     # The second implements drop connect, whereby the weights are dropped
     # out randomly. ytz thinks that clipping then dropping is the correct
     # order of operations. ytz may also be wrong.
-    self.W = tf.clip_by_norm(self.W, 1.0, axes=1)
+
+
+
+    # self.W = tf.clip_by_norm(self.W, 3.0, axes=1)
 
     # (ytz): DropConnect is actually non-trivial to implement for inference.
     # if self.drop_connect:

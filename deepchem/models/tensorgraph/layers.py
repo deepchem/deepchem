@@ -1016,7 +1016,8 @@ class ShiftedExponential(Layer):
       raise ValueError("")
 
     parent = inputs[0]
-    parent = tf.reduce_sum(parent)
+    # parent = tf.reduce_sum(parent)
+    # parent = tf.reduce_mean(parent)
     inner = tf.multiply(parent, (1.0 / self.t))
     out_tensor = tf.exp(tf.cast(inner, tf.float64))
     out_tensor = tf.multiply(tf.cast(self.t, tf.float64), out_tensor)

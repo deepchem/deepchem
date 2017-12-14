@@ -84,7 +84,7 @@ class Transformer(object):
     raise NotImplementedError(
         "Each Transformer is responsible for its own untransfomr method.")
 
-  def transform(self, dataset, parallel=False):
+  def transform(self, dataset, parallel=False, **kwargs):
     """
     Transforms all internally stored data.
     Adds X-transform, y-transform columns to metadata.
@@ -94,7 +94,7 @@ class Transformer(object):
       raise ValueError("Cannot transform y when y_values are not present")
     if w_shape == tuple() and self.transform_w:
       raise ValueError("Cannot transform w when w_values are not present")
-    return dataset.transform(lambda X, y, w: self.transform_array(X, y, w))
+    return dataset.transform(lambda X, y, w: self.transform_array(X, y, w), **kwargs)
 
   def transform_on_array(self, X, y, w):
     """
@@ -136,9 +136,9 @@ class NormalizationTransformer(Transformer):
         transform_w=transform_w,
         dataset=dataset)
 
-  def transform(self, dataset, parallel=False):
+  def transform(self, dataset, parallel=False, **kwargs):
     return super(NormalizationTransformer, self).transform(
-        dataset, parallel=parallel)
+        dataset, parallel=parallel, **kwargs)
 
   def transform_array(self, X, y, w):
     """Transform the data in a set of (X, y, w) arrays."""

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import pickle
 import cProfile
 pr = cProfile.Profile()
 pr.disable()
@@ -114,11 +115,12 @@ def find_training_data(base_dir, max_gdb_level):
 
   return files
 
+
 def find_gdb10_test_data(base_dir):
   base_dir = os.path.abspath(os.path.expanduser(base_dir))
   file = os.path.join(base_dir, "ani1_gdb10_ts.h5")
   return [file]
-  # files = [os.path.join(base_dir, "ani_gdb_s%02d.h5" % i) for i in range(1, max_gdb_level+1)]    
+
 
 def load_hdf5_files(
   hdf5files,
@@ -126,14 +128,22 @@ def load_hdf5_files(
   data_dir,
   mode,
   max_atoms,
+  energy_cutoff=100.0/HARTREE_TO_KCAL_PER_MOL,
   selection_size=None):
   """
   Load the ANI dataset.
 
   Parameters
   ----------
-  args:
-    Result of calling ArgumentParser.parse_args()
+  hdf5files: list of str
+    List of paths to hdf5 files that will be used to generate the dataset. The data should be
+    in the format used by the ANI-1 dataset.
+
+  batch_size: int
+    Used to determined the shard_size, where shard_size is batch_size * 4096
+
+  data_dir: str
+    Directory in which we save the resulting data
 
   mode: str
     Accepted modes are "relative", "atomization", or "absolute". These settings are used
@@ -141,24 +151,28 @@ def load_hdf5_files(
     having the lowest. Note that for atomization we approximate the single atom energy
     using a different level of theory
 
+  max_atoms: int
+    Total number of atoms we allow for.
+
+  energy_cutoff: int or None
+    A cutoff to use for pruning high energy conformations from a dataset. Units are in
+    hartrees. Default is set to 100 kcal/mol or ~0.16 hartrees.
+
+  selection_size: int or None
+    Subsample of conformations that we want to choose from gdb-8
+
   Returns
   -------
-  tuples
-    Elements returned are 3-tuple (a,b,c) where and b are the train and test datasets, respectively,
-    and c is an array of indices denoting the group of each
+  Dataset, list of int
+    Returns a Dataset object and a list of integers corresponding to the groupings of the
+    respective atoms.
 
   """
-
-  # hdf5files = find_training_data(args.training_data_dir, args.gdb_level)
-  # hdf5files.append(find_gdb10_test_data(args.training_data_dir))
   groups = []
 
   def shard_generator(sel_size):
 
     shard_size = 4096 * batch_size
-
-    row_idx = 0
-    group_idx = 0
 
     X_cache = []
     y_cache = []
@@ -168,33 +182,96 @@ def load_hdf5_files(
     # loop once to compute the size of the dataset
     total_size = 0
 
-    print("Counting total size...")
 
+    print("Counting total size and gathering statistics...")
+
+    all_ys = []
+    keep_rows = []
+
+    skip_count = 0
+
+    row_idx = 0
     for hdf5file in hdf5files:
       adl = pya.anidataloader(hdf5file)
       for data in adl:
         S = data['species']
         E = data['energies']
         if len(S) > max_atoms:
+          # skip due to too many atoms.
+          row_idx += len(E) # skip all the conformations for this smiles
           continue
-        
-        total_size += E.shape[0]
+
+        minimum = np.amin(E) # but this isn't the atomization
+
+        if mode == "relative":
+          offset = minimum
+        elif mode == "atomization":
+          # self-interaction energies taken from
+          # https://github.com/isayev/ANI1_dataset README
+          atomizationEnergies = {
+              0: 0,
+              1: -0.500607632585,
+              6: -37.8302333826,
+              7: -54.5680045287,
+              8: -75.0362229210
+          }
+          offset = 0
+          nonpadded = convert_species_to_atomic_nums(S)
+          for z in nonpadded:
+            offset += atomizationEnergies[z]
+        elif mode == "absolute":
+          offset = 0
+        else:
+          raise Exception("Unsupported mode: ", mode)
+
+        for k in range(len(E)):
+          if energy_cutoff is not None and E[k] - minimum > energy_cutoff:
+            # skip due to high energy
+            # print("skipping",  y - minimum_atomization, energy_cutoff, E[k], minimum)
+            skip_count += 1
+            row_idx += 1
+            continue
+
+          y = E[k] - offset
+          all_ys.append(y)
+          keep_rows.append(row_idx)
+
+          row_idx += 1
+
+    total_size = len(keep_rows)
 
     if sel_size is None:
       sel_size = total_size
 
     assert isinstance(sel_size, int)
 
-    print("Total of", total_size, "elements, keeping", sel_size)
+    print(total_size, "valid elements out of", row_idx, "keeping", sel_size)
 
-    keep_flags = np.zeros(total_size, dtype=np.bool)
+    keep_flags = np.zeros(row_idx, dtype=np.bool) # boolean flag of total size
+    keep_ys = np.zeros(row_idx, dtype=np.float32) # energies
+    # to total number of molecules
+
     # note that we still need a true random shuffle after (outside since this still
-    # adds an ordering dependence). 
-    keep_idxes = np.random.permutation(total_size)[:sel_size]
-    keep_flags[keep_idxes] = 1
+    # has an ordering dependence). 
+    keep_idxs = np.random.permutation(total_size)[:sel_size]
+
+    assert len(keep_idxs) == sel_size
+
+    all_ys = np.array(all_ys)
+    keep_rows = np.array(keep_rows)
+
+    all_ys = all_ys[keep_idxs]
+    keep_rows = keep_rows[keep_idxs]
+
+    keep_ys[keep_rows] = all_ys
+    keep_flags[keep_rows] = 1
 
     print("Starting iteration")
 
+    old_size = row_idx
+
+    row_idx = 0
+    group_idx = 0
     for hdf5file in hdf5files:
       adl = pya.anidataloader(hdf5file)
       for data in adl:
@@ -208,49 +285,28 @@ def load_hdf5_files(
 
         if len(S) > max_atoms:
           print("skipping ", smi, "due to atom count: ", len(S))
+          group_idx += 1
+          row_idx += len(E)
           continue
 
         # Print the data
         print("Processing: ", P)
-        print("  Smiles:      ", "".join(smi))
-        print("  Symbols:     ", S)
-        print("  Coordinates: ", R.shape)
-        print("  Energies:    ", E.shape)
+        # print("  Smiles:      ", "".join(smi))
+        # print("  Symbols:     ", S)
+        # print("  Coordinates: ", R.shape)
+        # print("  Energies:    ", E.shape)
 
         Z_padded = np.zeros((max_atoms,), dtype=np.float32)
         nonpadded = convert_species_to_atomic_nums(S)
         Z_padded[:nonpadded.shape[0]] = nonpadded
 
-        if mode == "relative":
-          offset = np.amin(E)
-        elif mode == "atomization":
-
-          # self-interaction energies taken from
-          # https://github.com/isayev/ANI1_dataset README
-          atomizationEnergies = {
-              0: 0,
-              1: -0.500607632585,
-              6: -37.8302333826,
-              7: -54.5680045287,
-              8: -75.0362229210
-          }
-
-          offset = 0
-
-          for z in nonpadded:
-            offset += atomizationEnergies[z]
-        elif mode == "absolute":
-          offset = 0
-        else:
-          raise Exception("Unsupported mode: ", mode)
+        minimum = np.amin(E)
 
         for k in range(len(E)):
           R_padded = np.zeros((max_atoms, 3), dtype=np.float32)
           R_padded[:R[k].shape[0], :R[k].shape[1]] = R[k]
 
           X = np.concatenate([np.expand_dims(Z_padded, 1), R_padded], axis=1)
-
-          y = E[k] - offset
 
           if len(X_cache) == shard_size:
 
@@ -265,6 +321,7 @@ def load_hdf5_files(
 
           if keep_flags[row_idx]:
             X_cache.append(X)
+            y = keep_ys[row_idx]
             y_cache.append(np.array(y).reshape((1,)))
             w_cache.append(np.array(1).reshape((1,)))
             ids_cache.append(row_idx)
@@ -274,7 +331,7 @@ def load_hdf5_files(
 
         group_idx += 1
 
-    assert row_idx == total_size
+    assert row_idx == old_size
 
     # flush once more at the end
     if len(X_cache) > 0:
@@ -285,11 +342,13 @@ def load_hdf5_files(
       shard_generator(selection_size), tasks=tasks, data_dir=data_dir)
 
   if selection_size:
+    print("DATASET LENGTH", len(dataset))
     assert len(dataset) == selection_size
 
+  print("Skipped")
   return dataset, groups
 
-def load_roitberg_ANI(args, mode="atomization"):
+def load_roitberg_ANI(args, mode):
   """
   Load the ANI dataset.
 
@@ -329,14 +388,14 @@ def load_roitberg_ANI(args, mode="atomization"):
     all_dataset, train_dir=args.fold_dir, test_dir=args.test_dir, frac_train=.9)
 
   gdb10_test = find_gdb10_test_data(args.training_data_dir)
-  gdb10_dataset, groups = load_hdf5_files(
+  gdb10_dataset, gdb10_groups = load_hdf5_files(
     gdb10_test,
     args.batch_size,
     args.gdb10_dir,
     mode,
     args.max_atoms)
 
-  return train_dataset, test_dataset, groups, gdb10_dataset
+  return train_dataset, test_dataset, groups, gdb10_dataset, gdb10_groups
 
 def broadcast(dataset, metadata):
 
@@ -396,9 +455,9 @@ def parse_args():
                       help="featurization batch size")
   parser.add_argument('-e', '--max-search-epochs', type=int, default=100,
                       help="The maximum number of epochs to run w/o validation score improvement.")
-  parser.add_argument('--initial-learning-rate', type=float, default=0.001,
+  parser.add_argument('-ilr', '--initial-learning-rate', type=float, default=0.001,
                       help="The initial learning rate.")
-  parser.add_argument('--learning-rate-factor', type=float, default=10.0,
+  parser.add_argument('-lrf', '--learning-rate-factor', type=float, default=10.0,
                       help="The factor by which to reduce the learning rate every --max-search-epochs")
 
   parser.add_argument('-w', '--work-dir', default='~/roitberg-scratch',
@@ -443,7 +502,7 @@ if __name__ == "__main__":
   max_atoms = args.max_atoms
   batch_size = args.batch_size
   train_batch_size = args.featurization_batch_size * 3
-  layer_structures = [256, 128, 64, 1]
+  layer_structures = [128, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
   metric = [
@@ -453,9 +512,11 @@ if __name__ == "__main__":
   ]
 
   # switch for datasets and models
-  if path_not_empty(args.valid_dir) and \
+
+  if path_not_empty(args.train_dir) and \
+     path_not_empty(args.valid_dir) and \
      path_not_empty(args.test_dir) and \
-     path_not_empty(args.train_dir):
+     path_not_empty(args.gdb10_dir):
 
     print("Restoring existing datasets...")
     train_dataset = dc.data.DiskDataset(data_dir=args.train_dir)
@@ -472,7 +533,7 @@ if __name__ == "__main__":
   else:
     print("Generating train_valid/test datasets...")
 
-    train_valid_dataset, test_dataset, all_groups, gdb10_dataset = load_roitberg_ANI(args, "atomization")
+    train_valid_dataset, test_dataset, all_groups, gdb10_dataset, gdb10_groups = load_roitberg_ANI(args, "atomization")
 
     # splitter = dc.splits.RandomGroupSplitter(
         # broadcast(train_valid_dataset, all_groups))
@@ -507,27 +568,12 @@ if __name__ == "__main__":
         mode="regression")
     model.build()
 
-    # transformers = [
-    #     dc.trans.NormalizationTransformer(
-    #         transform_y=True, dataset=train_dataset)
-    # ]
-
-
-    # print("Transforming....")
-
-    # for transformer in transformers:
-    #   train_dataset = transformer.transform(train_dataset)
-    #   valid_dataset = transformer.transform(valid_dataset)
-    #   test_dataset = transformer.transform(test_dataset)
-
     for dd in [train_dataset, valid_dataset, test_dataset, gdb10_dataset]:
       print("Featurizing into:", dd.data_dir)
       dd.feat_dataset = model.featurize(dd, path(dd.data_dir, "feat"))
 
   print("Train, Valid, Test, GDB10 sizes:", len(train_dataset), len(valid_dataset), len(test_dataset), len(gdb10_dataset))
-
-  # print("Total training set shape: ", len(train_dataset))
-
+ 
   # need to hit 0.003 RMSE hartrees for 2kcal/mol.
   best_val_score = 1e9
   lr_idx = 0
@@ -539,8 +585,6 @@ if __name__ == "__main__":
 
   while lr >= 1e-9:
     print ("\n\nTRAINING with learning rate:", lr, "\n\n")
-
-
 
     if args.reload_model or lr_idx != 0:
       model = dc.models.ANIRegression.load_numpy(
@@ -560,32 +604,35 @@ if __name__ == "__main__":
           learning_rate=lr,
           use_queue=True,
           model_dir=args.model_dir,
-          shift_exp=False,
+          shift_exp=True,
           mode="regression")
 
+    # ############# DEBUG
 
 
-      # bootstrap for one epoch
-      model.fit(
-        train_dataset,
-        nb_epoch=1,
-        checkpoint_interval=0,
-        max_batches=max_batches
-      )
-      model.save_numpy()
+    # gdb10_test = find_gdb10_test_data(args.training_data_dir)
+    # gdb10_tmp, gdb10_groups = load_hdf5_files(
+    #   gdb10_test,
+    #   args.batch_size,
+    #   args.gdb10_dir,
+    #   "atomization",
+    #   args.max_atoms)
 
-      args.reload_model = True
-      print("Switching loss fn to exp")
-      continue
+    # print("GDB10_GROUPS", gdb10_groups)
+
+    # val_score = model.evaluate(gdb10_dataset, metric)
+    # print(val_score)
+
+    # assert 0
+    #############
 
     if lr_idx == 0:
       val_score = model.evaluate(valid_dataset, metric)
       best_val_score = val_score['root_mean_squared_error']
-  
+
     epoch_count = 0
 
     print("....")
-
 
     while epoch_count < args.max_search_epochs:
       # pr.enable()

@@ -1,6 +1,7 @@
 import pickle
 import threading
 import time
+import random
 
 import math
 import collections
@@ -21,6 +22,19 @@ from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.data.data_loader import featurize_smiles_np
 
 from tensorflow.python.client import timeline
+
+
+@tf.RegisterGradient("ZeroGrad")
+def _zero_grad(unused_op, grad):
+  return tf.zeros_like(grad)
+
+def check_numerics_with_exception(grad, var):
+  try:
+   tf.check_numerics(grad, message='Gradient %s check failed, possible NaNs' % var.name)
+  except:
+    return tf.constant(False, shape=())
+  else:
+    return tf.constant(True, shape=())  
 
 
 class TensorGraph(Model):
@@ -274,19 +288,70 @@ class TensorGraph(Model):
         # fetched_values = self.session.run(fetches, feed_dict=feed_dict)
         # print("FETCHING", fetches)
 
+
+        # print("------ATOM_OUTPUTS-------")
+        # fetched_values = self.session.run(
+        #   [self.DEBUG_LAYER.atom_outputs, self.featurized, self.labels],
+        #   feed_dict={self._training_placeholder: 0.0})
+
+        # print("SUMS:")
+
+        # highest = []
+
+        # for a_idx, a in enumerate(fetched_values[0][0]):
+        #   pred = np.sum(a, axis=0)[0]
+        #   given = fetched_values[2][0][a_idx][0]
+
+        #   print("ENERGY:", pred, "vs:", given, pred-given)
+        #   highest.append(math.fabs(pred-given))
+
+        # print("HIGHEST")
+        # print(sorted(highest))
+
+
+        if random.randint(0, 1) == 0:
+          self.session.run(
+            self.get_maxnorm_ops(),
+            feed_dict={
+              self._training_placeholder: 1.0}
+          )
+
+          ws = self.weight_matrices()
+          res = self.session.run(
+            ws)
+          for r in res:
+            norms = np.linalg.norm(r, axis=1)
+            assertions = np.all(norms <= 3.0+1e-6)
+            if assertions == False:
+              print(r)
+              print('-----')
+              print(norms)
+              print("MAX:")
+              print(np.amax(norms))
+              assert 0
+
         fetched_values = self.session.run(
           fetches,
           feed_dict={
             self._training_placeholder: 1.0}
         )
-        # print("DONE")
+
+        # NORMALIZES
+        self.session.run(
+          self.get_maxnorm_ops(),
+          feed_dict={
+            self._training_placeholder: 1.0}
+        )
 
         run_time += time.time() - run_start
 
         if should_log:
           self._log_tensorboard(fetches[2])
         avg_loss += fetched_values[1]
-        print("tmp loss:", fetched_values[1])
+        # print("tmp loss:", fetched_values[1])
+
+        # if batch_idx == 0:
+         # assert 0
         n_averaged_batches += 1
         self.global_step += 1
 
@@ -423,16 +488,15 @@ class TensorGraph(Model):
 
         # print("---------------")
         # fetched_values = self.session.run(
-        #   [self.DEBUG_LAYER.atom_outputs, self.featurized],
+          # [self.DEBUG_LAYER.atom_outputs, self.featurized],
         #   feed_dict={self._training_placeholder: 0.0})
 
-        # print(fetched_values)
+        # # print(fetched_values)
 
-        # # print(fetched_values[0][0].shape)
-        # # print(fetched_values[0][0])
+        # print("SUMS:")
 
-        # # print(fetched_values[1].shape)
-        # print(fetched_values[1][0][0].shape)
+        # for a in fetched_values[0][0]:
+        #   print("ENERGY:", np.sum(a, axis=0))
 
         # assert 0
 
@@ -441,9 +505,15 @@ class TensorGraph(Model):
         feed_results = self.session.run(
           outputs,
           feed_dict={self._training_placeholder: 0.0})
-        results.append(feed_results[0])
+
+
+        res = undo_transforms(feed_results[0], transformers)
+
+        results.append(res)
 
       final_results = np.concatenate(results)
+
+
       return final_results
 
       # final_results = []
@@ -874,8 +944,46 @@ class TensorGraph(Model):
       opt = self._get_tf('Optimizer')
       global_step = self._get_tf('GlobalStep')
       try:
+
+
+        # gradients, variables = zip(*opt.compute_gradients(self.loss.out_tensor))
+        # variables = [None if var is None else tf.clip_by_norm(var, 3.0)
+            # for var in variables]
+        # self.tensor_objects['train_op'] = opt.apply_gradients(zip(gradients, variables))
+
         self.tensor_objects['train_op'] = opt.minimize(
             self.loss.out_tensor, global_step=global_step)
+
+        # assert 0
+
+        # grads_and_vars = opt.compute_gradients(self.loss.out_tensor)
+
+        # # def fn_true_apply_grad(grads, global_step):
+        # #   apply_gradients_true = opt.apply_gradients(grads_and_vars, global_step=global_step)
+        # #   return apply_gradients_true
+
+        # def fn_false_ignore_grad(grads, global_step):
+        #   # with self._get_tf("Graph").as_default() as g:
+        #     # with g.gradient_override_map({"Identity": "ZeroGrad"}):
+        #       # for (grad, var) in grads_and_vars:
+        #         # tf.assign(var, tf.identity(var, name="Identity"))
+
+        #   zero_grads = []
+        #   for g,v in grads:
+        #     zero_grads.append((tf.zeros_like(g), v))
+        #   # np.zeros_like(grads)
+
+        #   apply_gradients_false = opt.apply_gradients(zero_grads, global_step=global_step)
+        #   return apply_gradients_false
+
+        # # with self._get_tf("Graph").as_default() as g:
+        # #   predicate = tf.greater(self.loss.out_tensor, 1e8)
+        # #   apply_gradient_op = tf.cond(predicate,
+        # #     lambda : fn_false_ignore_grad(grads_and_vars, global_step), # Loss is too large
+        # #     lambda : fn_false_ignore_grad(grads_and_vars, global_step)) # Loss is okayish
+
+        # self.tensor_objects['train_op'] = fn_false_ignore_grad(grads_and_vars, global_step)
+
       except ValueError:
         # The loss doesn't depend on any variables.
         self.tensor_objects['train_op'] = 0
