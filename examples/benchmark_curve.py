@@ -105,10 +105,13 @@ for dataset in datasets:
         featurizer = CheckFeaturizer[pair][0]
         n_features = CheckFeaturizer[pair][1]
       else:
-        supported_combinations = [key for key in CheckFeaturizer.keys() if pair[0] == key[0]]
-        supported_models = [k[1] for k in supported_combinations] 
-        raise ValueError("Model %s not supported for %s dataset. Please choose from the following:\n%s"
-          % (pair[1], pair[0], "  ".join(supported_models)))
+        supported_combinations = [
+            key for key in CheckFeaturizer.keys() if pair[0] == key[0]
+        ]
+        supported_models = [k[1] for k in supported_combinations]
+        raise ValueError(
+            "Model %s not supported for %s dataset. Please choose from the following:\n%s"
+            % (pair[1], pair[0], "  ".join(supported_models)))
 
       tasks, all_dataset, transformers = load_dataset(
           dataset, featurizer, split='index')
