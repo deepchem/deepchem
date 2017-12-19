@@ -18,7 +18,6 @@ import tensorflow as tf
 
 import deepchem as dc
 import pyanitools as pya
-import app
 import random
 
 HARTREE_TO_KCAL_PER_MOL = 627.509
@@ -378,7 +377,7 @@ def load_roitberg_ANI(args, mode):
     data_dir=args.all_dir,
     mode=mode,
     max_atoms=args.max_atoms,
-    selection_size=int(1e6))
+    selection_size=args.training_size)
 
   # split based on chemotype for true test set generalizibility
   # splitter = dc.splits.RandomGroupSplitter(groups)
@@ -451,6 +450,8 @@ def parse_args():
 
   parser.add_argument('-b', '--batch-size', type=int, default=1024,
                       help="training batch size")
+  parser.add_argument('-ts', '--training-size', type=int, default=1e6,
+                      help="number of data points in the training set sampled from gdb8.")
   parser.add_argument('--featurization-batch-size', type=int, default=256,
                       help="featurization batch size")
   parser.add_argument('-e', '--max-search-epochs', type=int, default=100,

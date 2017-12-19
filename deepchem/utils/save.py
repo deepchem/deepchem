@@ -69,11 +69,6 @@ def save_sparse_mats(mat_b, filename):
 
 def load_sparse_mats(filename):
 
-  global conversion_time
-
-  if conversion_time is None:
-    conversion_time = 0 
-
   with open(filename, "rb") as fh:
     inner_shape = struct.unpack("i", fh.read(4))[0]
     outer_shape0 = struct.unpack("i", fh.read(4))[0]
