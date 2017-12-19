@@ -650,6 +650,12 @@ class GraphConvTensorGraph(TensorGraph):
         ----------
         n_tasks: int
           Number of tasks
+        graph_conv_layers: list of int
+          Width of channels for the Graph Convolution Layers
+        dense_layer_size: int
+          Width of channels for Atom Level Dense Layer before GraphPool
+        dropout: float
+          Droupout dropout probability.  Dropout is applied after the per Atom Level Dense Layer
         mode: str
           Either "classification" or "regression"
         """
@@ -690,8 +696,8 @@ class GraphConvTensorGraph(TensorGraph):
         out_channels=self.dense_layer_size,
         activation_fn=tf.nn.relu,
         in_layers=[in_layer])
-    dense = Dropout(self.dropout, in_layers=[dense])
     batch_norm3 = BatchNorm(in_layers=[dense])
+    batch_norm3 = Dropout(self.dropout, in_layers=[batch_norm3])
     readout = GraphGather(
         batch_size=self.batch_size,
         activation_fn=tf.nn.tanh,
