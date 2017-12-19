@@ -502,7 +502,7 @@ if __name__ == "__main__":
   max_atoms = args.max_atoms
   batch_size = args.batch_size
   train_batch_size = args.featurization_batch_size * 3
-  layer_structures = [128, 128, 64, 1]
+  layer_structures = [256, 128, 64, 1]
   atom_number_cases = [1, 6, 7, 8]
 
   metric = [

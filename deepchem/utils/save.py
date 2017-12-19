@@ -20,6 +20,8 @@ from rdkit import Chem
 import time
 import struct
 
+from scipy.sparse._sparsetools import coo_tocsr, coo_todense
+
 
 def log(string, verbose=True):
   """Print string if verbose."""
@@ -38,15 +40,17 @@ def save_sparse_mats(mat_b, filename):
 
   # csr matrix is more efficient if # cols < # rows and cols can fit with a uint32 and rows
   # with a uint16
-  filename = filename + ".csr"
+  filename = filename + ".coo"
   max_atoms = mat_b.shape[1]
 
   # print(mat_b.shape)
   mat_b = mat_b.reshape((mat_b.shape[0] * mat_b.shape[1], mat_b.shape[2]))
-  res = scipy.sparse.csr_matrix(mat_b)
+  res = scipy.sparse.coo_matrix(mat_b)
   # (ytz): if you really need an extra 32% savings you can use res.data.astype(np.float16)
   # but you will lose several points of precision.
-  items_to_save = [res.data, res.indices.astype(np.uint16), res.indptr]
+  # items_to_save = [res.data, res.indices.astype(np.uint16), res.indptr]
+  # careful, uint16 == 2^16 > 1024(shard_size)*24(max_atoms)
+  items_to_save = [res.data, res.row.astype(np.uint16), res.col.astype(np.uint16)] 
 
   with open(filename, "wb") as buf:
 
@@ -63,8 +67,12 @@ def save_sparse_mats(mat_b, filename):
 
   return filename
 
-
 def load_sparse_mats(filename):
+
+  global conversion_time
+
+  if conversion_time is None:
+    conversion_time = 0 
 
   with open(filename, "rb") as fh:
     inner_shape = struct.unpack("i", fh.read(4))[0]
@@ -76,10 +84,18 @@ def load_sparse_mats(filename):
       res = np.load(fh, allow_pickle=False)
       items.append(res)
 
-    X = scipy.sparse.csr_matrix(
-        (items[0], items[1], items[2]), shape=[outer_shape0, outer_shape1])
-    X = X.A # conversion to dense
-    X = X.reshape(X.shape[0] // inner_shape, inner_shape, X.shape[1])
+    buf = np.zeros(outer_shape0*outer_shape1, dtype=np.float32)
+    coo_todense(
+      outer_shape0, outer_shape1,
+      len(items[0]),
+      items[1],
+      items[2],
+      items[0],
+      buf,
+      0)
+
+    X = buf
+    X = X.reshape(outer_shape0 // inner_shape, inner_shape, outer_shape1)
 
     return X
 
@@ -183,7 +199,7 @@ def load_from_disk(filename):
     df = pd.read_csv(filename, header=0)
     df = df.replace(np.nan, str(""), regex=True)
     return df
-  elif ext == ".csr":
+  elif ext == ".coo":
     return load_sparse_mats(filename)
   else:
     raise ValueError("Unrecognized filetype for %s" % filename)

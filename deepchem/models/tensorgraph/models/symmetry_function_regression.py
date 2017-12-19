@@ -431,7 +431,7 @@ class ANIRegression(TensorGraph):
     # (ytz): Featurization uses significantly more memory than training
     # so the batch_size should be smaller
     batch_size = self.batch_size
-    shard_size = batch_size * 512
+    shard_size = batch_size * 4
 
     def shard_generator(cself):
 
@@ -574,13 +574,19 @@ class ANIRegression(TensorGraph):
           load_ws=False,
           load_ids=False)
       else:
-        generator = dataset.iterbatches(
+        # faster shard-only version
+        generator = dataset.ani_iterbatches(
           deterministic=deterministic,
-          batch_size=batch_size,
-          dataset_size=dataset_size,
           load_ys=True,
           load_ws=False,
           load_ids=False)
+        # generator = dataset.ani_iterbatches(
+        #   deterministic=deterministic,
+        #   batch_size=batch_size,
+        #   dataset_size=dataset_size,
+        #   load_ys=True,
+        #   load_ws=False,
+        #   load_ids=False)
 
       for (X_b, y_b, w_b, ids_b) in generator:
 

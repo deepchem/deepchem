@@ -660,7 +660,7 @@ class DiskDataset(Dataset):
 
     return iterate(self)
 
-  def ani_iterbatches(self, deterministic=False):
+  def ani_iterbatches(self, deterministic=False, load_ys=True, load_ws=True, load_ids=True):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
 
@@ -690,6 +690,7 @@ class DiskDataset(Dataset):
     def iterate(dataset):
 
 
+      n_samples = 0
       it_start_time = time.time()
 
       total_time_wait_on_io = 0
@@ -707,7 +708,7 @@ class DiskDataset(Dataset):
       # objects as an extra overhead. Also, as hideously as un-thread safe this looks,
       # we're actually protected by the GIL.
       pool = Pool(1)  # mp.dummy aliases ThreadPool to Pool
-      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0],))
+      next_shard = pool.apply_async(dataset.get_shard, (shard_perm[0], load_ys, load_ws, load_ids))
       cur_shard = 0
 
       while cur_shard < num_shards:
@@ -719,14 +720,18 @@ class DiskDataset(Dataset):
         if cur_shard < num_shards - 1:
           # print("kicking off next...")
           next_shard = pool.apply_async(dataset.get_shard,
-                                        (shard_perm[cur_shard + 1],))
+                                        (shard_perm[cur_shard + 1], load_ys, load_ws, load_ids))
 
         if shard_idx != num_shards - 1:
-          assert len(X_b) == 1152
+          assert len(X_b) == 1024
 
         cur_shard += 1
 
         before_yield = time.time()
+
+        n_samples += len(X_b)
+
+        # print(60*n_samples/(time.time()-it_start_time), "samples per minute")
         yield X_b, y_b, w_b, ids_b
         yield_wait += time.time()-before_yield
 
