@@ -629,7 +629,7 @@ if __name__ == "__main__":
 
     if lr_idx == 0:
       val_score = model.evaluate(valid_dataset, metric)
-      best_val_score = val_score['root_mean_squared_error']
+      best_val_score = val_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
 
     epoch_count = 0
 
@@ -648,23 +648,24 @@ if __name__ == "__main__":
 
       print("--val--")
       val_score = model.evaluate(valid_dataset, metric)
-      val_score = val_score['root_mean_squared_error']
-      print("val score in kcal/mol:", val_score*HARTREE_TO_KCAL_PER_MOL)
+      val_score = val_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
+      print("val score in kcal/mol:", val_score)
 
-      print("--test--")
-      test_score = model.evaluate(test_dataset, metric)
-      test_score = test_score['root_mean_squared_error']
-      print("test score in kcal/mol:", test_score*HARTREE_TO_KCAL_PER_MOL)
-
-      print("--gdb10--")
-      gdb10_score = model.evaluate(gdb10_dataset, metric)
-      gdb10_score = gdb10_score['root_mean_squared_error']
-      print("test score in kcal/mol:", gdb10_score*HARTREE_TO_KCAL_PER_MOL)      
-
-      print("This epoch's validation score:", val_score)
+      # print("This epoch's validation score:", val_score)
 
       if val_score < best_val_score:
-        print("--------- Better validation score found:", val_score, "---------")
+
+        print("--test--")
+        test_score = model.evaluate(test_dataset, metric)
+        test_score = test_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
+        print("test score in kcal/mol:", test_score)
+
+        print("--gdb10--")
+        gdb10_score = model.evaluate(gdb10_dataset, metric)
+        gdb10_score = gdb10_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
+        print("test score in kcal/mol:", gdb10_score)
+
+        print("--- %f --- Better validation/test/gdb11 score found: %.4f, %.4f, %.4f" % (lr, val_score, test_score, gdb10_score))
         best_val_score = val_score
         model.save_numpy()
         epoch_count = 0
