@@ -630,11 +630,14 @@ if __name__ == "__main__":
       val_score = model.evaluate(valid_dataset, metric)
       best_val_score = val_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
 
-    epoch_count = 0
+    cont_epoch_count = 0
+    tot_epoch_count = 0
 
     print("....")
 
-    while epoch_count < args.max_search_epochs:
+
+
+    while cont_epoch_count < args.max_search_epochs:
       # pr.enable()
       print("fitting....", len(train_dataset))
       model.fit(
@@ -643,6 +646,7 @@ if __name__ == "__main__":
         checkpoint_interval=0,
         max_batches=max_batches
       )
+      tot_epoch_count += 1
       print("fitting done...")
 
       print("--val--")
@@ -668,16 +672,16 @@ if __name__ == "__main__":
         gdb10_score = gdb10_score['root_mean_squared_error']*HARTREE_TO_KCAL_PER_MOL
         print("test score in kcal/mol:", gdb10_score)
 
-        print("--- %f --- Better validation/test/gdb11 score found: %.4f, %.4f, %.4f" % (lr, val_score, test_score, gdb10_score))
+        print("-- %d -- %f --- Better validation/test/gdb11 score found: %.4f, %.4f, %.4f" % (tot_epoch_count, lr, val_score, test_score, gdb10_score))
         best_val_score = val_score
         model.save_numpy()
-        epoch_count = 0
+        cont_epoch_count = 0
       else:
-        epoch_count += 1
+        cont_epoch_count += 1
 
     # pr.disable()
 
-    # # if epoch_count == 0:
+    # # if cont_epoch_count == 0:
     # s = StringIO()
     # sortby = 'cumulative'
     # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
