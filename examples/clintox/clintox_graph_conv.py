@@ -31,7 +31,8 @@ metric = dc.metrics.Metric(
 n_feat = 75
 # Batch size of models
 batch_size = 50
-model = GraphConvTensorGraph(len(clintox_tasks), batch_size=batch_size, mode='classification')
+model = GraphConvTensorGraph(
+    len(clintox_tasks), batch_size=batch_size, mode='classification')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=10)

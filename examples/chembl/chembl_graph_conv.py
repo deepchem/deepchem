@@ -30,7 +30,8 @@ n_feat = 75
 # Batch size of models
 batch_size = 128
 
-model = GraphConvTensorGraph(len(chembl_tasks), batch_size=batch_size, mode='regression')
+model = GraphConvTensorGraph(
+    len(chembl_tasks), batch_size=batch_size, mode='regression')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=20)
