@@ -53,7 +53,8 @@ model = dc.models.MultitaskGraphRegressor(
     beta1=.9,
     beta2=.999)
 
-model = GraphConvTensorGraph(len(hopv_tasks), batch_size=batch_size, mode='regression')
+model = GraphConvTensorGraph(
+    len(hopv_tasks), batch_size=batch_size, mode='regression')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=25)
