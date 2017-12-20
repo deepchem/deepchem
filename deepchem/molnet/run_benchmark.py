@@ -80,7 +80,7 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba_128', 'pcba_146', 'sider', 'tox21',
         'toxcast'
     ]:
       mode = 'classification'
@@ -248,7 +248,7 @@ def load_dataset(dataset, featurizer, split='random'):
   ----------
   dataset: string
       choice of which datasets to use, should be: tox21, muv, sider,
-      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
+      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pcba_128, pcba_146, pdbbind, chembl,
       qm7, qm7b, qm9, sampl
   featurizer: string or dc.feat.Featurizer.
       choice of featurization.
