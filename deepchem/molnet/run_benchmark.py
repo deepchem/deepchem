@@ -42,7 +42,7 @@ def run_benchmark(datasets,
   ----------
   datasets: list of string
       choice of which datasets to use, should be: bace_c, bace_r, bbbp, chembl,
-      clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba,
+      clearance, clintox, delaney, hiv, hopv, kaggle, lipo, muv, nci, pcba_128, pcba_146,
       pdbbind, ppb, qm7, qm7b, qm8, qm9, sampl, sider, tox21, toxcast
   model: string or user-defined model stucture
       choice of which model to use, deepchem provides implementation of
@@ -80,7 +80,7 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba_128', 'pcba_146', 'sider', 'tox21',
         'toxcast'
     ]:
       mode = 'classification'
@@ -126,7 +126,8 @@ def run_benchmark(datasets,
         'lipo': deepchem.molnet.load_lipo,
         'muv': deepchem.molnet.load_muv,
         'nci': deepchem.molnet.load_nci,
-        'pcba': deepchem.molnet.load_pcba,
+        'pcba_128': deepchem.molnet.load_pcba_128,
+        'pcba_146': deepchem.molnet.load_pcba_146,
         'pdbbind': deepchem.molnet.load_pdbbind_grid,
         'ppb': deepchem.molnet.load_ppb,
         'qm7': deepchem.molnet.load_qm7_from_mat,
@@ -269,7 +270,8 @@ def load_dataset(dataset, featurizer, split='random'):
       'lipo': deepchem.molnet.load_lipo,
       'muv': deepchem.molnet.load_muv,
       'nci': deepchem.molnet.load_nci,
-      'pcba': deepchem.molnet.load_pcba,
+      'pcba_128': deepchem.molnet.load_pcba_128,
+      'pcba_146': deepchem.molnet.load_pcba_146,
       'pdbbind': deepchem.molnet.load_pdbbind_grid,
       'ppb': deepchem.molnet.load_ppb,
       'qm7': deepchem.molnet.load_qm7_from_mat,
