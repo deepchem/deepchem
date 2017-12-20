@@ -80,8 +80,8 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba_128', 'pcba_146',
-        'sider', 'tox21', 'toxcast'
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba_128', 'pcba_146', 'sider', 'tox21',
+        'toxcast'
     ]:
       mode = 'classification'
       if metric == None:
