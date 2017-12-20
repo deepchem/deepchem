@@ -15,6 +15,8 @@ fi
 echo "About to install numpydoc, s3cmd"
 pip install -I sphinx==1.3.5 sphinx_bootstrap_theme
 pip install numpydoc s3cmd msmb_theme sphinx_rtd_theme nbsphinx
+pip install jupyter_client
+pip install nbconvert
 conda list -e
 mkdir -p docs/_build
 echo "About to build docs"
