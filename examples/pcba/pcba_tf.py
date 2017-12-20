@@ -8,14 +8,15 @@ from __future__ import unicode_literals
 import os
 import numpy as np
 import shutil
-from pcba_datasets import load_pcba
+from deepchem.molnet import load_pcba
 from deepchem.utils.save import load_from_disk
 from deepchem.data import Dataset
 from deepchem import metrics
 from deepchem.metrics import Metric
 from deepchem.metrics import to_one_hot
 from deepchem.utils.evaluate import Evaluator
-from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
+from deepchem.models import MultiTaskClassifier
+from deepchem.models.tensorgraph.optimizers import ExponentialDecay
 
 np.random.seed(123)
 
@@ -25,30 +26,26 @@ pcba_tasks, pcba_datasets, transformers = load_pcba()
 metric = Metric(metrics.roc_auc_score, np.mean, mode="classification")
 
 n_features = train_dataset.get_data_shape()[0]
-model_dir = None
-model = TensorflowMultiTaskClassifier(
+rate = ExponentialDecay(0.001, 0.8, 1000)
+model = MultiTaskClassifier(
     len(pcba_tasks),
     n_features,
-    model_dir,
     dropouts=[.25],
-    learning_rate=0.001,
+    learning_rate=rate,
     weight_init_stddevs=[.1],
-    batch_size=64,
-    verbosity="high")
+    batch_size=64)
 
 # Fit trained model
 model.fit(train_dataset)
 model.save()
 
-train_evaluator = Evaluator(
-    model, train_dataset, transformers, verbosity=verbosity)
+train_evaluator = Evaluator(model, train_dataset, transformers)
 train_scores = train_evaluator.compute_model_performance([metric])
 
 print("Train scores")
 print(train_scores)
 
-valid_evaluator = Evaluator(
-    model, valid_dataset, transformers, verbosity=verbosity)
+valid_evaluator = Evaluator(model, valid_dataset, transformers)
 valid_scores = valid_evaluator.compute_model_performance([metric])
 
 print("Validation scores")

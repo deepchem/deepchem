@@ -11,7 +11,7 @@ import tempfile
 import shutil
 import numpy as np
 import deepchem as dc
-from chembl_datasets import load_chembl
+from deepchem.molnet import load_chembl
 
 # Set numpy seed
 np.random.seed(123)
@@ -19,8 +19,8 @@ np.random.seed(123)
 ###Load data###
 shard_size = 2000
 print("About to load ChEMBL data.")
-chembl_tasks, datasets, transformers = load_chembl(shard_size=shard_size,
-                                                   featurizer="ECFP", set="5thresh", split="random")
+chembl_tasks, datasets, transformers = load_chembl(
+    shard_size=shard_size, featurizer="ECFP", set="5thresh", split="random")
 train_dataset, valid_dataset, test_dataset = datasets
 
 print("ChEMBL_tasks")
@@ -35,13 +35,18 @@ print(len(test_dataset))
 ###Create model###
 n_layers = 3
 nb_epoch = 10
-model = dc.models.TensorflowMultiTaskRegressor(
-    len(chembl_tasks), train_dataset.get_data_shape()[0],
-    layer_sizes=[1000]*n_layers, dropouts=[.25]*n_layers,
-    weight_init_stddevs=[.02]*n_layers,
-    bias_init_consts=[1.]*n_layers, learning_rate=.0003,
-    penalty=.0001, penalty_type="l2", optimizer="adam", batch_size=100,
-    seed=123, verbosity="high")
+model = dc.models.MultiTaskRegressor(
+    len(chembl_tasks),
+    train_dataset.get_data_shape()[0],
+    layer_sizes=[1000] * n_layers,
+    dropouts=[.25] * n_layers,
+    weight_init_stddevs=[.02] * n_layers,
+    bias_init_consts=[1.] * n_layers,
+    learning_rate=.0003,
+    weight_decay_penalty=.0001,
+    batch_size=100,
+    seed=123,
+    verbosity="high")
 
 #Use R2 classification metric
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, task_averager=np.mean)

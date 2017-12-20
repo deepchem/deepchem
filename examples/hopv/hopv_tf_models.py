@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 import deepchem as dc
-from hopv_datasets import load_hopv
+from deepchem.molnet import load_hopv
 
 # Only for debug!
 np.random.seed(123)
@@ -24,7 +24,7 @@ metric = [
         dc.metrics.mean_absolute_error, np.mean, mode="regression")
 ]
 
-model = dc.models.TensorflowMultiTaskRegressor(
+model = dc.models.MultiTaskRegressor(
     len(hopv_tasks),
     n_features,
     layer_sizes=[1000],

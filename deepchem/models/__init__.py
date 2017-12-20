@@ -17,9 +17,9 @@ from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskRegressor
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskClassifier
 from deepchem.models.tensorflow_models.fcnet import TensorflowMultiTaskFitTransformRegressor
-from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskRegressor
-from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskClassifier
-from deepchem.models.tensorflow_models.fcnet import TensorGraphMultiTaskFitTransformRegressor
+from deepchem.models.tensorflow_models.fcnet import MultiTaskRegressor
+from deepchem.models.tensorflow_models.fcnet import MultiTaskClassifier
+from deepchem.models.tensorflow_models.fcnet import MultiTaskFitTransformRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskRegressor
 from deepchem.models.tensorflow_models.robust_multitask import RobustMultitaskClassifier
 from deepchem.models.tensorflow_models.lr import TensorflowLogisticRegression

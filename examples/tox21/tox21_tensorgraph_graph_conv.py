@@ -12,7 +12,7 @@ import tensorflow as tf
 
 tf.set_random_seed(123)
 import deepchem as dc
-from tox21_datasets import load_tox21
+from deepchem.molnet import load_tox21
 from deepchem.models.tensorgraph.models.graph_models import GraphConvTensorGraph
 
 model_dir = "/tmp/graph_conv"
