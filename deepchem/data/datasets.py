@@ -735,6 +735,8 @@ class DiskDataset(Dataset):
         yield X_b, y_b, w_b, ids_b
         yield_wait += time.time()-before_yield
 
+      pool.close()
+
     return iterate(self)
 
   def iterbatches(self,

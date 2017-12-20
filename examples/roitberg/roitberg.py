@@ -13,7 +13,6 @@ import numpy as np
 import os
 import shutil
 import sys
-
 import tensorflow as tf
 
 import deepchem as dc
@@ -652,6 +651,10 @@ if __name__ == "__main__":
       print("val score in kcal/mol:", val_score)
 
       # print("This epoch's validation score:", val_score)
+
+      # gc.collect()
+      # objgraph.show_most_common_types() 
+      # objgraph.show_growth()
 
       if val_score < best_val_score:
 

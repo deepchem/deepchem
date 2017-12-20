@@ -1073,7 +1073,6 @@ def _enqueue_batch_pred(tg, generator, graph, sess):
         enq[tg.get_pre_q_input(layer).out_tensor] = np.zeros((tg.batch_size, 1))
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
 
-
 def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
   """
   Function to load data into
@@ -1104,7 +1103,6 @@ def _enqueue_batch(tg, generator, graph, sess, n_enqueued, final_sample):
       sess.run(tg.input_queue.out_tensor, feed_dict=enq)
       n_enqueued[0] += 1
     final_sample[0] = n_enqueued[0]
-
 
 class TFWrapper(object):
   """This class exists as a workaround for Tensorflow objects not being picklable.
