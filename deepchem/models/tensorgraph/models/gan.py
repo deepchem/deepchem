@@ -142,9 +142,9 @@ class GAN(TensorGraph):
     else:
       # Create learnable weights for the generators and discriminators.
 
-      gen_alpha = layers.Variable(np.ones((n_generators, 1)))
+      gen_alpha = layers.Variable(np.ones((1, n_generators)))
       gen_weights = layers.SoftMax(gen_alpha)
-      discrim_alpha = layers.Variable(np.ones((n_discriminators, 1)))
+      discrim_alpha = layers.Variable(np.ones((1, n_discriminators)))
       discrim_weights = layers.SoftMax(discrim_alpha)
 
       # Compute the weighted errors
@@ -155,8 +155,11 @@ class GAN(TensorGraph):
       gen_layers.add(gen_alpha)
       discrim_layers.add(gen_alpha)
       discrim_layers.add(discrim_alpha)
-      self.gen_alpha = gen_alpha
-      self.discrim_alpha = discrim_alpha
+
+      # Add an entropy term to the loss.
+
+      entropy = -(layers.ReduceSum(layers.Log(gen_weights))/n_generators + layers.ReduceSum(layers.Log(discrim_weights))/n_discriminators)
+      total_discrim_loss += entropy
 
     # Create submodels for training the generators and discriminators.
 
@@ -404,8 +407,6 @@ class GAN(TensorGraph):
         saver.save(self.session, self.save_file, global_step=self.global_step)
         time2 = time.time()
         print("TIMING: model fitting took %0.3f s" % (time2 - time1))
-      print(self.session.run(self.gen_alpha))
-      print(self.session.run(self.discrim_alpha))
 
   def predict_gan_generator(self,
                             batch_size=1,
