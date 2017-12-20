@@ -6,6 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import numpy as np
+
+from models import GraphConvTensorGraph
+
 np.random.seed(123)
 import tensorflow as tf
 tf.set_random_seed(123)
@@ -49,6 +52,8 @@ model = dc.models.MultitaskGraphRegressor(
     optimizer_type="adam",
     beta1=.9,
     beta2=.999)
+
+model = GraphConvTensorGraph(len(hopv_tasks), batch_size=batch_size, mode='regression')
 
 # Fit trained model
 model.fit(train_dataset, nb_epoch=25)
