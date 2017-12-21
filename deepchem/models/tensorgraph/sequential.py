@@ -90,17 +90,17 @@ class Sequential(TensorGraph):
       if len(self._layer_list) == 0:
         raise ValueError("No layers have been added to model.")
       for ind, layer in enumerate(self._layer_list):
-        if not len(layer.in_layers) == 0:
-          raise ValueError("Cannot specify in_layers for Sequential.")
+        #if not len(layer.in_layers) == 0:
+        #  raise ValueError("Cannot specify in_layers for Sequential.")
         layer.in_layers += [prev_layer]
-        self._add_layer(layer)
+        #self._add_layer(layer)
         prev_layer = layer
       # The last layer is the output of the model
       self.outputs.append(prev_layer)
 
       if loss == "binary_crossentropy":
         smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
-        self._add_layer(smce)
+        #self._add_layer(smce)
         self.set_loss(ReduceMean(in_layers=[smce]))
       elif loss == "mse":
         mse = ReduceSquareDifference(in_layers=[prev_layer, labels])
@@ -109,6 +109,12 @@ class Sequential(TensorGraph):
       else:
         # TODO(rbharath): Add in support for additional losses.
         raise ValueError("Unsupported loss.")
-    self._built = True
+    #self._built = True
 
     super(Sequential, self).fit(dataset, **kwargs)
+
+  def restore(self, checkpoint=None):
+    """Not currently supported.
+    """
+    raise ValueError("Restore is not yet supported "
+                     "for sequential models.")
