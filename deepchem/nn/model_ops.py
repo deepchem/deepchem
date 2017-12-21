@@ -586,8 +586,8 @@ def cosine_distances(test, support):
   tf.Tensor:
     Of shape (n_test, n_support)
   """
-  rnorm_test = tf.rsqrt(
-      tf.reduce_sum(tf.square(test), 1, keep_dims=True)) + 1e-7
+  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
+                                      keep_dims=True)) + 1e-7
   rnorm_support = tf.rsqrt(
       tf.reduce_sum(tf.square(support), 1, keep_dims=True)) + 1e-7
   test_normalized = test * rnorm_test
