@@ -73,7 +73,8 @@ class TestGAN(unittest.TestCase):
 
     means = 10 * np.random.random([1000, 1])
     for i in range(2):
-      values = gan.predict_gan_generator(conditional_inputs=[means], generator_index=i)
+      values = gan.predict_gan_generator(
+          conditional_inputs=[means], generator_index=i)
       deltas = values - means
       assert abs(np.mean(deltas)) < 1.0
       assert np.std(deltas) > 1.0
