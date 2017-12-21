@@ -15,7 +15,6 @@ import tensorflow as tf
 from deepchem.nn import activations
 from deepchem.nn import initializations
 from deepchem.nn import model_ops
-from deepchem.nn.copy import Layer
 
 # TODO(rbharath): This class does not yet have a
 # TensorGraph equivalent, but one may not be required.
