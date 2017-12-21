@@ -11,7 +11,6 @@ __license__ = "MIT"
 import warnings
 import numpy as np
 import tensorflow as tf
-from deepchem.nn.copy import Input
 from deepchem.feat.mol_graphs import ConvMol
 
 
