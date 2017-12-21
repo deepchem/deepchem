@@ -586,8 +586,8 @@ def cosine_distances(test, support):
   tf.Tensor:
     Of shape (n_test, n_support)
   """
-  rnorm_test = tf.rsqrt(
-      tf.reduce_sum(tf.square(test), 1, keep_dims=True)) + 1e-7
+  rnorm_test = tf.rsqrt(tf.reduce_sum(tf.square(test), 1,
+                                      keep_dims=True)) + 1e-7
   rnorm_support = tf.rsqrt(
       tf.reduce_sum(tf.square(support), 1, keep_dims=True)) + 1e-7
   test_normalized = test * rnorm_test
@@ -690,8 +690,8 @@ def selu(x):
 
 def hard_sigmoid(x):
   """Segment-wise linear approximation of sigmoid.
-  Faster than sigmoid.
-  Returns 0. if x < -2.5, 1. if x > 2.5.
+
+  Faster than sigmoid. Returns 0. if x < -2.5, 1. if x > 2.5.
   In -2.5 <= x <= 2.5, returns 0.2 * x + 0.5.
 
   Parameters

@@ -1084,7 +1084,7 @@ class SoftMax(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
-      raise ValueError("Must only Softmax single parent")
+      raise ValueError("Softmax must have a single input layer.")
     parent = inputs[0]
     out_tensor = tf.contrib.layers.softmax(parent)
     if set_tensors:
