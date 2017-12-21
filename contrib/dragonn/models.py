@@ -12,6 +12,12 @@ from dragonn.metrics import ClassificationResult
 from sklearn.svm import SVC as scikit_SVC
 from sklearn.tree import DecisionTreeClassifier as scikit_DecisionTree
 from sklearn.ensemble import RandomForestClassifier
+from keras.models import Sequential
+from keras.layers.core import (Activation, Dense, Dropout, Flatten, Permute,
+                                Reshape, TimeDistributedDense)
+from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.recurrent import GRU
+from keras.regularizers import l1
 
 
 class Model(object):
@@ -80,12 +86,6 @@ class SequenceDNN(Model):
                dropout=0.0,
                num_epochs=100,
                verbose=1):
-    from keras.models import Sequential
-    from keras.layers.core import (Activation, Dense, Dropout, Flatten, Permute,
-                                   Reshape, TimeDistributedDense)
-    from keras.layers.convolutional import Convolution2D, MaxPooling2D
-    from keras.layers.recurrent import GRU
-    from keras.regularizers import l1
     self.num_tasks = num_tasks
     self.num_epochs = num_epochs
     self.verbose = verbose
