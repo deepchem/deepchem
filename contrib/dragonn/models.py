@@ -12,12 +12,17 @@ from dragonn.metrics import ClassificationResult
 from sklearn.svm import SVC as scikit_SVC
 from sklearn.tree import DecisionTreeClassifier as scikit_DecisionTree
 from sklearn.ensemble import RandomForestClassifier
+from keras.models import model_from_json
 from keras.models import Sequential
 from keras.layers.core import (Activation, Dense, Dropout, Flatten, Permute,
                                 Reshape, TimeDistributedDense)
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.recurrent import GRU
 from keras.regularizers import l1
+from keras.layers.core import (Activation, Dense, Flatten,
+                                TimeDistributedDense)
+from keras.layers.recurrent import GRU
+from keras.callbacks import EarlyStopping
 
 
 class Model(object):
@@ -327,7 +332,6 @@ class SequenceDNN(Model):
 
   @staticmethod
   def load(arch_fname, weights_fname=None):
-    from keras.models import model_from_json
     model_json_string = open(arch_fname).read()
     sequence_dnn = SequenceDNN(keras_model=model_from_json(model_json_string))
     if weights_fname is not None:
@@ -338,10 +342,6 @@ class SequenceDNN(Model):
 class MotifScoreRNN(Model):
 
   def __init__(self, input_shape, gru_size=10, tdd_size=4):
-    from keras.models import Sequential
-    from keras.layers.core import (Activation, Dense, Flatten,
-                                   TimeDistributedDense)
-    from keras.layers.recurrent import GRU
     self.model = Sequential()
     self.model.add(
         GRU(gru_size, return_sequences=True, input_shape=input_shape))
@@ -354,7 +354,6 @@ class MotifScoreRNN(Model):
     self.model.compile(optimizer='adam', loss='binary_crossentropy')
 
   def train(self, X, y, validation_data):
-    from keras.callbacks import EarlyStopping
     print('Training model...')
     multitask = y.shape[1] > 1
     if not multitask:
