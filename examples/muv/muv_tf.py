@@ -22,7 +22,7 @@ metric = dc.metrics.Metric(
     dc.metrics.roc_auc_score, np.mean, mode="classification")
 
 rate = dc.models.tensorgraph.optimizers.ExponentialDecay(0.001, 0.8, 1000)
-model = dc.models.TensorGraphMultiTaskClassifier(
+model = dc.models.MultiTaskClassifier(
     len(muv_tasks),
     n_features=1024,
     dropouts=[.25],
