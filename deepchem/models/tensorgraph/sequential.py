@@ -75,46 +75,45 @@ class Sequential(TensorGraph):
     """
     X_shape, y_shape, _, _ = dataset.get_shape()
     # Calling fit() for first time
-    if not self._built:
+    if not self.built:
       feature_shape = X_shape[1:]
       label_shape = y_shape[1:]
       # Add in features
       features = Feature(shape=(None,) + feature_shape)
-      self._add_layer(features)
       # Add in labels
       labels = Label(shape=(None,) + label_shape)
-      self._add_layer(labels)
 
       # Add in all layers
       prev_layer = features
       if len(self._layer_list) == 0:
         raise ValueError("No layers have been added to model.")
       for ind, layer in enumerate(self._layer_list):
-        #if not len(layer.in_layers) == 0:
-        #  raise ValueError("Cannot specify in_layers for Sequential.")
+        if len(layer.in_layers) > 1:
+          raise ValueError("Cannot specify more than one "
+                           "in_layer for Sequential.")
         layer.in_layers += [prev_layer]
-        #self._add_layer(layer)
         prev_layer = layer
       # The last layer is the output of the model
       self.outputs.append(prev_layer)
 
       if loss == "binary_crossentropy":
         smce = SoftMaxCrossEntropy(in_layers=[labels, prev_layer])
-        #self._add_layer(smce)
         self.set_loss(ReduceMean(in_layers=[smce]))
       elif loss == "mse":
         mse = ReduceSquareDifference(in_layers=[prev_layer, labels])
-        self._add_layer(mse)
-        self.loss = mse
+        self.set_loss(mse)
       else:
-        # TODO(rbharath): Add in support for additional losses.
+        # TODO(rbharath): Add in support for additional
+        # losses.
         raise ValueError("Unsupported loss.")
-    #self._built = True
 
     super(Sequential, self).fit(dataset, **kwargs)
 
   def restore(self, checkpoint=None):
     """Not currently supported.
     """
-    raise ValueError("Restore is not yet supported "
-                     "for sequential models.")
+    # TODO(rbharath): The TensorGraph can't be built until
+    # fit is called since the shapes of features/labels
+    # not specified. Need to figure out a good restoration
+    # method for this use case.
+    raise ValueError("Restore is not yet supported " "for sequential models.")
