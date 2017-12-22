@@ -33,6 +33,7 @@ class TestPoseGeneration(unittest.TestCase):
       return
     vpg = dc.dock.VinaPoseGenerator(detect_pockets=True, exhaustiveness=1)
 
+  @attr("slow")
   def test_vina_poses(self):
     """Test that VinaPoseGenerator creates pose files."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
