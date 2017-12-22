@@ -30,3 +30,4 @@ from deepchem.models.tensorgraph.models.seqtoseq import SeqToSeq
 from deepchem.models.tensorgraph.models.gan import GAN, WGAN
 from deepchem.models.tensorgraph.models.text_cnn import TextCNNTensorGraph
 from deepchem.models.tensorgraph.sequential import Sequential
+from deepchem.models.tensorgraph.models.sequence_dnn import SequenceDNN
