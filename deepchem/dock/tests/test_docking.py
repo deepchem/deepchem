@@ -45,6 +45,7 @@ class TestDocking(unittest.TestCase):
       return
     docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=True)
 
+  @attr("slow")
   def test_vina_grid_rf_docker_dock(self):
     """Test that VinaGridRFDocker can dock."""
     if sys.version_info >= (3, 0):
@@ -55,8 +56,8 @@ class TestDocking(unittest.TestCase):
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
     docker = dc.dock.VinaGridRFDocker(exhaustiveness=1, detect_pockets=False)
-    (score, (protein_docked, ligand_docked)) = docker.dock(protein_file,
-                                                           ligand_file)
+    (score, (protein_docked, ligand_docked)) = docker.dock(
+        protein_file, ligand_file)
 
     # Check returned files exist
     assert score.shape == (1,)
@@ -103,6 +104,7 @@ class TestDocking(unittest.TestCase):
 
     assert score.shape == (1,)
 
+  @attr("slow")
   def test_vina_grid_dnn_docker_dock(self):
     """Test that VinaGridDNNDocker can dock."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -110,8 +112,8 @@ class TestDocking(unittest.TestCase):
     ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
     docker = dc.dock.VinaGridDNNDocker(exhaustiveness=1, detect_pockets=False)
-    (score, (protein_docked, ligand_docked)) = docker.dock(protein_file,
-                                                           ligand_file)
+    (score, (protein_docked, ligand_docked)) = docker.dock(
+        protein_file, ligand_file)
 
     # Check returned files exist
     assert score.shape == (1,)
