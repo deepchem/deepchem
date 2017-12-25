@@ -75,20 +75,23 @@ class RobustMultitaskClassifier(MultiTaskClassifier):
     self.bypass_bias_init_consts = bypass_bias_init_consts
     self.bypass_dropouts = bypass_dropouts
 
-  def build(self, graph, name_scopes, training):
-    """Constructs the graph architecture as specified in its config.
+    n_layers = len(layer_sizes)
+    assert n_layers == len(bypass_layer_sizes)
+    if not isinstance(weight_init_stddevs, collections.Sequence):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bypass_weight_init_stddevs, collections.Sequence):
+      bypass_weight_init_stddevs = [bypass_weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, collections.Sequence):
+      bias_init_consts = [bias_init_consts] * n_layers
+    if not isinstance(dropouts, collections.Sequence):
+      dropouts = [dropouts] * n_layers
+    if not isinstance(activation_fns, collections.Sequence):
+      activation_fns = [activation_fns] * n_layers
 
-    This method creates the following Placeholders:
-      mol_features: Molecule descriptor (e.g. fingerprint) tensor with shape
-        batch_size x num_features.
-    """
-    num_features = self.n_features
-    placeholder_scope = TensorflowGraph.get_placeholder_scope(
-        graph, name_scopes)
-    with graph.as_default():
-      with placeholder_scope:
-        mol_features = tf.placeholder(
-            tf.float32, shape=[None, num_features], name='mol_features')
+    # Add the input features.
+    mol_features = Feature(shape=(None, n_features))
+    prev_layer = mol_features
+
 
       layer_sizes = self.layer_sizes
       weight_init_stddevs = self.weight_init_stddevs
