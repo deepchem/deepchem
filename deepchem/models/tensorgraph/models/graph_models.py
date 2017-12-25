@@ -129,9 +129,7 @@ class WeaveTensorGraph(TensorGraph):
                         predict=False,
                         deterministic=True,
                         pad_batches=True):
-    """ TensorGraph style implementation
-            similar to deepchem.models.tf_new_models.graph_topology.AlternateWeaveTopology.batch_to_feed_dict
-            """
+    """TensorGraph style implementation """
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -286,9 +284,7 @@ class DTNNTensorGraph(TensorGraph):
                         predict=False,
                         deterministic=True,
                         pad_batches=True):
-    """ TensorGraph style implementation
-                similar to deepchem.models.tf_new_models.graph_topology.DTNNGraphTopology.batch_to_feed_dict
-                """
+    """TensorGraph style implementation"""
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -450,9 +446,7 @@ class DAGTensorGraph(TensorGraph):
                         predict=False,
                         deterministic=True,
                         pad_batches=True):
-    """ TensorGraph style implementation
-                similar to deepchem.models.tf_new_models.graph_topology.DAGGraphTopology.batch_to_feed_dict
-                """
+    """TensorGraph style implementation"""
     for epoch in range(epochs):
       if not predict:
         print('Starting epoch %i' % epoch)
@@ -702,8 +696,8 @@ class GraphConvTensorGraph(TensorGraph):
           self.deg_adjs)
       batch_norm1 = BatchNorm(in_layers=[gc1])
       in_layer = GraphPool(
-          in_layers=[batch_norm1, self.degree_slice, self.membership
-                    ] + self.deg_adjs)
+          in_layers=[batch_norm1, self.degree_slice, self.membership] +
+          self.deg_adjs)
     dense = Dense(
         out_channels=self.dense_layer_size,
         activation_fn=tf.nn.relu,

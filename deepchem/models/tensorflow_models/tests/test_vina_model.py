@@ -15,13 +15,13 @@ import tensorflow as tf
 import deepchem as dc
 import numpy as np
 from tensorflow.python.framework import test_util
-from deepchem.models.tf_new_models.vina_model import VinaModel
-from deepchem.models.tf_new_models.vina_model import get_cells
-from deepchem.models.tf_new_models.vina_model import put_atoms_in_cells
-from deepchem.models.tf_new_models.vina_model import compute_neighbor_cells
-from deepchem.models.tf_new_models.vina_model import compute_closest_neighbors
-from deepchem.models.tf_new_models.vina_model import get_cells_for_atoms
-from deepchem.models.tf_new_models.vina_model import compute_neighbor_list
+from deepchem.models.tensorflow_models.vina_model import VinaModel
+from deepchem.models.tensorflow_models.vina_model import get_cells
+from deepchem.models.tensorflow_models.vina_model import put_atoms_in_cells
+from deepchem.models.tensorflow_models.vina_model import compute_neighbor_cells
+from deepchem.models.tensorflow_models.vina_model import compute_closest_neighbors
+from deepchem.models.tensorflow_models.vina_model import get_cells_for_atoms
+from deepchem.models.tensorflow_models.vina_model import compute_neighbor_list
 import deepchem.utils.rdkit_util as rdkit_util
 from deepchem.utils.save import load_sdf_files
 from deepchem.utils import pad_array
@@ -180,7 +180,7 @@ class TestVinaModel(test_util.TensorFlowTestCase):
   #  protein_file = os.path.join(data_dir, "1jld_protein.pdb")
   #  ligand_file = os.path.join(data_dir, "1jld_ligand.pdb")
 
-  #  max_protein_atoms = 3500 
+  #  max_protein_atoms = 3500
   #  max_ligand_atoms = 100
 
   #  print("Loading protein file")
