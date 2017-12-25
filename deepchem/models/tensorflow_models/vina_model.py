@@ -209,7 +209,7 @@ def get_cells(start, stop, nbr_cutoff, ndim=3):
       tf.transpose(
           tf.stack(
               tf.meshgrid(
-                  * [tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
+                  *[tf.range(start, stop, nbr_cutoff) for _ in range(ndim)]))),
       (-1, ndim))
 
 
@@ -352,14 +352,13 @@ def repulsion(d):
 
 def hydrophobic(d):
   """Compute hydrophobic interaction term."""
-  return tf.where(d < 0.5,
-                  tf.ones_like(d), tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
+  return tf.where(d < 0.5, tf.ones_like(d),
+                  tf.where(d < 1.5, 1.5 - d, tf.zeros_like(d)))
 
 
 def hbond(d):
   """Computes hydrogen bond term."""
-  return tf.where(d < -0.7,
-                  tf.ones_like(d),
+  return tf.where(d < -0.7, tf.ones_like(d),
                   tf.where(d < 0, (1.0 / 0.7) * (0 - d), tf.zeros_like(d)))
 
 
