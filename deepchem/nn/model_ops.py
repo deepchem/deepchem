@@ -54,7 +54,7 @@ def cast_to_floatx(x):
   -------
   The same Numpy array, cast to its new type.
   """
-  return np.asarray(x, dtype=tf.float32)
+  return np.asarray(x, dtype=np.float32)
 
 
 def moving_average_update(variable, value, momentum):
