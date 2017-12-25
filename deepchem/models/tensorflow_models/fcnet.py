@@ -41,8 +41,8 @@ class MultiTaskClassifier(TensorGraph):
                **kwargs):
     """Create a MultiTaskClassifier.
 
-    In addition to the following arguments, this class also accepts all the keywork arguments
-    from TensorGraph.
+    In addition to the following arguments, this class also accepts
+    all the keyword arguments from TensorGraph.
 
     Parameters
     ----------
@@ -51,14 +51,19 @@ class MultiTaskClassifier(TensorGraph):
     n_features: int
       number of features
     layer_sizes: list
-      the size of each dense layer in the network.  The length of this list determines the number of layers.
+      the size of each dense layer in the network.  The length of
+      this list determines the number of layers.
     weight_init_stddevs: list or float
-      the standard deviation of the distribution to use for weight initialization of each layer.  The length
-      of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
-      in which case the same value is used for every layer.
+      the standard deviation of the distribution to use for weight
+      initialization of each layer.  The length of this list should
+      equal len(layer_sizes).  Alternatively this may be a single
+      value instead of a list, in which case the same value is used
+      for every layer.
     bias_init_consts: list or loat
-      the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
-      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+      the value to initialize the biases in each layer to.  The
+      length of this list should equal len(layer_sizes).
+      Alternatively this may be a single value instead of a list, in
+      which case the same value is used for every layer.
     weight_decay_penalty: float
       the magnitude of the weight decay penalty to use
     weight_decay_penalty_type: str

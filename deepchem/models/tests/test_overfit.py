@@ -116,7 +116,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tg_regression_overfit(self):
+  def test_regression_overfit(self):
     """Test that TensorGraph models can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
@@ -148,7 +148,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  def test_tg_classification_overfit(self):
+  def test_classification_overfit(self):
     """Test that TensorGraph models can overfit simple classification datasets."""
     n_samples = 10
     n_features = 3
@@ -180,7 +180,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .9
 
-  def test_tg_fittransform_regression_overfit(self):
+  def test_fittransform_regression_overfit(self):
     """Test that TensorGraph FitTransform models can overfit simple regression datasets."""
     n_samples = 10
     n_features = 3
@@ -213,7 +213,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] < .1
 
-  def test_tg_skewed_classification_overfit(self):
+  def test_skewed_classification_overfit(self):
     """Test TensorGraph models can overfit 0/1 datasets with few actives."""
     #n_samples = 100
     n_samples = 100
@@ -248,7 +248,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .75
 
-  def test_tg_skewed_missing_classification_overfit(self):
+  def test_skewed_missing_classification_overfit(self):
     """TG, skewed data, few actives
 
     Test TensorGraph models overfit 0/1 datasets with missing data and few
@@ -326,7 +326,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     assert scores[classification_metric.name] > .9
 
   @flaky
-  def test_tg_multitask_classification_overfit(self):
+  def test_multitask_classification_overfit(self):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
     n_samples = 10
@@ -488,7 +488,7 @@ class TestOverfit(test_util.TensorFlowTestCase):
     scores = model.evaluate(dataset, [regression_metric])
     assert scores[regression_metric.name] > .7
 
-  def test_tg_multitask_regression_overfit(self):
+  def test_multitask_regression_overfit(self):
     """Test TensorGraph multitask overfits tiny data."""
     n_tasks = 10
     n_samples = 10
