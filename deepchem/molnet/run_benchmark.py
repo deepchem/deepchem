@@ -80,8 +80,8 @@ def run_benchmark(datasets,
   """
   for dataset in datasets:
     if dataset in [
-        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba', 'sider', 'tox21',
-        'toxcast'
+        'bace_c', 'bbbp', 'clintox', 'hiv', 'muv', 'pcba_128', 'pcba_146',
+        'sider', 'tox21', 'toxcast'
     ]:
       mode = 'classification'
       if metric == None:
@@ -248,7 +248,7 @@ def load_dataset(dataset, featurizer, split='random'):
   ----------
   dataset: string
       choice of which datasets to use, should be: tox21, muv, sider,
-      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pdbbind, chembl,
+      toxcast, pcba, delaney, kaggle, nci, clintox, hiv, pcba_128, pcba_146, pdbbind, chembl,
       qm7, qm7b, qm9, sampl
   featurizer: string or dc.feat.Featurizer.
       choice of featurization.
@@ -270,6 +270,8 @@ def load_dataset(dataset, featurizer, split='random'):
       'muv': deepchem.molnet.load_muv,
       'nci': deepchem.molnet.load_nci,
       'pcba': deepchem.molnet.load_pcba,
+      'pcba_128': deepchem.molnet.load_pcba_128,
+      'pcba_146': deepchem.molnet.load_pcba_146,
       'pdbbind': deepchem.molnet.load_pdbbind_grid,
       'ppb': deepchem.molnet.load_ppb,
       'qm7': deepchem.molnet.load_qm7_from_mat,
