@@ -270,6 +270,8 @@ def load_dataset(dataset, featurizer, split='random'):
       'muv': deepchem.molnet.load_muv,
       'nci': deepchem.molnet.load_nci,
       'pcba': deepchem.molnet.load_pcba,
+      'pcba_128': deepchem.molnet.load_pcba_128,
+      'pcba_146': deepchem.molnet.load_pcba_146,
       'pdbbind': deepchem.molnet.load_pdbbind_grid,
       'ppb': deepchem.molnet.load_ppb,
       'qm7': deepchem.molnet.load_qm7_from_mat,
