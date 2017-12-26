@@ -14,7 +14,7 @@ from deepchem.molnet.load_function.kaggle_datasets import load_kaggle
 from deepchem.molnet.load_function.lipo_datasets import load_lipo
 from deepchem.molnet.load_function.muv_datasets import load_muv
 from deepchem.molnet.load_function.nci_datasets import load_nci
-from deepchem.molnet.load_function.pcba_datasets import load_pcba_128, load_pcba_146
+from deepchem.molnet.load_function.pcba_datasets import load_pcba, load_pcba_128, load_pcba_146
 from deepchem.molnet.load_function.pdbbind_datasets import load_pdbbind_grid
 from deepchem.molnet.load_function.ppb_datasets import load_ppb
 from deepchem.molnet.load_function.qm7_datasets import load_qm7
