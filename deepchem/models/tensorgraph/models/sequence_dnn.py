@@ -14,6 +14,9 @@ class SequenceDNN(Sequential):
   """
   Sequence DNN models.
 
+  # TODO(rbharath): This model only supports one-conv layer. Extend
+  # so that conv layers of greater depth can be implemented.
+
   Parameters
   ----------
   seq_length : int 
@@ -41,8 +44,6 @@ class SequenceDNN(Sequential):
                num_filters=15,
                kernel_size=15,
                pool_width=35,
-               GRU_size=35,
-               TDD_size=15,
                L1=0,
                dropout=0.0,
                verbose=True,
@@ -50,16 +51,7 @@ class SequenceDNN(Sequential):
     super(SequenceDNN, self).__init__(**kwargs)
     self.num_tasks = num_tasks
     self.verbose = verbose
-    assert len(num_filters) == len(conv_width)
     self.add(layers.Conv2D(num_filters, kernel_size=kernel_size))
     self.add(layers.Dropout(dropout))
-    self.add(layers.MaxPool2D())
-    #if use_RNN:
-    #  num_max_pool_outputs = self.model.layers[-1].output_shape[-1]
-    #  self.add(Reshape((num_filters[-1], num_max_pool_outputs)))
-    #  self.add(Permute((2, 1)))
-    #  self.add(GRU(GRU_size, return_sequences=True))
-    #  self.add(TimeDistributedDense(TDD_size, activation='relu'))
     self.add(layers.Flatten())
     self.add(layers.Dense(self.num_tasks, activation_fn=tf.nn.relu))
-    #self.add(Activation('sigmoid'))

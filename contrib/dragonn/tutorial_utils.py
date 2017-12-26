@@ -96,16 +96,16 @@ from matplotlib.lines import Line2D
 #      print(method_name)
 
 
-def get_SequenceDNN(SequenceDNN_parameters):
-  return SequenceDNN(**SequenceDNN_parameters)
+#def get_SequenceDNN(SequenceDNN_parameters):
+#  return SequenceDNN(**SequenceDNN_parameters)
 
 
-def train_SequenceDNN(dnn, simulation_data):
-  assert issubclass(type(simulation_data), tuple)
-  random.seed(1)
-  np.random.seed(1)
-  dnn.train(simulation_data.X_train, simulation_data.y_train,
-            (simulation_data.X_valid, simulation_data.y_valid))
+#def train_SequenceDNN(dnn, simulation_data):
+#  assert issubclass(type(simulation_data), tuple)
+#  random.seed(1)
+#  np.random.seed(1)
+#  dnn.train(simulation_data.X_train, simulation_data.y_train,
+#            (simulation_data.X_valid, simulation_data.y_valid))
 
 
 def SequenceDNN_learning_curve(dnn):
