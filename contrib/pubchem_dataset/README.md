@@ -26,7 +26,7 @@ optional arguments:
 
 You must select either -d pcba_146, -d pcba_2475 or -g GENE_SYMBOL.
 
-At the end you will have a pcba_128.csv.gz, etc file in your DEEPCHEM_DATA_DIR ready for benchmarking
+At the end you will have a file, e.g. pcba_146.csv.gz, etc file in your DEEPCHEM_DATA_DIR ready for benchmarking
 
 Also, please note that the pcba_146 corresponds to the following query on PubChem Bioassay Search:
 
