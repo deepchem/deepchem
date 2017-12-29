@@ -14,7 +14,6 @@ def main():
   sdf_dir = os.path.join(data_dir, "SDF")
 
   compound_read_count = 0
-  #max_smiles_len = 50
   keys = list()
   values = list()
   overall_start = time.time()
@@ -62,7 +61,7 @@ def main():
       "Parsed all smiles in: {0} seconds, or {1} minutes, or {2} hours".format(
           secs_elapsed, secs_elapsed / 60, secs_elapsed / 3600))
   print("Total length of: {}".format(len(keys)))
-  with open("/media/data/pubchem/pubchemsmiles_tuple.pickle", "wb") as f:
+  with open(os.path.join(data_dir, "/pubchemsmiles_tuple.pickle"), "wb") as f:
     pickle.dump((keys, values), f)
   print("Done")
   overall_end = time.time()
