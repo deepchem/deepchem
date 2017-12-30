@@ -37,4 +37,3 @@ This yields (as of Dec 2017) an additional 18 bioassays beyond the core 128 bioa
 pcba_2475 corresponds to:
 
 1[TotalSidCount] : 1000000000[TotalSidCount] AND 5[ActiveSidCount] : 10000000000[ActiveSidCount] AND 0[TargetCount] : 1[TargetCount] AND "small molecule"[filt] AND "doseresponse"[filt]
-
