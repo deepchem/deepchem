@@ -7,19 +7,18 @@ package:
   version: {{ version }}
 
 source:
-  git_url: https://github.com/lilleswing/mdtraj.git
-  git_tag: flags-191
-
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
 build:
   number: 1
-  script: python setup.py install --single-version-externally-managed --record record.txt
+  script: python setup.py install --single-version-externally-managed --record record.txt --disable-openmp
   entry_points:
     - mdconvert = mdtraj.scripts.mdconvert:entry_point
     - mdinspect = mdtraj.scripts.mdinspect:entry_point
 
 requirements:
   build:
-    - python {{ environ.get('python_version', '3.5') }}
+    - python
     - setuptools
     - cython
     - numpy 1.8.*  # [not (win and (py35 or py36))]
@@ -29,7 +28,7 @@ requirements:
     - msinttypes  # [win and py27]
 
   run:
-    - python {{ environ.get('python_version', '3.5') }}
+    - python
     - setuptools
     - numpy >=1.8  # [not (win and (py35 or py36))]
     - numpy >=1.9  # [win and py35]
