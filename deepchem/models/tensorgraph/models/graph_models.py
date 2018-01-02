@@ -689,15 +689,11 @@ class GraphConvTensorGraph(TensorGraph):
       self.deg_adjs.append(deg_adj)
     in_layer = self.atom_features
     for layer_size in self.graph_conv_layers:
-      gc1 = GraphConv(
-          layer_size,
-          activation_fn=tf.nn.relu,
-          in_layers=[in_layer, self.degree_slice, self.membership
-                    ] + self.deg_adjs)
+      gc1_in = [in_layer, self.degree_slice, self.membership] + self.deg_adjs
+      gc1 = GraphConv(layer_size, activation_fn=tf.nn.relu, in_layers=gc1_in)
       batch_norm1 = BatchNorm(in_layers=[gc1])
-      in_layer = GraphPool(
-          in_layers=[batch_norm1, self.degree_slice, self.membership] +
-          self.deg_adjs)
+      gp_in = [batch_norm1, self.degree_slice, self.membership] + self.deg_adjs
+      in_layer = GraphPool(in_layers=gp_in)
     dense = Dense(
         out_channels=self.dense_layer_size,
         activation_fn=tf.nn.relu,
