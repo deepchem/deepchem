@@ -19,7 +19,7 @@ build:
 
 requirements:
   build:
-    - python
+    - python {{ environ.get('python_version', '3.5') }}
     - setuptools
     - cython
     - numpy 1.8.*  # [not (win and (py35 or py36))]
@@ -29,7 +29,7 @@ requirements:
     - msinttypes  # [win and py27]
 
   run:
-    - python
+    - python {{ environ.get('python_version', '3.5') }}
     - setuptools
     - numpy >=1.8  # [not (win and (py35 or py36))]
     - numpy >=1.9  # [win and py35]
