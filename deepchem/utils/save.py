@@ -201,11 +201,11 @@ def load_dataset_from_disk(save_dir):
 
   """
 
-
   train_dir = os.path.join(save_dir, "train_dir")
   valid_dir = os.path.join(save_dir, "valid_dir")
   test_dir = os.path.join(save_dir, "test_dir")
-  if not os.path.exists(train_dir) or not os.path.exists(valid_dir) or not os.path.exists(test_dir):
+  if not os.path.exists(train_dir) or not os.path.exists(
+      valid_dir) or not os.path.exists(test_dir):
     return False, None, list()
   loaded = True
   train = deepchem.data.DiskDataset(train_dir)
