@@ -57,9 +57,8 @@ def main():
 
   overall_end = time.time()
   secs_elapsed = overall_end - overall_start
-  print(
-      "Parsed all smiles in: {0} seconds, or {1} minutes, or {2} hours".format(
-          secs_elapsed, secs_elapsed / 60, secs_elapsed / 3600))
+  print("Parsed all smiles in: {0} seconds, or {1} minutes, or {2} hours".
+        format(secs_elapsed, secs_elapsed / 60, secs_elapsed / 3600))
   print("Total length of: {}".format(len(keys)))
   with open(os.path.join(data_dir, "/pubchemsmiles_tuple.pickle"), "wb") as f:
     pickle.dump((keys, values), f)

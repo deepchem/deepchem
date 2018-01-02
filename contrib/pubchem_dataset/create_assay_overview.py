@@ -51,8 +51,8 @@ class PCBADatsetBuilder:
             cid_list = np.append(cid_list, df["PUBCHEM_CID"].as_matrix())
             assay_no = assay_no + 1
             if assay_no % 100 == 0:
-              print("Parsed: {0} of: {1}".format(assay_no,
-                                                 len(assays_to_parse)))
+              print(
+                  "Parsed: {0} of: {1}".format(assay_no, len(assays_to_parse)))
 
     print("Convert to CID set")
     cid_set = np.unique(cid_list)
@@ -137,16 +137,16 @@ class PCBADatsetBuilder:
       assay_names.append(assay_name)
       assay_results.append(assay_results_array)
       assay_end = time.time()
-      print("Parsed: {0} in {1} seconds".format(assay_name,
-                                                assay_end - assay_start))
+      print("Parsed: {0} in {1} seconds".format(assay_name, assay_end -
+                                                assay_start))
 
     # Now, write out the results csv, going line by line through all molecule results
     assay_results_len = len(assay_results)
 
     all_assay_end = time.time()
 
-    print("Parsed all assays in: {} hours".format(
-        (all_assay_end - all_assay_start) / 3600))
+    print("Parsed all assays in: {} hours".format((
+        all_assay_end - all_assay_start) / 3600))
 
     smiles_start = time.time()
 
@@ -199,8 +199,8 @@ class PCBADatsetBuilder:
     os.remove(path_final)
     smiles_end = time.time()
 
-    print("Smiles joined and gzip in: {} hours".format(
-        (smiles_end - smiles_start) / 3600))
+    print("Smiles joined and gzip in: {} hours".format((
+        smiles_end - smiles_start) / 3600))
 
     print("Finished creating dataset: {} in: {} hours".format(
         file_name, (smiles_end - all_assay_start) / 3600))
