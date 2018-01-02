@@ -211,6 +211,7 @@ class Layer(object):
     Instead, the input to the first dense layer will be a different layer
     specified in the replacements map.
 
+    >>> new_input = Feature(shape=(None, 100))
     >>> replacements = {input: new_input}
     >>> dense3_copy = dense3.copy(replacements)
 
@@ -819,7 +820,7 @@ class GRU(Layer):
   """A Gated Recurrent Unit.
 
   This layer expects its input to be of shape (batch_size, sequence_length, ...).
-  It consists of a set of independent sequence (one for each element in the batch),
+  It consists of a set of independent sequences (one for each element in the batch),
   that are each propagated independently through the GRU.
   """
 
@@ -861,6 +862,76 @@ class GRU(Layer):
       self.rnn_initial_states.append(initial_state)
       self.rnn_final_states.append(final_state)
       self.rnn_zero_states.append(np.zeros(zero_state.get_shape(), np.float32))
+    return out_tensor
+
+  def none_tensors(self):
+    saved_tensors = [
+        self.out_tensor, self.rnn_initial_states, self.rnn_final_states,
+        self.rnn_zero_states
+    ]
+    self.out_tensor = None
+    self.rnn_initial_states = []
+    self.rnn_final_states = []
+    self.rnn_zero_states = []
+    return saved_tensors
+
+  def set_tensors(self, tensor):
+    self.out_tensor, self.rnn_initial_states, self.rnn_final_states, self.rnn_zero_states = tensor
+
+
+class LSTM(Layer):
+  """A Long Short Term Memory.
+
+  This layer expects its input to be of shape (batch_size, sequence_length, ...).
+  It consists of a set of independent sequences (one for each element in the batch),
+  that are each propagated independently through the LSTM.
+  """
+
+  def __init__(self, n_hidden, batch_size, **kwargs):
+    """Create a Long Short Term Memory.
+
+    Parameters
+    ----------
+    n_hidden: int
+      the size of the LSTM's hidden state, which also determines the size of its output
+    batch_size: int
+      the batch size that will be used with this layer
+    """
+    self.n_hidden = n_hidden
+    self.batch_size = batch_size
+    super(LSTM, self).__init__(**kwargs)
+    try:
+      parent_shape = self.in_layers[0].shape
+      self._shape = (batch_size, parent_shape[1], n_hidden)
+    except:
+      pass
+
+  def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
+    inputs = self._get_input_tensors(in_layers)
+    if len(inputs) != 1:
+      raise ValueError("Must have one parent")
+    parent_tensor = inputs[0]
+    lstm_cell = tf.contrib.rnn.LSTMCell(self.n_hidden)
+    zero_state = lstm_cell.zero_state(self.batch_size, tf.float32)
+    if set_tensors:
+      initial_state = tf.contrib.rnn.LSTMStateTuple(
+          tf.placeholder(tf.float32, zero_state.c.get_shape()),
+          tf.placeholder(tf.float32, zero_state.h.get_shape()))
+    else:
+      initial_state = zero_state
+    out_tensor, final_state = tf.nn.dynamic_rnn(
+        lstm_cell, parent_tensor, initial_state=initial_state, scope=self.name)
+    if set_tensors:
+      self._record_variable_scope(self.name)
+      self.out_tensor = out_tensor
+      self.rnn_initial_states.append(initial_state.c)
+      self.rnn_initial_states.append(initial_state.h)
+      self.rnn_final_states.append(final_state.c)
+      self.rnn_final_states.append(final_state.h)
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.c.get_shape(), np.float32))
+      self.rnn_zero_states.append(
+          np.zeros(zero_state.h.get_shape(), np.float32))
     return out_tensor
 
   def none_tensors(self):
@@ -920,8 +991,8 @@ class Input(Layer):
       self.out_tensor = out_tensor
     return out_tensor
 
-  def create_pre_q(self, batch_size):
-    q_shape = (batch_size,) + self._shape[1:]
+  def create_pre_q(self):
+    q_shape = (None,) + self._shape[1:]
     return Input(shape=q_shape, name="%s_pre_q" % self.name, dtype=self.dtype)
 
   def get_pre_q_name(self):
@@ -1013,7 +1084,7 @@ class SoftMax(Layer):
   def create_tensor(self, in_layers=None, set_tensors=True, **kwargs):
     inputs = self._get_input_tensors(in_layers)
     if len(inputs) != 1:
-      raise ValueError("Must only Softmax single parent")
+      raise ValueError("Softmax must have a single input layer.")
     parent = inputs[0]
     out_tensor = tf.contrib.layers.softmax(parent)
     if set_tensors:
@@ -2014,8 +2085,7 @@ class InputFifoQueue(Layer):
       in_layers = self.in_layers
     in_layers = convert_to_layers(in_layers)
     self.dtypes = [x.out_tensor.dtype for x in in_layers]
-    self.queue = tf.FIFOQueue(
-        self.capacity, self.dtypes, shapes=self.shapes, names=self.names)
+    self.queue = tf.FIFOQueue(self.capacity, self.dtypes, names=self.names)
     feed_dict = {x.name: x.out_tensor for x in in_layers}
     self.out_tensor = self.queue.enqueue(feed_dict)
     self.close_op = self.queue.close()

@@ -11,7 +11,7 @@
 #    return self.out_tensor
 #
 #
-#def tensorGraphMultitaskClassifier(n_tasks,
+#def MultiTaskClassifier(n_tasks,
 #                                   n_features,
 #                                   layer_sizes=[500],
 #                                   bypass_layer_sizes=[100],

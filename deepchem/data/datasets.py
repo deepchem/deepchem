@@ -670,7 +670,7 @@ class DiskDataset(Dataset):
                   pad_batches=False):
     """ Get an object that iterates over minibatches from the dataset. It is guaranteed
     that the number of batches returned is math.ceil(len(dataset)/batch_size).
-    
+
     Each minibatch is returned as a tuple of four numpy arrays: (X, y, w, ids).
 
 
@@ -748,6 +748,7 @@ class DiskDataset(Dataset):
         num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
 
         if n_shard_samples == 0:
+          cur_shard += 1
           continue
         if not deterministic:
           sample_perm = np.random.permutation(n_shard_samples)

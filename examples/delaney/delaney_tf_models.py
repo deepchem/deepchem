@@ -22,7 +22,7 @@ train_dataset, valid_dataset, test_dataset = delaney_datasets
 # Fit models
 metric = dc.metrics.Metric(dc.metrics.pearson_r2_score, np.mean)
 
-model = dc.models.TensorGraphMultiTaskRegressor(
+model = dc.models.MultiTaskRegressor(
     len(delaney_tasks),
     n_features,
     layer_sizes=[1000],

@@ -31,7 +31,7 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 model_dir = os.path.join(current_dir, "%s_%s_DNN" % (split, subset))
 
 n_features = train_dataset.X.shape[1]
-model = dc.models.TensorGraphMultiTaskRegressor(
+model = dc.models.MultiTaskRegressor(
     len(pdbbind_tasks),
     n_features,
     logdir=model_dir,

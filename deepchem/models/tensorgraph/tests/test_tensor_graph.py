@@ -388,7 +388,7 @@ class TestTensorGraph(unittest.TestCase):
 
   def test_submodels(self):
     """Test optimizing submodels."""
-    tg = dc.models.TensorGraph(learning_rate=0.1, batch_size=1)
+    tg = dc.models.TensorGraph(learning_rate=0.1, batch_size=1, use_queue=False)
     features = Feature(shape=(None, 1))
     var1 = Variable([2.0])
     var2 = Variable([2.0])
