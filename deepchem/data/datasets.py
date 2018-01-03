@@ -244,8 +244,6 @@ class Dataset(object):
         dy = y - y_means
         y_means += dy / n
         y_m2 += dy * (y - y_means)
-        print(y_means)
-        print(y_m2)
     if n < 2:
       X_stds = 0.0
       y_stds = 0
