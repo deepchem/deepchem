@@ -1,0 +1,71 @@
+{% set name = "mdtraj" %}
+{% set version = "1.9.1" %}
+{% set sha256 = "ca1ae07c5f5ce59940a48388ac9b098f8e22743b5f3ed3f46d5e3d1317b06282" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+build:
+  number: 1
+  script: python setup.py install --single-version-externally-managed --record record.txt --disable-openmp
+  entry_points:
+    - mdconvert = mdtraj.scripts.mdconvert:entry_point
+    - mdinspect = mdtraj.scripts.mdinspect:entry_point
+
+requirements:
+  build:
+    - python {{ environ.get('python_version', '3.5') }}
+    - setuptools
+    - cython
+    - numpy 1.8.*  # [not (win and (py35 or py36))]
+    - numpy 1.9.*  # [win and py35]
+    - numpy 1.11.*  # [win and py36]
+    - zlib 1.2.11
+    - msinttypes  # [win and py27]
+
+  run:
+    - python {{ environ.get('python_version', '3.5') }}
+    - setuptools
+    - numpy >=1.8  # [not (win and (py35 or py36))]
+    - numpy >=1.9  # [win and py35]
+    - numpy >=1.11  # [win and py36]
+    - scipy
+    - pandas
+    - pytables
+    - zlib 1.2.11
+
+test:
+  imports:
+    - mdtraj
+  commands:
+    - mdconvert -h
+    - mdinspect -h
+    - conda inspect linkages -p $PREFIX $PKG_NAME  # [not win]
+    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+
+about:
+  home: https://github.com/mdtraj/mdtraj
+  license: LGPL-2.1
+  summary: "A modern, open library for the analysis of molecular dynamics trajectories"
+  description: |
+    This is a build of MDTraj without openmp.  This is needed to run on older linux
+    kernels alongside tensorflow 1.4.0 from conda-forge.  Full discussion
+    https://github.com/deepchem/deepchem/issues/960
+
+    MDTraj is a python library that allows users to manipulate molecular dynamics
+    (MD) trajectories and perform a variety of analyses, including fast RMSD,
+    solvent accessible surface area, hydrogen bonding, etc. A highlight of MDTraj
+    is the wide variety of molecular dynamics trajectory file formats which are
+    supported, including RCSB pdb, GROMACS xtc, tng, and trr, CHARMM / NAMD dcd, AMBER
+    binpos, AMBER NetCDF, AMBER mdcrd, TINKER arc and MDTraj HDF5.
+  doc_url: http://mdtraj.org/
+  dev_url: https://github.com/mdtraj/mdtraj
+
+extra:
+  recipe-maintainers:
+    - rmcgibbo
+    - mpharrigan
