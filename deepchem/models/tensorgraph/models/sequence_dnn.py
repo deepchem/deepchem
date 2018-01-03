@@ -10,6 +10,7 @@ from deepchem.models import Sequential
 from deepchem.models.tensorgraph import layers
 from deepchem.data import NumpyDataset
 
+
 class SequenceDNN(Sequential):
   """
   Sequence DNN models.
