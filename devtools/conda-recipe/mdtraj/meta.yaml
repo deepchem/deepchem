@@ -52,6 +52,10 @@ about:
   license: LGPL-2.1
   summary: "A modern, open library for the analysis of molecular dynamics trajectories"
   description: |
+    This is a build of MDTraj without openmp.  This is needed to run on older linux
+    kernels alongside tensorflow 1.4.0 from conda-forge.  Full discussion
+    https://github.com/deepchem/deepchem/issues/960
+
     MDTraj is a python library that allows users to manipulate molecular dynamics
     (MD) trajectories and perform a variety of analyses, including fast RMSD,
     solvent accessible surface area, hydrogen bonding, etc. A highlight of MDTraj
