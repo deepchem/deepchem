@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
 
-from molnet import load_delaney
+from deepchem.molnet import load_delaney
 from trans.transformers import FeaturizationTransformer
 
 __author__ = "Bharath Ramsundar"
