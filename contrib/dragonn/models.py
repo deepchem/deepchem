@@ -7,13 +7,7 @@ import sys
 import tempfile
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
-from abc import abstractmethod, ABCMeta
 from dragonn.metrics import ClassificationResult
-from sklearn.svm import SVC as scikit_SVC
-from sklearn.tree import DecisionTreeClassifier as scikit_DecisionTree
-from sklearn.ensemble import RandomForestClassifier
-from keras.models import model_from_json
-from keras.models import Sequential
 from keras.layers.core import (Activation, Dense, Dropout, Flatten, Permute,
                                 Reshape, TimeDistributedDense)
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
@@ -23,28 +17,6 @@ from keras.layers.core import (Activation, Dense, Flatten,
                                 TimeDistributedDense)
 from keras.layers.recurrent import GRU
 from keras.callbacks import EarlyStopping
-
-
-#class Model(object):
-#  __metaclass__ = ABCMeta
-#
-#  @abstractmethod
-#  def __init__(self, **hyperparameters):
-#    pass
-#
-#  @abstractmethod
-#  def train(self, X, y, validation_data):
-#    pass
-#
-#  @abstractmethod
-#  def predict(self, X):
-#    pass
-#
-#  def test(self, X, y):
-#    return ClassificationResult(y, self.predict(X))
-#
-#  def score(self, X, y, metric):
-#    return self.test(X, y)[metric]
 
 
 #class SequenceDNN(Model):
@@ -453,38 +425,3 @@ class gkmSVM(Model):
     y = np.array([line.split()[-1] for line in temp_ofp], dtype=float)
     temp_ofp.close()
     return np.expand_dims(y, 1)
-
-
-class SVC(Model):
-
-  def __init__(self):
-    self.classifier = scikit_SVC(probability=True, kernel='linear')
-
-  def train(self, X, y, validation_data=None):
-    self.classifier.fit(X, y)
-
-  def predict(self, X):
-    return self.classifier.predict_proba(X)[:, 1:]
-
-
-class DecisionTree(Model):
-
-  def __init__(self):
-    self.classifier = scikit_DecisionTree()
-
-  def train(self, X, y, validation_data=None):
-    self.classifier.fit(X, y)
-
-  def predict(self, X):
-    predictions = np.asarray(self.classifier.predict_proba(X))[..., 1]
-    if len(predictions.shape) == 2:  # multitask
-      predictions = predictions.T
-    else:  # single-task
-      predictions = np.expand_dims(predictions, 1)
-    return predictions
-
-
-class RandomForest(DecisionTree):
-
-  def __init__(self):
-    self.classifier = RandomForestClassifier(n_estimators=100)
