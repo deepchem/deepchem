@@ -1,12 +1,12 @@
 """
 Tests for transformer objects. 
 """
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 from deepchem.molnet import load_delaney
-from trans.transformers import FeaturizationTransformer
+from deepchem.trans.transformers import FeaturizationTransformer
 
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
@@ -17,7 +17,6 @@ import unittest
 import numpy as np
 import pandas as pd
 import deepchem as dc
-import numpy.random as random
 
 
 class TestTransformers(unittest.TestCase):
