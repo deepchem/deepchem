@@ -1110,8 +1110,8 @@ class ANITransformer(Transformer):
     f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
 
     # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-    vector_mul = tf.reduce_sum(tf.stack([vector_distances]*max_atoms, axis=3) * \
-        tf.stack([vector_distances]*max_atoms, axis=2), axis=4)
+    vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
+                               tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
     vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
     theta = tf.acos(tf.div(vector_mul, R_ij * R_ik + 1e-5))
 
@@ -1121,8 +1121,8 @@ class ANITransformer(Transformer):
     f_R_ik = tf.stack([f_R_ik] * length, axis=4)
     theta = tf.stack([theta] * length, axis=4)
 
-    out_tensor = tf.pow((1. + tf.cos(theta - thetas))/2., zeta) * \
-        tf.exp(-ita * tf.square((R_ij + R_ik)/2. - Rs)) * f_R_ij * f_R_ik * 2
+    out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
+                 tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
 
     if self.atomic_number_differentiated:
       out_tensors = []
@@ -1141,3 +1141,30 @@ class ANITransformer(Transformer):
   def get_num_feats(self):
     n_feat = self.outputs.get_shape().as_list()[-1]
     return n_feat
+
+
+class FeaturizationTransformer(Transformer):
+  """
+  A transformer which runs a featurizer over the X values of a dataset.
+  Datasets used by this transformer must have rdkit.mol objects as the X
+  values
+  """
+
+  def __init__(self,
+               transform_X=False,
+               transform_y=False,
+               transform_w=False,
+               dataset=None,
+               featurizer=None):
+    self.featurizer = featurizer
+    if not transform_X:
+      raise ValueError("FeaturizingTransfomer can only be used on X")
+    super(FeaturizationTransformer, self).__init__(
+        transform_X=transform_X,
+        transform_y=transform_y,
+        transform_w=transform_w,
+        dataset=dataset)
+
+  def transform_array(self, X, y, w):
+    X = self.featurizer.featurize(X)
+    return X, y, w
