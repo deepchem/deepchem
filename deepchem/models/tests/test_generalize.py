@@ -273,6 +273,7 @@ class TestGeneralize(unittest.TestCase):
     for score in scores[regression_metric.name]:
       assert score < 50
 
+  @attr('slow')
   def test_xgboost_classification(self):
     """Test that sklearn models can learn on simple classification datasets."""
     import xgboost
